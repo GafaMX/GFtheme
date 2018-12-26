@@ -1,0 +1,20 @@
+.staff-item-picture{
+    width: 80%
+}
+
+.service-item-pic{
+    width: 80%
+}
+
+.parent-service-item-pic{
+    width: 80%
+}
+
+.login {
+    padding: 60px 0;
+}
+
+.login form {
+    margin: 0 auto;
+    max-width: 320px;
+}
