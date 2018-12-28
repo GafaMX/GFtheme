@@ -8,11 +8,14 @@ export default {
     VALIDATION_EMAIL: 'no es válido. Verifique la @ y que tenga un dominio correcto.',
     VALIDATION_PASSWORD: 'es muy corto. Use 6 o más caracteres.',
     THE_FIELD: 'El campo ',
-    LOGIN_SUCCESS: 'Se ha logueado correctamente',
+    LOGIN_SUCCESS: 'Ha iniciado sesión correctamente',
     LABEL_EMAIL: 'Correo electrónico',
     LABEL_PASSWORD: 'Contraseña',
     TO_VALIDATION:{
         email: 'correo',
         password: 'contraseña',
-    }
+    },
+    EXPIRE_IN: "Expira en",
+    DAYS: "días"
+
 }

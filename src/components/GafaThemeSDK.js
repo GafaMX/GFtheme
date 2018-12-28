@@ -6,6 +6,7 @@ import ServiceList from "./service/ServiceList";
 import StaffList from "./staff/StaffList";
 import Login from "./auth/Login";
 import GafaFitSDKWrapper from "./utils/GafaFitSDKWrapper";
+import ComboList from "./combo/ComboList";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
@@ -17,7 +18,8 @@ class GafaThemeSDK extends React.Component {
             list: result.data,
             currentPage: result.current_page,
             lastPage: result.last_page,
-            perPage: result.per_page
+            perPage: result.per_page,
+            total: result.total
         };
     }
 
@@ -39,6 +41,13 @@ class GafaThemeSDK extends React.Component {
         GafaFitSDKWrapper.getServiceList(function(result){
             let props = GafaThemeSDK.propsForPagedListComponent(result);
             GafaThemeSDK.renderElementIntoContainer(selector, ServiceList, props);
+        });
+    };
+
+    static renderComboList(selector) {
+        GafaFitSDKWrapper.getComboList(function(result){
+            let props = GafaThemeSDK.propsForPagedListComponent(result);
+            GafaThemeSDK.renderElementIntoContainer(selector, ComboList, props);
         });
     };
 

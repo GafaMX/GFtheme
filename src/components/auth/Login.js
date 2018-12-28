@@ -29,12 +29,10 @@ class Login extends React.Component {
 
         switch (fieldName) {
             case 'email':
-                emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-                fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
+                emailValid = this.validateEmail(value, fieldValidationErrors);
                 break;
             case 'password':
-                passwordValid = value.length >= 6;
-                fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
+                passwordValid = this.validatePassword(value, fieldValidationErrors);
                 break;
             default:
                 break;
@@ -46,11 +44,23 @@ class Login extends React.Component {
         }, this.validateForm);
     }
 
+    validatePassword(value, fieldValidationErrors) {
+        let passwordValid = value.length >= 6;
+        fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
+        return passwordValid;
+    }
+
+    validateEmail(value, fieldValidationErrors) {
+        let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
+        fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
+        return emailValid;
+    }
+
     validateForm() {
         this.setState({formValid: this.state.emailValid && this.state.passwordValid});
     }
 
-    handleChange(event) {
+    handleChangeField(event) {
         let fieldName = event.target.id;
         let fieldValue = event.target.value;
         this.setState({
@@ -62,16 +72,32 @@ class Login extends React.Component {
 
     handleSubmit(event) {
         event.preventDefault();
-        let elem = this;
-        elem.setState({serverError: ''});
+        let currentElement = this;
+        currentElement.setState({serverError: ''});
         GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
-            function (result) {
-                elem.setState({logged: true});
-            },
-            function (error) {
-                elem.setState({serverError: error});
-            });
+            currentElement.successLoginCallback.bind(this),
+            currentElement.errorLoginCallback.bind(this));
     };
+
+    successLoginCallback(result){
+        this.setState({logged: true});
+        if (this.props.setShowLogin) {
+            this.props.setShowLogin(false);
+        }
+        if (window.GFtheme.combo_id != null) {
+            this.buyComboAfterLogin();
+        }
+    }
+
+    errorLoginCallback(error){
+        this.setState({serverError: error});
+    }
+
+    buyComboAfterLogin() {
+        GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
+            window.GFtheme.combo_id = null;
+        });
+    }
 
     render() {
         return (
@@ -83,14 +109,14 @@ class Login extends React.Component {
                             autoFocus
                             type="email"
                             value={this.state.email}
-                            onChange={this.handleChange.bind(this)}
+                            onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <FormGroup controlId="password" bsSize="large">
                         <ControlLabel>{Strings.LABEL_PASSWORD}</ControlLabel>
                         <FormControl
                             value={this.state.password}
-                            onChange={this.handleChange.bind(this)}
+                            onChange={this.handleChangeField.bind(this)}
                             type="password"
                         />
                     </FormGroup>

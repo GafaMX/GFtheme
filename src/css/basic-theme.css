@@ -1,12 +1,12 @@
-.staff-item-picture{
+.staff-item-picture {
     width: 80%
 }
 
-.service-item-pic{
+.service-item-pic {
     width: 80%
 }
 
-.parent-service-item-pic{
+.parent-service-item-pic {
     width: 80%
 }
 
@@ -17,4 +17,12 @@
 .login form {
     margin: 0 auto;
     max-width: 320px;
+}
+
+.combo-item-discount {
+    text-decoration-line: line-through;
+}
+
+.combo-item{
+    cursor: pointer;
 }
