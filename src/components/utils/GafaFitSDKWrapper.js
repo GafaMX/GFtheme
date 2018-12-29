@@ -58,6 +58,25 @@ class GafaFitSDKWrapper extends React.Component {
         });
     };
 
+    static getMembershipList(callback) {
+        let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
+        GafaFitSDKWrapper.getMe(function () {
+            if (window.GFtheme.me != null) {
+                functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
+            }
+            functionToRetrieveMemberships(
+                window.GFtheme.brand, {
+                    'only_actives': true,
+                    'propagate': true
+                }, function (error, result) {
+                    if (error === null) {
+                        callback(result);
+                    }
+                }
+            );
+        });
+    };
+
     static getFancyForBuyCombo(combos_id, callback) {
         GafaFitSDKWrapper.getMe(function () {
             GafaFitSDK.GetCreateReservationForm(
@@ -67,6 +86,24 @@ class GafaFitSDKWrapper extends React.Component {
                 "#fancy",
                 {
                     'combos_id': combos_id,
+                }, function (error, result) {
+                    if (error === null) {
+                        callback(result);
+                    }
+                }
+            );
+        });
+    };
+
+    static getFancyForBuyMembership(memberships_id, callback) {
+        GafaFitSDKWrapper.getMe(function () {
+            GafaFitSDK.GetCreateReservationForm(
+                window.GFtheme.brand,
+                window.GFtheme.location,
+                window.GFtheme.me.id,
+                "#fancy",
+                {
+                    'memberships_id': memberships_id,
                 }, function (error, result) {
                     if (error === null) {
                         callback(result);

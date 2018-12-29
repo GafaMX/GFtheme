@@ -1,10 +1,10 @@
 'use strict';
 
 import React from "react";
-import ComboItem from "./ComboItem";
+import MembershipItem from "./MembershipItem";
 import Login from "../auth/Login";
 
-class ComboList extends React.Component {
+class MembershipList extends React.Component {
     constructor(props) {
         super(props);
 
@@ -20,19 +20,18 @@ class ComboList extends React.Component {
     }
 
     render() {
-        const listItems = this.props.list.map((combo) =>
-            <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+        const listItems = this.props.list.map((membership) =>
+            <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
         );
         let layoutToReturn =
             <div >
-                <h1 className={["display-4", "container", "text-center"].join(" ")}>Paquetes</h1>
-                <div className={["combo-list", "container"].join(" ")}>
+                <h1 className={["display-4", "container", "text-center"].join(" ")}>Membresías</h1>
+                <div className={["membership-list", "container"].join(" ")}>
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
                         {listItems}
                     </div>
                 </div>
             </div>;
-
         if (this.state.showLogin) {
             layoutToReturn = <Login setShowLogin={this.setShowLogin.bind(this)}/>;
         }
@@ -42,5 +41,5 @@ class ComboList extends React.Component {
     }
 }
 
-export default ComboList;
+export default MembershipList;
 

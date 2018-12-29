@@ -7,6 +7,7 @@ import StaffList from "./staff/StaffList";
 import Login from "./auth/Login";
 import GafaFitSDKWrapper from "./utils/GafaFitSDKWrapper";
 import ComboList from "./combo/ComboList";
+import MembershipList from "./membership/MembershipList";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
@@ -31,23 +32,30 @@ class GafaThemeSDK extends React.Component {
     }
 
     static renderStaffList(selector) {
-        GafaFitSDKWrapper.getStaffList(function(result){
+        GafaFitSDKWrapper.getStaffList(function (result) {
             let props = GafaThemeSDK.propsForPagedListComponent(result);
             GafaThemeSDK.renderElementIntoContainer(selector, StaffList, props);
         });
     };
 
     static renderServiceList(selector) {
-        GafaFitSDKWrapper.getServiceList(function(result){
+        GafaFitSDKWrapper.getServiceList(function (result) {
             let props = GafaThemeSDK.propsForPagedListComponent(result);
             GafaThemeSDK.renderElementIntoContainer(selector, ServiceList, props);
         });
     };
 
     static renderComboList(selector) {
-        GafaFitSDKWrapper.getComboList(function(result){
+        GafaFitSDKWrapper.getComboList(function (result) {
             let props = GafaThemeSDK.propsForPagedListComponent(result);
             GafaThemeSDK.renderElementIntoContainer(selector, ComboList, props);
+        });
+    };
+
+    static renderMembershipList(selector) {
+        GafaFitSDKWrapper.getMembershipList(function (result) {
+            let props = GafaThemeSDK.propsForPagedListComponent(result);
+            GafaThemeSDK.renderElementIntoContainer(selector, MembershipList, props);
         });
     };
 

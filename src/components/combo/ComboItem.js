@@ -32,43 +32,50 @@ class ComboItem extends React.Component {
         this.props.setShowLogin(true);
     }
 
-    getParentServicesListForCombo() {
-        const parentServicesListForCombo = this.props.combo.credit.services.map(function (service) {
-                return service.service_parent;
-            }
-        ).filter(function (el) {
-            return el != null;
-        }).join(", ");
-        return parentServicesListForCombo;
-    }
+    getServicesAndParentsForCombo() {
+        let servicesAndParentsForCombo = [];
+        servicesAndParentsForCombo['services'] = "";
+        servicesAndParentsForCombo['parents'] = "";
 
-    getServicesListForCombo() {
-        const servicesListForCombo = this.props.combo.credit.services.map(function (service) {
-                return service.category;
+        this.props.combo.credit.services.forEach(function (service) {
+                if (service.category != null && !servicesAndParentsForCombo['services'].includes(service.category)) {
+                    servicesAndParentsForCombo['services'] === "" ? servicesAndParentsForCombo['services'] += service.category :
+                        servicesAndParentsForCombo['services'] += ", " + service.category;
+                }
+
+                if (service.service_parent != null && !servicesAndParentsForCombo['parents'].includes(service.service_parent)) {
+                    servicesAndParentsForCombo['parents'] === "" ? servicesAndParentsForCombo['parents'] += service.service_parent :
+                        servicesAndParentsForCombo['parents'] += ", " + service.service_parent;
+                }
+
             }
-        ).filter(function (el) {
-            return el != null;
-        }).join(", ");
-        return servicesListForCombo;
+        );
+        return servicesAndParentsForCombo;
     }
 
     render() {
-        const servicesListForCombo = this.getServicesListForCombo();
-        const parentServicesListForCombo = this.getParentServicesListForCombo();
+        const services = this.getServicesAndParentsForCombo();
         return (
-            <div className={["combo-item", "col-md-4"].join(" ")} onClick={this.handleClick.bind(this)}>
-                <p className="combo-item-name">{this.props.combo.name}</p>
-                {this.props.combo.short_description &&
-                <p className="combo-item-short-description">{this.props.combo.short_description}</p>}
-                {this.props.combo.description &&
-                <p className="combo-item-description">{this.props.combo.description}</p>}
-                {this.props.combo.has_discount &&
-                <p className="combo-item-discount">$ {this.props.combo.price}</p>
-                }
-                <p className="combo-item-price">$ {this.props.combo.price_final}</p>
-                <p className="combo-item-services">{servicesListForCombo}</p>
-                <p className="combo-item-parent-services">{parentServicesListForCombo}</p>
-                <p className="combo-item-expiration">{Strings.EXPIRE_IN} {this.props.combo.expiration_days} {Strings.DAYS} </p>
+            <div className={["combo-item", "mb-4", "mr-2", "ml-2", "card", "shadow-sm"].join(" ")}
+                 onClick={this.handleClick.bind(this)}>
+                <div className="card-header">
+                    <h4 className="combo-item-name">{this.props.combo.name}</h4>
+                </div>
+                <div className="card-body">
+                    {this.props.combo.short_description &&
+                    <p className="combo-item-short-description">{this.props.combo.short_description}</p>}
+                    {this.props.combo.description &&
+                    <p className="combo-item-description">{this.props.combo.description}</p>}
+                    {this.props.combo.has_discount &&
+                    <h2 className={["combo-item-discount", "text-muted", "font-weight-normal"].join(" ")}>
+                        $ {this.props.combo.price}</h2>
+                    }
+                    <h2 className={["pricing-card-title", "combo-item-price", "font-weight-normal"].join(" ")}>
+                        $ {this.props.combo.price_final}</h2>
+                    <p className="combo-item-services">{services['services']}</p>
+                    <p className="combo-item-parent-services">{services['parents']}</p>
+                    <p className="combo-item-expiration">{Strings.EXPIRE_IN} {this.props.combo.expiration_days} {Strings.DAYS} </p>
+                </div>
             </div>
         );
     }

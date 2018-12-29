@@ -26,3 +26,11 @@
 .combo-item{
     cursor: pointer;
 }
+
+.membership-item-discount {
+    text-decoration-line: line-through;
+}
+
+.membership-item{
+    cursor: pointer;
+}
