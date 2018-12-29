@@ -16,6 +16,8 @@ export default {
         password: 'contraseña',
     },
     EXPIRE_IN: "Expira en",
-    DAYS: "días"
+    DAYS: "días",
+    MEMBERSHIPS: "Membresías",
+    COMBOS: "Paquetes"
 
 }

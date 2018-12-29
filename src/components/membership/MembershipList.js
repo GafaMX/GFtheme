@@ -3,6 +3,7 @@
 import React from "react";
 import MembershipItem from "./MembershipItem";
 import Login from "../auth/Login";
+import Strings from "../utils/Strings/Strings_ES";
 
 class MembershipList extends React.Component {
     constructor(props) {
@@ -25,7 +26,7 @@ class MembershipList extends React.Component {
         );
         let layoutToReturn =
             <div >
-                <h1 className={["display-4", "container", "text-center"].join(" ")}>Membresías</h1>
+                <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.MEMBERSHIPS}</h1>
                 <div className={["membership-list", "container"].join(" ")}>
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
                         {listItems}
