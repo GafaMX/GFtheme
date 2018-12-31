@@ -5,4 +5,4 @@ import 'jquery/dist/jquery.min';
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 
 GafaFitSDKWrapper.initValues();
-GafaThemeSDK.renderMembershipList('#test');
+GafaThemeSDK.renderServiceList('#test');

@@ -58,25 +58,27 @@ class MembershipItem extends React.Component {
     render() {
         const services = this.getServicesAndParentsForMembership();
         return (
-            <div className={["membership-item", "mb-4", "mr-2", "ml-2", "card", "shadow-sm"].join(" ")}
-                 onClick={this.handleClick.bind(this)}>
-                <div className="card-header">
-                    <h4 className={["membership-item-name", "my-0", "font-weight-normal"].join(" ")}>{this.props.membership.name}</h4>
-                </div>
-                <div className="card-body">
-                    {this.props.membership.short_description &&
-                    <p className="membership-item-short-description">{this.props.membership.short_description}</p>}
-                    {this.props.membership.description &&
-                    <p className="membership-item-description">{this.props.membership.description}</p>}
-                    {this.props.membership.has_discount &&
-                    <h2 className={["membership-item-discount", "text-muted", "font-weight-normal"].join(" ")}>
-                        $ {this.props.membership.price}</h2>
-                    }
-                    <h2 className={["pricing-card-title", "membership-item-price", "font-weight-normal"].join(" ")}>
-                        $ {this.props.membership.price_final}</h2>
-                    <p className="membership-item-services">{services['services']}</p>
-                    <p className="membership-item-parent-services">{services['parents']}</p>
-                    <p className="membership-item-expiration">{Strings.EXPIRE_IN} {this.props.membership.expiration_days} {Strings.DAYS} </p>
+            <div className={["membership-item-container", "col-md-4"].join(" ")}>
+                <div className={["membership-item", "mb-4", "card", "shadow-sm"].join(" ")}
+                     onClick={this.handleClick.bind(this)}>
+                    <div className="card-header">
+                        <h4 className={["membership-item-name", "my-0", "font-weight-normal"].join(" ")}>{this.props.membership.name}</h4>
+                    </div>
+                    <div className="card-body">
+                        {this.props.membership.short_description &&
+                        <p className="membership-item-short-description">{this.props.membership.short_description}</p>}
+                        {this.props.membership.description &&
+                        <p className="membership-item-description">{this.props.membership.description}</p>}
+                        {this.props.membership.has_discount &&
+                        <h2 className={["membership-item-discount", "text-muted", "font-weight-normal"].join(" ")}>
+                            $ {this.props.membership.price}</h2>
+                        }
+                        <h2 className={["pricing-card-title", "membership-item-price", "font-weight-normal"].join(" ")}>
+                            $ {this.props.membership.price_final}</h2>
+                        <p className="membership-item-services">{services['services']}</p>
+                        <p className="membership-item-parent-services">{services['parents']}</p>
+                        <p className="membership-item-expiration">{Strings.EXPIRE_IN} {this.props.membership.expiration_days} {Strings.DAYS} </p>
+                    </div>
                 </div>
             </div>
         );

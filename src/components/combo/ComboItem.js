@@ -56,25 +56,27 @@ class ComboItem extends React.Component {
     render() {
         const services = this.getServicesAndParentsForCombo();
         return (
-            <div className={["combo-item", "mb-4", "mr-2", "ml-2", "card", "shadow-sm"].join(" ")}
-                 onClick={this.handleClick.bind(this)}>
-                <div className="card-header">
-                    <h4 className="combo-item-name">{this.props.combo.name}</h4>
-                </div>
-                <div className="card-body">
-                    {this.props.combo.short_description &&
-                    <p className="combo-item-short-description">{this.props.combo.short_description}</p>}
-                    {this.props.combo.description &&
-                    <p className="combo-item-description">{this.props.combo.description}</p>}
-                    {this.props.combo.has_discount &&
-                    <h2 className={["combo-item-discount", "text-muted", "font-weight-normal"].join(" ")}>
-                        $ {this.props.combo.price}</h2>
-                    }
-                    <h2 className={["pricing-card-title", "combo-item-price", "font-weight-normal"].join(" ")}>
-                        $ {this.props.combo.price_final}</h2>
-                    <p className="combo-item-services">{services['services']}</p>
-                    <p className="combo-item-parent-services">{services['parents']}</p>
-                    <p className="combo-item-expiration">{Strings.EXPIRE_IN} {this.props.combo.expiration_days} {Strings.DAYS} </p>
+            <div className={["combo-item-container", "col-md-4"].join(" ")}>
+                <div className={["combo-item", "mb-4", "card", "shadow-sm"].join(" ")}
+                     onClick={this.handleClick.bind(this)}>
+                    <div className="card-header">
+                        <h4 className="combo-item-name">{this.props.combo.name}</h4>
+                    </div>
+                    <div className="card-body">
+                        {this.props.combo.short_description &&
+                        <p className="combo-item-short-description">{this.props.combo.short_description}</p>}
+                        {this.props.combo.description &&
+                        <p className="combo-item-description">{this.props.combo.description}</p>}
+                        {this.props.combo.has_discount &&
+                        <h2 className={["combo-item-discount", "text-muted", "font-weight-normal"].join(" ")}>
+                            $ {this.props.combo.price}</h2>
+                        }
+                        <h2 className={["pricing-card-title", "combo-item-price", "font-weight-normal"].join(" ")}>
+                            $ {this.props.combo.price_final}</h2>
+                        <p className="combo-item-services">{services['services']}</p>
+                        <p className="combo-item-parent-services">{services['parents']}</p>
+                        <p className="combo-item-expiration">{Strings.EXPIRE_IN} {this.props.combo.expiration_days} {Strings.DAYS} </p>
+                    </div>
                 </div>
             </div>
         );

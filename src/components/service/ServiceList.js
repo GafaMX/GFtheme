@@ -2,6 +2,7 @@
 
 import React from "react";
 import ServiceItem from "./ServiceItem";
+import Strings from "../utils/Strings/Strings_ES";
 
 class ServiceList extends React.Component {
     constructor(props) {
@@ -13,9 +14,12 @@ class ServiceList extends React.Component {
             <ServiceItem key={service.id} service={service}/>
         );
         return (
-            <div className={["service-list", "container"].join(" ")}>
-                <div className={["row"].join(" ")}>
-                    {listItems}
+            <div>
+                <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.SERVICE_LIST}</h1>
+                <div className={["service-list", "container"].join(" ")}>
+                    <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
+                        {listItems}
+                    </div>
                 </div>
             </div>
         );

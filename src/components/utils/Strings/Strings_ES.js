@@ -18,6 +18,7 @@ export default {
     EXPIRE_IN: "Expira en",
     DAYS: "días",
     MEMBERSHIPS: "Membresías",
-    COMBOS: "Paquetes"
-
+    COMBOS: "Paquetes",
+    STAFF_LIST: "Instructores",
+    SERVICE_LIST: "Servicios"
 }
