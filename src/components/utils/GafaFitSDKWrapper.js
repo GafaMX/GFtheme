@@ -127,12 +127,38 @@ class GafaFitSDKWrapper extends React.Component {
                 if (error != null) {
                     let errorToPrint = Object.keys(error).map(function (key) {
                         return error[key];
-                    }).join(" ");
+                    }).join(". ");
                     errorCallback(errorToPrint);
                 } else {
                     GafaFitSDKWrapper.getMe(function () {
                         successCallback(result)
                     });
+                }
+            }
+        );
+    };
+
+    static postRegister(params, successCallback, errorCallback) {
+        let options = {};
+        options.last_name = params.last_name;
+        options.password = 'password';
+        options.scope = '*';
+        GafaFitSDK.PostRegister(
+            3,
+            "rh9}UJA<7,H7d!T27&a9.9ZXQsCf&CS/[jik==c&",
+            params.email,
+            params.password,
+            params.passwordConfirmation,
+            params.first_name,
+            options,
+            function (error, result) {
+                if (error != null) {
+                    let errorToPrint = Object.keys(error).map(function (key) {
+                        return error[key];
+                    }).join(". ");
+                    errorCallback(errorToPrint);
+                } else {
+                    successCallback(result)
                 }
             }
         );
@@ -158,7 +184,7 @@ class GafaFitSDKWrapper extends React.Component {
                 if (error != null) {
                     let errorToPrint = Object.keys(error).map(function (key) {
                         return error[key];
-                    }).join(" ");
+                    }).join(". ");
                     errorCallback(errorToPrint);
                 } else {
                     window.GFtheme.me = null;

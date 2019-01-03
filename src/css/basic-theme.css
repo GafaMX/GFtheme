@@ -19,6 +19,15 @@
     max-width: 320px;
 }
 
+.register {
+    padding: 60px 0;
+}
+
+.register form {
+    margin: 0 auto;
+    max-width: 320px;
+}
+
 .combo-item-discount {
     text-decoration-line: line-through;
 }

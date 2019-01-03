@@ -8,6 +8,7 @@ import Login from "./auth/Login";
 import GafaFitSDKWrapper from "./utils/GafaFitSDKWrapper";
 import ComboList from "./combo/ComboList";
 import MembershipList from "./membership/MembershipList";
+import Register from "./auth/Register";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
@@ -61,6 +62,10 @@ class GafaThemeSDK extends React.Component {
 
     static renderLogin(selector) {
         GafaThemeSDK.renderElementIntoContainer(selector, Login, {});
+    };
+
+    static renderRegister(selector) {
+        GafaThemeSDK.renderElementIntoContainer(selector, Register, {});
     };
 }
 

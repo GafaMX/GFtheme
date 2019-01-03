@@ -6,7 +6,7 @@ export const FormErrors = ({formErrors}) =>
         {Object.keys(formErrors).map((fieldName, i) => {
             if (formErrors[fieldName].length > 0) {
                 return (
-                    <p key={i}>{Strings.THE_FIELD} {Strings.TO_VALIDATION[fieldName]} {formErrors[fieldName]}</p>
+                    <small key={i}>{Strings.THE_FIELD} {Strings.TO_VALIDATION[fieldName]} {formErrors[fieldName]}</small>
                 )
             } else {
                 return '';

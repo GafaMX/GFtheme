@@ -6,33 +6,57 @@ import {FormErrors} from "./FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 
-class Login extends React.Component {
+class Register extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
             email: "",
             password: "",
-            formErrors: {email: '', password: ''},
+            passwordConfirmation: "",
+            fullName: "",
+            first_name: "",
+            last_name: "",
+            formErrors: {email: '', password: '', passwordConfirmation: '', fullName: ''},
             emailValid: false,
             passwordValid: false,
+            passwordConfirmationValid: false,
+            fullNameValid: false,
             formValid: false,
             serverError: '',
-            logged: false
+            registered: false
         };
+    }
+
+    splitFullName(value) {
+        let splittedNames = value.split(" ");
+        let middleOfTheNames = Math.floor(splittedNames.length / 2);
+        middleOfTheNames = middleOfTheNames !== 0 ? middleOfTheNames : 1;
+        let firstName = splittedNames.slice(0, middleOfTheNames).join(" ");
+        let lastName = splittedNames.slice(middleOfTheNames, splittedNames.length).join(" ");
+        this.setState({first_name: firstName, last_name: lastName});
     }
 
     validateField(fieldName, value) {
         let fieldValidationErrors = this.state.formErrors;
         let emailValid = this.state.emailValid;
         let passwordValid = this.state.passwordValid;
+        let passwordConfirmationValid = this.state.passwordConfirmationValid;
+        let fullNameValid = this.state.fullNameValid;
 
         switch (fieldName) {
+            case 'fullName':
+                fullNameValid = this.validateFullName(value, fieldValidationErrors);
+                this.splitFullName(value);
+                break;
             case 'email':
                 emailValid = this.validateEmail(value, fieldValidationErrors);
                 break;
             case 'password':
                 passwordValid = this.validatePassword(value, fieldValidationErrors);
+                break;
+            case 'passwordConfirmation':
+                passwordConfirmationValid = this.validatePasswordConfirmation(value, fieldValidationErrors);
                 break;
             default:
                 break;
@@ -40,7 +64,9 @@ class Login extends React.Component {
         this.setState({
             formErrors: fieldValidationErrors,
             emailValid: emailValid,
-            passwordValid: passwordValid
+            passwordValid: passwordValid,
+            passwordConfirmationValid: passwordConfirmationValid,
+            fullNameValid: fullNameValid
         }, this.validateForm);
     }
 
@@ -50,14 +76,30 @@ class Login extends React.Component {
         return passwordValid;
     }
 
+    validatePasswordConfirmation(value, fieldValidationErrors) {
+        let passwordConfirmationValid = value === this.state.password;
+        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : Strings.VALIDATION_EQUAL_PASSWORDS;
+        return passwordConfirmationValid;
+    }
+
     validateEmail(value, fieldValidationErrors) {
         let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
         fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
         return emailValid;
     }
 
+    validateFullName(value, fieldValidationErrors) {
+        let fullNameValid = value !== '' && value !== null;
+        fieldValidationErrors.fullName = fullNameValid ? '' : Strings.VALIDATION_FULL_NAME;
+        return fullNameValid;
+    }
+
     validateForm() {
-        this.setState({formValid: this.state.emailValid && this.state.passwordValid});
+        this.setState(
+            {
+                formValid: this.state.emailValid && this.state.passwordValid && this.state.passwordConfirmationValid &&
+                this.state.fullNameValid
+            });
     }
 
     handleChangeField(event) {
@@ -68,45 +110,41 @@ class Login extends React.Component {
         }, () => {
             this.validateField(fieldName, fieldValue)
         });
-    };
+    }
 
     handleSubmit(event) {
         event.preventDefault();
         let currentElement = this;
         currentElement.setState({serverError: ''});
-        GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
-            currentElement.successLoginCallback.bind(this),
-            currentElement.errorLoginCallback.bind(this));
-    };
-
-    successLoginCallback(result){
-        this.setState({logged: true});
-        if (this.props.setShowLogin) {
-            this.props.setShowLogin(false);
-        }
-        if (window.GFtheme.combo_id != null) {
-            this.buyComboAfterLogin();
-        }
+        GafaFitSDKWrapper.postRegister(this.state,
+            currentElement.successRegisterCallback.bind(this),
+            currentElement.errorRegisterCallback.bind(this));
     }
 
-    errorLoginCallback(error){
+    successRegisterCallback(result) {
+        this.setState({registered: true});
+    }
+
+    errorRegisterCallback(error) {
         this.setState({serverError: error});
-    }
-
-    buyComboAfterLogin() {
-        GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
-            window.GFtheme.combo_id = null;
-        });
     }
 
     render() {
         return (
-            <div className="login">
+            <div className="register">
                 <form onSubmit={this.handleSubmit.bind(this)}>
+                    <FormGroup controlId="fullName" bsSize="large">
+                        <ControlLabel>{Strings.LABEL_FULL_NAME}</ControlLabel>
+                        <FormControl
+                            autoFocus
+                            type="text"
+                            value={this.state.fullName}
+                            onChange={this.handleChangeField.bind(this)}
+                        />
+                    </FormGroup>
                     <FormGroup controlId="email" bsSize="large">
                         <ControlLabel>{Strings.LABEL_EMAIL}</ControlLabel>
                         <FormControl
-                            autoFocus
                             type="email"
                             value={this.state.email}
                             onChange={this.handleChangeField.bind(this)}
@@ -120,6 +158,14 @@ class Login extends React.Component {
                             type="password"
                         />
                     </FormGroup>
+                    <FormGroup controlId="passwordConfirmation" bsSize="large">
+                        <ControlLabel>{Strings.LABEL_PASSWORD_CONFIRM}</ControlLabel>
+                        <FormControl
+                            value={this.state.passwordConfirmation}
+                            onChange={this.handleChangeField.bind(this)}
+                            type="password"
+                        />
+                    </FormGroup>
                     <Button
                         block
                         bsSize="large"
@@ -127,14 +173,14 @@ class Login extends React.Component {
                         disabled={!this.state.formValid}
                         type="submit"
                     >
-                        {Strings.BUTTON_LOGIN}
+                        {Strings.BUTTON_REGISTER}
                     </Button>
                     <div className="panel panel-default mt-4 text-danger">
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     <div className="panel panel-default mt-4 text-success">
-                        {this.state.logged && <small>{Strings.LOGIN_SUCCESS}</small>}
+                        {this.state.registered && <small>{Strings.REGISTER_SUCCESS}</small>}
                     </div>
                 </form>
             </div>
@@ -142,4 +188,4 @@ class Login extends React.Component {
     }
 }
 
-export default Login;
+export default Register;
