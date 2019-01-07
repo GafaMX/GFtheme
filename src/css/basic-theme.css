@@ -10,20 +10,11 @@
     width: 100%
 }
 
-.login {
+.auth {
     padding: 60px 0;
 }
 
-.login form {
-    margin: 0 auto;
-    max-width: 320px;
-}
-
-.register {
-    padding: 60px 0;
-}
-
-.register form {
+.auth form {
     margin: 0 auto;
     max-width: 320px;
 }

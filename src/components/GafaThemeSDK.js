@@ -9,6 +9,7 @@ import GafaFitSDKWrapper from "./utils/GafaFitSDKWrapper";
 import ComboList from "./combo/ComboList";
 import MembershipList from "./membership/MembershipList";
 import Register from "./auth/Register";
+import PasswordForgot from "./auth/PasswordForgot";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
@@ -25,47 +26,71 @@ class GafaThemeSDK extends React.Component {
         };
     }
 
-    static renderElementIntoContainer(containerSelector, elementToRender, props) {
-        const domContainers = document.querySelectorAll(containerSelector);
+    static renderElementIntoContainer(domContainers, elementToRender, props) {
         domContainers.forEach(function (domContainer) {
             ReactDOM.render(React.createElement(elementToRender, props), domContainer);
         });
     }
 
     static renderStaffList(selector) {
-        GafaFitSDKWrapper.getStaffList(function (result) {
-            let props = GafaThemeSDK.propsForPagedListComponent(result);
-            GafaThemeSDK.renderElementIntoContainer(selector, StaffList, props);
-        });
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaFitSDKWrapper.getStaffList(function (result) {
+                let props = GafaThemeSDK.propsForPagedListComponent(result);
+                GafaThemeSDK.renderElementIntoContainer(domContainers, StaffList, props);
+            });
+        }
     };
 
     static renderServiceList(selector) {
-        GafaFitSDKWrapper.getServiceList(function (result) {
-            let props = GafaThemeSDK.propsForPagedListComponent(result);
-            GafaThemeSDK.renderElementIntoContainer(selector, ServiceList, props);
-        });
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaFitSDKWrapper.getServiceList(function (result) {
+                let props = GafaThemeSDK.propsForPagedListComponent(result);
+                GafaThemeSDK.renderElementIntoContainer(domContainers, ServiceList, props);
+            });
+        }
     };
 
     static renderComboList(selector) {
-        GafaFitSDKWrapper.getComboList(function (result) {
-            let props = GafaThemeSDK.propsForPagedListComponent(result);
-            GafaThemeSDK.renderElementIntoContainer(selector, ComboList, props);
-        });
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaFitSDKWrapper.getComboList(function (result) {
+                let props = GafaThemeSDK.propsForPagedListComponent(result);
+                GafaThemeSDK.renderElementIntoContainer(domContainers, ComboList, props);
+            });
+        }
     };
 
     static renderMembershipList(selector) {
-        GafaFitSDKWrapper.getMembershipList(function (result) {
-            let props = GafaThemeSDK.propsForPagedListComponent(result);
-            GafaThemeSDK.renderElementIntoContainer(selector, MembershipList, props);
-        });
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaFitSDKWrapper.getMembershipList(function (result) {
+                let props = GafaThemeSDK.propsForPagedListComponent(result);
+                GafaThemeSDK.renderElementIntoContainer(domContainers, MembershipList, props);
+            });
+        }
     };
 
     static renderLogin(selector) {
-        GafaThemeSDK.renderElementIntoContainer(selector, Login, {});
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaThemeSDK.renderElementIntoContainer(domContainers, Login, {});
+        }
     };
 
     static renderRegister(selector) {
-        GafaThemeSDK.renderElementIntoContainer(selector, Register, {});
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaThemeSDK.renderElementIntoContainer(domContainers, Register, {});
+        }
+    };
+
+    static renderPasswordForgot(selector) {
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaThemeSDK.renderElementIntoContainer(domContainers, PasswordForgot, {});
+        }
     };
 }
 

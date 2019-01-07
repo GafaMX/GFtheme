@@ -83,7 +83,7 @@ class GafaFitSDKWrapper extends React.Component {
                 window.GFtheme.brand,
                 window.GFtheme.location,
                 window.GFtheme.me.id,
-                "#fancy",
+                '[data-gf-theme="fancy"]',
                 {
                     'combos_id': combos_id,
                 }, function (error, result) {
@@ -101,7 +101,7 @@ class GafaFitSDKWrapper extends React.Component {
                 window.GFtheme.brand,
                 window.GFtheme.location,
                 window.GFtheme.me.id,
-                "#fancy",
+                '[data-gf-theme="fancy"]',
                 {
                     'memberships_id': memberships_id,
                 }, function (error, result) {
@@ -151,6 +151,23 @@ class GafaFitSDKWrapper extends React.Component {
             params.passwordConfirmation,
             params.first_name,
             options,
+            function (error, result) {
+                if (error != null) {
+                    let errorToPrint = Object.keys(error).map(function (key) {
+                        return error[key];
+                    }).join(". ");
+                    errorCallback(errorToPrint);
+                } else {
+                    successCallback(result)
+                }
+            }
+        );
+    };
+
+    static postPasswordForgot(params, successCallback, errorCallback) {
+        GafaFitSDK.RequestNewPassword(
+            params.email,
+            params.returnUrl,
             function (error, result) {
                 if (error != null) {
                     let errorToPrint = Object.keys(error).map(function (key) {

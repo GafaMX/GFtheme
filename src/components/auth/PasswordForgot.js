@@ -6,48 +6,29 @@ import {FormErrors} from "./FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 
-class Login extends React.Component {
+class PasswordForgot extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
             email: "",
-            password: "",
-            formErrors: {email: '', password: ''},
+            returnUrl: 'https://localhost:8081',
+            formErrors: {email: ''},
             emailValid: false,
-            passwordValid: false,
             formValid: false,
             serverError: '',
-            logged: false
+            sent: ''
         };
     }
 
     validateField(fieldName, value) {
         let fieldValidationErrors = this.state.formErrors;
-        let emailValid = this.state.emailValid;
-        let passwordValid = this.state.passwordValid;
+        let emailValid = this.validateEmail(value, fieldValidationErrors);
 
-        switch (fieldName) {
-            case 'email':
-                emailValid = this.validateEmail(value, fieldValidationErrors);
-                break;
-            case 'password':
-                passwordValid = this.validatePassword(value, fieldValidationErrors);
-                break;
-            default:
-                break;
-        }
         this.setState({
             formErrors: fieldValidationErrors,
-            emailValid: emailValid,
-            passwordValid: passwordValid
+            emailValid: emailValid
         }, this.validateForm);
-    }
-
-    validatePassword(value, fieldValidationErrors) {
-        let passwordValid = value.length >= 6;
-        fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
-        return passwordValid;
     }
 
     validateEmail(value, fieldValidationErrors) {
@@ -57,7 +38,7 @@ class Login extends React.Component {
     }
 
     validateForm() {
-        this.setState({formValid: this.state.emailValid && this.state.passwordValid});
+        this.setState({formValid: this.state.emailValid});
     }
 
     handleChangeField(event) {
@@ -74,34 +55,22 @@ class Login extends React.Component {
         event.preventDefault();
         let currentElement = this;
         currentElement.setState({serverError: ''});
-        GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
-            currentElement.successLoginCallback.bind(this),
-            currentElement.errorLoginCallback.bind(this));
+        GafaFitSDKWrapper.postPasswordForgot(this.state,
+            currentElement.successPasswordForgotCallback.bind(this),
+            currentElement.errorPasswordForgotCallback.bind(this));
     };
 
-    successLoginCallback(result){
-        this.setState({logged: true});
-        if (this.props.setShowLogin) {
-            this.props.setShowLogin(false);
-        }
-        if (window.GFtheme.combo_id != null) {
-            this.buyComboAfterLogin();
-        }
+    successPasswordForgotCallback(result) {
+        this.setState({sent: true});
     }
 
-    errorLoginCallback(error){
+    errorPasswordForgotCallback(error) {
         this.setState({serverError: error});
-    }
-
-    buyComboAfterLogin() {
-        GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
-            window.GFtheme.combo_id = null;
-        });
     }
 
     render() {
         return (
-            <div className="login auth">
+            <div className="password-forgot auth">
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     <FormGroup controlId="email" bsSize="large">
                         <ControlLabel>{Strings.LABEL_EMAIL}</ControlLabel>
@@ -112,14 +81,6 @@ class Login extends React.Component {
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
-                    <FormGroup controlId="password" bsSize="large">
-                        <ControlLabel>{Strings.LABEL_PASSWORD}</ControlLabel>
-                        <FormControl
-                            value={this.state.password}
-                            onChange={this.handleChangeField.bind(this)}
-                            type="password"
-                        />
-                    </FormGroup>
                     <Button
                         block
                         bsSize="large"
@@ -127,14 +88,14 @@ class Login extends React.Component {
                         disabled={!this.state.formValid}
                         type="submit"
                     >
-                        {Strings.BUTTON_LOGIN}
+                        {Strings.BUTTON_PASSWORD_FORGOT}
                     </Button>
                     <div className="panel panel-default mt-4 text-danger">
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     <div className="panel panel-default mt-4 text-success">
-                        {this.state.logged && <small>{Strings.LOGIN_SUCCESS}</small>}
+                        {this.state.sent && <small>{Strings.PASSWORD_FORGOT_SUCCESS}</small>}
                     </div>
                 </form>
             </div>
@@ -142,4 +103,4 @@ class Login extends React.Component {
     }
 }
 
-export default Login;
+export default PasswordForgot;
