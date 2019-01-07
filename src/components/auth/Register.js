@@ -115,7 +115,7 @@ class Register extends React.Component {
     handleSubmit(event) {
         event.preventDefault();
         let currentElement = this;
-        currentElement.setState({serverError: ''});
+        currentElement.setState({serverError: '', registered: false});
         GafaFitSDKWrapper.postRegister(this.state,
             currentElement.successRegisterCallback.bind(this),
             currentElement.errorRegisterCallback.bind(this));

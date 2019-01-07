@@ -9,7 +9,7 @@ import GafaFitSDKWrapper from "./utils/GafaFitSDKWrapper";
 import ComboList from "./combo/ComboList";
 import MembershipList from "./membership/MembershipList";
 import Register from "./auth/Register";
-import PasswordForgot from "./auth/PasswordForgot";
+import PasswordRecovery from "./auth/PasswordRecovery";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
@@ -26,7 +26,7 @@ class GafaThemeSDK extends React.Component {
         };
     }
 
-    static renderElementIntoContainer(domContainers, elementToRender, props) {
+    static renderElementIntoContainers(domContainers, elementToRender, props) {
         domContainers.forEach(function (domContainer) {
             ReactDOM.render(React.createElement(elementToRender, props), domContainer);
         });
@@ -37,7 +37,7 @@ class GafaThemeSDK extends React.Component {
         if (domContainers.length > 0) {
             GafaFitSDKWrapper.getStaffList(function (result) {
                 let props = GafaThemeSDK.propsForPagedListComponent(result);
-                GafaThemeSDK.renderElementIntoContainer(domContainers, StaffList, props);
+                GafaThemeSDK.renderElementIntoContainers(domContainers, StaffList, props);
             });
         }
     };
@@ -47,7 +47,7 @@ class GafaThemeSDK extends React.Component {
         if (domContainers.length > 0) {
             GafaFitSDKWrapper.getServiceList(function (result) {
                 let props = GafaThemeSDK.propsForPagedListComponent(result);
-                GafaThemeSDK.renderElementIntoContainer(domContainers, ServiceList, props);
+                GafaThemeSDK.renderElementIntoContainers(domContainers, ServiceList, props);
             });
         }
     };
@@ -57,7 +57,7 @@ class GafaThemeSDK extends React.Component {
         if (domContainers.length > 0) {
             GafaFitSDKWrapper.getComboList(function (result) {
                 let props = GafaThemeSDK.propsForPagedListComponent(result);
-                GafaThemeSDK.renderElementIntoContainer(domContainers, ComboList, props);
+                GafaThemeSDK.renderElementIntoContainers(domContainers, ComboList, props);
             });
         }
     };
@@ -67,7 +67,7 @@ class GafaThemeSDK extends React.Component {
         if (domContainers.length > 0) {
             GafaFitSDKWrapper.getMembershipList(function (result) {
                 let props = GafaThemeSDK.propsForPagedListComponent(result);
-                GafaThemeSDK.renderElementIntoContainer(domContainers, MembershipList, props);
+                GafaThemeSDK.renderElementIntoContainers(domContainers, MembershipList, props);
             });
         }
     };
@@ -75,21 +75,21 @@ class GafaThemeSDK extends React.Component {
     static renderLogin(selector) {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaThemeSDK.renderElementIntoContainer(domContainers, Login, {});
+            GafaThemeSDK.renderElementIntoContainers(domContainers, Login, {});
         }
     };
 
     static renderRegister(selector) {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaThemeSDK.renderElementIntoContainer(domContainers, Register, {});
+            GafaThemeSDK.renderElementIntoContainers(domContainers, Register, {});
         }
     };
 
-    static renderPasswordForgot(selector) {
+    static renderPasswordRecovery(selector) {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaThemeSDK.renderElementIntoContainer(domContainers, PasswordForgot, {});
+            GafaThemeSDK.renderElementIntoContainers(domContainers, PasswordRecovery, {});
         }
     };
 }

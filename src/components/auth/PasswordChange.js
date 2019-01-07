@@ -6,41 +6,41 @@ import {FormErrors} from "./FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 
-class Login extends React.Component {
+class PasswordChange extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            email: "",
-            password: "",
-            formErrors: {email: '', password: ''},
-            emailValid: false,
+            formErrors: {password: '', passwordConfirmation: ''},
+            email: this.props.email,
+            token: this.props.token,
             passwordValid: false,
+            passwordConfirmationValid: false,
             formValid: false,
             serverError: '',
-            logged: false
+            passwordChanged: ''
         };
     }
 
     validateField(fieldName, value) {
         let fieldValidationErrors = this.state.formErrors;
-        let emailValid = this.state.emailValid;
         let passwordValid = this.state.passwordValid;
+        let passwordConfirmationValid = this.state.passwordConfirmationValid;
 
         switch (fieldName) {
-            case 'email':
-                emailValid = this.validateEmail(value, fieldValidationErrors);
-                break;
             case 'password':
                 passwordValid = this.validatePassword(value, fieldValidationErrors);
+                break;
+            case 'passwordConfirmation':
+                passwordConfirmationValid = this.validatePasswordConfirmation(value, fieldValidationErrors);
                 break;
             default:
                 break;
         }
         this.setState({
             formErrors: fieldValidationErrors,
-            emailValid: emailValid,
-            passwordValid: passwordValid
+            passwordValid: passwordValid,
+            passwordConfirmationValid: passwordConfirmationValid
         }, this.validateForm);
     }
 
@@ -50,14 +50,17 @@ class Login extends React.Component {
         return passwordValid;
     }
 
-    validateEmail(value, fieldValidationErrors) {
-        let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-        fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
-        return emailValid;
+    validatePasswordConfirmation(value, fieldValidationErrors) {
+        let passwordConfirmationValid = value === this.state.password;
+        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : Strings.VALIDATION_EQUAL_PASSWORDS;
+        return passwordConfirmationValid;
     }
 
     validateForm() {
-        this.setState({formValid: this.state.emailValid && this.state.passwordValid});
+        this.setState(
+            {
+                formValid: this.state.passwordValid && this.state.passwordConfirmationValid
+            });
     }
 
     handleChangeField(event) {
@@ -73,49 +76,36 @@ class Login extends React.Component {
     handleSubmit(event) {
         event.preventDefault();
         let currentElement = this;
-        currentElement.setState({serverError: ''});
-        GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
-            currentElement.successLoginCallback.bind(this),
-            currentElement.errorLoginCallback.bind(this));
+        currentElement.setState({serverError: '', passwordChanged: '' });
+        GafaFitSDKWrapper.postPasswordChange(this.state,
+            currentElement.successPasswordForgotCallback.bind(this),
+            currentElement.errorPasswordForgotCallback.bind(this));
     };
 
-    successLoginCallback(result){
-        this.setState({logged: true});
-        if (this.props.setShowLogin) {
-            this.props.setShowLogin(false);
-        }
-        if (window.GFtheme.combo_id != null) {
-            this.buyComboAfterLogin();
-        }
+    successPasswordForgotCallback(result) {
+        this.setState({passwordChanged: true});
     }
 
-    errorLoginCallback(error){
-        this.setState({serverError: '', logged: false});
-    }
-
-    buyComboAfterLogin() {
-        GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
-            window.GFtheme.combo_id = null;
-        });
+    errorPasswordForgotCallback(error) {
+        this.setState({serverError: error});
     }
 
     render() {
         return (
-            <div className="login auth">
+            <div className="password-change auth">
                 <form onSubmit={this.handleSubmit.bind(this)}>
-                    <FormGroup controlId="email" bsSize="large">
-                        <ControlLabel>{Strings.LABEL_EMAIL}</ControlLabel>
-                        <FormControl
-                            autoFocus
-                            type="email"
-                            value={this.state.email}
-                            onChange={this.handleChangeField.bind(this)}
-                        />
-                    </FormGroup>
                     <FormGroup controlId="password" bsSize="large">
                         <ControlLabel>{Strings.LABEL_PASSWORD}</ControlLabel>
                         <FormControl
                             value={this.state.password}
+                            onChange={this.handleChangeField.bind(this)}
+                            type="password"
+                        />
+                    </FormGroup>
+                    <FormGroup controlId="passwordConfirmation" bsSize="large">
+                        <ControlLabel>{Strings.LABEL_PASSWORD_CONFIRM}</ControlLabel>
+                        <FormControl
+                            value={this.state.passwordConfirmation}
                             onChange={this.handleChangeField.bind(this)}
                             type="password"
                         />
@@ -127,14 +117,14 @@ class Login extends React.Component {
                         disabled={!this.state.formValid}
                         type="submit"
                     >
-                        {Strings.BUTTON_LOGIN}
+                        {Strings.BUTTON_PASSWORD_CHANGE}
                     </Button>
                     <div className="panel panel-default mt-4 text-danger">
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     <div className="panel panel-default mt-4 text-success">
-                        {this.state.logged && <small>{Strings.LOGIN_SUCCESS}</small>}
+                        {this.state.passwordChanged && <small>{Strings.PASSWORD_CHANGE_SUCCESS}</small>}
                     </div>
                 </form>
             </div>
@@ -142,4 +132,4 @@ class Login extends React.Component {
     }
 }
 
-export default Login;
+export default PasswordChange;

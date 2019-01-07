@@ -12,7 +12,7 @@ class PasswordForgot extends React.Component {
 
         this.state = {
             email: "",
-            returnUrl: 'https://localhost:8081',
+            returnUrl: window.location.href,
             formErrors: {email: ''},
             emailValid: false,
             formValid: false,
@@ -54,7 +54,7 @@ class PasswordForgot extends React.Component {
     handleSubmit(event) {
         event.preventDefault();
         let currentElement = this;
-        currentElement.setState({serverError: ''});
+        currentElement.setState({serverError: '', sent: '' });
         GafaFitSDKWrapper.postPasswordForgot(this.state,
             currentElement.successPasswordForgotCallback.bind(this),
             currentElement.errorPasswordForgotCallback.bind(this));

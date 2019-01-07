@@ -8,7 +8,7 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static initValues() {
-        GafaFitSDK.setUrl('https://devgafa.fit/');
+        GafaFitSDK.setUrl('https://gafa.fit/');
         GafaFitSDK.setCompany(3);
         window.GFtheme = {};
         window.GFtheme.brand = 'zuda';
@@ -168,6 +168,25 @@ class GafaFitSDKWrapper extends React.Component {
         GafaFitSDK.RequestNewPassword(
             params.email,
             params.returnUrl,
+            function (error, result) {
+                if (error != null) {
+                    let errorToPrint = Object.keys(error).map(function (key) {
+                        return error[key];
+                    }).join(". ");
+                    errorCallback(errorToPrint);
+                } else {
+                    successCallback(result)
+                }
+            }
+        );
+    };
+
+    static postPasswordChange(params, successCallback, errorCallback) {
+        GafaFitSDK.NewPassword(
+            params.email,
+            params.password,
+            params.passwordConfirmation,
+            params.token,
             function (error, result) {
                 if (error != null) {
                     let errorToPrint = Object.keys(error).map(function (key) {
