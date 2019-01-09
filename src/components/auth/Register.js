@@ -2,7 +2,7 @@
 
 import React from "react";
 import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
-import {FormErrors} from "./FormErrors";
+import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 
@@ -180,7 +180,7 @@ class Register extends React.Component {
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     <div className="panel panel-default mt-4 text-success">
-                        {this.state.registered && <small>{Strings.REGISTER_SUCCESS}</small>}
+                        {this.state.saved && <small>{Strings.REGISTER_SUCCESS}</small>}
                     </div>
                 </form>
             </div>

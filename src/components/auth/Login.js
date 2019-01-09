@@ -2,7 +2,7 @@
 
 import React from "react";
 import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
-import {FormErrors} from "./FormErrors";
+import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 

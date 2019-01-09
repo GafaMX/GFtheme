@@ -9,6 +9,7 @@ GafaFitSDKWrapper.initValues();
 GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
 GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
 GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
+GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
 
 GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');
 GafaThemeSDK.renderServiceList('[data-gf-theme="service-list"]');

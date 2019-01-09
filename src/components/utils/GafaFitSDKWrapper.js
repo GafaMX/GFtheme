@@ -8,7 +8,7 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static initValues() {
-        GafaFitSDK.setUrl('https://gafa.fit/');
+        GafaFitSDK.setUrl('https://devgafa.fit/');
         GafaFitSDK.setCompany(3);
         window.GFtheme = {};
         window.GFtheme.brand = 'zuda';
@@ -205,12 +205,32 @@ class GafaFitSDKWrapper extends React.Component {
             GafaFitSDK.GetMe(
                 function (error, result) {
                     window.GFtheme.me = result;
-                    callback();
+                    callback(result);
                 }
             );
         } else {
-            callback();
+            callback(window.GFtheme.me);
         }
+    };
+
+    static getCountries(callback) {
+        GafaFitSDK.GetCountryList({},
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        );
+    };
+
+    static getCountryCities(country, callback) {
+        GafaFitSDK.GetCountryCityList(country, {},
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        );
     };
 
     static logout(successCallback, errorCallback) {
