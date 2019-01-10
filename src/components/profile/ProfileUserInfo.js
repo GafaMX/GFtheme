@@ -109,7 +109,7 @@ class ProfileUserInfo extends React.Component {
         let first_nameValid = this.state.first_nameValid;
 
         switch (fieldName) {
-            case 'fullName':
+            case 'first_name':
                 first_nameValid = this.validateFirstName(value, fieldValidationErrors);
                 break;
             default:
@@ -123,7 +123,7 @@ class ProfileUserInfo extends React.Component {
 
     validateFirstName(value, fieldValidationErrors) {
         let first_nameValid = value !== '' && value !== null;
-        fieldValidationErrors.fullName = first_nameValid ? '' : Strings.VALIDATION_FULL_NAME;
+        fieldValidationErrors.first_name = first_nameValid ? '' : Strings.VALIDATION_FULL_NAME;
         return first_nameValid;
     }
 
@@ -188,11 +188,12 @@ class ProfileUserInfo extends React.Component {
         return (
             <div className="profile-info">
                 <form onSubmit={this.handleSubmit.bind(this)}>
-                    <div className="col-md-12">
-                        <h4>
+                    <div className="row col-md-12 pt-4">
+                        <h4 className="col-md-12">
                             {Strings.LABEL_PROFILE_INFO}
                         </h4>
-                        <FormGroup controlId="first_name" bsSize="large">
+
+                        <FormGroup className="col-md-6" controlId="first_name" bsSize="large">
                             <ControlLabel>{Strings.LABEL_FIRST_NAME}</ControlLabel>
                             <FormControl
                                 autoFocus
@@ -201,7 +202,7 @@ class ProfileUserInfo extends React.Component {
                                 onChange={this.handleChangeField.bind(this)}
                             />
                         </FormGroup>
-                        <FormGroup controlId="last_name" bsSize="large">
+                        <FormGroup className="col-md-6" controlId="last_name" bsSize="large">
                             <ControlLabel>{Strings.LABEL_LAST_NAME}</ControlLabel>
                             <FormControl
                                 type="text"
@@ -209,125 +210,132 @@ class ProfileUserInfo extends React.Component {
                                 onChange={this.handleChangeField.bind(this)}
                             />
                         </FormGroup>
-                        <FormGroup>
-                            <div className="radio">
-                                <label>
-                                    <input type="radio" value="male" checked={this.state.gender === "male"}
+                        <FormGroup className="col-md-6 radio-inline">
+                            <div>
+                                <label className="radio-inline pr-3">
+                                    <input className="mr-2" type="radio" value="male"
+                                           checked={this.state.gender === "male"}
                                            name="gender"
                                            onChange={this.handleGenderChange.bind(this)}/>
                                     Hombre
                                 </label>
-                            </div>
-                            <div className="radio">
-                                <label>
-                                    <input type="radio" value="female" checked={this.state.gender === "female"}
+                                <label className="radio-inline pr-3">
+                                    <input className="mr-2" type="radio" value="female"
+                                           checked={this.state.gender === "female"}
                                            name="gender"
                                            onChange={this.handleGenderChange.bind(this)}/>
                                     Mujer
                                 </label>
                             </div>
-                            <ControlLabel>{Strings.LABEL_BIRTH_DATE}</ControlLabel>
+                        </FormGroup>
+                        <div className="col-md-6">
+                            <ControlLabel className="mr-2">{Strings.LABEL_BIRTH_DATE}</ControlLabel>
                             <DatePicker
                                 onChange={this.handleChangeBirthDate.bind(this)}
                                 value={this.state.birthDate}
                                 maxDate={new Date()}
                             />
+                        </div>
+                    </div>
+                    <div className="row col-md-12 pt-4">
+                        <h4 className="col-md-12">
+                            {Strings.LABEL_ADDRESS}
+                        </h4>
+                        <FormGroup className="col-md-6" controlId="address" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_ADDRESS}</ControlLabel>
+                            <FormControl
+                                type="text"
+                                value={this.state.address}
+                                onChange={this.handleChangeField.bind(this)}
+                            />
                         </FormGroup>
-                        <div className="col-md-12">
-                            <h4>
-                                {Strings.LABEL_ADDRESS}
-                            </h4>
-                            <FormGroup controlId="address" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_ADDRESS}</ControlLabel>
-                                <FormControl
-                                    type="text"
-                                    value={this.state.address}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
-                            <FormGroup controlId="external_number" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_EXTERNAL_NUMBER}</ControlLabel>
-                                <FormControl
-                                    type="text"
-                                    value={this.state.external_number}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
-                            <FormGroup controlId="internal_number" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_INTERNAL_NUMBER}</ControlLabel>
-                                <FormControl
-                                    type="text"
-                                    value={this.state.internal_number}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
-                            <FormGroup controlId="postal_code" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_POSTAL_CODE}</ControlLabel>
-                                <FormControl
-                                    type="text"
-                                    value={this.state.postal_code}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
-                            <FormGroup controlId="municipality" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_MUNICIPALITY}</ControlLabel>
-                                <FormControl
-                                    type="text"
-                                    value={this.state.municipality}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
-                            <FormGroup controlId="city" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_CITY}</ControlLabel>
-                                <FormControl
-                                    type="text"
-                                    value={this.state.city}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
+                        <FormGroup className="col-md-3" controlId="external_number" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_EXTERNAL_NUMBER}</ControlLabel>
+                            <FormControl
+                                type="text"
+                                value={this.state.external_number}
+                                onChange={this.handleChangeField.bind(this)}
+                            />
+                        </FormGroup>
+                        <FormGroup className="col-md-3" controlId="internal_number" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_INTERNAL_NUMBER}</ControlLabel>
+                            <FormControl
+                                type="text"
+                                value={this.state.internal_number}
+                                onChange={this.handleChangeField.bind(this)}
+                            />
+                        </FormGroup>
+                        <FormGroup className="col-md-6" controlId="postal_code" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_POSTAL_CODE}</ControlLabel>
+                            <FormControl
+                                type="text"
+                                value={this.state.postal_code}
+                                onChange={this.handleChangeField.bind(this)}
+                            />
+                        </FormGroup>
+                        <FormGroup className="col-md-3" controlId="municipality" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_MUNICIPALITY}</ControlLabel>
+                            <FormControl
+                                type="text"
+                                value={this.state.municipality}
+                                onChange={this.handleChangeField.bind(this)}
+                            />
+                        </FormGroup>
+                        <FormGroup className="col-md-3" controlId="city" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_CITY}</ControlLabel>
+                            <FormControl
+                                type="text"
+                                value={this.state.city}
+                                onChange={this.handleChangeField.bind(this)}
+                            />
+                        </FormGroup>
+                        <div className="col-md-6">
                             <ControlLabel>{Strings.LABEL_COUNTRY}</ControlLabel>
                             <Select options={this.state.countries}
                                     value={this.state.countries.find(option => option.value === this.state.countries_id)}
                                     onChange={this.handleChangeCountry.bind(this)}
                             />
-
+                        </div>
+                        <div className="col-md-6">
                             <ControlLabel>{Strings.LABEL_STATE}</ControlLabel>
                             <Select options={this.state.states}
                                     value={this.state.states.find(option => option.value === this.state.country_states_id)}
                                     onChange={this.handleChangeState.bind(this)}
                             />
-
                         </div>
-                        <div className="col-md-12">
-                            <h4>
-                                {Strings.LABEL_CONTACT}
-                            </h4>
-                            <FormGroup controlId="email" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_EMAIL}</ControlLabel>
-                                <FormControl
-                                    type="email"
-                                    value={this.state.email}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
-                            <FormGroup controlId="phone" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_PHONE}</ControlLabel>
-                                <FormControl
-                                    type="number"
-                                    value={this.state.phone}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
-                            <FormGroup controlId="cel_phone" bsSize="large">
-                                <ControlLabel>{Strings.LABEL_CEL_PHONE}</ControlLabel>
-                                <FormControl
-                                    type="number"
-                                    value={this.state.cel_phone}
-                                    onChange={this.handleChangeField.bind(this)}
-                                />
-                            </FormGroup>
-                        </div>
+                    </div>
+                    <div className="row col-md-12 pt-4">
+                        <h4 className="col-md-12">
+                            {Strings.LABEL_CONTACT}
+                        </h4>
+                        <FormGroup className="col-md-12" controlId="email" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_EMAIL}</ControlLabel>
+                            <FormControl
+                                type="email"
+                                value={this.state.email}
+                                onChange={this.handleChangeField.bind(this)}
+                                disabled
+                            />
+                        </FormGroup>
+                        <FormGroup className="col-md-6" controlId="phone" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_PHONE}</ControlLabel>
+                            <FormControl
+                                type="number"
+                                value={this.state.phone}
+                                onChange={this.handleChangeField.bind(this)}
+                            />
+                        </FormGroup>
+                        <FormGroup className="col-md-6" controlId="cel_phone" bsSize="large">
+                            <ControlLabel>{Strings.LABEL_CEL_PHONE}</ControlLabel>
+                            <FormControl
+                                type="number"
+                                value={this.state.cel_phone}
+                                onChange={this.handleChangeField.bind(this)}
+                            />
+                        </FormGroup>
+                    </div>
 
+                    <div className="col-md-12">
                         <Button
                             block
                             bsSize="large"

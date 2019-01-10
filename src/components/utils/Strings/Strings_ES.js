@@ -43,6 +43,7 @@ export default {
         password: 'contraseña',
         passwordConfirmation: 'confirmar contraseña',
         fullName: 'nombre completo',
+        first_name: 'nombre',
     },
     EXPIRE_IN: "Expira en",
     DAYS: "días",
