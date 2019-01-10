@@ -213,21 +213,41 @@ class GafaFitSDKWrapper extends React.Component {
         }
     };
 
-    static getCountries(callback) {
-        GafaFitSDK.GetCountryList({},
+    static putMe(params, successCallback, errorCallback) {
+        GafaFitSDK.PutMe(
+            params,
             function (error, result) {
-                if (error === null) {
-                    callback(result);
+                if (error != null) {
+                    let errorToPrint = Object.keys(error).map(function (key) {
+                        return error[key];
+                    }).join(". ");
+                    errorCallback(errorToPrint);
+                } else {
+                    successCallback(result)
                 }
             }
         );
     };
 
-    static getCountryCities(country, callback) {
-        GafaFitSDK.GetCountryCityList(country, {},
+    static getCountries(callback) {
+        GafaFitSDK.GetCountryList({},
             function (error, result) {
                 if (error === null) {
                     callback(result);
+                } else {
+                    callback([]);
+                }
+            }
+        );
+    };
+
+    static getCountryStates(country, callback) {
+        GafaFitSDK.GetCountryStateList(country, {},
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                } else {
+                    callback([]);
                 }
             }
         );

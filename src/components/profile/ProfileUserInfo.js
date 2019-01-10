@@ -6,6 +6,10 @@ import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 import DatePicker from 'react-date-picker';
+import Select from "react-select";
+import {isFunction} from "../utils/TypeUtils";
+import moment from 'moment'
+import 'moment/locale/es';
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -15,7 +19,8 @@ class ProfileUserInfo extends React.Component {
             email: "",
             first_name: "",
             last_name: "",
-            birth_date: new Date(),
+            birthDate: new Date(),
+            birth_date: "",
             address: "",
             internal_number: "",
             external_number: "",
@@ -24,20 +29,20 @@ class ProfileUserInfo extends React.Component {
             city: "",
             countries_id: "",
             country_states_id: "",
+            countries: [],
+            states: [],
             phone: "",
             cel_phone: "",
             gender: "",
             formErrors: {first_name: ''},
-            first_nameValid: false,
+            first_nameValid: true,
             formValid: true,
             serverError: '',
             saved: false
         };
-
-        this.initValues();
     }
 
-    initValues() {
+    componentDidMount() {
         const currentComponent = this;
         GafaFitSDKWrapper.getMe(function (result) {
             currentComponent.setState(
@@ -45,7 +50,8 @@ class ProfileUserInfo extends React.Component {
                     email: result.email,
                     first_name: result.first_name,
                     last_name: result.last_name,
-                    birth_date: new Date(result.birth_date.substring(0, 11)),
+                    birthDate: new Date(result.birth_date.substring(0, 11)),
+                    birth_date: result.birth_date,
                     address: result.address,
                     internal_number: result.internal_number,
                     external_number: result.external_number,
@@ -58,6 +64,43 @@ class ProfileUserInfo extends React.Component {
                     cel_phone: result.cel_phone,
                     gender: result.gender,
                 });
+            currentComponent.getCountryList(currentComponent.getStatesListByCountry.bind(currentComponent));
+        });
+    }
+
+    findCountryCodeById() {
+        let country = this.state.countries.find(option => option.value === this.state.countries_id);
+        let countryCode = "";
+        if (country != null) {
+            countryCode = country.code;
+        }
+        return countryCode;
+    }
+
+    getCountryList(callback) {
+        const currentComponent = this;
+        GafaFitSDKWrapper.getCountries(function (result) {
+            currentComponent.setState(
+                {
+                    countries: result.map(function (item) {
+                        return {label: item.name, value: item.id, code: item.code}
+                    }),
+                });
+            if (isFunction(callback)) callback();
+        });
+    }
+
+    getStatesListByCountry(callback) {
+        const currentComponent = this;
+        let countrySelected = currentComponent.findCountryCodeById();
+        GafaFitSDKWrapper.getCountryStates(countrySelected, function (result) {
+            currentComponent.setState(
+                {
+                    states: result.map(function (item) {
+                        return {label: item.name, value: item.id}
+                    })
+                });
+            if (isFunction(callback)) callback();
         });
     }
 
@@ -107,17 +150,30 @@ class ProfileUserInfo extends React.Component {
         });
     }
 
+    handleChangeCountry(selectedOption) {
+        this.setState({
+            countries_id: selectedOption.value
+        }, this.getStatesListByCountry.bind(this));
+    }
+
+    handleChangeState(selectedOption) {
+        this.setState({
+            country_states_id: selectedOption.value
+        });
+    }
+
+    handleChangeBirthDate(date) {
+        const dateFormatted = moment(date).format('YYYY-MM-DD');
+        this.setState({birthDate: date, birth_date: dateFormatted + " 00:00:00"});
+    }
+
     handleSubmit(event) {
         event.preventDefault();
         let currentElement = this;
         currentElement.setState({serverError: '', saved: false});
-        // GafaFitSDKWrapper.postRegister(this.state,
-        //     currentElement.successSaveMeCallback.bind(this),
-        //     currentElement.errorSaveMeCallback.bind(this));
-    }
-
-    onBirthDateChange(date) {
-        this.setState({birth_date: date})
+        GafaFitSDKWrapper.putMe(this.state,
+            currentElement.successSaveMeCallback.bind(this),
+            currentElement.errorSaveMeCallback.bind(this));
     }
 
     successSaveMeCallback(result) {
@@ -172,8 +228,8 @@ class ProfileUserInfo extends React.Component {
                             </div>
                             <ControlLabel>{Strings.LABEL_BIRTH_DATE}</ControlLabel>
                             <DatePicker
-                                onChange={this.onBirthDateChange.bind(this)}
-                                value={this.state.birth_date}
+                                onChange={this.handleChangeBirthDate.bind(this)}
+                                value={this.state.birthDate}
                                 maxDate={new Date()}
                             />
                         </FormGroup>
@@ -229,6 +285,18 @@ class ProfileUserInfo extends React.Component {
                                     onChange={this.handleChangeField.bind(this)}
                                 />
                             </FormGroup>
+                            <ControlLabel>{Strings.LABEL_COUNTRY}</ControlLabel>
+                            <Select options={this.state.countries}
+                                    value={this.state.countries.find(option => option.value === this.state.countries_id)}
+                                    onChange={this.handleChangeCountry.bind(this)}
+                            />
+
+                            <ControlLabel>{Strings.LABEL_STATE}</ControlLabel>
+                            <Select options={this.state.states}
+                                    value={this.state.states.find(option => option.value === this.state.country_states_id)}
+                                    onChange={this.handleChangeState.bind(this)}
+                            />
+
                         </div>
                         <div className="col-md-12">
                             <h4>
