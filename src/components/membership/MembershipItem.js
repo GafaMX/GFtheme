@@ -3,6 +3,7 @@
 import React from "react";
 import Strings from "../utils/Strings/Strings_ES";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import {formatMoney} from "../utils/FormatUtils";
 
 class MembershipItem extends React.Component {
     constructor(props) {
@@ -71,10 +72,10 @@ class MembershipItem extends React.Component {
                         <p className="membership-item-description">{this.props.membership.description}</p>}
                         {this.props.membership.has_discount &&
                         <h2 className={["membership-item-discount", "text-muted", "font-weight-normal"].join(" ")}>
-                            $ {this.props.membership.price}</h2>
+                            $ {formatMoney(this.props.membership.price, 0)}</h2>
                         }
                         <h2 className={["pricing-card-title", "membership-item-price", "font-weight-normal"].join(" ")}>
-                            $ {this.props.membership.price_final}</h2>
+                            $ {formatMoney(this.props.membership.price_final, 0)}</h2>
                         <p className="membership-item-services">{services['services']}</p>
                         <p className="membership-item-parent-services">{services['parents']}</p>
                         <p className="membership-item-expiration">{Strings.EXPIRE_IN} {this.props.membership.expiration_days} {Strings.DAYS} </p>

@@ -3,6 +3,7 @@
 import React from "react";
 import Strings from "../utils/Strings/Strings_ES";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import {formatMoney} from "../utils/FormatUtils";
 
 class ComboItem extends React.Component {
     constructor(props) {
@@ -69,10 +70,10 @@ class ComboItem extends React.Component {
                         <p className="combo-item-description">{this.props.combo.description}</p>}
                         {this.props.combo.has_discount &&
                         <h2 className={["combo-item-discount", "text-muted", "font-weight-normal"].join(" ")}>
-                            $ {this.props.combo.price}</h2>
+                            $ {formatMoney(this.props.combo.price, 0)}</h2>
                         }
                         <h2 className={["pricing-card-title", "combo-item-price", "font-weight-normal"].join(" ")}>
-                            $ {this.props.combo.price_final}</h2>
+                            $ {formatMoney(this.props.combo.price_final, 0)}</h2>
                         <p className="combo-item-services">{services['services']}</p>
                         <p className="combo-item-parent-services">{services['parents']}</p>
                         <p className="combo-item-expiration">{Strings.EXPIRE_IN} {this.props.combo.expiration_days} {Strings.DAYS} </p>

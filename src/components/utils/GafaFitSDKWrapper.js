@@ -41,21 +41,19 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getComboList(callback) {
         let functionToRetrieveCombos = GafaFitSDK.GetBrandCombolist;
-        GafaFitSDKWrapper.getMe(function () {
-            if (window.GFtheme.me != null) {
-                functionToRetrieveCombos = GafaFitSDK.GetBrandComboListforUser;
-            }
-            functionToRetrieveCombos(
-                window.GFtheme.brand, {
-                    'only_actives': true,
-                    'propagate': true
-                }, function (error, result) {
-                    if (error === null) {
-                        callback(result);
-                    }
+        if (GafaFitSDK.isAuthentified()) {
+            functionToRetrieveCombos = GafaFitSDK.GetBrandComboListforUser;
+        }
+        functionToRetrieveCombos(
+            window.GFtheme.brand, {
+                'only_actives': true,
+                'propagate': true
+            }, function (error, result) {
+                if (error === null) {
+                    callback(result);
                 }
-            );
-        });
+            }
+        );
     };
 
     static getMembershipList(callback) {
@@ -141,7 +139,7 @@ class GafaFitSDKWrapper extends React.Component {
     static postRegister(params, successCallback, errorCallback) {
         let options = {};
         options.last_name = params.last_name;
-        options.password = 'password';
+        options.grant_type = 'password';
         options.scope = '*';
         GafaFitSDK.PostRegister(
             3,
