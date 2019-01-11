@@ -9,7 +9,7 @@ class ServiceItem extends React.Component {
 
     render() {
         return (
-            <div className={["service-item-container", "col-md-4"].join(" ")}>
+            <div className={["service-item-container", "col-md-4", "service_" + this.props.service.id].join(" ")}>
                 <div className={["service-item", "mb-4", "card", "shadow-sm"].join(" ")}>
                     <div className="service-current">
                         <img className={["service-item-pic", "mb-4"].join(" ")} src={this.props.service.pic}/>

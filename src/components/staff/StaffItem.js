@@ -9,7 +9,7 @@ class StaffItem extends React.Component {
 
     render() {
         return (
-            <div className={["staff-item-container", "col-md-4"].join(" ")}>
+            <div className={["staff-item-container", "col-md-4", "staff_" + this.props.staff.id].join(" ")}>
                 <div className={["staff-item", "mb-4", "card", "shadow-sm"].join(" ")}>
                     <img className="staff-item-picture" src={this.props.staff.picture_web_list}/>
                     <h3 className={["font-weight-normal", "staff-item-name"].join(" ")}>{this.props.staff.name}</h3>

@@ -10,7 +10,7 @@ import ComboList from "./combo/ComboList";
 import MembershipList from "./membership/MembershipList";
 import Register from "./auth/Register";
 import PasswordRecovery from "./auth/PasswordRecovery";
-import ProfileUserInfo from "./profile/ProfileUserInfo";
+import ProfileUserInfo from "./profile/info/ProfileUserInfo";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
