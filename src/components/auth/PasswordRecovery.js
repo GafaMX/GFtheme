@@ -18,10 +18,11 @@ class PasswordRecovery extends React.Component {
             email = query.get('email');
         }
 
-        let componentToReturn = <PasswordForgot/>;
+        let componentToReturn = <PasswordForgot successCallback={this.props.successCallback.bind(this)}/>;
 
         if (token != null && email != null) {
-            componentToReturn = <PasswordChange email={email} token={token}/>;
+            componentToReturn =
+                <PasswordChange email={email} token={token} successCallback={this.props.successCallback.bind(this)}/>;
         }
 
         return componentToReturn;

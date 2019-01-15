@@ -21,7 +21,8 @@ class LoginRegister extends React.Component {
             showButtons: true,
             serverError: "",
             email: null,
-            token: null
+            token: null,
+            me: null
         };
     }
 
@@ -40,6 +41,14 @@ class LoginRegister extends React.Component {
                 token: token
             });
         }
+        let currentComponent = this;
+        GafaFitSDKWrapper.getMeWithCredits(
+            function (result) {
+                currentComponent.setState({
+                    me: result
+                });
+            }
+        );
     }
 
     handleClickLogin() {
@@ -108,8 +117,25 @@ class LoginRegister extends React.Component {
     }
 
     successLoginCallback(result) {
+        let currentComponent = this;
+        GafaFitSDKWrapper.getMeWithCredits(
+            function (result) {
+                currentComponent.setState({
+                    isAuthenticated: true,
+                    showLogin: false,
+                    showRegister: false,
+                    showProfile: false,
+                    passwordRecovery: false,
+                    showButtons: true,
+                    me: result
+                });
+            }
+        );
+    }
+
+    successRecoveryCallback() {
         this.setState({
-            isAuthenticated: true,
+            isAuthenticated: false,
             showLogin: false,
             showRegister: false,
             showProfile: false,
@@ -135,24 +161,40 @@ class LoginRegister extends React.Component {
                     <a onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
                 </div>}
                 {this.state.isAuthenticated && this.state.showButtons && <div>
-                    <a onClick={this.handleClickProfile.bind(this)}>{Strings.BUTTON_PROFILE}</a>
+                    <a onClick={this.handleClickProfile.bind(this)}>
+                        {this.state.me != null ?
+                            <div className="form-inline">
+                                <p className="profile-button-first-name">{this.state.me.first_name}</p>
+                                <p className="profile-button-last-name">&nbsp;{this.state.me.last_name}</p>
+                                <p className="profile-button-credits-total">&nbsp;{this.state.me.creditsTotal}</p>
+                            </div>
+                            : Strings.BUTTON_PROFILE}
+                    </a>
                 </div>}
                 {this.state.showLogin &&
                 <div>
                     <Login successCallback={this.successLoginCallback.bind(this)}/>
-                    <p>{Strings.NOT_ACCOUNT_QUESTION}</p><a
-                    onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
-                    <p>{Strings.FORGOT_PASSWORD_QUESTION}</p><a
-                    onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a>
+                    <p>{Strings.NOT_ACCOUNT_QUESTION}
+                        <a
+                            onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
+                    </p>
+                    <p>{Strings.FORGOT_PASSWORD_QUESTION}
+                        <a
+                            onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a>
+                    </p>
                 </div>
                 }
                 {this.state.showRegister &&
                 <div>
                     <Register/>
-                    <p>{Strings.ACCOUNT_QUESTION}</p><a
-                    onClick={this.handleClickLogin.bind(this)}> {Strings.BUTTON_LOGIN}</a>
-                    <p>{Strings.FORGOT_PASSWORD_QUESTION}</p><a
-                    onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a>
+                    <p>{Strings.ACCOUNT_QUESTION}
+                        <a
+                            onClick={this.handleClickLogin.bind(this)}> {Strings.BUTTON_LOGIN}</a>
+                    </p>
+                    <div>
+                        <p>{Strings.FORGOT_PASSWORD_QUESTION}<a
+                            onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a></p>
+                    </div>
                 </div>
                 }
                 {this.state.showProfile &&
@@ -161,7 +203,9 @@ class LoginRegister extends React.Component {
                     <a onClick={this.handleClickLogout.bind(this)}>{Strings.BUTTON_LOGOUT}</a>
                 </div>
                 }
-                {this.state.passwordRecovery && <PasswordRecovery token={this.state.token} email={this.state.email}/>}
+                {this.state.passwordRecovery &&
+                <PasswordRecovery token={this.state.token} email={this.state.email}
+                                  successCallback={this.successRecoveryCallback.bind(this)}/>}
                 <div className="panel panel-default mt-4 text-danger">
                     {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                 </div>

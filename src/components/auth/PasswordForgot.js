@@ -62,6 +62,9 @@ class PasswordForgot extends React.Component {
 
     successPasswordForgotCallback(result) {
         this.setState({sent: true});
+        if (this.props.successCallback) {
+            this.props.successCallback();
+        }
     }
 
     errorPasswordForgotCallback(error) {

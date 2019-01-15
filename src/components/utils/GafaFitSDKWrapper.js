@@ -63,21 +63,19 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getMembershipList(callback) {
         let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
-        GafaFitSDKWrapper.getMe(function () {
-            if (window.GFtheme.me != null) {
-                functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
-            }
-            functionToRetrieveMemberships(
-                window.GFtheme.brand, {
-                    'only_actives': true,
-                    'propagate': true
-                }, function (error, result) {
-                    if (error === null) {
-                        callback(result);
-                    }
+        if (GafaFitSDK.isAuthentified()) {
+            functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
+        }
+        functionToRetrieveMemberships(
+            window.GFtheme.brand, {
+                'only_actives': true,
+                'propagate': true
+            }, function (error, result) {
+                if (error === null) {
+                    callback(result);
                 }
-            );
-        });
+            }
+        );
     };
 
     static getFancyForBuyCombo(combos_id, callback) {
@@ -136,6 +134,26 @@ class GafaFitSDKWrapper extends React.Component {
                     GafaFitSDKWrapper.getMe(function () {
                         successCallback(result)
                     });
+                }
+            }
+        );
+    };
+
+    static getUserCredits(callback) {
+        GafaFitSDK.GetUserCredits(
+            window.GFtheme.brand, {}, function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        );
+    };
+
+    static getUserMemberships(callback) {
+        GafaFitSDK.GetUserMembership(
+            window.GFtheme.brand, {}, function (error, result) {
+                if (error === null) {
+                    callback(result);
                 }
             }
         );
@@ -207,14 +225,33 @@ class GafaFitSDKWrapper extends React.Component {
         if (window.GFtheme.me == null) {
             GafaFitSDK.GetMe(
                 function (error, result) {
-                    window.GFtheme.me = result;
-                    callback(result);
+                    if (error == null) {
+                        window.GFtheme.me = result;
+                        callback(result);
+                    } else {
+                        callback(null);
+                    }
                 }
             );
         } else {
             callback(window.GFtheme.me);
         }
     };
+
+    static getMeWithCredits(callback) {
+        GafaFitSDKWrapper.getMe(function (result) {
+            let user = result;
+            GafaFitSDKWrapper.getUserCredits(function (result) {
+                user.credits = result;
+                user.creditsTotal = 0;
+                user.credits.forEach(function (elem) {
+                    user.creditsTotal += elem.total;
+                });
+                window.GFtheme.me = user;
+                callback(user);
+            });
+        });
+    }
 
     static putMe(params, successCallback, errorCallback) {
         GafaFitSDK.PutMe(
