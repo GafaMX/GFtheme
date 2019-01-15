@@ -39,6 +39,11 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
+    static isAuthenticated() {
+        return GafaFitSDK.isAuthentified();
+    };
+
+
     static getComboList(callback) {
         let functionToRetrieveCombos = GafaFitSDK.GetBrandCombolist;
         if (GafaFitSDK.isAuthentified()) {

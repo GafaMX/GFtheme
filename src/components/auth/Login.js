@@ -87,10 +87,13 @@ class Login extends React.Component {
         if (window.GFtheme.combo_id != null) {
             this.buyComboAfterLogin();
         }
+        if (this.props.successCallback) {
+            this.props.successCallback(result);
+        }
     }
 
     errorLoginCallback(error){
-        this.setState({serverError: '', logged: false});
+        this.setState({serverError: error, logged: false});
     }
 
     buyComboAfterLogin() {

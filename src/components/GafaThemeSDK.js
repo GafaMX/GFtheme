@@ -11,6 +11,7 @@ import MembershipList from "./membership/MembershipList";
 import Register from "./auth/Register";
 import PasswordRecovery from "./auth/PasswordRecovery";
 import ProfileUserInfo from "./profile/info/ProfileUserInfo";
+import LoginRegister from "./menu/LoginRegister";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
@@ -98,6 +99,13 @@ class GafaThemeSDK extends React.Component {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
             GafaThemeSDK.renderElementIntoContainers(domContainers, ProfileUserInfo, {});
+        }
+    };
+
+    static renderLoginRegister(selector) {
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaThemeSDK.renderElementIntoContainers(domContainers, LoginRegister, {});
         }
     };
 }

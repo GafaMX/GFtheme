@@ -10,9 +10,14 @@ class PasswordRecovery extends React.Component {
     }
 
     render() {
-        const query = new URLSearchParams(window.location.search);
-        const token = query.get('token');
-        const email = query.get('email');
+        let token = this.props.token;
+        let email = this.props.email;
+        if (this.props.token == null || this.props.email == null) {
+            const query = new URLSearchParams(window.location.search);
+            token = query.get('token');
+            email = query.get('email');
+        }
+
         let componentToReturn = <PasswordForgot/>;
 
         if (token != null && email != null) {

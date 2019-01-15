@@ -1,5 +1,5 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
-import style from "./css/basic-theme.css";
+import "./css/basic-theme.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'jquery/dist/jquery.min';
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
@@ -10,6 +10,7 @@ GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
 GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
 GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
 GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
+GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
 
 GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');
 GafaThemeSDK.renderServiceList('[data-gf-theme="service-list"]');

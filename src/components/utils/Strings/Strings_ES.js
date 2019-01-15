@@ -5,9 +5,12 @@ export default {
     BUTTON_RESERVE: 'Reservar',
     BUTTON_BUY: 'Comprar',
     BUTTON_LOGIN: 'Iniciar sesión',
+    BUTTON_LOGOUT: 'Cerrar sesión',
     BUTTON_REGISTER: 'Regístrate',
     BUTTON_PASSWORD_FORGOT: 'Recuperar contraseña',
     BUTTON_PASSWORD_CHANGE: 'Cambiar contraseña',
+    BUTTON_PROFILE: 'Perfil de usuario',
+    BUTTON_BACK: 'Regresar',
     VALIDATION_EMAIL: 'no es válido. Verifique la @ y que tenga un dominio correcto.',
     VALIDATION_PASSWORD: 'es muy corto. Use 6 o más caracteres.',
     VALIDATION_EQUAL_PASSWORDS: 'y la contraseña no coinciden.',
@@ -50,5 +53,8 @@ export default {
     MEMBERSHIPS: "Membresías",
     COMBOS: "Paquetes",
     STAFF_LIST: "Instructores",
-    SERVICE_LIST: "Servicios"
+    SERVICE_LIST: "Servicios",
+    NOT_ACCOUNT_QUESTION: "¿Aún no tienes una cuenta?",
+    ACCOUNT_QUESTION: "¿Ya tienes una cuenta?",
+    FORGOT_PASSWORD_QUESTION: "¿Olvidaste tu contraseña?"
 }
