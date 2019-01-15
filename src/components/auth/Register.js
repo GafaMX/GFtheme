@@ -30,10 +30,8 @@ class Register extends React.Component {
 
     splitFullName(value) {
         let splittedNames = value.split(" ");
-        let middleOfTheNames = Math.floor(splittedNames.length / 2);
-        middleOfTheNames = middleOfTheNames !== 0 ? middleOfTheNames : 1;
-        let firstName = splittedNames.slice(0, middleOfTheNames).join(" ");
-        let lastName = splittedNames.slice(middleOfTheNames, splittedNames.length).join(" ");
+        let firstName = splittedNames[0];
+        let lastName = splittedNames.slice(1, splittedNames.length).join(" ");
         this.setState({first_name: firstName, last_name: lastName});
     }
 
