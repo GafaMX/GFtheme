@@ -110,9 +110,15 @@ class LoginRegister extends React.Component {
             passwordRecovery: false,
             showButtons: true
         });
+        if (this.props.setShowLogin) {
+            this.props.setShowLogin(false);
+        }
     }
 
     successLogoutCallback(result) {
+        if (this.props.setShowLogin) {
+            this.props.setShowLogin(false);
+        }
         this.setState({
             isAuthenticated: false,
             showLogin: false,
@@ -166,6 +172,9 @@ class LoginRegister extends React.Component {
             passwordRecovery: false,
             showButtons: true
         });
+        if (this.props.setShowLogin) {
+            this.props.setShowLogin(false);
+        }
     }
 
     handleClickLogout() {

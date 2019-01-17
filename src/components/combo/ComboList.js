@@ -25,7 +25,7 @@ class ComboList extends React.Component {
         const listItems = this.props.list.map((combo) =>
             <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
         );
-        let layoutToReturn =
+        return (
             <div>
                 <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.COMBOS}</h1>
                 <div className={["combo-list", "container"].join(" ")}>
@@ -33,14 +33,12 @@ class ComboList extends React.Component {
                         {listItems}
                     </div>
                 </div>
-            </div>;
-
-        if (this.state.showLogin) {
-            layoutToReturn = <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>;
-        }
-        return (
-            layoutToReturn
+                {this.state.showLogin &&
+                <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
+                }
+            </div>
         );
+
     }
 }
 
