@@ -130,8 +130,12 @@ The current list of available components to be rendered are:
 * `service-list`   Services list
 * `membership-list`   Memberships list
 
+* `login-register`   Login/Register component, when is clicked open up a dialog with the options. Ideal for app menu.
+If the user is logged in, the component shows the user name with the available credits, when click open a dialog with
+the user info.
+
 * `login`   Login
 * `register`   Register
 * `password-recovery`   Password recovery
-* `profile-info`   Profile basic info (Under development)
+* `profile-info`   Profile basic info
 
