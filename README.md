@@ -85,6 +85,16 @@ the body tag, like this:
     <script src="https://gafa.fit/sdk/dist/main.js"></script>
     </body>
     ...
+    
+#### GafaFitThemeSDK library for testing purposes
+If you want to use this templates SDK embedded in your website for testing purposes you can include the built version 
+of the script in your site just between the GafaFitSDK library script and close the body tag, like this:
+
+    ...
+    <script src="https://gafa.fit/sdk/dist/main.js"></script>
+    <script src="https://dev.gafa.codes/GFtheme/dist/main.js"></script>
+    </body>
+    ...
 
 #### GAFAfit Buy/Reserve fancy
 To render the Buy/Reserve fancy is necessary declare a container with the data-gf-theme equals to fancy:
