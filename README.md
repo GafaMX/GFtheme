@@ -129,6 +129,7 @@ The current list of available components to be rendered are:
 * `staff-list`   Staff list
 * `service-list`   Services list
 * `membership-list`   Memberships list
+* `meetings-calendar`  Calendar of Meetings
 
 * `login`   Login
 * `register`   Register

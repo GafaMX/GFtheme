@@ -23,7 +23,7 @@
     text-decoration-line: line-through;
 }
 
-.combo-item{
+.combo-item {
     cursor: pointer;
 }
 
@@ -31,6 +31,23 @@
     text-decoration-line: line-through;
 }
 
-.membership-item{
+.membership-item {
+    cursor: pointer;
+}
+
+.calendar-day-column {
+    width: 13%;
+}
+
+.calendar-day-column:not(.last-day) {
+    border-right: 1px solid;
+}
+
+.calendar-meeting {
+    cursor: pointer;
+    margin: 10px;
+}
+
+.calendar-control-button {
     cursor: pointer;
 }

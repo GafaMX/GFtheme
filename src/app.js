@@ -15,3 +15,4 @@ GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');
 GafaThemeSDK.renderServiceList('[data-gf-theme="service-list"]');
 GafaThemeSDK.renderComboList('[data-gf-theme="combo-list"]');
 GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"]');
+GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
