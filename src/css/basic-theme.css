@@ -37,3 +37,11 @@
 a {
     cursor: pointer;
 }
+
+.pagination-container{
+    display: -webkit-inline-box;
+}
+
+.pages-navigation{
+    text-align: center;
+}

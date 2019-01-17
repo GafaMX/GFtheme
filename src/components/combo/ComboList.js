@@ -4,6 +4,7 @@ import React from "react";
 import ComboItem from "./ComboItem";
 import Login from "../auth/Login";
 import Strings from "../utils/Strings/Strings_ES";
+import PaginationList from "../utils/PaginationList";
 
 class ComboList extends React.Component {
     constructor(props) {
@@ -30,9 +31,17 @@ class ComboList extends React.Component {
                 <div className={["combo-list", "container"].join(" ")}>
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
                         {listItems}
+
                     </div>
+
                 </div>
-            </div>;
+                        {/*Paginacion*/}
+                        <span>{this.props.currentPage}</span><br/>
+                        {/*<span>{this.props.perPage}</span><br/>*/}
+                        {/*<span>{this.props.lastPage}</span>*/}
+                    <PaginationList page={this.props.currentPage} perpage={this.props.perPage} totalPages={this.props.lastPage} itemsList={listItems} />
+            </div>
+        ;
 
         if (this.state.showLogin) {
             layoutToReturn = <Login setShowLogin={this.setShowLogin.bind(this)}/>;
