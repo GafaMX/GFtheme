@@ -11,6 +11,7 @@ class PaginationList extends React.Component {
             actualPage: this.props.page,
             itemsperpage: this.props.perpage,
             allpages: [this.props.allpages],
+            isActive: false,
 
         };
         this.handleClick = this.handleClick.bind(this);
@@ -22,7 +23,6 @@ class PaginationList extends React.Component {
             this.setState({
                 actualPage: id
             });
-
             GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]', 10, id);
         }
         if (id === 'past') {
@@ -39,27 +39,31 @@ class PaginationList extends React.Component {
         }
     }
 
+    getActive(id){
+        return id === this.state.actualPage ? 'active-page': '';
+    }
+
     render() {
         let pageElements = [];
         let totalpages = this.state.allpages;
         for (let i = 0; i < totalpages; i++) {
             pageElements.push(<div className={["btn-group mr-2"]}>
-                <button key={i.toString()} id={i + 1} className={['btn btn-info']}
+                <button key={'page-'+i} id={i + 1} className={'btn btn-info ' + this.getActive(i+1)}
                         onClick={(e) => this.handleClick(i + 1, e)}>
                     <a>{i + 1}</a></button>
             </div>)
         }
 
         return (
-            <section className={['pages-navigation']}>
-                <div className={['pagination-container']}>
-                    <div className={["btn-group mr-2"]}>
-                        <button className={['btn btn-info past-page']} id={['past']}
+            <section className={'pages-navigation'}>
+                <div className={'pagination-container'}>
+                    <div className={"btn-group mr-2"}>
+                        <button className={'btn btn-info past-page'} id={['past']}
                                 onClick={(e) => this.handleClick('past', e)}><a>{['<<']}</a></button>
                     </div>
                     {pageElements}
-                    <div className={["btn-group mr-2"]}>
-                        <button className={['btn btn-info next-page']} id={['next']}
+                    <div className={"btn-group mr-2"}>
+                        <button className={'btn btn-info next-page'} id={['next']}
                                 onClick={(e) => this.handleClick('next', e)}><a> {['>>']}</a></button>
                     </div>
                 </div>

@@ -45,3 +45,6 @@ a {
 .pages-navigation{
     text-align: center;
 }
+.active-page{
+    background-color: #1a545e !important;
+}
