@@ -43,6 +43,14 @@ class PaginationList extends React.Component {
         return id === this.state.actualPage ? 'active-page': '';
     }
 
+    firstPage(actual){
+        return actual === 1 ? 'hide-button':'';
+    }
+
+    lastPage(actual){
+        return actual === this.props.allpages ? 'hide-button':'';
+    }
+
     render() {
         let pageElements = [];
         let totalpages = this.state.allpages;
@@ -58,12 +66,12 @@ class PaginationList extends React.Component {
             <section className={'pages-navigation'}>
                 <div className={'pagination-container'}>
                     <div className={"btn-group mr-2"}>
-                        <button className={'btn btn-info past-page'} id={['past']}
+                        <button className={'btn btn-info past-page ' + this.firstPage(this.state.actualPage)} id={['past']}
                                 onClick={(e) => this.handleClick('past', e)}><a>{['<<']}</a></button>
                     </div>
                     {pageElements}
                     <div className={"btn-group mr-2"}>
-                        <button className={'btn btn-info next-page'} id={['next']}
+                        <button className={'btn btn-info next-page ' + this.lastPage(this.state.actualPage)} id={['next']}
                                 onClick={(e) => this.handleClick('next', e)}><a> {['>>']}</a></button>
                     </div>
                 </div>

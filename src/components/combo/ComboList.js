@@ -36,10 +36,10 @@ class ComboList extends React.Component {
 
                 </div>
                         {/*Paginacion*/}
-                        <span>{this.props.currentPage}</span><br/>
+                        {/*<span>{this.props.currentPage}</span><br/>*/}
                         {/*<span>{this.props.perPage}</span><br/>*/}
                         {/*<span>{this.props.lastPage}</span>*/}
-                    <PaginationList page={this.props.currentPage} perpage={this.props.perPage} totalPages={this.props.lastPage} itemsList={listItems} />
+                <PaginationList  page={this.props.currentPage} perpage={this.props.perPage} allpages={this.props.lastPage} itemsList={this.props.total}/>
             </div>
         ;
 

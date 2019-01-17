@@ -4,6 +4,7 @@ import React from "react";
 import MembershipItem from "./MembershipItem";
 import Login from "../auth/Login";
 import Strings from "../utils/Strings/Strings_ES";
+import PaginationList from "../utils/PaginationList";
 
 class MembershipList extends React.Component {
     constructor(props) {
@@ -32,6 +33,7 @@ class MembershipList extends React.Component {
                         {listItems}
                     </div>
                 </div>
+                <PaginationList  page={this.props.currentPage} perpage={this.props.perPage} allpages={this.props.lastPage} itemsList={this.props.total}/>
             </div>;
         if (this.state.showLogin) {
             layoutToReturn = <Login setShowLogin={this.setShowLogin.bind(this)}/>;

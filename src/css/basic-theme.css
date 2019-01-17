@@ -48,3 +48,7 @@ a {
 .active-page{
     background-color: #1a545e !important;
 }
+
+.hide-button{
+     display: none !important;
+}

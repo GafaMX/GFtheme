@@ -3,6 +3,7 @@
 import React from "react";
 import ServiceItem from "./ServiceItem";
 import Strings from "../utils/Strings/Strings_ES";
+import PaginationList from "../utils/PaginationList";
 
 class ServiceList extends React.Component {
     constructor(props) {
@@ -21,6 +22,7 @@ class ServiceList extends React.Component {
                         {listItems}
                     </div>
                 </div>
+                <PaginationList  page={this.props.currentPage} perpage={this.props.perPage} allpages={this.props.lastPage} itemsList={this.props.total}/>
             </div>
         );
     }
