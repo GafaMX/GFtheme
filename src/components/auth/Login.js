@@ -79,26 +79,33 @@ class Login extends React.Component {
             currentElement.errorLoginCallback.bind(this));
     };
 
-    successLoginCallback(result){
+    successLoginCallback(result) {
         this.setState({logged: true});
-        if (this.props.setShowLogin) {
-            this.props.setShowLogin(false);
-        }
-        if (window.GFtheme.combo_id != null) {
-            this.buyComboAfterLogin();
-        }
         if (this.props.successCallback) {
             this.props.successCallback(result);
         }
+
+        if (window.GFtheme.combo_id != null) {
+            this.buyComboAfterLogin();
+        }
+        if (window.GFtheme.membership_id != null) {
+            this.buyMembershipAfterLogin();
+        }
     }
 
-    errorLoginCallback(error){
+    errorLoginCallback(error) {
         this.setState({serverError: error, logged: false});
     }
 
     buyComboAfterLogin() {
         GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
             window.GFtheme.combo_id = null;
+        });
+    }
+
+    buyMembershipAfterLogin() {
+        GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) {
+            window.GFtheme.membership_id = null;
         });
     }
 

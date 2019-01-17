@@ -13,13 +13,11 @@ class ComboItem extends React.Component {
     handleClick(event) {
         event.preventDefault();
         let currentElement = this;
-        GafaFitSDKWrapper.getMe(function () {
-            if (window.GFtheme.me != null) {
-                currentElement.showBuyFancyForLoggedUsers();
-            } else {
-                currentElement.showLoginForNotLoggedUsers();
-            }
-        })
+        if (GafaFitSDKWrapper.isAuthenticated()) {
+            currentElement.showBuyFancyForLoggedUsers();
+        } else {
+            currentElement.showLoginForNotLoggedUsers();
+        }
     };
 
     showBuyFancyForLoggedUsers() {

@@ -263,7 +263,10 @@ class GafaFitSDKWrapper extends React.Component {
                     }).join(". ");
                     errorCallback(errorToPrint);
                 } else {
-                    successCallback(result)
+                    window.GFtheme.me = result;
+                    GafaFitSDKWrapper.getMeWithCredits(
+                        successCallback
+                    );
                 }
             }
         );

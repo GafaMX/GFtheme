@@ -2,8 +2,8 @@
 
 import React from "react";
 import MembershipItem from "./MembershipItem";
-import Login from "../auth/Login";
 import Strings from "../utils/Strings/Strings_ES";
+import LoginRegister from "../menu/LoginRegister";
 
 class MembershipList extends React.Component {
     constructor(props) {
@@ -25,7 +25,7 @@ class MembershipList extends React.Component {
             <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
         );
         let layoutToReturn =
-            <div >
+            <div>
                 <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.MEMBERSHIPS}</h1>
                 <div className={["membership-list", "container"].join(" ")}>
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
@@ -34,7 +34,7 @@ class MembershipList extends React.Component {
                 </div>
             </div>;
         if (this.state.showLogin) {
-            layoutToReturn = <Login setShowLogin={this.setShowLogin.bind(this)}/>;
+            layoutToReturn = <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>;
         }
         return (
             layoutToReturn

@@ -4,6 +4,7 @@ import React from "react";
 import ComboItem from "./ComboItem";
 import Login from "../auth/Login";
 import Strings from "../utils/Strings/Strings_ES";
+import LoginRegister from "../menu/LoginRegister";
 
 class ComboList extends React.Component {
     constructor(props) {
@@ -25,7 +26,7 @@ class ComboList extends React.Component {
             <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
         );
         let layoutToReturn =
-            <div >
+            <div>
                 <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.COMBOS}</h1>
                 <div className={["combo-list", "container"].join(" ")}>
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
@@ -35,7 +36,7 @@ class ComboList extends React.Component {
             </div>;
 
         if (this.state.showLogin) {
-            layoutToReturn = <Login setShowLogin={this.setShowLogin.bind(this)}/>;
+            layoutToReturn = <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>;
         }
         return (
             layoutToReturn

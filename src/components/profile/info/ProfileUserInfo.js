@@ -127,6 +127,9 @@ class ProfileUserInfo extends React.Component {
 
     successSaveMeCallback(result) {
         this.setState({saved: true});
+        if (this.props.successCallback) {
+            this.props.successCallback(result);
+        }
     }
 
     errorSaveMeCallback(error) {

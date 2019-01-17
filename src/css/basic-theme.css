@@ -37,3 +37,21 @@
 a {
     cursor: pointer;
 }
+
+.modal-container {
+    position: relative;
+}
+
+.modal-container .modal, .modal-container .modal-backdrop {
+    position: absolute;
+}
+
+.modal-backdrop {
+    opacity: 0.5;
+}
+
+@media (min-width: 576px) {
+    .modal-dialog {
+        max-width: 80% !important;
+    }
+}

@@ -7,6 +7,7 @@ import Login from "../auth/Login";
 import ProfileUserInfo from "../profile/info/ProfileUserInfo";
 import Register from "../auth/Register";
 import PasswordRecovery from "../auth/PasswordRecovery";
+import {Modal} from "react-bootstrap";
 
 class LoginRegister extends React.Component {
     constructor(props) {
@@ -24,6 +25,8 @@ class LoginRegister extends React.Component {
             token: null,
             me: null
         };
+
+        this._isMounted = false;
     }
 
     componentDidMount() {
@@ -49,6 +52,14 @@ class LoginRegister extends React.Component {
                 });
             }
         );
+        if (this.props.setShowLogin) {
+            this.handleClickLogin();
+        }
+        this._isMounted = true;
+    }
+
+    componentWillUnmount() {
+        this._isMounted = false;
     }
 
     handleClickLogin() {
@@ -117,20 +128,33 @@ class LoginRegister extends React.Component {
     }
 
     successLoginCallback(result) {
-        let currentComponent = this;
-        GafaFitSDKWrapper.getMeWithCredits(
-            function (result) {
-                currentComponent.setState({
-                    isAuthenticated: true,
-                    showLogin: false,
-                    showRegister: false,
-                    showProfile: false,
-                    passwordRecovery: false,
-                    showButtons: true,
-                    me: result
-                });
-            }
-        );
+        if (this.props.setShowLogin) {
+            this.props.setShowLogin(false);
+        }
+        if (this._isMounted) {
+            let currentComponent = this;
+            GafaFitSDKWrapper.getMeWithCredits(
+                function (result) {
+                    currentComponent.setState({
+                        isAuthenticated: true,
+                        showLogin: false,
+                        showRegister: false,
+                        showProfile: false,
+                        passwordRecovery: false,
+                        showButtons: true,
+                        me: result
+                    });
+                }
+            );
+        }
+    }
+
+    successProfileSaveCallback(result) {
+        if (this._isMounted) {
+            this.setState({
+                me: result
+            });
+        }
     }
 
     successRecoveryCallback() {
@@ -171,47 +195,70 @@ class LoginRegister extends React.Component {
                             : Strings.BUTTON_PROFILE}
                     </a>
                 </div>}
-                {this.state.showLogin &&
-                <div>
-                    <Login successCallback={this.successLoginCallback.bind(this)}/>
-                    <p>{Strings.NOT_ACCOUNT_QUESTION}
-                        <a
-                            onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
-                    </p>
-                    <p>{Strings.FORGOT_PASSWORD_QUESTION}
-                        <a
-                            onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a>
-                    </p>
-                </div>
-                }
-                {this.state.showRegister &&
-                <div>
-                    <Register/>
-                    <p>{Strings.ACCOUNT_QUESTION}
-                        <a
-                            onClick={this.handleClickLogin.bind(this)}> {Strings.BUTTON_LOGIN}</a>
-                    </p>
-                    <div>
+
+                <Modal className="modal-login" show={this.state.showLogin} animation={false} onHide={this.handleClickBack.bind(this)}>
+                    <Modal.Header className="modal-login-header" closeButton>
+                        <Modal.Title>{Strings.BUTTON_LOGIN}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="modal-login-body">
+                        <Login successCallback={this.successLoginCallback.bind(this)}/>
+                    </Modal.Body>
+                    <Modal.Footer className="modal-login-footer">
+                        <p>{Strings.NOT_ACCOUNT_QUESTION}
+                            <a
+                                onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
+                        </p>
+                        <p>{Strings.FORGOT_PASSWORD_QUESTION}
+                            <a
+                                onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a>
+                        </p>
+                    </Modal.Footer>
+                </Modal>
+
+                <Modal className="modal-register" show={this.state.showRegister} animation={false} onHide={this.handleClickBack.bind(this)}>
+                    <Modal.Header className="modal-register-header" closeButton>
+                        <Modal.Title>{Strings.BUTTON_REGISTER}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="modal-register-body">
+                        <Register/>
+                    </Modal.Body>
+                    <Modal.Footer className="modal-register-footer">
+                        <p>{Strings.ACCOUNT_QUESTION}
+                            <a
+                                onClick={this.handleClickLogin.bind(this)}> {Strings.BUTTON_LOGIN}</a>
+                        </p>
                         <p>{Strings.FORGOT_PASSWORD_QUESTION}<a
                             onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a></p>
-                    </div>
-                </div>
-                }
-                {this.state.showProfile &&
-                <div>
-                    <ProfileUserInfo/>
-                    <a onClick={this.handleClickLogout.bind(this)}>{Strings.BUTTON_LOGOUT}</a>
-                </div>
-                }
-                {this.state.passwordRecovery &&
-                <PasswordRecovery token={this.state.token} email={this.state.email}
-                                  successCallback={this.successRecoveryCallback.bind(this)}/>}
+
+                    </Modal.Footer>
+                </Modal>
+
+                <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)}
+                       animation={false}>
+                    <Modal.Header className="modal-profile-header" closeButton>
+                        <Modal.Title>{Strings.BUTTON_PROFILE}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="modal-profile-body">
+                        <ProfileUserInfo successCallback={this.successProfileSaveCallback.bind(this)}/>
+                    </Modal.Body>
+                    <Modal.Footer className="modal-profile-footer">
+                        <a onClick={this.handleClickLogout.bind(this)}>{Strings.BUTTON_LOGOUT}</a>
+                    </Modal.Footer>
+                </Modal>
+
+                <Modal className="modal-password" show={this.state.passwordRecovery} animation={false} onHide={this.handleClickBack.bind(this)}>
+                    <Modal.Header className="modal-password-header" closeButton>
+                        <Modal.Title>{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="modal-password-body">
+                        <PasswordRecovery token={this.state.token} email={this.state.email}
+                                          successCallback={this.successRecoveryCallback.bind(this)}/>
+                    </Modal.Body>
+                </Modal>
+
                 <div className="panel panel-default mt-4 text-danger">
                     {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                 </div>
-                {!this.state.showButtons && <div>
-                    <a onClick={this.handleClickBack.bind(this)}>{Strings.BUTTON_BACK}</a>
-                </div>}
             </div>
         );
     }
