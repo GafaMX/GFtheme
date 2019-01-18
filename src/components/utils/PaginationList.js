@@ -28,7 +28,6 @@ class PaginationList extends React.Component {
                 actualPage: id
             });
 
-            // let domContainers = document.querySelectorAll('[data-gf-theme="staff-list"]');
             this.props.getListData({
                 per_page: this.state.itemsperpage,
                 page: id,
@@ -41,13 +40,23 @@ class PaginationList extends React.Component {
             this.setState({
                 actualPage: this.state.actualPage - 1
             });
-            GafaThemeSDK.renderStaffList(this.state.typeList, 10, this.state.actualPage - 1);
+            this.props.getListData({
+                per_page: this.state.itemsperpage,
+                page: this.state.actualPage-1,
+            }, function (result) {
+                currentComponent.props.updateList(result.data);
+            });
         }
         if (id === 'next') {
             this.setState({
                 actualPage: this.state.actualPage + 1
             });
-            GafaThemeSDK.renderStaffList(this.state.typeList, 10, this.state.actualPage + 1);
+            this.props.getListData({
+                per_page: this.state.itemsperpage,
+                page: this.state.actualPage+1,
+            }, function (result) {
+                currentComponent.props.updateList(result.data);
+            });
         }
     }
 
