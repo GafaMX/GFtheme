@@ -143,3 +143,7 @@ a {
 .hide-button{
      display: none !important;
 }
+
+.past-meeting {
+    opacity: 0.7;
+}
