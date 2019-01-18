@@ -23,7 +23,8 @@ class LoginRegister extends React.Component {
             serverError: "",
             email: null,
             token: null,
-            me: null
+            me: null,
+            loading: false
         };
 
         this._isMounted = false;
@@ -268,6 +269,10 @@ class LoginRegister extends React.Component {
                 <div className="panel panel-default mt-4 text-danger">
                     {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                 </div>
+                {this.state.loading &&
+                <div className="modal-backdrop">
+                    <div className="circle-loading"/>
+                </div>}
             </div>
         );
     }

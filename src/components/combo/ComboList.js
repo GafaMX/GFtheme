@@ -11,7 +11,7 @@ class ComboList extends React.Component {
         super(props);
 
         this.state = {
-            showLogin: false
+            showLogin: false,
         };
     }
 
@@ -36,9 +36,6 @@ class ComboList extends React.Component {
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }
-                {/*<div className="loading-mask">*/}
-                {/*<div className="circle-loading"></div>*/}
-                {/*</div>*/}
                 <PaginationList page={this.props.currentPage} perpage={this.props.perPage}
                                 allpages={this.props.lastPage} itemsList={this.props.total}/>
             </div>
