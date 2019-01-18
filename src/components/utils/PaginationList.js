@@ -39,24 +39,24 @@ class PaginationList extends React.Component {
         }
     }
 
-    getActive(id){
-        return id === this.state.actualPage ? 'active-page': '';
+    getActive(id) {
+        return id === this.state.actualPage ? 'active-page' : '';
     }
 
-    firstPage(actual){
-        return actual === 1 ? 'hide-button':'';
+    firstPage(actual) {
+        return actual === 1 ? 'hide-button' : '';
     }
 
-    lastPage(actual){
-        return actual === this.props.allpages ? 'hide-button':'';
+    lastPage(actual) {
+        return actual === this.props.allpages ? 'hide-button' : '';
     }
 
     render() {
         let pageElements = [];
         let totalpages = this.state.allpages;
         for (let i = 0; i < totalpages; i++) {
-            pageElements.push(<div className={["btn-group mr-2"]}>
-                <button key={'page-'+i} id={i + 1} className={'btn btn-info ' + this.getActive(i+1)}
+            pageElements.push(<div key={'page-' + i} className={["btn-group mr-2"]}>
+                <button key={'page-' + i} id={i + 1} className={'btn btn-info ' + this.getActive(i + 1)}
                         onClick={(e) => this.handleClick(i + 1, e)}>
                     <a>{i + 1}</a></button>
             </div>)
@@ -66,12 +66,14 @@ class PaginationList extends React.Component {
             <section className={'pages-navigation'}>
                 <div className={'pagination-container'}>
                     <div className={"btn-group mr-2"}>
-                        <button className={'btn btn-info past-page ' + this.firstPage(this.state.actualPage)} id={['past']}
+                        <button className={'btn btn-info past-page ' + this.firstPage(this.state.actualPage)}
+                                id={['past']}
                                 onClick={(e) => this.handleClick('past', e)}><a>{['<<']}</a></button>
                     </div>
                     {pageElements}
                     <div className={"btn-group mr-2"}>
-                        <button className={'btn btn-info next-page ' + this.lastPage(this.state.actualPage)} id={['next']}
+                        <button className={'btn btn-info next-page ' + this.lastPage(this.state.actualPage)}
+                                id={['next']}
                                 onClick={(e) => this.handleClick('next', e)}><a> {['>>']}</a></button>
                     </div>
                 </div>

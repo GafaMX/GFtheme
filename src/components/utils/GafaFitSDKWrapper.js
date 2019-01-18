@@ -9,10 +9,10 @@ class GafaFitSDKWrapper extends React.Component {
 
     static initValues() {
         GafaFitSDK.setUrl('https://devgafa.fit/');
-        GafaFitSDK.setCompany(1);
+        GafaFitSDK.setCompany(3);
         window.GFtheme = {};
-        window.GFtheme.brand = 'test-brand-1';
-        window.GFtheme.location = 't3mplo-pedregal';
+        window.GFtheme.brand = 'zuda';
+        window.GFtheme.location = 'zuda-plaza-lilas';
     }
 
     static setBrand(brand) {

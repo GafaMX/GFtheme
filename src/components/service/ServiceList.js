@@ -22,7 +22,8 @@ class ServiceList extends React.Component {
                         {listItems}
                     </div>
                 </div>
-                <PaginationList  page={this.props.currentPage} perpage={this.props.perPage} allpages={this.props.lastPage} itemsList={this.props.total}/>
+                <PaginationList page={this.props.currentPage} perpage={this.props.perPage}
+                                allpages={this.props.lastPage} itemsList={this.props.total}/>
             </div>
         );
     }
