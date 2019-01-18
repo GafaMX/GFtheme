@@ -60,7 +60,7 @@ export default {
     ROOM: 'Salón',
     NEXT_WEEK: 'Siguiente semana',
     PREVIOUS_WEEK: 'Semana anterior',
-    CALENDAR: 'Calendario'
+    CALENDAR: 'Calendario',
     SERVICE_LIST: "Servicios",
     NOT_ACCOUNT_QUESTION: "¿Aún no tienes una cuenta?",
     ACCOUNT_QUESTION: "¿Ya tienes una cuenta?",

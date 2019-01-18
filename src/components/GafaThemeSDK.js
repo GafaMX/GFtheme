@@ -10,7 +10,6 @@ import ComboList from "./combo/ComboList";
 import MembershipList from "./membership/MembershipList";
 import Register from "./auth/Register";
 import PasswordRecovery from "./auth/PasswordRecovery";
-import ProfileUserInfo from "./profile/ProfileUserInfo";
 import Calendar from "./calendar/Calendar";
 import ProfileUserInfo from "./profile/info/ProfileUserInfo";
 import LoginRegister from "./menu/LoginRegister";
