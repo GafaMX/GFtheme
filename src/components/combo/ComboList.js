@@ -36,6 +36,9 @@ class ComboList extends React.Component {
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }
+                {/*<div className="loading-mask">*/}
+                    {/*<div className="circle-loading"></div>*/}
+                {/*</div>*/}
             </div>
         );
 
