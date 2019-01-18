@@ -4,14 +4,25 @@ import React from "react";
 import StaffItem from "./StaffItem";
 import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
+import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
 class StaffList extends React.Component {
     constructor(props) {
         super(props);
+        this.state={
+            list:this.props.list
+        }
+    }
+
+    updateList(list)
+    {
+        this.setState({
+            list:list
+        });
     }
 
     render() {
-        const listItems = this.props.list.map((staff) =>
+        const listItems = this.state.list.map((staff) =>
             <StaffItem key={staff.id} staff={staff}/>
         );
         return (
@@ -22,11 +33,10 @@ class StaffList extends React.Component {
                         {listItems}
                     </div>
                     {/*Paginacion*/}
-                    {/*<span>{this.props.currentPage}</span><br/>*/}
-                    {/*<span>{this.props.perPage}</span><br/>*/}
-                    {/*<span>{this.props.list.length}</span>*/}
-
-                    <PaginationList  page={this.props.currentPage} perpage={this.props.perPage} allpages={this.props.lastPage} itemsList={this.props.total}/>
+                    <PaginationList  page={this.props.currentPage} perpage={this.props.perPage}
+                                     allpages={this.props.lastPage} itemsList={this.props.total}
+                                     updateList={this.updateList.bind(this)}
+                                     getListData={GafaFitSDKWrapper.getStaffList}/>
                 </div>
             </div>
         );

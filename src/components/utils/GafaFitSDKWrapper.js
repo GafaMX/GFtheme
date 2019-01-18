@@ -29,9 +29,9 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static getServiceList(callback) {
+    static getServiceList(options,callback) {
         GafaFitSDK.GetBrandServiceList(
-            window.GFtheme.brand, {}, function (error, result) {
+            window.GFtheme.brand, options, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }
@@ -44,16 +44,13 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
 
-    static getComboList(callback) {
+    static getComboList(options,callback) {
         let functionToRetrieveCombos = GafaFitSDK.GetBrandCombolist;
         if (GafaFitSDK.isAuthentified()) {
             functionToRetrieveCombos = GafaFitSDK.GetBrandComboListforUser;
         }
         functionToRetrieveCombos(
-            window.GFtheme.brand, {
-                'only_actives': true,
-                'propagate': true
-            }, function (error, result) {
+            window.GFtheme.brand,options, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }
@@ -61,16 +58,13 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static getMembershipList(callback) {
+    static getMembershipList(options,callback) {
         let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
         if (GafaFitSDK.isAuthentified()) {
             functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
         }
         functionToRetrieveMemberships(
-            window.GFtheme.brand, {
-                'only_actives': true,
-                'propagate': true
-            }, function (error, result) {
+            window.GFtheme.brand, options, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }
