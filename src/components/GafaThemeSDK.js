@@ -10,6 +10,8 @@ import ComboList from "./combo/ComboList";
 import MembershipList from "./membership/MembershipList";
 import Register from "./auth/Register";
 import PasswordRecovery from "./auth/PasswordRecovery";
+import ProfileUserInfo from "./profile/ProfileUserInfo";
+import Calendar from "./calendar/Calendar";
 import ProfileUserInfo from "./profile/info/ProfileUserInfo";
 import LoginRegister from "./menu/LoginRegister";
 
@@ -101,6 +103,22 @@ class GafaThemeSDK extends React.Component {
             GafaThemeSDK.renderElementIntoContainers(domContainers, ProfileUserInfo, {});
         }
     };
+
+    static renderMeetingsCalendar(selector) {
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
+            GafaFitSDKWrapper.getBrandLocations({
+                'page': 1,
+                'per_page': 1000,
+            }, function (result) {
+                let locations = result.data;
+                let props = {
+                    'locations': locations
+                };
+                GafaThemeSDK.renderElementIntoContainers(domContainers, Calendar, props);
+            })
+        }
+    }
 
     static renderLoginRegister(selector) {
         let domContainers = document.querySelectorAll(selector);

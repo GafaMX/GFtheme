@@ -139,6 +139,7 @@ The current list of available components to be rendered are:
 * `staff-list`   Staff list
 * `service-list`   Services list
 * `membership-list`   Memberships list
+* `meetings-calendar`  Calendar of Meetings
 
 * `login-register`   Login/Register component, when is clicked open up a dialog with the options. Ideal for app menu.
 If the user is logged in, the component shows the user name with the available credits, when click open a dialog with

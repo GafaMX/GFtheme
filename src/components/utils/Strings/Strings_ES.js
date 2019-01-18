@@ -41,7 +41,7 @@ export default {
     LABEL_POSTAL_CODE: 'Código postal',
     LABEL_PROFILE_INFO: 'Usuario',
     LABEL_CONTACT: 'Contacto',
-    TO_VALIDATION:{
+    TO_VALIDATION: {
         email: 'correo',
         password: 'contraseña',
         passwordConfirmation: 'confirmar contraseña',
@@ -53,6 +53,14 @@ export default {
     MEMBERSHIPS: "Membresías",
     COMBOS: "Paquetes",
     STAFF_LIST: "Instructores",
+    SERVICE_LIST: "Servicios",
+    ALL: 'Todos',
+    LOCATION: 'Ubicación',
+    SERVICE: 'Servicio',
+    ROOM: 'Salón',
+    NEXT_WEEK: 'Siguiente semana',
+    PREVIOUS_WEEK: 'Semana anterior',
+    CALENDAR: 'Calendario'
     SERVICE_LIST: "Servicios",
     NOT_ACCOUNT_QUESTION: "¿Aún no tienes una cuenta?",
     ACCOUNT_QUESTION: "¿Ya tienes una cuenta?",

@@ -9,10 +9,10 @@ class GafaFitSDKWrapper extends React.Component {
 
     static initValues() {
         GafaFitSDK.setUrl('https://devgafa.fit/');
-        GafaFitSDK.setCompany(3);
+        GafaFitSDK.setCompany(1);
         window.GFtheme = {};
-        window.GFtheme.brand = 'zuda';
-        window.GFtheme.location = 'zuda-plaza-lilas';
+        window.GFtheme.brand = 'test-brand-1';
+        window.GFtheme.location = 't3mplo-pedregal';
     }
 
     static setBrand(brand) {
@@ -116,8 +116,8 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getToken(email, password, successCallback, errorCallback) {
         GafaFitSDK.GetToken(
-            3,
-            "rh9}UJA<7,H7d!T27&a9.9ZXQsCf&CS/[jik==c&",
+            1,
+            "9fG7adUeA43FfidqQN7WsgBAwcCMJJMtPGoPdPOM",
             email,
             password,
             {
@@ -312,6 +312,53 @@ class GafaFitSDKWrapper extends React.Component {
             }
         );
     }
+
+    static getMeetingsInLocation(location, start_date, end_date, callback) {
+        GafaFitSDK.GetlocationMeetingList(window.GFtheme.brand, location, {
+            'only_actives': true,
+            'start': start_date,
+            'end': end_date
+        }, function (error, result) {
+            if (error === null) {
+                callback(result);
+            }
+        })
+    }
+
+    static getBrandLocations(options, callback) {
+        options.only_actives = true;
+        GafaFitSDK.GetBrandLocationList(window.GFtheme.brand, options, function (error, result) {
+            if (error === null) {
+                callback(result);
+            }
+        })
+    }
+
+    static getBrandRooms(options, callback) {
+        GafaFitSDK.GetRoomsInBrand(window.GFtheme.brand, options, function (error, result) {
+            if (error === null) {
+                callback(result);
+            }
+        });
+    }
+
+    static getFancyForMeetingReservation(location,meetings_id, callback) {
+        GafaFitSDKWrapper.getMe(function () {
+            GafaFitSDK.GetCreateReservationForm(
+                window.GFtheme.brand,
+                location,
+                window.GFtheme.me.id,
+                '[data-gf-theme="fancy"]',
+                {
+                    'meetings_id': meetings_id,
+                }, function (error, result) {
+                    if (error === null) {
+                        callback(result);
+                    }
+                }
+            );
+        });
+    };
 }
 
 export default GafaFitSDKWrapper;

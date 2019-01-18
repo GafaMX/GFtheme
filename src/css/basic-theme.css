@@ -110,3 +110,20 @@ a {
     width: 100%;
     height: 100%;
 }
+
+.calendar-day-column {
+    width: 13%;
+}
+
+.calendar-day-column:not(.last-day) {
+    border-right: 1px solid;
+}
+
+.calendar-meeting {
+    cursor: pointer;
+    margin: 10px;
+}
+
+.calendar-control-button {
+    cursor: pointer;
+}
