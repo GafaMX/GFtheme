@@ -4,6 +4,7 @@ import React from "react";
 import ComboItem from "./ComboItem";
 import Login from "../auth/Login";
 import Strings from "../utils/Strings/Strings_ES";
+import PaginationList from "../utils/PaginationList";
 import LoginRegister from "../menu/LoginRegister";
 
 class ComboList extends React.Component {
@@ -39,9 +40,14 @@ class ComboList extends React.Component {
                 {/*<div className="loading-mask">*/}
                     {/*<div className="circle-loading"></div>*/}
                 {/*</div>*/}
+
+                        {/*Paginacion*/}
+                        {/*<span>{this.props.currentPage}</span><br/>*/}
+                        {/*<span>{this.props.perPage}</span><br/>*/}
+                        {/*<span>{this.props.lastPage}</span>*/}
+                <PaginationList  page={this.props.currentPage} perpage={this.props.perPage} allpages={this.props.lastPage} itemsList={this.props.total}/>
             </div>
         );
-
     }
 }
 

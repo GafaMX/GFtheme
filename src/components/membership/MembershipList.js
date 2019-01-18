@@ -3,6 +3,7 @@
 import React from "react";
 import MembershipItem from "./MembershipItem";
 import Strings from "../utils/Strings/Strings_ES";
+import PaginationList from "../utils/PaginationList";
 import LoginRegister from "../menu/LoginRegister";
 
 class MembershipList extends React.Component {
@@ -33,8 +34,9 @@ class MembershipList extends React.Component {
                     </div>
                 </div>
                 {this.state.showLogin && <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>}
-            </div>
-        );
+                <PaginationList page={this.props.currentPage} perpage={this.props.perPage}
+                                allpages={this.props.lastPage} itemsList={this.props.total}/>
+            </div>);
     }
 }
 

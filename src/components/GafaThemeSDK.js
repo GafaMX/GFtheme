@@ -35,10 +35,19 @@ class GafaThemeSDK extends React.Component {
         });
     }
 
-    static renderStaffList(selector) {
+    static renderStaffList(selector, per_page, page) {
+        if (!per_page) {
+            per_page = 10;
+        }
+        if (!page) {
+            page = 1;
+        }
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaFitSDKWrapper.getStaffList(function (result) {
+            GafaFitSDKWrapper.getStaffList({
+                per_page: per_page,
+                page: page,
+            }, function (result) {
                 let props = GafaThemeSDK.propsForPagedListComponent(result);
                 GafaThemeSDK.renderElementIntoContainers(domContainers, StaffList, props);
             });

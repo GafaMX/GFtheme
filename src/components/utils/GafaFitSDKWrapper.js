@@ -19,9 +19,9 @@ class GafaFitSDKWrapper extends React.Component {
         window.GFtheme.brand = brand;
     }
 
-    static getStaffList(callback) {
+    static getStaffList(options, callback) {
         GafaFitSDK.GetBrandStaffList(
-            window.GFtheme.brand, {}, function (error, result) {
+            window.GFtheme.brand, options, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }

@@ -127,3 +127,19 @@ a {
 .calendar-control-button {
     cursor: pointer;
 }
+
+
+.pagination-container{
+    display: -webkit-inline-box;
+}
+
+.pages-navigation{
+    text-align: center;
+}
+.active-page{
+    background-color: #1a545e !important;
+}
+
+.hide-button{
+     display: none !important;
+}

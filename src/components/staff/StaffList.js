@@ -3,6 +3,7 @@
 import React from "react";
 import StaffItem from "./StaffItem";
 import Strings from "../utils/Strings/Strings_ES";
+import PaginationList from "../utils/PaginationList";
 
 class StaffList extends React.Component {
     constructor(props) {
@@ -20,6 +21,12 @@ class StaffList extends React.Component {
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
                         {listItems}
                     </div>
+                    {/*Paginacion*/}
+                    {/*<span>{this.props.currentPage}</span><br/>*/}
+                    {/*<span>{this.props.perPage}</span><br/>*/}
+                    {/*<span>{this.props.list.length}</span>*/}
+
+                    <PaginationList  page={this.props.currentPage} perpage={this.props.perPage} allpages={this.props.lastPage} itemsList={this.props.total}/>
                 </div>
             </div>
         );
