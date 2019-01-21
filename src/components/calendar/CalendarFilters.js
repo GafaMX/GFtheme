@@ -214,6 +214,7 @@ class CalendarFilters extends React.Component {
                             {this.state.services.map(function (service, index) {
                                 return (
                                     <option value={service.id}
+                                            className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
                                             key={`${filter_name}-service--option-${index}`}>{service.name}</option>
                                 );
                             })}
@@ -222,7 +223,8 @@ class CalendarFilters extends React.Component {
 
                     <div className={'calendar-time-filters col-md-4'}>
                         <label htmlFor={'calendar-time-of-day'}>{Strings.TIME_OF_DAY}: </label>
-                        <select id={'calendar-time-of-day'} className={'col-md-12'} data-name="filter_time_of_day" onChange={this.updateStore}>
+                        <select id={'calendar-time-of-day'} className={'col-md-12'} data-name="filter_time_of_day"
+                                onChange={this.updateStore}>
                             <option value={''}>{Strings.ALL}</option>
                             <option value={'morning'}>{Strings.MORNING}</option>
                             <option value={'afternoon'}>{Strings.AFTERNOON}</option>
