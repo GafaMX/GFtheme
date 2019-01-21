@@ -82,6 +82,12 @@ class CalendarFilters extends React.Component {
         CalendarStorage.set(name, model);
     }
 
+    updateStore(e) {
+        let val = e.target.value;
+        let name = e.target.getAttribute('data-name');
+        CalendarStorage.set(name, val);
+    }
+
     selectLocation(e) {
         this.selectFilter(e);
         CalendarStorage.set('filter_room', null);
@@ -161,56 +167,67 @@ class CalendarFilters extends React.Component {
                         {this.getNextButton()}
                     </div>
                 </div>
-                <div className={'calendar-filter-selector col-md-4'}>
-                    <label htmlFor={'calendar-filter-location'}>{Strings.LOCATION}: </label>
-                    <select className={'col-md-12'} id={'calendar-filter-location'} data-name="filter_location"
-                            data-origin="locations"
-                            onChange={this.selectLocation.bind(this)}>
-                        <option value={''}>{Strings.ALL}</option>
-                        {locations.map(function (location, index) {
-                            return (
-                                <option value={location.id}
-                                        key={`${filter_name}-location--option-${index}`}>{location.name}</option>
-                            );
-                        })}
-                    </select>
-                </div>
+                <div className={'col-md-12 row mb-4'}>
+                    <div className={'calendar-filter-selector col-md-4'}>
+                        <label htmlFor={'calendar-filter-location'}>{Strings.LOCATION}: </label>
+                        <select className={'col-md-12'} id={'calendar-filter-location'} data-name="filter_location"
+                                data-origin="locations"
+                                onChange={this.selectLocation.bind(this)}>
+                            <option value={''}>{Strings.ALL}</option>
+                            {locations.map(function (location, index) {
+                                return (
+                                    <option value={location.id}
+                                            key={`${filter_name}-location--option-${index}`}>{location.name}</option>
+                                );
+                            })}
+                        </select>
+                    </div>
 
-                <div className={'calendar-filter-selector col-md-4'}>
-                    <label htmlFor={'calendar-filter-room'}>{Strings.ROOM}: </label>
-                    <select className={'col-md-12'} id={'calendar-filter-room'} data-name="filter_room"
-                            data-origin="rooms" ref={'room'}
-                            onChange={this.selectFilter}>
-                        <option value={''}>{Strings.ALL}</option>
-                        {this.state.room_groups.map(function (group, index) {
-                            return (
-                                <optgroup label={group.location.name}
-                                          key={`${filter_name}-room-group--option-${index}`}>
-                                    {group.rooms.map(function (room, r_index) {
-                                        return (
-                                            <option key={`${filter_name}-room--option-${r_index}`}
-                                                    value={room.id}>{room.name}</option>
-                                        );
-                                    })}
-                                </optgroup>
-                            );
-                        })}
-                    </select>
-                </div>
+                    <div className={'calendar-filter-selector col-md-4'}>
+                        <label htmlFor={'calendar-filter-room'}>{Strings.ROOM}: </label>
+                        <select className={'col-md-12'} id={'calendar-filter-room'} data-name="filter_room"
+                                data-origin="rooms" ref={'room'}
+                                onChange={this.selectFilter}>
+                            <option value={''}>{Strings.ALL}</option>
+                            {this.state.room_groups.map(function (group, index) {
+                                return (
+                                    <optgroup label={group.location.name}
+                                              key={`${filter_name}-room-group--option-${index}`}>
+                                        {group.rooms.map(function (room, r_index) {
+                                            return (
+                                                <option key={`${filter_name}-room--option-${r_index}`}
+                                                        value={room.id}>{room.name}</option>
+                                            );
+                                        })}
+                                    </optgroup>
+                                );
+                            })}
+                        </select>
+                    </div>
 
-                <div className={'calendar-filter-selector col-md-4'}>
-                    <label htmlFor={'calendar-filter-service'}>{Strings.SERVICE}: </label>
-                    <select className={'col-md-12'} id={'calendar-filter-service'} data-name="filter_service"
-                            data-origin="services"
-                            onChange={this.selectFilter}>
-                        <option value={''}>{Strings.ALL}</option>
-                        {this.state.services.map(function (service, index) {
-                            return (
-                                <option value={service.id}
-                                        key={`${filter_name}-service--option-${index}`}>{service.name}</option>
-                            );
-                        })}
-                    </select>
+                    <div className={'calendar-filter-selector col-md-4'}>
+                        <label htmlFor={'calendar-filter-service'}>{Strings.SERVICE}: </label>
+                        <select className={'col-md-12'} id={'calendar-filter-service'} data-name="filter_service"
+                                data-origin="services"
+                                onChange={this.selectFilter}>
+                            <option value={''}>{Strings.ALL}</option>
+                            {this.state.services.map(function (service, index) {
+                                return (
+                                    <option value={service.id}
+                                            key={`${filter_name}-service--option-${index}`}>{service.name}</option>
+                                );
+                            })}
+                        </select>
+                    </div>
+
+                    <div className={'calendar-time-filters col-md-4'}>
+                        <label htmlFor={'calendar-time-of-day'}>{Strings.TIME_OF_DAY}: </label>
+                        <select id={'calendar-time-of-day'} className={'col-md-12'} data-name="filter_time_of_day" onChange={this.updateStore}>
+                            <option value={''}>{Strings.ALL}</option>
+                            <option value={'morning'}>{Strings.MORNING}</option>
+                            <option value={'afternoon'}>{Strings.AFTERNOON}</option>
+                        </select>
+                    </div>
                 </div>
 
             </div>

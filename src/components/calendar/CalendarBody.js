@@ -13,7 +13,7 @@ class CalendarBody extends React.Component {
             meetings_to_show: this.initialMeetings()
         };
 
-        CalendarStorage.addSegmentedListener(['filter_location', 'filter_service', 'filter_room', 'meetings', 'start_date'], this.updateMeetings.bind(this));
+        CalendarStorage.addSegmentedListener(['filter_location', 'filter_service', 'filter_room', 'meetings', 'start_date', 'filter_time_of_day'], this.updateMeetings.bind(this));
     }
 
     initialMeetings() {
@@ -51,6 +51,8 @@ class CalendarBody extends React.Component {
         let start = CalendarStorage.get('start_date');
         let end = new Date();
         end.setDate(start.getDate() + 6);
+        let time_of_day = CalendarStorage.get('filter_time_of_day');
+
         let shown_meetings = [];
 
         if (location) {
@@ -69,6 +71,20 @@ class CalendarBody extends React.Component {
             meetings = meetings.filter(function (meeting) {
                 return meeting.rooms_id === room.id;
             })
+        }
+
+        if (time_of_day) {
+            if (time_of_day === 'morning') {
+                meetings = meetings.filter(function (meeting) {
+                    let date = new Date(meeting.start_date);
+                    return date.getHours() < 12;
+                })
+            } else if (time_of_day === 'afternoon') {
+                meetings = meetings.filter(function (meeting) {
+                    let date = new Date(meeting.start_date);
+                    return date.getHours() >= 12;
+                })
+            }
         }
 
         let date_array = this.getDates(start, end);
