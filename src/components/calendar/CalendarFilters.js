@@ -16,8 +16,8 @@ class CalendarFilters extends React.Component {
             has_prev: false,
         };
 
-        CalendarStorage.addSegmentedListener(['services'], this.updateServices.bind(this));
         CalendarStorage.addSegmentedListener(['rooms', 'filter_location'], this.updateRooms.bind(this));
+        CalendarStorage.addSegmentedListener(['meetings'], this.updateServices.bind(this));
         CalendarStorage.addSegmentedListener(['start_date'], this.updateStart.bind(this));
 
         this.nextWeek = this.nextWeek.bind(this);
@@ -27,9 +27,21 @@ class CalendarFilters extends React.Component {
     }
 
     updateServices() {
+        let meetings = CalendarStorage.get('meetings');
+        let services = [];
+
+        meetings.forEach(function (meeting) {
+            let service = meeting.service;
+            if (service && !services.find(o => o.id === service.id)) {
+                services.push(service);
+            }
+        });
+
         this.setState({
-            services: CalendarStorage.get('services')
-        })
+            services: services
+        });
+
+        CalendarStorage.set('services', services);
     }
 
     updateRooms() {
