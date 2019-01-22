@@ -15,8 +15,8 @@ class CalendarMeeting extends React.Component {
         CalendarStorage.addSegmentedListener(['rooms'], this.updateRoom.bind(this));
     }
 
-    getRoom(){
-        return CalendarStorage.find('rooms',this.props.meeting.rooms_id);
+    getRoom() {
+        return CalendarStorage.find('rooms', this.props.meeting.rooms_id);
     }
 
     updateRoom() {
@@ -29,13 +29,11 @@ class CalendarMeeting extends React.Component {
     handleClick(event) {
         event.preventDefault();
         let currentElement = this;
-        GafaFitSDKWrapper.getMe(function () {
-            if (window.GFtheme.me != null) {
-                currentElement.showBuyFancyForLoggedUsers();
-            } else {
-                currentElement.showLoginForNotLoggedUsers();
-            }
-        })
+        if (GafaFitSDKWrapper.isAuthenticated()) {
+            currentElement.showBuyFancyForLoggedUsers();
+        } else {
+            currentElement.showLoginForNotLoggedUsers();
+        }
     };
 
     showBuyFancyForLoggedUsers() {
@@ -49,8 +47,10 @@ class CalendarMeeting extends React.Component {
     }
 
     showLoginForNotLoggedUsers() {
+        let location = CalendarStorage.find('locations', this.props.meeting.locations_id);
         window.GFtheme.meetings_id = this.props.meeting.id;
-        let login=CalendarStorage.get('show_login');
+        window.GFtheme.location_slug = location.slug;
+        let login = CalendarStorage.get('show_login');
         login(true);
     }
 
@@ -63,7 +63,8 @@ class CalendarMeeting extends React.Component {
 
         return (
             <div key={`column-day--${day.date}--meeting--${meeting.id}`}
-                 className={'calendar-meeting shadow-sm'} data-id={meeting.id} onClick={this.handleClick.bind(this)}>
+                 className={`calendar-meeting shadow-sm ${meeting.passed ? 'past-meeting' : ''}`} data-id={meeting.id}
+                 onClick={this.handleClick.bind(this)}>
                 <div className={'mb-4 card'}>
                     <div className={'card-header'}>
                         <p className={'meeting-room-name calendar-meeting-info-line'}>{location ? location.name : ''}</p>

@@ -21,7 +21,7 @@ class CalendarBody extends React.Component {
         let meetings = CalendarStorage.get('meetings');
         let start = CalendarStorage.get('start_date');
         if (!!meetings && !!start) {
-            let end = new Date();
+            let end = new Date(start.getTime());
             end.setDate(start.getDate() + 6);
             let date_array = this.getDates(start, end);
 
@@ -49,7 +49,7 @@ class CalendarBody extends React.Component {
         let room = CalendarStorage.get('filter_room');
         let meetings = CalendarStorage.get('meetings');
         let start = CalendarStorage.get('start_date');
-        let end = new Date();
+        let end = new Date(start.getTime());
         end.setDate(start.getDate() + 6);
         let time_of_day = CalendarStorage.get('filter_time_of_day');
 

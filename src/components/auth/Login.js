@@ -91,6 +91,9 @@ class Login extends React.Component {
         if (window.GFtheme.membership_id != null) {
             this.buyMembershipAfterLogin();
         }
+        if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+            this.reserveMeetingAfterLogin();
+        }
     }
 
     errorLoginCallback(error) {
@@ -106,6 +109,13 @@ class Login extends React.Component {
     buyMembershipAfterLogin() {
         GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) {
             window.GFtheme.membership_id = null;
+        });
+    }
+
+    reserveMeetingAfterLogin() {
+        GafaFitSDKWrapper.getFancyForMeetingReservation(window.GFtheme.location_slug, window.GFtheme.meetings_id, function (result) {
+            window.GFtheme.meetings_id = null;
+            window.GFtheme.location_slug = null;
         });
     }
 

@@ -6,7 +6,7 @@ import CalendarFilters from './CalendarFilters';
 import CalendarStorage from './CalendarStorage';
 import CalendarBody from "./CalendarBody";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Login from "../auth/Login";
+import LoginRegister from "../menu/LoginRegister";
 
 class Calendar extends React.Component {
     constructor(props) {
@@ -67,19 +67,17 @@ class Calendar extends React.Component {
 
     render() {
 
-        if (this.state.showLogin) {
-            return (
-                <Login setShowLogin={this.setShowLogin.bind(this)}/>
-            )
-        } else {
-            return (
-                <div className={'meetings-calendar--wrapper container'}>
-                    <h1 className={'display-4 container text-center'}>{Strings.CALENDAR}</h1>
-                    <CalendarFilters/>
-                    <CalendarBody/>
-                </div>
-            );
-        }
+
+        return (
+            <div className={'meetings-calendar--wrapper container'}>
+                <h1 className={'display-4 container text-center'}>{Strings.CALENDAR}</h1>
+                <CalendarFilters/>
+                <CalendarBody/>
+                {this.state.showLogin &&
+                <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
+                }
+            </div>
+        );
     }
 }
 
