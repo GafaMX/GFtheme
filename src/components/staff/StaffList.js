@@ -5,7 +5,6 @@ import StaffItem from "./StaffItem";
 import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Select from "react-select";
 
 class StaffList extends React.Component {
     constructor(props) {
@@ -58,7 +57,6 @@ class StaffList extends React.Component {
                 </div>
 
                 <div className={["staff-list", "container"].join(" ")}>
-                    {this.state.currentjobcurrentjob}
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
                         {listItems}
                     </div>
