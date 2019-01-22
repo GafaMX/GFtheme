@@ -14,6 +14,8 @@ class ServiceList extends React.Component {
             list: this.props.list,
             categoryList: [],
             currentCategory: 'Todos',
+            nameList: [],
+            currentService: '',
         };
         this.change = this.change.bind(this);
     }
@@ -26,6 +28,12 @@ class ServiceList extends React.Component {
     }
 
     change(event) {
+        this.setState({
+            currentCategory: event.target.value
+        })
+    }
+
+    changeService(event){
         this.setState({
             currentCategory: event.target.value
         })
