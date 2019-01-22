@@ -10,6 +10,7 @@ const CalendarStorage = {
     filter_service: null,
     start_date: null,
     show_login: null,
+    filter_time_of_day: null,
     /**
      *
      * @param property

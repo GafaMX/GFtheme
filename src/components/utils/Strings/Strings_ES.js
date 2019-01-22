@@ -64,5 +64,8 @@ export default {
     SERVICE_LIST: "Servicios",
     NOT_ACCOUNT_QUESTION: "¿Aún no tienes una cuenta?",
     ACCOUNT_QUESTION: "¿Ya tienes una cuenta?",
-    FORGOT_PASSWORD_QUESTION: "¿Olvidaste tu contraseña?"
+    FORGOT_PASSWORD_QUESTION: "¿Olvidaste tu contraseña?",
+    TIME_OF_DAY: 'Periodo',
+    MORNING: 'Mañana',
+    AFTERNOON: 'Tarde',
 }
