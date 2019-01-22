@@ -56,7 +56,6 @@ class StaffList extends React.Component {
                 </div>
 
                 <div className={["staff-list", "container"].join(" ")}>
-                    {this.state.currentjobcurrentjob}
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
                         {listItems}
                     </div>
