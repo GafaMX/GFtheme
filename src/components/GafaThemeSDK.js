@@ -97,7 +97,7 @@ class GafaThemeSDK extends React.Component {
 
     static renderMembershipList(selector, per_page, page) {
         if (!per_page) {
-            per_page = 10;
+            per_page = 2;
         }
         if (!page) {
             page = 1;

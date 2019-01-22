@@ -22,40 +22,35 @@ class PaginationList extends React.Component {
 
     handleClick(id, event) {
 
+        let options = this.props.extraOptions ? this.props.extraOptions : {};
+        options.per_page = this.state.itemsperpage;
+
         let currentComponent = this;
         if (typeof id === 'number') {
+            options.page = id;
+            this.props.getListData(options, function (result) {
+                currentComponent.props.updateList(result.data);
+            });
             this.setState({
                 actualPage: id
             });
-
-            this.props.getListData({
-                per_page: this.state.itemsperpage,
-                page: id,
-            }, function (result) {
-                currentComponent.props.updateList(result.data);
-            });
-            // GafaThemeSDK.renderStaffList(this.state.typeList, 10, id);
         }
         if (id === 'past') {
+            options.page = this.state.actualPage - 1;
+            this.props.getListData(options, function (result) {
+                currentComponent.props.updateList(result.data);
+            });
             this.setState({
                 actualPage: this.state.actualPage - 1
             });
-            this.props.getListData({
-                per_page: this.state.itemsperpage,
-                page: this.state.actualPage-1,
-            }, function (result) {
-                currentComponent.props.updateList(result.data);
-            });
         }
         if (id === 'next') {
+            options.page = this.state.actualPage + 1;
+            this.props.getListData(options, function (result) {
+                currentComponent.props.updateList(result.data);
+            });
             this.setState({
                 actualPage: this.state.actualPage + 1
-            });
-            this.props.getListData({
-                per_page: this.state.itemsperpage,
-                page: this.state.actualPage+1,
-            }, function (result) {
-                currentComponent.props.updateList(result.data);
             });
         }
     }
