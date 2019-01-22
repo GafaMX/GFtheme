@@ -5,7 +5,6 @@ import StaffItem from "./StaffItem";
 import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Select from "react-select";
 
 class StaffList extends React.Component {
     constructor(props) {
