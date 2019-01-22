@@ -5,6 +5,7 @@ import ComboItem from "./ComboItem";
 import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import LoginRegister from "../menu/LoginRegister";
+import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
 class ComboList extends React.Component {
     constructor(props) {
@@ -12,6 +13,7 @@ class ComboList extends React.Component {
 
         this.state = {
             showLogin: false,
+            list: this.props.list
         };
     }
 
@@ -21,8 +23,15 @@ class ComboList extends React.Component {
         });
     }
 
+    updateList(list)
+    {
+        this.setState({
+            list:list
+        });
+    }
+
     render() {
-        const listItems = this.props.list.map((combo) =>
+        const listItems = this.state.list.map((combo) =>
             <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
         );
         return (
@@ -33,6 +42,10 @@ class ComboList extends React.Component {
                         {listItems}
                     </div>
                 </div>
+                <PaginationList  page={this.props.currentPage} perpage={this.props.perPage}
+                                 allpages={this.props.lastPage} itemsList={this.props.total}
+                                 updateList={this.updateList.bind(this)}
+                                 getListData={GafaFitSDKWrapper.getComboList}/>
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }

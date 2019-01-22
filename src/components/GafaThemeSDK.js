@@ -54,30 +54,62 @@ class GafaThemeSDK extends React.Component {
         }
     };
 
-    static renderServiceList(selector) {
+    static renderServiceList(selector, per_page, page) {
+        if (!per_page) {
+            per_page = 10;
+        }
+        if (!page) {
+            page = 1;
+        }
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaFitSDKWrapper.getServiceList(function (result) {
+            GafaFitSDKWrapper.getServiceList({
+                per_page: per_page,
+                page: page,
+            },function (result) {
                 let props = GafaThemeSDK.propsForPagedListComponent(result);
                 GafaThemeSDK.renderElementIntoContainers(domContainers, ServiceList, props);
             });
         }
     };
 
-    static renderComboList(selector) {
+    static renderComboList(selector, per_page, page) {
+        if (!per_page) {
+            per_page = 10;
+        }
+        if (!page) {
+            page = 1;
+        }
+
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaFitSDKWrapper.getComboList(function (result) {
+            GafaFitSDKWrapper.getComboList({
+                per_page: per_page,
+                page: page,
+                only_actives: true,
+                propagate: true,
+            },function (result) {
                 let props = GafaThemeSDK.propsForPagedListComponent(result);
                 GafaThemeSDK.renderElementIntoContainers(domContainers, ComboList, props);
             });
         }
     };
 
-    static renderMembershipList(selector) {
+    static renderMembershipList(selector, per_page, page) {
+        if (!per_page) {
+            per_page = 10;
+        }
+        if (!page) {
+            page = 1;
+        }
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaFitSDKWrapper.getMembershipList(function (result) {
+            GafaFitSDKWrapper.getMembershipList({
+                per_page: per_page,
+                page: page,
+                only_actives: true,
+                propagate: true
+            },function (result) {
                 let props = GafaThemeSDK.propsForPagedListComponent(result);
                 GafaThemeSDK.renderElementIntoContainers(domContainers, MembershipList, props);
             });

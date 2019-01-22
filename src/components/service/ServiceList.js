@@ -4,15 +4,26 @@ import React from "react";
 import ServiceItem from "./ServiceItem";
 import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
+import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
 class ServiceList extends React.Component {
     constructor(props) {
         super(props);
+        this.state = {
+            list: this.props.list
+        }
+    }
+
+
+    updateList(list) {
+        this.setState({
+            list: list
+        });
     }
 
     render() {
-        const listItems = this.props.list.map((service) =>
-            <ServiceItem key={service.id} service={service}/>
+        const listItems = this.state.list.map((service) =>
+            <ServiceItem key={service.id} service={service}/>,
         );
         return (
             <div>
@@ -22,8 +33,11 @@ class ServiceList extends React.Component {
                         {listItems}
                     </div>
                 </div>
+
                 <PaginationList page={this.props.currentPage} perpage={this.props.perPage}
-                                allpages={this.props.lastPage} itemsList={this.props.total}/>
+                                allpages={this.props.lastPage} itemsList={this.props.total}
+                                updateList={this.updateList.bind(this)}
+                                getListData={GafaFitSDKWrapper.getServiceList}/>
             </div>
         );
     }

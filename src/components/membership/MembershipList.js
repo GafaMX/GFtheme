@@ -5,13 +5,15 @@ import MembershipItem from "./MembershipItem";
 import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import LoginRegister from "../menu/LoginRegister";
+import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
 class MembershipList extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            showLogin: false
+            showLogin: false,
+            list: this.props.list
         };
     }
 
@@ -21,8 +23,14 @@ class MembershipList extends React.Component {
         });
     }
 
+    updateList(list) {
+        this.setState({
+            list: list
+        });
+    }
+
     render() {
-        const listItems = this.props.list.map((membership) =>
+        const listItems = this.state.list.map((membership) =>
             <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
         );
         return (
@@ -33,10 +41,17 @@ class MembershipList extends React.Component {
                         {listItems}
                     </div>
                 </div>
-                {this.state.showLogin && <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>}
+
                 <PaginationList page={this.props.currentPage} perpage={this.props.perPage}
-                                allpages={this.props.lastPage} itemsList={this.props.total}/>
-            </div>);
+                                allpages={this.props.lastPage} itemsList={this.props.total}
+                                updateList={this.updateList.bind(this)}
+                                getListData={GafaFitSDKWrapper.getMembershipList}/>
+                {
+                    this.state.showLogin &&
+                    <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>;
+                }
+            </div>
+        );
     }
 }
 
