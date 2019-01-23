@@ -1,7 +1,7 @@
 'use strict';
 
 import React from "react";
-import {Button, ControlLabel, FormControl, FormGroup} from "react-bootstrap";
+import {Button, Carousel, ControlLabel, FormControl, FormGroup} from "react-bootstrap";
 import {FormErrors} from "../../form/FormErrors";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Strings from "../../utils/Strings/Strings_ES";
@@ -10,6 +10,7 @@ import 'moment/locale/es';
 import UserInfo from "./UserInfo";
 import AddressInfo from "./AddressInfo";
 import ContactInfo from "./ContactInfo";
+import UserCredits from "./UserCredits";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -139,6 +140,20 @@ class ProfileUserInfo extends React.Component {
     render() {
         return (
             <div className="profile-info">
+                <div className={'creditosUser'}>
+                <Carousel>
+                    <Carousel.Item>
+                        <Carousel.Caption>
+                        <UserCredits/>
+                        </Carousel.Caption>
+                    </Carousel.Item>
+                    <Carousel.Item>
+                        <Carousel.Caption>
+                            <h3>Membership!</h3>
+                        </Carousel.Caption>
+                    </Carousel.Item>
+                </Carousel>
+                </div>
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     <UserInfo info={this.state} updateState={this.updateState.bind(this)} handleChangeField={this.handleChangeField.bind(this)}/>
                     <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
