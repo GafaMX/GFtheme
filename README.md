@@ -75,7 +75,9 @@ To run those 3 commands you can just do
 ## Usage
 
 The main goal of GFtheme is to render individual components into HTML tag containers, using shortcodes data attributes 
-for containers declared inside your body tag. The shortcode attribute name will always be data-gf-theme.
+for containers declared inside your body tag. 
+
+For example: You can set rendering shortcodes in containers using data-gf-theme attribute.
 
 #### GafaFitSDK library
 GFtheme uses the GafaFitSDK API library, so you must need to include it in your main HTML file code just before close 
@@ -133,6 +135,11 @@ Always use it this way:
     
 #### Shortcodes list
 
+##### Rendering shortcode
+
+The first and most important short code is the rendering one, for this you must use the data-gf-theme attribute in 
+your html containers.
+
 The current list of available components to be rendered are:
 
 * `combo-list`  Combo list
@@ -150,3 +157,22 @@ the user info.
 * `password-recovery`   Password recovery
 * `profile-info`   Profile basic info
 
+##### Pagination shortcode
+
+There are lists that can be paginated, these are:
+
+* `combo-list`  Combo list
+* `staff-list`   Staff list
+* `service-list`   Services list
+* `membership-list`   Memberships list
+
+In this case there is an attribute to set the quantity of elements per page wanted, the attribute is data-gf-perpage.
+
+For example, if you use:
+    
+    ...
+    <section data-gf-theme="staff-list" data-gf-perpage="4"></section>
+    ...
+    
+You will render the staff list paginated with 4 elements per page, otherwise, it'll be used the default per page 
+value of 10.
