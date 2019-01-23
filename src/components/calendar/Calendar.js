@@ -23,7 +23,6 @@ class Calendar extends React.Component {
 
     componentDidMount() {
         this.getMeetings();
-        this.getServices();
         this.getRooms();
     }
 
@@ -45,12 +44,6 @@ class Calendar extends React.Component {
             let end_string = `${end_date.getFullYear()}-${end_date.getMonth() + 1}-${end_date.getDate()}`;
             GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, push_meetings);
         });
-    }
-
-    getServices() {
-        GafaFitSDKWrapper.getServiceList(function (result) {
-            CalendarStorage.set('services', result.data);
-        })
     }
 
     getRooms() {
