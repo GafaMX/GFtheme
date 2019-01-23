@@ -110,8 +110,8 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getToken(email, password, successCallback, errorCallback) {
         GafaFitSDK.GetToken(
-            1,
-            "9fG7adUeA43FfidqQN7WsgBAwcCMJJMtPGoPdPOM",
+            3,
+            "rh9}UJA<7,H7d!T27&a9.9ZXQsCf&CS/[jik==c&",
             email,
             password,
             {
