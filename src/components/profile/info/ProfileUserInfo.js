@@ -1,7 +1,7 @@
 'use strict';
 
 import React from "react";
-import {Button, Carousel, ControlLabel, FormControl, FormGroup, Tab, Tabs} from "react-bootstrap";
+import {Button, Carousel, ControlLabel, FormControl, FormGroup, HelpBlock, Tab, Tabs} from "react-bootstrap";
 import {FormErrors} from "../../form/FormErrors";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Strings from "../../utils/Strings/Strings_ES";
@@ -23,6 +23,8 @@ class ProfileUserInfo extends React.Component {
             last_name: "",
             birthDate: new Date(),
             birth_date: "",
+            password: "",
+            confirmationPassword: "",
             address: "",
             internal_number: "",
             external_number: "",
@@ -114,6 +116,22 @@ class ProfileUserInfo extends React.Component {
         });
     }
 
+    handleChangePassword(event){
+       let passvalue = event.target.value;
+
+        this.setState({
+            password:  passvalue,
+        })
+    }
+
+    handleChangeConfirmationPassword(event){
+        let passvalue = event.target.value;
+
+        this.setState({
+            confirmationPassword: passvalue
+        })
+    }
+
     updateState(state) {
         this.setState(state);
     }
@@ -133,6 +151,7 @@ class ProfileUserInfo extends React.Component {
             this.props.successCallback(result);
         }
     }
+
 
     errorSaveMeCallback(error) {
         this.setState({serverError: error});
@@ -188,13 +207,53 @@ class ProfileUserInfo extends React.Component {
                             {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
                         </div>
                     </div>
+                    <FormControl.Feedback />
+                    <HelpBlock>Validation is based on string length.</HelpBlock>
                 </form>
                     </Tab>
                     <Tab eventKey={3} title={'Formas de pago'}>
 
                     </Tab>
                     <Tab eventKey={4} title={'Cambiar Contraseña'}>
+                    <form>
+                        <div className={"row col-md-12 pt-4"}>
+                            <h4 className={'col-md-12'}>
+                                Cambiar Contraseña
+                            </h4>
+                            <FormGroup className={'col-md-6'} controlId="password" bsSize={'large'}>
+                            <ControlLabel> Nueva Contraseña</ControlLabel>
+                                <FormControl type={'password'}
+                                value={this.state.password}
+                                onChange={this.handleChangePassword.bind(this)}/>
+                            </FormGroup>
 
+                            <FormGroup className={'col-md-6'} controlId="confirmationPassword" bsSize={'large'}>
+                                <ControlLabel>Confirmar Contraseña</ControlLabel>
+                                <FormControl type={'password'}
+                                             value={this.state.confirmationPassword}
+                                             onChange={this.handleChangeConfirmationPassword.bind(this)}/>
+                            </FormGroup>
+                        </div>
+
+                        <div className="col-md-12">
+                            <Button
+                                block
+                                bsSize="large"
+                                bsStyle="primary"
+                                disabled={!this.state.formValid}
+                                type="submit"
+                            >
+                                {Strings.BUTTON_SAVE}
+                            </Button>
+                            <div className="panel panel-default mt-4 text-danger">
+                                <FormErrors formErrors={this.state.formErrors}/>
+                                {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                            </div>
+                            <div className="panel panel-default mt-4 text-success">
+                                {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                            </div>
+                        </div>
+                    </form>
                     </Tab>
                 </Tabs>
             </div>

@@ -31,8 +31,8 @@ class UserMembership extends React.Component {
     }
 
     render() {
-        console.log(this.state.membership);
-        console.log(this.state.membershipName);
+        // console.log(this.state.membership);
+        // console.log(this.state.membershipName);
         return (
             <div>
                 <h3>{this.state.membershipName}</h3>
