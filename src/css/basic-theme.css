@@ -158,5 +158,20 @@ a {
 
 .creditosUser{
     text-align: -webkit-center;
+    height: 90px;
+}
 
+.carousel-inner {
+    height: 90px;
+}
+.carousel-inner > .item{
+    height: 90px;
+}
+
+.carousel-caption, .carousel-control{
+    color: black !important;
+}
+
+.carousel-control{
+    background-image: linear-gradient(to right,rgba(0,0,0,.0001) 0,rgba(0,0,0,.0001) 100%) !important;
 }

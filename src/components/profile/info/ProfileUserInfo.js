@@ -11,6 +11,7 @@ import UserInfo from "./UserInfo";
 import AddressInfo from "./AddressInfo";
 import ContactInfo from "./ContactInfo";
 import UserCredits from "./UserCredits";
+import UserMembership from "./Membership";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -140,16 +141,18 @@ class ProfileUserInfo extends React.Component {
     render() {
         return (
             <div className="profile-info">
-                <div className={'creditosUser'}>
-                <Carousel>
+                <div className={'creditosUser col-md-6'}>
+                <Carousel interval={null} indicators={false}>
                     <Carousel.Item>
+                        {/*<img width={350} height={200} src={'https://placehold.it/350x150?text=Slide1'}/>*/}
                         <Carousel.Caption>
                         <UserCredits/>
                         </Carousel.Caption>
                     </Carousel.Item>
                     <Carousel.Item>
+                        {/*<img width={350} height={200} src={'https://placehold.it/350x150?text=Slide1'}/>*/}
                         <Carousel.Caption>
-                            <h3>Membership!</h3>
+                            <UserMembership/>
                         </Carousel.Caption>
                     </Carousel.Item>
                 </Carousel>

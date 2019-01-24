@@ -39,10 +39,9 @@ class UserCredits extends React.Component {
 
         return (
             <div>
-                <h3>{this.state.creditsTotal}</h3>
-                <p>Creditos disponibles</p>
-                <p>{this.state.service}</p>
-                <p>{this.state.expirationDate}</p>
+                <h3>{this.state.creditsTotal} Creditos disponibles</h3>
+                <span>Marca: {this.state.service}, </span>
+                <span> Expira: {this.state.expirationDate}</span>
             </div>
         )
     }
