@@ -7,12 +7,44 @@ class GafaFitSDKWrapper extends React.Component {
         super(props);
     }
 
-    static initValues() {
-        GafaFitSDK.setUrl('https://devgafa.fit/');
-        GafaFitSDK.setCompany(3);
+    static initValues(callback) {
         window.GFtheme = {};
-        window.GFtheme.brand = 'zuda';
-        window.GFtheme.location = 'zuda-plaza-lilas';
+        if (window.GFThemeOptions != null) {
+            GafaFitSDK.setUrl(window.GFThemeOptions.GAFA_FIT_URL);
+            GafaFitSDK.setCompany(window.GFThemeOptions.COMPANY_ID);
+            window.GFtheme.APIClientID = window.GFThemeOptions.API_CLIENT;
+            window.GFtheme.APIClientSecret = window.GFThemeOptions.API_SECRET;
+        }
+
+        GafaFitSDKWrapper.getCurrentBrandAndLocation(callback);
+    }
+
+    static getCurrentBrandAndLocation(locationCallback) {
+        GafaFitSDKWrapper.getCurrentBrand(function () {
+            GafaFitSDKWrapper.getCurrentLocation(locationCallback);
+        });
+    }
+
+    static getCurrentBrand(callback) {
+        if (window.GFtheme.brand == null) {
+            GafaFitSDKWrapper.getBrandList({}, function (result) {
+                window.GFtheme.brand = result.data[0].slug;
+                callback();
+            });
+        } else {
+            callback();
+        }
+    }
+
+    static getCurrentLocation(callback) {
+        if (window.GFtheme.location == null) {
+            GafaFitSDKWrapper.getBrandLocations({}, function (result) {
+                window.GFtheme.location = result.data[0].slug;
+                callback();
+            });
+        } else {
+            callback();
+        }
     }
 
     static setBrand(brand) {
@@ -29,7 +61,7 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static getServiceList(options,callback) {
+    static getServiceList(options, callback) {
         GafaFitSDK.GetBrandServiceList(
             window.GFtheme.brand, options, function (error, result) {
                 if (error === null) {
@@ -44,13 +76,13 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
 
-    static getComboList(options,callback) {
+    static getComboList(options, callback) {
         let functionToRetrieveCombos = GafaFitSDK.GetBrandCombolist;
         if (GafaFitSDK.isAuthentified()) {
             functionToRetrieveCombos = GafaFitSDK.GetBrandComboListforUser;
         }
         functionToRetrieveCombos(
-            window.GFtheme.brand,options, function (error, result) {
+            window.GFtheme.brand, options, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }
@@ -58,7 +90,7 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static getMembershipList(options,callback) {
+    static getMembershipList(options, callback) {
         let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
         if (GafaFitSDK.isAuthentified()) {
             functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
@@ -110,8 +142,8 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getToken(email, password, successCallback, errorCallback) {
         GafaFitSDK.GetToken(
-            3,
-            "rh9}UJA<7,H7d!T27&a9.9ZXQsCf&CS/[jik==c&",
+            window.GFtheme.APIClientID,
+            window.GFtheme.APIClientSecret,
             email,
             password,
             {
@@ -159,8 +191,8 @@ class GafaFitSDKWrapper extends React.Component {
         options.grant_type = 'password';
         options.scope = '*';
         GafaFitSDK.PostRegister(
-            3,
-            "rh9}UJA<7,H7d!T27&a9.9ZXQsCf&CS/[jik==c&",
+            window.GFtheme.APIClientID,
+            window.GFtheme.APIClientSecret,
             params.email,
             params.password,
             params.passwordConfirmation,
@@ -319,6 +351,15 @@ class GafaFitSDKWrapper extends React.Component {
         })
     }
 
+    static getBrandList(options, callback) {
+        options.only_actives = true;
+        GafaFitSDK.GetBrandList(options, function (error, result) {
+            if (error === null) {
+                callback(result);
+            }
+        })
+    }
+
     static getBrandLocations(options, callback) {
         options.only_actives = true;
         GafaFitSDK.GetBrandLocationList(window.GFtheme.brand, options, function (error, result) {
@@ -336,7 +377,7 @@ class GafaFitSDKWrapper extends React.Component {
         });
     }
 
-    static getFancyForMeetingReservation(location,meetings_id, callback) {
+    static getFancyForMeetingReservation(location, meetings_id, callback) {
         GafaFitSDKWrapper.getMe(function () {
             GafaFitSDK.GetCreateReservationForm(
                 window.GFtheme.brand,
