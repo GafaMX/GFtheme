@@ -13,6 +13,7 @@ class ComboList extends React.Component {
 
         this.state = {
             showLogin: false,
+            loading: true,
             list: this.props.list,
             extraPaginationOptions: {
                 only_actives: true,
@@ -27,10 +28,9 @@ class ComboList extends React.Component {
         });
     }
 
-    updateList(list)
-    {
+    updateList(list) {
         this.setState({
-            list:list
+            list: list
         });
     }
 
@@ -46,11 +46,11 @@ class ComboList extends React.Component {
                         {listItems}
                     </div>
                 </div>
-                <PaginationList  page={this.props.currentPage} perpage={this.props.perPage}
-                                 allpages={this.props.lastPage} itemsList={this.props.total}
-                                 updateList={this.updateList.bind(this)}
-                                 getListData={GafaFitSDKWrapper.getComboList}
-                                 extraOptions={this.state.extraPaginationOptions}/>
+                <PaginationList page={this.props.currentPage} perpage={this.props.perPage}
+                                allpages={this.props.lastPage} itemsList={this.props.total}
+                                updateList={this.updateList.bind(this)}
+                                getListData={GafaFitSDKWrapper.getComboList}
+                                extraOptions={this.state.extraPaginationOptions}/>
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }

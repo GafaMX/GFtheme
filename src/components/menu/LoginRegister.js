@@ -8,6 +8,7 @@ import ProfileUserInfo from "../profile/info/ProfileUserInfo";
 import Register from "../auth/Register";
 import PasswordRecovery from "../auth/PasswordRecovery";
 import {Modal} from "react-bootstrap";
+import GlobalStorage from "../store/GlobalStorage";
 
 class LoginRegister extends React.Component {
     constructor(props) {
@@ -28,6 +29,13 @@ class LoginRegister extends React.Component {
         };
 
         this._isMounted = false;
+        GlobalStorage.addSegmentedListener(['me'], this.updateMe.bind(this));
+    }
+
+    updateMe(){
+        this.setState({
+            me: GlobalStorage.get('me')
+        });
     }
 
     componentDidMount() {
@@ -45,12 +53,9 @@ class LoginRegister extends React.Component {
                 token: token
             });
         }
-        let currentComponent = this;
         GafaFitSDKWrapper.getMeWithCredits(
             function (result) {
-                currentComponent.setState({
-                    me: result
-                });
+                GlobalStorage.set("me", result);
             }
         );
         if (this.props.setShowLogin) {
@@ -142,14 +147,14 @@ class LoginRegister extends React.Component {
             let currentComponent = this;
             GafaFitSDKWrapper.getMeWithCredits(
                 function (result) {
+                    GlobalStorage.set("me", result);
                     currentComponent.setState({
                         isAuthenticated: true,
                         showLogin: false,
                         showRegister: false,
                         showProfile: false,
                         passwordRecovery: false,
-                        showButtons: true,
-                        me: result
+                        showButtons: true
                     });
                 }
             );
@@ -158,9 +163,7 @@ class LoginRegister extends React.Component {
 
     successProfileSaveCallback(result) {
         if (this._isMounted) {
-            this.setState({
-                me: result
-            });
+            GlobalStorage.set("me", result);
         }
     }
 
