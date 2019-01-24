@@ -207,8 +207,6 @@ class ProfileUserInfo extends React.Component {
                             {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
                         </div>
                     </div>
-                    <FormControl.Feedback />
-                    <HelpBlock>Validation is based on string length.</HelpBlock>
                 </form>
                     </Tab>
                     <Tab eventKey={3} title={'Formas de pago'}>
