@@ -2,6 +2,7 @@
 
 import React from "react";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
+import  Moment from 'moment';
 
 
 class UserCredits extends React.Component {
@@ -41,7 +42,7 @@ class UserCredits extends React.Component {
             <div>
                 <h3>{this.state.creditsTotal} Creditos disponibles</h3>
                 <span>Marca: {this.state.service}, </span>
-                <span> Expira: {this.state.expirationDate}</span>
+                <span> Expira: {Moment(this.state.expirationDate).format('YYYY-MM-DD')}</span>
             </div>
         )
     }
