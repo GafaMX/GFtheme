@@ -88,12 +88,39 @@ the body tag, like this:
     </body>
     ...
     
+#### GafaFitThemeSDK configuration options
+GFtheme needs a basic configuration options to work, by now we'll use a JSON object definition for that purposes, the
+configuration options properties are: GAFA_FIT_URL, COMPANY_ID, API_CLIENT, API_SECRET.
+
+For example you can use this definition before include the GafaFitThemeSDK main script:
+
+    ...
+    <script src="https://gafa.fit/sdk/dist/main.js"></script>
+    <script data-gf-options type="application/json">
+        {
+            "GAFA_FIT_URL": "https://devgafa.fit/",
+            "COMPANY_ID": 1,
+            "API_CLIENT": 1,
+            "API_SECRET": "XXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+    </script>
+    </body>
+    ...
+    
 #### GafaFitThemeSDK library for testing purposes
 If you want to use this templates SDK embedded in your website for testing purposes you can include the built version 
 of the script in your site just between the GafaFitSDK library script and close the body tag, like this:
 
     ...
     <script src="https://gafa.fit/sdk/dist/main.js"></script>
+    <script data-gf-options type="application/json">
+            {
+                "GAFA_FIT_URL": "https://devgafa.fit/",
+                "COMPANY_ID": 1,
+                "API_CLIENT": 1,
+                "API_SECRET": "XXXXXXXXXXXXXXXXXXXXXXXX"
+            }
+    </script>
     <script src="https://dev.gafa.codes/GFtheme/dist/main.js"></script>
     </body>
     ...
@@ -121,13 +148,13 @@ This will render a combo list inside this container.
 
 Is important include always the open and close tags, don't do it using only the same tag to open and close.
 
-It means, never use this:
+It means, NEVER DO THIS:
 
     ...
     <section data-gf-theme="combo-list" />
     ...
     
-Always use it this way:
+ALWAYS USE IT THIS WAY:
 
     ...
     <section data-gf-theme="combo-list"></section>
