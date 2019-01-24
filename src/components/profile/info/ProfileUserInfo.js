@@ -24,7 +24,7 @@ class ProfileUserInfo extends React.Component {
             birthDate: new Date(),
             birth_date: "",
             password: "",
-            confirmationPassword: "",
+            password_confirmation: "",
             address: "",
             internal_number: "",
             external_number: "",
@@ -128,7 +128,7 @@ class ProfileUserInfo extends React.Component {
         let passvalue = event.target.value;
 
         this.setState({
-            confirmationPassword: passvalue
+            password_confirmation: passvalue
         })
     }
 
@@ -207,17 +207,26 @@ class ProfileUserInfo extends React.Component {
                             {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
                         </div>
                     </div>
-                </form>
+                </form >
                     </Tab>
                     <Tab eventKey={3} title={'Formas de pago'}>
 
                     </Tab>
                     <Tab eventKey={4} title={'Cambiar Contraseña'}>
-                    <form>
+                    <form onSubmit={this.handleSubmit.bind(this)}>
                         <div className={"row col-md-12 pt-4"}>
+
                             <h4 className={'col-md-12'}>
                                 Cambiar Contraseña
                             </h4>
+                            <FormGroup className={'confirmation-info'} controlId="emailconfirm">
+                            <FormControl type={'text'} value={this.state.email} disabled/>
+                            </FormGroup>
+
+                            <FormGroup className={'confirmation-info'} controlId="first_name confirm">
+                                <FormControl type={'text'} value={this.state.first_name} disabled/>
+                            </FormGroup>
+
                             <FormGroup className={'col-md-6'} controlId="password" bsSize={'large'}>
                             <ControlLabel> Nueva Contraseña</ControlLabel>
                                 <FormControl type={'password'}
@@ -228,7 +237,7 @@ class ProfileUserInfo extends React.Component {
                             <FormGroup className={'col-md-6'} controlId="confirmationPassword" bsSize={'large'}>
                                 <ControlLabel>Confirmar Contraseña</ControlLabel>
                                 <FormControl type={'password'}
-                                             value={this.state.confirmationPassword}
+                                             value={this.state.password_confirmation}
                                              onChange={this.handleChangeConfirmationPassword.bind(this)}/>
                             </FormGroup>
                         </div>
