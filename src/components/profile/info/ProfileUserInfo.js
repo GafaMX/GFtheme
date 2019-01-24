@@ -1,7 +1,7 @@
 'use strict';
 
 import React from "react";
-import {Button, Carousel, ControlLabel, FormControl, FormGroup} from "react-bootstrap";
+import {Button, Carousel, ControlLabel, FormControl, FormGroup, Tab, Tabs} from "react-bootstrap";
 import {FormErrors} from "../../form/FormErrors";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Strings from "../../utils/Strings/Strings_ES";
@@ -157,6 +157,11 @@ class ProfileUserInfo extends React.Component {
                     </Carousel.Item>
                 </Carousel>
                 </div>
+                <Tabs defaultActiveKey={2} id={'ProfileTabs'} animation={false}>
+                    <Tab eventKey={1} title={'Clases'}>
+
+                    </Tab>
+                    <Tab eventKey={2} title={'Perfil'} >
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     <UserInfo info={this.state} updateState={this.updateState.bind(this)} handleChangeField={this.handleChangeField.bind(this)}/>
                     <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
@@ -184,6 +189,14 @@ class ProfileUserInfo extends React.Component {
                         </div>
                     </div>
                 </form>
+                    </Tab>
+                    <Tab eventKey={3} title={'Formas de pago'}>
+
+                    </Tab>
+                    <Tab eventKey={4} title={'Cambiar Contraseña'}>
+
+                    </Tab>
+                </Tabs>
             </div>
         );
     }
