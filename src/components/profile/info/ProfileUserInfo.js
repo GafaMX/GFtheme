@@ -217,7 +217,7 @@ class ProfileUserInfo extends React.Component {
                         <div className={"row col-md-12 pt-4"}>
 
                             <h4 className={'col-md-12'}>
-                                Cambiar Contraseña
+                                {Strings.CHANGEPASSWORD}
                             </h4>
                             <FormGroup className={'confirmation-info'} controlId="emailconfirm">
                             <FormControl type={'text'} value={this.state.email} disabled/>
@@ -228,14 +228,14 @@ class ProfileUserInfo extends React.Component {
                             </FormGroup>
 
                             <FormGroup className={'col-md-6'} controlId="password" bsSize={'large'}>
-                            <ControlLabel> Nueva Contraseña</ControlLabel>
+                            <ControlLabel>{Strings.NEWPASSWORD}</ControlLabel>
                                 <FormControl type={'password'}
                                 value={this.state.password}
                                 onChange={this.handleChangePassword.bind(this)}/>
                             </FormGroup>
 
                             <FormGroup className={'col-md-6'} controlId="confirmationPassword" bsSize={'large'}>
-                                <ControlLabel>Confirmar Contraseña</ControlLabel>
+                                <ControlLabel>{Strings.PASSWORDCONFIRM}</ControlLabel>
                                 <FormControl type={'password'}
                                              value={this.state.password_confirmation}
                                              onChange={this.handleChangeConfirmationPassword.bind(this)}/>

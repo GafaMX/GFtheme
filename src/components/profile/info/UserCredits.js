@@ -3,7 +3,7 @@
 import React from "react";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import  Moment from 'moment';
-
+import Strings from "../../utils/Strings/Strings_ES";
 
 class UserCredits extends React.Component {
 //call to get User credits in sdk wrapper
@@ -40,9 +40,9 @@ class UserCredits extends React.Component {
 
         return (
             <div>
-                <h3>{this.state.creditsTotal} Creditos disponibles</h3>
-                <span>Marca: {this.state.service}, </span>
-                <span> Expira: {Moment(this.state.expirationDate).format('YYYY-MM-DD')}</span>
+                <h3>{this.state.creditsTotal} {Strings.CREDITS}</h3>
+                <span> {this.state.service}, </span>
+                <span>  {Strings.EXPIRATION} {Moment(this.state.expirationDate).format('YYYY-MM-DD')}</span>
             </div>
         )
     }
