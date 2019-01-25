@@ -68,4 +68,12 @@ export default {
     TIME_OF_DAY: 'Periodo',
     MORNING: 'Mañana',
     AFTERNOON: 'Tarde',
+    CHANGEPASSWORD: 'Cambiar Contraseña',
+    NEWPASSWORD: 'Nueva Contraseña',
+    PASSWORDCONFIRM: 'Confirmar contraseña',
+    EXPIRATION: 'Expira:',
+    CREDITS: 'Creditos disponibles',
+    CREATE: 'Creado desde:'
+
+
 }

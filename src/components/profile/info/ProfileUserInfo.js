@@ -24,7 +24,7 @@ class ProfileUserInfo extends React.Component {
             birthDate: new Date(),
             birth_date: "",
             password: "",
-            confirmationPassword: "",
+            password_confirmation: "",
             address: "",
             internal_number: "",
             external_number: "",
@@ -116,19 +116,19 @@ class ProfileUserInfo extends React.Component {
         });
     }
 
-    handleChangePassword(event) {
-        let passvalue = event.target.value;
+    handleChangePassword(event){
+       let passvalue = event.target.value;
 
         this.setState({
-            password: passvalue,
+            password:  passvalue,
         })
     }
 
-    handleChangeConfirmationPassword(event) {
+    handleChangeConfirmationPassword(event){
         let passvalue = event.target.value;
 
         this.setState({
-            confirmationPassword: passvalue
+            password_confirmation: passvalue
         })
     }
 
@@ -161,98 +161,106 @@ class ProfileUserInfo extends React.Component {
         return (
             <div className="profile-info">
                 <div className={'creditosUser col-md-6'}>
-                    <Carousel interval={null} indicators={false}>
-                        <Carousel.Item>
-                            {/*<img width={350} height={200} src={'https://placehold.it/350x150?text=Slide1'}/>*/}
-                            <Carousel.Caption>
-                                <UserCredits/>
-                            </Carousel.Caption>
-                        </Carousel.Item>
-                        <Carousel.Item>
-                            {/*<img width={350} height={200} src={'https://placehold.it/350x150?text=Slide1'}/>*/}
-                            <Carousel.Caption>
-                                <UserMembership/>
-                            </Carousel.Caption>
-                        </Carousel.Item>
-                    </Carousel>
+                <Carousel interval={null} indicators={false}>
+                    <Carousel.Item>
+                        {/*<img width={350} height={200} src={'https://placehold.it/350x150?text=Slide1'}/>*/}
+                        <Carousel.Caption>
+                        <UserCredits/>
+                        </Carousel.Caption>
+                    </Carousel.Item>
+                    <Carousel.Item>
+                        {/*<img width={350} height={200} src={'https://placehold.it/350x150?text=Slide1'}/>*/}
+                        <Carousel.Caption>
+                            <UserMembership/>
+                        </Carousel.Caption>
+                    </Carousel.Item>
+                </Carousel>
                 </div>
                 <Tabs defaultActiveKey={2} id={'ProfileTabs'} animation={false}>
                     <Tab eventKey={1} title={'Clases'}>
 
                     </Tab>
-                    <Tab eventKey={2} title={'Perfil'}>
-                        <form onSubmit={this.handleSubmit.bind(this)}>
-                            <UserInfo info={this.state} updateState={this.updateState.bind(this)}
-                                      handleChangeField={this.handleChangeField.bind(this)}/>
-                            <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
-                                         getStatesListByCountry={this.getStatesListByCountry.bind(this)}
-                                         handleChangeField={this.handleChangeField.bind(this)}/>
-                            <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
-                                         handleChangeField={this.handleChangeField.bind(this)}/>
+                    <Tab eventKey={2} title={'Perfil'} >
+                <form onSubmit={this.handleSubmit.bind(this)}>
+                    <UserInfo info={this.state} updateState={this.updateState.bind(this)} handleChangeField={this.handleChangeField.bind(this)}/>
+                    <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
+                                 getStatesListByCountry={this.getStatesListByCountry.bind(this)}
+                                 handleChangeField={this.handleChangeField.bind(this)}/>
+                    <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
+                                 handleChangeField={this.handleChangeField.bind(this)}/>
 
-                            <div className="col-md-12">
-                                <Button
-                                    block
-                                    bsSize="large"
-                                    bsStyle="primary"
-                                    disabled={!this.state.formValid}
-                                    type="submit"
-                                >
-                                    {Strings.BUTTON_SAVE}
-                                </Button>
-                                <div className="panel panel-default mt-4 text-danger">
-                                    <FormErrors formErrors={this.state.formErrors}/>
-                                    {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                                </div>
-                                <div className="panel panel-default mt-4 text-success">
-                                    {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                </div>
-                            </div>
-                        </form>
+                    <div className="col-md-12">
+                        <Button
+                            block
+                            bsSize="large"
+                            bsStyle="primary"
+                            disabled={!this.state.formValid}
+                            type="submit"
+                        >
+                            {Strings.BUTTON_SAVE}
+                        </Button>
+                        <div className="panel panel-default mt-4 text-danger">
+                            <FormErrors formErrors={this.state.formErrors}/>
+                            {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                        </div>
+                        <div className="panel panel-default mt-4 text-success">
+                            {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                        </div>
+                    </div>
+                </form >
                     </Tab>
                     <Tab eventKey={3} title={'Formas de pago'}>
 
                     </Tab>
                     <Tab eventKey={4} title={'Cambiar Contraseña'}>
-                        <form>
-                            <div className={"row col-md-12 pt-4"}>
-                                <h4 className={'col-md-12'}>
-                                    Cambiar Contraseña
-                                </h4>
-                                <FormGroup className={'col-md-6'} controlId="password" bsSize={'large'}>
-                                    <ControlLabel> Nueva Contraseña</ControlLabel>
-                                    <FormControl type={'password'}
-                                                 value={this.state.password}
-                                                 onChange={this.handleChangePassword.bind(this)}/>
-                                </FormGroup>
+                    <form onSubmit={this.handleSubmit.bind(this)}>
+                        <div className={"row col-md-12 pt-4"}>
 
-                                <FormGroup className={'col-md-6'} controlId="confirmationPassword" bsSize={'large'}>
-                                    <ControlLabel>Confirmar Contraseña</ControlLabel>
-                                    <FormControl type={'password'}
-                                                 value={this.state.confirmationPassword}
-                                                 onChange={this.handleChangeConfirmationPassword.bind(this)}/>
-                                </FormGroup>
-                            </div>
+                            <h4 className={'col-md-12'}>
+                                {Strings.CHANGEPASSWORD}
+                            </h4>
+                            <FormGroup className={'confirmation-info'} controlId="emailconfirm">
+                            <FormControl type={'text'} value={this.state.email} disabled/>
+                            </FormGroup>
 
-                            <div className="col-md-12">
-                                <Button
-                                    block
-                                    bsSize="large"
-                                    bsStyle="primary"
-                                    disabled={!this.state.formValid}
-                                    type="submit"
-                                >
-                                    {Strings.BUTTON_SAVE}
-                                </Button>
-                                <div className="panel panel-default mt-4 text-danger">
-                                    <FormErrors formErrors={this.state.formErrors}/>
-                                    {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                                </div>
-                                <div className="panel panel-default mt-4 text-success">
-                                    {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                </div>
+                            <FormGroup className={'confirmation-info'} controlId="first_name confirm">
+                                <FormControl type={'text'} value={this.state.first_name} disabled/>
+                            </FormGroup>
+
+                            <FormGroup className={'col-md-6'} controlId="password" bsSize={'large'}>
+                            <ControlLabel>{Strings.NEWPASSWORD}</ControlLabel>
+                                <FormControl type={'password'}
+                                value={this.state.password}
+                                onChange={this.handleChangePassword.bind(this)}/>
+                            </FormGroup>
+
+                            <FormGroup className={'col-md-6'} controlId="confirmationPassword" bsSize={'large'}>
+                                <ControlLabel>{Strings.PASSWORDCONFIRM}</ControlLabel>
+                                <FormControl type={'password'}
+                                             value={this.state.password_confirmation}
+                                             onChange={this.handleChangeConfirmationPassword.bind(this)}/>
+                            </FormGroup>
+                        </div>
+
+                        <div className="col-md-12">
+                            <Button
+                                block
+                                bsSize="large"
+                                bsStyle="primary"
+                                disabled={!this.state.formValid}
+                                type="submit"
+                            >
+                                {Strings.BUTTON_SAVE}
+                            </Button>
+                            <div className="panel panel-default mt-4 text-danger">
+                                <FormErrors formErrors={this.state.formErrors}/>
+                                {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                             </div>
-                        </form>
+                            <div className="panel panel-default mt-4 text-success">
+                                {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                            </div>
+                        </div>
+                    </form>
                     </Tab>
                 </Tabs>
             </div>
