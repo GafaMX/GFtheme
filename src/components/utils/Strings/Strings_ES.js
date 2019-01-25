@@ -73,7 +73,11 @@ export default {
     PASSWORDCONFIRM: 'Confirmar contraseña',
     EXPIRATION: 'Expira:',
     CREDITS: 'Creditos disponibles',
-    CREATE: 'Creado desde:'
+    CREATE: 'Creado desde:',
+    CLASS: 'Clases',
+    PROFILE: 'Perfil',
+    PAYMENTMETHODS: 'Formas de pago',
+
 
 
 }

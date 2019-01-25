@@ -177,10 +177,10 @@ class ProfileUserInfo extends React.Component {
                 </Carousel>
                 </div>
                 <Tabs defaultActiveKey={2} id={'ProfileTabs'} animation={false}>
-                    <Tab eventKey={1} title={'Clases'}>
+                    <Tab eventKey={1} title={Strings.CLASS}>
 
                     </Tab>
-                    <Tab eventKey={2} title={'Perfil'} >
+                    <Tab eventKey={2} title={Strings.PROFILE} >
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     <UserInfo info={this.state} updateState={this.updateState.bind(this)} handleChangeField={this.handleChangeField.bind(this)}/>
                     <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
@@ -209,21 +209,21 @@ class ProfileUserInfo extends React.Component {
                     </div>
                 </form >
                     </Tab>
-                    <Tab eventKey={3} title={'Formas de pago'}>
+                    <Tab eventKey={3} title={Strings.PAYMENTMETHODS}>
 
                     </Tab>
-                    <Tab eventKey={4} title={'Cambiar Contraseña'}>
+                    <Tab eventKey={4} title={Strings.CHANGEPASSWORD}>
                     <form onSubmit={this.handleSubmit.bind(this)}>
                         <div className={"row col-md-12 pt-4"}>
 
                             <h4 className={'col-md-12'}>
                                 {Strings.CHANGEPASSWORD}
                             </h4>
-                            <FormGroup className={'confirmation-info'} controlId="emailconfirm">
+                            <FormGroup className={'confirmation-info'} controlId="email_confirm">
                             <FormControl type={'text'} value={this.state.email} disabled/>
                             </FormGroup>
 
-                            <FormGroup className={'confirmation-info'} controlId="first_name confirm">
+                            <FormGroup className={'confirmation-info'} controlId="first_name_confirm">
                                 <FormControl type={'text'} value={this.state.first_name} disabled/>
                             </FormGroup>
 
