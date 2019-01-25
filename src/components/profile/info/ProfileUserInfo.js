@@ -1,7 +1,7 @@
 'use strict';
 
 import React from "react";
-import {Button, ControlLabel, FormControl, FormGroup} from "react-bootstrap";
+import {Button, Carousel, ControlLabel, FormControl, FormGroup, HelpBlock, Tab, Tabs} from "react-bootstrap";
 import {FormErrors} from "../../form/FormErrors";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Strings from "../../utils/Strings/Strings_ES";
@@ -10,6 +10,8 @@ import 'moment/locale/es';
 import UserInfo from "./UserInfo";
 import AddressInfo from "./AddressInfo";
 import ContactInfo from "./ContactInfo";
+import UserCredits from "./UserCredits";
+import UserMembership from "./Membership";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -21,6 +23,8 @@ class ProfileUserInfo extends React.Component {
             last_name: "",
             birthDate: new Date(),
             birth_date: "",
+            password: "",
+            confirmationPassword: "",
             address: "",
             internal_number: "",
             external_number: "",
@@ -112,6 +116,22 @@ class ProfileUserInfo extends React.Component {
         });
     }
 
+    handleChangePassword(event){
+       let passvalue = event.target.value;
+
+        this.setState({
+            password:  passvalue,
+        })
+    }
+
+    handleChangeConfirmationPassword(event){
+        let passvalue = event.target.value;
+
+        this.setState({
+            confirmationPassword: passvalue
+        })
+    }
+
     updateState(state) {
         this.setState(state);
     }
@@ -132,6 +152,7 @@ class ProfileUserInfo extends React.Component {
         }
     }
 
+
     errorSaveMeCallback(error) {
         this.setState({serverError: error});
     }
@@ -139,6 +160,27 @@ class ProfileUserInfo extends React.Component {
     render() {
         return (
             <div className="profile-info">
+                <div className={'creditosUser col-md-6'}>
+                <Carousel interval={null} indicators={false}>
+                    <Carousel.Item>
+                        {/*<img width={350} height={200} src={'https://placehold.it/350x150?text=Slide1'}/>*/}
+                        <Carousel.Caption>
+                        <UserCredits/>
+                        </Carousel.Caption>
+                    </Carousel.Item>
+                    <Carousel.Item>
+                        {/*<img width={350} height={200} src={'https://placehold.it/350x150?text=Slide1'}/>*/}
+                        <Carousel.Caption>
+                            <UserMembership/>
+                        </Carousel.Caption>
+                    </Carousel.Item>
+                </Carousel>
+                </div>
+                <Tabs defaultActiveKey={2} id={'ProfileTabs'} animation={false}>
+                    <Tab eventKey={1} title={'Clases'}>
+
+                    </Tab>
+                    <Tab eventKey={2} title={'Perfil'} >
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     <UserInfo info={this.state} updateState={this.updateState.bind(this)} handleChangeField={this.handleChangeField.bind(this)}/>
                     <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
@@ -166,6 +208,52 @@ class ProfileUserInfo extends React.Component {
                         </div>
                     </div>
                 </form>
+                    </Tab>
+                    <Tab eventKey={3} title={'Formas de pago'}>
+
+                    </Tab>
+                    <Tab eventKey={4} title={'Cambiar Contraseña'}>
+                    <form>
+                        <div className={"row col-md-12 pt-4"}>
+                            <h4 className={'col-md-12'}>
+                                Cambiar Contraseña
+                            </h4>
+                            <FormGroup className={'col-md-6'} controlId="password" bsSize={'large'}>
+                            <ControlLabel> Nueva Contraseña</ControlLabel>
+                                <FormControl type={'password'}
+                                value={this.state.password}
+                                onChange={this.handleChangePassword.bind(this)}/>
+                            </FormGroup>
+
+                            <FormGroup className={'col-md-6'} controlId="confirmationPassword" bsSize={'large'}>
+                                <ControlLabel>Confirmar Contraseña</ControlLabel>
+                                <FormControl type={'password'}
+                                             value={this.state.confirmationPassword}
+                                             onChange={this.handleChangeConfirmationPassword.bind(this)}/>
+                            </FormGroup>
+                        </div>
+
+                        <div className="col-md-12">
+                            <Button
+                                block
+                                bsSize="large"
+                                bsStyle="primary"
+                                disabled={!this.state.formValid}
+                                type="submit"
+                            >
+                                {Strings.BUTTON_SAVE}
+                            </Button>
+                            <div className="panel panel-default mt-4 text-danger">
+                                <FormErrors formErrors={this.state.formErrors}/>
+                                {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                            </div>
+                            <div className="panel panel-default mt-4 text-success">
+                                {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                            </div>
+                        </div>
+                    </form>
+                    </Tab>
+                </Tabs>
             </div>
         );
     }
