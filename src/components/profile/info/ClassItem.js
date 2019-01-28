@@ -13,6 +13,7 @@ class ClassItem extends React.Component {
     handleClick(event) {
         event.preventDefault();
         let currentElement = this;
+        console.log('cancelacion');
         //todo este click para abrir el modal de cancelacion
     }
 
@@ -29,16 +30,22 @@ class ClassItem extends React.Component {
 
         return (
             <div className={'reservation-item-container col-md-4'}>
+                <button type="button" className="close cancelationButton" aria-label="Close" onClick={this.handleClick.bind(this)}>
+                    <span aria-hidden="true">&times;</span>
+                </button>
                 <div className={'reservation-item mb-4 card shadow-sm'}>
+
                     <div className={'card-header'}>
-                        <h4 className={'reservation-item-name'}>{this.props.reservation.service['name']}</h4>
+                        <h4 className={'reservation-item-name'}>{this.props.reservation.location['slug']}</h4>
                     </div>
                     <div className={'card-body'}>
                         <p className={'reservation-item-staff'}>{this.props.reservation.staff['name']}</p>
-                        <p className={'reservation-item-position'}>{this.props.meeting_position}</p>
+                        <p className={'reservation-item-service'}>{this.props.reservation.service['name']}</p>
+                        <p className={'reservation-item-position'}>{Strings.POSITION}{this.props.reservation.meeting_position}</p>
                         <p className={'reservation-item-meeting'}>{Strings.BEGINS}{Moment(this.props.meeting_start).format('DD-MM-YYYY HH:MM')}</p>
                         {membershipCredits}
                     </div>
+
                 </div>
             </div>
         )

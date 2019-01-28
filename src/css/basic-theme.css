@@ -179,3 +179,7 @@ a {
 .confirmation-info{
     display: none;
 }
+.cancelationButton{
+    background-color: black !important;
+    color: #FFFFFF !important;
+}

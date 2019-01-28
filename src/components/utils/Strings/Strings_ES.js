@@ -82,7 +82,8 @@ export default {
     BEGINS: 'Empieza: ',
     FUTURESCLASSES: 'Clases Futuras',
     PASTCLASSES: 'Clases Pasadas',
-    PURCHASES: 'Compras'
+    PURCHASES: 'Compras',
+    POSITION: 'Posición: '
 
 
 

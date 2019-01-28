@@ -365,6 +365,10 @@ class GafaFitSDKWrapper extends React.Component {
         )
     };
 
+    static postUserCancelReservation(reservation, options, callback){
+
+    }
+
 }
 
 export default GafaFitSDKWrapper;

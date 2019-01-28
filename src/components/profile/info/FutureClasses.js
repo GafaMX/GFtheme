@@ -36,17 +36,13 @@ class FutureClasses extends React.Component {
 
     render() {
 
-        //mostrar la lista en cards.
-        // location, staff, position, meeting_start
-        // (y si esta cancelada "Reserva Cancelada" {cancelled = 1},
-        // si no disponible "X" para cancelacion)
-        //
         const listItems = this.state.list.map((reservation) =>
                 //console.log(reservation)
             <ClassItem key={reservation.id} reservation={reservation}/>
         );
         return (
             <div>
+
                 <h1 className={"display-4 container text-center"}>{Strings.FUTURESCLASSES}</h1>
                 <div className={"reservation-list container"}>
                     <div className={"row mt-5 justify-content-center text-center"}>
