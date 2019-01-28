@@ -29,7 +29,7 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static getServiceList(options,callback) {
+    static getServiceList(options, callback) {
         GafaFitSDK.GetBrandServiceList(
             window.GFtheme.brand, options, function (error, result) {
                 if (error === null) {
@@ -44,13 +44,13 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
 
-    static getComboList(options,callback) {
+    static getComboList(options, callback) {
         let functionToRetrieveCombos = GafaFitSDK.GetBrandCombolist;
         if (GafaFitSDK.isAuthentified()) {
             functionToRetrieveCombos = GafaFitSDK.GetBrandComboListforUser;
         }
         functionToRetrieveCombos(
-            window.GFtheme.brand,options, function (error, result) {
+            window.GFtheme.brand, options, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }
@@ -58,7 +58,7 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static getMembershipList(options,callback) {
+    static getMembershipList(options, callback) {
         let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
         if (GafaFitSDK.isAuthentified()) {
             functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
@@ -336,7 +336,7 @@ class GafaFitSDKWrapper extends React.Component {
         });
     }
 
-    static getFancyForMeetingReservation(location,meetings_id, callback) {
+    static getFancyForMeetingReservation(location, meetings_id, callback) {
         GafaFitSDKWrapper.getMe(function () {
             GafaFitSDK.GetCreateReservationForm(
                 window.GFtheme.brand,
@@ -353,6 +353,18 @@ class GafaFitSDKWrapper extends React.Component {
             );
         });
     };
+
+    static getUserFutureReservationsInBrand(options, callback) {
+        GafaFitSDK.GetUserFutureReservationsInBrand(
+            window.GFtheme.brand, options,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
+    };
+
 }
 
 export default GafaFitSDKWrapper;

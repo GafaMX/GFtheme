@@ -12,6 +12,7 @@ import AddressInfo from "./AddressInfo";
 import ContactInfo from "./ContactInfo";
 import UserCredits from "./UserCredits";
 import UserMembership from "./Membership";
+import FutureClasses from "./FutureClasses";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -178,7 +179,7 @@ class ProfileUserInfo extends React.Component {
                 </div>
                 <Tabs defaultActiveKey={2} id={'ProfileTabs'} animation={false}>
                     <Tab eventKey={1} title={Strings.CLASS}>
-
+                        <FutureClasses/>
                     </Tab>
                     <Tab eventKey={2} title={Strings.PROFILE} >
                 <form onSubmit={this.handleSubmit.bind(this)}>
