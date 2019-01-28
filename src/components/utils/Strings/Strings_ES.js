@@ -77,6 +77,12 @@ export default {
     CLASS: 'Clases',
     PROFILE: 'Perfil',
     PAYMENTMETHODS: 'Formas de pago',
+    CREDIT: 'Credito: ',
+    MEMBERSHIP: 'Membresía: ',
+    BEGINS: 'Empieza: ',
+    FUTURESCLASSES: 'Clases Futuras',
+    PASTCLASSES: 'Clases Pasadas',
+    PURCHASES: 'Compras'
 
 
 
