@@ -5,11 +5,15 @@ import Moment from 'moment';
 import Strings from "../../utils/Strings/Strings_ES";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Glyphicon from "react-bootstrap/es/Glyphicon";
+import Modal from "react-bootstrap/es/Modal";
 
 
 class ClassItem extends React.Component {
     constructor(props) {
-        super(props)
+        super(props);
+        this.state={
+            showCancelation:false,
+        }
     }
 
     handleClick(event) {
@@ -26,6 +30,24 @@ class ClassItem extends React.Component {
 
     }
 
+    handleShowCancelation(){
+        this.setState({
+            showCancelation:true
+        })
+    }
+
+
+    handleClickBack(){
+        this.setState({
+            showCancelation:false,
+        })
+    }
+
+    handleClose() {
+        this.setState({ show: false });
+    }
+
+    //todo hacer el modal mas pequeño
 
     render() {
         let membershipCredits = '';
@@ -45,7 +67,7 @@ class ClassItem extends React.Component {
          )
      }else if(Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM') >= today){
             cancelation = (
-                <button type="button" className="close " aria-label="Close" onClick={this.handleClick.bind(this)}>
+                <button type="button" className="close " aria-label="Close" onClick={this.handleShowCancelation.bind(this)}>
                     {/*<span aria-hidden="true">&times;</span>*/}
                     <Glyphicon glyph="remove" /> {Strings.CANCELATION}
                 </button>
@@ -71,6 +93,26 @@ class ClassItem extends React.Component {
                     {cancelation}
                     <br/>
                 </div>
+
+                <Modal className={'modal-cancelation'} show={this.state.showCancelation} animation={false}
+                       onHide={this.handleClickBack.bind(this)}>
+
+                    <Modal.Header className={'modal-cancelation-header'} closeButton>
+                        <Modal.Title>{Strings.CANCELATION}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className={'modal-cancelation-body'}>
+                        <h4>{Strings.CANCELATIONMESSAGE}</h4>
+
+                    </Modal.Body>
+                    <Modal.Footer className={'modal-reservation-footer'}>
+                        <button type="button" onClick={this.handleClick.bind(this)}>
+                            <Glyphicon glyph="ok-circle" /> {Strings.BUTTON_ACCEPT}
+                        </button>
+                        <button type="button" onClick={this.handleClose.bind(this)}>
+                            <Glyphicon glyph="remove" /> {Strings.BUTTON_CANCEL}
+                        </button>
+                    </Modal.Footer>
+                </Modal>
             </div>
         )
     }

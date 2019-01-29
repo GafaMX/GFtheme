@@ -86,7 +86,10 @@ export default {
     POSITION: 'Posición: ',
     CANCELEDRESERVATION: 'Reserva Cancelada.',
     CANCELATION: 'Cancelar',
-    CANCELLED: 'Cancelada'
+    CANCELLED: 'Cancelada',
+    CANCELATIONCONFIRM: 'Confirmar Cancelación',
+    CANCELATIONMESSAGE: '¿Desea cancelar esta reserva?',
+    RESERVATION: 'Reserva'
 
 
 
