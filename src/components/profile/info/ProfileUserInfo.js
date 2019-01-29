@@ -14,6 +14,7 @@ import UserCredits from "./UserCredits";
 import UserMembership from "./Membership";
 import FutureClasses from "./FutureClasses";
 import PastClasses from "../PastClasses";
+import PurchasesList from "../PurchasesList";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -188,7 +189,7 @@ class ProfileUserInfo extends React.Component {
                                     <PastClasses/>
                                 </Tab>
                                 <Tab eventKey={3} title={Strings.PURCHASES}>
-
+                                <PurchasesList/>
                                 </Tab>
                             </Tabs>
 

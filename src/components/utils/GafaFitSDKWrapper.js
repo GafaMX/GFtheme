@@ -386,6 +386,17 @@ class GafaFitSDKWrapper extends React.Component {
                 }
             }
         )
+    };
+
+    static getUserPurchasesInBrand(options, callback){
+        GafaFitSDK.GetUserPurchasesInBrand(
+            window.GFtheme.brand, options,
+            function(error, result){
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
     }
 
 }
