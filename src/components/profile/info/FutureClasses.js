@@ -37,8 +37,8 @@ class FutureClasses extends React.Component {
     render() {
 
         const listItems = this.state.list.map((reservation) =>
-                //console.log(reservation)
-            <ClassItem key={reservation.id} reservation={reservation}/>
+              //console.log(reservation)
+            <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>
         );
         return (
             <div>

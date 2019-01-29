@@ -1,6 +1,7 @@
 'use strict';
 
 import React from "react";
+import GafaThemeSDK from "../GafaThemeSDK";
 
 class GafaFitSDKWrapper extends React.Component {
     constructor(props) {
@@ -365,8 +366,15 @@ class GafaFitSDKWrapper extends React.Component {
         )
     };
 
-    static postUserCancelReservation(reservation, options, callback){
-
+    static postUserCancelReservation(reservation, options, callback) {
+        GafaFitSDK.PostUserCancelReservation(
+            window.GFtheme.brand, reservation, options,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
     }
 
 }
