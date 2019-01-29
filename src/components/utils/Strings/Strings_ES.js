@@ -83,7 +83,10 @@ export default {
     FUTURESCLASSES: 'Clases Futuras',
     PASTCLASSES: 'Clases Pasadas',
     PURCHASES: 'Compras',
-    POSITION: 'Posición: '
+    POSITION: 'Posición: ',
+    CANCELEDRESERVATION: 'Reserva Cancelada.',
+    CANCELATION: 'Cancelar',
+    CANCELLED: 'Cancelada'
 
 
 

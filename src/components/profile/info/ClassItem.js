@@ -19,7 +19,7 @@ class ClassItem extends React.Component {
         console.log(this.props.id);
         GafaFitSDKWrapper.postUserCancelReservation(reservationID,'',
             function(result){
-            alert("Reserva Cancelada");
+            alert(Strings.CANCELEDRESERVATION);
                 window.location.reload();
             })
 
@@ -30,6 +30,7 @@ class ClassItem extends React.Component {
     render() {
         let membershipCredits = '';
         let cancelation = '';
+        let today= Moment().format('DD-MM-YYYY HH:MM');
         if (this.props.reservation.credit === null) {
             membershipCredits = (
                 <p className={'reservation-item-membership'}>{Strings.MEMBERSHIP}{this.props.reservation.user_membership.membership['name']}</p>)
@@ -40,16 +41,17 @@ class ClassItem extends React.Component {
 
      if(this.props.reservation.cancelled === true){
          cancelation =(
-             <span className={'reservation-item-cancelled close'} aria-label="Close"> <Glyphicon glyph="ban-circle" /> Cancelada </span>
+             <span className={'reservation-item-cancelled close'} aria-label="Close"> <Glyphicon glyph="ban-circle" /> {Strings.CANCELLED} </span>
          )
-     }else{
+     }else if(Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM') >= today){
             cancelation = (
                 <button type="button" className="close " aria-label="Close" onClick={this.handleClick.bind(this)}>
                     {/*<span aria-hidden="true">&times;</span>*/}
-                    <Glyphicon glyph="remove" /> Cancelar
+                    <Glyphicon glyph="remove" /> {Strings.CANCELATION}
                 </button>
             )
      }
+
 
         return (
             <div className={'reservation-item-container col-md-4'}>
@@ -63,7 +65,7 @@ class ClassItem extends React.Component {
                         <p className={'reservation-item-staff'}>{this.props.reservation.staff['name']}</p>
                         <p className={'reservation-item-service'}>{this.props.reservation.service['name']}</p>
                         <p className={'reservation-item-position'}>{Strings.POSITION}{this.props.reservation.meeting_position}</p>
-                        <p className={'reservation-item-meeting'}>{Strings.BEGINS}{Moment(this.props.meeting_start).format('DD-MM-YYYY HH:MM')}</p>
+                        <p className={'reservation-item-meeting'}>{Strings.BEGINS}{Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM')}</p>
                         {membershipCredits}
                     </div>
                     {cancelation}
