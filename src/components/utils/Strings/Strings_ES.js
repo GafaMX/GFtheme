@@ -89,7 +89,7 @@ export default {
     CANCELLED: 'Cancelada',
     CANCELATIONCONFIRM: 'Confirmar Cancelación',
     CANCELATIONMESSAGE: '¿Desea cancelar esta reserva?',
-    RESERVATION: 'Reserva'
+    RESERVATION: 'Reserva',
 
 
 

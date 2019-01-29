@@ -375,6 +375,17 @@ class GafaFitSDKWrapper extends React.Component {
                 }
             }
         )
+    };
+
+    static getUserPastReservationsInBrand(options, callback) {
+        GafaFitSDK.GetUserPastReservationsInBrand(
+            window.GFtheme.brand, options,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
     }
 
 }

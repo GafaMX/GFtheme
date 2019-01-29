@@ -13,6 +13,7 @@ import ContactInfo from "./ContactInfo";
 import UserCredits from "./UserCredits";
 import UserMembership from "./Membership";
 import FutureClasses from "./FutureClasses";
+import PastClasses from "../PastClasses";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -184,7 +185,7 @@ class ProfileUserInfo extends React.Component {
 
                                 </Tab>
                                 <Tab eventKey={2} title={Strings.PASTCLASSES}>
-
+                                    <PastClasses/>
                                 </Tab>
                                 <Tab eventKey={3} title={Strings.PURCHASES}>
 

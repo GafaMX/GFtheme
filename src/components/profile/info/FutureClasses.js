@@ -31,9 +31,6 @@ class FutureClasses extends React.Component {
         });
     }
 
-    //handleClick de cancelacion llama a api de cancelacion de reserva
-    //modal de "Esta seguro de cancelar reserva?"
-
     render() {
 
         const listItems = this.state.list.map((reservation) =>
