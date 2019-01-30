@@ -1,6 +1,7 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
 import "./css/basic-theme.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
+
 import jQuery from 'jquery'
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 
