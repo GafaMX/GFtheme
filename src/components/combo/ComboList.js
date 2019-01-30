@@ -13,7 +13,6 @@ class ComboList extends React.Component {
 
         this.state = {
             showLogin: false,
-            loading: true,
             list: this.props.list,
             extraPaginationOptions: {
                 only_actives: true,

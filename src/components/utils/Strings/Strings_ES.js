@@ -76,6 +76,19 @@ export default {
     CLASS: 'Clases',
     PROFILE: 'Perfil',
     PAYMENTMETHODS: 'Formas de pago',
+    CREDIT: 'Credito: ',
+    MEMBERSHIP: 'Membresía: ',
+    BEGINS: 'Empieza: ',
+    FUTURESCLASSES: 'Clases Futuras',
+    PASTCLASSES: 'Clases Pasadas',
+    PURCHASES: 'Compras',
+    POSITION: 'Posición: ',
+    CANCELEDRESERVATION: 'Reserva Cancelada.',
+    CANCELATION: 'Cancelar',
+    CANCELLED: 'Cancelada',
+    CANCELATIONCONFIRM: 'Confirmar Cancelación',
+    CANCELATIONMESSAGE: '¿Desea cancelar esta reserva?',
+    RESERVATION: 'Reserva',
 
 
 

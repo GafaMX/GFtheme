@@ -1,6 +1,7 @@
 'use strict';
 
 import React from "react";
+import GafaThemeSDK from "../GafaThemeSDK";
 
 class GafaFitSDKWrapper extends React.Component {
     constructor(props) {
@@ -394,6 +395,51 @@ class GafaFitSDKWrapper extends React.Component {
             );
         });
     };
+
+    static getUserFutureReservationsInBrand(options, callback) {
+        GafaFitSDK.GetUserFutureReservationsInBrand(
+            window.GFtheme.brand, options,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
+    };
+
+    static postUserCancelReservation(reservation, options, callback) {
+        GafaFitSDK.PostUserCancelReservation(
+            window.GFtheme.brand, reservation, options,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
+    };
+
+    static getUserPastReservationsInBrand(options, callback) {
+        GafaFitSDK.GetUserPastReservationsInBrand(
+            window.GFtheme.brand, options,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
+    };
+
+    static getUserPurchasesInBrand(options, callback){
+        GafaFitSDK.GetUserPurchasesInBrand(
+            window.GFtheme.brand, options,
+            function(error, result){
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
+    }
+
 }
 
 export default GafaFitSDKWrapper;
