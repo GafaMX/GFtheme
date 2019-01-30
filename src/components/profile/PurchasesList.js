@@ -4,6 +4,7 @@ import React from 'react';
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 import PurchaseItem from "./PurchaseItem";
+import PaginationList from "../utils/PaginationList";
 
 class PurchasesList extends React.Component {
     constructor(props) {
@@ -11,9 +12,9 @@ class PurchasesList extends React.Component {
         this.state = {
             list: [],
             currentPage: 1,
-            perPage: 5,
-            lastPage: '',
-            total: '',
+            perPage: 6,
+            lastPage: 0,
+            total: 0
         }
     }
 
@@ -34,28 +35,32 @@ class PurchasesList extends React.Component {
         })
     }
 
-    updateList(list) {
+    updatePaginationData(result) {
         this.setState({
-            list: list
+            list: result.data,
+            currentPage: result.current_page
         })
     }
 
-    // todo falta paginacion
-    render(){
+    render() {
 
-        const listItems = this.state.list.map((purchase)=>
-        // console.log(purchase)
+        const listItems = this.state.list.map((purchase) =>
             <PurchaseItem key={purchase.id} purchase={purchase} id={purchase.id}/>
         );
-        return(
+        return (
 
             <div>
-               <h1 className={'display-4 container text-center'}>{Strings.PURCHASES}</h1>
+                <h1 className={'display-4 container text-center'}>{Strings.PURCHASES}</h1>
                 <div className={'purchases-list container'}>
                     <div className={'row mt-5 justify-content-center text-center'}>
                         {listItems}
                     </div>
                 </div>
+
+                <PaginationList page={this.state.currentPage} perpage={this.state.perPage}
+                                allpages={this.state.lastPage} itemsList={this.state.total}
+                                updatePaginationData={this.updatePaginationData.bind(this)}
+                                getListData={GafaFitSDKWrapper.getUserPurchasesInBrand}/>
             </div>
         )
     }

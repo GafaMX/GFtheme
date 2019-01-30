@@ -12,10 +12,9 @@ class PastClasses extends React.Component {
         this.state = {
             list: [],
             currentPage: 1,
-            perPage: 5,
-            lastPage: '',
-            total: '',
-
+            perPage: 6,
+            lastPage: 0,
+            total: 0
         }
     }
 
@@ -35,16 +34,16 @@ class PastClasses extends React.Component {
         })
     }
 
-    updateList(list) {
+    updatePaginationData(result) {
         this.setState({
-            list: list
+            list: result.data,
+            currentPage: result.current_page
         })
     }
 
     render() {
         const listItems = this.state.list.map((pastreservation) =>
-                //console.log(pastreservation)
-             <PastClassItem key={pastreservation.id} reservation={pastreservation} id={pastreservation.id}/>
+            <PastClassItem key={pastreservation.id} reservation={pastreservation} id={pastreservation.id}/>
         );
         return (
             <div>
@@ -55,10 +54,10 @@ class PastClasses extends React.Component {
                     </div>
                 </div>
 
-                {/*<PaginationList page={this.state.currentPage} perpage={this.state.perPage}*/}
-                                {/*allpages={this.state.lastPage} itemsList={this.state.total}*/}
-                                {/*updateList={this.updateList.bind(this)}*/}
-                                {/*getListData={GafaFitSDKWrapper.getUserPastReservationsInBrand}/>*/}
+                <PaginationList page={this.state.currentPage} perpage={this.state.perPage}
+                                allpages={this.state.lastPage} itemsList={this.state.total}
+                                updatePaginationData={this.updatePaginationData.bind(this)}
+                                getListData={GafaFitSDKWrapper.getUserPastReservationsInBrand}/>
             </div>
 
         );

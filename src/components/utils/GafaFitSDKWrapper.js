@@ -73,10 +73,7 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
     static isAuthenticated() {
-        // return GafaFitSDK.isAuthentified();
-        GafaFitSDKWrapper.getMe(function (result) {
-            return result != null;
-        });
+        return GafaFitSDK.isAuthentified();
     };
 
 

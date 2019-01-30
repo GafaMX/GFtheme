@@ -20,7 +20,6 @@ class ClassItem extends React.Component {
         event.preventDefault();
 
         let reservationID = this.props.id;
-        console.log(this.props.id);
         GafaFitSDKWrapper.postUserCancelReservation(reservationID,'',
             function(result){
             alert(Strings.CANCELEDRESERVATION);

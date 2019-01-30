@@ -14,6 +14,7 @@ class ComboList extends React.Component {
         this.state = {
             showLogin: false,
             list: this.props.list,
+            currentPage: this.props.currentPage,
             extraPaginationOptions: {
                 only_actives: true,
                 propagate: true,
@@ -27,10 +28,11 @@ class ComboList extends React.Component {
         });
     }
 
-    updateList(list) {
+    updatePaginationData(result) {
         this.setState({
-            list: list
-        });
+            list: result.data,
+            currentPage: result.current_page
+        })
     }
 
     render() {
@@ -45,9 +47,9 @@ class ComboList extends React.Component {
                         {listItems}
                     </div>
                 </div>
-                <PaginationList page={this.props.currentPage} perpage={this.props.perPage}
+                <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
                                 allpages={this.props.lastPage} itemsList={this.props.total}
-                                updateList={this.updateList.bind(this)}
+                                updatePaginationData={this.updatePaginationData.bind(this)}
                                 getListData={GafaFitSDKWrapper.getComboList}
                                 extraOptions={this.state.extraPaginationOptions}/>
                 {this.state.showLogin &&

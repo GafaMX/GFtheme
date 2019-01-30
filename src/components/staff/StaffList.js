@@ -11,16 +11,18 @@ class StaffList extends React.Component {
         super(props);
         this.state = {
             list: this.props.list,
+            currentPage: this.props.currentPage,
             jobList: [],
             currentjob: 'Todos',
         };
         this.change = this.change.bind(this);
     }
 
-    updateList(list) {
+    updatePaginationData(result) {
         this.setState({
-            list: list
-        });
+            list: result.data,
+            currentPage: result.current_page
+        })
     }
 
     change(event) {
@@ -60,9 +62,9 @@ class StaffList extends React.Component {
                         {listItems}
                     </div>
 
-                    <PaginationList page={this.props.currentPage} perpage={this.props.perPage}
+                    <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
                                     allpages={this.props.lastPage} itemsList={this.props.total}
-                                    updateList={this.updateList.bind(this)}
+                                    updatePaginationData={this.updatePaginationData.bind(this)}
                                     getListData={GafaFitSDKWrapper.getStaffList}/>
                 </div>
             </div>

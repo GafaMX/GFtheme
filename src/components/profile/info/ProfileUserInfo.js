@@ -183,13 +183,12 @@ class ProfileUserInfo extends React.Component {
                             <Tabs defaultActiveKey={1} id={'HistoryTabs'} animation={false}>
                                 <Tab eventKey={1} title={Strings.FUTURESCLASSES}>
                                     <FutureClasses/>
-
                                 </Tab>
                                 <Tab eventKey={2} title={Strings.PASTCLASSES}>
                                     <PastClasses/>
                                 </Tab>
                                 <Tab eventKey={3} title={Strings.PURCHASES}>
-                                <PurchasesList/>
+                                    <PurchasesList/>
                                 </Tab>
                             </Tabs>
 
