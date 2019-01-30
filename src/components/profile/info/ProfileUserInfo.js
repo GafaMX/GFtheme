@@ -15,6 +15,7 @@ import UserMembership from "./Membership";
 import FutureClasses from "./FutureClasses";
 import PastClasses from "../PastClasses";
 import PurchasesList from "../PurchasesList";
+import ChangePassword from "./ChangePassword";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -178,7 +179,7 @@ class ProfileUserInfo extends React.Component {
                     </Carousel>
                 </div>
                 <div className={'profile-content col-md-12'}>
-                    <Tabs defaultActiveKey={2} id={'ProfileTabs'} animation={false}>
+                    <Tabs defaultActiveKey={1} id={'ProfileTabs'} animation={false}>
                         <Tab eventKey={1} title={Strings.CLASS}>
                             <Tabs defaultActiveKey={1} id={'HistoryTabs'} animation={false}>
                                 <Tab eventKey={1} title={Strings.FUTURESCLASSES}>
@@ -223,39 +224,15 @@ class ProfileUserInfo extends React.Component {
                                 </div>
                             </form>
                         </Tab>
-                        <Tab eventKey={3} title={Strings.PAYMENTMETHODS}>
+                        {/*<Tab eventKey={3} title={Strings.PAYMENTMETHODS}>*/}
 
-                        </Tab>
-                        <Tab eventKey={4} title={Strings.CHANGEPASSWORD}>
+                        {/*</Tab>*/}
+                        <Tab eventKey={3} title={Strings.CHANGEPASSWORD}>
                             <form onSubmit={this.handleSubmit.bind(this)}>
-                                <div className={"row col-md-12 pt-4"}>
 
-                                    <h4 className={'col-md-12'}>
-                                        {Strings.CHANGEPASSWORD}
-                                    </h4>
-                                    <FormGroup className={'confirmation-info'} controlId="email_confirm">
-                                        <FormControl type={'text'} value={this.state.email} disabled/>
-                                    </FormGroup>
-
-                                    <FormGroup className={'confirmation-info'} controlId="first_name_confirm">
-                                        <FormControl type={'text'} value={this.state.first_name} disabled/>
-                                    </FormGroup>
-
-                                    <FormGroup className={'col-md-6'} controlId="password" bsSize={'large'}>
-                                        <ControlLabel>{Strings.NEWPASSWORD}</ControlLabel>
-                                        <FormControl type={'password'}
-                                                     value={this.state.password}
-                                                     onChange={this.handleChangePassword.bind(this)}/>
-                                    </FormGroup>
-
-                                    <FormGroup className={'col-md-6'} controlId="confirmationPassword" bsSize={'large'}>
-                                        <ControlLabel>{Strings.PASSWORDCONFIRM}</ControlLabel>
-                                        <FormControl type={'password'}
-                                                     value={this.state.password_confirmation}
-                                                     onChange={this.handleChangeConfirmationPassword.bind(this)}/>
-                                    </FormGroup>
-                                </div>
-
+                                <ChangePassword info={this.state}
+                                                handleChangePassword={this.handleChangePassword.bind(this)}
+                                                handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
                                 <div className="col-md-12">
                                     <Button
                                         block
