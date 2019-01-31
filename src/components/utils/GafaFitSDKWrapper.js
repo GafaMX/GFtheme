@@ -1,7 +1,6 @@
 'use strict';
 
 import React from "react";
-import GafaThemeSDK from "../GafaThemeSDK";
 
 class GafaFitSDKWrapper extends React.Component {
     constructor(props) {
