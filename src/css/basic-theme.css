@@ -115,7 +115,7 @@ a {
 }
 
 .calendar-day-column:not(.last-day) {
-    border-right: 1px solid;
+    border-right: 0px solid;
 }
 
 .calendar-meeting {
