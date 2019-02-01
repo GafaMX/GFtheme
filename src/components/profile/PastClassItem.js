@@ -29,7 +29,7 @@ class ClassItem extends React.Component {
                 <div className={'reservation-item mb-4 card shadow-sm'}>
 
                     <div className={'card-header'}>
-                        <h4 className={'reservation-item-name'}>{this.props.reservation.location['slug']}</h4>
+                        <h4 className={'reservation-item-name'}>{this.props.reservation.location['name']}</h4>
                     </div>
                     <div className={'card-body'}>
                         <p className={'reservation-item-service'}>{this.props.reservation.meetings.service['name']}</p>
