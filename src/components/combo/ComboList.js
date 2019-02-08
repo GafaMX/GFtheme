@@ -41,9 +41,10 @@ class ComboList extends React.Component {
         );
         return (
             <div>
-                <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.COMBOS}</h1>
+                <h1 className={["section-title", "container", "text-center"].join(" ")}>{Strings.COMBOS}</h1>
+                <hr></hr>
                 <div className={["combo-list", "container"].join(" ")}>
-                    <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
+                    <div className={["row", "mt-5"].join(" ")}>
                         {listItems}
                     </div>
                 </div>

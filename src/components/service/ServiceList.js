@@ -57,16 +57,17 @@ class ServiceList extends React.Component {
 
         return (
             <div>
-                <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.SERVICE_LIST}</h1>
-                <div className={'categorySelector'}>
-                    <select className={'col-md-5 form-control'} onChange={this.change} value={this.state.value}>
-                        <option>Todos</option>
-                        {this.state.categoryList.map(category => {
-                            return <option key={category} value={category}>{category}</option>
-                        })}
-                    </select>
-                </div>
+                <h1 className={["section-title", "container", "text-center"].join(" ")}>{Strings.SERVICE_LIST}</h1>
+                <hr></hr>
                 <div className={["service-list", "container"].join(" ")}>
+                    <div className={'categorySelector classSelector'}>
+                        <select className={'col-md-3 form-control'} onChange={this.change} value={this.state.value}>
+                            <option>Todos</option>
+                            {this.state.categoryList.map(category => {
+                                return <option key={category} value={category}>{category}</option>
+                            })}
+                        </select>
+                    </div>
                     <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
                         {listItems}
                     </div>

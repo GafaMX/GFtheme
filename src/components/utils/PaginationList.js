@@ -1,6 +1,8 @@
 'use strict';
 
 import React from "react";
+import IconLeftArrow from "../utils/Icons/IconLeftArrow"
+import IconRightArrow from "../utils/Icons/IconRightArrow"
 
 class PaginationList extends React.Component {
     constructor(props) {
@@ -21,18 +23,21 @@ class PaginationList extends React.Component {
         if (typeof id === 'number') {
             options.page = id;
             this.props.getListData(options, function (result) {
+                event.preventDefault();
                 currentComponent.props.updatePaginationData(result);
             });
         }
         if (id === 'past') {
             options.page = this.props.page - 1;
             this.props.getListData(options, function (result) {
+                event.preventDefault();
                 currentComponent.props.updatePaginationData(result);
             });
         }
         if (id === 'next') {
             options.page = this.props.page + 1;
             this.props.getListData(options, function (result) {
+                event.preventDefault();
                 currentComponent.props.updatePaginationData(result);
             });
         }
@@ -59,7 +64,7 @@ class PaginationList extends React.Component {
             for (let i = 0; i < totalpages; i++) {
                 pageElements.push(
                     <div key={'page-' + i} className={["btn-group mr-2"]}>
-                        <button id={i + 1} className={'btn btn-info ' + this.getActive(i + 1)}
+                        <button id={i + 1} className={'btn ' + this.getActive(i + 1)}
                                 onClick={(e) => this.handleClick(i + 1, e)}>
                             <a>{i + 1}</a></button>
                     </div>)
@@ -69,15 +74,19 @@ class PaginationList extends React.Component {
                 <section className={'pages-navigation'}>
                     <div className={'pagination-container'}>
                         <div className={"btn-group mr-2"}>
-                            <button className={'btn btn-info past-page ' + this.firstPage(this.props.page)}
+                            <button className={'btn past-page ' + this.firstPage(this.props.page)}
                                     id={['past']}
-                                    onClick={(e) => this.handleClick('past', e)}><a>{['<<']}</a></button>
+                                    onClick={(e) => this.handleClick('past', e)}>
+                                        <IconLeftArrow />
+                                    </button>
                         </div>
                         {pageElements}
                         <div className={"btn-group mr-2"}>
-                            <button className={'btn btn-info next-page ' + this.lastPage(this.props.page)}
+                            <button className={'btn next-page ' + this.lastPage(this.props.page)}
                                     id={['next']}
-                                    onClick={(e) => this.handleClick('next', e)}><a> {['>>']}</a></button>
+                                    onClick={(e) => this.handleClick('next', e)}>
+                                        <IconRightArrow />
+                                    </button>
                         </div>
                     </div>
                 </section>

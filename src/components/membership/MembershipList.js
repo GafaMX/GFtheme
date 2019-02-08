@@ -41,9 +41,10 @@ class MembershipList extends React.Component {
         );
         return (
             <div>
-                <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.MEMBERSHIPS}</h1>
+                <h1 className={["section-title", "container", "text-center"].join(" ")}>{Strings.MEMBERSHIPS}</h1>
+                <hr></hr>
                 <div className={["membership-list", "container"].join(" ")}>
-                    <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
+                    <div className={["row", "mt-5", "text-center"].join(" ")}>
                         {listItems}
                     </div>
                 </div>

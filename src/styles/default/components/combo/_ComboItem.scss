@@ -1,0 +1,38 @@
+[data-gf-theme="combo-list"]{
+    .combo-list{
+        .combo-item-container{
+            min-height:200px;
+            margin:20px 0;
+
+            .combo-item{
+                height:100%;
+                border-left: 6px solid black;
+                color:black;
+                transition: all .3s ease;
+
+                &:hover{
+                    background-color: lightgrey;
+                }
+
+                &__name{
+                    display: inline-block;
+                    font-weight: bold;
+                    font-size:240%;
+                    text-transform: uppercase;
+                }
+
+                &__price{
+                    font-weight:180%;
+                    font-size: bold;
+                    line-height: 1.4;
+                }
+
+                &__short-description, &__services, &__parent-services, &__expiration{
+                    font-size:120%;
+                    margin:0;
+                    line-height: 1.4;
+                }
+            }
+        }
+    }
+}

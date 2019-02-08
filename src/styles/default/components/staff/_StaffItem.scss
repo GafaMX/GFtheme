@@ -1,0 +1,55 @@
+.staff-item{
+    
+    &__container{
+        min-height: 500px;
+        border: 0 transparent none;
+    }
+
+    &__picture{
+        height:400px;
+
+        .image-missing{
+            align-items:center;
+            justify-content:center;
+            height:100%;
+            font-size:200%;
+            font-weight:bold;
+            background-color: black;
+            color:white;
+
+            &.show{
+                display:flex!important;
+            }
+        }
+
+        img{
+            height: 100%;
+            width:100%;
+            object-fit: cover;
+            object-position: top center;
+        }
+    }
+
+    &__name{
+        display: inline-block;
+        font-weight: bold;
+        font-size:240%;
+        text-transform: uppercase;
+        border-left: 6px solid black;
+        padding-left:12px;
+    }
+    
+    &__lastname{
+        display: inline-block;
+        font-weight: 400;
+        margin-left:5px;
+        font-size:180%;
+        text-transform: uppercase;
+    }
+    
+    &__job{
+        padding-left: calc(12px + 6px);
+        font-size:120%;
+        text-transform: uppercase;
+    }
+}
