@@ -1,5 +1,4 @@
 'use strict';
-
 import React from "react";
 
 class StaffItem extends React.Component {
@@ -9,13 +8,19 @@ class StaffItem extends React.Component {
 
     render() {
         return (
-            <div className={["staff-item-container", "col-md-4", "staff_" + this.props.staff.id].join(" ")}>
-                <div className={["staff-item", "mb-4", "card", "shadow-sm"].join(" ")}>
-                    <img className="staff-item-picture" src={this.props.staff.picture_web_list}/>
-                    <h3 className={["font-weight-normal", "staff-item-name"].join(" ")}>{this.props.staff.name}</h3>
-                    <h3 className={["font-weight-normal", "staff-item-lastname"].join(" ")}>{this.props.staff.lastname}</h3>
-                    <h5 className={["font-weight-normal", "staff-item-job"].join(" ")}>{this.props.staff.job}</h5>
-                    <p className="staff-item-description">{this.props.staff.description}</p>
+            <div className={["staff-item", "col-md-4", "staff_" + this.props.staff.id].join(" ")}>
+                <div className={["staff-item__container", "mb-4", "card"].join(" ")}>
+                    {/* <img className="staff-item-picture" src={this.instructorImage}/> */}
+                    <div className={["staff-item__picture"]}>
+                        <img className={(this.props.staff.picture_web_list ? 'show' : 'hidden')} src={this.props.staff.picture_web_list}/>
+                        <div className={["text-center image-missing " + (this.props.staff.picture_web_list ? 'hidden' : 'show')]}>Image Missing</div>
+                    </div>
+                    <div className={'card-body'}>
+                        <h2 className={["staff-item__name"].join(" ")}>{this.props.staff.name}</h2>
+                        <h3 className={["staff-item__lastname"].join(" ")}>{this.props.staff.lastname}</h3>
+                        <p className={["staff-item__job"].join(" ")}>{this.props.staff.job}</p>
+                        <p className="staff-item__description d-none">{this.props.staff.description}</p>
+                    </div>
                 </div>
             </div>
         );

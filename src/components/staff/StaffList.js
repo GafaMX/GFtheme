@@ -47,18 +47,18 @@ class StaffList extends React.Component {
         );
         return (
             <div>
-                <h1 className={["display-4", "container", "text-center"].join(" ")}>{Strings.STAFF_LIST}</h1>
-                <div className={'jobSelector'}>
-                    <select className={'col-md-5  form-control'} onChange={this.change} value={this.state.currentjob}>
-                        <option>Todos</option>
-                        {this.state.jobList.map(job => {
-                            return <option key={job} value={job}>{job}</option>
-                        })}
-                    </select>
-                </div>
-
+                <h1 className={["section-title", "container", "text-center"].join(" ")}>{Strings.STAFF_LIST}</h1>
+                <hr></hr>
                 <div className={["staff-list", "container"].join(" ")}>
-                    <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
+                    <div className={'jobSelector classSelector'}>
+                        <select className={'col-md-3 form-control'} onChange={this.change} value={this.state.currentjob}>
+                            <option>Todos</option>
+                            {this.state.jobList.map(job => {
+                                return <option key={job} value={job}>{job}</option>
+                            })}
+                        </select>
+                    </div>
+                    <div className={["row", "staff-list__container", "justify-content-center"].join(" ")}>
                         {listItems}
                     </div>
 

@@ -59,26 +59,26 @@ class MembershipItem extends React.Component {
     render() {
         const services = this.getServicesAndParentsForMembership();
         return (
-            <div className={["membership-item-container", "col-md-4"].join(" ")}>
-                <div className={["membership-item", "mb-4", "card", "shadow-sm"].join(" ")}
+            <div className={["membership-item", "col-md-4"].join(" ")}>
+                <div className={["membership-item__container", "mb-4"].join(" ")}
                      onClick={this.handleClick.bind(this)}>
                     <div className="card-header">
-                        <h4 className={["membership-item-name", "my-0", "font-weight-normal"].join(" ")}>{this.props.membership.name}</h4>
+                        <h4 className={["membership-item__name", "my-0"].join(" ")}>{this.props.membership.name}</h4>
+                        <h2 className={["pricing-card-title", "membership-item__price"].join(" ")}>
+                            $ {formatMoney(this.props.membership.price_final, 0)}</h2>
                     </div>
                     <div className="card-body">
                         {this.props.membership.short_description &&
-                        <p className="membership-item-short-description">{this.props.membership.short_description}</p>}
+                        <p className="membership-item__short-description">{this.props.membership.short_description}</p>}
                         {this.props.membership.description &&
-                        <p className="membership-item-description">{this.props.membership.description}</p>}
+                        <p className="membership-item__description">{this.props.membership.description}</p>}
                         {this.props.membership.has_discount &&
-                        <h2 className={["membership-item-discount", "text-muted", "font-weight-normal"].join(" ")}>
+                        <h2 className={["membership-item__discount", "text-muted"].join(" ")}>
                             $ {formatMoney(this.props.membership.price, 0)}</h2>
                         }
-                        <h2 className={["pricing-card-title", "membership-item-price", "font-weight-normal"].join(" ")}>
-                            $ {formatMoney(this.props.membership.price_final, 0)}</h2>
-                        <p className="membership-item-services">{services['services']}</p>
-                        <p className="membership-item-parent-services">{services['parents']}</p>
-                        <p className="membership-item-expiration">{Strings.EXPIRE_IN} {this.props.membership.expiration_days} {Strings.DAYS} </p>
+                        <p className="membership-item__services">{services['services']}</p>
+                        <p className="membership-item__parent-services">{services['parents']}</p>
+                        <p className="membership-item__expiration">{Strings.EXPIRE_IN} {this.props.membership.expiration_days} {Strings.DAYS} </p>
                     </div>
                 </div>
             </div>
