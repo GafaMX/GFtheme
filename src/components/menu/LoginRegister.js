@@ -15,7 +15,6 @@ class LoginRegister extends React.Component {
         super(props);
 
         this.state = {
-            isAuthenticated: GafaFitSDKWrapper.isAuthenticated(),
             showLogin: false,
             showRegister: false,
             showProfile: false,
@@ -32,7 +31,7 @@ class LoginRegister extends React.Component {
         GlobalStorage.addSegmentedListener(['me'], this.updateMe.bind(this));
     }
 
-    updateMe(){
+    updateMe() {
         this.setState({
             me: GlobalStorage.get('me')
         });
@@ -42,6 +41,7 @@ class LoginRegister extends React.Component {
         const query = new URLSearchParams(window.location.search);
         const token = query.get('token');
         const email = query.get('email');
+        let currentComponent = this;
         if (token != null && email != null) {
             this.setState({
                 showLogin: false,
@@ -53,11 +53,13 @@ class LoginRegister extends React.Component {
                 token: token
             });
         }
+
         GafaFitSDKWrapper.getMeWithCredits(
             function (result) {
                 GlobalStorage.set("me", result);
             }
         );
+
         if (this.props.setShowLogin) {
             this.handleClickLogin();
         }
@@ -126,7 +128,6 @@ class LoginRegister extends React.Component {
             this.props.setShowLogin(false);
         }
         this.setState({
-            isAuthenticated: false,
             showLogin: false,
             showRegister: false,
             showProfile: false,
@@ -149,7 +150,6 @@ class LoginRegister extends React.Component {
                 function (result) {
                     GlobalStorage.set("me", result);
                     currentComponent.setState({
-                        isAuthenticated: true,
                         showLogin: false,
                         showRegister: false,
                         showProfile: false,
@@ -169,7 +169,6 @@ class LoginRegister extends React.Component {
 
     successRecoveryCallback() {
         this.setState({
-            isAuthenticated: false,
             showLogin: false,
             showRegister: false,
             showProfile: false,
@@ -193,11 +192,11 @@ class LoginRegister extends React.Component {
     render() {
         return (
             <div className="login-register col-md-12">
-                {!this.state.isAuthenticated && this.state.showButtons && <div>
+                {!this.state.me && this.state.showButtons && <div>
                     <a onClick={this.handleClickLogin.bind(this)}>{Strings.BUTTON_LOGIN}</a> /
                     <a onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
                 </div>}
-                {this.state.isAuthenticated && this.state.showButtons && <div>
+                {this.state.me !== null && this.state.showButtons && <div>
                     <a onClick={this.handleClickProfile.bind(this)}>
                         {this.state.me != null ?
                             <div className="form-inline">
@@ -209,7 +208,8 @@ class LoginRegister extends React.Component {
                     </a>
                 </div>}
 
-                <Modal className="modal-login" show={this.state.showLogin} animation={false} onHide={this.handleClickBack.bind(this)}>
+                <Modal className="modal-login" show={this.state.showLogin} animation={false}
+                       onHide={this.handleClickBack.bind(this)}>
                     <Modal.Header className="modal-login-header" closeButton>
                         <Modal.Title>{Strings.BUTTON_LOGIN}</Modal.Title>
                     </Modal.Header>
@@ -228,7 +228,8 @@ class LoginRegister extends React.Component {
                     </Modal.Footer>
                 </Modal>
 
-                <Modal className="modal-register" show={this.state.showRegister} animation={false} onHide={this.handleClickBack.bind(this)}>
+                <Modal className="modal-register" show={this.state.showRegister} animation={false}
+                       onHide={this.handleClickBack.bind(this)}>
                     <Modal.Header className="modal-register-header" closeButton>
                         <Modal.Title>{Strings.BUTTON_REGISTER}</Modal.Title>
                     </Modal.Header>
@@ -259,7 +260,8 @@ class LoginRegister extends React.Component {
                     </Modal.Footer>
                 </Modal>
 
-                <Modal className="modal-password" show={this.state.passwordRecovery} animation={false} onHide={this.handleClickBack.bind(this)}>
+                <Modal className="modal-password" show={this.state.passwordRecovery} animation={false}
+                       onHide={this.handleClickBack.bind(this)}>
                     <Modal.Header className="modal-password-header" closeButton>
                         <Modal.Title>{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
                     </Modal.Header>

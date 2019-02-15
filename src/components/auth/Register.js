@@ -178,7 +178,7 @@ class Register extends React.Component {
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     <div className="panel panel-default mt-4 text-success">
-                        {this.state.saved && <small>{Strings.REGISTER_SUCCESS}</small>}
+                        {this.state.registered && <small>{Strings.REGISTER_SUCCESS}</small>}
                     </div>
                 </form>
             </div>
