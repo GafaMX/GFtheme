@@ -1,7 +1,7 @@
 'use strict';
 
 import React from "react";
-import {Button, Carousel, ControlLabel, FormControl, FormGroup, HelpBlock, Tab, Tabs} from "react-bootstrap";
+import {Button, Tab, Tabs} from "react-bootstrap";
 import {FormErrors} from "../../form/FormErrors";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Strings from "../../utils/Strings/Strings_ES";
@@ -10,12 +10,11 @@ import 'moment/locale/es';
 import UserInfo from "./UserInfo";
 import AddressInfo from "./AddressInfo";
 import ContactInfo from "./ContactInfo";
-import UserCredits from "./UserCredits";
-import UserMembership from "./Membership";
 import FutureClasses from "./FutureClasses";
 import PastClasses from "../PastClasses";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
+import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -164,20 +163,7 @@ class ProfileUserInfo extends React.Component {
     render() {
         return (
             <div className="profile-info ">
-                <div className={'creditosUser col-md-6'}>
-                    <Carousel interval={null} indicators={false}>
-                        <Carousel.Item>
-                            <Carousel.Caption>
-                                <UserCredits/>
-                            </Carousel.Caption>
-                        </Carousel.Item>
-                        <Carousel.Item>
-                            <Carousel.Caption>
-                                <UserMembership/>
-                            </Carousel.Caption>
-                        </Carousel.Item>
-                    </Carousel>
-                </div>
+                <ProfileCreditsMemberships />
                 <div className={'profile-content col-md-12'}>
                     <Tabs defaultActiveKey={1} id={'ProfileTabs'} animation={false}>
                         <Tab eventKey={1} title={Strings.CLASS}>
