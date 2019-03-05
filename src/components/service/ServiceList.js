@@ -68,7 +68,7 @@ class ServiceList extends React.Component {
                             })}
                         </select>
                     </div>
-                    <div className={["row", "mt-5", "justify-content-center", "text-center"].join(" ")}>
+                    <div className={["row", "service-list__container", "justify-content-center"].join(" ")}>
                         {listItems}
                     </div>
                 </div>
