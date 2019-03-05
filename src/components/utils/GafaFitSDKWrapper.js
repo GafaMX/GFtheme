@@ -1,6 +1,7 @@
 'use strict';
 
 import React from "react";
+import GlobalStorage from "../store/GlobalStorage";
 
 class GafaFitSDKWrapper extends React.Component {
     constructor(props) {
@@ -71,45 +72,55 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static isAuthenticated() {
-        return GafaFitSDK.isAuthentified();
+    static isAuthenticated(callback) {
+        GafaFitSDKWrapper.getMe(function (result) {
+            callback(result != null);
+        });
     };
 
 
     static getComboList(options, callback) {
         let functionToRetrieveCombos = GafaFitSDK.GetBrandCombolist;
-        if (GafaFitSDK.isAuthentified()) {
-            functionToRetrieveCombos = GafaFitSDK.GetBrandComboListforUser;
-        }
-        functionToRetrieveCombos(
-            window.GFtheme.brand, options, function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
+
+        GafaFitSDKWrapper.isAuthenticated(function (auth) {
+            if (auth) {
+                functionToRetrieveCombos = GafaFitSDK.GetBrandComboListforUser;
             }
-        );
+
+            functionToRetrieveCombos(
+                window.GFtheme.brand, options, function (error, result) {
+                    if (error === null) {
+                        callback(result);
+                    }
+                }
+            );
+        });
     };
 
     static getMembershipList(options, callback) {
         let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
-        if (GafaFitSDK.isAuthentified()) {
-            functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
-        }
-        functionToRetrieveMemberships(
-            window.GFtheme.brand, options, function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
+
+        GafaFitSDKWrapper.isAuthenticated(function (auth) {
+            if (auth) {
+                functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
             }
-        );
+
+            functionToRetrieveMemberships(
+                window.GFtheme.brand, options, function (error, result) {
+                    if (error === null) {
+                        callback(result);
+                    }
+                }
+            );
+        });
     };
 
     static getFancyForBuyCombo(combos_id, callback) {
-        GafaFitSDKWrapper.getMe(function () {
+        GafaFitSDKWrapper.getMe(function (me) {
             GafaFitSDK.GetCreateReservationForm(
                 window.GFtheme.brand,
                 window.GFtheme.location,
-                window.GFtheme.me.id,
+                me.id,
                 '[data-gf-theme="fancy"]',
                 {
                     'combos_id': combos_id,
@@ -123,11 +134,11 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
     static getFancyForBuyMembership(memberships_id, callback) {
-        GafaFitSDKWrapper.getMe(function () {
+        GafaFitSDKWrapper.getMe(function (me) {
             GafaFitSDK.GetCreateReservationForm(
                 window.GFtheme.brand,
                 window.GFtheme.location,
-                window.GFtheme.me.id,
+                me.id,
                 '[data-gf-theme="fancy"]',
                 {
                     'memberships_id': memberships_id,
@@ -248,11 +259,11 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
     static getMe(callback) {
-        if (window.GFtheme.me == null) {
+        if (GlobalStorage.get('me') == null) {
             GafaFitSDK.GetMe(
                 function (error, result) {
                     if (error == null) {
-                        window.GFtheme.me = result;
+                        GlobalStorage.set("me", result);
                         callback(result);
                     } else {
                         callback(null);
@@ -260,7 +271,7 @@ class GafaFitSDKWrapper extends React.Component {
                 }
             );
         } else {
-            callback(window.GFtheme.me);
+            callback(GlobalStorage.get("me"));
         }
     };
 
@@ -273,7 +284,7 @@ class GafaFitSDKWrapper extends React.Component {
                 user.credits.forEach(function (elem) {
                     user.creditsTotal += elem.total;
                 });
-                window.GFtheme.me = user;
+                GlobalStorage.set("me", user);
                 callback(user);
             });
         });
@@ -289,7 +300,7 @@ class GafaFitSDKWrapper extends React.Component {
                     }).join(". ");
                     errorCallback(errorToPrint);
                 } else {
-                    window.GFtheme.me = result;
+                    GlobalStorage.set("me", result);
                     GafaFitSDKWrapper.getMeWithCredits(
                         successCallback
                     );
@@ -332,7 +343,7 @@ class GafaFitSDKWrapper extends React.Component {
                     }).join(". ");
                     errorCallback(errorToPrint);
                 } else {
-                    window.GFtheme.me = null;
+                    GlobalStorage.set("me", null);
                     successCallback(result);
                 }
             }
@@ -378,11 +389,11 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static getFancyForMeetingReservation(location, meetings_id, callback) {
-        GafaFitSDKWrapper.getMe(function () {
+        GafaFitSDKWrapper.getMe(function (me) {
             GafaFitSDK.GetCreateReservationForm(
-                window.GFtheme.brand,
+                me.brand,
                 location,
-                window.GFtheme.me.id,
+                me.id,
                 '[data-gf-theme="fancy"]',
                 {
                     'meetings_id': meetings_id,
@@ -428,10 +439,10 @@ class GafaFitSDKWrapper extends React.Component {
         )
     };
 
-    static getUserPurchasesInBrand(options, callback){
+    static getUserPurchasesInBrand(options, callback) {
         GafaFitSDK.GetUserPurchasesInBrand(
             window.GFtheme.brand, options,
-            function(error, result){
+            function (error, result) {
                 if (error === null) {
                     callback(result);
                 }

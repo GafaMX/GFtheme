@@ -29,11 +29,14 @@ class CalendarMeeting extends React.Component {
     handleClick(event) {
         event.preventDefault();
         let currentElement = this;
-        if (GafaFitSDKWrapper.isAuthenticated()) {
-            currentElement.showBuyFancyForLoggedUsers();
-        } else {
-            currentElement.showLoginForNotLoggedUsers();
-        }
+
+        GafaFitSDKWrapper.isAuthenticated(function(auth){
+            if (auth) {
+                currentElement.showBuyFancyForLoggedUsers();
+            } else {
+                currentElement.showLoginForNotLoggedUsers();
+            }
+        });
     };
 
     showBuyFancyForLoggedUsers() {
