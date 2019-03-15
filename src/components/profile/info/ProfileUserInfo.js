@@ -190,7 +190,7 @@ class ProfileUserInfo extends React.Component {
                                 <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
                                              handleChangeField={this.handleChangeField.bind(this)}/>
 
-                                <div className="col-md-12">
+                                <div className="col-md-4">
                                     <Button
                                         block
                                         bsSize="large"
@@ -200,11 +200,11 @@ class ProfileUserInfo extends React.Component {
                                     >
                                         {Strings.BUTTON_SAVE}
                                     </Button>
-                                    <div className="panel panel-default mt-4 text-danger">
+                                    <div className="text-danger">
                                         <FormErrors formErrors={this.state.formErrors}/>
                                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                                     </div>
-                                    <div className="panel panel-default mt-4 text-success">
+                                    <div className="text-success">
                                         {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
                                     </div>
                                 </div>
@@ -219,7 +219,7 @@ class ProfileUserInfo extends React.Component {
                                 <ChangePassword info={this.state}
                                                 handleChangePassword={this.handleChangePassword.bind(this)}
                                                 handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
-                                <div className="col-md-12">
+                                <div className="col-md-4">
                                     <Button
                                         block
                                         bsSize="large"

@@ -72,19 +72,19 @@ class UserInfo extends React.Component {
                 </FormGroup>
                 <FormGroup className="col-md-6 radio-inline">
                     <div>
-                        <label className="radio-inline pr-3">
+                        <label className="radio-group">
                             <input className="mr-2" type="radio" value="male"
                                    checked={this.props.info.gender === "male"}
                                    name="gender"
                                    onChange={this.handleGenderChange.bind(this)}/>
-                            Hombre
+                            <p>Hombre</p>
                         </label>
-                        <label className="radio-inline pr-3">
+                        <label className="radio-group">
                             <input className="mr-2" type="radio" value="female"
                                    checked={this.props.info.gender === "female"}
                                    name="gender"
                                    onChange={this.handleGenderChange.bind(this)}/>
-                            Mujer
+                            <p>Mujer</p>
                         </label>
                     </div>
                 </FormGroup>

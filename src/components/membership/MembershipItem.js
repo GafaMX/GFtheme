@@ -60,25 +60,50 @@ class MembershipItem extends React.Component {
         const services = this.getServicesAndParentsForMembership();
         return (
             <div className={["membership-item", "col-md-4"].join(" ")}>
-                <div className={["membership-item__container", "mb-4"].join(" ")}
-                     onClick={this.handleClick.bind(this)}>
+                <div className={["membership-item__container", "mb-4"].join(" ")} onClick={this.handleClick.bind(this)}>
                     <div className="card-header">
-                        <h4 className={["membership-item__name", "my-0"].join(" ")}>{this.props.membership.name}</h4>
-                        <h2 className={["pricing-card-title", "membership-item__price"].join(" ")}>
-                            $ {formatMoney(this.props.membership.price_final, 0)}</h2>
+                        <h3 className={["membership-item__name"].join(" ")}>{this.props.membership.name}</h3>
+                        <p className="membership-item__short-description">{this.props.membership.short_description || 'Este producto no cuenta con descripción corta.'}</p>
                     </div>
                     <div className="card-body">
-                        {this.props.membership.short_description &&
-                        <p className="membership-item__short-description">{this.props.membership.short_description}</p>}
-                        {this.props.membership.description &&
-                        <p className="membership-item__description">{this.props.membership.description}</p>}
+                        <hr></hr>
                         {this.props.membership.has_discount &&
-                        <h2 className={["membership-item__discount", "text-muted"].join(" ")}>
-                            $ {formatMoney(this.props.membership.price, 0)}</h2>
+                        <div className="membership-item__price">
+                            <div className={["membership-item__price-no-discount", "text-muted"].join(" ")}>
+                                <p>
+                                    $
+                                </p>
+                                <p>
+                                    {formatMoney(this.props.membership.price, 0)}
+                                </p>
+                                <p>
+                                    <span>00</span>
+                                    <span>/ MXN</span>
+                                </p>
+                            </div>
+                        </div>
                         }
+                        <div className="membership-item__price">
+                            <div className={["membership-item__price-no"].join(" ")}>
+                                <p>
+                                    $
+                                </p>
+                                <p>
+                                    {formatMoney(this.props.membership.price, 0)}
+                                </p>
+                                <p>
+                                    <span>00</span>
+                                    <span>/ MXN</span>
+                                </p>
+                            </div>
+                        </div>
+                        <button className="membership-item__actionCall">Activa tu membresía</button>
+                        <p className="membership-item__description">{this.props.membership.description || 'Este producto no cuenta con descripción. Lorem ipsum dolor sit amet consectetur adipisicing elit. Perspiciatis quas vitae quis iure ab rerum veniam.'}</p>
                         <p className="membership-item__services">{services['services']}</p>
                         <p className="membership-item__parent-services">{services['parents']}</p>
-                        <p className="membership-item__expiration">{Strings.EXPIRE_IN} {this.props.membership.expiration_days} {Strings.DAYS} </p>
+                    </div>
+                    <div className="card-footer">
+                        <p className="membership-item__expiration"><span>{Strings.EXPIRE_IN}</span> <span>{this.props.membership.expiration_days} {Strings.DAYS}</span></p>
                     </div>
                 </div>
             </div>

@@ -191,93 +191,142 @@ class LoginRegister extends React.Component {
 
     render() {
         return (
-            <div className="login-register col-md-12">
-                {!this.state.me && this.state.showButtons && <div>
-                    <a onClick={this.handleClickLogin.bind(this)}>{Strings.BUTTON_LOGIN}</a> /
-                    <a onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
-                </div>}
-                {this.state.me !== null && this.state.showButtons && <div>
-                    <a onClick={this.handleClickProfile.bind(this)}>
-                        {this.state.me != null ?
-                            <div className="form-inline">
-                                <p className="profile-button-first-name">{this.state.me.first_name}</p>
-                                <p className="profile-button-last-name">&nbsp;{this.state.me.last_name}</p>
-                                <p className="profile-button-credits-total">&nbsp;{this.state.me.creditsTotal}</p>
-                            </div>
-                            : Strings.BUTTON_PROFILE}
-                    </a>
-                </div>}
-
-                <Modal className="modal-login" show={this.state.showLogin} animation={false}
-                       onHide={this.handleClickBack.bind(this)}>
-                    <Modal.Header className="modal-login-header" closeButton>
-                        <Modal.Title>{Strings.BUTTON_LOGIN}</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body className="modal-login-body">
-                        <Login successCallback={this.successLoginCallback.bind(this)}/>
-                    </Modal.Body>
-                    <Modal.Footer className="modal-login-footer">
-                        <p>{Strings.NOT_ACCOUNT_QUESTION}
-                            <a
-                                onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
-                        </p>
-                        <p>{Strings.FORGOT_PASSWORD_QUESTION}
-                            <a
-                                onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a>
-                        </p>
-                    </Modal.Footer>
-                </Modal>
-
-                <Modal className="modal-register" show={this.state.showRegister} animation={false}
-                       onHide={this.handleClickBack.bind(this)}>
-                    <Modal.Header className="modal-register-header" closeButton>
-                        <Modal.Title>{Strings.BUTTON_REGISTER}</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body className="modal-register-body">
-                        <Register/>
-                    </Modal.Body>
-                    <Modal.Footer className="modal-register-footer">
-                        <p>{Strings.ACCOUNT_QUESTION}
-                            <a
-                                onClick={this.handleClickLogin.bind(this)}> {Strings.BUTTON_LOGIN}</a>
-                        </p>
-                        <p>{Strings.FORGOT_PASSWORD_QUESTION}<a
-                            onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a></p>
-
-                    </Modal.Footer>
-                </Modal>
-
-                <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)}
-                       animation={false}>
-                    <Modal.Header className="modal-profile-header" closeButton>
-                        <Modal.Title>{Strings.BUTTON_PROFILE}</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body className="modal-profile-body">
-                        <ProfileUserInfo successCallback={this.successProfileSaveCallback.bind(this)}/>
-                    </Modal.Body>
-                    <Modal.Footer className="modal-profile-footer">
-                        <a onClick={this.handleClickLogout.bind(this)}>{Strings.BUTTON_LOGOUT}</a>
-                    </Modal.Footer>
-                </Modal>
-
-                <Modal className="modal-password" show={this.state.passwordRecovery} animation={false}
-                       onHide={this.handleClickBack.bind(this)}>
-                    <Modal.Header className="modal-password-header" closeButton>
-                        <Modal.Title>{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body className="modal-password-body">
-                        <PasswordRecovery token={this.state.token} email={this.state.email}
-                                          successCallback={this.successRecoveryCallback.bind(this)}/>
-                    </Modal.Body>
-                </Modal>
-
-                <div className="panel panel-default mt-4 text-danger">
-                    {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+            <div className="container">
+                <div className="logo-element">
+                    <a href="#">GAFAFIT</a>
                 </div>
-                {this.state.loading &&
-                <div className="modal-backdrop">
-                    <div className="circle-loading"/>
-                </div>}
+                <div className="login-register">
+                    {!this.state.me && this.state.showButtons && <nav className="nav is-login">
+                        <ul>
+                            <li>
+                                <a onClick={this.handleClickLogin.bind(this)}>{Strings.BUTTON_LOGIN}</a>
+                            </li>
+                            <li>
+                                <a onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
+                            </li>
+                        </ul>
+                    </nav>}
+                    {this.state.me !== null && this.state.showButtons && <div>
+                        <a onClick={this.handleClickProfile.bind(this)}>
+                            {this.state.me != null ?
+                                <div className="profile-data">
+                                    <p className="profile-button-first-name">{this.state.me.first_name}</p>
+                                    <p className="profile-button-last-name">&nbsp;{this.state.me.last_name}</p>
+                                    <p className="profile-button-credits-total">&nbsp;{this.state.me.creditsTotal}</p>
+                                </div>
+                                : Strings.BUTTON_PROFILE}
+                        </a>
+                    </div>}
+
+                    <Modal className="modal-login" show={this.state.showLogin} animation={false}
+                        onHide={this.handleClickBack.bind(this)}>
+                        <div className="row">
+                            <div className="col-lg-6">
+                                <div className="container">
+                                    <Modal.Header className="modal-login__header" closeButton>
+                                        <Modal.Title className="section-title container text-center">{Strings.BUTTON_LOGIN}</Modal.Title>
+                                        <hr></hr>
+                                    </Modal.Header>
+                                    <Modal.Body className="modal-login__body">
+                                        <Login successCallback={this.successLoginCallback.bind(this)}/>
+                                    </Modal.Body>
+                                    <Modal.Footer className="modal-login__footer ">
+                                    <nav className="nav">
+                                        <ul>
+                                            <li>
+                                                <a onClick={this.handleClickRegister.bind(this)}> {Strings.NOT_ACCOUNT_QUESTION}</a>
+                                                {/* <a onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a> */}
+                                            </li>
+
+                                            <li>
+                                                <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
+                                                {/* <a onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a> */}
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                    </Modal.Footer>
+                                </div>
+                            </div>
+                            <div className="col-lg-6">
+                                <div className="modal-login__image"></div>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    <Modal className="modal-register" show={this.state.showRegister} animation={false}
+                        onHide={this.handleClickBack.bind(this)}>
+                        <div className="row">
+                            <div className="col-lg-6">
+                                <div className="container">
+                                    <Modal.Header className="modal-register__header" closeButton>
+                                        <Modal.Title className="section-title container text-center">{Strings.BUTTON_REGISTER}</Modal.Title>
+                                        <hr></hr>
+                                    </Modal.Header>
+                                    <Modal.Body className="modal-register__body">
+                                        <Register/>
+                                    </Modal.Body>
+                                    <Modal.Footer className="modal-register__footer">
+                                        <nav className="nav">
+                                            <ul>
+                                                <li>
+                                                    <a onClick={this.handleClickLogin.bind(this)}> {Strings.ACCOUNT_QUESTION}</a>
+                                                    {/* <a onClick={this.handleClickLogin.bind(this)}> {Strings.BUTTON_LOGIN}</a> */}
+                                                </li>
+                                                <li>
+                                                    <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
+                                                    {/* <a onClick={this.handleClickForgot.bind(this)}> {Strings.BUTTON_PASSWORD_FORGOT}</a></li> */}
+                                                </li>
+                                            </ul>
+                                        </nav>
+                                    </Modal.Footer>
+                                </div>
+                            </div>
+                            <div className="col-lg-6">
+                                <div className="modal-login__image"></div>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)}
+                        animation={false}>
+                        <div className="row">
+                            <div className="col-lg-3">
+                                <div className="modal-login__image"></div>
+                            </div>
+                            <div className="col-lg-9">
+                                <Modal.Header className="modal-profile-header" closeButton>
+                                    <h2 className="section-title container text-center">{Strings.BUTTON_PROFILE}</h2>
+                                    <hr></hr>
+                                </Modal.Header>
+                                <Modal.Body className="modal-profile-body">
+                                    <ProfileUserInfo successCallback={this.successProfileSaveCallback.bind(this)}/>
+                                </Modal.Body>
+                                <Modal.Footer className="modal-profile-footer">
+                                    <a onClick={this.handleClickLogout.bind(this)}>{Strings.BUTTON_LOGOUT}</a>
+                                </Modal.Footer>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    <Modal className="modal-password" show={this.state.passwordRecovery} animation={false}
+                        onHide={this.handleClickBack.bind(this)}>
+                        <Modal.Header className="modal-password-header" closeButton>
+                            <Modal.Title>{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body className="modal-password-body">
+                            <PasswordRecovery token={this.state.token} email={this.state.email}
+                                            successCallback={this.successRecoveryCallback.bind(this)}/>
+                        </Modal.Body>
+                    </Modal>
+
+                    <div className="text-danger">
+                        {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                    </div>
+                    {this.state.loading &&
+                    <div className="modal-backdrop">
+                        <div className="circle-loading"/>
+                    </div>}
+                </div>
             </div>
         );
     }

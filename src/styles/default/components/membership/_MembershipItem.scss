@@ -1,63 +1,145 @@
-.membership-item{
-    min-height:250px;
-    margin:10px 0;
+$membershipItem: membership-item;
 
-    &:hover{
+[data-gf-theme="membership-list"]{
+    .membership-item{
+        margin:10px 0;
+        cursor: initial;
+        &__container{
+            box-shadow: 0px 0px 20px -3px lightgrey;
+            height:600px;
+            margin:20px 0;
+            transition: .3s ease-in-out;
+            transition-property: box-shadow;
+            &:hover{
+                box-shadow: 0px 12px 50px -8px lightgrey;
 
-        .card-header{
-            background-color:black;
+                .#{$membershipItem}__actionCall{
+                    background-color:black;
+                    color:white;
+                    border-color:black;
+                }
+            }
         }
-    }
-
-    &__container{
-        height:100%;
-        border:lightgrey solid 1px;
-
+        .card-header, .card-footer{
+            color: black;
+        }
+        .card-body, .card-header{
+            hr{
+                width:100%;
+                height:1px;
+                background-color: #f3f3f3;
+            }
+        }
         .card-header{
-            position: relative;
+            display:flex;
+            flex-flow: column nowrap;
+            border: 0 none transparent;
+            justify-content: center;
+            background:transparent;
+            padding: 3rem 3rem 1rem;
+            height: 180px;
+        }
+
+        .card-body, .card-footer{
+            text-align:center;
+            padding: 0 3rem;
+            margin:1.5rem 0;
+            background: transparent;
+        }
+
+        &__actionCall{
+            appearance: none;
+            background:transparent;
+            border: 1px solid lightgrey;
+            cursor:pointer;
+            font-size: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            color: lightgrey;
+            width:100%;
+            margin:2rem 0;
+            padding:10px 0;
+            transition: .3s ease-in-out;
+            transition-property: border-color, background-color, color;
+        }
+        &__name{
+            display: inline-block;
+            font-weight: bold;
+            font-size: 140%;
+            margin:.5rem 0 1rem;
+            text-transform: uppercase;
+        }
+        &__price{
+            margin:.5rem 0;
+            &-no{
+                display:flex;
+                justify-content: center;
+                align-items: center;
+                p{
+                    font-size:350%;
+                    line-height: 1.4;
+                    display:inline-block;
+                    margin:0 3px;
+                    font-weight:bold;
+
+                    &:first-child, &:last-child{
+                        margin:0;
+                        font-weight:400;
+                    }
+
+                    &:first-child{
+                        font-size:160%;
+                    }
+
+                    &:last-child{
+                        font-size: 70%;
+                        display:inline-flex;
+                        line-height: 1;
+                        flex-flow: column nowrap;
+                        align-items: flex-start;
+
+                        span{
+                            &:first-child{
+                                font-size:300%;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        &__time, &__short-description, &__description, &__services, &__parent-services, &__expiration{
+            font-size: 100%;
+            margin:0;
+            padding:.5rem 0;
+            line-height: 1.4;
+        }
+        &__short-description{
+            text-transform: uppercase;
+        }
+
+        &__expiration{
+            position:relative;
             display:flex;
             align-items: center;
-            justify-content: center;
-            height: 120px;
-            color:white;
-            background-color: darkgrey;
-            border:0 none transparent;
-            padding-top:30px;
-            padding-bottom:40px;
-            transition: all .3s ease;
+            flex-flow: column nowrap;
+            border-top: 1px solid #f3f3f3;
+            padding:12px 0;
+            span{
+                padding:0 10px;
+                &:first-child{
+                    position: absolute;
+                    top:-8px;
+                    display: inline-block;
+                    background-color:white;
+                    text-transform: uppercase;
+                    font-size: 100%;
+                    color:lightgrey;
+                }
+            }
         }
-        
-        .card-body{
-            height:150px;
-            padding-top:35px;
+        &__description, &__services{
+            text-align:left;
         }
-    }
-
-    &__name{
-        display: inline-block;
-        font-weight: bold;
-        font-size: 180%;
-        text-transform: uppercase;
-    }
-    
-    &__price{
-        display: inline-block;
-        background-color:lightgrey;
-        color:black;
-        border-radius: 50px;
-        padding:10px 15px;
-        font-size: 160%;
-        letter-spacing: 1px;
-        position: absolute;
-        left:50%;
-        transform: translateX(-50%);
-        bottom:-20px;
-    }
-
-    &__short-description, &__services, &__parent-services, &__expiration{
-        font-size:120%;
-        text-transform: uppercase;
-        margin:0;
-        line-height: 1.8;
     }
 }

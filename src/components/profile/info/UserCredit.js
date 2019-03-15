@@ -11,10 +11,17 @@ class UserCredit extends React.Component {
 
     render() {
         return (
-            <div>
-                <h3>{this.props.creditsTotal} {Strings.CREDITS}</h3>
-                <span> {this.props.name}, </span>
-                <span>  {Strings.EXPIRATION} {Moment(this.props.expirationDate).format('YYYY-MM-DD')}</span>
+            <div className="UserCredit">
+                <div className="row">
+                    <div className="col-md-5">
+                        <h2 className="UserCredit__credits">{this.props.creditsTotal}</h2>
+                    </div>
+                    <div className="col-md-7">
+                        <p className="UserCredit__credits-name">{Strings.CREDITS}</p>
+                        {/* <p> {this.props.name}</p> */}
+                        <p className="UserCredit__expiration"> {Strings.EXPIRATION} {Moment(this.props.expirationDate).format('YYYY-MM-DD')}</p>
+                    </div>
+                </div>
             </div>
         )
     }

@@ -57,25 +57,56 @@ class ComboItem extends React.Component {
 
     render() {
         const services = this.getServicesAndParentsForCombo();
+
         return (
-            <div className={["combo-item-container", "col-md-4"].join(" ")}>
-                <div className={["combo-item", "mb-4"].join(" ")}
+            <div className={["combo-item", "col-md-4"].join(" ")}>
+                <div className={["combo-item__container", "mb-4"].join(" ")}
                      onClick={this.handleClick.bind(this)}>
                     <div className="card-body">
-                        <h4 className="combo-item__name">{this.props.combo.name}</h4>
-                        {this.props.combo.short_description &&
-                        <p className="combo-item__short-description">{this.props.combo.short_description}</p>}
-                        {this.props.combo.description &&
-                        <p className="combo-item__description d-none">{this.props.combo.description}</p>}
+                        <h3 className="combo-item__name">{this.props.combo.name}</h3>
+                        <hr></hr>
                         {this.props.combo.has_discount &&
-                        <h2 className={["combo-item__discount", "text-muted"].join(" ")}>
-                            $ {formatMoney(this.props.combo.price, 0)}</h2>
+                        <div className="combo-item__price">
+                            <div className={["combo-item__price-no-discount", "text-muted"].join(" ")}>
+                                <p>
+                                    $
+                                </p>
+                                <p>
+                                    {formatMoney(this.props.combo.price, 0)}
+                                </p>
+                                <p>
+                                    <span>00</span>
+                                    <span>MXN</span>
+                                </p>
+                            </div>
+                        </div>
                         }
-                        <h2 className={["pricing-card-title", "combo-item__price"].join(" ")}>
-                            $ {formatMoney(this.props.combo.price_final, 0)}</h2>
-                        <p className="combo-item__services">{services['services']}</p>
-                        <p className="combo-item__parent-services">{services['parents']}</p>
-                        <p className="combo-item__expiration">{Strings.EXPIRE_IN} {this.props.combo.expiration_days} {Strings.DAYS} </p>
+                        <div className="combo-item__price">
+                            <div className={["combo-item__price-no"].join(" ")}>
+                                <p>
+                                    $
+                                </p>
+                                <p>
+                                    {formatMoney(this.props.combo.price_final, 0)}
+                                </p>
+                                <p>
+                                    <span>00</span>
+                                    <span>/ MXN</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div className="combo-item__content">
+                            {this.props.combo.short_description &&
+                            <p className="combo-item__short-description d-none">{this.props.combo.short_description}</p>}
+                            <p className="combo-item__description">
+                                {this.props.combo.description || 'Este producto no cuenta con descripción. Lorem ipsum dolor sit amet consectetur adipisicing elit. Perspiciatis quas vitae quis iure ab rerum veniam.'}
+                            </p>
+                            <p className="combo-item__services">{services['services']}</p>
+                            <p className="combo-item__parent-services">{services['parents']}</p>
+                        </div>
+                        <p className="combo-item__expiration">
+                            <span>{Strings.EXPIRE_IN}:</span> <span>{this.props.combo.expiration_days} {Strings.DAYS}</span>
+                        </p>
                     </div>
                 </div>
             </div>

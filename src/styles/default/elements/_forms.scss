@@ -1,0 +1,92 @@
+.form-group{
+    label{
+        font-weight:400;
+        margin:0;
+        font-size:80%;
+        letter-spacing: 1px;
+        color:lightgrey;
+    }
+    [type="text"], [type="email"], [type="password"], [type="number"]{
+        border-radius: 0px!important;
+        border:0 transparent none;
+        box-shadow: none;
+        font-size: 100%;
+        height:initial;
+        padding:10px 0 2px;
+        border-bottom: 1px lightgrey solid;
+        transition: .3s ease-in-out;
+        transition-property: border-color;
+
+        &:hover{
+            border-color: grey;
+        }
+    }
+
+}
+
+.react-date-picker{
+    margin-left:10px;
+
+    &__wrapper{
+        background-color: #f3f3f3;
+        border:0 none transparent;
+        padding: .5rem 1rem;
+        border-radius: 5px;
+    }
+
+    &__clear-button, &__calendar{
+        svg{
+            color:grey;
+        }
+    }
+}
+
+
+.radio-group{
+    display:inline-flex;
+    flex-flow:row nowrap;
+    margin: 0 .5rem!important;
+    align-items: center;
+
+    [type="radio"]{
+        margin:0!important;
+        margin-right:10px!important;
+        display: inline;
+        position:relative!important;
+    }
+
+    p{
+        margin:0;
+    }
+}
+
+.select-group{
+    & > div > div{
+        border-radius: 0px;
+        border-color: lightgrey;
+    }
+}
+
+[type="submit"]{
+    // width:50%;
+    padding:10px 20px;
+    background-color:white !important;
+    border-radius: 5px;
+    border:lightgrey 1px solid!important;
+    text-transform: uppercase;
+    margin: 0 auto;
+    font-weight: 600;
+    color:lightgrey !important;
+    transition: .3s ease-in-out;
+    transition-property: border-color, background-color, color;
+
+    &:hover{
+        background-color:black!important;
+        color:white!important;
+        border-color: black!important;
+    }
+
+    &[disabled]{
+
+    }
+}

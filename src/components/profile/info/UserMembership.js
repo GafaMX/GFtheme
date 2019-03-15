@@ -12,14 +12,15 @@ class UserMembership extends React.Component {
 
     render() {
         return (
-            <div>
-                <h3>{this.props.name}</h3>
-                <span>{Strings.CREATE} {Moment(this.props.from).format('YYYY-MM-DD')}, </span>
-                <span> {Strings.EXPIRATION} {Moment(this.props.to).format('YYYY-MM-DD')}</span>
+            <div className="UserMembership">
+                <div className="container">
+                    <h2>{this.props.name}</h2>
+                    <p>{Strings.CREATE} {Moment(this.props.from).format('YYYY-MM-DD')}, </p>
+                    <p> {Strings.EXPIRATION} {Moment(this.props.to).format('YYYY-MM-DD')}</p>
+                </div>
             </div>
         )
     }
-
 }
 
 export default UserMembership;

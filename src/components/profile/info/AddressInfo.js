@@ -74,14 +74,14 @@ class AddressInfo extends React.Component {
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <div className="col-md-6">
+                <div className="col-md-6 select-group">
                     <ControlLabel>{Strings.LABEL_COUNTRY}</ControlLabel>
                     <Select options={this.props.info.countries}
                             value={this.props.info.countries.find(option => option.value === this.props.info.countries_id)}
                             onChange={this.handleChangeCountry.bind(this)}
                     />
                 </div>
-                <div className="col-md-6">
+                <div className="col-md-6 select-group">
                     <ControlLabel>{Strings.LABEL_STATE}</ControlLabel>
                     <Select options={this.props.info.states}
                             value={this.props.info.states.find(option => option.value === this.props.info.country_states_id)}

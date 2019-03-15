@@ -1,0 +1,47 @@
+.UserCredit, .UserMembership{
+    height:100%;
+    display:flex;
+    justify-content:center;
+
+    .row, .container{
+        border: lightgrey dashed 2px;
+        width:60%;
+        color: grey;
+    }
+    .col-md-5,
+    .col-md-7{
+        display:flex;
+        flex-flow:column nowrap;
+        justify-content: center;   
+    }
+
+    .col-md-5{
+        background-color: lightgrey;
+        color:white;
+    }
+
+    .col-md-7{
+        text-align:left;
+    }
+
+    &__credits{
+        font-size:300%;
+        font-weight: bold;
+        line-height: 1;
+        margin:0;
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+
+    p{
+        margin:.1rem 0;
+    }
+}
+
+ .UserMembership{
+    .container{
+        display:flex;
+        flex-flow:column nowrap;
+        justify-content:center;    
+    }
+ }
