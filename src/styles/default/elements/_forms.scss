@@ -17,6 +17,13 @@
         transition: .3s ease-in-out;
         transition-property: border-color;
 
+        &[disabled]{
+            background:transparent;
+            color: lightgrey;
+            &:hover{
+                border-color: lightgrey;
+            }
+        }
         &:hover{
             border-color: grey;
         }

@@ -287,23 +287,38 @@ class LoginRegister extends React.Component {
                         </div>
                     </Modal>
 
-                    <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)}
-                        animation={false}>
+                    <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)} animation={false}>
                         <div className="row">
-                            <div className="col-lg-3">
-                                <div className="modal-login__image"></div>
+                            <div className="col-lg-3 modal-profile__image">
+                                <div className="modal-profile__image-image"></div>
                             </div>
-                            <div className="col-lg-9">
-                                <Modal.Header className="modal-profile-header" closeButton>
-                                    <h2 className="section-title container text-center">{Strings.BUTTON_PROFILE}</h2>
-                                    <hr></hr>
-                                </Modal.Header>
-                                <Modal.Body className="modal-profile-body">
-                                    <ProfileUserInfo successCallback={this.successProfileSaveCallback.bind(this)}/>
-                                </Modal.Body>
-                                <Modal.Footer className="modal-profile-footer">
-                                    <a onClick={this.handleClickLogout.bind(this)}>{Strings.BUTTON_LOGOUT}</a>
-                                </Modal.Footer>
+                            <div className="col-lg-9 modal-profile__body">
+                                <div className="container-fluid">
+                                    <div className="row">
+                                        <div className="col-lg-3 profile-intro">
+                                            <div className="container">
+                                                <div className="profile-intro__image">
+                                                    <img src=""></img>
+                                                </div>
+                                                <div className="profile-intro__data">
+                                                    <div className="profile-intro__data-address">
+                                                        <h3>Dirección</h3>
+                                                        <p>Lorem ipsum dolor sit amet</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-lg-9 profile-content">
+                                            <Modal.Header className="modal-profile__header" closeButton></Modal.Header>
+                                            <Modal.Body className="modal-profile__body">
+                                                <ProfileUserInfo successCallback={this.successProfileSaveCallback.bind(this)}/>
+                                            </Modal.Body>
+                                            <Modal.Footer className="modal-profile__footer">
+                                                <a onClick={this.handleClickLogout.bind(this)}>{Strings.BUTTON_LOGOUT}</a>
+                                            </Modal.Footer>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </Modal>

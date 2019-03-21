@@ -86,15 +86,33 @@
 }
 
 .modal-login{
-
     .login{
         width:40%;
         margin: 0 auto;
     }
-
     &__image{
         height:100%;
         width:100%;
         background-color: black;
+    }
+}
+
+.modal-profile{
+    padding:0;
+    &__header{
+        padding:0;
+    }
+    &__body{
+        background-color: #f3f3f3;
+        padding:0;
+    }
+    &__image{
+        padding:0;
+
+        &-image{
+            height:100%;
+            width:100%;
+            background-color: black;
+        }
     }
 }

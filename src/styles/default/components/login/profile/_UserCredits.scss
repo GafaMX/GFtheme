@@ -1,3 +1,31 @@
+.creditosUser{
+    padding:15px;
+    background-color:white;
+    height:100%;
+    width: 100%;
+    display:flex;
+    align-items: center;
+    
+    .carousel{
+        width: 100%;
+    }
+
+    .carousel-control{
+        width:30px;
+        display:flex;
+        align-items:center;
+    }
+
+    .controls-icons{
+        display:block;
+        height:30px;
+        width:30px;
+        svg{
+            height:100%;
+        }
+    }
+}
+
 .UserCredit, .UserMembership{
     height:100%;
     display:flex;
@@ -5,14 +33,14 @@
 
     .row, .container{
         border: lightgrey dashed 2px;
-        width:60%;
+        width:80%;
         color: grey;
     }
     .col-md-5,
     .col-md-7{
         display:flex;
         flex-flow:column nowrap;
-        justify-content: center;   
+        justify-content: center;
     }
 
     .col-md-5{
@@ -38,10 +66,10 @@
     }
 }
 
- .UserMembership{
+.UserMembership{
     .container{
         display:flex;
         flex-flow:column nowrap;
-        justify-content:center;    
+        justify-content:center;
     }
  }

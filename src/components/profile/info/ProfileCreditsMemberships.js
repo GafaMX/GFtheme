@@ -6,6 +6,8 @@ import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import 'moment/locale/es';
 import UserCredit from "./UserCredit";
 import UserMembership from "./UserMembership";
+import LeftArrowIcon from "../../icons/LeftArrowIcon";
+import RightArrowIcon from "../../icons/RightArrowIcon";
 
 class ProfileCreditsMemberships extends React.Component {
     constructor(props) {
@@ -13,7 +15,9 @@ class ProfileCreditsMemberships extends React.Component {
 
         this.state = {
             credits: [],
-            memberships: []
+            memberships: [],
+            nextIcon: <span className="controls-icons"><RightArrowIcon /></span>,
+            prevIcon: <span className="controls-icons"><LeftArrowIcon /></span>
         };
     }
 
@@ -34,9 +38,10 @@ class ProfileCreditsMemberships extends React.Component {
     }
 
     render() {
+        const {nextIcon,prevIcon}=this.state;
         return (
-            <div className={'creditosUser col-md-6'}>
-                <Carousel interval={null} indicators={false}>
+            <div className={'creditosUser'}>
+                <Carousel nextIcon={nextIcon} prevIcon={prevIcon} interval={null} indicators={false}>
                     {this.state.credits.map(credit => {
                         return <Carousel.Item key={credit.expiration_date + credit.credits_id}>
                             <UserCredit

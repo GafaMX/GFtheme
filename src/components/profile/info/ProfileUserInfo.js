@@ -162,84 +162,103 @@ class ProfileUserInfo extends React.Component {
 
     render() {
         return (
-            <div className="profile-info ">
-                <ProfileCreditsMemberships />
-                <div className={'profile-content col-md-12'}>
-                    <Tabs defaultActiveKey={1} id={'ProfileTabs'} animation={false}>
-                        <Tab eventKey={1} title={Strings.CLASS}>
-                            <Tabs defaultActiveKey={1} id={'HistoryTabs'} animation={false}>
-                                <Tab eventKey={1} title={Strings.FUTURESCLASSES}>
-                                    <FutureClasses/>
-                                </Tab>
-                                <Tab eventKey={2} title={Strings.PASTCLASSES}>
-                                    <PastClasses/>
-                                </Tab>
-                                <Tab eventKey={3} title={Strings.PURCHASES}>
-                                    <PurchasesList/>
-                                </Tab>
-                            </Tabs>
+            <div className="profile-info">
+                <div className="container-fluid">
+                    <div className="row">
+                        <div className="col-lg-7 profile-user">
+                            <h3 className="profile-user__name">{this.state.first_name} {this.state.last_name}</h3>
+                            <h4 className="profile-user__venue">ZUDA Pedregal</h4>
+                            <hr></hr>
+                            <h4 className="profile-user__title">Última clase</h4>
+                            <p className="profile-user__text">Lorem Ipsum Dolor | 15:30</p>
+                            <hr></hr>
+                            <h4 className="profile-user__title">Clase favorita</h4>
+                            <p className="profile-user__text">Lorem Ipsum Dolor</p>
+                        </div>
+                        <div className="col-lg-5 profile-bank">
+                            <ProfileCreditsMemberships />
+                        </div>
+                    </div>
+                </div>
+                <div className={'profile-tabs col-md-12'}>
+                    <div className="container">
 
-                        </Tab>
-                        <Tab eventKey={2} title={Strings.PROFILE}>
-                            <form onSubmit={this.handleSubmit.bind(this)}>
-                                <UserInfo info={this.state} updateState={this.updateState.bind(this)}
-                                          handleChangeField={this.handleChangeField.bind(this)}/>
-                                <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
-                                             getStatesListByCountry={this.getStatesListByCountry.bind(this)}
-                                             handleChangeField={this.handleChangeField.bind(this)}/>
-                                <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
-                                             handleChangeField={this.handleChangeField.bind(this)}/>
+                        <Tabs defaultActiveKey={1} id={'ProfileTabs'} animation={false}>
+                            <Tab eventKey={1} title={Strings.CLASS}>
+                                <Tabs defaultActiveKey={1} id={'HistoryTabs'} animation={false}>
+                                    <Tab eventKey={1} title={Strings.FUTURESCLASSES}>
+                                        <FutureClasses/>
+                                    </Tab>
+                                    <Tab eventKey={2} title={Strings.PASTCLASSES}>
+                                        <PastClasses/>
+                                    </Tab>
+                                    <Tab eventKey={3} title={Strings.PURCHASES}>
+                                        <PurchasesList/>
+                                    </Tab>
+                                </Tabs>
 
-                                <div className="col-md-4">
-                                    <Button
-                                        block
-                                        bsSize="large"
-                                        bsStyle="primary"
-                                        disabled={!this.state.formValid}
-                                        type="submit"
-                                    >
-                                        {Strings.BUTTON_SAVE}
-                                    </Button>
-                                    <div className="text-danger">
-                                        <FormErrors formErrors={this.state.formErrors}/>
-                                        {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                                    </div>
-                                    <div className="text-success">
-                                        {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                    </div>
-                                </div>
-                            </form>
-                        </Tab>
-                        {/*<Tab eventKey={3} title={Strings.PAYMENTMETHODS}>*/}
+                            </Tab>
+                            <Tab eventKey={2} title={Strings.PROFILE}>
+                                <form onSubmit={this.handleSubmit.bind(this)}>
+                                    <UserInfo info={this.state} updateState={this.updateState.bind(this)}
+                                            handleChangeField={this.handleChangeField.bind(this)}/>
+                                    <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                getStatesListByCountry={this.getStatesListByCountry.bind(this)}
+                                                handleChangeField={this.handleChangeField.bind(this)}/>
+                                    <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                handleChangeField={this.handleChangeField.bind(this)}/>
 
-                        {/*</Tab>*/}
-                        <Tab eventKey={3} title={Strings.CHANGEPASSWORD}>
-                            <form onSubmit={this.handleSubmit.bind(this)}>
+                                    <div className="col-md-4">
+                                        <Button
+                                            block
+                                            bsSize="large"
+                                            bsStyle="primary"
+                                            disabled={!this.state.formValid}
+                                            type="submit"
+                                        >
+                                            {Strings.BUTTON_SAVE}
+                                        </Button>
+                                        <div className="text-danger">
+                                            <FormErrors formErrors={this.state.formErrors}/>
+                                            {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                                        </div>
+                                        <div className="text-success">
+                                            {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                        </div>
+                                    </div>
+                                </form>
+                            </Tab>
+                            {/*<Tab eventKey={3} title={Strings.PAYMENTMETHODS}>*/}
 
-                                <ChangePassword info={this.state}
-                                                handleChangePassword={this.handleChangePassword.bind(this)}
-                                                handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
-                                <div className="col-md-4">
-                                    <Button
-                                        block
-                                        bsSize="large"
-                                        bsStyle="primary"
-                                        disabled={!this.state.formValid}
-                                        type="submit"
-                                    >
-                                        {Strings.BUTTON_SAVE}
-                                    </Button>
-                                    <div className="panel panel-default mt-4 text-danger">
-                                        <FormErrors formErrors={this.state.formErrors}/>
-                                        {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                            {/*</Tab>*/}
+                            <Tab eventKey={3} title={Strings.CHANGEPASSWORD}>
+                                <form onSubmit={this.handleSubmit.bind(this)}>
+
+                                    <ChangePassword info={this.state}
+                                                    handleChangePassword={this.handleChangePassword.bind(this)}
+                                                    handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
+                                    <div className="col-md-4">
+                                        <Button
+                                            block
+                                            bsSize="large"
+                                            bsStyle="primary"
+                                            disabled={!this.state.formValid}
+                                            type="submit"
+                                        >
+                                            {Strings.BUTTON_SAVE}
+                                        </Button>
+                                        <div className="text-danger">
+                                            <FormErrors formErrors={this.state.formErrors}/>
+                                            {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                                        </div>
+                                        <div className="text-success">
+                                            {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                        </div>
                                     </div>
-                                    <div className="panel panel-default mt-4 text-success">
-                                        {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                    </div>
-                                </div>
-                            </form>
-                        </Tab>
-                    </Tabs>
+                                </form>
+                            </Tab>
+                        </Tabs>
+                    </div>
                 </div>
             </div>
         );
