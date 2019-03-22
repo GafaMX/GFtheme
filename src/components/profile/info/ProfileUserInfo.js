@@ -15,6 +15,7 @@ import PastClasses from "../PastClasses";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
 import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
+import GlobalStorage from "../../store/GlobalStorage";
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -71,6 +72,7 @@ class ProfileUserInfo extends React.Component {
                     cel_phone: result.cel_phone,
                     gender: result.gender,
                 });
+            GlobalStorage.set('me', result);
             currentComponent.getCountryList(currentComponent.getStatesListByCountry.bind(currentComponent));
         });
     }
@@ -165,17 +167,17 @@ class ProfileUserInfo extends React.Component {
             <div className="profile-info">
                 <div className="container-fluid">
                     <div className="row">
-                        <div className="col-lg-7 profile-user">
+                        <div className="col-xl-6 profile-user">
                             <h3 className="profile-user__name">{this.state.first_name} {this.state.last_name}</h3>
-                            <h4 className="profile-user__venue">ZUDA Pedregal</h4>
+                            <h4 className="profile-user__venue">{this.state.email}</h4>
                             <hr></hr>
-                            <h4 className="profile-user__title">Última clase</h4>
-                            <p className="profile-user__text">Lorem Ipsum Dolor | 15:30</p>
+                            <h4 className="profile-user__title">Genero</h4>
+                            <p className="profile-user__text">{this.state.gender}</p>
                             <hr></hr>
-                            <h4 className="profile-user__title">Clase favorita</h4>
-                            <p className="profile-user__text">Lorem Ipsum Dolor</p>
+                            <h4 className="profile-user__title">Fecha de nacimiento</h4>
+                            <p className="profile-user__text">{this.state.birth_date}</p>
                         </div>
-                        <div className="col-lg-5 profile-bank">
+                        <div className="col-xl-6 profile-bank">
                             <ProfileCreditsMemberships />
                         </div>
                     </div>

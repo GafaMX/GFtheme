@@ -22,7 +22,7 @@ class AddressInfo extends React.Component {
 
     render() {
         return (
-            <div className="row col-md-12 pt-4">
+            <div className="row col-md-12">
                 <h4 className="col-md-12">
                     {Strings.LABEL_ADDRESS}
                 </h4>
