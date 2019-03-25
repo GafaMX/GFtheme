@@ -54,7 +54,7 @@
     }
 }
 
-.modal-login, .modal-register{
+.modal-login, .modal-register, .modal-password{
     .modal-header{
         .close{
             color:white;
@@ -67,6 +67,11 @@
         border-radius: 0;
         box-shadow: none;
 
+        .auth{
+            width:40%;
+            margin: 0 auto;
+        }
+
         & > .row{
             height:100%;
 
@@ -78,18 +83,8 @@
         }
     }
 }
-.modal-register{
-    .register{
-        width:40%;
-        margin: 0 auto;
-    }
-}
 
 .modal-login{
-    .login{
-        width:40%;
-        margin: 0 auto;
-    }
     &__image{
         height:100%;
         width:100%;

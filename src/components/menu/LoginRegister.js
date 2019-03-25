@@ -332,13 +332,23 @@ class LoginRegister extends React.Component {
 
                     <Modal className="modal-password" show={this.state.passwordRecovery} animation={false}
                         onHide={this.handleClickBack.bind(this)}>
-                        <Modal.Header className="modal-password-header" closeButton>
-                            <Modal.Title>{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
-                        </Modal.Header>
-                        <Modal.Body className="modal-password-body">
-                            <PasswordRecovery token={this.state.token} email={this.state.email}
-                                            successCallback={this.successRecoveryCallback.bind(this)}/>
-                        </Modal.Body>
+                        <div className="row">
+                            <div className="col-lg-6">
+                                <div className="container">
+                                    <Modal.Header className="modal-password-header" closeButton>
+                                        <Modal.Title className="section-title container text-center">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
+                                        <hr></hr>
+                                    </Modal.Header>
+                                    <Modal.Body className="modal-password-body">
+                                        <PasswordRecovery token={this.state.token} email={this.state.email}
+                                                        successCallback={this.successRecoveryCallback.bind(this)}/>
+                                    </Modal.Body>
+                                </div>
+                            </div>
+                            <div className="col-lg-6">
+                                <div className="modal-login__image"></div>
+                            </div>
+                        </div>
                     </Modal>
 
                     <div className="text-danger">
