@@ -2,6 +2,9 @@ form{
     h4{
         margin-top: 1rem;
     }
+    [class*='col']{
+        padding:0 10px;
+    }
     @media screen and (max-width: 1366px) {
         h4{
             margin-top: .5rem;

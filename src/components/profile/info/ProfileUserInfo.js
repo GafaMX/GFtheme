@@ -167,7 +167,7 @@ class ProfileUserInfo extends React.Component {
             <div className="profile-info">
                 <div className="container-fluid">
                     <div className="row">
-                        <div className="col-xl-6 profile-user">
+                        <div className="col-lg-6 col-xl-6 profile-user">
                             <h3 className="profile-user__name">{this.state.first_name} {this.state.last_name}</h3>
                             <h4 className="profile-user__venue">{this.state.email}</h4>
                             <hr></hr>
@@ -177,7 +177,7 @@ class ProfileUserInfo extends React.Component {
                             <h4 className="profile-user__title">Fecha de nacimiento</h4>
                             <p className="profile-user__text">{this.state.birth_date}</p>
                         </div>
-                        <div className="col-xl-6 profile-bank">
+                        <div className="col-lg-6 col-xl-6 profile-bank">
                             <ProfileCreditsMemberships />
                         </div>
                     </div>

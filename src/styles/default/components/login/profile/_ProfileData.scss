@@ -22,9 +22,14 @@
             object-fit: cover;
             object-position: center;
         }
-
+        
         @media screen and (max-width: 1366px) {
             z-index:1;
+        }
+        @media screen and (max-height: 768px) {
+            z-index:1;
+            height:120px;
+            width:120px;
         }
     }
 
@@ -113,6 +118,9 @@
     background-color:white;
     > .container{
         padding: 20px;
+        @media screen and (max-height: 768px) {
+            padding:10px;
+        }
     }
 
     #ProfileTabs{
@@ -209,11 +217,17 @@
         font-size:200%;
         letter-spacing: 1px;
         font-weight: 400;
+        
+        @media screen and (max-height: 768px) {
+            font-size:180%;
+        }
     }
     &__venue{
         color:grey;
         font-weight:300;
+        font-size:120%;
         margin-left:10px;
+        
     }
     &__name, &__venue{
         display:inline-block;
