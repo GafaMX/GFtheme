@@ -5,7 +5,7 @@ form{
     [class*='col']{
         padding:0 10px;
     }
-    @media screen and (max-width: 1366px) {
+    @media screen and (max-width: 1440px) {
         h4{
             margin-top: .5rem;
             font-size:100%;
@@ -31,7 +31,7 @@ form{
         transition: .3s ease-in-out;
         transition-property: border-color;
 
-        @media screen and (max-width: 1366px) {
+        @media screen and (max-width: 1440px) {
             padding: 5px 0 2px;
         }
 
@@ -110,7 +110,7 @@ form{
         border-color: black!important;
     }
 
-    @media screen and (max-width:1366px) {
+    @media screen and (max-width:1440px) {
         padding:5px 10px;
     }
 }
