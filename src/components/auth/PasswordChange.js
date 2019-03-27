@@ -122,11 +122,11 @@ class PasswordChange extends React.Component {
                     >
                         {Strings.BUTTON_PASSWORD_CHANGE}
                     </Button>
-                    <div className="panel panel-default mt-4 text-danger">
+                    <div className="text-danger">
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
-                    <div className="panel panel-default mt-4 text-success">
+                    <div className="text-success">
                         {this.state.passwordChanged && <small>{Strings.PASSWORD_CHANGE_SUCCESS}</small>}
                     </div>
                 </form>

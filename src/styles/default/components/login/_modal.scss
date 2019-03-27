@@ -54,7 +54,7 @@
     }
 }
 
-.modal-login, .modal-register{
+.modal-login, .modal-register, .modal-password{
     .modal-header{
         .close{
             color:white;
@@ -67,6 +67,11 @@
         border-radius: 0;
         box-shadow: none;
 
+        .auth{
+            width:40%;
+            margin: 0 auto;
+        }
+
         & > .row{
             height:100%;
 
@@ -78,23 +83,82 @@
         }
     }
 }
-.modal-register{
-    .register{
-        width:40%;
-        margin: 0 auto;
-    }
-}
 
 .modal-login{
-
-    .login{
-        width:40%;
-        margin: 0 auto;
-    }
-
     &__image{
         height:100%;
         width:100%;
         background-color: black;
+    }
+}
+
+.modal-profile{
+    padding:0;
+    &__header{
+        padding:0;
+    }
+    &__body{
+        background-color: #f3f3f3;
+        padding:0;
+        height:100%;
+        overflow: hidden;
+
+        > .container-fluid{
+            height: 100%;
+            width: 100%;
+            padding:15px;
+
+            > .row{
+                height:100%;
+            }
+        }
+    }
+    &__image{
+        padding:0;
+        &-image{
+            position:absolute;
+            top:0;
+            left:0;
+            height:100%;
+            width:100%;
+            background-color: black;
+            z-index: 0;
+        }
+
+        &-nav{
+            position: relative;
+            display:flex;
+            align-items: flex-end;
+            padding-left: 30px;
+            padding-bottom:15px;
+            height:100%;
+            line-height: normal;
+            z-index:1;
+            ul{
+                width:100%;
+                padding:0;
+                .nav-item{
+                    display:block;
+                    list-style: none;
+                    width:100%;
+                    text-align: right;
+                    padding: 10px 20px;
+                    a{
+                        display: inline-block;
+                        padding:10px 20px;
+                        border: grey 1px solid;
+                        color: grey;
+                        opacity:.6;
+                        transition: .3s ease-in-out;
+                        transition-property: color, border-color, opacity;
+                        &:hover{
+                            color:white;
+                            border-color:white;
+                            opacity: 1;
+                        }
+                    }
+                }
+            }
+        }
     }
 }

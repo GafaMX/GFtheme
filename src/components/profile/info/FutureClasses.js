@@ -10,6 +10,7 @@ class FutureClasses extends React.Component {
         super(props);
         this.state = {
             list: [],
+            counterBuyItems: ''
         }
 
     }
@@ -38,10 +39,10 @@ class FutureClasses extends React.Component {
         );
         return (
             <div>
-
-                <h1 className={"display-4 container text-center"}>{Strings.FUTURESCLASSES}</h1>
+                <h2 className={"display-4 container text-center"}>{Strings.FUTURESCLASSES}</h2>
                 <div className={"reservation-list container"}>
                     <div className={"row mt-5 justify-content-center text-center"}>
+                        <p></p>
                         {listItems}
                     </div>
                 </div>

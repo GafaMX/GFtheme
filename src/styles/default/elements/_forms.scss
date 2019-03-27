@@ -1,3 +1,14 @@
+form{
+    h4{
+        margin-top: 1rem;
+    }
+    @media screen and (max-width: 1366px) {
+        h4{
+            margin-top: .5rem;
+            font-size:100%;
+        }
+    }
+}
 .form-group{
     label{
         font-weight:400;
@@ -17,6 +28,17 @@
         transition: .3s ease-in-out;
         transition-property: border-color;
 
+        @media screen and (max-width: 1366px) {
+            padding: 5px 0 2px;
+        }
+
+        &[disabled]{
+            background:transparent;
+            color: lightgrey;
+            &:hover{
+                border-color: lightgrey;
+            }
+        }
         &:hover{
             border-color: grey;
         }
@@ -68,7 +90,6 @@
 }
 
 [type="submit"]{
-    // width:50%;
     padding:10px 20px;
     background-color:white !important;
     border-radius: 5px;
@@ -86,7 +107,7 @@
         border-color: black!important;
     }
 
-    &[disabled]{
-
+    @media screen and (max-width:1366px) {
+        padding:5px 10px;
     }
 }
