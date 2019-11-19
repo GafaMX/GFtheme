@@ -15,6 +15,9 @@ class GafaFitSDKWrapper extends React.Component {
             GafaFitSDK.setCompany(window.GFThemeOptions.COMPANY_ID);
             window.GFtheme.APIClientID = window.GFThemeOptions.API_CLIENT;
             window.GFtheme.APIClientSecret = window.GFThemeOptions.API_SECRET;
+            window.GFtheme.TokenMovil = window.GFThemeOptions.TOKENMOVIL;
+            window.GFtheme.CaptchaSecretKey = window.GFThemeOptions.CAPTCHA_SECRET_KEY;
+            window.GFtheme.RemoteAddr = window.GFThemeOptions.REMOTE_ADDR;
         }
 
         GafaFitSDKWrapper.getCurrentBrandAndLocation(callback);
@@ -201,6 +204,10 @@ class GafaFitSDKWrapper extends React.Component {
         options.last_name = params.last_name;
         options.grant_type = 'password';
         options.scope = '*';
+        options.tokenmovil = window.GFtheme.APIClientID;
+        options.captcha_secret_key = window.GFtheme.CaptchaSecretKey;
+        options.remote_addr = window.GFtheme.RemoteAddr;
+        options.g_recaptcha_response = params.g_recaptcha_response;
         GafaFitSDK.PostRegister(
             window.GFtheme.APIClientID,
             window.GFtheme.APIClientSecret,

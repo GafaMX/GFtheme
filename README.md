@@ -101,7 +101,10 @@ For example you can use this definition before include the GafaFitThemeSDK main 
             "GAFA_FIT_URL": "https://devgafa.fit/",
             "COMPANY_ID": 1,
             "API_CLIENT": 1,
-            "API_SECRET": "XXXXXXXXXXXXXXXXXXXXXXXX"
+            "API_SECRET": "XXXXXXXXXXXXXXXXXXXXXXXX",
+            "TOKENMOVIL": null,
+            "CAPTCHA_SECRET_KEY": "YYYYYYYYYYYYYYYYYYYYYYYY",
+            "REMOTE_ADDR": "a.b.c.d"
         }
     </script>
     </body>
@@ -118,7 +121,10 @@ of the script in your site just between the GafaFitSDK library script and close 
                 "GAFA_FIT_URL": "https://devgafa.fit/",
                 "COMPANY_ID": 1,
                 "API_CLIENT": 1,
-                "API_SECRET": "XXXXXXXXXXXXXXXXXXXXXXXX"
+                "API_SECRET": "XXXXXXXXXXXXXXXXXXXXXXXX",
+                "TOKENMOVIL": null,
+                "CAPTCHA_SECRET_KEY": "YYYYYYYYYYYYYYYYYYYYYYYY",
+                "REMOTE_ADDR": "a.b.c.d"
             }
     </script>
     <script src="https://dev.gafa.codes/GFtheme/dist/main.js"></script>
