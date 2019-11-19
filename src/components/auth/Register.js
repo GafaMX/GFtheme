@@ -24,7 +24,8 @@ class Register extends React.Component {
             fullNameValid: false,
             formValid: false,
             serverError: '',
-            registered: false
+            registered: false,
+            g_recaptcha_response: null,
         };
     }
 
@@ -112,11 +113,20 @@ class Register extends React.Component {
 
     handleSubmit(event) {
         event.preventDefault();
+
         let currentElement = this;
-        currentElement.setState({serverError: '', registered: false});
-        GafaFitSDKWrapper.postRegister(this.state,
-            currentElement.successRegisterCallback.bind(this),
-            currentElement.errorRegisterCallback.bind(this));
+
+        grecaptcha.ready(function () {
+            // TODO: The first parameter is CAPTCHA_SITE_KEY. Update it!!!
+            grecaptcha.execute("6Ld3O8EUAAAAAKvCC-S_1FkbcR2fK7gajhb12Rsg", { action: 'register' })
+                .then(function (token) {
+                    currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
+
+                    GafaFitSDKWrapper.postRegister(this.state,
+                        currentElement.successRegisterCallback.bind(this),
+                        currentElement.errorRegisterCallback.bind(this));
+                });
+        });
     }
 
     successRegisterCallback(result) {
