@@ -118,13 +118,15 @@ class Register extends React.Component {
 
         grecaptcha.ready(function () {
             // TODO: The first parameter is CAPTCHA_SITE_KEY. Update it!!!
-            grecaptcha.execute("6Ld3O8EUAAAAAKvCC-S_1FkbcR2fK7gajhb12Rsg", { action: 'register' })
+            grecaptcha.execute("6LeUa8MUAAAAAF6OZQ_hzu5NY_mAX1pnd83ORtyc", { action: 'register' })
                 .then(function (token) {
+                    $('#register-form').prepend('<input type="hidden" name="g-recaptcha-response" value="' + token + '">');
+
                     currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
 
-                    GafaFitSDKWrapper.postRegister(this.state,
-                        currentElement.successRegisterCallback.bind(this),
-                        currentElement.errorRegisterCallback.bind(this));
+                    GafaFitSDKWrapper.postRegister(currentElement.state,
+                        currentElement.successRegisterCallback.bind(currentElement),
+                        currentElement.errorRegisterCallback.bind(currentElement));
                 });
         });
     }
@@ -140,7 +142,7 @@ class Register extends React.Component {
     render() {
         return (
             <div className="register auth">
-                <form onSubmit={this.handleSubmit.bind(this)}>
+                <form id="register-form" onSubmit={this.handleSubmit.bind(this)}>
                     <FormGroup controlId="fullName" bsSize="large">
                         <ControlLabel>{Strings.LABEL_FULL_NAME}</ControlLabel>
                         <FormControl

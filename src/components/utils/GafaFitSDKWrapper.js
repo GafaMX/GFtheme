@@ -204,10 +204,11 @@ class GafaFitSDKWrapper extends React.Component {
         options.last_name = params.last_name;
         options.grant_type = 'password';
         options.scope = '*';
-        options.tokenmovil = window.GFtheme.APIClientID;
+        options.tokenmovil = null;
         options.captcha_secret_key = window.GFtheme.CaptchaSecretKey;
         options.remote_addr = window.GFtheme.RemoteAddr;
-        options.g_recaptcha_response = params.g_recaptcha_response;
+        options['g_recaptcha_response'] = params.g_recaptcha_response;
+        options['g-recaptcha-response'] = params.g_recaptcha_response;
         GafaFitSDK.PostRegister(
             window.GFtheme.APIClientID,
             window.GFtheme.APIClientSecret,
