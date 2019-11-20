@@ -117,8 +117,7 @@ class Register extends React.Component {
         let currentElement = this;
 
         grecaptcha.ready(function () {
-            // TODO: The first parameter is CAPTCHA_SITE_KEY. Update it!!!
-            grecaptcha.execute("6LeUa8MUAAAAAF6OZQ_hzu5NY_mAX1pnd83ORtyc", { action: 'register' })
+            grecaptcha.execute(window.GFtheme.CaptchaPublicKey, { action: 'register' })
                 .then(function (token) {
                     $('#register-form').prepend('<input type="hidden" name="g-recaptcha-response" value="' + token + '">');
 
