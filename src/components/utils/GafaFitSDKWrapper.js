@@ -210,6 +210,9 @@ class GafaFitSDKWrapper extends React.Component {
         options.remote_addr = window.GFtheme.RemoteAddr;
         options['g_recaptcha_response'] = params.g_recaptcha_response;
         options['g-recaptcha-response'] = params.g_recaptcha_response;
+
+        let me = this;
+
         GafaFitSDK.PostRegister(
             window.GFtheme.APIClientID,
             window.GFtheme.APIClientSecret,
@@ -225,11 +228,48 @@ class GafaFitSDKWrapper extends React.Component {
                     }).join(". ");
                     errorCallback(errorToPrint);
                 } else {
-                    successCallback(result)
+                    successCallback(result);
+
+                    // Automatic login
+                    GafaFitSDKWrapper.getToken(params.email, params.password,
+                        me.successLoginCallback.bind(me),
+                        me.errorLoginCallback.bind(me));
                 }
             }
         );
     };
+
+    static successLoginCallback(result) {
+        /*
+        this.setState({logged: true});
+        if (this.props.successCallback) {
+            this.props.successCallback(result);
+        }
+        */
+
+        if (window.GFtheme.combo_id != null) {
+            GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
+                window.GFtheme.combo_id = null;
+            });
+        }
+        if (window.GFtheme.membership_id != null) {
+            GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) {
+                window.GFtheme.membership_id = null;
+            });
+        }
+        if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+            GafaFitSDKWrapper.getFancyForMeetingReservation(window.GFtheme.location_slug, window.GFtheme.meetings_id, function (result) {
+                window.GFtheme.meetings_id = null;
+                window.GFtheme.location_slug = null;
+            });
+        }
+    }
+
+    static errorLoginCallback(error) {
+        /*
+        this.setState({serverError: error, logged: false});
+         */
+    }
 
     static postPasswordForgot(params, successCallback, errorCallback) {
         GafaFitSDK.RequestNewPassword(
