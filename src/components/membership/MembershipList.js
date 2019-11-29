@@ -7,6 +7,10 @@ import PaginationList from "../utils/PaginationList";
 import LoginRegister from "../menu/LoginRegister";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
+//Estilos
+import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
+import '../../styles/newlook/elements/GFSDK-e-product.scss';
+
 class MembershipList extends React.Component {
     constructor(props) {
         super(props);
@@ -36,17 +40,16 @@ class MembershipList extends React.Component {
     }
 
     render() {
+        let preC = 'GFSDK-c';
+        let membershipClass = preC + '-membershipList';
+
         const listItems = this.state.list.map((membership) =>
             <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
         );
         return (
-            <div>
-                <h1 className={["section-title", "container", "text-center"].join(" ")}>{Strings.MEMBERSHIPS}</h1>
-                <hr></hr>
-                <div className={["membership-list", "container"].join(" ")}>
-                    <div className={["row", "mt-5", "text-center"].join(" ")}>
-                        {listItems}
-                    </div>
+            <div className={membershipClass}>
+                <div className={membershipClass + '__container'}>
+                    {listItems}
                 </div>
 
                 <PaginationList page={this.state.currentPage} perpage={this.props.perPage}

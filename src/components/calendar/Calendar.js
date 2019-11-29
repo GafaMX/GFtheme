@@ -8,6 +8,12 @@ import CalendarBody from "./CalendarBody";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import LoginRegister from "../menu/LoginRegister";
 
+// Estilos
+import '../../styles/newlook/components/GFSDK-c-Calendar.scss';
+import '../../styles/newlook/components/GFSDK-c-Filter.scss';
+import '../../styles/newlook/elements/GFSDK-e-meeting.scss';
+import '../../styles/newlook/elements/GFSDK-e-navigation.scss';
+
 class Calendar extends React.Component {
     constructor(props) {
         super(props);
@@ -59,11 +65,11 @@ class Calendar extends React.Component {
     }
 
     render() {
-
+        let preC = 'GFSDK-c';
+        let calendarClass = preC + '-Calendar';
 
         return (
-            <div className={'meetings-calendar--wrapper container'}>
-                <h1 className={'display-4 container text-center'}>{Strings.CALENDAR}</h1>
+            <div className={calendarClass}>
                 <CalendarFilters/>
                 <CalendarBody/>
                 {this.state.showLogin &&

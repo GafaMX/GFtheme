@@ -1,0 +1,43 @@
+@import '../base/variables.scss';
+
+.#{$pre}-c-membershipList,
+.#{$pre}-c-comboList
+{
+    display:grid;
+    grid-auto-flow: row;
+    row-gap: 15px;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+
+    & > *{
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    @media (min-width: 576px){
+        max-width: 540px;
+    }
+    @media (min-width: 768px){
+        max-width: 720px;
+    }
+    @media (min-width: 992px){
+        max-width: 960px;
+    }
+
+    @media (min-width: 992px){
+        max-width: 1140px;
+    }
+
+    &__container{
+        display:grid;
+        grid-auto-flow: column;
+        column-gap: 15px;
+        width:100%;
+
+        [data-gf-theme] &, [data-gf-perpage] &{
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+}

@@ -7,6 +7,10 @@ import PaginationList from "../utils/PaginationList";
 import LoginRegister from "../menu/LoginRegister";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
+//Estilos
+import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
+import '../../styles/newlook/elements/GFSDK-e-product.scss';
+
 class ComboList extends React.Component {
     constructor(props) {
         super(props);
@@ -36,17 +40,16 @@ class ComboList extends React.Component {
     }
 
     render() {
+        let preC = 'GFSDK-c';
+        let comboClass = preC + '-comboList';
+
         const listItems = this.state.list.map((combo) =>
             <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
         );
         return (
-            <div>
-                <h1 className={["section-title", "container", "text-center"].join(" ")}>{Strings.COMBOS}</h1>
-                <hr></hr>
-                <div className={["combo-list", "container"].join(" ")}>
-                    <div className={["row", "mt-5"].join(" ")}>
-                        {listItems}
-                    </div>
+            <div className={comboClass}>
+                <div className={comboClass + '__container'}>
+                    {listItems}
                 </div>
                 <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
                                 allpages={this.props.lastPage} itemsList={this.props.total}

@@ -72,22 +72,25 @@ class PasswordForgot extends React.Component {
     }
 
     render() {
+        let preE = 'GFSDK-e';
+        let buttonClass = preE + '-buttons';
+        let formClass = preE + '-form';
+
         return (
             <div className="password-forgot auth">
                 <form onSubmit={this.handleSubmit.bind(this)}>
-                    <FormGroup controlId="email" bsSize="large">
-                        <ControlLabel>{Strings.LABEL_EMAIL}</ControlLabel>
+                    <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
+                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel>
                         <FormControl
                             autoFocus
+                            className={formClass + "__input"}
                             type="email"
                             value={this.state.email}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <Button
-                        block
-                        bsSize="large"
-                        bsStyle="primary"
+                        className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
                         disabled={!this.state.formValid}
                         type="submit"
                     >

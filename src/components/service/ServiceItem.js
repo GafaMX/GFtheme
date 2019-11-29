@@ -10,34 +10,26 @@ class ServiceItem extends React.Component {
         const sectionStyle = {
             backgroundImage: "url(" +this.props.service.pic+ ")",
         };
+
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let structureClass = preE + '-structure';
+        let staffClass = preC + '-staffList';
+
         return (
-            <div className={["service-item", "col-md-4", "service_" + this.props.service.id].join(" ")}>
-                <div className={["service-item__container"].join(" ")}>
-                    {/* {this.props.service.parent_service !== null && */}
-                    {/* <div className="service-parent">
-                        <div className={'service-parent__pic' + (this.props.service.parent_service.pic ? ' show' : ' hidden') }>
-                            <img src={this.props.service.parent_service.pic}/>
-                        </div>
-                        <h3 className={["service-parent__name"].join(" ")}>
-                            {this.props.service.parent_service.name}</h3>
-                        <h5 className={["service-parent__category"].join(" ")}>
-                            {this.props.service.parent_service.category}</h5>
-                        <p className="service-parent__description">
-                            {this.props.service.parent_service.description}</p>
-                    </div> */}
-                    {/* } */}
-                    <div className="service-current">
-                        <div className="service-current__content">
-                            <h3 className={["service-current__name"].join(" ")}>
-                                {this.props.service.name}</h3>
-                            <h4 className={["service-current__category"].join(" ")}>
-                                {this.props.service.category}</h4>
-                            <p className="service-current__description">{this.props.service.description}</p>
-                        </div>
-                        <div style={ sectionStyle } className='service-current__pic' >
+            <div className={staffClass + 'item ' + structureClass}>
+                <div className={structureClass + '__head'}>
+                    <div className={["this-image"]}>
+                        <img className={(this.props.service.pic ? 'show' : 'hidden')} src={this.props.service.pic}/>
                         <div className={["text-center image-missing " + (this.props.service.pic ? 'hidden' : 'show')]}>Image Missing</div>
-                        </div>
                     </div>
+                </div>
+                <div className={structureClass + '__body'}>
+                    <h2 className={'this-name'}>{this.props.service.name}</h2>
+                    <p className={'this-job'}>{this.props.service.category}</p>
+                </div>
+                <div className={structureClass + '__footer'}>
+                    <p className={'this-description'}>{this.props.service.description}</p>
                 </div>
             </div>
         );

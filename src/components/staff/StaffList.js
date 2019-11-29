@@ -6,6 +6,14 @@ import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
+// Estilos
+import '../../styles/newlook/components/GFSDK-c-StaffServices.scss';
+import '../../styles/newlook/components/GFSDK-c-Filter.scss';
+
+import '../../styles/newlook/elements/GFSDK-e-structure.scss';
+import '../../styles/newlook/elements/GFSDK-e-form.scss';
+
+
 class StaffList extends React.Component {
     constructor(props) {
         super(props);
@@ -45,28 +53,31 @@ class StaffList extends React.Component {
                 }
             }
         );
+
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let staffClass = preC + '-staffList';
+        let filterClass = preC + '-filter';
+        let formClass = preE + '-form';
+
         return (
-            <div>
-                <h1 className={["section-title", "container", "text-center"].join(" ")}>{Strings.STAFF_LIST}</h1>
-                <hr></hr>
-                <div className={["staff-list", "container"].join(" ")}>
-                    <div className={'jobSelector classSelector'}>
-                        <select className={'col-md-3 form-control'} onChange={this.change} value={this.state.currentjob}>
-                            <option>Todos</option>
-                            {this.state.jobList.map(job => {
-                                return <option key={job} value={job}>{job}</option>
-                            })}
-                        </select>
-                    </div>
-                    <div className={["row", "staff-list__container", "justify-content-center"].join(" ")}>
-                        {listItems}
-                    </div>
+            <div className={staffClass}>
+                <div className={filterClass}>
+                    <select className={filterClass + '__item ' + formClass + '__select'} onChange={this.change} value={this.state.currentjob}>
+                        <option>Todos</option>
+                        {this.state.jobList.map(job => {
+                            return <option key={job} value={job}>{job}</option>
+                        })}
+                    </select>
+                </div>
+                <div className={staffClass + '__container'}>
+                    {listItems}
+                </div>
 
                     <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
                                     allpages={this.props.lastPage} itemsList={this.props.total}
                                     updatePaginationData={this.updatePaginationData.bind(this)}
                                     getListData={GafaFitSDKWrapper.getStaffList}/>
-                </div>
             </div>
         );
     }

@@ -56,58 +56,36 @@ class ComboItem extends React.Component {
     }
 
     render() {
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let productClass = preE + '-product';
+        let comboClass = preC + '-membershipList';
         const services = this.getServicesAndParentsForCombo();
 
         return (
-            <div className={["combo-item", "col-md-4"].join(" ")}>
-                <div className={["combo-item__container", "mb-4"].join(" ")}
-                     onClick={this.handleClick.bind(this)}>
-                    <div className="card-body">
-                        <h3 className="combo-item__name">{this.props.combo.name}</h3>
-                        <hr></hr>
-                        {this.props.combo.has_discount &&
-                        <div className="combo-item__price">
-                            <div className={["combo-item__price-no-discount", "text-muted"].join(" ")}>
+            <div className={comboClass + 'item ' + productClass} onClick={this.handleClick.bind(this)}>
+                <div className={productClass + '__head'}>
+                    <h3 className="this-name">{this.props.combo.name}</h3>
+                </div>
+                <div className={productClass + '__body'}>
+                    {this.props.combo.has_discount &&
+                        <div>
+                            <div className="this-price has-discount">
                                 <p>
-                                    $
-                                </p>
-                                <p>
-                                    {formatMoney(this.props.combo.price, 0)}
-                                </p>
-                                <p>
-                                    <span>00</span>
-                                    <span>MXN</span>
+                                    ${formatMoney(this.props.combo.price, 0)} MXN
                                 </p>
                             </div>
                         </div>
-                        }
-                        <div className="combo-item__price">
-                            <div className={["combo-item__price-no"].join(" ")}>
-                                <p>
-                                    $
-                                </p>
-                                <p>
-                                    {formatMoney(this.props.combo.price_final, 0)}
-                                </p>
-                                <p>
-                                    <span>00</span>
-                                    <span>/ MXN</span>
-                                </p>
-                            </div>
-                        </div>
-                        <div className="combo-item__content">
-                            {this.props.combo.short_description &&
-                            <p className="combo-item__short-description d-none">{this.props.combo.short_description}</p>}
-                            <p className="combo-item__description">
-                                {this.props.combo.description || 'Este producto no cuenta con descripción. Lorem ipsum dolor sit amet consectetur adipisicing elit. Perspiciatis quas vitae quis iure ab rerum veniam.'}
-                            </p>
-                            <p className="combo-item__services">{services['services']}</p>
-                            <p className="combo-item__parent-services">{services['parents']}</p>
-                        </div>
-                        <p className="combo-item__expiration">
-                            <span>{Strings.EXPIRE_IN}:</span> <span>{this.props.combo.expiration_days} {Strings.DAYS}</span>
+                    }
+                    <div className="this-price has-total">
+                        <p>
+                            ${formatMoney(this.props.combo.price, 0)} MXN
                         </p>
                     </div>
+                </div>
+                <div className={productClass + '__footer'}>
+                    <p className={'this-shortDescription'}>{this.props.combo.short_description || 'Este producto no cuenta con descripción corta.'}</p>
+                    <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span> <strong>{this.props.combo.expiration_days} {Strings.DAYS}</strong></p>
                 </div>
             </div>
         );

@@ -2,6 +2,8 @@
 
 import React from "react";
 import Strings from "../utils/Strings/Strings_ES";
+import IconLeftArrow from "../utils/Icons/IconLeftArrow";
+import IconRightArrow from "../utils/Icons/IconRightArrow";
 import CalendarStorage from "./CalendarStorage";
 
 
@@ -151,7 +153,7 @@ class CalendarFilters extends React.Component {
         if (this.state.has_next) {
             return (
                 <a onClick={this.nextWeek}
-                   className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK}</a>
+                   className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
             );
         }
     }
@@ -160,7 +162,7 @@ class CalendarFilters extends React.Component {
         if (this.state.has_prev) {
             return (
                 <a onClick={this.prevWeek}
-                   className={'prev-button calendar-control-button'}>{Strings.PREVIOUS_WEEK}</a>
+                   className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
             );
         }
     }
@@ -169,20 +171,19 @@ class CalendarFilters extends React.Component {
         let locations = CalendarStorage.get('locations');
         let filter_name = 'meetings-calendar--filters';
 
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let calendarClass = preC + '-Calendar';
+        let filterClass = preC + '-filter';
+        let formClass = preE + '-form';
+        let navigationClass = preE + '-navigation';
+
         return (
-            <div className={'meetings-calendar--filters row mb-4'}>
-                <div className={'calendar-prev-next-buttons col-md-12 row'}>
-                    <div className={'col-md-3 col-lg-2'}>
-                        {this.getPrevButton()}
-                    </div>
-                    <div className={'col-md-3 col-lg-2'}>
-                        {this.getNextButton()}
-                    </div>
-                </div>
-                <div className={'col-md-12 row mb-4'}>
-                    <div className={'calendar-filter-selector col-md-4'}>
-                        <label htmlFor={'calendar-filter-location'}>{Strings.LOCATION}: </label>
-                        <select className={'col-md-12'} id={'calendar-filter-location'} data-name="filter_location"
+            <div className={calendarClass + '__head'}>
+                <div className={calendarClass + '__filter ' + filterClass}>
+                    <div className={formClass + '__section'}>
+                        <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
+                        <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
                                 data-origin="locations"
                                 onChange={this.selectLocation.bind(this)}>
                             <option value={''}>{Strings.ALL}</option>
@@ -195,9 +196,9 @@ class CalendarFilters extends React.Component {
                         </select>
                     </div>
 
-                    <div className={'calendar-filter-selector col-md-4'}>
-                        <label htmlFor={'calendar-filter-room'}>{Strings.ROOM}: </label>
-                        <select className={'col-md-12'} id={'calendar-filter-room'} data-name="filter_room"
+                    <div className={formClass + '__section'}>
+                        <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{Strings.ROOM}: </label>
+                        <select className={formClass + '__select'} id={'calendar-filter-room'} data-name="filter_room"
                                 data-origin="rooms" ref={'room'}
                                 onChange={this.selectFilter}>
                             <option value={''}>{Strings.ALL}</option>
@@ -217,9 +218,9 @@ class CalendarFilters extends React.Component {
                         </select>
                     </div>
 
-                    <div className={'calendar-filter-selector col-md-4'}>
-                        <label htmlFor={'calendar-filter-service'}>{Strings.SERVICE}: </label>
-                        <select className={'col-md-12'} id={'calendar-filter-service'} data-name="filter_service"
+                    <div className={formClass + '__section'}>
+                        <label htmlFor={'calendar-filter-service'}  className={formClass + '__label'}>{Strings.SERVICE}: </label>
+                        <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
                                 data-origin="services"
                                 onChange={this.selectFilter}>
                             <option value={''}>{Strings.ALL}</option>
@@ -233,9 +234,9 @@ class CalendarFilters extends React.Component {
                         </select>
                     </div>
 
-                    <div className={'calendar-time-filters col-md-4'}>
-                        <label htmlFor={'calendar-time-of-day'}>{Strings.TIME_OF_DAY}: </label>
-                        <select id={'calendar-time-of-day'} className={'col-md-12'} data-name="filter_time_of_day"
+                    <div className={formClass + '__section'}>
+                        <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
+                        <select id={'calendar-time-of-day'} className={formClass + '__select'} data-name="filter_time_of_day"
                                 onChange={this.updateStore}>
                             <option value={''}>{Strings.ALL}</option>
                             <option value={'morning'}>{Strings.MORNING}</option>
@@ -243,7 +244,14 @@ class CalendarFilters extends React.Component {
                         </select>
                     </div>
                 </div>
-
+                <div className={calendarClass + '__navigation ' + navigationClass}>
+                    <div className={navigationClass + '__prev'}>
+                        {this.getPrevButton()}
+                    </div>
+                    <div className={navigationClass + '__next'}>
+                        {this.getNextButton()}
+                    </div>
+                </div>
             </div>
         );
     }

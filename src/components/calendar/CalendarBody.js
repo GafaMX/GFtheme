@@ -120,8 +120,11 @@ class CalendarBody extends React.Component {
     }
 
     render() {
+        let preC = 'GFSDK-c';
+        let calendarClass = preC + '-Calendar';
+
         return (
-            <div className={'row text-center'}>
+            <div className={calendarClass + '__body'}>
                 {this.state.meetings_to_show.map(function (day, index) {
                     return (
                         <CalendarColumn key={`calendar-day--${index}`}

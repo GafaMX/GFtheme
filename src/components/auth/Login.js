@@ -120,30 +120,37 @@ class Login extends React.Component {
     }
 
     render() {
+
+        let preE = 'GFSDK-e';
+        let buttonClass = preE + '-buttons';
+        let formClass = preE + '-form';
+
         return (
             <div className="login auth">
                 <form onSubmit={this.handleSubmit.bind(this)}>
-                    <FormGroup controlId="email" bsSize="large">
-                        <ControlLabel>{Strings.LABEL_EMAIL}</ControlLabel>
+                    <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
+                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel>
                         <FormControl
+                            bsPrefix={' '}
+                            className={formClass + "__input"}
                             autoFocus
                             type="email"
                             value={this.state.email}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
-                    <FormGroup controlId="password" bsSize="large">
-                        <ControlLabel>{Strings.LABEL_PASSWORD}</ControlLabel>
+                    <FormGroup className={formClass + "__section"} controlId="password" bsSize="large">
+                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PASSWORD}</ControlLabel>
                         <FormControl
+                            bsPrefix={' '}
+                            className={formClass + "__input"}
                             value={this.state.password}
                             onChange={this.handleChangeField.bind(this)}
                             type="password"
                         />
                     </FormGroup>
                     <Button
-                        block
-                        bsSize="large"
-                        bsStyle="primary"
+                        className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
                         disabled={!this.state.formValid}
                         type="submit"
                     >

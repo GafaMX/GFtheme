@@ -64,21 +64,26 @@ class CalendarMeeting extends React.Component {
         let room = this.state.room;
         let location = CalendarStorage.find('locations', meeting.locations_id);
 
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let calendarClass = preC + '-Calendar';
+        let meetingClass = preE + '-meeting';
+
         return (
             <div key={`column-day--${day.date}--meeting--${meeting.id}`}
-                 className={`calendar-meeting shadow-sm ${meeting.passed ? 'past-meeting' : ''}`} data-id={meeting.id}
+                 className={calendarClass + '__item ' + meetingClass + (meeting.passed ? ' has-pasted' : '')}
+                 data-id={meeting.id}
                  onClick={this.handleClick.bind(this)}>
-                <div className={'mb-4 card'}>
-                    <div className={'card-header'}>
-                        <p className={'meeting-room-name calendar-meeting-info-line'}>{location ? location.name : ''}</p>
+                    <div className={meetingClass + '__header'}>
+                        <p className={'this-service'}>{meeting.service.name}</p>
+                        <p className={'this-room'}>{room ? room.name : ''}</p>
                     </div>
-                    <div className={'card-body'}>
-                        <p className={'meeting-start-time calendar-meeting-info-line'}>{date.getHours().toString().padStart(2, '0')}:{date.getMinutes().toString().padStart(2, '0')}</p>
-                        <p className={'meeting-staff-name calendar-meeting-info-line'}>{meeting.staff.name}</p>
-                        <p className={'meeting-service-name calendar-meeting-info-line'}>{meeting.service.name}</p>
-                        <p className={'meeting-room-name calendar-meeting-info-line'}>{room ? room.name : ''}</p>
+                    <hr></hr>
+                    <div className={meetingClass + '__body'}>
+                        <p className={'this-time'}>{date.getHours().toString().padStart(2, '0')}:{date.getMinutes().toString().padStart(2, '0')}</p>
+                        <p className={'this-staff'}>{meeting.staff.name}</p>
+                        <p className={'this-location'}>{location ? location.name : ''}</p>
                     </div>
-                </div>
             </div>
         );
     }

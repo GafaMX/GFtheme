@@ -11,6 +11,14 @@ import Register from "../auth/Register";
 import PasswordRecovery from "../auth/PasswordRecovery";
 import {Modal} from "react-bootstrap";
 import GlobalStorage from "../store/GlobalStorage";
+import IconRunningMan from "../utils/Icons/IconRunningMan";
+
+//Estilos
+import '../../styles/newlook/components/GFSDK-c-Login.scss';
+import '../../styles/default/modalComp.scss';
+// import '../../styles/newlook/components/login/GFSDK-c-Profile.scss';
+import '../../styles/newlook/elements/GFSDK-e-form.scss';
+import '../../styles/newlook/elements/GFSDK-e-buttons.scss';
 
 class LoginRegister extends React.Component {
     constructor(props) {
@@ -201,22 +209,20 @@ class LoginRegister extends React.Component {
     }
 
     render() {
+
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let loginClass = preC + '-login';
+        let buttonClass = preE + '-buttons';
+
         return (
-            <div className="container">
-                <div className="logo-element">
-                    <a href="#">GAFAFIT</a>
-                </div>
-                <div className="login-register">
-                    {!this.state.me && this.state.showButtons && <nav className="nav is-login">
-                        <ul>
-                            <li>
-                                <a onClick={this.handleClickLogin.bind(this)}>{Strings.BUTTON_LOGIN}</a>
-                            </li>
-                            <li>
-                                <a onClick={this.handleClickRegister.bind(this)}> {Strings.BUTTON_REGISTER}</a>
-                            </li>
-                        </ul>
-                    </nav>}
+            <div className={loginClass + '__menu'}>
+                <div className={loginClass + '__menu-nav'}>
+                    {!this.state.me && this.state.showButtons &&
+                        <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickLogin.bind(this)}>
+                            <IconRunningMan />                        
+                        </a>
+                    }
                     {this.state.me !== null && this.state.showButtons && <div>
                         <a onClick={this.handleClickProfile.bind(this)}>
                             {this.state.me != null ?
@@ -235,8 +241,7 @@ class LoginRegister extends React.Component {
                             <div className="col-lg-6">
                                 <div className="container">
                                     <Modal.Header className="modal-login__header" closeButton>
-                                        <Modal.Title className="section-title container text-center">{Strings.BUTTON_LOGIN}</Modal.Title>
-                                        <hr></hr>
+                                        <Modal.Title className="section-title container">{Strings.BUTTON_LOGIN}</Modal.Title>
                                     </Modal.Header>
                                     <Modal.Body className="modal-login__body">
                                         <Login successCallback={this.successLoginCallback.bind(this)}/>
@@ -257,7 +262,9 @@ class LoginRegister extends React.Component {
                                 </div>
                             </div>
                             <div className="col-lg-6">
-                                <div className="modal-login__image"></div>
+                                <div className="modal-login__image">
+                                
+                                </div>
                             </div>
                         </div>
                     </Modal>
@@ -268,8 +275,7 @@ class LoginRegister extends React.Component {
                             <div className="col-lg-6">
                                 <div className="container">
                                     <Modal.Header className="modal-register__header" closeButton>
-                                        <Modal.Title className="section-title container text-center">{Strings.BUTTON_REGISTER}</Modal.Title>
-                                        <hr></hr>
+                                        <Modal.Title className="section-title container">{Strings.BUTTON_REGISTER}</Modal.Title>
                                     </Modal.Header>
                                     <Modal.Body className="modal-register__body">
                                         <Register/>
@@ -315,8 +321,8 @@ class LoginRegister extends React.Component {
                                     <div className="row">
                                         <div className="col-lg-3 profile-intro">
                                             <div className="container">
-                                                <ProfileUserImage / >
-                                                <ProfileUserSidebar / >
+                                                <ProfileUserImage />
+                                                <ProfileUserSidebar />
                                             </div>
                                         </div>
                                         <div className="col-lg-9 profile-content">
@@ -336,8 +342,7 @@ class LoginRegister extends React.Component {
                             <div className="col-lg-6">
                                 <div className="container">
                                     <Modal.Header className="modal-password-header" closeButton>
-                                        <Modal.Title className="section-title container text-center">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
-                                        <hr></hr>
+                                        <Modal.Title className="section-title container">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
                                     </Modal.Header>
                                     <Modal.Body className="modal-password-body">
                                         <PasswordRecovery token={this.state.token} email={this.state.email}
@@ -360,6 +365,7 @@ class LoginRegister extends React.Component {
                     </div>}
                 </div>
             </div>
+                
         );
     }
 }

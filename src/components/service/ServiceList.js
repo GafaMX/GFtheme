@@ -6,6 +6,12 @@ import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
+// Estilos
+import '../../styles/newlook/components/GFSDK-c-StaffServices.scss';
+import '../../styles/newlook/components/GFSDK-c-Filter.scss';
+import '../../styles/newlook/elements/GFSDK-e-structure.scss';
+import '../../styles/newlook/elements/GFSDK-e-form.scss';
+
 class ServiceList extends React.Component {
     constructor(props) {
         super(props);
@@ -43,7 +49,7 @@ class ServiceList extends React.Component {
     render() {
         let listItems = [];
         this.state.list.forEach((service) => {
-                if (this.state.currentCategory === 'Todos' || service.category != null && service.category.toUpperCase() === this.state.currentCategory)
+                if ((this.state.currentCategory === 'Todos' || service.category != null && service.category.toUpperCase() === this.state.currentCategory) && (service.status != "inactive"))
                     listItems.push(<ServiceItem key={service.id} service={service}/>)
             }
         );
@@ -55,22 +61,24 @@ class ServiceList extends React.Component {
             }
         );
 
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let serviceClass = preC + '-serviceList';
+        let filterClass = preC + '-filter';
+        let formClass = preE + '-form';
+
         return (
-            <div>
-                <h1 className={["section-title", "container", "text-center"].join(" ")}>{Strings.SERVICE_LIST}</h1>
-                <hr></hr>
-                <div className={["service-list", "container"].join(" ")}>
-                    <div className={'categorySelector classSelector'}>
-                        <select className={'col-md-3 form-control'} onChange={this.change} value={this.state.value}>
-                            <option>Todos</option>
-                            {this.state.categoryList.map(category => {
-                                return <option key={category} value={category}>{category}</option>
-                            })}
-                        </select>
-                    </div>
-                    <div className={["row", "service-list__container", "justify-content-center"].join(" ")}>
-                        {listItems}
-                    </div>
+            <div className={serviceClass}>
+                <div className={filterClass}>
+                    <select className={filterClass + '__item ' + formClass + '__select'} onChange={this.change} value={this.state.value}>
+                        <option>Todos</option>
+                        {this.state.categoryList.map(category => {
+                            return <option key={category} value={category}>{category}</option>
+                        })}
+                    </select>
+                </div>
+                <div className={serviceClass + '__container'}>
+                    {listItems}
                 </div>
                 <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
                                 allpages={this.props.lastPage} itemsList={this.props.total}

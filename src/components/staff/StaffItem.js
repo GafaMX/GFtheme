@@ -5,22 +5,26 @@ class StaffItem extends React.Component {
     constructor(props) {
         super(props);
     }
-
     render() {
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let structureClass = preE + '-structure';
+        let staffClass = preC + '-staffList';
+
         return (
-            <div className={["staff-item", "col-md-4", "staff_" + this.props.staff.id].join(" ")} style={{cursor: 'pointer'}}>
-                <div className={["staff-item__container", "mb-4", "card"].join(" ")}>
-                    {/* <img className="staff-item-picture" src={this.instructorImage}/> */}
-                    <div className={["staff-item__picture"]}>
+            <div className={staffClass + '__item ' + structureClass}>
+                <div className={structureClass + '__head'}>
+                    <div className={["this-image"]}>
                         <img className={(this.props.staff.picture_web_list ? 'show' : 'hidden')} src={this.props.staff.picture_web_list}/>
                         <div className={["text-center image-missing " + (this.props.staff.picture_web_list ? 'hidden' : 'show')]}>Image Missing</div>
                     </div>
-                    <div className={'card-body'} style={{position: 'absolute'}}>
-                        <h2 className={["staff-item__name"].join(" ")}>{this.props.staff.name}</h2>
-                        <h3 className={["staff-item__lastname"].join(" ")}>{this.props.staff.lastname}</h3>
-                        <p className={["staff-item__job"].join(" ")}>{this.props.staff.job}</p>
-                        <p className="staff-item__description d-none">{this.props.staff.description}</p>
-                    </div>
+                </div>
+                <div className={structureClass + '__body'}>
+                    <h2 className={'this-name'}>{this.props.staff.name} {this.props.staff.lastname}</h2>
+                    <p className={'this-job'}>{this.props.staff.job}</p>
+                </div>
+                <div className={structureClass + '__footer'}>
+                    <p className={'this-description'}>{this.props.staff.description}</p>
                 </div>
             </div>
         );

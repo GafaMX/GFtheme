@@ -1,0 +1,264 @@
+.profile-intro{
+    height:100%;
+    > .container{
+        height: calc(100vh - 30px);
+        display:flex;
+        flex-flow:column nowrap;
+        align-items: stretch;
+    }
+
+    &__image{
+        height:200px;
+        width:200px;
+        background-color:lightgrey;
+        border: white 7px solid;
+        margin: 0 auto;
+        border-radius: 50%;
+        box-shadow: 0px 0px 20px -3px lightgrey;
+        overflow: hidden;
+        img{
+            height:100%;
+            width:100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        
+        @media screen and (max-width: 1440px) {
+            z-index:1;
+        }
+        @media screen and (max-height: 768px) {
+            z-index:1;
+            height:120px;
+            width:120px;
+        }
+    }
+
+    &__sidebar{
+        flex-grow:4;
+        padding: 20px;
+        margin:30px -15px 0px;
+        background-color: white;
+
+        h3, p{
+            margin:0px;
+            display: block;
+        }
+
+        h3{
+            font-weight:600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size:120%;
+            color:grey;
+            margin:2rem 0 .5rem;
+            @media screen and (max-width: 1440px) {
+                margin:1.5rem 0 .5rem;
+            }
+        }
+        p{
+            font-weight: 300;
+            color:grey;
+            margin:.2rem 0;
+        }
+
+        &-address{
+            margin-bottom: 3rem;
+        }
+
+        &-stats{
+            margin-top: 3rem;
+            h3, p{
+                display: inline-block;
+                width:50%;
+                margin:0px;
+            }
+            hr{
+                margin:.6rem 0;
+                width:100%;
+                height:1px;
+                background-color: #f3f3f3;
+            }
+
+            h3{
+                font-weight:600;
+                letter-spacing: 1px;
+                font-size: 90%;
+                text-transform: uppercase;
+                color:grey;
+                margin:.2rem 0;
+            }
+            p{
+                font-size: 90%;
+                font-weight: 300;
+                text-transform: uppercase;
+                color:grey;
+            }
+        }
+
+        @media screen and (max-width: 1440px) {
+            margin:-10px -15px 0px;
+        }
+    }
+}
+
+.profile-info{
+    display:flex;
+    flex-flow: column nowrap;
+    height: 100%;
+}
+
+.profile-content{
+    padding-left:0;
+}
+
+.profile-tabs{
+    padding-left:0;
+    margin-top: 15px;
+    flex-grow: 4;
+    background-color:white;
+    > .container{
+        padding: 20px;
+        @media screen and (max-height: 768px) {
+            padding:10px;
+        }
+    }
+
+    #ProfileTabs{
+        > .nav-tabs{
+            margin:0 0 1rem;
+            border-bottom:0 transparent none;
+            > li{
+                a{
+                    background: transparent;
+                    border-radius: 0;
+                    border:0;
+                    border-bottom: 1px solid lightgrey;
+                    cursor: pointer;
+                    font-size: 90%;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    font-weight: 600;
+                    color: lightgrey;
+                    margin: 0 .5rem;
+                    padding: 1rem 2rem;
+                    transition: .3s ease-in-out;
+                    transition-property: border-color, background-color, color;
+                    @media screen and (max-width: 1440px) {
+                        padding: .5rem 1rem;
+                    }
+                    &:hover{
+                        color: grey;
+                        background: transparent;
+                        border-color: grey;
+                    }
+                }
+                &:first-child{
+                    a{
+                        margin-left:0;
+                    }
+                }
+                &:last-child{
+                    a{
+                        margin-right:0;
+                    }
+                }
+                &.active a{
+                    color: white;
+                    background: black;
+                    border-color: black;
+                }
+            }
+        }
+
+        #HistoryTabs{
+            display: flex;
+            padding: 3rem 0;
+            .nav-tabs{
+                display: flex;
+                flex-flow: column nowrap;
+                margin: .5rem 0;
+                li{
+                    a{
+                        color: lightgrey;
+                        padding: 10px 0;
+                        width:150px;
+                        text-align: left;
+                        border:0 none transparent;
+                        border-bottom: 1px solid lightgrey;
+                        background-color: transparent;
+                        transition: .3s ease-in-out;
+                        transition-property: border-color, color;
+                    }
+                    &.active, &:hover{
+                        a{
+                            color: grey;
+                            border-color:grey;
+                        }
+                    }
+                }
+            }
+
+            .tab-content{
+                width:calc(100% - 150px);
+                .tab-pane{
+                    margin:0 0 3rem;
+                }
+            }
+        }
+    }
+}
+
+.profile-user{
+    background-color:white;
+    padding:20px;
+
+    &__name{
+        text-transform:uppercase;
+        font-size:200%;
+        letter-spacing: 1px;
+        font-weight: 400;
+        
+        @media screen and (max-height: 768px) {
+            font-size:180%;
+        }
+    }
+    &__venue{
+        color:grey;
+        font-weight:300;
+        font-size:120%;
+        margin-left:10px;
+        
+    }
+    &__name, &__venue{
+        display:inline-block;
+    }
+    hr{
+        margin:.6rem 0;
+        width:100%;
+        height:1px;
+        background-color: #f3f3f3;
+    }
+    &__title, &__text{
+        display: inline-block;
+        width:50%;
+        margin:0px;
+    }
+    &__title{
+        font-weight:600;
+        letter-spacing: 1px;
+        font-size: 90%;
+        text-transform: uppercase;
+        color:grey;
+        margin:.2rem 0;
+    }
+    &__text{
+        font-size: 90%;
+        font-weight: 300;
+        text-transform: uppercase;
+        color:grey;
+    }
+}
+
+.profile-bank{
+    padding-right:0;
+}

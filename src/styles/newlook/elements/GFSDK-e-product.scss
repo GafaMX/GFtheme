@@ -1,0 +1,108 @@
+@import '../base/variables.scss';
+
+.#{$pre}-e-product{
+    display:grid;
+    grid-auto-flow: row;
+    row-gap: 15px;
+    border: 1px solid #EEEEEE;
+    border-radius: 23px;
+    padding: 28px 26px;
+    cursor: pointer;
+    @include transition(border);
+    box-sizing: border-box;
+    box-shadow: 0 2px 25px 0 rgba(0,0,0,0.05);
+
+    @include cleanStyles;
+
+    &:hover{
+        border: 1px solid #EF3532;
+    }
+
+    &__head, &__body{
+        color: #1F1C3D;
+    }
+
+    &__footer{
+        color: #575757;
+    }
+
+    &__head, &__body{
+        color: #1F1C3D;
+    }
+
+    &__head{
+        height:26px;
+        width:80%;
+        
+        > .this-name{
+            display: flex;
+            align-items: center;
+            width:100%;
+            height: 100%;
+            white-space: normal;
+            font-size: 17px;
+            line-height: 1.6;
+            font-weight:500;
+            letter-spacing: 1.15px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    &__body{
+        
+        .this-price{
+            width:100%;
+            height: 100%;
+            white-space: normal;
+            font-size: 18px;
+            line-height: 1.6;
+            font-weight:700;
+            letter-spacing: 1.15px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+
+            &.has-discount{
+                text-decoration: line-through;
+                font-size: 12px;
+                font-weight: 400;
+                color:#575757;
+            }
+        }
+    }
+
+    &__footer{
+        display: grid;
+        grid-auto-flow: row;
+        row-gap: 15px;
+
+        > .this-shortDescription{
+            width:100%;
+            height: 80px;
+            white-space: normal;
+            font-size: 12px;
+            line-height: 1.6;
+            font-weight:400;
+            letter-spacing: .85px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        > .this-expiration{
+            width:100%;
+            height: 100%;
+            white-space: normal;
+            font-size: 12px;
+            line-height: 1.4;
+            font-weight:400;
+            letter-spacing: .85px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+
+            & > span, & > strong{
+                display: block;
+
+            }
+        }
+    }
+
+}
