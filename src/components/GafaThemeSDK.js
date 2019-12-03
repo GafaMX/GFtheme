@@ -84,9 +84,6 @@ class GafaThemeSDK extends React.Component {
         if (domContainers.length > 0) {
             domContainers.forEach(function (domContainer) {
                 let per_page = domContainer.getAttribute("data-gf-perpage");
-                if (per_page == null) {
-                    per_page = 10;
-                }
                 GafaFitSDKWrapper.getServiceList({
                     per_page: per_page,
                 }, function (result) {
@@ -120,11 +117,12 @@ class GafaThemeSDK extends React.Component {
                     per_page = 10;
                 }
                 GafaFitSDKWrapper.getComboList({
-                    per_page: per_page,
+                    per_page: 10,
                     only_actives: true,
                     propagate: true,
                 }, function (result) {
                     let props = GafaThemeSDK.propsForPagedListComponent(result);
+                    props.slidesToShow = per_page;
                     GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
                 });
             });
@@ -150,15 +148,13 @@ class GafaThemeSDK extends React.Component {
         if (domContainers.length > 0) {
             domContainers.forEach(function (domContainer) {
                 let per_page = domContainer.getAttribute("data-gf-perpage");
-                if (per_page == null) {
-                    per_page = 10;
-                }
                 GafaFitSDKWrapper.getMembershipList({
-                    per_page: per_page,
+                    per_page: 10,
                     only_actives: true,
                     propagate: true,
                 }, function (result) {
                     let props = GafaThemeSDK.propsForPagedListComponent(result);
+                    props.slidesToShow = per_page;
                     GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
                 });
             });

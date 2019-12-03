@@ -6,6 +6,9 @@ import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import LoginRegister from "../menu/LoginRegister";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import Slider from "react-slick";
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
@@ -18,11 +21,6 @@ class MembershipList extends React.Component {
         this.state = {
             showLogin: false,
             list: this.props.list,
-            currentPage: this.props.currentPage,
-            extraPaginationOptions: {
-                only_actives: true,
-                propagate: true,
-            }
         };
     }
 
@@ -43,20 +41,29 @@ class MembershipList extends React.Component {
         let preC = 'GFSDK-c';
         let membershipClass = preC + '-membershipList';
 
+        let settings = {
+            dots: true,
+            infinite: false,
+            speed: 500,
+            // slidesToShow: 3,
+            slidesToShow: this.props.slidesToShow,
+        };
+
         const listItems = this.state.list.map((membership) =>
             <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
         );
+
         return (
             <div className={membershipClass}>
-                <div className={membershipClass + '__container'}>
+                <Slider {...settings} className={membershipClass + '__container'}>
                     {listItems}
-                </div>
+                </Slider>
 
-                <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
+                {/* <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
                                 allpages={this.props.lastPage} itemsList={this.props.total}
                                 updatePaginationData={this.updatePaginationData.bind(this)}
                                 getListData={GafaFitSDKWrapper.getMembershipList}
-                                extraOptions={this.state.extraPaginationOptions}/>
+                                extraOptions={this.state.extraPaginationOptions}/> */}
                 {
                     this.state.showLogin &&
                     <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>

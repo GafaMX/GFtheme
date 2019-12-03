@@ -2,14 +2,20 @@
 
 import React from "react";
 import ComboItem from "./ComboItem";
-import Strings from "../utils/Strings/Strings_ES";
+// import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
+// import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import LoginRegister from "../menu/LoginRegister";
-import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import Slider from "react-slick";
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+import IconLeftArrow from "../utils/Icons/IconLeftArrow";
+import IconRightArrow from "../utils/Icons/IconRightArrow";
 
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
 import '../../styles/newlook/elements/GFSDK-e-product.scss';
+import '../../styles/newlook/elements/GFSDK-e-pagination.scss';
 
 class ComboList extends React.Component {
     constructor(props) {
@@ -18,11 +24,7 @@ class ComboList extends React.Component {
         this.state = {
             showLogin: false,
             list: this.props.list,
-            currentPage: this.props.currentPage,
-            extraPaginationOptions: {
-                only_actives: true,
-                propagate: true,
-            }
+            slidesToShow: parseInt(this.props.slidesToShow, 10),
         };
     }
 
@@ -39,23 +41,55 @@ class ComboList extends React.Component {
         })
     }
 
+    nextArrow(props) {
+        const {onClick} = props;
+        let preE = 'GFSDK-e';
+        let paginationClass = preE + '-pagination';
+        return (
+            <div className={paginationClass + '__next'}>
+                <button onClick={onClick}>
+                    <IconRightArrow />
+                </button>
+            </div>
+        );
+    }
+
+    pastArrow(props) {
+        const {onClick} = props;
+        let preE = 'GFSDK-e';
+        let paginationClass = preE + '-pagination';
+        return (
+            <div className={paginationClass + '__past'}>
+                <button onClick={onClick}>
+                    <IconLeftArrow />
+                </button>
+            </div>
+        );
+    }
+
     render() {
         let preC = 'GFSDK-c';
         let comboClass = preC + '-comboList';
+
+        let settings = {
+            dots: true,
+            // infinite: false,
+            speed: 500,
+            slidesToShow: this.state.slidesToShow,
+            centerMode: true,
+            infinite: true,
+            centerPadding: "10px",
+        };
 
         const listItems = this.state.list.map((combo) =>
             <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
         );
         return (
             <div className={comboClass}>
-                <div className={comboClass + '__container'}>
+                <Slider {...settings} className={comboClass + '__container center'}>
                     {listItems}
-                </div>
-                <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
-                                allpages={this.props.lastPage} itemsList={this.props.total}
-                                updatePaginationData={this.updatePaginationData.bind(this)}
-                                getListData={GafaFitSDKWrapper.getComboList}
-                                extraOptions={this.state.extraPaginationOptions}/>
+                </Slider>
+
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }

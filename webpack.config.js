@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebPackPlugin = require("html-webpack-plugin");
+const withCSS = require('@zeit/next-css');
 
 const htmlWebpackPlugin = new HtmlWebPackPlugin({
     template: "./src/index.html",
@@ -29,6 +30,16 @@ module.exports = {
                 test: /\.scss$/,
                 use: ["style-loader", "css-loader", "sass-loader"]
             },
+            {
+                test: /\.(eot|woff|woff2|ttf|svg|png|jpg|gif)$/,
+                use: {
+                    loader: 'url-loader',
+                    options: {
+                    limit: 100000,
+                    name: '[name].[ext]'
+                    }
+                }
+            }
         ]
     },
     plugins: [htmlWebpackPlugin]
