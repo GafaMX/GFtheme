@@ -4,6 +4,7 @@ import React from "react";
 import Strings from "../utils/Strings/Strings_ES";
 import CalendarStorage from "./CalendarStorage";
 import CalendarColumn from './CalendarColumn';
+import Moment from 'moment';
 
 class CalendarBody extends React.Component {
     constructor(props) {
@@ -20,6 +21,7 @@ class CalendarBody extends React.Component {
         let shown_meetings = [];
         let meetings = CalendarStorage.get('meetings');
         let start = CalendarStorage.get('start_date');
+
         if (!!meetings && !!start) {
             let end = new Date(start.getTime());
             end.setDate(start.getDate() + 6);
@@ -30,7 +32,7 @@ class CalendarBody extends React.Component {
                     title: date.toLocaleDateString(),
                     date: date.toISOString(),
                     meetings: meetings.filter(function (meeting) {
-                        let meeting_date = new Date(meeting.start_date);
+                        let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss');
 
                         return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime();
                     })
@@ -39,7 +41,6 @@ class CalendarBody extends React.Component {
                 shown_meetings.push(meet);
             });
         }
-
         return shown_meetings;
     }
 
@@ -54,13 +55,13 @@ class CalendarBody extends React.Component {
         let time_of_day = CalendarStorage.get('filter_time_of_day');
 
         let shown_meetings = [];
-
+        
         if (location) {
             meetings = meetings.filter(function (meeting) {
                 return meeting.locations_id === location.id;
             })
         }
-
+        
         if (service) {
             meetings = meetings.filter(function (meeting) {
                 return meeting.services_id === service.id;
@@ -76,12 +77,12 @@ class CalendarBody extends React.Component {
         if (time_of_day) {
             if (time_of_day === 'morning') {
                 meetings = meetings.filter(function (meeting) {
-                    let date = new Date(meeting.start_date);
+                    let date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
                     return date.getHours() < 12;
                 })
             } else if (time_of_day === 'afternoon') {
                 meetings = meetings.filter(function (meeting) {
-                    let date = new Date(meeting.start_date);
+                    let date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
                     return date.getHours() >= 12;
                 })
             }
@@ -94,7 +95,7 @@ class CalendarBody extends React.Component {
                 title: date.toLocaleDateString(),
                 date: date.toISOString(),
                 meetings: meetings.filter(function (meeting) {
-                    let meeting_date = new Date(meeting.start_date);
+                    let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
 
                     return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime();
                 })
@@ -116,6 +117,7 @@ class CalendarBody extends React.Component {
             dateArray.push(new_date);
             currentDate.setDate(currentDate.getDate() + 1);
         }
+
         return dateArray;
     }
 
