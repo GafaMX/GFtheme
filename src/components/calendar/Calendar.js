@@ -19,7 +19,8 @@ class Calendar extends React.Component {
         super(props);
 
         this.state = {
-            showLogin: false
+            showLogin: false,
+            meetings: []
         };
 
         CalendarStorage.set('locations', this.props.locations);
@@ -40,7 +41,7 @@ class Calendar extends React.Component {
         CalendarStorage.set('start_date', start_date);
 
         let push_meetings = function (result) {
-            CalendarStorage.push('meetings', result);
+            CalendarStorage.set('meetings', result);
             CalendarStorage.set('start_date', start_date);
         };
 
@@ -71,7 +72,7 @@ class Calendar extends React.Component {
         return (
             <div className={calendarClass}>
                 <CalendarFilters/>
-                <CalendarBody/>
+                <CalendarBody />
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }
