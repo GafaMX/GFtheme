@@ -27,6 +27,7 @@ header{
     background-color:rgba(255, 255, 255, 1);
     box-shadow: 0 2px 25px 0 rgba(0, 0, 0, 0.05);
     border-radius: 0 0 58px 58px;
+    z-index: 9999;
     top:0;
     left:50%;
     transform: translateX(-50%);

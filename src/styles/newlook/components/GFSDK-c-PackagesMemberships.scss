@@ -28,22 +28,31 @@
     }
 
     &__container{
-
+        display: grid;
+        align-items: center;
 
         .slick-slide{
             & > div{
                 padding:20px;
             }
-            opacity: 0.6;
-            transform: scale(0.8);
-            @include transition(opacity);
-            @include transition(transform);
-            
-            &.slick-center{
-                transform: scale(1);
-                opacity: 1;
+        }
+
+        &.slick-centered{
+
+            .slick-slide{
+                opacity: 0.6;
+                pointer-events: none;
+                transform: scale(0.8);
+                @include transition(all);
+                
+                &.slick-center{
+                    pointer-events: all;
+                    transform: scale(1);
+                    opacity: 1;
+                }
             }
         }
+
 
         .slick-dots{
             li{

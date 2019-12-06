@@ -19,6 +19,35 @@
         width: 20px;
     }
 
+    &__controls{
+        position: absolute;
+        height:30px;
+        width:30px;
+
+        &.is-next{
+            right:-10px;
+            @media screen and (min-width:992px) {
+                right:-25px;
+            }
+        }
+
+        &.is-prev{
+            left:-10px;
+            @media screen and (min-width:992px) {
+                left:-25px;
+            }
+        }
+
+        & > button{
+            background:transparent;
+            border: 0 transparent none;
+
+            &:focus{
+                outline:none;
+            }
+        }
+    }
+
     &__bullets{
         cursor: pointer;
         &:focus{
