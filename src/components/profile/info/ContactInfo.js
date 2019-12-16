@@ -11,31 +11,37 @@ class ContactInfo extends React.Component {
     }
 
     render() {
+        let preE = 'GFSDK-e';
+        let preC = 'GFSDK-c';
+        let formClass = preE + '-form';
+        let profileClass = preC + '-profile';
+
         return (
-            <div className="row col-md-12">
-                <h4 className="col-md-12">
-                    {Strings.LABEL_CONTACT}
-                </h4>
-                <FormGroup className="col-md-12" controlId="email" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_EMAIL}</ControlLabel>
+            <div className={profileClass + '__section is-contact'}>
+                <h4>{Strings.LABEL_CONTACT}</h4>
+                <FormGroup className={formClass + "__section is-email"} controlId="email">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="email"
                         value={this.props.info.email}
                         onChange={this.props.handleChangeField}
                         disabled
                     />
                 </FormGroup>
-                <FormGroup className="col-md-6" controlId="phone" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_PHONE}</ControlLabel>
+                <FormGroup className={formClass + "__section is-phone"} controlId="phone" bsSize="large">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PHONE}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="number"
                         value={this.props.info.phone}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <FormGroup className="col-md-6" controlId="cel_phone" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_CEL_PHONE}</ControlLabel>
+                <FormGroup className={formClass + "__section is-phone"} controlId="cel_phone" bsSize="large">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_CEL_PHONE}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="number"
                         value={this.props.info.cel_phone}
                         onChange={this.props.handleChangeField}

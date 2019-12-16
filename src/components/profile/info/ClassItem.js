@@ -2,10 +2,12 @@
 
 import React from 'react';
 import Moment from 'moment';
+import 'moment/locale/es';
 import Strings from "../../utils/Strings/Strings_ES";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Glyphicon from "react-bootstrap/es/Glyphicon";
 import Modal from "react-bootstrap/es/Modal";
+import CloseIcon from "../../utils/Icons/CloseIcon";
 
 
 class ClassItem extends React.Component {
@@ -66,51 +68,65 @@ class ClassItem extends React.Component {
          )
      }else if(Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM') >= today){
             cancelation = (
-                <button type="button" className="close " aria-label="Close" onClick={this.handleShowCancelation.bind(this)}>
+                <button type="button" className="pastClass-item__close qodef-btn qodef-btn-solid" onClick={this.handleShowCancelation.bind(this)}>
                     {/*<span aria-hidden="true">&times;</span>*/}
-                    <Glyphicon glyph="remove" /> {Strings.CANCELATION}
+                    <CloseIcon />
                 </button>
             )
      }
 
 
         return (
-            <div className={'reservation-item-container col-md-4'}>
-
-                <div className={'reservation-item mb-4 card shadow-sm'}>
-
-                    <div className={'card-header'}>
-                        <h4 className={'reservation-item-name'}>{this.props.reservation.location['name']}</h4>
-                    </div>
-                    <div className={'card-body'}>
-                        <p className={'reservation-item-staff'}>{this.props.reservation.staff['name']}</p>
-                        <p className={'reservation-item-service'}>{this.props.reservation.service['name']}</p>
-                        <p className={'reservation-item-position'}>{Strings.POSITION}{this.props.reservation.meeting_position}</p>
-                        <p className={'reservation-item-meeting'}>{Strings.BEGINS}{Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM')}</p>
-                        {membershipCredits}
-                    </div>
-                    {cancelation}
-                    <br/>
+            <div className={'pastClass-item'}>
+                <div className={'card-header'}>
+                    <h4>
+                        <strong>{Strings.BEGINS}</strong>
+                        <span>
+                            {Moment(this.props.reservation.meeting_start).locale('es').calendar()} en {this.props.reservation.location['name']}
+                        </span>
+                    </h4>
                 </div>
+                <hr></hr>
+                <div className={'card-body'}>
+                    {/* <p>
+                        <strong>{Strings.BEGINS}</strong>
+                        <span>{Moment(this.props.reservation.meeting_start).locale('es').calendar()}</span>
+                    </p> */}
+                    <p className={'reservation-item-staff'}><strong>{this.props.reservation.staff['name']}</strong></p>
+                    <p className={'reservation-item-service'}>{this.props.reservation.service['name']}</p>
+                    {/* <p className={'reservation-item-position'}>{Strings.POSITION}{this.props.reservation.meeting_position}</p> */}
+                    {/* {membershipCredits} */}
+                </div>
+
+                {cancelation}
 
                 <Modal className={'modal-cancelation'} show={this.state.showCancelation} animation={false}
                        onHide={this.handleClickBack.bind(this)}>
 
-                    <Modal.Header className={'modal-cancelation-header'} closeButton>
-                        <Modal.Title>{Strings.CANCELATION}</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body className={'modal-cancelation-body'}>
-                        <h4>{Strings.CANCELATIONMESSAGE}</h4>
+                    <div className="row">
+                        <div className="col-lg-12 col-xl-12 modal-cancelation__body">
+                            <div className="container">
+                                <Modal.Header className={'modal-cancelation-header'} closeButton>
+                                    <Modal.Title>{Strings.CANCELATION}</Modal.Title>
+                                </Modal.Header>
+                                <Modal.Body className={'modal-cancelation-body'}>
+                                    <h4>{Strings.CANCELATIONMESSAGE}</h4>
 
-                    </Modal.Body>
-                    <Modal.Footer className={'modal-reservation-footer'}>
-                        <button type="button" onClick={this.handleClick.bind(this)}>
-                            <Glyphicon glyph="ok-circle" /> {Strings.BUTTON_ACCEPT}
-                        </button>
-                        <button type="button" onClick={this.handleClose.bind(this)}>
-                            <Glyphicon glyph="remove" /> {Strings.BUTTON_CANCEL}
-                        </button>
-                    </Modal.Footer>
+                                </Modal.Body>
+                                <Modal.Footer className={'modal-reservation-footer'}>
+                                    <div className="GFSDK-form__section" id="cancel-class">
+                                        <button type="button" className="qodef-btn qodef-btn-solid btn btn-lg btn-primary btn-block" onClick={this.handleClick.bind(this)}>
+                                            <Glyphicon glyph="ok-circle" /> {Strings.BUTTON_ACCEPT}
+                                        </button>
+                                        <button type="button" className="qodef-btn qodef-btn-solid btn btn-lg btn-primary btn-block" onClick={this.handleClose.bind(this)}>
+                                            <Glyphicon glyph="remove" /> {Strings.BUTTON_CANCEL}
+                                        </button>
+                                    </div>
+                                </Modal.Footer>
+                            </div>
+                        </div>
+                    </div>
+
                 </Modal>
             </div>
         )

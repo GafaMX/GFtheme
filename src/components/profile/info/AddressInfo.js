@@ -21,68 +21,77 @@ class AddressInfo extends React.Component {
     }
 
     render() {
+        let preE = 'GFSDK-e';
+        let preC = 'GFSDK-c';
+        let formClass = preE + '-form';
+        let profileClass = preC + '-profile';
+
         return (
-            <div className="row col-md-12">
-                <h4 className="col-md-12">
-                    {Strings.LABEL_ADDRESS}
-                </h4>
-                <FormGroup className="col-md-6" controlId="address" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_ADDRESS}</ControlLabel>
+            <div className={profileClass + '__section is-address'}>
+                <h4>{Strings.LABEL_ADDRESS}</h4>
+                <FormGroup className={formClass + "__section is-address"} controlId="address">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_ADDRESS}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="text"
                         value={this.props.info.address}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <FormGroup className="col-md-3" controlId="external_number" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_EXTERNAL_NUMBER}</ControlLabel>
+                <FormGroup className={formClass + "__section is-external_number"} controlId="external_number">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EXTERNAL_NUMBER}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="text"
                         value={this.props.info.external_number}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <FormGroup className="col-md-3" controlId="internal_number" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_INTERNAL_NUMBER}</ControlLabel>
+                <FormGroup className={formClass + "__section is-internal_number"} controlId="internal_number">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_INTERNAL_NUMBER}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="text"
                         value={this.props.info.internal_number}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <FormGroup className="col-md-6" controlId="postal_code" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_POSTAL_CODE}</ControlLabel>
+                <FormGroup className={formClass + "__section is-postal_code"} controlId="postal_code">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_POSTAL_CODE}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="text"
                         value={this.props.info.postal_code}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <FormGroup className="col-md-3" controlId="municipality" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_MUNICIPALITY}</ControlLabel>
+                <FormGroup className={formClass + "__section is-municipality"} controlId="municipality">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_MUNICIPALITY}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="text"
                         value={this.props.info.municipality}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <FormGroup className="col-md-3" controlId="city" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_CITY}</ControlLabel>
+                <FormGroup className={formClass + "__section is-city"} controlId="city">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_CITY}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="text"
                         value={this.props.info.city}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <div className="col-md-6 select-group">
-                    <ControlLabel>{Strings.LABEL_COUNTRY}</ControlLabel>
+                <div className={formClass + "__section is-country"}>
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_COUNTRY}</ControlLabel>
                     <Select options={this.props.info.countries}
                             value={this.props.info.countries.find(option => option.value === this.props.info.countries_id)}
                             onChange={this.handleChangeCountry.bind(this)}
                     />
                 </div>
-                <div className="col-md-6 select-group">
-                    <ControlLabel>{Strings.LABEL_STATE}</ControlLabel>
+                <div className={formClass + "__section is-state"}>
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_STATE}</ControlLabel>
                     <Select options={this.props.info.states}
                             value={this.props.info.states.find(option => option.value === this.props.info.country_states_id)}
                             onChange={this.handleChangeState.bind(this)}

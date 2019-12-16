@@ -220,16 +220,15 @@ class LoginRegister extends React.Component {
                 <div className={loginClass + '__menu-nav'}>
                     {!this.state.me && this.state.showButtons &&
                         <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickLogin.bind(this)}>
-                            <IconRunningMan />                        
+                            <IconRunningMan />
                         </a>
                     }
                     {this.state.me !== null && this.state.showButtons && <div>
                         <a onClick={this.handleClickProfile.bind(this)}>
                             {this.state.me != null ?
-                                <div className="profile-data">
-                                    <p className="profile-button-first-name">{this.state.me.first_name}</p>
-                                    <p className="profile-button-last-name">&nbsp;{this.state.me.last_name}</p>
-                                    <p className="profile-button-credits-total">&nbsp;{this.state.me.creditsTotal}</p>
+                                <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
+                                    <IconRunningMan />
+                                    <p className="profile-button-credits-total">{this.state.me.creditsTotal}</p>
                                 </div>
                                 : Strings.BUTTON_PROFILE}
                         </a>
@@ -302,34 +301,13 @@ class LoginRegister extends React.Component {
 
                     <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)} animation={false}>
                         <div className="row">
-                            <div className="col-lg-2 col-xl-3 modal-profile__image">
-                                <div className="modal-profile__image-image">
-                                </div>
-                                <div className="modal-profile__image-nav">
-                                    <ul>
-                                        <li className="nav-item">
-                                            <a>Regresar al sitio</a>
-                                        </li>
-                                        <li className="nav-item">
-                                            <a onClick={this.handleClickLogout.bind(this)}>{Strings.BUTTON_LOGOUT}</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div className="col-lg-10 col-xl-9 modal-profile__body">
-                                <div className="container-fluid">
-                                    <div className="row">
-                                        <div className="col-lg-3 profile-intro">
-                                            <div className="container">
-                                                <ProfileUserImage />
-                                                <ProfileUserSidebar />
-                                            </div>
-                                        </div>
-                                        <div className="col-lg-9 profile-content">
-                                            <Modal.Body className="modal-profile__body">
-                                                <ProfileUserInfo successCallback={this.successProfileSaveCallback.bind(this)}/>
-                                            </Modal.Body>
-                                        </div>
+                            <div className="col-lg-12 col-xl-12 modal-profile__body">
+                                <div className="container">
+                                    <div className="col-lg-12 profile-content">
+                                        <Modal.Header closeButton></Modal.Header>
+                                        <Modal.Body className="modal-profile__body">
+                                            <ProfileUserInfo successCallback={this.successProfileSaveCallback.bind(this)}/>
+                                        </Modal.Body>
                                     </div>
                                 </div>
                             </div>

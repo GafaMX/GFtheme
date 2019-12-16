@@ -440,7 +440,7 @@ class GafaFitSDKWrapper extends React.Component {
     static getFancyForMeetingReservation(location, meetings_id, callback) {
         GafaFitSDKWrapper.getMe(function (me) {
             GafaFitSDK.GetCreateReservationForm(
-                me.brand,
+                window.GFtheme.brand,
                 location,
                 me.id,
                 '[data-gf-theme="fancy"]',

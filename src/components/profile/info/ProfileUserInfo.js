@@ -2,6 +2,8 @@
 
 import React from "react";
 import {Button, Tab, Tabs} from "react-bootstrap";
+import CustomScroll from "react-custom-scroll";
+import "react-custom-scroll/dist/customScroll.css"
 import {FormErrors} from "../../form/FormErrors";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Strings from "../../utils/Strings/Strings_ES";
@@ -14,8 +16,17 @@ import FutureClasses from "./FutureClasses";
 import PastClasses from "../PastClasses";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
-import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
+// import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
 import GlobalStorage from "../../store/GlobalStorage";
+
+import { Transition, animated } from 'react-spring/renderprops'
+
+//Estilos
+import '../../../styles/newlook/components/GFSDK-c-Profile.scss';
+import '../../../styles/newlook/components/GFSDK-c-Orders.scss';
+import '../../../styles/newlook/elements/GFSDK-e-form.scss';
+import '../../../styles/newlook/elements/GFSDK-e-scroll.scss';
+import '../../../styles/newlook/elements/GFSDK-e-buttons.scss';
 
 class ProfileUserInfo extends React.Component {
     constructor(props) {
@@ -25,7 +36,7 @@ class ProfileUserInfo extends React.Component {
             email: "",
             first_name: "",
             last_name: "",
-            birthDate: new Date(),
+            // birthDate: new Date(),
             birth_date: "",
             password: "",
             password_confirmation: "",
@@ -58,7 +69,7 @@ class ProfileUserInfo extends React.Component {
                     email: result.email,
                     first_name: result.first_name,
                     last_name: result.last_name,
-                    birthDate: new Date(result.birth_date.substring(0, 11)),
+                    // birthDate: new Date(result.birth_date.substring(0, 11)),
                     birth_date: result.birth_date,
                     address: result.address,
                     internal_number: result.internal_number,
@@ -163,101 +174,111 @@ class ProfileUserInfo extends React.Component {
     }
 
     render() {
+        let preE = 'GFSDK-e';
+        let preC = 'GFSDK-c';
+        let profileClass = preC + '-profile';
+        let tabsClass = preE + '-tabs';
+        let buttonClass = preE + '-buttons';
+        let formClass = preE + '-form';
+
         return (
             <div className="profile-info">
-                <div className="container-fluid">
-                    <div className="row">
-                        <div className="col-lg-6 col-xl-6 profile-user">
+                <div className={'GFSDK-user__container'}>
+                    <div className="profile-user">
+                        <div className="profile-user__data">
                             <h3 className="profile-user__name">{this.state.first_name} {this.state.last_name}</h3>
                             <h4 className="profile-user__venue">{this.state.email}</h4>
-                            <hr></hr>
-                            <h4 className="profile-user__title">Genero</h4>
-                            <p className="profile-user__text">{this.state.gender}</p>
-                            <hr></hr>
-                            <h4 className="profile-user__title">Fecha de nacimiento</h4>
-                            <p className="profile-user__text">{this.state.birth_date}</p>
                         </div>
-                        <div className="col-lg-6 col-xl-6 profile-bank">
-                            <ProfileCreditsMemberships />
+                        <div className="profile-user__tools">
+                            <a className="user-btn is-logout" onClick={this.props.handleClickLogout}>
+                                {Strings.BUTTON_LOGOUT}
+                            </a>
                         </div>
                     </div>
                 </div>
-                <div className={'profile-tabs col-md-12'}>
-                    <div className="container">
 
-                        <Tabs defaultActiveKey={1} id={'ProfileTabs'} animation={false}>
+                <div className={'profile-tabs'}>
+                    <div className="container-fluid">
+                        <Tabs defaultActiveKey={1} id={'ProfileTabs'} className={profileClass + '__tab-content'} animation={true}>
                             <Tab eventKey={1} title={Strings.CLASS}>
-                                <Tabs defaultActiveKey={1} id={'HistoryTabs'} animation={false}>
-                                    <Tab eventKey={1} title={Strings.FUTURESCLASSES}>
-                                        <FutureClasses/>
+                                <Tabs defaultActiveKey={1} id={'HistoryTabs'} unmountOnExit={true} animation={true}>
+                                    <Tab eventKey={1} title={Strings.FUTURESCLASSES} className="ui-state-default ui-corner-top ui-tabs-active ui-state-active">
+                                        <FutureClasses />
                                     </Tab>
-                                    <Tab eventKey={2} title={Strings.PASTCLASSES}>
-                                        <PastClasses/>
+                                    <Tab eventKey={2} title={Strings.PASTCLASSES} className="ui-state-default ui-corner-top ui-tabs-active ui-state-active">
+                                        <PastClasses />
                                     </Tab>
-                                    <Tab eventKey={3} title={Strings.PURCHASES}>
-                                        <PurchasesList/>
+                                    <Tab eventKey={3} title={Strings.PURCHASES} className="ui-state-default ui-corner-top ui-tabs-active ui-state-active">
+                                        <PurchasesList />
                                     </Tab>
                                 </Tabs>
-
                             </Tab>
+
                             <Tab eventKey={2} title={Strings.PROFILE}>
-                                <form onSubmit={this.handleSubmit.bind(this)}>
-                                    <UserInfo info={this.state} updateState={this.updateState.bind(this)}
-                                            handleChangeField={this.handleChangeField.bind(this)}/>
-                                    <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
-                                                getStatesListByCountry={this.getStatesListByCountry.bind(this)}
-                                                handleChangeField={this.handleChangeField.bind(this)}/>
-                                    <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
-                                                handleChangeField={this.handleChangeField.bind(this)}/>
+                                <div className={profileClass + '__tab-content'}>
+                                    <CustomScroll heightRelativeToParent="100%">
+                                        <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
+                                            <UserInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                    handleChangeField={this.handleChangeField.bind(this)}/>
+                                            <hr className={formClass + '__divider'}></hr>
+                                            <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                        getStatesListByCountry={this.getStatesListByCountry.bind(this)}
+                                                        handleChangeField={this.handleChangeField.bind(this)}/>
+                                            <hr className={formClass + '__divider'}></hr>
+                                            <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                        handleChangeField={this.handleChangeField.bind(this)}/>
 
-                                    <div className="col-md-4">
-                                        <Button
-                                            block
-                                            bsSize="large"
-                                            bsStyle="primary"
-                                            disabled={!this.state.formValid}
-                                            type="submit"
-                                        >
-                                            {Strings.BUTTON_SAVE}
-                                        </Button>
-                                        <div className="text-danger">
-                                            <FormErrors formErrors={this.state.formErrors}/>
-                                            {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                                        </div>
-                                        <div className="text-success">
-                                            {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                        </div>
-                                    </div>
-                                </form>
+                                            <div className={profileClass + '__section is-save'}>
+                                                <Button
+                                                    disabled={!this.state.formValid}
+                                                    type="submit"
+                                                    className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
+                                                >
+                                                    {Strings.BUTTON_SAVE}
+                                                </Button>
+
+                                                <div className={formClass + '__notifications'}>
+                                                    <div className="text-danger">
+                                                        <FormErrors formErrors={this.state.formErrors}/>
+                                                        {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                                                    </div>
+                                                    <div className="text-success">
+                                                        {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </CustomScroll>
+                                </div>
                             </Tab>
-                            {/*<Tab eventKey={3} title={Strings.PAYMENTMETHODS}>*/}
 
-                            {/*</Tab>*/}
                             <Tab eventKey={3} title={Strings.CHANGEPASSWORD}>
-                                <form onSubmit={this.handleSubmit.bind(this)}>
+                                <div className={profileClass + '__tab-content'}>
+                                    <form className={profileClass + '__form is-ChangePassword'} onSubmit={this.handleSubmit.bind(this)}>
+                                        <ChangePassword info={this.state}
+                                                        handleChangePassword={this.handleChangePassword.bind(this)}
+                                                        handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
+                                        <div className={profileClass + '__section is-save'}>
+                                            <Button
+                                                disabled={!this.state.formValid}
+                                                type="submit"
+                                                className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
+                                            >
+                                                {Strings.BUTTON_SAVE}
+                                            </Button>
 
-                                    <ChangePassword info={this.state}
-                                                    handleChangePassword={this.handleChangePassword.bind(this)}
-                                                    handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
-                                    <div className="col-md-4">
-                                        <Button
-                                            block
-                                            bsSize="large"
-                                            bsStyle="primary"
-                                            disabled={!this.state.formValid}
-                                            type="submit"
-                                        >
-                                            {Strings.BUTTON_SAVE}
-                                        </Button>
-                                        <div className="text-danger">
-                                            <FormErrors formErrors={this.state.formErrors}/>
-                                            {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                                            <div className={formClass + '__notifications'}>
+                                                <div className="text-danger">
+                                                    <FormErrors formErrors={this.state.formErrors}/>
+                                                    {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                                                </div>
+                                                <div className="text-success">
+                                                    {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="text-success">
-                                            {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                        </div>
-                                    </div>
-                                </form>
+                                    </form>
+                                </div>
                             </Tab>
                         </Tabs>
                     </div>

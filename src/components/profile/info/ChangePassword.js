@@ -11,32 +11,39 @@ class ChangePassword extends React.Component{
     }
 
     render(){
+        let preE = 'GFSDK-e';
+        let preC = 'GFSDK-c';
+        let formClass = preE + '-form';
+        let profileClass = preC + '-profile';
+
         return(
-            <div className={"row col-md-12"}>
+            <div className={profileClass + '__section is-password'}>
 
-                <h4 className={'col-md-12'}>
-                    {Strings.CHANGEPASSWORD}
-                </h4>
-                <FormGroup className={'confirmation-info'} controlId="email_confirm">
-                    <FormControl type={'text'} value={this.props.info.email} disabled/>
+                <h4>{Strings.CHANGEPASSWORD}</h4>
+                <FormGroup className={formClass + "__section is-email_confirm"} controlId="email_confirm">
+                    <FormControl className={formClass + "__input"} type={'text'} value={this.props.info.email} disabled/>
                 </FormGroup>
 
-                <FormGroup className={'confirmation-info'} controlId="first_name_confirm">
-                    <FormControl type={'text'} value={this.props.info.first_name} disabled/>
+                <FormGroup className={formClass + "__section is-first_name_confirm"} controlId="first_name_confirm">
+                    <FormControl className={formClass + "__input"} type={'text'} value={this.props.info.first_name} disabled/>
                 </FormGroup>
 
-                <FormGroup className={'col-md-6'} controlId="password" bsSize={'large'}>
-                    <ControlLabel>{Strings.NEWPASSWORD}</ControlLabel>
-                    <FormControl type={'password'}
-                                 value={this.props.info.password}
-                                 onChange={this.props.handleChangePassword}/>
+                <FormGroup className={formClass + "__section is-password"} controlId="password">
+                    <ControlLabel className={formClass + "__label"}>{Strings.NEWPASSWORD}</ControlLabel>
+                    <FormControl 
+                        type={'password'}
+                        className={formClass + "__input"}
+                        value={this.props.info.password}
+                        onChange={this.props.handleChangePassword}/>
                 </FormGroup>
 
-                <FormGroup className={'col-md-6'} controlId="confirmationPassword" bsSize={'large'}>
-                    <ControlLabel>{Strings.PASSWORDCONFIRM}</ControlLabel>
-                    <FormControl type={'password'}
-                                 value={this.props.info.password_confirmation}
-                                 onChange={this.props.handleChangeConfirmationPassword}/>
+                <FormGroup className={formClass + "__section is-confirmationPassword"} controlId="confirmationPassword" bsSize={'large'}>
+                    <ControlLabel className={formClass + "__label"}>{Strings.PASSWORDCONFIRM}</ControlLabel>
+                    <FormControl 
+                        type={'password'}
+                        className={formClass + "__input"}
+                        value={this.props.info.password_confirmation}
+                        onChange={this.props.handleChangeConfirmationPassword}/>
                 </FormGroup>
             </div>
         )

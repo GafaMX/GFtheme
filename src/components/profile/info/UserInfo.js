@@ -47,49 +47,56 @@ class UserInfo extends React.Component {
     }
 
     render() {
+        let preE = 'GFSDK-e';
+        let preC = 'GFSDK-c';
+        let formClass = preE + '-form';
+        let profileClass = preC + '-profile';
+
         return (
-            <div className="row col-md-12">
-                <h4 className="col-md-12">
+            <div className={profileClass + '__section is-user'}>
+                <h4>
                     {Strings.LABEL_PROFILE_INFO}
                 </h4>
 
-                <FormGroup className="col-md-6" controlId="first_name" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_FIRST_NAME}</ControlLabel>
+                <FormGroup className={formClass + "__section is-first_name"} controlId="first_name">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_FIRST_NAME}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         autoFocus
                         type="text"
                         value={this.props.info.first_name}
                         onChange={this.handleChangeFirstName.bind(this)}
                     />
                 </FormGroup>
-                <FormGroup className="col-md-6" controlId="last_name" bsSize="large">
-                    <ControlLabel>{Strings.LABEL_LAST_NAME}</ControlLabel>
+                <FormGroup className={formClass + "__section is-last_name"} controlId="last_name">
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_LAST_NAME}</ControlLabel>
                     <FormControl
+                        className={formClass + "__input"}
                         type="text"
                         value={this.props.info.last_name}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
-                <FormGroup className="col-md-6 radio-inline">
-                    <div>
-                        <label className="radio-group">
+                <FormGroup className={formClass + "__section is-gender"}>
+                    <div className={formClass + "__radio-container"}>
+                        <label className={formClass + "__radio"}>
                             <input className="mr-2" type="radio" value="male"
                                    checked={this.props.info.gender === "male"}
                                    name="gender"
                                    onChange={this.handleGenderChange.bind(this)}/>
-                            <p>Hombre</p>
+                            <p className={formClass + "__label"}>Hombre</p>
                         </label>
-                        <label className="radio-group">
+                        <label className={formClass + "__radio"}>
                             <input className="mr-2" type="radio" value="female"
                                    checked={this.props.info.gender === "female"}
                                    name="gender"
                                    onChange={this.handleGenderChange.bind(this)}/>
-                            <p>Mujer</p>
+                            <p className={formClass + "__label"}>Mujer</p>
                         </label>
                     </div>
                 </FormGroup>
-                <div className="col-md-6">
-                    <ControlLabel className="mr-2">{Strings.LABEL_BIRTH_DATE}</ControlLabel>
+                <div className={formClass + "__section is-birthday"}>
+                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_BIRTH_DATE}</ControlLabel>
                     <DatePicker
                         onChange={this.handleChangeBirthDate.bind(this)}
                         value={this.props.info.birthDate}

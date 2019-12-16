@@ -24,21 +24,17 @@ class ClassItem extends React.Component {
 
 
         return (
-            <div className={'reservation-item-container col-md-4'}>
-
-                <div className={'reservation-item mb-4 card shadow-sm'}>
-
-                    <div className={'card-header'}>
-                        <h4 className={'reservation-item-name'}>{this.props.reservation.location['name']}</h4>
-                    </div>
-                    <div className={'card-body'}>
-                        <p className={'reservation-item-service'}>{this.props.reservation.meetings.service['name']}</p>
-                        <p className={'reservation-item-position'}>{Strings.POSITION}{this.props.reservation.meeting_position}</p>
-                        <p className={'reservation-item-meeting'}>{Strings.BEGINS}{Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM')}</p>
-                        {membershipCredits}
-                    </div>
+            <div className={'futureClasses-item'}>
+                <div className={'card-header'}>
+                    <h4 className={'reservation-item-name'}><strong>Tuvo lugar:</strong> {Moment(this.props.reservation.meeting_start).locale('es').calendar()} en {this.props.reservation.location['name']}</h4>
                 </div>
-
+                <hr></hr>
+                <div className={'card-body'}>
+                    <p className={'reservation-item-service'}><strong>{this.props.reservation.meetings.service['name']}</strong></p>
+                    {/* <p className={'reservation-item-service'}>{this.props.reservation.service['name']}</p> */}
+                    {/* <p className={'reservation-item-position'}>{Strings.POSITION}{this.props.reservation.meeting_position}</p> */}
+                    {/* {membershipCredits} */}
+                </div>
             </div>
         )
     }
