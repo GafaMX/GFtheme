@@ -4,63 +4,66 @@ import React from 'react';
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 import PurchaseItem from "./PurchaseItem";
-import PaginationList from "../utils/PaginationList";
+import Slider from "react-slick";
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 class PurchasesList extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             list: [],
-            currentPage: 1,
-            perPage: 6,
-            lastPage: 0,
-            total: 0
         }
     }
 
     componentDidMount() {
         const currentComponent = this;
         GafaFitSDKWrapper.getUserPurchasesInBrand({
-            page: currentComponent.state.currentPage,
-            per_page: currentComponent.state.perPage,
+            reducePopulation: true,
         }, function (result) {
             currentComponent.setState({
                 list: result.data,
-                currentPage: result.current_page,
-                lastPage: result.last_page,
-                perPage: result.per_page,
-                total: result.total
             })
 
         })
     }
 
-    updatePaginationData(result) {
-        this.setState({
-            list: result.data,
-            currentPage: result.current_page
-        })
-    }
-
     render() {
+
+        let preC = 'GFSDK-c';
+        let profileClass = preC + '-profile';
+        let ordersClass = preC + '-orders';
+
+        let settings = {
+            arrows: false,
+            dots: true,
+            infinite: false,
+            speed: 500,
+            rows: 1,
+            slidesToScroll: 6,
+            slidesToShow: 6,
+            responsive: [
+                {
+                    breakpoint: 768,
+                    settings: {
+                        dots: true,
+                        rows: 3,
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    }
+                },
+            ],
+        };
 
         const listItems = this.state.list.map((purchase) =>
             <PurchaseItem key={purchase.id} purchase={purchase} id={purchase.id}/>
         );
         return (
 
-            <div>
-                <h1 className={'display-4 container text-center'}>{Strings.PURCHASES}</h1>
-                <div className={'purchases-list container'}>
-                    <div className={'row mt-5 justify-content-center text-center'}>
-                        {listItems}
-                    </div>
-                </div>
-
-                <PaginationList page={this.state.currentPage} perpage={this.state.perPage}
-                                allpages={this.state.lastPage} itemsList={this.state.total}
-                                updatePaginationData={this.updatePaginationData.bind(this)}
-                                getListData={GafaFitSDKWrapper.getUserPurchasesInBrand}/>
+            <div className={profileClass + '__section is-buyOverall'} style={{width : this.state.windowWidth}}>
+                <Slider {...settings} className={ ordersClass + '__section' + (this.state.list.length <= 6 ? ' is-singleLine' : '')}>
+                    {listItems}
+                </Slider>
             </div>
         )
     }

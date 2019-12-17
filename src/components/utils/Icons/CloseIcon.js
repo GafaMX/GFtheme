@@ -2,7 +2,7 @@ import React from "react";
 
 const CloseIcon = ({
   style = {},
-  fill = "#000",
+  fill = "currentColor",
   width = "100%",
   className = "",
   viewBox = "0 0 512 512"

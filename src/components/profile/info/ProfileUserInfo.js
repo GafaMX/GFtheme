@@ -18,8 +18,7 @@ import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
 // import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
 import GlobalStorage from "../../store/GlobalStorage";
-
-import { Transition, animated } from 'react-spring/renderprops'
+import IconLogOut from '../../utils/Icons/IconLogOut';
 
 //Estilos
 import '../../../styles/newlook/components/GFSDK-c-Profile.scss';
@@ -190,8 +189,8 @@ class ProfileUserInfo extends React.Component {
                             <h4 className="profile-user__venue">{this.state.email}</h4>
                         </div>
                         <div className="profile-user__tools">
-                            <a className="user-btn is-logout" onClick={this.props.handleClickLogout}>
-                                {Strings.BUTTON_LOGOUT}
+                            <a className={buttonClass + ' ' + buttonClass + "--with-icon is-light"} onClick={this.props.handleClickLogout}>
+                                <IconLogOut/> {Strings.BUTTON_LOGOUT}
                             </a>
                         </div>
                     </div>
@@ -201,7 +200,7 @@ class ProfileUserInfo extends React.Component {
                     <div className="container-fluid">
                         <Tabs defaultActiveKey={1} id={'ProfileTabs'} className={profileClass + '__tab-content'} animation={true}>
                             <Tab eventKey={1} title={Strings.CLASS}>
-                                <Tabs defaultActiveKey={1} id={'HistoryTabs'} unmountOnExit={true} animation={true}>
+                                <Tabs defaultActiveKey={1} id={'HistoryTabs'} animation={true}>
                                     <Tab eventKey={1} title={Strings.FUTURESCLASSES} className="ui-state-default ui-corner-top ui-tabs-active ui-state-active">
                                         <FutureClasses />
                                     </Tab>

@@ -171,12 +171,19 @@
         padding:0;
         height:100%;
         overflow: hidden;
+        @media screen and (min-width:992px) {
+            display: flex;
+            align-items: center;
+        }
 
         > .container, > .container-fluid{
-            min-height: 100vh;
             height: 100%;
             width: 100%;
             padding:15px;
+
+            @media screen and (min-width:992px) {
+                height: 768px;
+            }
         }
     }
     &__image{

@@ -217,13 +217,14 @@
         font-size:200%;
         letter-spacing: 1px;
         font-weight: 400;
+        color: #707073;
         
         @media screen and (max-height: 768px) {
             font-size:180%;
         }
     }
     &__venue{
-        color:grey;
+        color: lighten(#707073, 10%);
         font-weight:300;
         font-size:120%;
         margin-left:10px;

@@ -13,10 +13,12 @@ class FutureClasses extends React.Component {
         this.state = {
             list: [],
             counterBuyItems: '',
+            sliderRows: 2,
             windowWidth: 0,
         }
 
         this.updateDimensions = this.updateDimensions.bind(this);
+        this.updateRows = this.updateRows.bind(this);
     }
 
     componentDidMount() {
@@ -27,14 +29,29 @@ class FutureClasses extends React.Component {
         }, function (result) {
             currentComponent.setState({
                 list: result,
-            })
+            });
+            currentComponent.updateRows();
         })
 
-        this.setState({ 
+        currentComponent.setState({ 
             windowWidth: container.offsetWidth,
         });
 
         window.addEventListener('resize', this.updateDimensions);
+    }
+
+    updateRows() {
+        let comp = this;
+        let classes = comp.state.list.length;
+        if (classes <= 6 ){
+            comp.setState({ 
+                sliderRows : 1,
+            });
+        } else if (classes > 6 ){
+            comp.setState({ 
+                sliderRows : 2,
+            });
+        }
     }
 
     updateDimensions() {
@@ -62,14 +79,14 @@ class FutureClasses extends React.Component {
             dots: true,
             infinite: false,
             speed: 500,
-            rows: 2,
-            slidesToScroll: 3,
-            slidesToShow: 3,
-            
+            rows: 1,
+            slidesToScroll: 6,
+            slidesToShow: 6,
             responsive: [
                 {
                     breakpoint: 768,
                     settings: {
+                        dots: true,
                         rows: 3,
                         slidesToShow: 1,
                         slidesToScroll: 1,
@@ -83,9 +100,8 @@ class FutureClasses extends React.Component {
         );
 
         return (
-            
             <div className={profileClass + '__section is-futureClass'} style={{width : this.state.windowWidth}}>
-                <Slider {...settings} className={ ordersClass + '__section'}>
+                <Slider {...settings} className={ ordersClass + '__section' + (this.state.list.length <= 6 ? ' is-singleLine' : '')}>
                     {listItems}
                 </Slider>
             </div>

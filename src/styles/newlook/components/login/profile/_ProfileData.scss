@@ -111,7 +111,12 @@ body.modal-open{
     height: 100%;
     grid-auto-flow: row;
     grid-template-rows: auto 1fr;
-    grid-row-gap: 1em;
+    row-gap: 20px;
+    width:100%;
+
+    @media screen and (min-width:992px) {
+        row-gap: 30px;
+    }
 }
 
 .profile-content{
@@ -127,18 +132,20 @@ body.modal-open{
     position: relative;
     row-gap: 20px;
     column-gap: 10px;
-    grid-template-columns: 2fr auto 1fr;
+    grid-template-columns: 1fr auto 1fr;
     border-radius: 23px;
     align-items: center;
     border: solid 1px lightgrey;
+    background-color:white;
     padding: 15px;
     width:100%;
     
     @media screen and (min-width:992px) {
-        grid-template-rows: 1fr auto 1fr;
+        align-items: start;
+        grid-template-rows: 1fr auto auto;
         grid-template-columns: initial;
         padding: 20px;
-        height:170px;
+        height: 200px;
     }
 
     & > .card-header{
@@ -146,6 +153,13 @@ body.modal-open{
             display: grid;
             font-size:12px;
             line-height: 1.4;
+        }
+
+        h2{
+            font-size:16px;
+            font-weight: bold;
+            line-height: 24px;
+            margin:0;
         }
 
         strong{
@@ -163,7 +177,7 @@ body.modal-open{
         height: 100%;
         
         @media screen and (min-width:992px) {
-            width: calc(100% + 40px);
+            width: 100%;
             margin-left: -20px;
             margin-right: -20px;
             height: 1px;
@@ -176,15 +190,21 @@ body.modal-open{
         line-height: 1;
         right: 0px;
         display: flex;
-        height: 35px;
-        width: 35px;
-        padding: 10px;
+        height: 26px;
+        width: 26px;
+        padding: 8px;
         border-radius: 100%;
         border: 0 transparent none;
+        background-color:#FF3E4F;
         align-items: center;
         justify-items: center;
-
+        
+        &:hover{
+            background-color:darken(#FF3E4F, 10%);
+        }
+        
         svg{
+            color:white;
             height: 100%;
             width: 100%;
         }
@@ -195,12 +215,6 @@ body.modal-open{
         grid-auto-flow: row;
         grid-template-rows: repeat(2, auto);
         grid-row-gap: .5em;
-
-        h2{
-            font-size:16px;
-            font-weight: bold;
-            line-height: 1.4;
-        }
         time{
             margin:0;
             font-size:12px;
@@ -228,24 +242,20 @@ body.modal-open{
     }
 }
 
-.purchases-list, .reservation-list, .past-reservation-list{
-    padding:0;
-}
-
 .profile-tabs{
-    padding-top:15px;
-    padding-bottom:15px;
+    padding-top:0px;
+    padding-bottom:0px;
     min-height: 65vh;
     border-radius: 23px;
     height:100%;
     overflow:hidden;
-    background-color:white;
+    // background-color:white;
 
     & > .container, & > .container-fluid{
-        padding:0 15px;
+        padding:0 ;
         height:100%;
         @media screen and (min-width:992px) {
-            padding: 15px;
+            padding: 0px;
         }
     }
 
@@ -253,12 +263,12 @@ body.modal-open{
         display: grid;
         grid-auto-flow: row;
         justify-items: start;
-        row-gap: 10px;
+        row-gap: 20px;
         grid-template-rows: auto 1fr;
         height:100%;
         overflow:hidden;
         @media screen and (min-width:992px) {
-            row-gap: 22px;
+            row-gap: 30px;
         }
         > .nav-tabs{
             border-bottom: 0px none transparent;
@@ -324,11 +334,14 @@ body.modal-open{
         #HistoryTabs{
             display: grid;
             grid-auto-flow: row;
-            grid-row-gap: 15px;
+            row-gap: 20px;
             grid-template-rows: auto 1fr;
             justify-items: start;
             height: 100%;
             width:100%;
+            @media screen and (min-width:992px) {
+                row-gap: 30px;
+            }
             .nav-tabs{
                 display: inline-grid;
                 grid-auto-flow: column;
@@ -373,7 +386,7 @@ body.modal-open{
                     }
                     &.active, &:hover{
                         a{
-                            background-color: #707073;
+                            background-color: darken(#8596A8, 20%);
                             font-weight: bold;
                         }
                     }
@@ -474,8 +487,9 @@ body.modal-open{
     grid-row-gap: 1em;
     grid-template-rows: auto auto;
     align-items:center;
+    border-radius: 23px;
     background-color:white;
-    padding:15px 15px;
+    padding:20px;
     
     @media screen and (min-width:992px) {
         grid-auto-flow: column;
@@ -483,23 +497,28 @@ body.modal-open{
         grid-column-gap: 1em;
         grid-row-gap: initial;
         grid-template-columns: 1fr auto;
-        padding:15px 30px;
+        padding:20px;
+    }
+
+    h3, h4 {
+        margin:0px;
     }
 
     &__name{
         font-size: 18px;
         font-weight: 600;
-        line-height:1.8;
+        color: #707073;
+        line-height: 26px;
     }
     
     &__venue{
         font-size: 14px;
-        color:grey;
-        line-height:1.6;
+        color: lighten(#707073, 20%);
+        line-height:21px;
     }
     
     &__name, &__venue{
-        letter-spacing: 1px;
+        letter-spacing: 0.85px;
         width:100%;
     }
     hr{

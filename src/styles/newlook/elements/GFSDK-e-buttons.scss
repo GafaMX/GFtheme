@@ -6,10 +6,14 @@
     width:100%;
     padding:15px 58px;
     border-radius: 100px;
-    font-size:14px;
+    font-size:12px;
     font-weight: 500;
     letter-spacing: 1.15px;
     border: 0 transparent none;
+
+    &:hover{
+        text-decoration: none;
+    }
 
     &.not-logged{
         &.is-primary{
@@ -38,17 +42,41 @@
         height: 20px;
         width: 20px;
         border-radius: 50%;
-        background-color:darken(#EF3532, 30%);
+        background-color:darken(#FF3E4F, 30%);
     }
 
     &.is-primary{
-        background-color: #EF3532;
+        background-color: #FF3E4F;
         color: #FFFFFF;
         fill: #FFFFFF;
         @include transition(background-color);
 
         &:hover{
-            background-color: darken(#EF3532, 10%);
+            background-color: darken(#FF3E4F, 10%);
+        }
+    }
+
+    &--with-icon{
+        display:grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        justify-items: center;
+        column-gap: 10px;
+        padding:15px 30px;
+        width:initial;
+        line-height:18px;
+        background-color:#EEF3F9;
+        color:#4E4E50;
+        @include transition(all);
+
+        svg{
+            height: 18px;
+            width: 18px;
+        }
+
+        &:hover{
+            background-color: #8596A8;
+            color: white;
         }
     }
 

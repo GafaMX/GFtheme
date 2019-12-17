@@ -39,6 +39,7 @@ class LoginRegister extends React.Component {
 
         this._isMounted = false;
         GlobalStorage.addSegmentedListener(['me'], this.updateMe.bind(this));
+        this.handleClickLogout = this.handleClickLogout.bind(this);
     }
 
     updateMe() {
@@ -306,7 +307,7 @@ class LoginRegister extends React.Component {
                                     <div className="col-lg-12 profile-content">
                                         <Modal.Header closeButton></Modal.Header>
                                         <Modal.Body className="modal-profile__body">
-                                            <ProfileUserInfo successCallback={this.successProfileSaveCallback.bind(this)}/>
+                                            <ProfileUserInfo handleClickLogout={this.handleClickLogout} successCallback={this.successProfileSaveCallback.bind(this)}/>
                                         </Modal.Body>
                                     </div>
                                 </div>

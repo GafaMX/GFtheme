@@ -7,23 +7,41 @@
         margin: 0 auto;
         width:100%;
         padding-bottom:20px;
-        
+
         .slick-list{
             padding-bottom:20px;
         }
 
+        .slick-track{
+            width:100%;
+        }
+        
+        &.is-singleLine{
+            .slick-track{
+                margin-left:0px;
+                margin-right:0px;
+            }
+
+            .slick-slide{
+                display: block;
+
+                @media screen and (min-width:992px) {
+                    grid-template-rows: 1fr;
+                }
+            }
+        }
+
         .slick-slide{
             height: 100%;
-            width: 100%;
             display: grid;
             grid-template-rows: repeat(3, 1fr);
             row-gap: 10px;
             padding:0 5px;
-            
+
             @media screen and (min-width:992px) {
                 grid-template-rows: repeat(2, 1fr);
                 row-gap: 20px;
-                padding:0 10px;
+                padding:0 15px;
             }
 
             & > div {
@@ -47,7 +65,7 @@
                 button{
                     height: 10px;
                     width: 10px;
-                    background-color:#EEEEEE;
+                    background-color:lighten(#575757, 20%);
                     border-radius: 50%;
                     @include transition(background-color);
 

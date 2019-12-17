@@ -70,14 +70,12 @@
             }
         }
 
-        &.is-futureClass{
-            display: grid;
-            align-items: center;
+        &.is-futureClass, &.is-pastClass, &.is-buyOverall{
+            display: block;
             padding:0px;
             width: 100%;
-            overflow: hidden;
             @media screen and (min-width:992px) {
-                padding: 15px;
+                padding: 0px;
             }
         }
 

@@ -12,36 +12,58 @@ class PastClasses extends React.Component {
         super(props);
         this.state = {
             list: [],
+            sliderRows: 1,
             windowWidth: 0,
             // currentPage: 1,
             // perPage: 6,
             // lastPage: 0,
             // total: 0
         }
+
+        this.updateDimensions = this.updateDimensions.bind(this);
+        this.updateRows = this.updateRows.bind(this);
     }
 
     componentDidMount() {
         const currentComponent = this;
+        const container = document.querySelector("#HistoryTabs");
         GafaFitSDKWrapper.getUserPastReservationsInBrand({
-            page: 1,
-            per_page: 1000,
+            reducePopulation: true,
         }, function (result) {
             currentComponent.setState({
                 list: result.data,
-                // currentPage: result.current_page,
-                // lastPage: result.last_page,
-                // perPage: result.per_page,
-                // total: result.total
-            })
+            });
+            currentComponent.updateRows();
         })
+
+        currentComponent.setState({ 
+            windowWidth: container.offsetWidth,
+        });
+
+        window.addEventListener('resize', this.updateDimensions);
     }
 
-    // updatePaginationData(result) {
-    //     this.setState({
-    //         list: result.data,
-    //         currentPage: result.current_page
-    //     })
-    // }
+    updateRows() {
+        let comp = this;
+        let classes = comp.state.list.length;
+        if (classes <= 6 ){
+            comp.setState({ 
+                sliderRows : 1,
+            });
+        } else if (classes > 6 ){
+            comp.setState({ 
+                sliderRows : 2,
+            });
+        }
+    }
+
+    updateDimensions() {
+        let comp = this;
+        const container = document.querySelector("#HistoryTabs");
+        comp.setState({
+            windowWidth: container.offsetWidth,
+        });
+    };
 
     render() {
         let preC = 'GFSDK-c';
@@ -53,9 +75,9 @@ class PastClasses extends React.Component {
             dots: true,
             infinite: false,
             speed: 500,
-            rows: 2,
-            slidesToScroll: 3,
-            slidesToShow: 3,
+            rows: 1,
+            slidesToScroll: 6,
+            slidesToShow: 6,
             responsive: [
                 {
                     breakpoint: 768,
@@ -73,8 +95,8 @@ class PastClasses extends React.Component {
         );
 
         return (
-            <div className={profileClass + '__section is-futureClass'}>
-                <Slider {...settings} className={ ordersClass + '__section'}>
+            <div className={profileClass + '__section is-pastClass'} style={{width : this.state.windowWidth}}>
+                <Slider {...settings} className={ ordersClass + '__section' + (this.state.sliderRows <= 6 ? ' is-singleLine' : '')}>
                     {listItems}
                 </Slider>
             </div>
