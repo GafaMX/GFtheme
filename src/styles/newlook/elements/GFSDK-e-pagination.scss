@@ -21,20 +21,19 @@
 
     &__controls{
         position: absolute;
-        height:30px;
-        width:30px;
+        z-index: 99;
 
         &.is-next{
             right:-10px;
             @media screen and (min-width:992px) {
-                right:-25px;
+                right:-30px;
             }
         }
 
         &.is-prev{
             left:-10px;
             @media screen and (min-width:992px) {
-                left:-25px;
+                left:-30px;
             }
         }
 

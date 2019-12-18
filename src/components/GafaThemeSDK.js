@@ -58,7 +58,7 @@ class GafaThemeSDK extends React.Component {
                     per_page = 10;
                 }
                 GafaFitSDKWrapper.getStaffList({
-                    per_page: per_page,
+                    per_page: 1000,
                 }, function (result) {
                     let props = GafaThemeSDK.propsForPagedListComponent(result);
                     GafaThemeSDK.renderElementIntoContainer(domContainer, StaffList, props);

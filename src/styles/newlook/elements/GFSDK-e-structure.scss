@@ -1,25 +1,108 @@
 @import '../base/variables.scss';
 
+
+
 .#{$pre}-e-structure{
-    display:grid;
+    display:block;
     grid-auto-flow: row;
     row-gap: 15px;
     border: 1px solid #EEEEEE;
     border-radius: 23px;
-    padding: 28px 26px;
-    // cursor: pointer;
+    padding: 15px;
+    overflow: hidden;
+    position: relative;
+    height: 350px;
+    cursor: pointer;
     @include transition(border);
     box-sizing: border-box;
-    box-shadow: 0 2px 25px 0 rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px 0 rgba(0,0,0,0.05);
+
+    &:hover{
+        [class*=__head]{
+            // top:0;
+            
+            > .this-image{
+                & > div{
+                    &:before{
+                        animation: imageStaffHover ease 1s infinite;
+                    }
+                }
+            }
+        }
+    }
+
+    &.is-active{
+        [class*=__head]{
+            top:0;
+            transition-delay: .3s;
+            
+            > .this-image{
+                & > div{
+                    left: 0;
+                    transform: translateX(0);
+                    transition-delay: 0s;
+
+                    &:before{
+                        animation: none;
+                        transform: scale(1.1);
+                    }
+                }
+            }
+            
+            > .this-name{
+                & > h2{
+                    left: 0;
+                    transform: translateX(0);
+                    transition-delay: 0s;
+                }
+            }
+        }
+
+        [class*=__footer]{
+            .this-description{
+                pointer-events: all;
+                transform: translateY(0px);
+                opacity: 1;
+                transition-delay: .6s;
+            }
+        }
+    }
 
     @include cleanStyles;
 
-    &:hover{
-        // border: 1px solid #EF3532;
+    &__container{
+        position: relative;
+        height: 100%;
+        width:100%;
+    }
+
+    &__background{
+        position: absolute;
+        top:0;
+        left:0;
+        height:100%;
+        width:100%;
+        z-index: 0;
+
+        &:before{
+            content: ' ';
+            position: absolute;
+            height: 100%;
+            width:100%;
+            background-color: #1F1C3D;
+            opacity: 0.7;
+        }
+        
+        & > img{
+            object-fit: cover;
+            height: 100%;
+            width: 100%;
+        }
     }
 
     &__head, &__body{
         color: #1F1C3D;
+        z-index: 1;
     }
 
     &__body, &__footer{
@@ -31,17 +114,76 @@
     }
 
     &__head{
+        position: absolute;
+        display: block;
+        width:100%;
+        top:calc((350px - 30px) - 70px);
+        left:0;
+        justify-items: center;
+        height: 70px;
+        @include transition(all);
+        transition-delay: .3s;
         
         > .this-image{
-            width:52px;
-            height:52px;
-            border-radius: 50%;
-            overflow: hidden;
+            position: relative;
+            top:0;
+            left:0;
+            height: 40px;
+            width:100%;
 
-            & > img{
-                height:100%;
-                width:100%;
-                object-fit: cover;
+            & > div{
+                position: absolute;
+                width:40px;
+                height:40px;
+                left:50%;
+                transform: translateX(-50%);
+                @include transition(all);
+                transition-delay: .6s;
+                
+                
+                &:before{
+                    content: ' ';
+                    position: absolute;
+                    height: 100%;
+                    width: 100%;
+                    border-radius: 50%;
+                    transform: scale(0.9);
+                    border: 2px solid #FF3E4F;
+                    z-index: 0;
+                }
+                
+                & > img{
+                    position: relative;
+                    border-radius: 50%;
+                    height:100%;
+                    width:100%;
+                    object-fit: cover;
+                    z-index: 1;
+                }
+            }
+        }
+        
+        > .this-name{
+            position: relative;
+            height: 30px;
+            width:100%;
+            
+            & > h2{
+                display: block;
+                position: absolute;
+                width:fit-content;
+                text-align: center;
+                font-size: 14px;
+                font-weight: 700;
+                line-height: 30px;
+                color:white;
+                letter-spacing: 1.15px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                left:50%;
+                transform: translateX(-50%);
+                @include transition(all);
+                transition-delay: .6s;
             }
         }
     }
@@ -77,17 +219,25 @@
     }
 
     &__footer{
+        display: grid;
+        align-items: center;
+        height:100%;
 
         > .this-description{
             width:100%;
-            height: 80px;
+            height: 160px;
             white-space: normal;
             font-size: 12px;
-            line-height: 1.6;
+            line-height: 18px;
             font-weight:400;
             letter-spacing: .85px;
             overflow: hidden;
             text-overflow: ellipsis;
+            color: white;
+            pointer-events: none;
+            transform: translateY(10px);
+            opacity: 0;
+            @include transition(all);
         }
     }
 

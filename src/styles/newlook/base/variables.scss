@@ -39,3 +39,14 @@ $pre : GFSDK;
     transition: .3s ease;
     transition-property: $args;
 }
+
+@keyframes imageStaffHover{
+    0%, 100% {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    50%{
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}

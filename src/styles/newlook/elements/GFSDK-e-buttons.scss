@@ -87,6 +87,12 @@
         border-radius: 50%;
         padding:10px;
 
+        &.is-small{
+            height:30px;
+            width:30px;
+            padding:8px;
+        }
+
         svg{
             fill: inherit;
         }

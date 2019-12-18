@@ -15,7 +15,6 @@ import IconRightArrow from "../utils/Icons/IconRightArrow";
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
 import '../../styles/newlook/elements/GFSDK-e-product.scss';
-import '../../styles/newlook/elements/GFSDK-e-pagination.scss';
 
 class ComboList extends React.Component {
     constructor(props) {
@@ -46,15 +45,16 @@ class ComboList extends React.Component {
         let preE = 'GFSDK-e';
         let comboClass = preC + '-comboList';
         let paginationClass = preE + '-pagination';
+        let buttonClass = preE + '-buttons';
 
-        let sliderCentered = this.state.list.length > this.state.slidesToShow ? true : false ;
-        let slidesToShow = this.state.slidesToShow > 1 ? this.state.slidesToShow : 3 ;
+        // let sliderCentered = this.state.list.length > this.state.slidesToShow ? true : false ;
+        // let slidesToShow = this.state.slidesToShow > 1 ? this.state.slidesToShow : 3 ;
 
         function NextArrow(props){
             const {onClick} = props;
             return (
                 <div className={paginationClass + '__controls is-next'}>
-                    <button onClick={onClick}>
+                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
                         <IconRightArrow />
                     </button>
                 </div>
@@ -65,7 +65,7 @@ class ComboList extends React.Component {
             const {onClick} = props;
             return (
                 <div className={paginationClass + '__controls is-prev'}>
-                    <button onClick={onClick}>
+                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
                         <IconLeftArrow />
                     </button>
                 </div>
@@ -74,13 +74,21 @@ class ComboList extends React.Component {
 
         let settings = {
             dots: true,
-            infinite: true,
-            centerMode: sliderCentered,
             speed: 500,
-            slidesToShow: slidesToShow,
-            centerPadding: "10px",
+            infinite: false,
+            slidesToShow: 5,
+            slidesToScroll: 5,
             prevArrow: <PrevArrow />,
             nextArrow: <NextArrow />,
+            responsive: [
+                {
+                    breakpoint: 768,
+                    settings: {
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    }
+                },
+            ],
         };
 
         const listItems = this.state.list.map((combo) =>
@@ -88,7 +96,7 @@ class ComboList extends React.Component {
         );
         return (
             <div className={comboClass}>
-                <Slider {...settings} className={(comboClass + '__container center ') + (sliderCentered ? 'slick-centered' : null)}>
+                <Slider {...settings} className={(comboClass + '__container ')}>
                     {listItems}
                 </Slider>
 

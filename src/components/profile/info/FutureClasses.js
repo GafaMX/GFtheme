@@ -86,8 +86,7 @@ class FutureClasses extends React.Component {
                 {
                     breakpoint: 768,
                     settings: {
-                        dots: true,
-                        rows: 3,
+                        rows: 2,
                         slidesToShow: 1,
                         slidesToScroll: 1,
                     }

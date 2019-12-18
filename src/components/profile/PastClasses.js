@@ -14,10 +14,6 @@ class PastClasses extends React.Component {
             list: [],
             sliderRows: 1,
             windowWidth: 0,
-            // currentPage: 1,
-            // perPage: 6,
-            // lastPage: 0,
-            // total: 0
         }
 
         this.updateDimensions = this.updateDimensions.bind(this);
@@ -82,7 +78,7 @@ class PastClasses extends React.Component {
                 {
                     breakpoint: 768,
                     settings: {
-                        rows: 3,
+                        rows: 2,
                         slidesToShow: 1,
                         slidesToScroll: 1,
                     }
