@@ -71,7 +71,9 @@ class Calendar extends React.Component {
 
         return (
             <div className={calendarClass}>
-                <CalendarFilters/>
+                <div className={calendarClass + '__container'}>
+                    <CalendarFilters/>
+                </div>
                 <CalendarBody />
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>

@@ -167,7 +167,7 @@
         padding:0;
     }
     &__body{
-        background-color: #f3f3f3;
+        background-color: #eeeeee;
         padding:0;
         height:100%;
         overflow: hidden;
@@ -182,7 +182,7 @@
             padding:15px;
 
             @media screen and (min-width:992px) {
-                height: 768px;
+                // height: 768px;
             }
         }
     }

@@ -184,14 +184,15 @@ class ProfileUserInfo extends React.Component {
             <div className="profile-info">
                 <div className={'GFSDK-user__container'}>
                     <div className="profile-user">
-                        <div className="profile-user__data">
-                            <h3 className="profile-user__name">{this.state.first_name} {this.state.last_name}</h3>
-                            <h4 className="profile-user__venue">{this.state.email}</h4>
-                        </div>
                         <div className="profile-user__tools">
-                            <a className={buttonClass + ' ' + buttonClass + "--with-icon is-light"} onClick={this.props.handleClickLogout}>
+                            <a className='this-logOut' onClick={this.props.handleClickLogout}>
                                 <IconLogOut/> {Strings.BUTTON_LOGOUT}
                             </a>
+                        </div>
+                        <div className="profile-user__data">
+                            <div className="this-picture"></div>
+                            <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
+                            {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
                         </div>
                     </div>
                 </div>

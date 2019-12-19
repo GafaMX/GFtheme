@@ -63,10 +63,11 @@ class MembershipItem extends React.Component {
         let membershipClass = preC + '-membershipList';
         const services = this.getServicesAndParentsForMembership();
         return (
-            <div className={membershipClass + 'item ' + productClass} onClick={this.handleClick.bind(this)}>
+            <div className={membershipClass + '__item ' + productClass} onClick={this.handleClick.bind(this)}>
                 <div className={productClass + '__head'}>
                     <h3 className={'this-name'}>{this.props.membership.name}</h3>
                 </div>
+                <hr className={productClass + '__divider'}></hr>
                 <div className={productClass + '__body'}>
                     {this.props.membership.has_discount &&
                     <div>

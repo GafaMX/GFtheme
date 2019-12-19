@@ -117,9 +117,9 @@
     flex-grow: 4;
     background-color:white;
     > .container{
-        padding: 20px;
-        @media screen and (max-height: 768px) {
-            padding:10px;
+        padding:10px;
+        @media screen and (min-height: 992px) {
+            padding: 20px;
         }
     }
 

@@ -67,6 +67,7 @@ class ComboItem extends React.Component {
                 <div className={productClass + '__head'}>
                     <h3 className="this-name">{this.props.combo.name}</h3>
                 </div>
+                <hr className={productClass + '__divider'}></hr>
                 <div className={productClass + '__body'}>
                     {this.props.combo.has_discount &&
                         <div>
