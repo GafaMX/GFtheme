@@ -5,6 +5,7 @@ import Strings from "../utils/Strings/Strings_ES";
 import IconLeftArrow from "../utils/Icons/IconLeftArrow";
 import IconRightArrow from "../utils/Icons/IconRightArrow";
 import CalendarStorage from "./CalendarStorage";
+import moment from 'moment';
 
 
 class CalendarFilters extends React.Component {
@@ -144,8 +145,6 @@ class CalendarFilters extends React.Component {
             let date_compare = new Date(meeting_date.toDateString());
             return compare(date_compare, compare_start);
         });
-
-
         return !!next_meetings;
     }
 

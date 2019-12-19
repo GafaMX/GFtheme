@@ -6,6 +6,10 @@ import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
+import Slider from "react-slick";
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+
 // Estilos
 import '../../styles/newlook/components/GFSDK-c-StaffServices.scss';
 import '../../styles/newlook/components/GFSDK-c-Filter.scss';
@@ -67,6 +71,26 @@ class ServiceList extends React.Component {
         let filterClass = preC + '-filter';
         let formClass = preE + '-form';
 
+        let settings = {
+            arrows: false,
+            dots: true,
+            infinite: false,
+            speed: 500,
+            rows: 1,
+            slidesToScroll: 5,
+            slidesToShow: 5,
+            responsive: [
+                {
+                    breakpoint: 768,
+                    settings: {
+                        rows: 1,
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    }
+                },
+            ],
+        };
+
         return (
             <div className={serviceClass}>
                 <div className={filterClass}>
@@ -77,13 +101,9 @@ class ServiceList extends React.Component {
                         })}
                     </select>
                 </div>
-                <div className={serviceClass + '__container'}>
+                <Slider {...settings} className={serviceClass + '__container'}>
                     {listItems}
-                </div>
-                <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
-                                allpages={this.props.lastPage} itemsList={this.props.total}
-                                updatePaginationData={this.updatePaginationData.bind(this)}
-                                getListData={GafaFitSDKWrapper.getServiceList}/>
+                </Slider>
             </div>
         );
     }

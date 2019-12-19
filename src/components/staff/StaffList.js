@@ -75,7 +75,7 @@ class StaffList extends React.Component {
                 {
                     breakpoint: 768,
                     settings: {
-                        rows: 2,
+                        rows: 1,
                         slidesToShow: 1,
                         slidesToScroll: 1,
                     }

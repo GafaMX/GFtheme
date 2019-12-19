@@ -3,6 +3,8 @@
 import React from "react";
 import CalendarStorage from "./CalendarStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import moment from 'moment';
+import 'moment/locale/es';
 
 class CalendarMeeting extends React.Component {
     constructor(props) {
@@ -60,7 +62,7 @@ class CalendarMeeting extends React.Component {
     render() {
         let meeting = this.props.meeting;
         let day = this.props.day;
-        let date = new Date(meeting.start_date);
+        let classStart = moment(meeting.start_date).toDate();
         let room = this.state.room;
         let location = CalendarStorage.find('locations', meeting.locations_id);
 
@@ -80,7 +82,7 @@ class CalendarMeeting extends React.Component {
                     </div>
                     <hr></hr>
                     <div className={meetingClass + '__body'}>
-                        <p className={'this-time'}>{date.getHours().toString().padStart(2, '0')}:{date.getMinutes().toString().padStart(2, '0')}</p>
+                        <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')}</p>
                         <p className={'this-staff'}>{meeting.staff.name}</p>
                         <p className={'this-location'}>{location ? location.name : ''}</p>
                     </div>

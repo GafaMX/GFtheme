@@ -96,7 +96,6 @@ class CalendarBody extends React.Component {
                 date: date.toISOString(),
                 meetings: meetings.filter(function (meeting) {
                     let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
-
                     return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime();
                 })
             };

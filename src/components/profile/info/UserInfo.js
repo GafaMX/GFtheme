@@ -52,6 +52,10 @@ class UserInfo extends React.Component {
         let formClass = preE + '-form';
         let profileClass = preC + '-profile';
 
+        let first_name = this.props.info.first_name === null ? '' : this.props.info.first_name;
+        let last_name = this.props.info.last_name === null ? '' : this.props.info.last_name;
+        let birth_date = this.props.info.birth_date === null ? moment().toDate() : moment(this.props.info.birth_date).toDate();
+
         return (
             <div className={profileClass + '__section is-user'}>
                 <h4>
@@ -64,7 +68,7 @@ class UserInfo extends React.Component {
                         className={formClass + "__input"}
                         autoFocus
                         type="text"
-                        value={this.props.info.first_name}
+                        value={first_name}
                         onChange={this.handleChangeFirstName.bind(this)}
                     />
                 </FormGroup>
@@ -73,7 +77,7 @@ class UserInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
-                        value={this.props.info.last_name}
+                        value={last_name}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
@@ -99,7 +103,7 @@ class UserInfo extends React.Component {
                     <ControlLabel className={formClass + "__label"}>{Strings.LABEL_BIRTH_DATE}</ControlLabel>
                     <DatePicker
                         onChange={this.handleChangeBirthDate.bind(this)}
-                        value={this.props.info.birthDate}
+                        value={this.props.info.birth_date ? birth_date : moment().toDate()}
                         maxDate={new Date()}
                     />
                 </div>
