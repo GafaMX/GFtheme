@@ -13,8 +13,8 @@ class MembershipItem extends React.Component {
     handleClick(event) {
         event.preventDefault();
         let currentElement = this;
-        GafaFitSDKWrapper.getMe(function () {
-            if (window.GFtheme.me != null) {
+        GafaFitSDKWrapper.isAuthenticated(function(auth) {
+            if (auth) {
                 currentElement.showBuyFancyForLoggedUsers();
             } else {
                 currentElement.showLoginForNotLoggedUsers();
