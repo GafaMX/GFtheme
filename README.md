@@ -107,6 +107,7 @@ configuration options properties are: GAFA_FIT_URL, COMPANY_ID, API_CLIENT, API_
 For example you can use this definition before include the GafaFitThemeSDK main script:
 
     ...
+    <script src="https://www.google.com/recaptcha/api.js?render=[YOUR RECAPTCHA PUBLIC KEY]"></script>
     <script src="https://gafa.fit/sdk/dist/main.js"></script>
     <script data-gf-options type="application/json">
         {
@@ -130,6 +131,7 @@ If you want to use this templates SDK embedded in your website for testing purpo
 of the script in your site just between the GafaFitSDK library script and close the body tag, like this:
 
     ...
+    <script src="https://www.google.com/recaptcha/api.js?render=[YOUR RECAPTCHA PUBLIC KEY]"></script>
     <script src="https://gafa.fit/sdk/dist/main.js"></script>
     <script data-gf-options type="application/json">
         {
