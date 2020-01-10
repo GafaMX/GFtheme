@@ -298,6 +298,7 @@ body.modal-open{
     & > .container, & > .container-fluid{
         padding:0 ;
         height:100%;
+        width:100%;
         @media screen and (min-width:992px) {
             // padding: 0 36px 36px;
         }
@@ -401,6 +402,13 @@ body.modal-open{
             padding: 20px 36px 36px;
             background-color: white;
             border-top: 1px solid #DCDCDC;
+
+            .rcs-inner-container > div > hr{
+                border: 0 transparent none;
+                background-color:#DCDCDC;
+                height: 1px;
+                margin:20px 0;
+            }
         }
 
         #HistoryTabs{
