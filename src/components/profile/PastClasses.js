@@ -15,8 +15,7 @@ class PastClasses extends React.Component {
             windowWidth: 0,
         }
 
-        this.updateDimensions = this.updateDimensions.bind(this);
-        this.updateRows = this.updateRows.bind(this);
+        // this.updateRows = this.updateRows.bind(this);
     }
 
     componentDidMount() {

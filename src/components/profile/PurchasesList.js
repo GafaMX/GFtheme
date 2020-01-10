@@ -57,7 +57,7 @@ class PurchasesList extends React.Component {
         return (
 
             <div className={profileClass + '__section is-buyOverall'} style={{width : this.state.windowWidth}}>
-                <Slider {...settings} className={ ordersClass + '__section' + (this.state.list.length <= 6 ? ' is-singleLine' : '')}>
+                <Slider {...settings} className={ ordersClass + '__section'}>
                     {listItems}
                 </Slider>
             </div>

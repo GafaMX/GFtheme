@@ -100,7 +100,6 @@ class FutureClasses extends React.Component {
 
         let settings = {
             arrows: false,
-            // dots: true,
             infinite: false,
             speed: 500,
             slidesToScroll: 5,
