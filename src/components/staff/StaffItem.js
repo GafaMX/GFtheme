@@ -42,7 +42,7 @@ class StaffItem extends React.Component {
                         <div className={["this-image"]}>
                             <div>
                                 <img className={(this.props.staff.picture_web_list ? 'show' : 'hidden')} src={this.props.staff.picture_web_list}/>
-                                <div className={["text-center image-missing " + (this.props.staff.picture_web_list ? 'hidden' : 'show')]}>Image Missing</div>
+                                <div className={["text-center image-missing " + (this.props.staff.picture_web_list ? 'hidden' : 'show')]}><p>Image Missing</p></div>
                             </div>
                         </div>
                         <div className={'this-name'}>

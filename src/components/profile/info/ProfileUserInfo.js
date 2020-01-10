@@ -184,34 +184,47 @@ class ProfileUserInfo extends React.Component {
             <div className="profile-info">
                 <div className={'GFSDK-user__container'}>
                     <div className="profile-user">
-                        <div className="profile-user__tools">
-                            <a className='this-logOut' onClick={this.props.handleClickLogout}>
-                                <IconLogOut/> {Strings.BUTTON_LOGOUT}
-                            </a>
+                        <div className="profile-user__background">
+                            <div className="profile-user__tools"></div>
+                            <div className="profile-user__data"></div>
                         </div>
-                        <div className="profile-user__data">
-                            <div className="this-picture"></div>
-                            <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
-                            {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
+                        <div className="profile-user__content">
+                            <div className="profile-user__tools">
+                                <div className="profile-user__tools-container">
+                                    <a className='this-logOut' onClick={this.props.handleClickLogout}>
+                                        <IconLogOut/> {Strings.BUTTON_LOGOUT}
+                                    </a>
+                                </div>
+                            </div>
+                            <div className="profile-user__data">
+                                <div className="this-picture"></div>
+                                <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
+                                {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div className={'profile-tabs'}>
-                    <div className="container-fluid">
+                    <div className="container">
                         <Tabs defaultActiveKey={1} id={'ProfileTabs'} className={profileClass + '__tab-content'} animation={true}>
                             <Tab eventKey={1} title={Strings.CLASS}>
-                                <Tabs defaultActiveKey={1} id={'HistoryTabs'} animation={true}>
-                                    <Tab eventKey={1} title={Strings.FUTURESCLASSES} className="ui-state-default ui-corner-top ui-tabs-active ui-state-active">
+                                <CustomScroll heightRelativeToParent="100%">
+                                    <div className={profileClass + '__tab-section'}>
+                                        <h4 className={'this-title'}>Mis próximas clases</h4>
                                         <FutureClasses />
-                                    </Tab>
-                                    <Tab eventKey={2} title={Strings.PASTCLASSES} className="ui-state-default ui-corner-top ui-tabs-active ui-state-active">
+                                    </div>
+                                    <hr></hr>
+                                    <div className={profileClass + '__tab-section'}>
+                                        <h4 className={'this-title'}>Historial de clases</h4>
                                         <PastClasses />
-                                    </Tab>
-                                    <Tab eventKey={3} title={Strings.PURCHASES} className="ui-state-default ui-corner-top ui-tabs-active ui-state-active">
-                                        <PurchasesList />
-                                    </Tab>
-                                </Tabs>
+                                    </div>
+                                    <hr></hr>
+                                    <div className={profileClass + '__tab-section'}>
+                                        <h4 className={'this-title'}>Historial de compras</h4>
+                                        <PurchasesList /> 
+                                    </div>
+                                </CustomScroll>
                             </Tab>
 
                             <Tab eventKey={2} title={Strings.PROFILE}>

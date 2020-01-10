@@ -20,17 +20,27 @@ class Calendar extends React.Component {
 
         this.state = {
             showLogin: false,
-            meetings: []
+            calendarHeight: CalendarStorage.get('calendarHeight'),
+            calendarWidth: CalendarStorage.get('calendarWidth'),
+            meetings: [],
         };
 
         CalendarStorage.set('locations', this.props.locations);
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
         this.getMeetings = this.getMeetings.bind(this);
+        CalendarStorage.addSegmentedListener(['calendarHeight', 'calendarWidth'], this.updateCalendarDimensions.bind(this));
     }
 
     componentDidMount() {
         this.getMeetings();
         this.getRooms();
+    }
+
+    updateCalendarDimensions(){
+        this.setState({
+            calendarHeight: CalendarStorage.get('calendarHeight'),
+            calendarWidth: CalendarStorage.get('calendarWidth'),
+        });
     }
 
     getMeetings() {
@@ -68,13 +78,22 @@ class Calendar extends React.Component {
     render() {
         let preC = 'GFSDK-c';
         let calendarClass = preC + '-Calendar';
+        let widthDimension = CalendarStorage.get('calendarWidth');
+        let heightDimension = CalendarStorage.get('calendarHeight');
+
+        // debugger;
+
+        const mystyles = {
+            width:  widthDimension + 'px',
+            // height: heightDimension + 'px',
+        }
 
         return (
             <div className={calendarClass}>
-                <div className={calendarClass + '__container'}>
+                <div className={calendarClass + '__container'} style={mystyles}>
                     <CalendarFilters/>
+                    <CalendarBody />
                 </div>
-                <CalendarBody />
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }

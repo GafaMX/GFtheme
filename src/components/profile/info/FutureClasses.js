@@ -6,6 +6,8 @@ import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import IconLeftArrow from "../../utils/Icons/IconLeftArrow";
+import IconRightArrow from "../../utils/Icons/IconRightArrow";
 
 class FutureClasses extends React.Component {
     constructor(props) {
@@ -34,7 +36,7 @@ class FutureClasses extends React.Component {
         })
 
         currentComponent.setState({ 
-            windowWidth: container.offsetWidth,
+            // windowWidth: container.offsetWidth,
         });
 
         window.addEventListener('resize', this.updateDimensions);
@@ -58,7 +60,7 @@ class FutureClasses extends React.Component {
         let comp = this;
         const container = document.querySelector("#HistoryTabs");
         comp.setState({
-            windowWidth: container.offsetWidth,
+            // windowWidth: container.offsetWidth,
         });
     };
 
@@ -74,19 +76,39 @@ class FutureClasses extends React.Component {
         let profileClass = preC + '-profile';
         let ordersClass = preC + '-orders';
 
+        function NextArrow(props){
+            const {onClick} = props;
+            return (
+                <div className={paginationClass + '__controls is-next'}>
+                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
+                        <IconRightArrow />
+                    </button>
+                </div>
+            );
+        };
+    
+        function PrevArrow(props){
+            const {onClick} = props;
+            return (
+                <div className={paginationClass + '__controls is-prev'}>
+                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
+                        <IconLeftArrow />
+                    </button>
+                </div>
+            );
+        };
+
         let settings = {
             arrows: false,
-            dots: true,
+            // dots: true,
             infinite: false,
             speed: 500,
-            rows: 1,
-            slidesToScroll: 6,
-            slidesToShow: 6,
+            slidesToScroll: 5,
+            slidesToShow: 5,
             responsive: [
                 {
                     breakpoint: 768,
                     settings: {
-                        rows: 2,
                         slidesToShow: 1,
                         slidesToScroll: 1,
                     }
@@ -94,13 +116,14 @@ class FutureClasses extends React.Component {
             ],
         };
 
+
         const listItems = this.state.list.map((reservation) =>
             <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>
         );
 
         return (
-            <div className={profileClass + '__section is-futureClass'} style={{width : this.state.windowWidth}}>
-                <Slider {...settings} className={ ordersClass + '__section' + (this.state.list.length <= 6 ? ' is-singleLine' : '')}>
+            <div className={profileClass + '__section is-futureClass'}>
+               <Slider {...settings} className={ ordersClass + '__section'}>
                     {listItems}
                 </Slider>
             </div>

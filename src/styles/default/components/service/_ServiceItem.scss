@@ -103,6 +103,9 @@ $serviceItem : service-item;
                 &.show{
                     display:flex!important;
                 }
+                &.hidden{
+                    display: none;
+                }
             }
         }
         [class*='__description']{

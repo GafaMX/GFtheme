@@ -12,7 +12,6 @@ class PastClasses extends React.Component {
         super(props);
         this.state = {
             list: [],
-            sliderRows: 1,
             windowWidth: 0,
         }
 
@@ -33,31 +32,17 @@ class PastClasses extends React.Component {
         })
 
         currentComponent.setState({ 
-            windowWidth: container.offsetWidth,
+            // windowWidth: container.offsetWidth,
         });
 
         window.addEventListener('resize', this.updateDimensions);
-    }
-
-    updateRows() {
-        let comp = this;
-        let classes = comp.state.list.length;
-        if (classes <= 6 ){
-            comp.setState({ 
-                sliderRows : 1,
-            });
-        } else if (classes > 6 ){
-            comp.setState({ 
-                sliderRows : 2,
-            });
-        }
     }
 
     updateDimensions() {
         let comp = this;
         const container = document.querySelector("#HistoryTabs");
         comp.setState({
-            windowWidth: container.offsetWidth,
+            // windowWidth: container.offsetWidth,
         });
     };
 
@@ -68,17 +53,14 @@ class PastClasses extends React.Component {
 
         let settings = {
             arrows: false,
-            dots: true,
             infinite: false,
             speed: 500,
-            rows: 1,
-            slidesToScroll: 6,
-            slidesToShow: 6,
+            slidesToScroll: 5,
+            slidesToShow: 5,
             responsive: [
                 {
                     breakpoint: 768,
                     settings: {
-                        rows: 2,
                         slidesToShow: 1,
                         slidesToScroll: 1,
                     }
@@ -91,8 +73,8 @@ class PastClasses extends React.Component {
         );
 
         return (
-            <div className={profileClass + '__section is-pastClass'} style={{width : this.state.windowWidth}}>
-                <Slider {...settings} className={ ordersClass + '__section' + (this.state.sliderRows <= 6 ? ' is-singleLine' : '')}>
+            <div className={profileClass + '__section is-pastClass'}>
+               <Slider {...settings} className={ ordersClass + '__section'}>
                     {listItems}
                 </Slider>
             </div>

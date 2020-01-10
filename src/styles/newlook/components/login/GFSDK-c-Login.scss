@@ -140,19 +140,18 @@
         padding:0;
     }
     &__body{
-        background-color: #eeeeee;
+        background-color: transparent;
         padding:0;
         height:100%;
         overflow: hidden;
 
         > .container-fluid, > .container{
-            height: calc(100% - 80px);
+            height: 100%;
             width: 100%;
-            margin-top:80px;
             padding:0px;
             overflow:hidden;
             border-radius: 58px 58px 0 0;
-            background-color: #F6F6F4;
+            background-color: transparent;
 
             > .row{
                 height:100%;

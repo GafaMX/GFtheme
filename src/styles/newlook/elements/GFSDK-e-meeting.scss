@@ -46,6 +46,7 @@
         margin:0;
         margin-left: -15px;
         background-color: #E9E8E8;
+        border: 0 transparent none;
         @include transition(background-color);
     }
 

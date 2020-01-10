@@ -25,6 +25,7 @@ class ServiceList extends React.Component {
             categoryList: [],
             currentCategory: 'Todos',
             nameList: [],
+            sliderRows: 1,
             currentService: '',
         };
         this.change = this.change.bind(this);
@@ -36,6 +37,20 @@ class ServiceList extends React.Component {
             list: result.data,
             currentPage: result.current_page
         })
+    }
+
+    updateRows() {
+        let comp = this;
+        let classes = comp.state.list.length;
+        if (classes <= 10 ){
+            comp.setState({ 
+                sliderRows : 1,
+            });
+        } else if (classes > 10 ){
+            comp.setState({ 
+                sliderRows : 2,
+            });
+        }
     }
 
     change(event) {
@@ -76,16 +91,32 @@ class ServiceList extends React.Component {
             dots: true,
             infinite: false,
             speed: 500,
-            rows: 1,
+            rows: this.state.sliderRows,
             slidesToScroll: 5,
             slidesToShow: 5,
             responsive: [
                 {
-                    breakpoint: 768,
+                    breakpoint: 481,
                     settings: {
                         rows: 1,
                         slidesToShow: 1,
                         slidesToScroll: 1,
+                    }
+                },
+                {
+                    breakpoint: 769,
+                    settings: {
+                        rows: 1,
+                        slidesToShow: 2,
+                        slidesToScroll: 2,
+                    }
+                },
+                {
+                    breakpoint: 1025,
+                    settings: {
+                        rows: 1,
+                        slidesToShow: 3,
+                        slidesToScroll: 3,
                     }
                 },
             ],
@@ -93,17 +124,21 @@ class ServiceList extends React.Component {
 
         return (
             <div className={serviceClass}>
-                <div className={filterClass}>
-                    <select className={filterClass + '__item ' + formClass + '__select'} onChange={this.change} value={this.state.value}>
-                        <option>Todos</option>
-                        {this.state.categoryList.map(category => {
-                            return <option key={category} value={category}>{category}</option>
-                        })}
-                    </select>
+                <div className={serviceClass + '__header'}>
+                    <div className={filterClass}>
+                        <select className={filterClass + '__item ' + formClass + '__select'} onChange={this.change} value={this.state.value}>
+                            <option>Todos</option>
+                            {this.state.categoryList.map(category => {
+                                return <option key={category} value={category}>{category}</option>
+                            })}
+                        </select>
+                    </div>
                 </div>
-                <Slider {...settings} className={serviceClass + '__container'}>
-                    {listItems}
-                </Slider>
+                <div className={serviceClass + '__body'}>
+                    <Slider {...settings} className={serviceClass + '__container'}>
+                        {listItems}
+                    </Slider>
+                </div>
             </div>
         );
     }

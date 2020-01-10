@@ -19,7 +19,7 @@ class ChangePassword extends React.Component{
         return(
             <div className={profileClass + '__section is-password'}>
 
-                <h4>{Strings.CHANGEPASSWORD}</h4>
+                {/* <h4>{Strings.CHANGEPASSWORD}</h4> */}
                 <FormGroup className={formClass + "__section is-email_confirm"} controlId="email_confirm">
                     <FormControl className={formClass + "__input"} type={'text'} value={this.props.info.email} disabled/>
                 </FormGroup>

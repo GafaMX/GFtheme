@@ -102,6 +102,10 @@
         .close{
             color:black;
 
+            & > .sr-only{
+                display: none;
+            }
+
             @media screen and (min-width:992px) {
                 color:white;
             }
@@ -163,11 +167,15 @@
         text-transform: initial;
     }
 
+    .modal-content{
+        background-color: transparent;
+    }
+
     &__header{
         padding:0;
     }
     &__body{
-        background-color: #eeeeee;
+        background-color: transparent;
         padding:0;
         height:100%;
         overflow: hidden;

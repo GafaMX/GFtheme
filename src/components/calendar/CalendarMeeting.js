@@ -11,7 +11,7 @@ class CalendarMeeting extends React.Component {
         super(props);
 
         this.state = {
-            room: this.getRoom()
+            room: this.getRoom(),
         };
 
         CalendarStorage.addSegmentedListener(['rooms'], this.updateRoom.bind(this));
@@ -45,9 +45,7 @@ class CalendarMeeting extends React.Component {
         let meeting = this.props.meeting;
         let location = CalendarStorage.find('locations', meeting.locations_id);
         if (meeting && location) {
-            GafaFitSDKWrapper.getFancyForMeetingReservation(location.slug, meeting.id, function (result) {
-
-            });
+            GafaFitSDKWrapper.getFancyForMeetingReservation(location.slug, meeting.id, function (result) {});
         }
     }
 

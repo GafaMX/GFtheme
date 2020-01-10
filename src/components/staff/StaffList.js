@@ -25,9 +25,15 @@ class StaffList extends React.Component {
             list: this.props.list,
             // currentPage: this.props.currentPage,
             jobList: [],
+            sliderRows: 1,
             currentjob: 'Todos',
         };
         this.change = this.change.bind(this);
+        this.updateRows = this.updateRows.bind(this);
+    }
+
+    componentDidMount(){
+        this.updateRows();
     }
 
     updatePaginationData(result) {
@@ -35,6 +41,20 @@ class StaffList extends React.Component {
             list: result.data,
             // currentPage: result.current_page
         })
+    }
+
+    updateRows() {
+        let comp = this;
+        let classes = comp.state.list.length;
+        if (classes < 10 ){
+            comp.setState({ 
+                sliderRows : 1,
+            });
+        } else if (classes >= 10 ){
+            comp.setState({ 
+                sliderRows : 2,
+            });
+        }
     }
 
     change(event) {
@@ -68,16 +88,32 @@ class StaffList extends React.Component {
             dots: true,
             infinite: false,
             speed: 500,
-            rows: 2,
+            rows: this.state.sliderRows,
             slidesToScroll: 5,
             slidesToShow: 5,
             responsive: [
                 {
-                    breakpoint: 768,
+                    breakpoint: 481,
                     settings: {
                         rows: 1,
                         slidesToShow: 1,
                         slidesToScroll: 1,
+                    }
+                },
+                {
+                    breakpoint: 769,
+                    settings: {
+                        rows: 1,
+                        slidesToShow: 2,
+                        slidesToScroll: 2,
+                    }
+                },
+                {
+                    breakpoint: 1025,
+                    settings: {
+                        rows: 1,
+                        slidesToShow: 3,
+                        slidesToScroll: 3,
                     }
                 },
             ],
@@ -85,22 +121,26 @@ class StaffList extends React.Component {
 
         return (
             <div className={staffClass}>
-                <div className={filterClass}>
-                    <select className={filterClass + '__item ' + formClass + '__select'} onChange={this.change} value={this.state.currentjob}>
-                        <option>Todos</option>
-                        {this.state.jobList.map(job => {
-                            return <option key={job} value={job}>{job}</option>
-                        })}
-                    </select>
+                <div className={staffClass + '__header'}>
+                    <div className={filterClass}>
+                        <select className={filterClass + '__item ' + formClass + '__select'} onChange={this.change} value={this.state.currentjob}>
+                            <option>Todos</option>
+                            {this.state.jobList.map(job => {
+                                return <option key={job} value={job}>{job}</option>
+                            })}
+                        </select>
+                    </div>
                 </div>
-                <Slider {...settings} className={staffClass + '__container'}>
-                    {listItems}
-                </Slider>
+                <div className={staffClass + '__body'}>
+                    <Slider {...settings}>
+                        {listItems}
+                    </Slider>
+                </div>
 
-                    {/* <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
-                                    allpages={this.props.lastPage} itemsList={this.props.total}
-                                    updatePaginationData={this.updatePaginationData.bind(this)}
-                                    getListData={GafaFitSDKWrapper.getStaffList}/> */}
+                {/* <PaginationList page={this.state.currentPage} perpage={this.props.perPage}
+                                allpages={this.props.lastPage} itemsList={this.props.total}
+                                updatePaginationData={this.updatePaginationData.bind(this)}
+                                getListData={GafaFitSDKWrapper.getStaffList}/> */}
             </div>
         );
     }

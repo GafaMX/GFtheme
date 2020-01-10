@@ -303,7 +303,7 @@ class LoginRegister extends React.Component {
                     <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)} animation={false}>
                         <div className="row">
                             <div className="col-lg-12 col-xl-12 modal-profile__body">
-                                <div className="container">
+                                <div className="container-fluid">
                                     <div className="col-lg-12 profile-content">
                                         <Modal.Header closeButton></Modal.Header>
                                         <Modal.Body>

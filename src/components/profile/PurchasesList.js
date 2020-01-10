@@ -36,17 +36,14 @@ class PurchasesList extends React.Component {
 
         let settings = {
             arrows: false,
-            dots: true,
             infinite: false,
             speed: 500,
-            rows: 1,
-            slidesToScroll: 6,
-            slidesToShow: 6,
+            slidesToScroll: 5,
+            slidesToShow: 5,
             responsive: [
                 {
                     breakpoint: 768,
                     settings: {
-                        rows: 2,
                         slidesToShow: 1,
                         slidesToScroll: 1,
                     }

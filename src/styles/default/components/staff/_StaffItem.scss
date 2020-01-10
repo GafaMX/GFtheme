@@ -65,6 +65,10 @@ $staff-item:staff-item;
             &.show{
                 display:flex!important;
             }
+
+            &.hidden{
+                display: none;
+            }
         }
         img{
             height: 100%;

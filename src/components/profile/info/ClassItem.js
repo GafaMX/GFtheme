@@ -62,40 +62,28 @@ class ClassItem extends React.Component {
                 <p className={'reservation-item-credits'}>{Strings.CREDIT}{this.props.reservation.credit['name']}</p>)
         }
 
-     if(this.props.reservation.cancelled === true){
-         cancelation =(
-             <span className={'reservation-item-cancelled close'} aria-label="Close"> <Glyphicon glyph="ban-circle" /> {Strings.CANCELLED} </span>
-         )
-     }else if(Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM') >= today){
+        if(this.props.reservation.cancelled === true){
+            cancelation =(
+                <span className={'reservation-item-cancelled close'} aria-label="Close"> <Glyphicon glyph="ban-circle" /> {Strings.CANCELLED} </span>
+            )
+        } else if (Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM') >= today){
             cancelation = (
                 <button type="button" className="pastClass-item__close qodef-btn qodef-btn-solid" onClick={this.handleShowCancelation.bind(this)}>
                     {/*<span aria-hidden="true">&times;</span>*/}
                     <CloseIcon />
                 </button>
             )
-     }
-
+        }
 
         return (
             <div className={'pastClass-item'}>
                 <div className={'card-header'}>
-                    <h4>
-                        <strong>{Strings.BEGINS}</strong>
-                        <span>
-                            {Moment(this.props.reservation.meeting_start).locale('es').calendar()} en {this.props.reservation.location['name']}
-                        </span>
-                    </h4>
+                    <h4>{this.props.reservation.service['name']}</h4>
                 </div>
                 <hr></hr>
                 <div className={'card-body'}>
-                    {/* <p>
-                        <strong>{Strings.BEGINS}</strong>
-                        <span>{Moment(this.props.reservation.meeting_start).locale('es').calendar()}</span>
-                    </p> */}
+                    <p className={'reservation-item-time'}>{Moment(this.props.reservation.meeting_start).format('h:mm a')}</p>
                     <p className={'reservation-item-staff'}><strong>{this.props.reservation.staff['name']}</strong></p>
-                    <p className={'reservation-item-service'}>{this.props.reservation.service['name']}</p>
-                    {/* <p className={'reservation-item-position'}>{Strings.POSITION}{this.props.reservation.meeting_position}</p> */}
-                    {/* {membershipCredits} */}
                 </div>
 
                 {cancelation}

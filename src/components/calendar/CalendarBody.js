@@ -123,16 +123,26 @@ class CalendarBody extends React.Component {
     render() {
         let preC = 'GFSDK-c';
         let calendarClass = preC + '-Calendar';
+        let widthDimension = CalendarStorage.get('calendarWidth');
+        let heightDimension = CalendarStorage.get('calendarHeight');
+
+        // debugger;
+
+        const mystyles = {
+            height: heightDimension + 'px',
+        }
 
         return (
-            <div className={calendarClass + '__body'}>
-                {this.state.meetings_to_show.map(function (day, index) {
-                    return (
-                        <CalendarColumn key={`calendar-day--${index}`}
-                                        index={index}
-                                        day={day}/>
-                    );
-                })}
+            <div className={calendarClass + '__body'} style={mystyles}>
+                <div className={calendarClass + '__body-container'}>
+                    {this.state.meetings_to_show.map(function (day, index) {
+                        return (
+                            <CalendarColumn key={`calendar-day--${index}`}
+                                            index={index}
+                                            day={day}/>
+                        );
+                    })}
+                </div>
             </div>
         );
 

@@ -12,6 +12,30 @@
         }
     }
 
+    &__tab-section{
+        height: 160px;
+        width: 786px;
+
+        & > .this-title{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width:20px;
+            height: 100%;
+            margin:0;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color:#C9C9CD;
+            font-size: 12px;
+            writing-mode: vertical-lr;
+            transform: rotate(180deg);
+        }
+
+        & > [class*="section"]{
+            display: inline-block;
+        }
+    }
+
     &__form{
         height:100%;
         display: grid;
@@ -34,11 +58,11 @@
     &__section{
         display: grid;
         padding: 15px 20px 15px 0px;
-        row-gap: 22px;
-        column-gap: 22px;
+        row-gap: 15px;
+        column-gap: 15px;
         
         @media screen and (min-width:992px) {
-            padding: 20px 40px 20px 15px;
+            padding: 15px 10px 15px 0px;
         }
 
         h4{
@@ -56,24 +80,31 @@
             
             @media screen and (min-width:992px) {
                 grid-auto-flow: initial;
-                grid-template-rows: auto 1fr 1fr;
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: 1fr 1fr;
+                grid-template-columns: auto 1fr 1fr;
             }
 
             h4{
                 width:100%;
+                writing-mode: vertical-lr;
+                color: #C9C9CD;
+                font-size: 12px;
+                letter-spacing: 0.8px;
+                text-transform: uppercase;
+                transform: rotate(180deg);
                 
                 @media screen and (min-width:992px) {
-                    grid-column: 1/3;
-                    grid-row: 1;
+                    grid-column: 1/2;
+                    grid-row: 1/3;
                 }
             }
         }
 
         &.is-futureClass, &.is-pastClass, &.is-buyOverall{
-            display: block;
+            display: inline-block;
             padding:0px;
-            width: 100%;
+            margin-left:20px;
+            width: calc(100% - 80px);
             @media screen and (min-width:992px) {
                 padding: 0px;
             }
@@ -82,13 +113,22 @@
         &.is-password{
             
             @media screen and (min-width:992px) {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: 1fr 1fr;
             }
             
             h4{
+                width:100%;
+                writing-mode: vertical-rl;
+                color: #C9C9CD;
+                font-size: 12px;
+                letter-spacing: 0.8px;
+                line-height: 16px;
+                height:60px;
+                text-transform: uppercase;
+                transform: rotate(180deg);
                 @media screen and (min-width:992px) {
-                    grid-column: 1/3;
-                    grid-row: 1;
+                    grid-column: 1/2;
+                    grid-row: 1/2;
                 }
             }
         }
@@ -100,16 +140,22 @@
             
             @media screen and (min-width:992px) {
                 grid-auto-flow: initial;
-                grid-template-rows: auto 1fr 1fr;
-                grid-template-columns: 2fr 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+                grid-template-columns: auto 2fr 1fr 1fr;
                 justify-items: start;
             }
 
             h4{
                 width:100%;
+                writing-mode: vertical-lr;
+                color: #C9C9CD;
+                font-size: 12px;
+                letter-spacing: 0.8px;
+                text-transform: uppercase;
+                transform: rotate(180deg);
                 @media screen and (min-width:992px) {
-                    grid-column: 1/4;
-                    grid-row: 1;
+                    grid-column: 1/2;
+                    grid-row: 1/5;
                 }
             }
         }

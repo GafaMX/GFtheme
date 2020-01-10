@@ -11,6 +11,8 @@ const CalendarStorage = {
     start_date: null,
     show_login: null,
     filter_time_of_day: null,
+    calendarHeight: null,
+    calendarWidth: null,
     /**
      *
      * @param property
