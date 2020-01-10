@@ -87,7 +87,19 @@ the body tag, like this:
     <script src="https://gafa.fit/sdk/dist/main.js"></script>
     </body>
     ...
-    
+
+#### Recaptcha v3 library
+GFtheme uses the Recaptcha v3 library, so you must need to include it in your main HTML file code just before close 
+the body tag and the GafaFitSDK API library, like this:
+
+    ...
+    <script src="https://www.google.com/recaptcha/api.js?render=[YOUR RECAPTCHA PUBLIC KEY]"></script>
+    <script src="https://gafa.fit/sdk/dist/main.js"></script>
+    </body>
+    ...
+
+You can obtain [YOUR RECAPTCHA PUBLIC KEY] by contacting technical support.
+
 #### GafaFitThemeSDK configuration options
 GFtheme needs a basic configuration options to work, by now we'll use a JSON object definition for that purposes, the
 configuration options properties are: GAFA_FIT_URL, COMPANY_ID, API_CLIENT, API_SECRET.
@@ -101,15 +113,18 @@ For example you can use this definition before include the GafaFitThemeSDK main 
             "GAFA_FIT_URL": "https://devgafa.fit/",
             "COMPANY_ID": 1,
             "API_CLIENT": 1,
-            "API_SECRET": "XXXXXXXXXXXXXXXXXXXXXXXX",
+            "API_SECRET": "[YOUR BUQ API SECRET KEY]",
             "TOKENMOVIL": null,
-            "CAPTCHA_SECRET_KEY": "YYYYYYYYYYYYYYYYYYYYYYYY",
-            "REMOTE_ADDR": "a.b.c.d"
+            "CAPTCHA_SECRET_KEY": "[YOUR RECAPTCHA SECRET KEY]",
+            "CAPTCHA_PUBLIC_KEY": "[YOUR RECAPTCHA PUBLIC KEY]",
+            "REMOTE_ADDR": "127.0.0.1"
         }
     </script>
     </body>
     ...
-    
+
+You can obtain [YOUR RECAPTCHA PUBLIC KEY], [YOUR RECAPTCHA SECRET KEY] and [YOUR BUQ API SECRET KEY] by contacting technical support.
+
 #### GafaFitThemeSDK library for testing purposes
 If you want to use this templates SDK embedded in your website for testing purposes you can include the built version 
 of the script in your site just between the GafaFitSDK library script and close the body tag, like this:
@@ -117,15 +132,16 @@ of the script in your site just between the GafaFitSDK library script and close 
     ...
     <script src="https://gafa.fit/sdk/dist/main.js"></script>
     <script data-gf-options type="application/json">
-            {
-                "GAFA_FIT_URL": "https://devgafa.fit/",
-                "COMPANY_ID": 1,
-                "API_CLIENT": 1,
-                "API_SECRET": "XXXXXXXXXXXXXXXXXXXXXXXX",
-                "TOKENMOVIL": null,
-                "CAPTCHA_SECRET_KEY": "YYYYYYYYYYYYYYYYYYYYYYYY",
-                "REMOTE_ADDR": "a.b.c.d"
-            }
+        {
+            "GAFA_FIT_URL": "https://devgafa.fit/",
+            "COMPANY_ID": 1,
+            "API_CLIENT": 1,
+            "API_SECRET": "[YOUR BUQ API SECRET KEY]",
+            "TOKENMOVIL": null,
+            "CAPTCHA_SECRET_KEY": "[YOUR RECAPTCHA SECRET KEY]",
+            "CAPTCHA_PUBLIC_KEY": "[YOUR RECAPTCHA PUBLIC KEY]",
+            "REMOTE_ADDR": "127.0.0.1"
+        }
     </script>
     <script src="https://dev.gafa.codes/GFtheme/dist/main.js"></script>
     </body>
@@ -190,7 +206,7 @@ the user info.
 * `password-recovery`   Password recovery
 * `profile-info`   Profile basic info
 
-##### Pagination shortcode
+<!-- ##### Pagination shortcode
 
 There are lists that can be paginated, these are:
 
@@ -208,4 +224,4 @@ For example, if you use:
     ...
     
 You will render the staff list paginated with 4 elements per page, otherwise, it'll be used the default per page 
-value of 10.
+value of 10. -->
