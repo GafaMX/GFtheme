@@ -242,13 +242,9 @@ class ProfileUserInfo extends React.Component {
                                                         handleChangeField={this.handleChangeField.bind(this)}/>
 
                                             <div className={profileClass + '__section is-save'}>
-                                                <Button
-                                                    disabled={!this.state.formValid}
-                                                    type="submit"
-                                                    className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
-                                                >
+                                                <button disabled={!this.state.formValid} type="submit" className={buttonClass + ' ' + buttonClass + "--submit is-primary"}>
                                                     {Strings.BUTTON_SAVE}
-                                                </Button>
+                                                </button>
 
                                                 <div className={formClass + '__notifications'}>
                                                     <div className="text-danger">

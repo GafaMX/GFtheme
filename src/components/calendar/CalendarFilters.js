@@ -5,6 +5,9 @@ import Strings from "../utils/Strings/Strings_ES";
 import IconLeftArrow from "../utils/Icons/IconLeftArrow";
 import IconRightArrow from "../utils/Icons/IconRightArrow";
 import CalendarStorage from "./CalendarStorage";
+import MorningIcon from "../utils/Icons/MorningIcon"
+import AfternoonIcon from "../utils/Icons/AfternoonIcon"
+import AllTimeIcon from "../utils/Icons/AllTimeIcon"
 import moment from 'moment';
 
 
@@ -15,6 +18,7 @@ class CalendarFilters extends React.Component {
         this.state = {
             services: [],
             room_groups: [],
+            time_of_day: null,
             has_next: true,
             has_prev: false,
         };
@@ -22,6 +26,7 @@ class CalendarFilters extends React.Component {
         CalendarStorage.addSegmentedListener(['rooms', 'filter_location'], this.updateRooms.bind(this));
         CalendarStorage.addSegmentedListener(['meetings'], this.updateServices.bind(this));
         CalendarStorage.addSegmentedListener(['start_date'], this.updateStart.bind(this));
+        CalendarStorage.addSegmentedListener(['filter_time_of_day'], this.updateTimeOfDay.bind(this));
 
         this.nextWeek = this.nextWeek.bind(this);
         this.prevWeek = this.prevWeek.bind(this);
@@ -83,6 +88,12 @@ class CalendarFilters extends React.Component {
         this.setState({
             has_next: this.hasNextPrev(),
             has_prev: this.hasNextPrev(false)
+        })
+    }
+
+    updateTimeOfDay(){
+        this.setState({
+            'time_of_day': CalendarStorage.get('filter_time_of_day'),
         })
     }
 
@@ -168,6 +179,7 @@ class CalendarFilters extends React.Component {
 
     render() {
         let locations = CalendarStorage.get('locations');
+        let {time_of_day} = this.state;
         let filter_name = 'meetings-calendar--filters';
 
         let preC = 'GFSDK-c';
@@ -177,10 +189,57 @@ class CalendarFilters extends React.Component {
         let formClass = preE + '-form';
         let navigationClass = preE + '-navigation';
 
+        console.log(CalendarStorage);
+
         return (
             <div className={calendarClass + '__head'}>
                 <div className={calendarClass + '__filter ' + filterClass}>
-                    <div className={formClass + '__section'}>
+                    <div className={formClass + '__section is-day-filter'}>
+                        <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
+                        <div className={formClass + "__radio-container has-3-columns"}>
+                            <label className={formClass + "__radio " + (time_of_day === null || time_of_day === ' ' ? 'checked' : '')}>
+                                <input  type="radio"
+                                        className="mr-2"
+                                        value={''}
+                                        checked={time_of_day === null || time_of_day === ' '}
+                                        name="time_of_day"
+                                        data-name="filter_time_of_day"
+                                        onChange={this.updateStore.bind(this)}
+                                />
+                                <p className={formClass + "__label"}>
+                                    <AllTimeIcon />
+                                </p>
+                            </label>
+                            <label className={formClass + "__radio " + (time_of_day === 'morning' ? 'checked' : '')}>
+                                <input  type="radio"
+                                        className="mr-2"
+                                        value={'morning'}
+                                        name="time_of_day"
+                                        checked={time_of_day === 'morning'}
+                                        data-name="filter_time_of_day"
+                                        onChange={this.updateStore.bind(this)}
+                                />
+                                <p className={formClass + "__label"}>
+                                    <MorningIcon />
+                                </p>
+                            </label>
+                            <label className={formClass + "__radio " + (time_of_day === 'afternoon' ? 'checked' : '')}>
+                                <input  type="radio"
+                                        className="mr-2"
+                                        value={'afternoon'}
+                                        checked={time_of_day === 'afternoon'}
+                                        name="time_of_day"
+                                        data-name="filter_time_of_day"
+                                        onChange={this.updateStore.bind(this)}
+                                />
+                                <p className={formClass + "__label"}>
+                                    <AfternoonIcon />
+                                </p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className={formClass + '__section is-location-filter'}>
                         <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
                         <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
                                 data-origin="locations"
@@ -195,7 +254,7 @@ class CalendarFilters extends React.Component {
                         </select>
                     </div>
 
-                    <div className={formClass + '__section'}>
+                    <div className={formClass + '__section is-room-filter'}>
                         <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{Strings.ROOM}: </label>
                         <select className={formClass + '__select'} id={'calendar-filter-room'} data-name="filter_room"
                                 data-origin="rooms" ref={'room'}
@@ -204,7 +263,7 @@ class CalendarFilters extends React.Component {
                             {this.state.room_groups.map(function (group, index) {
                                 return (
                                     <optgroup label={group.location.name}
-                                              key={`${filter_name}-room-group--option-${index}`}>
+                                                key={`${filter_name}-room-group--option-${index}`}>
                                         {group.rooms.map(function (room, r_index) {
                                             return (
                                                 <option key={`${filter_name}-room--option-${r_index}`}
@@ -217,7 +276,7 @@ class CalendarFilters extends React.Component {
                         </select>
                     </div>
 
-                    <div className={formClass + '__section'}>
+                    <div className={formClass + '__section is-service-filter'}>
                         <label htmlFor={'calendar-filter-service'}  className={formClass + '__label'}>{Strings.SERVICE}: </label>
                         <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
                                 data-origin="services"
@@ -230,16 +289,6 @@ class CalendarFilters extends React.Component {
                                             key={`${filter_name}-service--option-${index}`}>{service.name}</option>
                                 );
                             })}
-                        </select>
-                    </div>
-
-                    <div className={formClass + '__section'}>
-                        <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
-                        <select id={'calendar-time-of-day'} className={formClass + '__select'} data-name="filter_time_of_day"
-                                onChange={this.updateStore}>
-                            <option value={''}>{Strings.ALL}</option>
-                            <option value={'morning'}>{Strings.MORNING}</option>
-                            <option value={'afternoon'}>{Strings.AFTERNOON}</option>
                         </select>
                     </div>
                 </div>

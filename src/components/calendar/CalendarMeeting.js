@@ -63,6 +63,7 @@ class CalendarMeeting extends React.Component {
         let classStart = moment(meeting.start_date).toDate();
         let room = this.state.room;
         let location = CalendarStorage.find('locations', meeting.locations_id);
+        let time_format = location.brand.time_format;
 
         let preC = 'GFSDK-c';
         let preE = 'GFSDK-e';
@@ -80,7 +81,10 @@ class CalendarMeeting extends React.Component {
                     </div>
                     <hr></hr>
                     <div className={meetingClass + '__body'}>
-                        <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')}</p>
+                        {time_format === '12' 
+                            ? <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')} {moment(classStart).format('a')}</p>
+                            : <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>
+                        }
                         <p className={'this-staff'}>{meeting.staff.name}</p>
                         <p className={'this-location'}>{location ? location.name : ''}</p>
                     </div>

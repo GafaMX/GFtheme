@@ -2,17 +2,21 @@
 
 .#{$pre}-c-filter
 {
-    display: flex;
-    flex-flow: row-reverse;
-    align-items: flex-end;
-    margin-left: -10px;
-    margin-right: -10px;
-    width: calc(100% + 20px);
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    padding:0 10px;
+    row-gap: 15px;
+    column-gap: 15px;
+    justify-items: end;
+    @media screen and (min-width:768px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    @media screen and (min-width:992px) {
+        grid-template-columns: repeat(4, 1fr);
+    }
 
     & > select, & > div{
-        width:calc((100% / 4) - 10px);
-        margin-left: 10px;
-        margin-right: 10px;
+        width:100%;
     }
 
     & > *{

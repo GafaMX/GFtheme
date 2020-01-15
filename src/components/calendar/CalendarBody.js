@@ -4,7 +4,17 @@ import React from "react";
 import Strings from "../utils/Strings/Strings_ES";
 import CalendarStorage from "./CalendarStorage";
 import CalendarColumn from './CalendarColumn';
+
+import Slider from "react-slick";
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+
 import Moment from 'moment';
+import 'moment/min/moment-with-locales';
+import 'moment/locale/es';
+
+Moment.locale('es');
+
 
 class CalendarBody extends React.Component {
     constructor(props) {
@@ -123,25 +133,56 @@ class CalendarBody extends React.Component {
     render() {
         let preC = 'GFSDK-c';
         let calendarClass = preC + '-Calendar';
-        let widthDimension = CalendarStorage.get('calendarWidth');
-        let heightDimension = CalendarStorage.get('calendarHeight');
+        const dayList = this.state.meetings_to_show.map(function (day) {
+                            return(
+                                Moment(day.date, 'YYYY-MM-DD HH:mm:ss').toDate()
+                            );
+                        });
 
-        // debugger;
+        const listItems =   this.state.meetings_to_show.map(function (day, index) {
+                                return (
+                                    <CalendarColumn key={`calendar-day--${index}`}
+                                                    index={index}
+                                                    day={day}/>
+                                );
+                            });
 
-        const mystyles = {
-            height: heightDimension + 'px',
-        }
+        let settings = {
+            // arrows: false,
+            
+            infinite: false,
+            speed: 500,
+            slidesToScroll: 7,
+            slidesToShow: 7,
+            customPaging: function(i) {
+                return (
+                    <a>
+                        <div>
+                            <p className="this-date">{Moment(dayList[i]).format('dd')}</p>
+                            <p className="this-number">{Moment(dayList[i]).format('D')}</p>
+                        </div>
+                    </a>
+                );
+            },
+            dots: true,
+            dotsClass: "slick-dots slick-thumb " + calendarClass + '__day-dots',
+            responsive: [
+                {
+                    breakpoint: 992,
+                    settings: {
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    }
+                },
+            ],
+        };
 
         return (
-            <div className={calendarClass + '__body'} style={mystyles}>
+            <div className={calendarClass + '__body'}>
                 <div className={calendarClass + '__body-container'}>
-                    {this.state.meetings_to_show.map(function (day, index) {
-                        return (
-                            <CalendarColumn key={`calendar-day--${index}`}
-                                            index={index}
-                                            day={day}/>
-                        );
-                    })}
+                    <Slider {...settings}>
+                        {listItems}
+                    </Slider>
                 </div>
             </div>
         );

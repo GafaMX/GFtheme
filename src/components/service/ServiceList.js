@@ -68,7 +68,10 @@ class ServiceList extends React.Component {
     render() {
         let listItems = [];
         this.state.list.forEach((service) => {
-                if ((this.state.currentCategory === 'Todos' || service.category != null && service.category.toUpperCase() === this.state.currentCategory) && (service.status != "inactive"))
+                if ((this.state.currentCategory === 'Todos' || service.category != null && service.category.toUpperCase() === this.state.currentCategory) 
+                    && (service.status != "inactive")
+                    && (service.hide_in_home != true)
+                )
                     listItems.push(<ServiceItem key={service.id} service={service}/>)
             }
         );
@@ -126,7 +129,7 @@ class ServiceList extends React.Component {
             <div className={serviceClass}>
                 <div className={serviceClass + '__header'}>
                     <div className={filterClass}>
-                        <select className={filterClass + '__item ' + formClass + '__select'} onChange={this.change} value={this.state.value}>
+                        <select className={filterClass + '__item ' + formClass + '__select' + ' is-service-filter'} onChange={this.change} value={this.state.value}>
                             <option>Todos</option>
                             {this.state.categoryList.map(category => {
                                 return <option key={category} value={category}>{category}</option>

@@ -24,7 +24,6 @@ class PurchasesList extends React.Component {
             currentComponent.setState({
                 list: result.data,
             })
-
         })
     }
 
@@ -44,8 +43,8 @@ class PurchasesList extends React.Component {
                 {
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 1,
-                        slidesToScroll: 1,
+                        slidesToShow: 3,
+                        slidesToScroll: 3,
                     }
                 },
             ],

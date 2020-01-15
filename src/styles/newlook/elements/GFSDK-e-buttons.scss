@@ -103,7 +103,8 @@
 .react-date-picker{
 
     &__clear-button, &__calendar-button{
-        display: grid;
+        // display: grid;
+        display: none;
         align-items: center;
         justify-content: center;
         line-height: 30px;

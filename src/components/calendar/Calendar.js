@@ -81,11 +81,8 @@ class Calendar extends React.Component {
         let widthDimension = CalendarStorage.get('calendarWidth');
         let heightDimension = CalendarStorage.get('calendarHeight');
 
-        // debugger;
-
         const mystyles = {
             width:  widthDimension + 'px',
-            // height: heightDimension + 'px',
         }
 
         return (

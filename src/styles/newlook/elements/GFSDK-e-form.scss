@@ -28,8 +28,21 @@
         outline: none;
         border: 1px #575757 solid;
         color:#575757;
+        background-color:transparent;
         width:100%;
         letter-spacing: 1.15px;
+
+        &.is-room-filter,
+        &.is-service-filter{
+            grid-column: 1;
+            
+            @media screen and (min-width:768px) {
+                grid-column: 2/3;
+            }
+            @media screen and (min-width:992px) {
+                grid-column: 4/5;
+            }
+        }
 
         option{
             padding:10px;
@@ -47,6 +60,12 @@
 
         &.is-email_confirm, &.is-first_name_confirm{
             display: none;
+        }
+
+        &.is-gender{
+            align-items: center;
+            height: 100%;
+            grid-template-rows: 1fr;
         }
         
         &.is-gender, &.is-birthday{
@@ -71,6 +90,12 @@
             }
         }
 
+        &.is-day-filter{
+            display: grid;
+            justify-items: center;
+            align-items: end;
+        }
+
         .react-date-picker {
             display: block;
 
@@ -91,7 +116,7 @@
 
                 &__input {
                     color:#4E4E50;
-                    width:60px!important;
+                    width:80px!important;
                     text-align: center;
                     font-weight: 500;
                     font-size:16px!important;
@@ -145,6 +170,13 @@
         display: inline-grid;
         grid-template-columns: repeat(2, 1fr);
         column-gap: 25px;
+        
+        &.has-3-columns{
+            grid-template-columns: repeat(3, 40px);
+            grid-template-rows: 1fr;
+            column-gap: 15px;
+            align-items: center;
+        }
     }
 
     &__radio{
@@ -158,6 +190,27 @@
         line-height: 1;
         font-size: 14px;
         margin:0;
+
+        .has-3-columns &{
+            grid-template-columns: 1fr;
+            padding:10px;
+            border-radius: 10px;
+            svg{
+                height:100%;
+                width:100%;
+                color: #A5A1A1;
+                @include transition (color);
+            }
+
+            input {
+                display: none;
+            }
+            &.checked{
+                svg{
+                    color: #1F1C3D;
+                }
+            }
+        }
 
         input, p {
             margin:0;

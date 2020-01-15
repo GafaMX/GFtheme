@@ -65,8 +65,11 @@ class StaffList extends React.Component {
     render() {
         let listItems = [];
         this.state.list.forEach((staff) => {
-                if (this.state.currentjob === 'Todos' || staff.job != null && staff.job.toUpperCase() === this.state.currentjob)
-                    listItems.push(<StaffItem key={staff.id} staff={staff}/>);
+            if ((this.state.currentjob === 'Todos' || staff.job != null && staff.job.toUpperCase() === this.state.currentjob)
+                && (staff.status != "inactive")
+                && (staff.hide_in_home != true)
+            )
+                listItems.push(<StaffItem key={staff.id} staff={staff}/>);
             }
         );
 
@@ -123,7 +126,7 @@ class StaffList extends React.Component {
             <div className={staffClass}>
                 <div className={staffClass + '__header'}>
                     <div className={filterClass}>
-                        <select className={filterClass + '__item ' + formClass + '__select'} onChange={this.change} value={this.state.currentjob}>
+                        <select className={filterClass + '__item ' + formClass + '__select' + ' is-service-filter'} onChange={this.change} value={this.state.currentjob}>
                             <option>Todos</option>
                             {this.state.jobList.map(job => {
                                 return <option key={job} value={job}>{job}</option>
