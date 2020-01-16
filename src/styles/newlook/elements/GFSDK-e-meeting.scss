@@ -6,14 +6,18 @@
     row-gap: 15px;
     column-gap: 15px;
     border-top: 1px solid #EEEEEE;
-    grid-template-columns: 65px auto 1fr;
+    grid-template-columns: 80px auto 1fr;
     justify-items: start;
     align-items: center;
     padding:15px;
     background-color: white;
     cursor: pointer;
     box-sizing: border-box;
-    
+
+    p {
+        font-family: 'DM Sans', sans-serif;
+    }
+
     @media screen and (min-width:992px) {
         grid-template-columns: 1fr;
         column-gap: 0;
@@ -37,6 +41,10 @@
     @include cleanStyles;
 
     &__header{
+        & > p{
+            text-align: left!important;
+            word-break: normal;
+        }
 
         & > .this-service, & > .this-room{
             font-size:12px;
@@ -68,9 +76,9 @@
     &__body{
 
         p{
-            text-align: left;
+            text-align: left!important;
         }
-        
+
         & > .this-time, & > .this-staff, & > .this-location{
             font-size:12px;
             line-height: 1.6;
@@ -88,8 +96,8 @@
         }
 
 
-        & > .this-location, & > .this-staff{
-            font-size:14px;
-        }
+        // & > .this-location, & > .this-staff{
+        //     font-size:14px;
+        // }
     }
 }

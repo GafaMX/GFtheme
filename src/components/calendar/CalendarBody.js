@@ -21,11 +21,26 @@ class CalendarBody extends React.Component {
         super(props);
 
         this.state = {
-            meetings_to_show: this.initialMeetings()
+            meetings_to_show: this.initialMeetings(),
+            widthCalendar: null,
         };
 
         CalendarStorage.addSegmentedListener(['filter_location', 'filter_service', 'filter_room', 'meetings', 'start_date', 'filter_time_of_day'], this.updateMeetings.bind(this));
+        this.updateDimensions = this.updateDimensions.bind(this);
     }
+
+    componentDidMount(){
+        this.updateDimensions();
+        window.addEventListener('resize', this.updateDimensions);
+    }
+
+    updateDimensions(){
+        const body = document.querySelector(".GFSDK-c-Calendar");
+        this.setState({
+            widthCalendar: body.offsetWidth,
+        })
+    }
+
 
     initialMeetings() {
         let shown_meetings = [];
@@ -148,8 +163,6 @@ class CalendarBody extends React.Component {
                             });
 
         let settings = {
-            // arrows: false,
-            
             infinite: false,
             speed: 500,
             slidesToScroll: 7,
@@ -177,8 +190,12 @@ class CalendarBody extends React.Component {
             ],
         };
 
+        const myStyle = {
+            width: this.state.widthCalendar + 'px'
+        }
+
         return (
-            <div className={calendarClass + '__body'}>
+            <div className={calendarClass + '__body'} style={myStyle}>
                 <div className={calendarClass + '__body-container'}>
                     <Slider {...settings}>
                         {listItems}

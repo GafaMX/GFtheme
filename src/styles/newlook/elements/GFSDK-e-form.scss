@@ -77,6 +77,14 @@
             }
         }
 
+        &.is-country,
+        &.is-state
+        {
+            input{
+                height:initial;
+            }
+        }
+
         &.is-email{
             @media screen and (min-width:992px) {
                 grid-column: 2/4;
@@ -191,10 +199,41 @@
         font-size: 14px;
         margin:0;
 
+        & > .this-radio{
+            position: relative;
+            display: grid;
+            align-items: center;
+            justify-items: center;
+            height:20px;
+            width:20px;
+            border: 1px solid #BDBDBD;
+            border-radius: 100%;
+
+            &:before{
+                content: "";
+                display: block;
+                height: 10px;
+                width: 10px;
+                border-radius: 100%;
+                background-color: transparent;
+                @include transition(background-color);
+            }
+            
+            &.checked{
+                &:before{
+                    background-color: #FF3E4F;
+                }
+            }
+        }
+
         .has-3-columns &{
             grid-template-columns: 1fr;
             padding:10px;
             border-radius: 10px;
+
+            &:before{
+                display: none;
+            }
             svg{
                 height:100%;
                 width:100%;
@@ -212,7 +251,11 @@
             }
         }
 
-        input, p {
+        input{
+            display: none;
+        }
+
+        p {
             margin:0;
         }
     }

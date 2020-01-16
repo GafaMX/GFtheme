@@ -86,6 +86,7 @@ class AddressInfo extends React.Component {
                 <div className={formClass + "__section is-country"}>
                     <ControlLabel className={formClass + "__label"}>{Strings.LABEL_COUNTRY}</ControlLabel>
                     <Select options={this.props.info.countries}
+                            placeholder={'Seleccionar'}
                             value={this.props.info.countries.find(option => option.value === this.props.info.countries_id)}
                             onChange={this.handleChangeCountry.bind(this)}
                     />
@@ -93,6 +94,7 @@ class AddressInfo extends React.Component {
                 <div className={formClass + "__section is-state"}>
                     <ControlLabel className={formClass + "__label"}>{Strings.LABEL_STATE}</ControlLabel>
                     <Select options={this.props.info.states}
+                            placeholder={'Seleccionar'}
                             value={this.props.info.states.find(option => option.value === this.props.info.country_states_id)}
                             onChange={this.handleChangeState.bind(this)}
                     />

@@ -268,13 +268,13 @@ class ProfileUserInfo extends React.Component {
                                                         handleChangePassword={this.handleChangePassword.bind(this)}
                                                         handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
                                         <div className={profileClass + '__section is-save'}>
-                                            <Button
+                                            <button
                                                 disabled={!this.state.formValid}
                                                 type="submit"
                                                 className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
                                             >
                                                 {Strings.BUTTON_SAVE}
-                                            </Button>
+                                            </button>
 
                                             <div className={formClass + '__notifications'}>
                                                 <div className="text-danger">

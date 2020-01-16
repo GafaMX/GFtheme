@@ -63,6 +63,7 @@
         .col-lg-6 > .container{
             display: grid;
             width: 80%;
+            height: fit-content;
         }
 
     }
@@ -102,11 +103,17 @@
         }
     }
 
+    .modal-body form{
+        display: grid;
+        row-gap: 15px;
+    }
+
     .modal-content{
         height:100%;
         width:100%;
         border-radius: 0;
         box-shadow: none;
+        
 
 
         & > .row{

@@ -96,7 +96,14 @@ class ComboList extends React.Component {
                     }
                 },
                 {
-                    breakpoint: 1025,
+                    breakpoint: 992,
+                    settings: {
+                        slidesToShow: 3,
+                        slidesToScroll: 3,
+                    }
+                },
+                {
+                    breakpoint: 1200,
                     settings: {
                         slidesToShow: 4,
                         slidesToScroll: 4,

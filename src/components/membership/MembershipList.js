@@ -93,6 +93,13 @@ class MembershipList extends React.Component {
                     }
                 },
                 {
+                    breakpoint: 992,
+                    settings: {
+                        slidesToShow: 3,
+                        slidesToScroll: 3,
+                    }
+                },
+                {
                     breakpoint: 1025,
                     settings: {
                         slidesToShow: 4,

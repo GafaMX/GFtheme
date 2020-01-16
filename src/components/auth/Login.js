@@ -147,13 +147,13 @@ class Login extends React.Component {
                             type="password"
                         />
                     </FormGroup>
-                    <Button
+                    <button
                         className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
                         disabled={!this.state.formValid}
                         type="submit"
                     >
                         {Strings.BUTTON_LOGIN}
-                    </Button>
+                    </button>
                     <div className="text-danger">
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
