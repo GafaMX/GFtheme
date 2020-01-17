@@ -24,3 +24,9 @@ chrome-user-data
 .vscode
 *.swp
 *.swo
+src/
+dist/
+.babelrc
+index.html
+package.json
+webpack.config.js
