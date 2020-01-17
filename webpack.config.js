@@ -10,8 +10,8 @@ const htmlWebpackPlugin = new HtmlWebPackPlugin({
 module.exports = {
     entry: "./src/app.js",
     output: {
-        path: path.resolve('dist'),
-        filename: 'main.js'
+        path: path.resolve('./'),
+        filename: 'main.min.js'
     },
     module: {
         rules: [
