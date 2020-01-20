@@ -1,0 +1,231 @@
+.GFSDK-form{
+    padding:0;
+    &__container{
+        height:100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        &#ChangePassword{
+            padding-left: 15px;
+            padding-right: 15px;
+
+            [class*=col-md-4]{
+                padding-left: 0;
+                padding-right: 0;
+            }
+        }
+
+        & > form{
+            display: grid;
+            grid-auto-flow:row;
+            grid-template-rows: repeat(4, auto);
+            grid-row-gap: 1em;
+        }
+    }
+
+    &__section{
+        border-bottom: solid 1px lighten(grey, 40%);
+        padding:1rem 0;
+        display: grid;
+        grid-auto-flow: row;
+        row-gap: 1.5em;
+
+        & > .second-line,  & > .third-line, & > .fourth-line{
+            @media screen and (min-width:992px) {
+                display: grid;
+                column-gap: 1em;
+            }
+        }
+        &#profile-address{
+
+            & > .second-line{
+                @media screen and (min-width:992px) {
+                    grid-template-columns: 1fr 100px 100px;
+                }
+            }
+            & > .third-line{
+                @media screen and (min-width:992px) {
+                    grid-template-columns: repeat(3, 1fr);
+                }
+            }
+            & > .fourth-line{
+                @media screen and (min-width:992px) {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+        }
+
+        &#profile-user{
+
+            & > .second-line, & > .third-line{
+                @media screen and (min-width:992px) {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+            // & > .third-line{
+            //     @media screen and (min-width:992px) {
+            //         grid-template-columns: repeat(2, 1fr);
+            //     }
+            // }
+        }
+
+        &#profile-contact{
+
+            & > .second-line{
+                @media screen and (min-width:992px) {
+                    grid-template-columns: 1fr;
+                }
+            }
+            & > .third-line{
+                @media screen and (min-width:992px) {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+        }
+
+        &#profile-save{
+            justify-content: start;
+        }
+
+        &#profile-password{
+
+            & > .second-line{
+                display: none;
+                @media screen and (min-width:992px) {
+                    grid-template-columns: 1fr;
+                }
+            }
+            & > .third-line{
+                @media screen and (min-width:992px) {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+        }
+
+        &#cancel-class{
+            display: inline-grid;
+            align-items: start;
+            grid-template-columns: repeat(2, auto);
+            column-gap: 15px;
+            button{
+                padding: 10px 20px;
+            }
+        }
+
+        &:last-child, &:nth-last-child(2){
+            border-bottom: transparent 0 none;
+        }
+
+        &:first-child{
+            padding-top:0;
+        }
+
+        &:last-child{
+            padding-top: 0;
+        }
+
+        & > h3 {
+            font-size:18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.4;
+        }
+
+        label{
+            display: block;
+            font-size:12px;
+            line-height: 1.8;
+        }
+
+        button[type=submit]{
+            padding:10px 20px;
+        }
+
+
+
+        .react-date-picker__calendar .react-calendar{
+            position: absolute;
+        }
+
+        .react-select__input input{
+            margin:0;
+        }
+
+        .form-group{
+            margin:0;
+        
+            input{
+                &[type=text], &[type=email], &[type=number], &[type=password]{
+                    background-color: transparent;
+                    width:100%;
+                    border: 0 transparent none;
+                    border-bottom: solid 1px lighten(grey, 10%);
+                    box-shadow: none;
+                    padding: 10px 0px;
+                    border-radius:0px;
+                    font-size:16px;
+                    font-weight: 400;
+                    outline: 0;
+                    margin:0;
+
+                    &[disabled]{
+                        opacity: 0.4;
+                    }
+                }
+            }
+        }
+
+        .confirmation-info{
+            input:disabled{
+                display: none;
+            }
+        }
+
+        .radio-inline{
+            display: grid;
+            align-items: center;
+
+            & > div{
+                display: inline-grid;
+                grid-auto-flow: row;
+                grid-row-gap: 1em;
+
+                @media screen and (min-width: 992px){
+                    grid-template-columns: repeat(2, auto);
+                    grid-auto-flow: column;
+                    grid-row-gap: initial;
+                    grid-column-gap: 1em;
+                }
+
+                & > .radio-group{
+                    display: grid;
+                    grid-auto-flow: column;
+                    grid-column-gap: .5em;
+                    grid-template-columns: auto 1fr;
+                    align-items: center;
+
+                    border-radius: 10px;
+                    border: 1px solid lightgrey;
+                    padding: 5px;
+
+                    line-height: 1;
+                    font-size:14px;
+                }
+            }
+        }
+
+        .react-date-picker{
+            display: block;
+
+            &__wrapper{
+                border: 0 transparent none;
+            }
+
+            &__inputGroup{
+                padding: 10px 0px;
+                border-bottom: solid 1px lighten(grey, 10%);
+            }
+        }
+    }
+}

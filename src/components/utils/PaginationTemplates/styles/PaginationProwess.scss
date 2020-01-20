@@ -1,0 +1,59 @@
+.qodef-ps-navigation{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    margin-top: 0;
+    
+    @media screen and (min-width: 992px){
+        display: block;
+    }
+
+    .qodef-ps-next, .qodef-ps-prev{
+        position: relative;
+        display: inline-block;
+        width:initial;
+
+        a{
+            color:black;
+        }
+        @media screen and (min-width:992px){
+            position: absolute;
+        }
+    }
+    .qodef-ps-prev{
+        left:initial;
+        @media screen and (min-width:992px){
+            left:-25px;
+        }
+    }
+    
+    .qodef-ps-next{
+        right:initial;
+        @media screen and (min-width:992px){
+            right:-25px;
+        }
+    }
+
+
+
+    #next, #past{
+        display: inline-flex;
+        align-items:center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+        letter-spacing: initial;
+
+        .qodef-ps-nav-mark{
+            margin-top:0px;
+        }
+
+        &.hide-button{
+            opacity:0.6;
+            pointer-events: none;
+        }
+    }
+
+}

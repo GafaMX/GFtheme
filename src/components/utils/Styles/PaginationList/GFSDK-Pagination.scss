@@ -1,0 +1,16 @@
+.GFSDK-pagination{
+    position: relative;
+    width: 100%;
+
+    @media screen and (min-width:992px){
+        position: absolute;
+    }
+
+    & > div {
+        width: 100%;
+    }
+    
+    &__container{
+        width:100%;
+    }
+}

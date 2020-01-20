@@ -1,0 +1,30 @@
+.qodef-title-holder{
+    height: 531px;
+    background-color: #9c9c9c;
+}
+
+.qodef-ts-image-holder{
+
+    @media screen and (min-width:992px) {
+        
+        height:635px;
+    
+        & > img{
+            object-fit: cover;
+            height:100%;
+        }
+    }
+}
+
+.qodef-team-single-outer{
+    padding:2em 0;
+}
+
+[data-gf-theme="staff-list"][data-gf-template="prowess"]{
+    .GFSDK-pagination{
+        position: relative;
+        max-width: 70%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}

@@ -1,0 +1,127 @@
+@mixin transition($property){
+    transition: .3s ease;
+    transition-property: $property;
+};
+
+.GFSDK-combos{
+    width: 100%;
+    padding-top:20px;
+    padding-bottom:40px;
+    margin-right: auto;
+    margin-left: auto;
+
+    @media (min-width: 576px){
+        max-width: 540px;
+    }
+    @media (min-width: 768px){
+        max-width: 720px;
+    }
+    @media (min-width: 992px){
+        max-width: 960px;
+    }
+    @media (min-width: 1200px){
+        max-width: 1140px;
+    }
+
+    & > div > div {
+
+        .qodef-pt-title-holder{
+            padding:10px 0;
+            @media screen and (min-width:768px) {
+                padding: 39px 30px 0;
+            }
+        }
+
+        .slick-slider{
+            display: grid;
+            align-items: center;
+        }
+
+        .qodef-ps-next, .qodef-ps-prev {
+            position: absolute;
+            cursor: pointer;
+
+            #next, #prev {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                height: 40px;
+                width: 40px;
+                border-radius: 50%;
+                letter-spacing: initial;
+                padding: 0 10px;
+                line-height: 40px;
+                z-index: 10;
+            }
+        }
+
+        .qodef-ps-next {
+            right: -10px;
+            
+            @media screen and (min-width:768px) {
+                right: -25px;
+            }
+        }
+
+        .qodef-ps-prev {
+            left: -10px;
+            @media screen and (min-width:768px) {
+                left: -25px;
+            }
+        }
+        
+        .slick-slide{
+            & > div{
+                padding:0px;
+                @media screen and (min-width:1200px) {
+                    padding:20px;
+                }
+            }
+        }
+
+        .slick-centered{
+            .slick-slide{
+                opacity: 0.4;
+                pointer-events: none;
+                transform: scale(0.8);
+                @include transition(all);
+                
+                &.slick-center{
+                    pointer-events: all;
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+        }
+        .slick-dots{
+            li{
+                height: initial;
+                width: initial;
+
+                &.slick-active{
+                    button{
+                        background-color: #575757;
+                    }
+                }
+
+
+                button{
+                    height: 10px;
+                    width: 10px;
+                    background-color:#EEEEEE;
+                    border-radius: 50%;
+                    @include transition(background-color);
+
+                    &:hover{
+                        background-color: #575757;
+                    }
+
+                    &:before{
+                        display: none;
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,145 @@
+
+$accent-color: #F2C545;
+$accent-color-hover:lighten($accent-color, 10%);
+
+// @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro');
+
+html{
+    color: $accent-color!important;
+}
+
+#CreateReservationFancyTemplate{
+
+    .gs-table__item{
+        border:0 transparent none;
+    }
+
+    .PaymentSelection--Conekta.Conekta__form label span{
+        font-size: 12px!important;
+    }
+
+    .Conekta__form input {
+        font-size: 14px!important;
+    }
+
+    .GfStore__ProductsItems .amount button{
+        line-height: 1!important;
+    }
+
+    .gs-cartItem__header, .gs-cartItem__footer {
+        line-height: 1;
+    }
+
+    .gs-cartItem__footer {
+        font-size: 12px;
+    }
+
+    .gs-PromotionBox__header{
+        grid-column-gap: 10px;
+
+        label{
+            font-size: 10px;
+            line-height: 1.4;
+        }
+    }
+
+    .gs-summary__header h5, h3{
+        line-height: 1.2;
+        margin-bottom: 0;
+    }
+
+    .gs-terms__item a{
+        font-size:12px;
+        line-height: 1.4;
+    }
+
+    color: $accent-color;
+    font-family: 'Ubuntu', sans-serif !important;
+
+    .gs-expiration{
+        background-color: $accent-color;
+    }
+
+    .gs-summary__header{
+        @media screen and (min-width:992px) {
+            background-color: $accent-color;
+        }
+    }
+    .gs-summary__notifications{
+        background-color: $accent-color;
+    }
+    // .gs-summary__footer h5,
+    .products-container .slick-slider .slick-next:before,
+    .products-container .slick-slider .slick-prev:before,
+    .SelectProductsStepNav ul>li.active a,
+    .TabsGafaFit-content,
+    .gs-PromotionBox__header label,
+    .gs-description__body,
+    .totalAmount{
+        color: $accent-color;
+    }
+
+    .gs-thankyou{
+        border-color: $accent-color;
+    }
+
+    input[type=checkbox]{
+        border-color: $accent-color!important;
+        &:checked{
+            background-color: $accent-color!important;
+        }
+    }
+    
+    .gs-PromotionBox__container,
+    .gs-terms__item{
+        border-color: $accent-color-hover!important;
+
+        a{
+            color: $accent-color;
+        }
+    }
+
+    table td, table th{
+        text-align:left;
+    }
+
+    .gs-thankyou__status .AppReservation--steps{
+        position: relative;
+    }
+
+    .TabsGafaFit--tab-link{
+        color: $accent-color-hover;
+        font-size: 14px;
+        &:hover, &__active{
+            color: $accent-color;
+        }
+
+        &:after{
+            background-color: $accent-color;
+        }
+    }
+
+    // .gs-title{
+    //     color: $accent-color;
+    // }
+
+    .SelectProductsStepNav ul>li {
+        color: $accent-color;
+        &.active, a:hover{
+            color: $accent-color;
+        }
+        span:after{
+            background-color: $accent-color;
+        }
+    }
+
+    .add-to-card,
+    .GfStore__ProductsItems .amount button
+    // .gs-checkOut
+    {
+        background-color: $accent-color-hover;
+        &:hover{
+            background-color: $accent-color;
+        }
+    }
+}
