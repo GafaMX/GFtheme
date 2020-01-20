@@ -1,0 +1,58 @@
+section[data-gf-theme]{
+    margin-top:80px;
+    margin-bottom:120px;
+}
+section[data-gf-theme="staff-list"]{
+    margin-top:120px;
+}
+
+.grecaptcha-badge{
+    display:none!important;
+}
+
+header{
+    position:fixed;
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: 1fr 3fr 1fr;
+    column-gap: 15px;
+    width: 100%;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-right: 40px;
+    padding-left: 40px;
+    margin-right: auto;
+    margin-left: auto;
+    justify-items: end;
+    background-color:rgba(255, 255, 255, 1);
+    box-shadow: 0 2px 25px 0 rgba(0, 0, 0, 0.05);
+    border-radius: 0 0 58px 58px;
+    z-index: 1000;
+    top:0;
+    left:50%;
+    transform: translateX(-50%);
+
+
+    @media (min-width: 576px){
+        max-width: 540px;
+    }
+    @media (min-width: 768px){
+        max-width: 720px;
+    }
+    @media (min-width: 992px){
+        max-width: 960px;
+    }
+
+    @media (min-width: 992px){
+        max-width: 1140px;
+    }
+
+    & > .menu, & > .logo, & > [data-gf-theme]{
+        width:100%;
+    }
+
+    & > [data-gf-theme] {
+        display: inline-block;
+        width: fit-content;
+    }
+}

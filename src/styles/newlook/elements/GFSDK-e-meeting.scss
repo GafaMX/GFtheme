@@ -1,0 +1,103 @@
+@import '../base/variables.scss';
+
+.#{$pre}-e-meeting{
+    display:grid;
+    grid-auto-flow: row;
+    row-gap: 15px;
+    column-gap: 15px;
+    border-top: 1px solid #EEEEEE;
+    grid-template-columns: 80px auto 1fr;
+    justify-items: start;
+    align-items: center;
+    padding:15px;
+    background-color: white;
+    cursor: pointer;
+    box-sizing: border-box;
+
+    p {
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    @media screen and (min-width:992px) {
+        grid-template-columns: 1fr;
+        column-gap: 0;
+    }
+
+    &:last-child{
+        border-bottom: 1px solid #EEEEEE;
+    }
+
+    &.has-pasted{
+        opacity:0.4;
+        pointer-events: none;
+    }
+
+    &:hover{
+        & > hr{
+            background-color: #EF3532;
+        }
+    }
+
+    @include cleanStyles;
+
+    &__header{
+        & > p{
+            text-align: left!important;
+            word-break: normal;
+        }
+
+        & > .this-service, & > .this-room{
+            font-size:12px;
+            line-height: 1.4;
+            letter-spacing: .85px;
+            color: #8E8E93;
+        }
+
+        & > .this-service{
+            font-weight: 700;
+        }
+    }
+
+    & > hr{
+        width:1px;
+        height:100%;
+        margin:0;
+        background-color: #E9E8E8;
+        border: 0 transparent none;
+        @include transition(background-color);
+        
+        @media screen and (min-width:992px) {
+            width:90%;
+            height:1px;
+            margin-left: -15px;
+        }
+    }
+
+    &__body{
+
+        p{
+            text-align: left!important;
+        }
+
+        & > .this-time, & > .this-staff, & > .this-location{
+            font-size:12px;
+            line-height: 1.6;
+            letter-spacing: .85px;
+            color: #8E8E93;
+        }
+
+        & > .this-time, & > .this-staff{
+            font-size:13px;
+            color: #1F1C3D;
+        }
+
+        & > .this-staff{
+            font-weight: 700;
+        }
+
+
+        // & > .this-location, & > .this-staff{
+        //     font-size:14px;
+        // }
+    }
+}

@@ -1,0 +1,129 @@
+@import '../base/variables.scss';
+
+.#{$pre}-e-buttons{
+    display: block;
+    cursor: pointer;
+    width:100%;
+    padding:15px 58px;
+    border-radius: 100px;
+    font-size:12px;
+    font-weight: 500;
+    letter-spacing: 1.15px;
+    border: 0 transparent none;
+
+    &:hover{
+        text-decoration: none;
+    }
+
+    &.not-logged{
+        &.is-primary{
+            background-color: #656363;
+            color: #DADADA;
+            fill: #DADADA;
+            @include transition(background-color);
+            &:hover{
+                background-color: darken(#656363, 10%);
+            }
+        }
+    }
+
+    .profile-button-credits-total{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: normal;
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 10px;
+        font-weight: 400;
+        line-height: 14px;
+        margin:0;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background-color:darken(#FF3E4F, 30%);
+        color:white;
+    }
+
+    &.is-primary{
+        background-color: #FF3E4F;
+        color: #FFFFFF;
+        fill: #FFFFFF;
+        @include transition(background-color);
+
+        &:hover{
+            background-color: darken(#FF3E4F, 10%);
+        }
+    }
+
+    &--with-icon{
+        display:grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        justify-items: center;
+        column-gap: 10px;
+        padding:15px 30px;
+        width:initial;
+        line-height:18px;
+        background-color:#EEF3F9;
+        color:#4E4E50;
+        @include transition(all);
+
+        svg{
+            height: 18px;
+            width: 18px;
+        }
+
+        &:hover{
+            background-color: #8596A8;
+            color: white;
+        }
+    }
+
+    &--icon{
+        position: relative;
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+        padding:10px;
+
+        &.is-small{
+            height:30px;
+            width:30px;
+            padding:8px;
+        }
+
+        svg{
+            fill: inherit;
+        }
+    }
+}
+
+.react-date-picker{
+
+    &__clear-button, &__calendar-button{
+        // display: grid;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        line-height: 30px;
+        background-color:#BDBDBD;
+        padding:8px;
+        height:30px;
+        width:30px;
+        border-radius: 50%;
+        @include transition(background-color);
+
+        &:hover{
+            background-color:darken(#B7CCE0, 10%);
+        }
+
+        svg{
+            color: white;
+            stroke: white!important;
+            width: 100%;
+            height: 100%;
+        }
+    }
+}

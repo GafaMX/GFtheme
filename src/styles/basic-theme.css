@@ -1,0 +1,193 @@
+.staff-item-picture {
+    width: 100%;
+}
+
+.service-item-pic {
+    width: 100%
+}
+
+.parent-service-item-pic {
+    width: 100%
+}
+
+.auth {
+    padding: 60px 0;
+}
+
+.auth form {
+    margin: 0 auto;
+}
+
+.combo-item-discount {
+    text-decoration-line: line-through;
+}
+
+.combo-item {
+    cursor: pointer;
+}
+
+.membership-item-discount {
+    text-decoration-line: line-through;
+}
+
+.membership-item {
+    cursor: pointer;
+}
+
+a {
+    cursor: pointer;
+}
+
+.modal-container {
+    position: relative;
+}
+
+.modal-container .modal, .modal-container .modal-backdrop {
+    position: absolute;
+}
+
+.modal-backdrop {
+    opacity: 0.5;
+}
+
+@media (min-width: 576px) {
+    .modal-dialog {
+        max-width: 80% !important;
+    }
+}
+
+.circle-loading {
+    width: 50px;
+    height: 50px;
+    background-color: rgb(0, 0, 0);
+    display: block;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    margin-left: -50px;
+    margin-top: -50px;
+    border-radius: 150px;
+    -moz-animation: pulse 2s infinite ease-in;
+    -webkit-animation: pulse 1s infinite ease-in;
+    animation: pulse 1.5s infinite ease-in;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(0.1);
+        background-color: rgb(0, 0, 0);
+    }
+    50% {
+        transform: scale(0.5);
+        background-color: rgb(255, 255, 255);
+    }
+}
+
+@-moz-keyframes pulse {
+    0%, 100% {
+        -moz-transform: scale(0.1);
+        background-color: rgb(0, 0, 0);
+    }
+    50% {
+        -moz-transform: scale(0.5);
+        background-color: rgb(255, 255, 255);
+    }
+}
+
+@-webkit-keyframes pulse {
+    0%, 100% {
+        -webkit-transform: scale(0.1);
+        background-color: rgb(0, 0, 0);
+    }
+    50% {
+        -webkit-transform: scale(0.5);
+        background-color: rgb(255, 255, 255);
+    }
+}
+
+.loading-mask {
+    width: 100%;
+    height: 100%;
+}
+
+.calendar-day-column {
+    width: 13%;
+}
+
+.calendar-day-column:not(.last-day) {
+    border-right: 0px solid;
+}
+
+.calendar-meeting {
+    cursor: pointer;
+    margin: 10px;
+}
+
+.calendar-control-button {
+    cursor: pointer;
+}
+
+.pagination-container {
+    display: -webkit-inline-box;
+}
+
+.pages-navigation {
+    text-align: center;
+}
+
+.active-page {
+    background-color: #1a545e !important;
+}
+
+.hide-button {
+    display: none !important;
+}
+
+.past-meeting {
+    opacity: 0.7;
+}
+
+.jobSelector {
+    text-align: -webkit-center;
+}
+
+.categorySelector {
+    text-align: -webkit-center;
+}
+
+.creditosUser {
+    text-align: -webkit-center;
+    height: 90px;
+}
+
+.carousel-inner {
+    height: 90px;
+}
+
+.carousel-inner > .item {
+    height: 90px;
+}
+
+.carousel-caption, .carousel-control {
+    color: black !important;
+}
+
+.carousel-control {
+    background-image: linear-gradient(to right, rgba(0, 0, 0, .0001) 0, rgba(0, 0, 0, .0001) 100%) !important;
+}
+
+.confirmation-info {
+    display: none;
+}
+
+.cancelationButton {
+    background-color: black !important;
+    color: #FFFFFF !important;
+}
+
+.modal-cancelation {
+    top: 60px !important;
+    width: 65% !important;
+    text-align: center;
+    margin: 0 18%;
+}

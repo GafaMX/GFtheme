@@ -1,0 +1,79 @@
+@import '../base/variables.scss';
+
+.#{$pre}-c-orders
+{
+    &__section{
+        padding:0px;
+        margin: 0 auto;
+        width:100%;
+
+        .slick-track{
+            width:100%;
+            margin-left:0px;
+            margin-right:0px;
+        }
+        
+        &.is-singleLine{
+            .slick-track{
+                margin-left:0px;
+                margin-right:0px;
+            }
+
+            .slick-slide{
+                display: grid;
+                
+                @media screen and (min-width:992px) {
+                    display: block;
+                    grid-template-rows: 1fr;
+                }
+            }
+        }
+
+        .slick-slide{
+            height: 100%;
+            display: grid;
+            row-gap: 10px;
+            padding:0 5px;
+
+            @media screen and (min-width:992px) {
+                padding:0 10px;
+            }
+
+            & > div {
+                height: 100%;
+                padding: 10px 0;
+            }
+        }
+
+        .slick-dots{
+            bottom:0px;
+            li{
+                height: initial;
+                width: initial;
+
+                &.slick-active{
+                    button{
+                        background-color: #575757;
+                    }
+                }
+
+
+                button{
+                    height: 10px;
+                    width: 10px;
+                    background-color:lighten(#575757, 20%);
+                    border-radius: 50%;
+                    @include transition(background-color);
+
+                    &:hover{
+                        background-color: #575757;
+                    }
+
+                    &:before{
+                        display: none;
+                    }
+                }
+            }
+        }
+    }
+}

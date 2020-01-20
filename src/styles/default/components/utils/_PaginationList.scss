@@ -1,0 +1,40 @@
+.pages-navigation{
+    .pagination-container{
+        padding-top:2rem;
+        padding-bottom:2rem;
+        
+        .btn-group .btn{
+            height:40px;
+            border-radius: 40px;
+            background-color: lightgrey;
+            font-size: 100%;
+            transition: all .3s ease;
+            
+            &:hover, &.active-page{
+                background-color: grey!important;
+                color:white;
+            }
+            
+            &.past-page, &.next-page{
+                display:flex;
+                align-items:center;
+                border-radius: 0px;
+                justify-content:center;
+                padding:0 5px;
+                background-color:transparent;
+                color:grey;
+
+                &:hover{
+                    background-color: transparent!important;
+                    color:black;
+                }
+
+                svg{
+                    display:block;
+                    height:15px;
+                    width:15px;
+                }
+            }
+        }
+    }
+}

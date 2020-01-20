@@ -1,0 +1,14 @@
+.classSelector{
+    // margin-left:15px;
+    display: block;
+    width:100%;
+
+    select{
+        font-size: 100%;
+        height:initial;
+        border: 1px solid black;
+        border-left: 6px solid black;
+        border-radius: 0;
+        text-transform: uppercase;
+    }
+}

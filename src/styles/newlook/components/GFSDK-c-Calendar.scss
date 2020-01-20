@@ -1,0 +1,188 @@
+@import '../base/variables.scss';
+
+.#{$pre}-c-Calendar
+{
+    display: block;
+    grid-auto-flow: row;
+    row-gap: 15px;
+    width: 100%;
+    
+    @media screen and (min-width: 992px){
+        display: grid;
+    }
+    
+    & > *{
+        font-family: 'DM Sans', sans-serif;
+    }
+    
+    &__container{
+        display: block;
+        position: relative;
+        grid-template-rows: auto 1fr;
+        row-gap: 20px;
+        @media screen and (min-width: 992px){
+            display: grid;
+        }
+    }
+
+    &__head{
+        display: grid;
+        grid-template-rows: repeat(1, auto);
+        row-gap: 15px;
+
+        width:100%;
+        padding-right: 15px;
+        padding-left: 15px;
+        margin-right: auto;
+        margin-left: auto;
+        @media (min-width: 576px){
+            max-width: 540px;
+        }
+        @media (min-width: 768px){
+            max-width: 720px;
+        }
+        @media (min-width: 992px){
+            max-width: 960px;
+        }
+        @media (min-width: 1200px){
+            max-width: 1140px;
+        }
+    }
+
+    &__navigation{
+        height:40px;
+    }
+
+    &__day-dots{
+        display: grid!important;
+        grid-template-columns: repeat(7, 1fr);
+        justify-items: center;
+        top:0;
+        bottom: initial;
+
+        li{
+            height: initial;
+            width:initial;
+            
+            
+            a{
+                color:#A5A1A1;
+                font-size:12px;
+                
+                & > div{
+                    display: grid;
+                    grid-template-rows: auto 1fr;
+                    justify-items: center;
+                    row-gap: 10px;
+
+                    & > p {
+                        margin:0;
+                    }
+                }
+
+                .this-number{
+                    height:30px;
+                    width:30px;
+                    padding:5px;
+                    border-radius: 50%;
+                    display: grid;
+                    font-weight: 400;
+                    align-items: center;
+                    justify-items: center;
+                }
+
+                &:hover{
+                    text-decoration: none;
+                }
+            }
+
+            &.slick-active{
+                a{
+                    .this-date{
+                        color:#1F1C3D;
+                    }
+
+                    .this-number{
+                        background-color:#1F1C3D;
+                        color:white; 
+                    }
+                }
+            }
+        }
+
+        @media screen and (min-width:992px) {
+            display: none;
+        }
+    }
+
+    &__body{
+        position: relative;
+        width: 100%;
+        height: 100%;
+        &-container{
+            top:0;
+            left:0;
+            width:100%;
+            display: block;
+            height: fit-content;
+        }
+    }
+
+    &__column{
+        display: grid;
+        grid-auto-flow: row;
+        align-items: start;
+        grid-template-rows: auto 1fr;
+        row-gap:15px;
+
+        &__day{
+            display: grid;
+            grid-auto-flow: row;
+            justify-items: center;
+            row-gap: 10px;
+            opacity:0;
+            pointer-events: none;
+
+            @media screen and (min-width:992px) {
+                opacity:1;
+                pointer-events: all;
+            }
+
+            & > time{
+                text-transform: uppercase;
+                line-height: 1;
+                color:#A5A1A1;
+
+                .is-today &{
+                    color:#232040;
+                }
+
+                &:first-child{
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+
+                &:last-child{
+                    height:30px;
+                    width:30px;
+                    padding:5px;
+                    border-radius: 50%;
+                    display: grid;
+                    font-weight: 400;
+                    align-items: center;
+                    justify-items: center;
+
+                    .is-today &{
+                        background-color: #232040;
+                        color:white;
+                    }
+                }
+            }
+        }
+
+        &__meeting{
+            border-left: 1px solid #EEEEEE;
+            border-right: 1px solid #EEEEEE;
+        }
+    }
+}

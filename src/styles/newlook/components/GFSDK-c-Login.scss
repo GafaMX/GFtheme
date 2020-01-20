@@ -1,0 +1,13 @@
+@import '../base/variables.scss';
+
+.#{$pre}-c-login
+{
+
+    &__menu{
+        display: inline-block;
+        
+        &-nav{
+            display: inline-block;
+        }
+    }
+}

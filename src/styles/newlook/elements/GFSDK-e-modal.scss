@@ -1,0 +1,231 @@
+@import '../base/variables.scss';
+
+.modal-open .modal{
+    overflow-y: auto;
+}
+
+[data-gf-theme="login-register"]{
+    display: inline-block;
+}
+
+.GFSDK-login{
+    display: inline-block;
+}
+
+.modal-dialog{
+    margin:0;
+    width:100vw;
+    max-width:100%!important;
+    min-height:100vh;
+
+    @media screen and (min-width:992px) {
+        height:100vh;
+    }
+
+    .modal-header{
+        display: block;
+        border: 0 none transparent;
+        border-radius: 0;
+        .modal-title{
+            display: inline-block;
+            font-size:220%;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .close{
+            position:fixed;
+            height:30px;
+            width:30px;
+            top:15px;
+            right:15px;
+            z-index:10;
+            font-size:220%;
+            font-weight: 600;
+            padding:0;
+            margin:0;
+            background-color: transparent;
+            border: 0 transparent none;
+            cursor:pointer;
+            outline: none;
+            span{
+                display:flex;
+                height:100%;
+                width:100%;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+    }
+    .modal-content{
+        min-height: 100vh;
+        height:100%;
+        width:100%;
+        border-radius: 0;
+        box-shadow: none;
+        border: 0 transparent none;
+
+        & > .row{
+            height:100%;
+        }
+    }
+
+    .modal-footer{
+        display:block;
+        position:relative;
+        border:0 none transparent;
+        
+        &__nav ul li a{
+            cursor: pointer;
+        }
+    }
+}
+
+.modal-grid{
+
+    &__form{
+        display:grid;
+        grid-auto-flow: row;
+        grid-row-gap: 1em;
+        padding-left:30px;
+        padding-right:30px;
+        box-sizing: border-box;
+        @media screen and (min-width:992px) {
+            padding-left:15px;
+            padding-right:15px;
+        }
+    }
+}
+
+.modal-login, .modal-register, .modal-password, .modal-cancelation{
+    .modal-header{
+        .close{
+            color:black;
+
+            & > .sr-only{
+                display: none;
+            }
+
+            @media screen and (min-width:992px) {
+                color:white;
+            }
+        }
+    }
+
+    .modal-content{
+        height:100%;
+        width:100%;
+        border-radius: 0;
+        box-shadow: none;
+
+        & > .row{
+            height:100%;
+
+            [class*='col-']{
+                display:flex;
+                height:100%;
+                flex-flow:column nowrap;
+                justify-content:center;
+                box-sizing: border-box;
+                &.is-image{
+                    display: none;
+                    @media screen and (min-width:992px) {
+                        display: inline-flex;
+                    }
+                }
+            }
+        }
+    }
+}
+
+.modal-cancelation{
+    .modal-header{
+        .close{
+            color:black;
+        }
+    }
+}
+
+.modal-login{
+
+    &__image{
+        height:100%;
+        width:100%;
+        background-color: black;
+    }
+}
+
+.modal-profile{
+    padding:0;
+
+    * {
+        box-sizing: border-box;
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6{
+        text-transform: initial;
+    }
+
+    .modal-content{
+        background-color: transparent;
+    }
+
+    &__header{
+        padding:0;
+    }
+    &__body{
+        background-color: transparent;
+        padding:0;
+        height:100%;
+        overflow: hidden;
+        @media screen and (min-width:992px) {
+            display: flex;
+            align-items: center;
+        }
+
+        > .container, > .container-fluid{
+            height: 100%;
+            width: 100%;
+            padding:15px;
+
+            @media screen and (min-width:992px) {
+                // height: 768px;
+            }
+        }
+    }
+    &__image{
+        padding:0;
+        &-image{
+            position:absolute;
+            top:0;
+            left:0;
+            height:100%;
+            width:100%;
+            background-color: black;
+            z-index: 0;
+        }
+
+        &-nav{
+            position: relative;
+            display:flex;
+            align-items: flex-end;
+            padding-left: 30px;
+            padding-bottom:15px;
+            height:100%;
+            line-height: normal;
+            z-index:1;
+            ul{
+                width:100%;
+                padding:0;
+                .nav-item{
+                    display:block;
+                    list-style: none;
+                    width:100%;
+                    text-align: right;
+                    padding: 10px 20px;
+                }
+            }
+        }
+    }
+}

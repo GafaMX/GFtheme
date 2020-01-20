@@ -1,0 +1,67 @@
+@import '../base/variables.scss';
+
+.#{$pre}-e-pagination{
+    display:grid;
+    justify-items: center;
+
+    @include cleanStyles;
+
+    &__container{
+        display: inline-grid;
+        grid-auto-flow: column;
+        align-items: center;
+        column-gap: 15px;
+    }
+
+    &__next, &__past{
+        cursor: pointer;
+        height:20px;
+        width: 20px;
+    }
+
+    &__controls{
+        position: absolute;
+        z-index: 99;
+
+        &.is-next{
+            right:-10px;
+        }
+
+        &.is-prev{
+            left:-10px;
+        }
+
+        & > button{
+            background:transparent;
+            border: 0 transparent none;
+
+            &:focus{
+                outline:none;
+            }
+        }
+    }
+
+    &__bullets{
+        cursor: pointer;
+        &:focus{
+            outline: none;
+        }
+        & > button{
+            height:10px;
+            width:10px;
+            border-radius: 100%;
+            background-color:#EEEEEE;
+            padding:0;
+            @include transition(background-color);
+
+            &:focus{
+                outline: none;
+            }
+
+            &:hover, &.active-page{
+                background-color: #575757;
+            }
+        }
+
+    }
+}
