@@ -137,6 +137,7 @@ class CalendarBody extends React.Component {
         let dateArray = [];
         let currentDate = new Date(startDate.getTime());
         while (currentDate <= stopDate) {
+            // debugger;
             let new_date = new Date(currentDate.getTime());
             dateArray.push(new_date);
             currentDate.setDate(currentDate.getDate() + 1);

@@ -189,8 +189,6 @@ class CalendarFilters extends React.Component {
         let formClass = preE + '-form';
         let navigationClass = preE + '-navigation';
 
-        console.log(CalendarStorage);
-
         return (
             <div className={calendarClass + '__head'}>
                 <div className={calendarClass + '__filter ' + filterClass}>

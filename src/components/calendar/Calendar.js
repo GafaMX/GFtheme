@@ -7,6 +7,7 @@ import CalendarStorage from './CalendarStorage';
 import CalendarBody from "./CalendarBody";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import LoginRegister from "../menu/LoginRegister";
+import moment from "moment";
 
 // Estilos
 import '../../styles/newlook/components/GFSDK-c-Calendar.scss';
@@ -45,10 +46,8 @@ class Calendar extends React.Component {
 
     getMeetings() {
         let locations = CalendarStorage.get('locations');
-        let start_date = new Date();
-        let end_date = new Date();
-
-        CalendarStorage.set('start_date', start_date);
+        let start_date = moment().toDate();
+        let end_date = moment().toDate();
 
         let push_meetings = function (result) {
             CalendarStorage.set('meetings', result);
@@ -56,10 +55,13 @@ class Calendar extends React.Component {
         };
 
         locations.forEach(function (location) {
+            start_date = !location.date_start ? start_date : moment(location.date_start).toDate();
             end_date.setDate(start_date.getDate() + (location.calendar_days - 1));
+            debugger;
             let start_string = `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()}`;
             let end_string = `${end_date.getFullYear()}-${end_date.getMonth() + 1}-${end_date.getDate()}`;
             GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, push_meetings);
+            CalendarStorage.set('start_date', start_date);
         });
     }
 
