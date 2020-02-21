@@ -146,6 +146,7 @@ class CalendarBody extends React.Component {
     }
 
     render() {
+        const {limit} = this.props;
         let preC = 'GFSDK-c';
         let calendarClass = preC + '-Calendar';
         const dayList = this.state.meetings_to_show.map(function (day) {
@@ -156,9 +157,12 @@ class CalendarBody extends React.Component {
 
         const listItems =   this.state.meetings_to_show.map(function (day, index) {
                                 return (
-                                    <CalendarColumn key={`calendar-day--${index}`}
-                                                    index={index}
-                                                    day={day}/>
+                                    <CalendarColumn
+                                        key={`calendar-day--${index}`}
+                                        index={index}
+                                        day={day}
+                                        limit={limit}
+                                    />
                                 );
                             });
 

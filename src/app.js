@@ -30,6 +30,7 @@ GafaFitSDKWrapper.initValues(
         GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"][data-gf-perpage]');
         GafaThemeSDK.renderMembershipListWithoutPagination('[data-gf-theme="membership-list"]:not([data-gf-perpage]');
 
-        GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
+        GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"][data-gf-limit]');
+        GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');
     }
 );

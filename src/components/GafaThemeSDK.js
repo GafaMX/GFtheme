@@ -192,6 +192,40 @@ class GafaThemeSDK extends React.Component {
     static renderMeetingsCalendar(selector) {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
+            domContainers.forEach(function(domContainer) {
+                console.log(domContainer);
+                GafaFitSDKWrapper.getBrandLocations({
+                    'page': 1,
+                    'per_page': 1000,
+                }, function (result) {
+                    let limit = domContainer.getAttribute("data-gf-limit");
+                    let locations = result.data;
+
+                    if(limit){
+                        if(limit > 6 ){
+                            limit = 6;
+                        } else if(limit < 3 ){
+                            limit = 3;
+                        } else {
+                            limit = limit;
+                        }
+                    }
+
+                    console.log(limit);
+
+                    let props = {
+                        'locations': locations,
+                        'limit': limit,
+                    };
+                    GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
+                });
+            });
+        }
+    }
+
+    static renderMeetingsCalendarWithoutLimit(selector) {
+        let domContainers = document.querySelectorAll(selector);
+        if (domContainers.length > 0) {
             GafaFitSDKWrapper.getBrandLocations({
                 'page': 1,
                 'per_page': 1000,
@@ -201,7 +235,7 @@ class GafaThemeSDK extends React.Component {
                     'locations': locations
                 };
                 GafaThemeSDK.renderElementIntoContainers(domContainers, Calendar, props);
-            })
+            });
         }
     }
 
