@@ -78,7 +78,7 @@ class PastClasses extends React.Component {
                     :   <div className="is-empty">
                             <div className="is-notification">
                                 <h3>No cuentas con historial de clases</h3>
-                                <p>Lorem ipsum dolor sit amet</p>
+                                {/* <p>Lorem ipsum dolor sit amet</p> */}
                             </div>
                         </div>
                 }
