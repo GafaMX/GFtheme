@@ -5,8 +5,6 @@ import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 import Login from "../auth/Login";
 import ProfileUserInfo from "../profile/info/ProfileUserInfo";
-import ProfileUserImage from "../profile/info/ProfileUserImage";
-import ProfileUserSidebar from "../profile/info/ProfileUserSidebar";
 import Register from "../auth/Register";
 import PasswordRecovery from "../auth/PasswordRecovery";
 import {Modal} from "react-bootstrap";
@@ -15,8 +13,7 @@ import IconRunningMan from "../utils/Icons/IconRunningMan";
 
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-Login.scss';
-import '../../styles/default/modalComp.scss';
-// import '../../styles/newlook/components/login/GFSDK-c-Profile.scss';
+import '../../styles/newlook/thirdParties/modalComp.scss';
 import '../../styles/newlook/elements/GFSDK-e-form.scss';
 import '../../styles/newlook/elements/GFSDK-e-buttons.scss';
 
@@ -229,7 +226,10 @@ class LoginRegister extends React.Component {
                             {this.state.me != null ?
                                 <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
                                     <IconRunningMan />
-                                    <p className="profile-button-credits-total">{this.state.me.creditsTotal}</p>
+                                    {this.state.me.creditsTotal > 0
+                                        ? <p className="profile-button-credits-total">{this.state.me.creditsTotal}</p>
+                                        : null
+                                    }
                                 </div>
                                 : Strings.BUTTON_PROFILE}
                         </a>

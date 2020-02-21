@@ -2,7 +2,6 @@
 
 import React from 'react';
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Strings from "../utils/Strings/Strings_ES";
 import PurchaseItem from "./PurchaseItem";
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
@@ -56,9 +55,15 @@ class PurchasesList extends React.Component {
         return (
 
             <div className={profileClass + '__section is-buyOverall'} style={{width : this.state.windowWidth}}>
-                <Slider {...settings} className={ ordersClass + '__section'}>
-                    {listItems}
-                </Slider>
+                {this.state.list.length > 0
+                    ?   <Slider {...settings} className={ ordersClass + '__section'}>{listItems}</Slider>
+                    :   <div className="is-empty">
+                            <div className="is-notification">
+                                <h3>No cuentas con compras</h3>
+                                <p>Lorem ipsum dolor sit amet</p>
+                            </div>
+                        </div>
+                }
             </div>
         )
     }

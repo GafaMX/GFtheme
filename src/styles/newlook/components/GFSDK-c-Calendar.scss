@@ -153,6 +153,20 @@
                 line-height: 1;
                 color:#A5A1A1;
 
+                &.is-long{
+                    display: none;
+                    @media screen and (min-width:992px) {
+                        display: block;
+                    }
+                }
+                
+                &.is-short{
+                    display: block;
+                    @media screen and (min-width:992px) {
+                        display: none;
+                    }
+                }
+
                 .is-today &{
                     color:#232040;
                 }
@@ -181,8 +195,10 @@
         }
 
         &__meeting{
-            border-left: 1px solid #EEEEEE;
-            border-right: 1px solid #EEEEEE;
+            // border-left: 1px solid #EEEEEE;
+            // border-right: 1px solid #EEEEEE;
+            padding:0 5px;
+            display: grid;
         }
     }
 }

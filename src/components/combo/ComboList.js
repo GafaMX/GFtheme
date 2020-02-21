@@ -23,8 +23,21 @@ class ComboList extends React.Component {
         this.state = {
             showLogin: false,
             list: this.props.list,
+            weAreHome: false,
             slidesToShow: parseInt(this.props.slidesToShow, 10),
         };
+    }
+
+    componentDidMount(){
+        let comp = this;
+        let origin = window.location.origin + '/';
+        let href = window.location.href;
+
+        if(origin === href){
+            comp.setState({
+                weAreHome : true
+            });
+        }
     }
 
     setShowLogin(showLogin) {
@@ -112,8 +125,14 @@ class ComboList extends React.Component {
             ],
         };
 
-        const listItems = this.state.list.map((combo) =>
-            <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+        const listItems = this.state.list.map((combo) => {
+                if(
+                    this.state.weAreHome === false && combo.status === 'active' ||
+                    this.state.weAreHome === true && combo.status === 'active' && combo.hide_in_home != true
+                ){
+                    return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                }
+            }
         );
         return (
             <div className={comboClass}>
@@ -122,7 +141,7 @@ class ComboList extends React.Component {
                 </Slider>
 
                 {this.state.showLogin &&
-                <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
+                    <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }
             </div>
         );

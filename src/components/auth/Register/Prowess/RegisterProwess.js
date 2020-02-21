@@ -131,7 +131,6 @@ export default class RegisterProwess extends React.Component {
 
     successRegisterCallback(result) {
         this.setState({registered: true});
-        debugger;
     }
 
     errorRegisterCallback(error) {

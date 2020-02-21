@@ -116,15 +116,19 @@ class FutureClasses extends React.Component {
         };
 
 
-        const listItems = this.state.list.map((reservation) =>
-            <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>
-        );
+        const listItems = this.state.list.map((reservation) => <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>);
 
         return (
             <div className={profileClass + '__section is-futureClass'}>
-               <Slider {...settings} className={ ordersClass + '__section'}>
-                    {listItems}
-                </Slider>
+                {this.state.list.length > 0
+                    ?   <Slider {...settings} className={ ordersClass + '__section'}>{listItems}</Slider>
+                    :   <div className="is-empty">
+                            <div className="is-notification">
+                                <h3>No cuentas con próximas clases</h3>
+                                <p>Lorem ipsum dolor sit amet</p>
+                            </div>
+                        </div>
+                }
             </div>
         )
     }

@@ -57,7 +57,6 @@ class Calendar extends React.Component {
         locations.forEach(function (location) {
             start_date = !location.date_start ? start_date : moment(location.date_start).toDate();
             end_date.setDate(start_date.getDate() + (location.calendar_days - 1));
-            debugger;
             let start_string = `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()}`;
             let end_string = `${end_date.getFullYear()}-${end_date.getMonth() + 1}-${end_date.getDate()}`;
             GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, push_meetings);

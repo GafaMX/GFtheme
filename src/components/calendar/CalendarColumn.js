@@ -15,8 +15,6 @@ class CalendarColumn extends React.Component {
     renderMeetings(){
         let day = this.props.day;
 
-        debugger;
-
         day.meetings.map(function (meeting) {
             return ( <CalendarMeeting key={`column-day--${day.date}--meeting--${meeting.id}`} meeting={meeting} day={day}/> )
         });
@@ -36,7 +34,8 @@ class CalendarColumn extends React.Component {
         return (
             <div className={calendarClass + '__column' + (index === 0 ? ' first-day' : '') + (index >= 6 ? ' last-day' : '') + (day.date.includes(date)? ' is-today' : '')}>
                 <div className={calendarClass + '__column__day'}>
-                    <Moment calendar locale="es" format="dd">{day.date}</Moment>
+                    <Moment className={'is-short'} calendar locale="es" format="dd">{day.date}</Moment>
+                    <Moment className={'is-long'} calendar locale="es" format="dddd">{day.date}</Moment>
                     <Moment className='this-day' calendar locale="es" format="D">{day.date}</Moment>
                 </div>
                 <div className={calendarClass + '__column__meeting'}>

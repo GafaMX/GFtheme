@@ -2,11 +2,6 @@ const path = require('path');
 const HtmlWebPackPlugin = require("html-webpack-plugin");
 const withCSS = require('@zeit/next-css');
 
-const htmlWebpackPlugin = new HtmlWebPackPlugin({
-    template: "./src/index.html",
-    filename: "./index.html"
-});
-
 module.exports = {
     entry: "./src/app.js",
     output: {
@@ -42,5 +37,15 @@ module.exports = {
             }
         ]
     },
-    plugins: [htmlWebpackPlugin]
+    plugins: [
+        new HtmlWebPackPlugin({
+            template: "./src/index.html",
+            filename: "./index.html"
+        }),
+        new HtmlWebPackPlugin({
+            template: "./src/team.html",
+            filename: "./team.html"
+        }),
+
+    ]
 };
