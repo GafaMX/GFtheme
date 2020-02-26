@@ -126,11 +126,13 @@ class ComboList extends React.Component {
         };
 
         const listItems = this.state.list.map((combo) => {
-                if(
-                    this.state.weAreHome === false && combo.status === 'active' ||
-                    this.state.weAreHome === true && combo.status === 'active' && combo.hide_in_home != true
-                ){
-                    return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                if(combo.hide_in_front === false){
+                    if(
+                        this.state.weAreHome === false && combo.status === 'active' ||
+                        this.state.weAreHome === true && combo.status === 'active' && combo.hide_in_home != true
+                    ){
+                        return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                    }
                 }
             }
         );

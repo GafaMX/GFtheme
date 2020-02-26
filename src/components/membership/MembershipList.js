@@ -123,11 +123,13 @@ class MembershipList extends React.Component {
         };
 
         const listItems = this.state.list.map((membership) =>{
-                if(
-                    this.state.weAreHome === false && membership.status === 'active' ||
-                    this.state.weAreHome === true && membership.status === 'active' && membership.hide_in_home != true
-                ){
-                    return <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
+                if(membership.hide_in_front === false){
+                    if(
+                        this.state.weAreHome === false && membership.status === 'active' ||
+                        this.state.weAreHome === true && membership.status === 'active' && membership.hide_in_home != true
+                    ){
+                        return <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
+                    }
                 }
             }
         );
