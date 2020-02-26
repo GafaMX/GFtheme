@@ -126,7 +126,7 @@ class ComboList extends React.Component {
         };
 
         const listItems = this.state.list.map((combo) => {
-                if(combo.hide_in_front === false){
+                if(combo.hide_in_front === false || combo.hide_in_front === 0){
                     if(
                         this.state.weAreHome === false && combo.status === 'active' ||
                         this.state.weAreHome === true && combo.status === 'active' && combo.hide_in_home != true
