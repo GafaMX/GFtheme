@@ -26,9 +26,8 @@ class ClassItem extends React.Component {
             function(result){
             alert(Strings.CANCELEDRESERVATION);
                 window.location.reload();
-            })
-
-
+            }
+        )
     }
 
     handleShowCancelation(){

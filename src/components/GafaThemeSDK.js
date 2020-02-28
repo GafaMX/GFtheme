@@ -193,7 +193,6 @@ class GafaThemeSDK extends React.Component {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
             domContainers.forEach(function(domContainer) {
-                console.log(domContainer);
                 GafaFitSDKWrapper.getBrandLocations({
                     'page': 1,
                     'per_page': 1000,
@@ -202,16 +201,14 @@ class GafaThemeSDK extends React.Component {
                     let locations = result.data;
 
                     if(limit){
-                        if(limit > 6 ){
-                            limit = 6;
+                        if(limit > 3 && limit < 6){
+                            limit = limit;
                         } else if(limit < 3 ){
                             limit = 3;
-                        } else {
-                            limit = limit;
+                        } else if(limit > 6){
+                            limit = 6;
                         }
                     }
-
-                    console.log(limit);
 
                     let props = {
                         'locations': locations,

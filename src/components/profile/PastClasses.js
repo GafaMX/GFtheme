@@ -20,7 +20,6 @@ class PastClasses extends React.Component {
 
     componentDidMount() {
         const currentComponent = this;
-        const container = document.querySelector("#HistoryTabs");
         GafaFitSDKWrapper.getUserPastReservationsInBrand({
             reducePopulation: true,
         }, function (result) {
@@ -29,10 +28,6 @@ class PastClasses extends React.Component {
             });
             currentComponent.updateRows();
         })
-
-        currentComponent.setState({ 
-            // windowWidth: container.offsetWidth,
-        });
 
         window.addEventListener('resize', this.updateDimensions);
     }

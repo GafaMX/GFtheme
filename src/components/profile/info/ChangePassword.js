@@ -7,7 +7,6 @@ import {ControlLabel, FormControl, FormGroup} from "react-bootstrap";
 class ChangePassword extends React.Component{
     constructor(props){
         super(props);
-
     }
 
     render(){
@@ -30,7 +29,7 @@ class ChangePassword extends React.Component{
 
                 <FormGroup className={formClass + "__section is-password"} controlId="password">
                     <ControlLabel className={formClass + "__label"}>{Strings.NEWPASSWORD}</ControlLabel>
-                    <FormControl 
+                    <FormControl
                         type={'password'}
                         className={formClass + "__input"}
                         value={this.props.info.password}

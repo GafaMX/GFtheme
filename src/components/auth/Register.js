@@ -126,6 +126,8 @@ class Register extends React.Component {
                     GafaFitSDKWrapper.postRegister(currentElement.state,
                         currentElement.successRegisterCallback.bind(currentElement),
                         currentElement.errorRegisterCallback.bind(currentElement));
+
+                        
                 });
         });
     }

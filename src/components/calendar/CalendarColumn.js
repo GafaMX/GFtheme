@@ -25,20 +25,28 @@ class CalendarColumn extends React.Component {
         let listItems;
         let preC = 'GFSDK-c';
         let calendarClass = preC + '-Calendar';
+        let activeClass =
+            day.meetings.map((meeting) => {
+                if(meeting.passed === false){
+                    return meeting;
+                }
+            });
 
         var today = new Date();
         var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
 
         if(limit){
-            listItems = day.meetings.map((meeting) => {
-                if(meeting.passed === false){
+            listItems = activeClass.slice(0, limit).map((meeting) => {
+                if(meeting){
                     return (<CalendarMeeting key={`column-day--${day.date}--meeting--${meeting.id}`} meeting={meeting} day={day}/> )
                 }
-            }).slice(0, limit);
-        } else {
-            listItems = day.meetings.map((meeting) => {
-                return (<CalendarMeeting key={`column-day--${day.date}--meeting--${meeting.id}`} meeting={meeting} day={day}/> )
             });
+        } else {
+            if(meeting){
+                listItems = day.meetings.map((meeting) => {
+                    return (<CalendarMeeting key={`column-day--${day.date}--meeting--${meeting.id}`} meeting={meeting} day={day}/> )
+                });
+            }
         }
 
         return (

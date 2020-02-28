@@ -84,12 +84,11 @@ export default {
     PURCHASES: 'Compras',
     POSITION: 'Posición: ',
     CANCELEDRESERVATION: 'Reserva Cancelada.',
+    DELETEDCARD: 'Tarjeta eliminada.',
     CANCELATION: 'Cancelar',
     CANCELLED: 'Cancelada',
     CANCELATIONCONFIRM: 'Confirmar Cancelación',
     CANCELATIONMESSAGE: '¿Desea cancelar esta reserva?',
     RESERVATION: 'Reserva',
-
-
-
+    PAYMENT: 'Formas de pago',
 }

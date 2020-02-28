@@ -68,7 +68,7 @@ class LoginRegister extends React.Component {
             }
         );
 
-        if (this.props.setShowLogin) {
+        if (this.props.setShowLogin) {;
             this.handleClickLogin();
         }
         this._isMounted = true;
@@ -78,20 +78,20 @@ class LoginRegister extends React.Component {
         this._isMounted = false;
     }
 
-    handleClickLogin() {
+    handleClickRegister() {
         this.setState({
-            showLogin: true,
-            showRegister: false,
+            showLogin: false,
+            showRegister: true,
             showProfile: false,
             passwordRecovery: false,
             showButtons: false
         });
     }
 
-    handleClickRegister() {
+    handleClickLogin() {
         this.setState({
-            showLogin: false,
-            showRegister: true,
+            showLogin: true,
+            showRegister: false,
             showProfile: false,
             passwordRecovery: false,
             showButtons: false
@@ -217,7 +217,7 @@ class LoginRegister extends React.Component {
             <div className={loginClass + '__menu'}>
                 <div className={loginClass + '__menu-nav'}>
                     {!this.state.me && this.state.showButtons &&
-                        <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickLogin.bind(this)}>
+                        <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
                             <IconRunningMan />
                         </a>
                     }

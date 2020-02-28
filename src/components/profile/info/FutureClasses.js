@@ -116,7 +116,9 @@ class FutureClasses extends React.Component {
         };
 
 
-        const listItems = this.state.list.map((reservation) => <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>);
+        const listItems = this.state.list.map((reservation) =>
+            <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>
+        );
 
         return (
             <div className={profileClass + '__section is-futureClass'}>

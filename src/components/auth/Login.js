@@ -80,10 +80,11 @@ class Login extends React.Component {
     };
 
     successLoginCallback(result) {
-        this.setState({logged: true});
-        if (this.props.successCallback) {
-            this.props.successCallback(result);
-        }
+        // TODO: Login Automatico
+        // this.setState({logged: true});
+        // if (this.props.successCallback) {
+        //     this.props.successCallback(result);
+        // }
 
         if (window.GFtheme.combo_id != null) {
             this.buyComboAfterLogin();

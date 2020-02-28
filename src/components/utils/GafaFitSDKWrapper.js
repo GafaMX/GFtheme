@@ -240,28 +240,23 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
     static successLoginCallback(result) {
-        /*
-        this.setState({logged: true});
-        if (this.props.successCallback) {
-            this.props.successCallback(result);
-        }
-        */
 
         if (window.GFtheme.combo_id != null) {
             GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
                 window.GFtheme.combo_id = null;
             });
-        }
-        if (window.GFtheme.membership_id != null) {
+        } else if (window.GFtheme.membership_id != null) {
             GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) {
                 window.GFtheme.membership_id = null;
             });
-        }
-        if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+        } else if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
             GafaFitSDKWrapper.getFancyForMeetingReservation(window.GFtheme.location_slug, window.GFtheme.meetings_id, function (result) {
                 window.GFtheme.meetings_id = null;
                 window.GFtheme.location_slug = null;
             });
+        } else {
+            debugger;
+            window.location.reload();
         }
     }
 
@@ -498,6 +493,47 @@ class GafaFitSDKWrapper extends React.Component {
             }
         )
     }
+
+    // Funciones de metodos de pago | Inicio
+
+    static getUserPaymentInfo(options, callback) {
+        GafaFitSDK.GetUserPaymentInfo(
+            window.GFtheme.brand, options,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
+    }
+
+    static postUserRemovePaymentOption(paymentMethod, idCard, callback){
+        GafaFitSDK.PostUserRemovePaymentOption(
+            window.GFtheme.brand,
+            paymentMethod,
+            idCard,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
+    }
+
+    static postUserAddPaymentOption(paymentMethod, optionToken, optionPhone, callback){
+        GafaFitSDK.PostUserAddPaymentOption(
+            window.GFtheme.brand,
+            paymentMethod,
+            optionToken,
+            optionPhone,
+            function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        )
+    }
+    // Funciones de metodos de pago | Fin
 
 }
 

@@ -14,6 +14,7 @@ import AddressInfo from "./AddressInfo";
 import ContactInfo from "./ContactInfo";
 import FutureClasses from "./FutureClasses";
 import PastClasses from "../PastClasses";
+import PaymentMethods from "./Payment/PaymentMethods";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
 // import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
@@ -289,6 +290,15 @@ class ProfileUserInfo extends React.Component {
                                     </form>
                                 </div>
                             </Tab>
+
+                            {/* <Tab eventKey={4} title={Strings.PAYMENT}>
+                                <CustomScroll heightRelativeToParent="100%">
+                                    <div className={profileClass + '__tab-section'}>
+                                        <h4 className={'this-title'}>Mis tarjetas</h4>
+                                        <PaymentMethods />
+                                    </div>
+                                </CustomScroll>
+                            </Tab> */}
                         </Tabs>
                     </div>
                 </div>
