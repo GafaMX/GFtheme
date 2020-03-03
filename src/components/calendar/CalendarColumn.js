@@ -42,11 +42,9 @@ class CalendarColumn extends React.Component {
                 }
             });
         } else {
-            if(meeting){
-                listItems = day.meetings.map((meeting) => {
-                    return (<CalendarMeeting key={`column-day--${day.date}--meeting--${meeting.id}`} meeting={meeting} day={day}/> )
-                });
-            }
+            listItems = day.meetings.map((meeting) => {
+                return (<CalendarMeeting key={`column-day--${day.date}--meeting--${meeting.id}`} meeting={meeting} day={day}/> )
+            });
         }
 
         return (
