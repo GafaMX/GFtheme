@@ -255,7 +255,6 @@ class GafaFitSDKWrapper extends React.Component {
                 window.GFtheme.location_slug = null;
             });
         } else {
-            debugger;
             window.location.reload();
         }
     }

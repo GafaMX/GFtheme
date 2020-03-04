@@ -80,13 +80,13 @@ class CalendarBody extends React.Component {
         let time_of_day = CalendarStorage.get('filter_time_of_day');
 
         let shown_meetings = [];
-        
+
         if (location) {
             meetings = meetings.filter(function (meeting) {
                 return meeting.locations_id === location.id;
             })
         }
-        
+
         if (service) {
             meetings = meetings.filter(function (meeting) {
                 return meeting.services_id === service.id;
@@ -118,13 +118,12 @@ class CalendarBody extends React.Component {
         date_array.forEach(function (date) {
             let meet = {
                 title: date.toLocaleDateString(),
-                date: date.toISOString(),
+                date: date,
                 meetings: meetings.filter(function (meeting) {
                     let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
                     return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime();
                 })
             };
-
             shown_meetings.push(meet);
         });
 
@@ -151,10 +150,9 @@ class CalendarBody extends React.Component {
         let calendarClass = preC + '-Calendar';
         const dayList = this.state.meetings_to_show.map(function (day) {
                             return(
-                                Moment(day.date, 'YYYY-MM-DD HH:mm:ss').toDate()
+                                Moment(day.date).toDate()
                             );
                         });
-
         const listItems =   this.state.meetings_to_show.map(function (day, index) {
                                 return (
                                     <CalendarColumn
