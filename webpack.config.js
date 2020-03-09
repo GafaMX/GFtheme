@@ -5,7 +5,7 @@ const withCSS = require('@zeit/next-css');
 module.exports = {
     entry: "./src/app.js",
     output: {
-        path: path.resolve('./'),
+        path: path.resolve('./dist'),
         filename: 'main.min.js'
     },
     module: {
@@ -40,11 +40,11 @@ module.exports = {
     plugins: [
         new HtmlWebPackPlugin({
             template: "./src/index.html",
-            filename: "./index.html"
+            // filename: "./index.html"
         }),
         new HtmlWebPackPlugin({
             template: "./src/team.html",
-            filename: "./team.html"
+            // filename: "./team.html"
         }),
 
     ]
