@@ -123,6 +123,7 @@ class MembershipList extends React.Component {
         };
 
         const listItems = this.state.list.map((membership) =>{
+            if(combo.hide_in_front){
                 if(membership.hide_in_front === false || membership.hide_in_front === 0){
                     if(
                         this.state.weAreHome === false && membership.status === 'active' ||
@@ -131,8 +132,17 @@ class MembershipList extends React.Component {
                         return <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
                     }
                 }
+            } else {
+                if(membership.hide_in_home === false){
+                    if(
+                        this.state.weAreHome === false && membership.status === 'active' ||
+                        this.state.weAreHome === true && membership.status === 'active'
+                    ){
+                        return <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
+                    }
+                }
             }
-        );
+        });
 
         return (
             <div className={membershipClass}>
