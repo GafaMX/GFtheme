@@ -1,7 +1,7 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    RewriteRule ^(.*)$ dis/$1 [L]
+    RewriteRule ^(.*)$ dist/$1 [L]
 </IfModule>
 
 #PHP.INI directivas
