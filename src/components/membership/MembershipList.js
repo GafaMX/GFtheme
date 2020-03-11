@@ -123,7 +123,7 @@ class MembershipList extends React.Component {
         };
 
         const listItems = this.state.list.map((membership) =>{
-            if(combo.hide_in_front){
+            if(membership.hide_in_front){
                 if(membership.hide_in_front === false || membership.hide_in_front === 0){
                     if(
                         this.state.weAreHome === false && membership.status === 'active' ||
