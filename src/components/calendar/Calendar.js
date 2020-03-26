@@ -50,7 +50,8 @@ class Calendar extends React.Component {
         let end_date = moment().toDate();
 
         let push_meetings = function (result) {
-            CalendarStorage.set('meetings', result);
+
+            CalendarStorage.push('meetings', result);
             CalendarStorage.set('start_date', start_date);
         };
 

@@ -42,10 +42,10 @@ module.exports = {
             template: "./src/index.html",
             // filename: "./index.html"
         }),
-        new HtmlWebPackPlugin({
-            template: "./src/team.html",
-            // filename: "./team.html"
-        }),
+        // new HtmlWebPackPlugin({
+        //     template: "./src/team.html",
+        //     // filename: "./team.html"
+        // }),
 
     ]
 };

@@ -394,12 +394,14 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static getMeetingsInLocation(location, start_date, end_date, callback) {
+        debugger;
         GafaFitSDK.GetlocationMeetingList(window.GFtheme.brand, location, {
             'only_actives': true,
             'start': start_date,
             'end': end_date
         }, function (error, result) {
             if (error === null) {
+                console.log(result);
                 callback(result);
             }
         })

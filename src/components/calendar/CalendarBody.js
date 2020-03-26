@@ -52,13 +52,15 @@ class CalendarBody extends React.Component {
             end.setDate(start.getDate() + 6);
             let date_array = this.getDates(start, end);
 
+            debugger;
+
             date_array.forEach(function (date) {
                 let meet = {
                     title: date.toLocaleDateString(),
                     date: date.toISOString(),
                     meetings: meetings.filter(function (meeting) {
                         let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss');
-
+                        debugger;
                         return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime();
                     })
                 };
