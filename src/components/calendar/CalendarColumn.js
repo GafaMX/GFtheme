@@ -4,6 +4,7 @@ import React from "react";
 import CalendarMeeting from "./CalendarMeeting";
 import Moment from "react-moment";
 import 'moment/locale/es';
+import uid from 'uid'
 
 class CalendarColumn extends React.Component {
     constructor(props) {
@@ -21,14 +22,14 @@ class CalendarColumn extends React.Component {
         });
     }
 
-    isFunction(functionToCheck) {
-        return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+    isString(myVar) {
+        return typeof myVar === 'string' || myVar instanceof String;
     }
 
     render() {
         let {day, index, limit} = this.props;
-        alert('hi');
-        let dayDate = this.isFunction(day.date.toDateString) ? day.date.toDateString() : '';
+
+        let dayDate = this.isString(day.date) ? day.date :day.date.toDateString();
         let listItems;
         let preC = 'GFSDK-c';
         let calendarClass = preC + '-Calendar';
@@ -39,19 +40,19 @@ class CalendarColumn extends React.Component {
                 }
             });
 
-        var today = new Date();
-        var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+        let today = new Date();
+        let date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
 
         if (limit) {
             listItems = activeClass.slice(0, limit).map((meeting) => {
                 if (meeting) {
-                    return (<CalendarMeeting key={`column-day--${dayDate}--meeting--${meeting.id}`} meeting={meeting}
+                    return (<CalendarMeeting key={`column-day--${uid()}--meeting--${meeting.id}`} meeting={meeting}
                                              day={day}/> )
                 }
             });
         } else {
             listItems = day.meetings.map((meeting) => {
-                return (<CalendarMeeting key={`column-day--${dayDate}--meeting--${meeting.id}`} meeting={meeting}
+                return (<CalendarMeeting key={`column-day--${uid()}--meeting--${meeting.id}`} meeting={meeting}
                                          day={day}/> )
             });
         }
