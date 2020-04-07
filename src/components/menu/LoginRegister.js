@@ -26,7 +26,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: true,
             serverError: "",
             email: null,
             token: null,
@@ -56,22 +55,21 @@ class LoginRegister extends React.Component {
                 showRegister: false,
                 showProfile: false,
                 passwordRecovery: true,
-                showButtons: false,
                 email: email,
                 token: token
             });
         }
 
-        GafaFitSDKWrapper.getMeWithCredits(
-            function (result) {
-                GlobalStorage.set("me", result);
-            }
-        );
+        // GafaFitSDKWrapper.getMeWithCredits(
+        //     function (result) {
+        //         GlobalStorage.set("me", result);
+        //     }
+        // );
 
-        if (this.props.setShowLogin) {;
-            this.handleClickLogin();
-        }
-        this._isMounted = true;
+        // if (this.props.setShowLogin) {;
+        //     this.handleClickLogin();
+        // }
+        // this._isMounted = true;
     }
 
     componentWillUnmount() {
@@ -84,7 +82,6 @@ class LoginRegister extends React.Component {
             showRegister: true,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: false
         });
     }
 
@@ -94,7 +91,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: false
         });
     }
 
@@ -104,7 +100,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: true,
             passwordRecovery: false,
-            showButtons: false
         });
     }
     handleCloseProfile(){
@@ -113,7 +108,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: true
         });
     }
 
@@ -123,7 +117,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: true,
-            showButtons: false
         });
     }
 
@@ -133,7 +126,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: true
         });
         if (this.props.setShowLogin) {
             this.props.setShowLogin(false);
@@ -149,7 +141,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: true
         });
     }
 
@@ -157,26 +148,30 @@ class LoginRegister extends React.Component {
         this.setState({serverError: '', logged: false});
     }
 
-    successLoginCallback(result) {
-        if (this.props.setShowLogin) {
-            this.props.setShowLogin(false);
-        }
-        if (this._isMounted) {
-            let currentComponent = this;
-            GafaFitSDKWrapper.getMeWithCredits(
-                function (result) {
-                    GlobalStorage.set("me", result);
-                    currentComponent.setState({
-                        showLogin: false,
-                        showRegister: false,
-                        showProfile: false,
-                        passwordRecovery: false,
-                        showButtons: true
-                    });
-                }
-            );
-        }
-    }
+    // successLoginCallback(result) {
+
+    //     debugger;
+
+    //     if (this.props.setShowLogin) {
+    //         this.props.setShowLogin(false);
+    //     }
+
+    //     if (this._isMounted) {
+    //         let currentComponent = this;
+    //         GafaFitSDKWrapper.getMeWithCredits(
+    //             function (result) {
+    //                 GlobalStorage.set("me", result);
+    //                 currentComponent.setState({
+    //                     showLogin: false,
+    //                     showRegister: false,
+    //                     showProfile: false,
+    //                     passwordRecovery: false,
+    //                     showButtons: true
+    //                 });
+    //             }
+    //         );
+    //     }
+    // }
 
     successProfileSaveCallback(result) {
         if (this._isMounted) {
@@ -216,23 +211,26 @@ class LoginRegister extends React.Component {
         return (
             <div className={loginClass + '__menu'}>
                 <div className={loginClass + '__menu-nav'}>
-                    {!this.state.me && this.state.showButtons &&
-                        <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
-                            <IconRunningMan />
-                        </a>
+                    {!this.state.me 
+                        ?   <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
+                                <IconRunningMan />
+                            </a>
+                        :   <a onClick={this.handleClickProfile.bind(this)}>
+                                {this.state.me != null 
+                                    ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
+                                            <IconRunningMan />
+                                            {this.state.me.creditsTotal > 0
+                                                ? <p className="profile-button-credits-total">{this.state.me.creditsTotal}</p>
+                                                : null
+                                            }
+                                        </div>
+                                    :   Strings.BUTTON_PROFILE
+                                }
+                            </a>
+
                     }
                     {this.state.me !== null && this.state.showButtons && <div>
-                        <a onClick={this.handleClickProfile.bind(this)}>
-                            {this.state.me != null ?
-                                <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
-                                    <IconRunningMan />
-                                    {this.state.me.creditsTotal > 0
-                                        ? <p className="profile-button-credits-total">{this.state.me.creditsTotal}</p>
-                                        : null
-                                    }
-                                </div>
-                                : Strings.BUTTON_PROFILE}
-                        </a>
+                        
                     </div>}
 
                     <Modal className="modal-login" show={this.state.showLogin} animation={false}
@@ -244,7 +242,8 @@ class LoginRegister extends React.Component {
                                         <Modal.Title className="section-title container">{Strings.BUTTON_LOGIN}</Modal.Title>
                                     </Modal.Header>
                                     <Modal.Body className="modal-login__body">
-                                        <Login successCallback={this.successLoginCallback.bind(this)}/>
+                                        {/* <Login successCallback={this.successLoginCallback.bind(this)}/> */}
+                                        <Login handleClickBack={this.handleClickBack.bind(this)}/>
                                     </Modal.Body>
                                     <Modal.Footer className="modal-login__footer ">
                                     <nav className="nav">

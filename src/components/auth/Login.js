@@ -80,21 +80,17 @@ class Login extends React.Component {
     };
 
     successLoginCallback(result) {
-        // TODO: Login Automatico
-        // this.setState({logged: true});
-        // if (this.props.successCallback) {
-        //     this.props.successCallback(result);
-        // }
+        const {handleClickBack} = this.props
 
         if (window.GFtheme.combo_id != null) {
             this.buyComboAfterLogin();
-        }
-        if (window.GFtheme.membership_id != null) {
+        } else if (window.GFtheme.membership_id != null) {
             this.buyMembershipAfterLogin();
-        }
-        if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+        } else if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
             this.reserveMeetingAfterLogin();
         }
+
+        handleClickBack();
     }
 
     errorLoginCallback(error) {

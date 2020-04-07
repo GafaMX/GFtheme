@@ -314,6 +314,7 @@ class GafaFitSDKWrapper extends React.Component {
                 }
             );
         } else {
+            debugger;
             callback(GlobalStorage.get("me"));
         }
     };
