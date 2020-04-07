@@ -80,7 +80,7 @@ class MembershipItem extends React.Component {
                     }
                     <div className="this-price has-total">
                         <p>
-                            ${formatMoney(this.props.membership.price, 0)} MXN
+                            ${formatMoney(this.props.membership.price_final, 0)} MXN
                         </p>
                     </div>
                 </div>
