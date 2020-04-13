@@ -26,23 +26,17 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: true,
             serverError: "",
             email: null,
             token: null,
             me: null,
-            loading: false
+            loading: false,
+            triggeredByLogin: true,
         };
 
         this._isMounted = false;
         GlobalStorage.addSegmentedListener(['me'], this.updateMe.bind(this));
         this.handleClickLogout = this.handleClickLogout.bind(this);
-    }
-
-    updateMe() {
-        this.setState({
-            me: GlobalStorage.get('me')
-        });
     }
 
     componentDidMount() {
@@ -56,7 +50,6 @@ class LoginRegister extends React.Component {
                 showRegister: false,
                 showProfile: false,
                 passwordRecovery: true,
-                showButtons: false,
                 email: email,
                 token: token
             });
@@ -69,13 +62,23 @@ class LoginRegister extends React.Component {
         );
 
         if (this.props.setShowLogin) {;
+            this.setState({
+                triggeredByLogin: false
+            });
             this.handleClickLogin();
         }
+
         this._isMounted = true;
     }
 
-    componentWillUnmount() {
-        this._isMounted = false;
+    // componentWillUnmount() {
+    //     this._isMounted = false;
+    // }
+
+    updateMe() {
+        this.setState({
+            me: GlobalStorage.get('me')
+        });
     }
 
     handleClickRegister() {
@@ -84,7 +87,6 @@ class LoginRegister extends React.Component {
             showRegister: true,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: false
         });
     }
 
@@ -94,7 +96,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: false
         });
     }
 
@@ -104,7 +105,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: true,
             passwordRecovery: false,
-            showButtons: false
         });
     }
     handleCloseProfile(){
@@ -113,7 +113,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: true
         });
     }
 
@@ -123,7 +122,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: true,
-            showButtons: false
         });
     }
 
@@ -133,7 +131,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: true
         });
         if (this.props.setShowLogin) {
             this.props.setShowLogin(false);
@@ -149,7 +146,6 @@ class LoginRegister extends React.Component {
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
-            showButtons: true
         });
     }
 
@@ -161,6 +157,7 @@ class LoginRegister extends React.Component {
         if (this.props.setShowLogin) {
             this.props.setShowLogin(false);
         }
+
         if (this._isMounted) {
             let currentComponent = this;
             GafaFitSDKWrapper.getMeWithCredits(
@@ -171,11 +168,12 @@ class LoginRegister extends React.Component {
                         showRegister: false,
                         showProfile: false,
                         passwordRecovery: false,
-                        showButtons: true
                     });
                 }
             );
         }
+
+        this._isMounted = false;
     }
 
     successProfileSaveCallback(result) {
@@ -213,30 +211,34 @@ class LoginRegister extends React.Component {
         let loginClass = preC + '-login';
         let buttonClass = preE + '-buttons';
 
+        const combo = !window.GFtheme.combo_id ? null : window.GFtheme.combo_id;
+
         return (
             <div className={loginClass + '__menu'}>
                 <div className={loginClass + '__menu-nav'}>
-                    {!this.state.me && this.state.showButtons &&
-                        <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
-                            <IconRunningMan />
-                        </a>
-                    }
-                    {this.state.me !== null && this.state.showButtons && <div>
-                        <a onClick={this.handleClickProfile.bind(this)}>
-                            {this.state.me != null ?
-                                <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
-                                    <IconRunningMan />
-                                    {this.state.me.creditsTotal > 0
-                                        ? <p className="profile-button-credits-total">{this.state.me.creditsTotal}</p>
-                                        : null
-                                    }
-                                </div>
-                                : Strings.BUTTON_PROFILE}
-                        </a>
-                    </div>}
+                    {this.state.triggeredByLogin 
+                        ?   (!this.state.me
+                                ?   <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
+                                        <IconRunningMan />
+                                    </a>
+                                :   <a onClick={this.handleClickProfile.bind(this)}>
+                                        {this.state.me != null 
+                                            ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
+                                                    <IconRunningMan />
+                                                    {this.state.me.creditsTotal > 0
+                                                        ? <p className="profile-button-credits-total">{this.state.me.creditsTotal}</p>
+                                                        : null
+                                                    }
+                                                </div>
+                                            :   Strings.BUTTON_PROFILE
+                                        }
+                                    </a>
 
-                    <Modal className="modal-login" show={this.state.showLogin} animation={false}
-                        onHide={this.handleClickBack.bind(this)}>
+                            )
+                        :   null
+                    }
+
+                    <Modal className="modal-login" show={this.state.showLogin} onHide={this.handleClickBack.bind(this)}>
                         <div className="row">
                             <div className="col-lg-6">
                                 <div className="container">
@@ -244,7 +246,7 @@ class LoginRegister extends React.Component {
                                         <Modal.Title className="section-title container">{Strings.BUTTON_LOGIN}</Modal.Title>
                                     </Modal.Header>
                                     <Modal.Body className="modal-login__body">
-                                        <Login successCallback={this.successLoginCallback.bind(this)}/>
+                                        <Login triggeredByLogin={this.state.triggeredByLogin} successCallback={this.successLoginCallback.bind(this)}/>
                                     </Modal.Body>
                                     <Modal.Footer className="modal-login__footer ">
                                     <nav className="nav">
@@ -269,8 +271,7 @@ class LoginRegister extends React.Component {
                         </div>
                     </Modal>
 
-                    <Modal className="modal-register" show={this.state.showRegister} animation={false}
-                        onHide={this.handleClickBack.bind(this)}>
+                    <Modal className="modal-register" show={this.state.showRegister} onHide={this.handleClickBack.bind(this)}>
                         <div className="row">
                             <div className="col-lg-6">
                                 <div className="container">
@@ -300,7 +301,7 @@ class LoginRegister extends React.Component {
                         </div>
                     </Modal>
 
-                    <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)} animation={false}>
+                    <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)}>
                         <div className="row">
                             <div className="col-lg-12 col-xl-12 modal-profile__body">
                                 <div className="container-fluid">
@@ -315,8 +316,7 @@ class LoginRegister extends React.Component {
                         </div>
                     </Modal>
 
-                    <Modal className="modal-password" show={this.state.passwordRecovery} animation={false}
-                        onHide={this.handleClickBack.bind(this)}>
+                    <Modal className="modal-password" show={this.state.passwordRecovery} onHide={this.handleClickBack.bind(this)}>
                         <div className="row">
                             <div className="col-lg-6">
                                 <div className="container">

@@ -3,6 +3,7 @@
 import React from "react";
 import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
+import GlobalStorage from "../store/GlobalStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 
@@ -18,7 +19,7 @@ class Login extends React.Component {
             passwordValid: false,
             formValid: false,
             serverError: '',
-            logged: false
+            logged: false,
         };
     }
 
@@ -80,20 +81,22 @@ class Login extends React.Component {
     };
 
     successLoginCallback(result) {
-        // TODO: Login Automatico
-        // this.setState({logged: true});
-        // if (this.props.successCallback) {
-        //     this.props.successCallback(result);
-        // }
+        this.setState({logged: true});
 
-        if (window.GFtheme.combo_id != null) {
-            this.buyComboAfterLogin();
-        }
-        if (window.GFtheme.membership_id != null) {
-            this.buyMembershipAfterLogin();
-        }
-        if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-            this.reserveMeetingAfterLogin();
+        if (this.props.successCallback) {
+            this.props.successCallback(result);
+
+            if (window.GFtheme.combo_id != null) {
+                this.buyComboAfterLogin();
+            }
+
+            if (window.GFtheme.membership_id != null) {
+                this.buyMembershipAfterLogin();
+            }
+
+            if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+                this.reserveMeetingAfterLogin();
+            }
         }
     }
 
@@ -103,14 +106,13 @@ class Login extends React.Component {
 
     buyComboAfterLogin() {
         GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
+
             window.GFtheme.combo_id = null;
         });
     }
 
     buyMembershipAfterLogin() {
-        GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) {
-            window.GFtheme.membership_id = null;
-        });
+        GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) { window.GFtheme.membership_id = null; });
     }
 
     reserveMeetingAfterLogin() {

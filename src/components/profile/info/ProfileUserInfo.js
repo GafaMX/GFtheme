@@ -83,7 +83,7 @@ class ProfileUserInfo extends React.Component {
                     cel_phone: result.cel_phone,
                     gender: result.gender,
                 });
-            GlobalStorage.set('me', result);
+            // GlobalStorage.set('me', result);
             currentComponent.getCountryList(currentComponent.getStatesListByCountry.bind(currentComponent));
         });
     }

@@ -254,15 +254,11 @@ class GafaFitSDKWrapper extends React.Component {
                 window.GFtheme.meetings_id = null;
                 window.GFtheme.location_slug = null;
             });
-        } else {
-            window.location.reload();
         }
     }
 
     static errorLoginCallback(error) {
-        /*
         this.setState({serverError: error, logged: false});
-         */
     }
 
     static postPasswordForgot(params, successCallback, errorCallback) {
@@ -394,7 +390,6 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static getMeetingsInLocation(location, start_date, end_date, callback) {
-        // debugger;
         GafaFitSDK.GetlocationMeetingList(window.GFtheme.brand, location, {
             'only_actives': true,
             'start': start_date,
