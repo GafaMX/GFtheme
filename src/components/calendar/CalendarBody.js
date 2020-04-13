@@ -52,8 +52,6 @@ class CalendarBody extends React.Component {
             end.setDate(start.getDate() + 6);
             let date_array = this.getDates(start, end);
 
-            // debugger;
-
             date_array.forEach(function (date) {
                 let meet = {
                     title: date.toLocaleDateString(),
