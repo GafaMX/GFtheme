@@ -32,5 +32,7 @@ GafaFitSDKWrapper.initValues(
 
         GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"][data-gf-limit]');
         GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');
+
+        GafaThemeSDK.renderLocationsFilter('[data-gf-theme="locations-filter"]');
     }
 );

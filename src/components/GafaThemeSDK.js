@@ -5,6 +5,7 @@ import ReactDOM from "react-dom";
 import ServiceList from "./service/ServiceList";
 import StaffList from "./staff/StaffList";
 import Login from "./auth/Login";
+import LocationsFilter from "./locations/LocationsFilters"
 import GafaFitSDKWrapper from "./utils/GafaFitSDKWrapper";
 import ComboList from "./combo/ComboList";
 import MembershipList from "./membership/MembershipList";
@@ -48,6 +49,16 @@ class GafaThemeSDK extends React.Component {
             });
         }
     };
+
+    static renderLocationsFilter(selector){
+        let domContainers = document.querySelectorAll(selector);
+
+        if (domContainers.length > 0) {
+            GafaFitSDKWrapper.getAllLocations(function(){
+                GafaThemeSDK.renderElementIntoContainers(domContainers, LocationsFilter, {});
+            });
+        }
+    }
 
     static renderStaffList(selector) {
         let domContainers = document.querySelectorAll(selector);

@@ -56,6 +56,21 @@ class GafaFitSDKWrapper extends React.Component {
         window.GFtheme.brand = brand;
     }
 
+    static getAllLocations(callback){
+        GafaFitSDKWrapper.getBrandList({}, function (result){
+            let brands = result.data;
+
+            brands.forEach(brand => {
+                GafaFitSDK.GetBrandLocationList(brand.slug, {}, function (error, result) {
+                    if (error === null) {
+                        GlobalStorage.push("locations", result.data);
+                        callback(result);
+                    }
+                })
+            })
+        })
+    }
+
     static getStaffList(options, callback) {
         GafaFitSDK.GetBrandStaffList(
             window.GFtheme.brand, options, function (error, result) {
