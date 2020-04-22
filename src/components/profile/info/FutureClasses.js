@@ -1,6 +1,7 @@
 'use strict';
 
 import React from 'react';
+import GlobalStorage from '../../store/GlobalStorage';
 import ClassItem from "./ClassItem";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Slider from "react-slick";
@@ -21,11 +22,12 @@ class FutureClasses extends React.Component {
 
         this.updateDimensions = this.updateDimensions.bind(this);
         this.updateRows = this.updateRows.bind(this);
+
+        GlobalStorage.addSegmentedListener(['currentBrand'], this.updateFutureClasses.bind(this));
     }
 
     componentDidMount() {
         const currentComponent = this;
-        const container = document.querySelector("#HistoryTabs");
         GafaFitSDKWrapper.getUserFutureReservationsInBrand({
             reducePopulation: true,
         }, function (result) {
@@ -35,9 +37,19 @@ class FutureClasses extends React.Component {
             currentComponent.updateRows();
         })
 
-        currentComponent.setState({ 
-            // windowWidth: container.offsetWidth,
-        });
+        window.addEventListener('resize', this.updateDimensions);
+    }
+
+    updateFutureClasses(){
+        const currentComponent = this;
+        GafaFitSDKWrapper.getUserFutureReservationsInBrand({
+            reducePopulation: true,
+        }, function (result) {
+            currentComponent.setState({
+                list: result,
+            });
+            currentComponent.updateRows();
+        })
 
         window.addEventListener('resize', this.updateDimensions);
     }

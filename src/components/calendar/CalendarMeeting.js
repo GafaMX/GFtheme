@@ -1,6 +1,7 @@
 'use strict';
 
 import React from "react";
+import GlobalStorage from "../store/GlobalStorage";
 import CalendarStorage from "./CalendarStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import moment from 'moment';
@@ -62,7 +63,8 @@ class CalendarMeeting extends React.Component {
         let day = this.props.day;
         let classStart = moment(meeting.start_date).toDate();
         let room = this.state.room;
-        let location = CalendarStorage.find('locations', meeting.locations_id);
+        // let location = CalendarStorage.find('locations', meeting.locations_id);
+        let location = GlobalStorage.get('currentLocation')
         let time_format = location.brand.time_format;
 
         let preC = 'GFSDK-c';

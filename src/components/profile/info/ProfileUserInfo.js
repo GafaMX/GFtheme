@@ -20,6 +20,7 @@ import ChangePassword from "./ChangePassword";
 // import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
 import GlobalStorage from "../../store/GlobalStorage";
 import IconLogOut from '../../utils/Icons/IconLogOut';
+import LocationsFilter from "../../locations/LocationsFilters";
 
 //Estilos
 import '../../../styles/newlook/components/GFSDK-c-Profile.scss';
@@ -174,6 +175,9 @@ class ProfileUserInfo extends React.Component {
     }
 
     render() {
+
+        let locations = GlobalStorage
+
         let preE = 'GFSDK-e';
         let preC = 'GFSDK-c';
         let profileClass = preC + '-profile';
@@ -185,22 +189,19 @@ class ProfileUserInfo extends React.Component {
             <div className="profile-info">
                 <div className={'GFSDK-user__container'}>
                     <div className="profile-user">
-                        <div className="profile-user__background">
-                            <div className="profile-user__tools"></div>
-                            <div className="profile-user__data"></div>
-                        </div>
                         <div className="profile-user__content">
-                            <div className="profile-user__tools">
-                                <div className="profile-user__tools-container">
-                                    <a className='this-logOut' onClick={this.props.handleClickLogout}>
-                                        <IconLogOut/> {Strings.BUTTON_LOGOUT}
-                                    </a>
-                                </div>
-                            </div>
                             <div className="profile-user__data">
                                 <div className="this-picture"></div>
                                 <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
                                 {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
+                            </div>
+                            <div className="profile-user__tools">
+                                <div className="profile-user__tools-container">
+                                    <LocationsFilter />
+                                    <a className='this-logOut' onClick={this.props.handleClickLogout}>
+                                        <IconLogOut/> {Strings.BUTTON_LOGOUT}
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -294,7 +295,6 @@ class ProfileUserInfo extends React.Component {
                             {/* <Tab eventKey={4} title={Strings.PAYMENT}>
                                 <CustomScroll heightRelativeToParent="100%">
                                     <div className={profileClass + '__tab-section'}>
-                                        <h4 className={'this-title'}>Mis tarjetas</h4>
                                         <PaymentMethods />
                                     </div>
                                 </CustomScroll>
