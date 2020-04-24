@@ -212,6 +212,10 @@ the user info.
 * `password-recovery`   Password recovery
 * `profile-info`   Profile basic info
 
+#### New Features
+
+New features added to shortcodes:
+
 * `locations-filter`   Brand location selector
 
 <!-- ##### Pagination shortcode
