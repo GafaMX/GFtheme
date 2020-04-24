@@ -4,7 +4,8 @@ import React from "react";
 import ComboItem from "./ComboItem";
 // import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
-// import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import GafaThemeSDK from "../GafaThemeSDK";
 import LoginRegister from "../menu/LoginRegister";
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
@@ -15,6 +16,7 @@ import IconRightArrow from "../utils/Icons/IconRightArrow";
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
 import '../../styles/newlook/elements/GFSDK-e-product.scss';
+import GlobalStorage from "../store/GlobalStorage";
 
 class ComboList extends React.Component {
     constructor(props) {
@@ -26,6 +28,8 @@ class ComboList extends React.Component {
             weAreHome: false,
             slidesToShow: parseInt(this.props.slidesToShow, 10),
         };
+
+        GlobalStorage.addSegmentedListener(['currentLocation'], this.updateComboList.bind(this));
     }
 
     componentDidMount(){
@@ -38,6 +42,22 @@ class ComboList extends React.Component {
                 weAreHome : true
             });
         }
+    }
+
+    updateComboList(){
+        let component = this;
+        let currentLocation = GlobalStorage.get('currentLocation');
+
+        GafaFitSDKWrapper.getComboListWithoutBrand(currentLocation.brand.slug,
+            {
+                per_page: 10,
+                only_actives: true,
+                propagate: true,
+            }, function (result) {
+                component.setState({
+                    list: result.data
+                });
+        });
     }
 
     setShowLogin(showLogin) {
@@ -59,9 +79,6 @@ class ComboList extends React.Component {
         let comboClass = preC + '-comboList';
         let paginationClass = preE + '-pagination';
         let buttonClass = preE + '-buttons';
-
-        // let sliderCentered = this.state.list.length > this.state.slidesToShow ? true : false ;
-        // let slidesToShow = this.state.slidesToShow > 1 ? this.state.slidesToShow : 3 ;
 
         function NextArrow(props){
             const {onClick} = props;

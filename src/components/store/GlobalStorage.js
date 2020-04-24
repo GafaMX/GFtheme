@@ -2,7 +2,14 @@ const GlobalStorage = {
     listeners: [],
     segmentedListeners: [],
     me: null,
-    location: null,
+
+    //Brands Controller
+    brands: [],
+    currentBrand: null,
+    
+    //Location Controller
+    locations: [],
+    currentLocation: null,
 
     get(property) {
         return this[property];

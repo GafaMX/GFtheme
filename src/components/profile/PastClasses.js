@@ -1,6 +1,7 @@
 'use strict';
 
 import React from 'react';
+import GlobalStorage from '../store/GlobalStorage';
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import PastClassItem from "./PastClassItem";
 import Slider from "react-slick";
@@ -14,11 +15,24 @@ class PastClasses extends React.Component {
             list: [],
             windowWidth: 0,
         }
-
-        // this.updateRows = this.updateRows.bind(this);
+        GlobalStorage.addSegmentedListener(['currentBrand'], this.updatePastClasses.bind(this));
     }
 
     componentDidMount() {
+        const currentComponent = this;
+        GafaFitSDKWrapper.getUserPastReservationsInBrand({
+            reducePopulation: true,
+        }, function (result) {
+            currentComponent.setState({
+                list: result.data,
+            });
+            currentComponent.updateRows();
+        })
+
+        window.addEventListener('resize', this.updateDimensions);
+    }
+
+    updatePastClasses() {
         const currentComponent = this;
         GafaFitSDKWrapper.getUserPastReservationsInBrand({
             reducePopulation: true,

@@ -1,6 +1,7 @@
 'use strict';
 
 import React from 'react';
+import GlobalStorage from '../store/GlobalStorage';
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import PurchaseItem from "./PurchaseItem";
 import Slider from "react-slick";
@@ -13,9 +14,21 @@ class PurchasesList extends React.Component {
         this.state = {
             list: [],
         }
+        GlobalStorage.addSegmentedListener(['currentBrand'], this.updatePurchasesList.bind(this));
     }
 
     componentDidMount() {
+        const currentComponent = this;
+        GafaFitSDKWrapper.getUserPurchasesInBrand({
+            reducePopulation: true,
+        }, function (result) {
+            currentComponent.setState({
+                list: result.data,
+            })
+        })
+    }
+
+    updatePurchasesList() {
         const currentComponent = this;
         GafaFitSDKWrapper.getUserPurchasesInBrand({
             reducePopulation: true,

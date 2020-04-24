@@ -1,5 +1,56 @@
 @import '../base/variables.scss';
 
+
+.globalFilter{
+    *{
+        font-family: 'DM Sans', sans-serif!important;
+    }
+    
+    &__indicator{
+        color:white!important;
+
+        &-separator{
+            display: none!important;
+        }
+    }
+
+    &__control{
+        border-radius:100px!important;
+        border-color:  white!important;
+        background-color:#FF3E4F!important;
+        padding:5px !important;
+
+        &--is-focused, &--menu-is-open{
+            // box-shadow: 0 0 0 1px #FF3E4F!important;
+            box-shadow: none!important;
+        }
+    }
+
+    &__single-value{
+        color:  white!important;
+    }
+
+
+    &__menu-list{
+        padding:0 !important;
+    }
+
+    &__option{
+
+        &--is-selected{
+            background-color:#FF3E4F!important;
+            
+            &[class*="--is-focused"]{
+                background-color:#FF3E4F!important;
+            }
+        }
+        
+        &--is-focused{
+            background-color:lighten(#FF3E4F, 30%)!important;
+        }
+    }
+}
+
 .#{$pre}-c-filter
 {
     display: grid;
@@ -12,7 +63,7 @@
         grid-template-columns: repeat(2, 1fr);
     }
     @media screen and (min-width:992px) {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
 
     & > select, & > div{

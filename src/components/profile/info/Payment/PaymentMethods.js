@@ -45,6 +45,7 @@ class PaymentMethods extends React.Component {
         return (
             <div>
                 <div className={profileClass + '__section is-payment'}>
+                    <h4>Mis tarjetas</h4>
                     {this.state.list.length > 0
                         ?   <div>{ ConektaCards }</div>
                         :   <div className="is-empty">
@@ -75,7 +76,7 @@ class PaymentMethods extends React.Component {
                             </button>
                         </div>
                     </form>
-                </div>
+                </div> 
             </div>
         )
     }

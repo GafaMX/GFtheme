@@ -13,10 +13,10 @@
 }
 
 .modal-dialog{
-    margin:0;
-    width:100vw;
     max-width:100%!important;
-    min-height:100vh;
+    height:100%;
+    width:100%;
+    margin:0;
 
     @media screen and (min-width:992px) {
         height:100vh;

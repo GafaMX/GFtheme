@@ -5,6 +5,7 @@ const CalendarStorage = {
     services: [],
     rooms: [],
     meetings: [],
+    currentLocation: null,
     filter_location: null,
     filter_room: null,
     filter_service: null,

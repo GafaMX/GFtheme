@@ -4,7 +4,8 @@ import React from "react";
 import StaffItem from "./StaffItem";
 // import Strings from "../utils/Strings/Strings_ES";
 // import PaginationList from "../utils/PaginationList";
-// import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import GlobalStorage from "../store/GlobalStorage";
 
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
@@ -23,17 +24,35 @@ class StaffList extends React.Component {
         super(props);
         this.state = {
             list: this.props.list,
-            // currentPage: this.props.currentPage,
             jobList: [],
             sliderRows: 1,
             currentjob: 'Todos',
         };
         this.change = this.change.bind(this);
         this.updateRows = this.updateRows.bind(this);
+
+        GlobalStorage.addSegmentedListener(['currentLocation'], this.updateStaffList.bind(this));
     }
 
     componentDidMount(){
         this.updateRows();
+    }
+
+    updateStaffList(){
+        let component = this;
+        let currentLocation = GlobalStorage.get('currentLocation');
+
+        GafaFitSDKWrapper.getStaffListWithoutBrand(
+            currentLocation.brand.slug,
+            {
+                per_page: 1000,
+            }, function (result) {
+                component.setState({
+                    list: result.data
+                });
+                component.updateRows();
+        });
+
     }
 
     updatePaginationData(result) {
