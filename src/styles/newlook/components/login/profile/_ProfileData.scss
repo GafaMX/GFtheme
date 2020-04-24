@@ -247,32 +247,6 @@ body.modal-open{
         }
     }
 
-    &__close{
-        position: absolute;
-        top: 0px;
-        line-height: 1;
-        right: 0px;
-        display: flex;
-        height: 26px;
-        width: 26px;
-        padding: 8px;
-        border-radius: 100%;
-        border: 0 transparent none;
-        background-color:#FF3E4F;
-        align-items: center;
-        justify-items: center;
-        
-        &:hover{
-            background-color:darken(#FF3E4F, 10%);
-        }
-        
-        svg{
-            color:white;
-            height: 100%;
-            width: 100%;
-        }
-    }
-
     & > .card-body{
         display: grid;
         grid-auto-flow: row;
@@ -310,7 +284,7 @@ body.modal-open{
     padding-bottom:0px;
     height:100%;
     overflow:hidden;
-    
+
     @media screen and (min-width:992px) {
         border-radius: 23px;
         // padding: 0 36px 36px;
@@ -369,8 +343,8 @@ body.modal-open{
                     margin:0;
                     transition: .3s ease-in-out;
                     transition-property: border-color, color;
-                    font-size: 12px;
-                    // font-size: 10px;
+                    // font-size: 12px;
+                    font-size: 10px;
 
                     @media screen and (min-width:992px) {
                         font-size: 12px;
@@ -691,7 +665,6 @@ body.modal-open{
 
             .globalFilter{
                 width:100%;
-
                 &.is-empty{
                     display:none;
                 }

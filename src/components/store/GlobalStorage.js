@@ -11,6 +11,11 @@ const GlobalStorage = {
     locations: [],
     currentLocation: null,
 
+    //PaymentMethod Controller
+    ConektaPaymentInfo: null,
+    ConektaPaymentNotification: null,
+    ConektaPaymentError: null,
+
     get(property) {
         return this[property];
     },
