@@ -57,6 +57,8 @@
         &:focus{
             outline:none;
         }
+
+        // &.is{}
     }
 
     &__section{
@@ -109,12 +111,70 @@
             }
         }
 
+        &.is-addCard{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            
+            @media screen and (min-width:768px){
+                grid-template-columns: repeat(6, 1fr);
+            }
+
+            & > .is-CardNumber{
+                grid-row: 1;
+                grid-column: 1/4;
+                @media screen and (min-width:768px){
+                    grid-column: 1/4;
+                }
+            }
+            & > .is-CardExpMonth{
+                grid-row: 2;
+                grid-column: 1/2;
+                @media screen and (min-width:768px){
+                    grid-row: 1;
+                    grid-column: 4/5;
+                }
+            }
+            & > .is-CardExpYear{
+                grid-row: 2;
+                grid-column: 2/3;
+                @media screen and (min-width:768px){
+                    grid-row: 1;
+                    grid-column: 5/6;
+                }
+            }
+            & > .is-CardCVC{
+                grid-row: 2;
+                grid-column: 3/4;
+                @media screen and (min-width:768px){
+                    grid-row: 1;
+                    grid-column: 6/7;
+                }
+            }
+            & > .is-CardName{
+                grid-row: 3;
+                grid-column: 1/4;
+                @media screen and (min-width:768px){
+                    grid-row: 2;
+                    grid-column: 1/4;
+                }
+            }
+            & > .is-CardPhone{
+                grid-row: 4;
+                grid-column: 1/4;
+                @media screen and (min-width:768px){
+                    grid-row: 2;
+                    grid-column: 4/7;
+                }
+            }
+        }
+
         &.is-payment{
+            display:inline-grid;
             grid-template-columns:auto 1fr;
-            grid-template-rows: repeat(4, 1fr);
             column-gap: 25px;
             justify-items: start;
             align-items: start;
+            width:100%;
 
             h4{
                 width:100%;

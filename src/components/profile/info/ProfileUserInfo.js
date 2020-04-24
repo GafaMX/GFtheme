@@ -17,14 +17,17 @@ import PastClasses from "../PastClasses";
 import PaymentMethods from "./Payment/PaymentMethods";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
-// import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
-import GlobalStorage from "../../store/GlobalStorage";
 import IconLogOut from '../../utils/Icons/IconLogOut';
 import LocationsFilter from "../../locations/LocationsFilters";
+import CloseIcon from "../../utils/Icons/CloseIcon";
+import CheckIcon from "../../utils/Icons/CheckIcon";
+import GlobalStorage from '../../store/GlobalStorage';
 
 //Estilos
 import '../../../styles/newlook/components/GFSDK-c-Profile.scss';
 import '../../../styles/newlook/components/GFSDK-c-Orders.scss';
+import '../../../styles/newlook/components/GFSDK-c-Payment.scss';
+import '../../../styles/newlook/components/GFSDK-c-Tabs.scss';
 import '../../../styles/newlook/elements/GFSDK-e-form.scss';
 import '../../../styles/newlook/elements/GFSDK-e-scroll.scss';
 import '../../../styles/newlook/elements/GFSDK-e-buttons.scss';
@@ -58,8 +61,10 @@ class ProfileUserInfo extends React.Component {
             first_nameValid: true,
             formValid: true,
             serverError: '',
-            saved: false
+            saved: false,
+            paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
         };
+        GlobalStorage.addSegmentedListener(['ConektaPaymentNotification'], this.updateConektaNotificaction.bind(this));
     }
 
     componentDidMount() {
@@ -89,6 +94,13 @@ class ProfileUserInfo extends React.Component {
         });
     }
 
+    updateConektaNotificaction(){
+        let currentComponent = this;
+        currentComponent.setState({
+            paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
+        });
+    }
+
     findCountryCodeById() {
         let country = this.state.countries.find(option => option.value === this.state.countries_id);
         let countryCode = "";
@@ -115,8 +127,7 @@ class ProfileUserInfo extends React.Component {
         const currentComponent = this;
         let countrySelected = currentComponent.findCountryCodeById();
         GafaFitSDKWrapper.getCountryStates(countrySelected, function (result) {
-            currentComponent.setState(
-                {
+            currentComponent.setState({
                     states: result.map(function (item) {
                         return {label: item.name, value: item.id}
                     })
@@ -169,21 +180,34 @@ class ProfileUserInfo extends React.Component {
         }
     }
 
+    deleteCard(){
+        let ConektaPaymentNotification = GlobalStorage.get('ConektaPaymentNotification');
+        GafaFitSDKWrapper.postUserRemovePaymentOption(
+            ConektaPaymentNotification.paymentMethod,
+            ConektaPaymentNotification.cardID,
+            function(result){
+                GlobalStorage.set('ConektaPaymentInfo', result.conekta);
+            }
+        );
+    }
+
+    closeNotification(){
+        GlobalStorage.set('ConektaPaymentNotification', null);
+    }
 
     errorSaveMeCallback(error) {
         this.setState({serverError: error});
     }
 
     render() {
-
-        let locations = GlobalStorage
-
         let preE = 'GFSDK-e';
         let preC = 'GFSDK-c';
         let profileClass = preC + '-profile';
-        let tabsClass = preE + '-tabs';
+        let paymentClass = preC + '-payment';
+        let tabsClass = preC + '-tabs';
         let buttonClass = preE + '-buttons';
         let formClass = preE + '-form';
+        let {paymentNotification} = this.state
 
         return (
             <div className="profile-info">
@@ -292,13 +316,26 @@ class ProfileUserInfo extends React.Component {
                                 </div>
                             </Tab>
 
-                            {/* <Tab eventKey={4} title={Strings.PAYMENT}>
+                            <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
                                 <CustomScroll heightRelativeToParent="100%">
                                     <div className={profileClass + '__tab-section'}>
                                         <PaymentMethods />
                                     </div>
                                 </CustomScroll>
-                            </Tab> */}
+                                <div className={paymentClass + "__notification " + (paymentNotification ? 'is-active' : '')}>
+                                    <div className={paymentClass + "__notification-container"}>
+                                        <p>{!paymentNotification ? 'Error: No encuentré el mensaje' : paymentNotification.message}</p>
+                                        <div className={paymentClass + "__controls"}>
+                                            <button className={buttonClass + "__controls is-success"} onClick={this.deleteCard.bind(this)}>
+                                                <CheckIcon />
+                                            </button>
+                                            <button className={buttonClass + "__controls is-close"} onClick={this.closeNotification.bind(this)}>
+                                                <CloseIcon />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Tab>
                         </Tabs>
                     </div>
                 </div>

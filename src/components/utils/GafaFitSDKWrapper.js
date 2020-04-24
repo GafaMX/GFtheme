@@ -21,6 +21,7 @@ class GafaFitSDKWrapper extends React.Component {
             window.GFtheme.CaptchaSecretKey = window.GFThemeOptions.CAPTCHA_SECRET_KEY;
             window.GFtheme.CaptchaPublicKey = window.GFThemeOptions.CAPTCHA_PUBLIC_KEY;
             window.GFtheme.RemoteAddr = window.GFThemeOptions.REMOTE_ADDR;
+            window.GFtheme.ConektaPublicKey = window.GFThemeOptions.CONEKTA_PUBLIC_KEY;
         }
 
         GafaFitSDKWrapper.setLocalStorage();
@@ -43,11 +44,20 @@ class GafaFitSDKWrapper extends React.Component {
         }
     }
 
+    static setConektaPayment(){
+        let {ConektaPublicKey} = window.GFtheme;
+        Conekta.setPublicKey(ConektaPublicKey)
+
+        GafaFitSDKWrapper.getUserPaymentInfo('', function (result) {
+            GlobalStorage.set('ConektaPaymentInfo',  result.conekta)
+        });
+    }
+
     static getInitialValues(locationCallback) {
         GafaFitSDKWrapper.getCurrentBrand(function () {
             // GafaFitSDKWrapper.setBasicComponents();
             GafaFitSDKWrapper.getAllLocations(function(){
-                console.log(GlobalStorage);
+                GafaFitSDKWrapper.setConektaPayment();
                 GafaFitSDKWrapper.getCurrentLocation(locationCallback);
             })
         });
@@ -664,8 +674,10 @@ class GafaFitSDKWrapper extends React.Component {
     // Funciones de metodos de pago | Inicio
 
     static getUserPaymentInfo(options, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
+
         GafaFitSDK.GetUserPaymentInfo(
-            window.GFtheme.brand, options,
+            brand, options,
             function (error, result) {
                 if (error === null) {
                     callback(result);
@@ -675,8 +687,10 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static postUserRemovePaymentOption(paymentMethod, idCard, callback){
+        let brand = GlobalStorage.get('currentBrand').slug;
+
         GafaFitSDK.PostUserRemovePaymentOption(
-            window.GFtheme.brand,
+            brand,
             paymentMethod,
             idCard,
             function (error, result) {
@@ -688,8 +702,10 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static postUserAddPaymentOption(paymentMethod, optionToken, optionPhone, callback){
+        let brand = GlobalStorage.get('currentBrand').slug;
+
         GafaFitSDK.PostUserAddPaymentOption(
-            window.GFtheme.brand,
+            brand,
             paymentMethod,
             optionToken,
             optionPhone,

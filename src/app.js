@@ -1,11 +1,6 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
-// import "./styles/basic-theme.css";
-// import "./styles/App.scss";
-// import "./styles/Theme.scss";
-
-import jQuery from 'jquery'
+import jQuery from 'jquery';
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
-import GlobalStorage from "./components/store/GlobalStorage";
 
 window.jQuery = window.$ = jQuery;
 

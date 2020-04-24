@@ -8,6 +8,9 @@ module.exports = {
         path: path.resolve('./dist'),
         filename: 'main.min.js'
     },
+    externals: {
+        conekta: 'Conekta',
+    },
     module: {
         rules: [
             {
