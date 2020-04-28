@@ -107,11 +107,12 @@ configuration options properties are: GAFA_FIT_URL, COMPANY_ID, API_CLIENT, API_
 For example you can use this definition before include the GafaFitThemeSDK main script:
 
     ...
+    <script type="text/javascript" src="https://cdn.conekta.io/js/latest/conekta.js"></script>
     <script src="https://www.google.com/recaptcha/api.js?render=[YOUR RECAPTCHA PUBLIC KEY]"></script>
-    <script src="https://gafa.fit/sdk/dist/main.js"></script>
+    <script src="[SYSTEM URL]/sdk/dist/main.js"></script>
     <script data-gf-options type="application/json">
         {
-            "GAFA_FIT_URL": "https://devgafa.fit/",
+            "GAFA_FIT_URL": "[SYSTEM URL]",
             "COMPANY_ID": 1,
             "API_CLIENT": 1,
             "API_SECRET": "[YOUR BUQ API SECRET KEY]",
@@ -119,6 +120,7 @@ For example you can use this definition before include the GafaFitThemeSDK main 
             "CAPTCHA_SECRET_KEY": "[YOUR RECAPTCHA SECRET KEY]",
             "CAPTCHA_PUBLIC_KEY": "[YOUR RECAPTCHA PUBLIC KEY]",
             "REMOTE_ADDR": "127.0.0.1"
+            "CONEKTA_PUBLIC_KEY":  "[YOUR CONEKTA PUBLIC KEY]",
         }
     </script>
     </body>
@@ -131,11 +133,12 @@ If you want to use this templates SDK embedded in your website for testing purpo
 of the script in your site just between the GafaFitSDK library script and close the body tag, like this:
 
     ...
+    <script type="text/javascript" src="https://cdn.conekta.io/js/latest/conekta.js"></script>
     <script src="https://www.google.com/recaptcha/api.js?render=[YOUR RECAPTCHA PUBLIC KEY]"></script>
-    <script src="https://gafa.fit/sdk/dist/main.js"></script>
+    <script src="[SYSTEM URL]/sdk/dist/main.js"></script>
     <script data-gf-options type="application/json">
         {
-            "GAFA_FIT_URL": "https://devgafa.fit/",
+            "GAFA_FIT_URL": "[SYSTEM URL]",
             "COMPANY_ID": 1,
             "API_CLIENT": 1,
             "API_SECRET": "[YOUR BUQ API SECRET KEY]",
@@ -143,6 +146,7 @@ of the script in your site just between the GafaFitSDK library script and close 
             "CAPTCHA_SECRET_KEY": "[YOUR RECAPTCHA SECRET KEY]",
             "CAPTCHA_PUBLIC_KEY": "[YOUR RECAPTCHA PUBLIC KEY]",
             "REMOTE_ADDR": "127.0.0.1"
+            "CONEKTA_PUBLIC_KEY":  "[YOUR CONEKTA PUBLIC KEY]",
         }
     </script>
     <script src="https://dev.gafa.codes/GFtheme/dist/main.js"></script>
@@ -207,6 +211,12 @@ the user info.
 * `register`   Register
 * `password-recovery`   Password recovery
 * `profile-info`   Profile basic info
+
+#### New Features
+
+New features added to shortcodes:
+
+* `locations-filter`   Brand location selector
 
 <!-- ##### Pagination shortcode
 

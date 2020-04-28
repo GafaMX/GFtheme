@@ -5,10 +5,11 @@ import Strings from "../utils/Strings/Strings_ES";
 import IconLeftArrow from "../utils/Icons/IconLeftArrow";
 import IconRightArrow from "../utils/Icons/IconRightArrow";
 import CalendarStorage from "./CalendarStorage";
-import MorningIcon from "../utils/Icons/MorningIcon"
-import AfternoonIcon from "../utils/Icons/AfternoonIcon"
-import AllTimeIcon from "../utils/Icons/AllTimeIcon"
+import MorningIcon from "../utils/Icons/MorningIcon";
+import AfternoonIcon from "../utils/Icons/AfternoonIcon";
+import AllTimeIcon from "../utils/Icons/AllTimeIcon";
 import moment from 'moment';
+import GlobalStorage from "../store/GlobalStorage";
 
 
 class CalendarFilters extends React.Component {
@@ -55,9 +56,10 @@ class CalendarFilters extends React.Component {
     updateRooms() {
         let show_rooms = [];
         let rooms = CalendarStorage.get('rooms');
-        let location = CalendarStorage.get('filter_location');
-        let locations = CalendarStorage.get('locations');
+        let currentLocation = GlobalStorage.get('currentLocation');
+        let locations = GlobalStorage.get('locations');
         let groups = [];
+
 
         locations.forEach(function (location) {
             let obj = {
@@ -73,7 +75,7 @@ class CalendarFilters extends React.Component {
 
         if (location) {
             show_rooms = groups.filter(function (group) {
-                return group.location.id === location.id;
+                return group.location.id === currentLocation.id;
             })
         } else {
             show_rooms = groups;
@@ -178,7 +180,8 @@ class CalendarFilters extends React.Component {
     }
 
     render() {
-        let locations = CalendarStorage.get('locations');
+        // let locations = CalendarStorage.get('locations');
+        let rooms = CalendarStorage.get('rooms');
         let {time_of_day} = this.state;
         let filter_name = 'meetings-calendar--filters';
 
@@ -192,7 +195,7 @@ class CalendarFilters extends React.Component {
         return (
             <div className={calendarClass + '__head'}>
                 <div className={calendarClass + '__filter ' + filterClass}>
-                    <div className={formClass + '__section is-day-filter'}>
+                    <div className={filterClass + '__item ' + formClass + '__section is-day-filter'}>
                         <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
                         <div className={formClass + "__radio-container has-3-columns"}>
                             <label className={formClass + "__radio " + (time_of_day === null || time_of_day === ' ' ? 'checked' : '')}>
@@ -237,7 +240,7 @@ class CalendarFilters extends React.Component {
                         </div>
                     </div>
 
-                    <div className={formClass + '__section is-location-filter'}>
+                    {/* <div className={formClass + '__section is-location-filter'}>
                         <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
                         <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
                                 data-origin="locations"
@@ -250,15 +253,15 @@ class CalendarFilters extends React.Component {
                                 );
                             })}
                         </select>
-                    </div>
+                    </div> */}
 
-                    <div className={formClass + '__section is-room-filter'}>
+                    <div className={filterClass + '__item ' + formClass + '__section is-room-filter ' + (rooms.length <= 1 ? 'is-empty' : '' )}>
                         <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{Strings.ROOM}: </label>
                         <select className={formClass + '__select'} id={'calendar-filter-room'} data-name="filter_room"
                                 data-origin="rooms" ref={'room'}
                                 onChange={this.selectFilter}>
                             <option value={''}>{Strings.ALL}</option>
-                            {this.state.room_groups.map(function (group, index) {
+                            {/* {this.state.room_groups.map(function (group, index) {
                                 return (
                                     <optgroup label={group.location.name}
                                                 key={`${filter_name}-room-group--option-${index}`}>
@@ -270,11 +273,21 @@ class CalendarFilters extends React.Component {
                                         })}
                                     </optgroup>
                                 );
+                            })} */}
+                            {this.state.room_groups.map(function (group, index) {
+                                return (
+                                    group.rooms.map(function (room, r_index) {
+                                        return (
+                                            <option key={`${filter_name}-room--option-${r_index}`}
+                                                    value={room.id}>{room.name}</option>
+                                        );
+                                    })
+                                );
                             })}
                         </select>
                     </div>
 
-                    <div className={formClass + '__section is-service-filter'}>
+                    <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
                         <label htmlFor={'calendar-filter-service'}  className={formClass + '__label'}>{Strings.SERVICE}: </label>
                         <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
                                 data-origin="services"

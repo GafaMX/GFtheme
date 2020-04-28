@@ -59,6 +59,7 @@ class CalendarBody extends React.Component {
                     meetings: meetings.filter(function (meeting) {
                         let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss');
 
+
                         return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime();
                     })
                 };
@@ -68,6 +69,11 @@ class CalendarBody extends React.Component {
         }
         return shown_meetings;
     }
+
+    isFunction(functionToCheck) {
+        return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+    }
+
 
     updateMeetings() {
         let location = CalendarStorage.get('filter_location');

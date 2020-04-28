@@ -5,6 +5,7 @@ import ServiceItem from "./ServiceItem";
 import Strings from "../utils/Strings/Strings_ES";
 import PaginationList from "../utils/PaginationList";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import GlobalStorage from "../store/GlobalStorage";
 
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
@@ -29,14 +30,30 @@ class ServiceList extends React.Component {
             currentService: '',
         };
         this.change = this.change.bind(this);
-    }
 
+        GlobalStorage.addSegmentedListener(['currentLocation'], this.updateServiceList.bind(this));
+    }
 
     updatePaginationData(result) {
         this.setState({
             list: result.data,
             currentPage: result.current_page
         })
+    }
+
+    updateServiceList(){
+        let component = this;
+        let currentLocation = GlobalStorage.get('currentLocation');
+
+        GafaFitSDKWrapper.getServiceListWithoutBrand(
+            currentLocation.brand.slug,
+            {
+                per_page: 10,
+            }, function (result) {
+                component.setState({
+                    list: result.data
+                });
+        });
     }
 
     updateRows() {

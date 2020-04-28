@@ -3,6 +3,19 @@ const GlobalStorage = {
     segmentedListeners: [],
     me: null,
 
+    //Brands Controller
+    brands: [],
+    currentBrand: null,
+    
+    //Location Controller
+    locations: [],
+    currentLocation: null,
+
+    //PaymentMethod Controller
+    ConektaPaymentInfo: null,
+    ConektaPaymentNotification: null,
+    ConektaPaymentError: null,
+
     get(property) {
         return this[property];
     },

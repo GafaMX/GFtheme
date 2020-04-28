@@ -1,9 +1,5 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
-// import "./styles/basic-theme.css";
-// import "./styles/App.scss";
-// import "./styles/Theme.scss";
-
-import jQuery from 'jquery'
+import jQuery from 'jquery';
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 
 window.jQuery = window.$ = jQuery;
@@ -32,5 +28,7 @@ GafaFitSDKWrapper.initValues(
 
         GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"][data-gf-limit]');
         GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');
+
+        GafaThemeSDK.renderLocationsFilter('[data-gf-theme="locations-filter"]');
     }
 );

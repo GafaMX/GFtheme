@@ -17,36 +17,51 @@
         <div data-gf-theme="login-register"></div>
     </header>
     <main>
+        <section data-gf-theme="locations-filter"></section>
+        <section data-gf-theme="staff-list"></section>
         <section data-gf-theme="service-list"></section>
         <section data-gf-theme="combo-list"></section>
-        <section data-gf-theme="meetings-calendar" data-gf-perpage="4"></section>
+        <section data-gf-theme="membership-list"></section>
+        <section data-gf-theme="meetings-calendar" data-gf-limit="4"></section>
         <!-- Fancy  / Inicia Aquí-->
         <section data-gf-theme="fancy"></section>
         <!-- Fancy  / Termina Aquí-->
     </main>
+
+    <script type="text/javascript" src="https://cdn.conekta.io/js/latest/conekta.js"></script>
     <!-- render parameter equals to CAPTCHA_SITE_KEY. Update it!!! -->
     <script src="https://www.google.com/recaptcha/api.js?render=6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8"></script>
     <!-- Replace this script with the one corresponding to the API for testing! -->
 
     <!-- GafaFitTest -->
-    <!-- <script src="http://gafafit.test/sdk/dist/main.js"></script> -->
+    <script src="http://gafafit-prod.test/sdk/dist/main.js"></script>
     
     <!-- GafaFitProd -->
-    <!-- <script src="http://gafafit.test/sdk/dist/main.js"></script> -->
-    
-    <!-- BuqProd -->
-    <script src="https://buq.partners/sdk/dist/main.js"></script>
+    <!-- <script src="https://gafa.fit/sdk/dist/main.js"></script> -->
 
-    <script data-gf-options type="application/json">
+    <!--<script data-gf-options type="application/json">
         {
-            "GAFA_FIT_URL": "https://buq.partners/",
-            "COMPANY_ID": 8,
-            "API_CLIENT": 4,
-            "API_SECRET": "jm6y9oSHXlDiyRbWqoTcY1OqJqXuMdyOT9tNyn3u",
+            "GAFA_FIT_URL": "https://gafafit-prod.test/",
+            "COMPANY_ID": 3,
+            "API_CLIENT": 3,
+            "API_SECRET": "ePq7JPgW9wawPzSIOgNzN9wXcO4C7ccUx1hUR2LH",
             "TOKENMOVIL": null,
             "CAPTCHA_SECRET_KEY": "6LcGcsEUAAAAAOQCOt68hLjGsYHuELQZFheZtgbn",
             "CAPTCHA_PUBLIC_KEY": "6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8",
             "REMOTE_ADDR": "127.0.0.1"
+        }
+    </script>-->
+    <script data-gf-options type="application/json">
+        {
+            "GAFA_FIT_URL": "https://gafafit-prod.test/",
+            "COMPANY_ID": 20,
+            "API_CLIENT": 9,
+            "API_SECRET": "VSnMEmxW1WRGNbj2znen6a46CflemDxwAqLiPZo6",
+            "TOKENMOVIL": null,
+            "CAPTCHA_SECRET_KEY": "6LcGcsEUAAAAAOQCOt68hLjGsYHuELQZFheZtgbn",
+            "CAPTCHA_PUBLIC_KEY": "6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8",
+            "REMOTE_ADDR": "127.0.0.1",
+            "CONEKTA_PUBLIC_KEY": "key_B58cBztHHyKrymExSAhob3A"
         }
     </script>
 </body>

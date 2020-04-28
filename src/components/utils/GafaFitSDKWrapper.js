@@ -9,7 +9,9 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static initValues(callback) {
+
         window.GFtheme = {};
+
         if (window.GFThemeOptions != null) {
             GafaFitSDK.setUrl(window.GFThemeOptions.GAFA_FIT_URL);
             GafaFitSDK.setCompany(window.GFThemeOptions.COMPANY_ID);
@@ -19,46 +21,155 @@ class GafaFitSDKWrapper extends React.Component {
             window.GFtheme.CaptchaSecretKey = window.GFThemeOptions.CAPTCHA_SECRET_KEY;
             window.GFtheme.CaptchaPublicKey = window.GFThemeOptions.CAPTCHA_PUBLIC_KEY;
             window.GFtheme.RemoteAddr = window.GFThemeOptions.REMOTE_ADDR;
+            window.GFtheme.ConektaPublicKey = window.GFThemeOptions.CONEKTA_PUBLIC_KEY;
         }
 
-        GafaFitSDKWrapper.getCurrentBrandAndLocation(callback);
+        GafaFitSDKWrapper.setLocalStorage();
+        GafaFitSDKWrapper.getInitialValues(callback);
     }
 
-    static getCurrentBrandAndLocation(locationCallback) {
-        GafaFitSDKWrapper.getCurrentBrand(function () {
-            GafaFitSDKWrapper.getCurrentLocation(locationCallback);
+    static setLocalStorage() {
+        let companyID = window.GFThemeOptions.COMPANY_ID;
+        let localCompany = localStorage.getItem('__GFthemeCompany');
+
+        if(localCompany){
+            if(companyID != localCompany){
+                localStorage.removeItem('__GFthemeCompany');
+                localStorage.removeItem('__GFthemeBrand');
+                localStorage.removeItem('__GFthemeLocation');
+                localStorage.setItem('__GFthemeCompany', companyID);
+            }
+        } else {
+            localStorage.setItem('__GFthemeCompany', companyID);
+        }
+    }
+
+    static setConektaPayment(){
+        let {ConektaPublicKey} = window.GFtheme;
+        Conekta.setPublicKey(ConektaPublicKey)
+
+        GafaFitSDKWrapper.getUserPaymentInfo('', function (result) {
+            GlobalStorage.set('ConektaPaymentInfo',  result.conekta)
         });
     }
 
+    static getInitialValues(locationCallback) {
+        GafaFitSDKWrapper.getCurrentBrand(function () {
+            // GafaFitSDKWrapper.setBasicComponents();
+            GafaFitSDKWrapper.getAllLocations(function(){
+                GafaFitSDKWrapper.setConektaPayment();
+                GafaFitSDKWrapper.getCurrentLocation(locationCallback);
+            })
+        });
+    }
+
+
+
     static getCurrentBrand(callback) {
-        if (window.GFtheme.brand == null) {
-            GafaFitSDKWrapper.getBrandList({}, function (result) {
-                window.GFtheme.brand = result.data[0].slug;
+        let component = this;
+        let brand = localStorage.getItem('__GFthemeBrand');
+
+        if (brand){
+            window.GFtheme.brand = brand;
+            GafaFitSDKWrapper.getBrandList({}, function(result){
+                component.setBrand(brand, result);
                 callback();
             });
         } else {
-            callback();
+            if (!window.GFtheme.brand) {
+                GafaFitSDKWrapper.getBrandList({}, function (result) {
+                    let brand = result.data[0].slug
+
+                    window.GFtheme.brand = brand;
+                    localStorage.setItem('__GFthemeBrand', brand);
+
+                    component.setBrand(brand, result);
+
+                    callback();
+                });
+            } else {
+                callback();
+            }
         }
+    }
+
+    static getAllLocations(callback){
+        let brands = GlobalStorage.get('brands');
+
+        brands.forEach(brand => {
+            GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
+                let location = result.data[0];
+                GlobalStorage.push('locations', location);
+            })
+        });
+
+        callback();
     }
 
     static getCurrentLocation(callback) {
-        if (window.GFtheme.location == null) {
-            GafaFitSDKWrapper.getBrandLocations({}, function (result) {
-                window.GFtheme.location = result.data[0].slug;
+        let location = localStorage.getItem('__GFthemeLocation');
+
+        if(location){
+            window.GFtheme.location = location;
+            GafaFitSDKWrapper.getBrandLocations({}, function(result){
+                let locations = result.data;
+                let currentLocation = locations.find(element => element.slug === location);
+                GlobalStorage.set('currentLocation', currentLocation);
+                // GlobalStorage.set('Locations', locations);
                 callback();
             });
         } else {
-            callback();
+            if (window.GFtheme.location == null) {
+                GafaFitSDKWrapper.getBrandLocations({}, function (result) {
+                    localStorage.setItem('__GFthemeLocation', result.data[0].slug);
+                    window.GFtheme.location = result.data[0].slug;
+                    callback();
+                });
+            } else {
+                callback();
+            }
         }
     }
 
-    static setBrand(brand) {
-        window.GFtheme.brand = brand;
+    // static propsForPagedListComponent(result) {
+    //     return {
+    //         list: result.data,
+    //         currentPage: result.current_page,
+    //         lastPage: result.last_page,
+    //         perPage: result.per_page,
+    //         total: result.total
+    //     };
+    // }
+
+    // static setBasicComponents(){
+    //     //Get staff elements in storage
+    //     GafaFitSDKWrapper.getStaffList({per_page: 1000}, function (result) {
+    //         let staffList = GafaFitSDKWrapper.propsForPagedListComponent(result);
+    //         GlobalStorage.set('staff', staffList);
+    //     });
+    // }
+
+    static setBrand(brand, result){
+        const brands = result.data;
+        const currentBrand = brands.find(element => element.slug === brand);
+        GlobalStorage.set('brands', brands);
+        GlobalStorage.set('currentBrand', currentBrand);
     }
 
     static getStaffList(options, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
         GafaFitSDK.GetBrandStaffList(
-            window.GFtheme.brand, options, function (error, result) {
+            brand, options, function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        );
+    };
+
+    static getStaffListWithoutBrand(brand, options, callback) {
+        GafaFitSDK.GetBrandStaffList(
+            brand, options, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }
@@ -69,6 +180,16 @@ class GafaFitSDKWrapper extends React.Component {
     static getServiceList(options, callback) {
         GafaFitSDK.GetBrandServiceList(
             window.GFtheme.brand, options, function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        );
+    };
+
+    static getServiceListWithoutBrand(brand, options, callback) {
+        GafaFitSDK.GetBrandServiceList(
+            brand, options, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }
@@ -101,6 +222,24 @@ class GafaFitSDKWrapper extends React.Component {
         });
     };
 
+    static getComboListWithoutBrand(brand, options, callback) {
+        let functionToRetrieveCombos = GafaFitSDK.GetBrandCombolist;
+
+        GafaFitSDKWrapper.isAuthenticated(function (auth) {
+            if (auth) {
+                functionToRetrieveCombos = GafaFitSDK.GetBrandComboListforUser;
+            }
+
+            functionToRetrieveCombos(
+                brand, options, function (error, result) {
+                    if (error === null) {
+                        callback(result);
+                    }
+                }
+            );
+        });
+    };
+
     static getMembershipList(options, callback) {
         let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
 
@@ -111,6 +250,24 @@ class GafaFitSDKWrapper extends React.Component {
 
             functionToRetrieveMemberships(
                 window.GFtheme.brand, options, function (error, result) {
+                    if (error === null) {
+                        callback(result);
+                    }
+                }
+            );
+        });
+    };
+
+    static getMembershipListWithoutBrand(brand, options, callback) {
+        let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
+
+        GafaFitSDKWrapper.isAuthenticated(function (auth) {
+            if (auth) {
+                functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
+            }
+
+            functionToRetrieveMemberships(
+                brand, options, function (error, result) {
                     if (error === null) {
                         callback(result);
                     }
@@ -254,15 +411,11 @@ class GafaFitSDKWrapper extends React.Component {
                 window.GFtheme.meetings_id = null;
                 window.GFtheme.location_slug = null;
             });
-        } else {
-            window.location.reload();
         }
     }
 
     static errorLoginCallback(error) {
-        /*
         this.setState({serverError: error, logged: false});
-         */
     }
 
     static postPasswordForgot(params, successCallback, errorCallback) {
@@ -393,8 +546,12 @@ class GafaFitSDKWrapper extends React.Component {
         );
     }
 
-    static getMeetingsInLocation(location, start_date, end_date, callback) {
-        GafaFitSDK.GetlocationMeetingList(window.GFtheme.brand, location, {
+    static getMeetingsInLocation(start_date, end_date, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
+        let location = GlobalStorage.get('currentLocation').id;
+        GafaFitSDK.GetlocationMeetingList(
+            brand,
+            location, {
             'only_actives': true,
             'start': start_date,
             'end': end_date
@@ -415,8 +572,18 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static getBrandLocations(options, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
         options.only_actives = true;
-        GafaFitSDK.GetBrandLocationList(window.GFtheme.brand, options, function (error, result) {
+        GafaFitSDK.GetBrandLocationList(brand, options, function (error, result) {
+            if (error === null) {
+                callback(result);
+            }
+        })
+    }
+
+    static getBrandLocationsWithoutBrand(brand, options, callback) {
+        options.only_actives = true;
+        GafaFitSDK.GetBrandLocationList(brand, options, function (error, result) {
             if (error === null) {
                 callback(result);
             }
@@ -425,6 +592,14 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getBrandRooms(options, callback) {
         GafaFitSDK.GetRoomsInBrand(window.GFtheme.brand, options, function (error, result) {
+            if (error === null) {
+                callback(result);
+            }
+        });
+    }
+
+    static getBrandRoomsWithoutBrand(brand, options, callback) {
+        GafaFitSDK.GetRoomsInBrand(brand, options, function (error, result) {
             if (error === null) {
                 callback(result);
             }
@@ -450,8 +625,9 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
     static getUserFutureReservationsInBrand(options, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
         GafaFitSDK.GetUserFutureReservationsInBrand(
-            window.GFtheme.brand, options,
+            brand, options,
             function (error, result) {
                 if (error === null) {
                     callback(result);
@@ -472,8 +648,9 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
     static getUserPastReservationsInBrand(options, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
         GafaFitSDK.GetUserPastReservationsInBrand(
-            window.GFtheme.brand, options,
+            brand, options,
             function (error, result) {
                 if (error === null) {
                     callback(result);
@@ -483,8 +660,9 @@ class GafaFitSDKWrapper extends React.Component {
     };
 
     static getUserPurchasesInBrand(options, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
         GafaFitSDK.GetUserPurchasesInBrand(
-            window.GFtheme.brand, options,
+            brand, options,
             function (error, result) {
                 if (error === null) {
                     callback(result);
@@ -496,8 +674,10 @@ class GafaFitSDKWrapper extends React.Component {
     // Funciones de metodos de pago | Inicio
 
     static getUserPaymentInfo(options, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
+
         GafaFitSDK.GetUserPaymentInfo(
-            window.GFtheme.brand, options,
+            brand, options,
             function (error, result) {
                 if (error === null) {
                     callback(result);
@@ -507,8 +687,10 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static postUserRemovePaymentOption(paymentMethod, idCard, callback){
+        let brand = GlobalStorage.get('currentBrand').slug;
+
         GafaFitSDK.PostUserRemovePaymentOption(
-            window.GFtheme.brand,
+            brand,
             paymentMethod,
             idCard,
             function (error, result) {
@@ -520,8 +702,10 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
     static postUserAddPaymentOption(paymentMethod, optionToken, optionPhone, callback){
+        let brand = GlobalStorage.get('currentBrand').slug;
+
         GafaFitSDK.PostUserAddPaymentOption(
-            window.GFtheme.brand,
+            brand,
             paymentMethod,
             optionToken,
             optionPhone,

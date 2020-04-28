@@ -1,0 +1,10 @@
+@import '../base/variables.scss';
+
+.#{$pre}-c-tabs
+{
+    &-container{
+        &.is-payment{
+            position: relative;
+        }
+    }
+}

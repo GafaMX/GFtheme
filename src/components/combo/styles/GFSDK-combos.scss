@@ -58,7 +58,6 @@
 
         .qodef-ps-next {
             right: -10px;
-            
             @media screen and (min-width:768px) {
                 right: -25px;
             }
@@ -70,7 +69,6 @@
                 left: -25px;
             }
         }
-        
         .slick-slide{
             & > div{
                 padding:0px;
@@ -86,7 +84,6 @@
                 pointer-events: none;
                 transform: scale(0.8);
                 @include transition(all);
-                
                 &.slick-center{
                     pointer-events: all;
                     transform: scale(1);

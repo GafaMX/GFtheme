@@ -3,6 +3,9 @@
 import React from "react";
 import MembershipItem from "./MembershipItem";
 import LoginRegister from "../menu/LoginRegister";
+import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import GafaThemeSDK from "../GafaThemeSDK";
+
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -12,6 +15,7 @@ import IconRightArrow from "../utils/Icons/IconRightArrow";
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
 import '../../styles/newlook/elements/GFSDK-e-product.scss';
+import GlobalStorage from "../store/GlobalStorage";
 
 class MembershipList extends React.Component {
     constructor(props) {
@@ -23,6 +27,8 @@ class MembershipList extends React.Component {
             weAreHome: false,
             slidesToShow: parseInt(this.props.slidesToShow, 10),
         };
+
+        GlobalStorage.addSegmentedListener(['currentLocation'], this.updateMembershipList.bind(this));
     }
 
     componentDidMount(){
@@ -35,6 +41,23 @@ class MembershipList extends React.Component {
                 weAreHome : true
             });
         }
+    }
+
+    updateMembershipList(){
+        let component = this;
+        let currentLocation = GlobalStorage.get('currentLocation');
+
+        GafaFitSDKWrapper.getMembershipListWithoutBrand(currentLocation.brand.slug,
+            {
+                per_page: 10,
+                only_actives: true,
+                propagate: true,
+            }, function (result) {
+                let functionReturns = GafaThemeSDK.propsForPagedListComponent(result);
+                component.setState({
+                    list: functionReturns.list
+                });
+        });
     }
 
     setShowLogin(showLogin) {
@@ -123,7 +146,7 @@ class MembershipList extends React.Component {
         };
 
         const listItems = this.state.list.map((membership) =>{
-            if(combo.hide_in_front){
+            if(membership.hide_in_front){
                 if(membership.hide_in_front === false || membership.hide_in_front === 0){
                     if(
                         this.state.weAreHome === false && membership.status === 'active' ||

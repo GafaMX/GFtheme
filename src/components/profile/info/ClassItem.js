@@ -9,7 +9,6 @@ import Glyphicon from "react-bootstrap/es/Glyphicon";
 import Modal from "react-bootstrap/es/Modal";
 import CloseIcon from "../../utils/Icons/CloseIcon";
 
-
 class ClassItem extends React.Component {
     constructor(props) {
         super(props);
@@ -50,6 +49,9 @@ class ClassItem extends React.Component {
     //todo hacer el modal mas pequeño
 
     render() {
+        let preE = 'GFSDK-e';
+        let buttonClass = preE + '-buttons';
+
         let membershipCredits = '';
         let cancelation = '';
         let today= Moment().format('DD-MM-YYYY HH:MM');
@@ -67,7 +69,7 @@ class ClassItem extends React.Component {
             )
         } else if (Moment(this.props.reservation.meeting_start).format('DD-MM-YYYY HH:MM') >= today){
             cancelation = (
-                <button type="button" className="pastClass-item__close qodef-btn qodef-btn-solid" onClick={this.handleShowCancelation.bind(this)}>
+                <button type="button" className={buttonClass + "__close qodef-btn qodef-btn-solid"} onClick={this.handleShowCancelation.bind(this)}>
                     {/*<span aria-hidden="true">&times;</span>*/}
                     <CloseIcon />
                 </button>
@@ -98,7 +100,6 @@ class ClassItem extends React.Component {
                                 </Modal.Header>
                                 <Modal.Body className={'modal-cancelation-body'}>
                                     <h4>{Strings.CANCELATIONMESSAGE}</h4>
-
                                 </Modal.Body>
                                 <Modal.Footer className={'modal-reservation-footer'}>
                                     <div className="GFSDK-form__section" id="cancel-class">
