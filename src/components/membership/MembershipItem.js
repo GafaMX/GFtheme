@@ -62,6 +62,7 @@ class MembershipItem extends React.Component {
         let productClass = preE + '-product';
         let membershipClass = preC + '-membershipList';
         const services = this.getServicesAndParentsForMembership();
+        let {membership} = this.props;
         return (
             <div className={membershipClass + '__item ' + productClass} onClick={this.handleClick.bind(this)}>
                 <div className={productClass + '__head'}>
@@ -85,8 +86,14 @@ class MembershipItem extends React.Component {
                     </div>
                 </div>
                 <div className={productClass + '__footer'}>
-                    <p className={'this-shortDescription'}>{this.props.membership.short_description || 'Este producto no cuenta con descripción corta.'}</p>
-                    <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span> <strong>{this.props.membership.expiration_days} {Strings.DAYS}</strong></p>
+                    {membership.short_description
+                        ?   <p className={'this-shortDescription'}>{membership.short_description}</p>
+                        :   null
+                    }
+                    {membership.expiration_days
+                        ?   <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span> <strong>{membership.expiration_days} {Strings.DAYS}</strong></p>
+                        :   null
+                    }
                 </div>
             </div>
         );

@@ -316,7 +316,7 @@ class ProfileUserInfo extends React.Component {
                                 </div>
                             </Tab>
 
-                            <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
+                            {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
                                 <CustomScroll heightRelativeToParent="100%">
                                     <div className={profileClass + '__tab-section'}>
                                         <PaymentMethods />
@@ -335,7 +335,7 @@ class ProfileUserInfo extends React.Component {
                                         </div>
                                     </div>
                                 </div>
-                            </Tab>
+                            </Tab> */}
                         </Tabs>
                     </div>
                 </div>
