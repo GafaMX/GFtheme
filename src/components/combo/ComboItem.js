@@ -57,6 +57,7 @@ class ComboItem extends React.Component {
         let preE = 'GFSDK-e';
         let productClass = preE + '-product';
         let comboClass = preC + '-membershipList';
+        let {combo} = this.props;
         const services = this.getServicesAndParentsForCombo();
 
         return (
@@ -82,8 +83,14 @@ class ComboItem extends React.Component {
                     </div>
                 </div>
                 <div className={productClass + '__footer'}>
-                    <p className={'this-shortDescription'}>{this.props.combo.short_description || 'Este producto no cuenta con descripción corta.'}</p>
-                    <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span> <strong>{this.props.combo.expiration_days} {Strings.DAYS}</strong></p>
+                    {combo.short_description
+                        ?   <p className={'this-shortDescription'}>{combo.short_description}</p>
+                        :   null
+                    }
+                    {combo.expiration_days
+                        ?   <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span> <strong>{combo.expiration_days} {Strings.DAYS}</strong></p>
+                        :   null
+                    }
                 </div>
             </div>
         );

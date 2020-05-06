@@ -14,13 +14,13 @@ import AddressInfo from "./AddressInfo";
 import ContactInfo from "./ContactInfo";
 import FutureClasses from "./FutureClasses";
 import PastClasses from "../PastClasses";
-import PaymentMethods from "./Payment/PaymentMethods";
+// import PaymentMethods from "./Payment/PaymentMethods";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
 import IconLogOut from '../../utils/Icons/IconLogOut';
 import LocationsFilter from "../../locations/LocationsFilters";
-import CloseIcon from "../../utils/Icons/CloseIcon";
-import CheckIcon from "../../utils/Icons/CheckIcon";
+// import CloseIcon from "../../utils/Icons/CloseIcon";
+// import CheckIcon from "../../utils/Icons/CheckIcon";
 import GlobalStorage from '../../store/GlobalStorage';
 
 //Estilos
@@ -62,9 +62,9 @@ class ProfileUserInfo extends React.Component {
             formValid: true,
             serverError: '',
             saved: false,
-            paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
+            // paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
         };
-        GlobalStorage.addSegmentedListener(['ConektaPaymentNotification'], this.updateConektaNotificaction.bind(this));
+        // GlobalStorage.addSegmentedListener(['ConektaPaymentNotification'], this.updateConektaNotificaction.bind(this));
     }
 
     componentDidMount() {
@@ -94,12 +94,12 @@ class ProfileUserInfo extends React.Component {
         });
     }
 
-    updateConektaNotificaction(){
-        let currentComponent = this;
-        currentComponent.setState({
-            paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
-        });
-    }
+    // updateConektaNotificaction(){
+    //     let currentComponent = this;
+    //     currentComponent.setState({
+    //         paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
+    //     });
+    // }
 
     findCountryCodeById() {
         let country = this.state.countries.find(option => option.value === this.state.countries_id);
@@ -180,20 +180,20 @@ class ProfileUserInfo extends React.Component {
         }
     }
 
-    deleteCard(){
-        let ConektaPaymentNotification = GlobalStorage.get('ConektaPaymentNotification');
-        GafaFitSDKWrapper.postUserRemovePaymentOption(
-            ConektaPaymentNotification.paymentMethod,
-            ConektaPaymentNotification.cardID,
-            function(result){
-                GlobalStorage.set('ConektaPaymentInfo', result.conekta);
-            }
-        );
-    }
+    // deleteCard(){
+    //     let ConektaPaymentNotification = GlobalStorage.get('ConektaPaymentNotification');
+    //     GafaFitSDKWrapper.postUserRemovePaymentOption(
+    //         ConektaPaymentNotification.paymentMethod,
+    //         ConektaPaymentNotification.cardID,
+    //         function(result){
+    //             GlobalStorage.set('ConektaPaymentInfo', result.conekta);
+    //         }
+    //     );
+    // }
 
-    closeNotification(){
-        GlobalStorage.set('ConektaPaymentNotification', null);
-    }
+    // closeNotification(){
+    //     GlobalStorage.set('ConektaPaymentNotification', null);
+    // }
 
     errorSaveMeCallback(error) {
         this.setState({serverError: error});
@@ -316,7 +316,7 @@ class ProfileUserInfo extends React.Component {
                                 </div>
                             </Tab>
 
-                            <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
+                            {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
                                 <CustomScroll heightRelativeToParent="100%">
                                     <div className={profileClass + '__tab-section'}>
                                         <PaymentMethods />
@@ -335,7 +335,7 @@ class ProfileUserInfo extends React.Component {
                                         </div>
                                     </div>
                                 </div>
-                            </Tab>
+                            </Tab> */}
                         </Tabs>
                     </div>
                 </div>

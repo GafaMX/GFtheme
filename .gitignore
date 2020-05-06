@@ -25,3 +25,4 @@ chrome-user-data
 *.swp
 *.swo
 dist/index.html
+src/index.html

@@ -44,20 +44,20 @@ class GafaFitSDKWrapper extends React.Component {
         }
     }
 
-    static setConektaPayment(){
-        let {ConektaPublicKey} = window.GFtheme;
-        Conekta.setPublicKey(ConektaPublicKey)
+    // static setConektaPayment(){
+    //     let {ConektaPublicKey} = window.GFtheme;
+    //     Conekta.setPublicKey(ConektaPublicKey)
 
-        GafaFitSDKWrapper.getUserPaymentInfo('', function (result) {
-            GlobalStorage.set('ConektaPaymentInfo',  result.conekta)
-        });
-    }
+    //     GafaFitSDKWrapper.getUserPaymentInfo('', function (result) {
+    //         GlobalStorage.set('ConektaPaymentInfo',  result.conekta)
+    //     });
+    // }
 
     static getInitialValues(locationCallback) {
         GafaFitSDKWrapper.getCurrentBrand(function () {
             // GafaFitSDKWrapper.setBasicComponents();
             GafaFitSDKWrapper.getAllLocations(function(){
-                GafaFitSDKWrapper.setConektaPayment();
+                // GafaFitSDKWrapper.setConektaPayment();
                 GafaFitSDKWrapper.getCurrentLocation(locationCallback);
             })
         });
@@ -66,6 +66,9 @@ class GafaFitSDKWrapper extends React.Component {
 
 
     static getCurrentBrand(callback) {
+
+        debugger;
+
         let component = this;
         let brand = localStorage.getItem('__GFthemeBrand');
 
