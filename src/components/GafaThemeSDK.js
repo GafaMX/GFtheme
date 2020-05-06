@@ -129,7 +129,7 @@ class GafaThemeSDK extends React.Component {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
             GafaFitSDKWrapper.getComboList({
-                per_page: 1000,
+                per_page: 10000,
                 only_actives: true,
                 propagate: true,
             },function (result) {
@@ -148,7 +148,6 @@ class GafaThemeSDK extends React.Component {
                     per_page = 10;
                 }
                 GafaFitSDKWrapper.getComboList({
-                    per_page: 1000,
                     only_actives: true,
                     propagate: true,
                 }, function (result) {
@@ -164,7 +163,6 @@ class GafaThemeSDK extends React.Component {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
             GafaFitSDKWrapper.getMembershipList({
-                per_page: 1000,
                 only_actives: true,
                 propagate: true
             },function (result) {
