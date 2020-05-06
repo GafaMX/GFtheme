@@ -63,11 +63,7 @@ class GafaFitSDKWrapper extends React.Component {
         });
     }
 
-
-
     static getCurrentBrand(callback) {
-
-        debugger;
 
         let component = this;
         let brand = localStorage.getItem('__GFthemeBrand');

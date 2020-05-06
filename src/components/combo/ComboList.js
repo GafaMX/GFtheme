@@ -50,7 +50,7 @@ class ComboList extends React.Component {
 
         GafaFitSDKWrapper.getComboListWithoutBrand(currentLocation.brand.slug,
             {
-                per_page: 10,
+                per_page: 1000,
                 only_actives: true,
                 propagate: true,
             }, function (result) {
