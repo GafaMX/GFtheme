@@ -365,7 +365,6 @@ class GafaFitSDKWrapper extends React.Component {
         options.captcha_secret_key = window.GFtheme.CaptchaSecretKey;
         options.remote_addr = window.GFtheme.RemoteAddr;
         options['g_recaptcha_response'] = params.g_recaptcha_response;
-        options['g-recaptcha-response'] = params.g_recaptcha_response;
 
         let me = this;
 

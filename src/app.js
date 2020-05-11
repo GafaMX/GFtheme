@@ -1,8 +1,11 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
-import jQuery from 'jquery';
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 
-window.jQuery = window.$ = jQuery;
+
+// if(!jQuery){
+//     import jQuery from 'jquery';
+//     window.jQuery = window.$ = jQuery;
+// }
 
 window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 
