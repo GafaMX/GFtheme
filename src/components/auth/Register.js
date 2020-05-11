@@ -25,7 +25,7 @@ class Register extends React.Component {
             formValid: false,
             serverError: '',
             registered: false,
-            g_recaptcha_response: null,
+            g_recaptcha_response: '',
         };
     }
 
@@ -119,15 +119,12 @@ class Register extends React.Component {
         grecaptcha.ready(function () {
             grecaptcha.execute(window.GFtheme.CaptchaPublicKey, { action: 'register' })
                 .then(function (token) {
-                    $('#register-form').prepend('<input type="hidden" name="g-recaptcha-response" value="' + token + '">');
-
+                    debugger;
                     currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
 
                     GafaFitSDKWrapper.postRegister(currentElement.state,
                         currentElement.successRegisterCallback.bind(currentElement),
-                        currentElement.errorRegisterCallback.bind(currentElement));
-
-                        
+                        currentElement.errorRegisterCallback.bind(currentElement))
                 });
         });
     }
@@ -144,10 +141,12 @@ class Register extends React.Component {
         let preE = 'GFSDK-e';
         let buttonClass = preE + '-buttons';
         let formClass = preE + '-form';
+        let {g_recaptcha_response} = this.state;
 
         return (
             <div className="register auth">
                 <form id="register-form" onSubmit={this.handleSubmit.bind(this)}>
+                    <input type="hidden" name="g-recaptcha-response" value={g_recaptcha_response} />
                     <FormGroup className={formClass + "__section"} controlId="fullName" bsSize="large">
                         <ControlLabel className={formClass + "__label"}>{Strings.LABEL_FULL_NAME}</ControlLabel>
                         <FormControl
