@@ -73,108 +73,119 @@ class ComboList extends React.Component {
         })
     }
 
-    render() {
-        let preC = 'GFSDK-c';
-        let preE = 'GFSDK-e';
-        let comboClass = preC + '-comboList';
-        let paginationClass = preE + '-pagination';
-        let buttonClass = preE + '-buttons';
+   render() {
+      let preC = 'GFSDK-c';
+      let preE = 'GFSDK-e';
+      let comboClass = preC + '-comboList';
+      let paginationClass = preE + '-pagination';
+      let buttonClass = preE + '-buttons';
 
-        function NextArrow(props){
-            const {onClick} = props;
-            return (
-                <div className={paginationClass + '__controls is-next'}>
-                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
-                        <IconRightArrow />
-                    </button>
-                </div>
-            );
-        };
-    
-        function PrevArrow(props){
-            const {onClick} = props;
-            return (
-                <div className={paginationClass + '__controls is-prev'}>
-                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
-                        <IconLeftArrow />
-                    </button>
-                </div>
-            );
-        };
-
-        let settings = {
-            dots: true,
-            speed: 500,
-            infinite: false,
-            slidesToShow: 5,
-            slidesToScroll: 5,
-            prevArrow: <PrevArrow />,
-            nextArrow: <NextArrow />,
-            responsive: [
-                {
-                    breakpoint: 481,
-                    settings: {
-                        slidesToShow: 1,
-                        slidesToScroll: 1,
-                    }
-                },
-                {
-                    breakpoint: 769,
-                    settings: {
-                        slidesToShow: 2,
-                        slidesToScroll: 2,
-                    }
-                },
-                {
-                    breakpoint: 992,
-                    settings: {
-                        slidesToShow: 3,
-                        slidesToScroll: 3,
-                    }
-                },
-                {
-                    breakpoint: 1200,
-                    settings: {
-                        slidesToShow: 4,
-                        slidesToScroll: 4,
-                    }
-                },
-            ],
-        };
-
-        const listItems = this.state.list.map((combo) => {
-                if(combo.hide_in_front){
-                    if(combo.hide_in_front === false || combo.hide_in_front === 0){
-                        if(
-                            this.state.weAreHome === false && combo.status === 'active' ||
-                            this.state.weAreHome === true && combo.status === 'active' && combo.hide_in_home === true
-                        ){
-                            return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
-                        }
-                    }
-                } else {
-                    if(combo.hide_in_home === false){
-                        if(
-                            this.state.weAreHome === false && combo.status === 'active' || this.state.weAreHome === true && combo.status === 'active'
-                        ){
-                            return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
-                        }
-                    }
-                }
-            }
-        );
-        return (
-            <div className={comboClass}>
-                <Slider {...settings} className={(comboClass + '__container ')}>
-                    {listItems}
-                </Slider>
-
-                {this.state.showLogin &&
-                    <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
-                }
+      function NextArrow(props){
+         const {onClick} = props;
+         return (
+            <div className={paginationClass + '__controls is-next'}>
+               <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
+                  <IconRightArrow />
+               </button>
             </div>
-        );
-    }
+         );
+      };
+   
+      function PrevArrow(props){
+         const {onClick} = props;
+         return (
+            <div className={paginationClass + '__controls is-prev'}>
+               <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
+                  <IconLeftArrow />
+               </button>
+            </div>
+         );
+      };
+
+      let settings = {
+         dots: true,
+         speed: 500,
+         infinite: false,
+         slidesToShow: 5,
+         slidesToScroll: 5,
+         prevArrow: <PrevArrow />,
+         nextArrow: <NextArrow />,
+         responsive: [
+            {
+               breakpoint: 481,
+               settings: {
+                  slidesToShow: 1,
+                  slidesToScroll: 1,
+               }
+            },
+            {
+               breakpoint: 769,
+               settings: {
+                  slidesToShow: 2,
+                  slidesToScroll: 2,
+               }
+            },
+            {
+               breakpoint: 992,
+               settings: {
+                  slidesToShow: 3,
+                  slidesToScroll: 3,
+               }
+            },
+            {
+               breakpoint: 1200,
+               settings: {
+                  slidesToShow: 4,
+                  slidesToScroll: 4,
+               }
+            },
+         ],
+      };
+
+      const listItems = this.state.list.map((combo) => {
+            debugger;
+            if(combo.hide_in_front){
+               if(combo.hide_in_front === false || combo.hide_in_front === 0){
+                  if(
+                     this.state.weAreHome === false && combo.status === 'active' ||
+                     this.state.weAreHome === true && combo.status === 'active' && combo.hide_in_home === true
+                  ){
+                     if(this.props.filterByName){
+                        if(combo.name.includes(this.props.filterByName)){
+                           return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                        } 
+                     } else {
+                        return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                     }
+                  }
+               }
+            } else {
+               if(combo.hide_in_home === false){
+                  if(this.state.weAreHome === false && combo.status === 'active' || this.state.weAreHome === true && combo.status === 'active'){
+                     if(this.props.filterByName){
+                        if(combo.name.includes(this.props.filterByName)){
+                           return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                        } 
+                     } else {
+                        return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                     }
+                  }
+               }
+            }
+         }
+      );
+      return (
+         <div className={comboClass}>
+            <Slider {...settings} className={(comboClass + '__container ')}>
+               {listItems}
+            </Slider>
+
+            {this.state.showLogin &&
+               <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
+            }
+         </div>
+      );
+   }
 }
 
 export default ComboList;
