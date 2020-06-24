@@ -143,15 +143,15 @@ class GafaThemeSDK extends React.Component {
       let domContainers = document.querySelectorAll(selector);
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
-            let byName = domContainer.getAttribute("data-gf-filterbyname");
             GafaFitSDKWrapper.getComboList({
-                  per_page: 10000,
-                  only_actives: true,
-                  propagate: true,
+               per_page: 10000,
+               only_actives: true,
+               propagate: true,
             },function (result) {
-                  let props = GafaThemeSDK.propsForPagedListComponent(result);
-                  props.filterByName = byName;
-                  GafaThemeSDK.renderElementIntoContainers(domContainers, ComboList, props);
+               let byName = domContainer.getAttribute("data-gf-filterbyname");
+               let props = GafaThemeSDK.propsForPagedListComponent(result);
+               props.filterByName = byName;
+               GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
             });
          });
       }
