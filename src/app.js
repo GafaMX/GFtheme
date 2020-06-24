@@ -18,13 +18,14 @@ GafaFitSDKWrapper.initValues(
         GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
 
         GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"][data-gf-perpage]');
-        GafaThemeSDK.renderStaffListWithoutPagination('[data-gf-theme="staff-list"]:not([data-gf-perpage]');
+        GafaThemeSDK.renderStaffListWithoutPagination('[data-gf-theme="staff-list"]:not([data-gf-perpage])');
 
         GafaThemeSDK.renderServiceList('[data-gf-theme="service-list"][data-gf-perpage]');
-        GafaThemeSDK.renderServiceListWithoutPagination('[data-gf-theme="service-list"]:not([data-gf-perpage]');
+        GafaThemeSDK.renderServiceListWithoutPagination('[data-gf-theme="service-list"]:not([data-gf-perpage])');
 
         GafaThemeSDK.renderComboList('[data-gf-theme="combo-list"][data-gf-perpage]');
-        GafaThemeSDK.renderComboListWithoutPagination('[data-gf-theme="combo-list"]:not([data-gf-perpage]');
+        GafaThemeSDK.renderComboListWithFilter('[data-gf-theme="combo-list"][data-gf-filterbyname]');
+        GafaThemeSDK.renderComboListWithoutPagination('[data-gf-theme="combo-list"]:not([data-gf-perpage]):not([data-gf-filterbyname])');
 
         GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"][data-gf-perpage]');
         GafaThemeSDK.renderMembershipListWithoutPagination('[data-gf-theme="membership-list"]:not([data-gf-perpage]');
