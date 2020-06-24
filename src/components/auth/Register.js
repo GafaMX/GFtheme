@@ -119,7 +119,6 @@ class Register extends React.Component {
         grecaptcha.ready(function () {
             grecaptcha.execute(window.GFtheme.CaptchaPublicKey, { action: 'register' })
                 .then(function (token) {
-                    debugger;
                     currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
 
                     GafaFitSDKWrapper.postRegister(currentElement.state,
