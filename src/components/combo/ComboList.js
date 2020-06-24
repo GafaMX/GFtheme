@@ -143,7 +143,6 @@ class ComboList extends React.Component {
       };
 
       const listItems = this.state.list.map((combo) => {
-            debugger;
             if(combo.hide_in_front){
                if(combo.hide_in_front === false || combo.hide_in_front === 0){
                   if(
