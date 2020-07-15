@@ -30,8 +30,8 @@ GafaFitSDKWrapper.initValues(
         GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"][data-gf-perpage]');
         GafaThemeSDK.renderMembershipListWithoutPagination('[data-gf-theme="membership-list"]:not([data-gf-perpage]');
 
-        GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"][data-gf-limit]');
-        GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');
+        GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
+      //   GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');
 
         GafaThemeSDK.renderLocationsFilter('[data-gf-theme="locations-filter"]');
     }

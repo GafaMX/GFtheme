@@ -19,59 +19,58 @@ import '../../styles/newlook/elements/GFSDK-e-product.scss';
 import GlobalStorage from "../store/GlobalStorage";
 
 class ComboList extends React.Component {
-    constructor(props) {
-        super(props);
+   constructor(props) {
+      super(props);
 
-        this.state = {
-            showLogin: false,
-            list: this.props.list,
-            weAreHome: false,
-            slidesToShow: parseInt(this.props.slidesToShow, 10),
-        };
+      this.state = {
+         showLogin: false,
+         list: this.props.list,
+         weAreHome: false,
+         per_slide: this.props.per_slide,
+      };
 
-        GlobalStorage.addSegmentedListener(['currentLocation'], this.updateComboList.bind(this));
-    }
+      GlobalStorage.addSegmentedListener(['currentLocation'], this.updateComboList.bind(this));
+   }
 
-    componentDidMount(){
-        let comp = this;
-        let origin = window.location.origin + '/';
-        let href = window.location.href;
+   componentDidMount(){
+      let comp = this;
+      let origin = window.location.origin + '/';
+      let href = window.location.href;
 
-        if(origin === href){
-            comp.setState({
-                weAreHome : true
-            });
-        }
-    }
+      if(origin === href){
+         comp.setState({
+               weAreHome : true
+         });
+      }
+   }
 
-    updateComboList(){
-        let component = this;
-        let currentLocation = GlobalStorage.get('currentLocation');
+   updateComboList(){
+      let component = this;
+      let currentLocation = GlobalStorage.get('currentLocation');
+      GafaFitSDKWrapper.getComboListWithoutBrand(currentLocation.brand.slug,
+         {
+               per_page: 1000,
+               only_actives: true,
+               propagate: true,
+         }, function (result) {
+               component.setState({
+                  list: result.data
+               });
+      });
+   }
 
-        GafaFitSDKWrapper.getComboListWithoutBrand(currentLocation.brand.slug,
-            {
-                per_page: 1000,
-                only_actives: true,
-                propagate: true,
-            }, function (result) {
-                component.setState({
-                    list: result.data
-                });
-        });
-    }
+   setShowLogin(showLogin) {
+      this.setState({
+         showLogin: showLogin
+      });
+   }
 
-    setShowLogin(showLogin) {
-        this.setState({
-            showLogin: showLogin
-        });
-    }
-
-    updatePaginationData(result) {
-        this.setState({
-            list: result.data,
-            currentPage: result.current_page
-        })
-    }
+   updatePaginationData(result) {
+      this.setState({
+         list: result.data,
+         currentPage: result.current_page
+      })
+   }
 
    render() {
       let preC = 'GFSDK-c';
@@ -81,9 +80,9 @@ class ComboList extends React.Component {
       let buttonClass = preE + '-buttons';
 
       function NextArrow(props){
-         const {onClick} = props;
+         const {className, onClick} = props;
          return (
-            <div className={paginationClass + '__controls is-next'}>
+            <div className={className + ' ' + paginationClass + '__controls is-next'}>
                <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
                   <IconRightArrow />
                </button>
@@ -92,9 +91,9 @@ class ComboList extends React.Component {
       };
    
       function PrevArrow(props){
-         const {onClick} = props;
+         const {className, onClick} = props;
          return (
-            <div className={paginationClass + '__controls is-prev'}>
+            <div className={className + ' ' + paginationClass + '__controls is-prev'}>
                <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
                   <IconLeftArrow />
                </button>
@@ -106,8 +105,8 @@ class ComboList extends React.Component {
          dots: true,
          speed: 500,
          infinite: false,
-         slidesToShow: 5,
-         slidesToScroll: 5,
+         slidesToShow: this.state.per_slide,
+         slidesToScroll: 1,
          prevArrow: <PrevArrow />,
          nextArrow: <NextArrow />,
          responsive: [
@@ -136,7 +135,7 @@ class ComboList extends React.Component {
                breakpoint: 1200,
                settings: {
                   slidesToShow: 4,
-                  slidesToScroll: 4,
+                  slidesToScroll: 1,
                }
             },
          ],
@@ -151,10 +150,10 @@ class ComboList extends React.Component {
                   ){
                      if(this.props.filterByName){
                         if(combo.name.includes(this.props.filterByName)){
-                           return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                           return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowLogin={this.setShowLogin.bind(this)}/>
                         } 
                      } else {
-                        return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                        return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowLogin={this.setShowLogin.bind(this)}/>
                      }
                   }
                }
@@ -163,10 +162,10 @@ class ComboList extends React.Component {
                   if(this.state.weAreHome === false && combo.status === 'active' || this.state.weAreHome === true && combo.status === 'active'){
                      if(this.props.filterByName){
                         if(combo.name.includes(this.props.filterByName)){
-                           return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                           return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowLogin={this.setShowLogin.bind(this)}/>
                         } 
                      } else {
-                        return <ComboItem key={combo.id} combo={combo} setShowLogin={this.setShowLogin.bind(this)}/>
+                        return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowLogin={this.setShowLogin.bind(this)}/>
                      }
                   }
                }
