@@ -114,7 +114,7 @@ class Calendar extends React.Component {
             <div className={calendarClass}>
                 <div className={calendarClass + '__container'} style={mystyles}>
                     <CalendarFilters/>
-                    <CalendarBody limit={this.props.limit} />
+                    <CalendarBody alignment={this.props.alignment} limit={this.props.limit} />
                 </div>
                 {this.state.showLogin &&
                 <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>

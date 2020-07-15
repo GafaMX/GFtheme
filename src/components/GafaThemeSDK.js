@@ -125,19 +125,27 @@ class GafaThemeSDK extends React.Component {
         }
     };
 
-    static renderComboListWithoutPagination(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
+   static renderComboListWithoutPagination(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      if (domContainers.length > 0) {
+         domContainers.forEach(function (domContainer) {
             GafaFitSDKWrapper.getComboList({
-                per_page: 10000,
-                only_actives: true,
-                propagate: true,
+               per_page: 10000,
+               only_actives: true,
+               propagate: true,
             },function (result) {
-                let props = GafaThemeSDK.propsForPagedListComponent(result);
-                GafaThemeSDK.renderElementIntoContainers(domContainers, ComboList, props);
+               let byName = domContainer.getAttribute("data-gf-filterbyname");
+               let has_button = domContainer.getAttribute('config-bq-hasbutton') === 'true' ? true : false;
+               let per_slide = Number(domContainer.getAttribute('config-bq-item-per-page'));
+               let props = GafaThemeSDK.propsForPagedListComponent(result);
+               props.filterByName = byName;
+               props.has_button = has_button;
+               props.per_slide = per_slide ? per_slide : 5;
+               GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
             });
-        }
-    };
+         });
+      }
+   };
 
    static renderComboListWithFilter(selector) {
       let domContainers = document.querySelectorAll(selector);
@@ -236,52 +244,70 @@ class GafaThemeSDK extends React.Component {
         }
     };
 
-    static renderMeetingsCalendar(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
-            domContainers.forEach(function(domContainer) {
-                GafaFitSDKWrapper.getBrandLocations({
-                    'page': 1,
-                    'per_page': 1000,
-                }, function (result) {
-                    let limit = domContainer.getAttribute("data-gf-limit");
-                    let locations = result.data;
-
-                    if(limit){
-                        if(limit > 3 && limit < 6){
-                            limit = limit;
-                        } else if(limit < 3 ){
-                            limit = 3;
-                        } else if(limit > 6){
-                            limit = 6;
-                        }
-                    }
-
-                    let props = {
-                        'locations': locations,
-                        'limit': limit,
-                    };
-                    GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
-                });
-            });
-        }
-    }
-
-    static renderMeetingsCalendarWithoutLimit(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
+   static renderMeetingsCalendar(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      if (domContainers.length > 0) {
+         domContainers.forEach(function(domContainer) {
             GafaFitSDKWrapper.getBrandLocations({
-                'page': 1,
-                'per_page': 1000,
+               'page': 1,
+               'per_page': 1000,
             }, function (result) {
-                let locations = result.data;
-                let props = {
-                    'locations': locations
-                };
-                GafaThemeSDK.renderElementIntoContainers(domContainers, Calendar, props);
+               let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : 1000;
+               let alignment = domContainer.getAttribute("config-bq-cal-alignment") ? domContainer.getAttribute("config-bq-cal-alignment") : 'vertical';
+               let locations = result.data;
+
+               if(limit){
+                  if(limit > 3 && limit < 6){
+                        limit = limit;
+                  } else if(limit < 3 ){
+                        limit = 3;
+                  } else if(limit > 6){
+                        limit = limit;
+                  }
+               }
+
+               let props = {
+               'locations': locations,
+               'limit': limit,
+               'alignment': alignment,
+               };
+               GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
             });
-        }
-    }
+         });
+      }
+   }
+
+   // static renderMeetingsCalendarWithoutLimit(selector) {
+   //    let domContainers = document.querySelectorAll(selector);
+   //    if (domContainers.length > 0) {
+   //       domContainers.forEach(function(domContainer) {
+   //          GafaFitSDKWrapper.getBrandLocations({
+   //              'page': 1,
+   //              'per_page': 1000,
+   //          }, function (result) {
+   //              let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : 1000;
+   //              let alignment = domContainer.getAttribute("config-bq-cal-alignment") ? domContainer.getAttribute("config-bq-cal-alignment") : 'vertical';
+   //              let locations = result.data;
+
+   //             if(limit){
+   //                if(limit > 3 && limit < 6){
+   //                   limit = limit;
+   //                } else if(limit < 3 ){
+   //                   limit = 3;
+   //                } else if(limit > 6){
+   //                   limit = 6;
+   //                }
+   //             }
+   //             let props = {
+   //               'locations': locations,
+   //               'limit': limit,
+   //               'alignment': alignment,
+   //             };
+   //             GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
+   //          });
+   //       });
+   //    }
+   // }
 
     static renderLoginRegister(selector) {
         let domContainers = document.querySelectorAll(selector);

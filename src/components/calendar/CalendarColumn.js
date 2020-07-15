@@ -27,7 +27,7 @@ class CalendarColumn extends React.Component {
     }
 
     render() {
-        let {day, index, limit} = this.props;
+        let {day, index, limit, alignment} = this.props;
 
         let dayDate = this.isString(day.date) ? day.date :day.date.toDateString();
         let listItems;
@@ -47,13 +47,13 @@ class CalendarColumn extends React.Component {
             listItems = activeClass.slice(0, limit).map((meeting) => {
                 if (meeting) {
                     return (<CalendarMeeting key={`column-day--${uid()}--meeting--${meeting.id}`} meeting={meeting}
-                                             day={day}/> )
+                                             day={day} alignment={alignment}/> )
                 }
             });
         } else {
             listItems = day.meetings.map((meeting) => {
                 return (<CalendarMeeting key={`column-day--${uid()}--meeting--${meeting.id}`} meeting={meeting}
-                                         day={day}/> )
+                                         day={day} alignment={alignment}/> )
             });
         }
 

@@ -59,7 +59,7 @@ class CalendarMeeting extends React.Component {
     }
 
     render() {
-        let meeting = this.props.meeting;
+        let {meeting, alignment} = this.props;
         let day = this.props.day;
         let classStart = moment(meeting.start_date).toDate();
         let room = this.state.room;
@@ -78,17 +78,30 @@ class CalendarMeeting extends React.Component {
                  data-id={meeting.id}
                  onClick={this.handleClick.bind(this)}>
                     <div className={meetingClass + '__header'}>
-                        <p className={'this-service'}>{meeting.service.name}</p>
-                        <p className={'this-room'}>{room ? room.name : ''}</p>
+                        {alignment === 'vertical' ? <p className={'this-service'}>{meeting.service.name}</p> :  null }
+                        {alignment === 'vertical' ? <p className={'this-room'}>{room ? room.name : ''}</p> :  null }
+                        
+                        {alignment === 'horizontal' ? 
+                           ( time_format === '12'
+                              ? <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')} {moment(classStart).format('a')}</p>
+                              : <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>
+                           )
+                           : null
+                        }
                     </div>
                     <hr></hr>
                     <div className={meetingClass + '__body'}>
-                        {time_format === '12' 
-                            ? <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')} {moment(classStart).format('a')}</p>
-                            : <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>
+                        {alignment === 'vertical' ? 
+                           ( time_format === '12'
+                              ? <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')} {moment(classStart).format('a')}</p>
+                              : <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>
+                           )
+                           : null
                         }
                         <p className={'this-staff'}>{meeting.staff.name}</p>
-                        <p className={'this-location'}>{location ? location.name : ''}</p>
+                        {alignment === 'horizontal' ? <p className={'this-service'}>{meeting.service.name}</p> :  null }
+                        {alignment === 'vertical' ? <p className={'this-location'}>{location ? location.name : ''}</p> :  null }
+                        
                     </div>
             </div>
         );

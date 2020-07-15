@@ -151,7 +151,7 @@ class CalendarBody extends React.Component {
     }
 
     render() {
-        const {limit} = this.props;
+        const {limit, alignment} = this.props;
         let preC = 'GFSDK-c';
         let calendarClass = preC + '-Calendar';
         const dayList = this.state.meetings_to_show.map(function (day) {
@@ -166,15 +166,19 @@ class CalendarBody extends React.Component {
                                         index={index}
                                         day={day}
                                         limit={limit}
+                                        alignment={alignment}
                                     />
                                 );
                             });
 
+
+         let slides = this.props.alignment === "vertical" ? 7 : 1;
+
         let settings = {
             infinite: false,
             speed: 500,
-            slidesToScroll: 7,
-            slidesToShow: 7,
+            slidesToScroll: slides,
+            slidesToShow: slides,
             customPaging: function(i) {
                 return (
                     <a>
@@ -203,7 +207,7 @@ class CalendarBody extends React.Component {
         }
 
         return (
-            <div className={calendarClass + '__body'} style={myStyle}>
+            <div className={calendarClass + '__body ' + this.props.alignment } style={myStyle}>
                 <div className={calendarClass + '__body-container'}>
                     <Slider {...settings}>
                         {listItems}

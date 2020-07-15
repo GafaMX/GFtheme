@@ -1,21 +1,28 @@
 @import '../base/variables.scss';
 
 .#{$pre}-e-meeting{
-    display:grid;
-    grid-auto-flow: row;
-    row-gap: 15px;
-    column-gap: 15px;
-    border: 1px solid #EEEEEE;
-    grid-template-columns: 80px auto 1fr;
-    justify-items: start;
-    align-items: center;
-    padding:15px;
-    border-radius: 10px;
-    background-color: white;
-    margin-bottom:10px;
-    cursor: pointer;
-    box-sizing: border-box;
-    @include transition(border-color);
+   display:grid;
+   grid-auto-flow: row;
+   row-gap: 15px;
+   column-gap: 15px;
+   border: 1px solid #EEEEEE;
+   justify-items: start;
+   align-items: center;
+   padding:15px;
+   border-radius: 10px;
+   background-color: white;
+   margin-bottom:10px;
+   cursor: pointer;
+   box-sizing: border-box;
+   @include transition(border-color);
+
+   .horizontal &{
+      background-color:#FAFAFA;
+      grid-auto-flow: initial;
+      grid-template-columns: 80px 1fr;
+      height: 58px;
+      padding:0;
+   }
 
     p {
         font-family: 'DM Sans', sans-serif;
@@ -51,6 +58,20 @@
             word-break: normal;
         }
 
+        .horizontal &{
+           display: grid;
+           align-items: center;
+           justify-items: center;
+           height: 100%;
+           width:100%;
+           border-right: 1px solid #EDEDED;
+           
+           .this-time{
+              padding: 0 15px;
+              font-size:10px;
+            }
+         }
+
         & > .this-service, & > .this-room{
             font-size:12px;
             line-height: 1.4;
@@ -70,6 +91,9 @@
         background-color: #E9E8E8;
         border: 0 transparent none;
         @include transition(background-color);
+        .horizontal &{
+         display: none;
+         }
         
         @media screen and (min-width:992px) {
             width:90%;
@@ -78,26 +102,38 @@
         }
     }
 
-    &__body{
+   &__body{
+      .horizontal &{
+         display: inline-grid;
+         align-items: center;
+         height: initial;
+         padding: 5px 15px;
+         box-sizing: border-box;
 
-        p{
-            text-align: left!important;
-        }
+         .this-staff{
+            font-size: 14px;
+            color:#000000;
+         }
+         
+         .this-service{
+            font-size: 11px;
+            color: #BBBBBC;
+         }
+      }
 
-        & > .this-time, & > .this-staff, & > .this-location{
-            font-size:12px;
-            line-height: 1.6;
-            letter-spacing: .85px;
-            color: #8E8E93;
-        }
+      p{
+         text-align: left!important;
+      }
 
-        & > .this-staff{
-            font-weight: 700;
-        }
+      & > .this-time, & > .this-staff, & > .this-location{
+         font-size:12px;
+         line-height: 1.6;
+         letter-spacing: .85px;
+         color: #8E8E93;
+      }
 
-
-        // & > .this-location, & > .this-staff{
-        //     font-size:14px;
-        // }
-    }
+      & > .this-staff{
+         font-weight: 700;
+      }
+   }
 }
