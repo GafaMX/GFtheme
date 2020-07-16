@@ -64,7 +64,7 @@ class MembershipItem extends React.Component {
         const services = this.getServicesAndParentsForMembership();
         let {membership} = this.props;
         return (
-            <div className={membershipClass + '__item ' + productClass} onClick={this.handleClick.bind(this)}>
+            <div className={membershipClass + '__item ' + productClass} onClick={!this.props.has_button ? this.handleClick.bind(this) : null}>
                 <div className={productClass + '__head'}>
                     <h3 className={'this-name'}>{this.props.membership.name}</h3>
                 </div>
@@ -79,17 +79,23 @@ class MembershipItem extends React.Component {
                         </div>
                     </div>
                     }
-                    <div className="this-price has-total">
+                     <div className="this-price has-total">
                         <p>
-                            ${formatMoney(this.props.membership.price_final, 0)} MXN
+                           ${formatMoney(this.props.membership.price_final, 0)} MXN
                         </p>
-                    </div>
-                </div>
-                <div className={productClass + '__footer'}>
-                    {membership.short_description
+                     </div>
+                    
+                     {membership.short_description
                         ?   <p className={'this-shortDescription'}>{membership.short_description}</p>
                         :   null
-                    }
+                     }
+
+                     {this.props.has_button 
+                        ?  <button onClick={this.handleClick.bind(this)}> Comprar </button>
+                        :  null
+                     } 
+                </div>
+                <div className={productClass + '__footer'}>
                     {membership.expiration_days
                         ?   <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span> <strong>{membership.expiration_days} {Strings.DAYS}</strong></p>
                         :   null

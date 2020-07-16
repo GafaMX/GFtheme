@@ -226,10 +226,39 @@
             padding:0 5px;
             display: grid;
 
+            /* width */
+            &::-webkit-scrollbar {
+               height: 8px;
+            }
+            
+            /* Track */
+            &::-webkit-scrollbar-track {
+               background: #f1f1f1;
+               border-radius: 5px;
+            }
+            
+            /* Handle */
+            &::-webkit-scrollbar-thumb {
+               background: #FF3E4F!important;
+               border-radius: 5px;
+            }
+            
+            /* Handle on hover */
+            &::-webkit-scrollbar-thumb:hover {
+               // background: #FF3E4F!important;
+            }
+
             .horizontal &{
                
                @media only screen and (min-width:992px) {
                   column-gap: 15px;
+                  grid-auto-flow: column;
+                  width: 100%;
+                  overflow-x: auto;
+                  padding-bottom:10px;
+               }
+
+               @media only screen and (min-width:1200px) {
                   grid-template-columns: repeat(5, 1fr);
                }
             }

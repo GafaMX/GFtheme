@@ -188,15 +188,24 @@ class GafaThemeSDK extends React.Component {
     static renderMembershipListWithoutPagination(selector) {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaFitSDKWrapper.getMembershipList({
-                only_actives: true,
-                propagate: true
+         domContainers.forEach(function (domContainer) {
+               GafaFitSDKWrapper.getMembershipList({
+               per_page: 10000,
+               only_actives: true,
+               propagate: true,
             },function (result) {
-                let props = GafaThemeSDK.propsForPagedListComponent(result);
-                GafaThemeSDK.renderElementIntoContainers(domContainers, MembershipList, props);
+               let byName = domContainer.getAttribute("data-gf-filterbyname");
+               let has_button = domContainer.getAttribute('config-bq-hasbutton') === 'true' ? true : false;
+               let per_slide = Number(domContainer.getAttribute('config-bq-item-per-page'));
+               let props = GafaThemeSDK.propsForPagedListComponent(result);
+               props.filterByName = byName;
+               props.has_button = has_button;
+               props.per_slide = per_slide ? per_slide : 5;
+               GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
             });
-        }
-    };
+         });
+      }
+   };
 
     static renderMembershipList(selector) {
         let domContainers = document.querySelectorAll(selector);

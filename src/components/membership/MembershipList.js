@@ -25,7 +25,7 @@ class MembershipList extends React.Component {
             showLogin: false,
             list: this.props.list,
             weAreHome: false,
-            slidesToShow: parseInt(this.props.slidesToShow, 10),
+            per_slide: this.props.per_slide,
         };
 
         GlobalStorage.addSegmentedListener(['currentLocation'], this.updateMembershipList.bind(this));
@@ -84,9 +84,9 @@ class MembershipList extends React.Component {
         let slidesToShow = this.state.slidesToShow > 1 ? this.state.slidesToShow : 3 ;
 
         function NextArrow(props){
-            const {onClick} = props;
+            const {className, onClick} = props;
             return (
-                <div className={paginationClass + '__controls is-next'}>
+                <div className={className + ' ' + paginationClass + '__controls is-next'}>
                     <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
                         <IconRightArrow />
                     </button>
@@ -95,9 +95,9 @@ class MembershipList extends React.Component {
         };
     
         function PrevArrow(props){
-            const {onClick} = props;
+            const {className, onClick} = props;
             return (
-                <div className={paginationClass + '__controls is-prev'}>
+                <div className={className + ' ' + paginationClass + '__controls is-prev'}>
                     <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
                         <IconLeftArrow />
                     </button>
@@ -107,10 +107,10 @@ class MembershipList extends React.Component {
 
         let settings = {
             dots: true,
-            infinite: false,
             speed: 500,
-            slidesToScroll: 5,
-            slidesToShow: 5,
+            infinite: false,
+            slidesToShow: this.state.per_slide,
+            slidesToScroll: 1,
             prevArrow: <PrevArrow />,
             nextArrow: <NextArrow />,
             responsive: [
@@ -139,7 +139,7 @@ class MembershipList extends React.Component {
                     breakpoint: 1025,
                     settings: {
                         slidesToShow: 4,
-                        slidesToScroll: 4,
+                        slidesToScroll: 1,
                     }
                 },
             ],
@@ -152,7 +152,7 @@ class MembershipList extends React.Component {
                         this.state.weAreHome === false && membership.status === 'active' ||
                         this.state.weAreHome === true && membership.status === 'active' && membership.hide_in_home != true
                     ){
-                        return <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
+                        return <MembershipItem key={membership.id} has_button={this.props.has_button} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
                     }
                 }
             } else {
@@ -161,7 +161,7 @@ class MembershipList extends React.Component {
                         this.state.weAreHome === false && membership.status === 'active' ||
                         this.state.weAreHome === true && membership.status === 'active'
                     ){
-                        return <MembershipItem key={membership.id} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
+                        return <MembershipItem key={membership.id} has_button={this.props.has_button} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
                     }
                 }
             }
