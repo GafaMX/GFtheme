@@ -11,7 +11,7 @@ export default class LocationsFilter extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            locations : GlobalStorage.get('locations'),
+            locations : this.props.locations,
             currentLocation: GlobalStorage.get('currentLocation'),
         };
 
@@ -38,7 +38,7 @@ export default class LocationsFilter extends React.Component {
     }
 
     render(){
-        let locations = GlobalStorage.get('locations');
+        let locations = this.state.locations;
         let currentLocation = GlobalStorage.get('currentLocation');
 
         return(

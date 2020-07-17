@@ -251,6 +251,19 @@ class ProfileUserInfo extends React.Component {
                                         <PurchasesList /> 
                                     </div>
                                 </CustomScroll>
+                                 {/* <div className={paymentClass + "__notification " + (paymentNotification ? 'is-active' : '')}>
+                                       <div className={paymentClass + "__notification-container"}>
+                                          <p>{!paymentNotification ? 'Error: No encuentré el mensaje' : paymentNotification.message}</p>
+                                          <div className={paymentClass + "__controls"}>
+                                             <button className={buttonClass + "__controls is-success"} onClick={this.deleteClass.bind(this)}>
+                                                   <CheckIcon />
+                                             </button>
+                                             <button className={buttonClass + "__controls is-close"} onClick={this.classNotification.bind(this)}>
+                                                   <CloseIcon />
+                                             </button>
+                                          </div>
+                                       </div>
+                                 </div> */}
                             </Tab>
 
                             <Tab eventKey={2} title={Strings.PROFILE}>
