@@ -60,17 +60,10 @@ class GafaThemeSDK extends React.Component {
                 let brands = result.data;
                 let locations = [];
 
-                
                 brands.forEach(brand => {
-                   GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
-                        result.data.forEach(item => locations.push(item))
-                        var currentLocation;
-
-                        if(window.GFtheme.location){
-                           currentLocation = locations.find(venue => venue.slug === window.GFtheme.location);
-                        } else {
-                           currentLocation = locations[0];
-                        }
+                    GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
+                        locations.push(result.data[0]);
+                        const currentLocation = locations.find(location => location.slug === window.GFtheme.location);
 
                         let props = {
                             brands: brands,

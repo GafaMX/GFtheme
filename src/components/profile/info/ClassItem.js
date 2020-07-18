@@ -29,20 +29,11 @@ class ClassItem extends React.Component {
         )
     }
 
-    handleAddCancelation(){
-      let currentComponent = this
-      // let {card, paymentMethod} = currentComponent.props;
-      
-      // let obj =
-      //    {
-      //       'classID': card.id,
-      //       'paymentMethod': paymentMethod,
-      //       'message': 'Estas seguro que quieres eliminar esta reservación',
-      //    }
-      // ;
-
-      // GlobalStorage.set('ClassNotification', obj);
-   }
+    handleShowCancelation(){
+        this.setState({
+            showCancelation:true
+        })
+    }
 
 
     handleClickBack(){
@@ -98,7 +89,7 @@ class ClassItem extends React.Component {
 
                 {cancelation}
 
-                {/* <Modal className={'modal-cancelation'} show={this.state.showCancelation} animation={false}
+                <Modal className={'modal-cancelation'} show={this.state.showCancelation} animation={false}
                        onHide={this.handleClickBack.bind(this)}>
 
                     <div className="row">
@@ -124,7 +115,7 @@ class ClassItem extends React.Component {
                         </div>
                     </div>
 
-                </Modal> */}
+                </Modal>
             </div>
         )
     }
