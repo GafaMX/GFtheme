@@ -18,7 +18,7 @@ import PastClasses from "../PastClasses";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
 import IconLogOut from '../../utils/Icons/IconLogOut';
-import LocationsFilter from "../../locations/LocationsFilters";
+// import LocationsFilter from "../../locations/LocationsFilters";
 // import CloseIcon from "../../utils/Icons/CloseIcon";
 // import CheckIcon from "../../utils/Icons/CheckIcon";
 import GlobalStorage from '../../store/GlobalStorage';
@@ -221,7 +221,7 @@ class ProfileUserInfo extends React.Component {
                             </div>
                             <div className="profile-user__tools">
                                 <div className="profile-user__tools-container">
-                                    <LocationsFilter />
+                                    {/* <LocationsFilter /> */}
                                     <a className='this-logOut' onClick={this.props.handleClickLogout}>
                                         <IconLogOut/> {Strings.BUTTON_LOGOUT}
                                     </a>
