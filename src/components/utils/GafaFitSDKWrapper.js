@@ -396,20 +396,22 @@ class GafaFitSDKWrapper extends React.Component {
 
     static successLoginCallback(result) {
 
-        if (window.GFtheme.combo_id != null) {
-            GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
-                window.GFtheme.combo_id = null;
-            });
-        } else if (window.GFtheme.membership_id != null) {
-            GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) {
-                window.GFtheme.membership_id = null;
-            });
-        } else if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-            GafaFitSDKWrapper.getFancyForMeetingReservation(window.GFtheme.location_slug, window.GFtheme.meetings_id, function (result) {
-                window.GFtheme.meetings_id = null;
-                window.GFtheme.location_slug = null;
-            });
-        }
+      if (window.GFtheme.combo_id != null) {
+         GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
+               window.GFtheme.combo_id = null;
+         });
+      } else if (window.GFtheme.membership_id != null) {
+         GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) {
+               window.GFtheme.membership_id = null;
+         });
+      } else if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+         GafaFitSDKWrapper.getFancyForMeetingReservation(window.GFtheme.location_slug, window.GFtheme.meetings_id, function (result) {
+               window.GFtheme.meetings_id = null;
+               window.GFtheme.location_slug = null;
+         });
+      } else {
+         location.reload();
+      }
     }
 
     static errorLoginCallback(error) {
