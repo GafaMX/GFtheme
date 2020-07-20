@@ -223,7 +223,7 @@ class ProfileUserInfo extends React.Component {
                                 <div className="profile-user__tools-container">
                                     <LocationsFilter />
                                     <a className='this-logOut' onClick={this.props.handleClickLogout}>
-                                        <IconLogOut/> {Strings.BUTTON_LOGOUT}
+                                        <IconLogOut/> <span>{Strings.BUTTON_LOGOUT}</span>
                                     </a>
                                 </div>
                             </div>
