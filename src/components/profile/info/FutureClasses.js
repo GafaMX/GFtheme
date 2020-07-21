@@ -135,7 +135,7 @@ class FutureClasses extends React.Component {
         return (
             <div className={profileClass + '__section is-futureClass'}>
                 {this.state.list.length > 0
-                    ?   <Slider {...settings} className={ ordersClass + '__section'}>{listItems}</Slider>
+                    ?   <div className={ ordersClass + '__section'}>{listItems}</div>
                     :   <div className="is-empty">
                             <div className="is-notification">
                                 <h3>No cuentas con próximas clases</h3>

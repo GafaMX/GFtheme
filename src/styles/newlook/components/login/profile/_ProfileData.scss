@@ -188,50 +188,51 @@ body.modal-open{
     display: grid;
     position: relative;
     row-gap: 20px;
-    grid-template-rows: 1fr auto auto;
+   //  grid-template-rows: 1fr auto auto;
     border-radius: 23px;
-    align-items: center;
+    align-items: start;
+    justify-items: start;
     border: solid 1px lightgrey;
     background-color:white;
     padding: 15px;
-    width:100%;
-    height: 160px;
+    width:136px;
+   //  height: 160px;
     box-shadow: 0 4px 6px 0 rgba(0,0,0,0.09);
 
-    @media screen and (min-width:992px) {
-        align-items: start;
-        grid-template-rows: 1fr auto auto;
-        grid-template-columns: initial;
-        padding: 20px;
-    }
+   @media screen and (min-width:992px) {
+      align-items: start;
+      grid-template-rows: 1fr auto auto;
+      grid-template-columns: initial;
+      padding: 20px;
+   }
 
-    & > .card-header{
-        width:100%;
-        h4{
-            display: grid;
-            font-size:14px;
-            line-height: 1.4;
-            
-            @media screen and (min-width:992px) {
-                font-weight: 700;
-                letter-spacing: 1.15px;
-            }
-        }
+   & > .card-header{
+      width:100%;
+      h4{
+         display: grid;
+         font-size:14px;
+         line-height: 1.4;
+         
+         @media screen and (min-width:992px) {
+               font-weight: 700;
+               letter-spacing: 1.15px;
+         }
+      }
 
-        h2{
-            font-size:16px;
-            font-weight: bold;
-            line-height: 24px;
-            margin:0;
-        }
+      h2{
+         font-size:16px;
+         font-weight: bold;
+         line-height: 24px;
+         margin:0;
+      }
 
-        strong{
-            font-size: 12px;
-            @media screen and (min-width:992px) {
-                font-size: 14px;
-            }
-        }
-    }
+      strong{
+         font-size: 12px;
+         @media screen and (min-width:992px) {
+               font-size: 14px;
+         }
+      }
+   }
 
     hr{
         margin: 0;

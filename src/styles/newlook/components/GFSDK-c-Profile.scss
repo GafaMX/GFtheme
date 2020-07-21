@@ -16,33 +16,34 @@
       }
     }
 
-    &__tab-section{
-        height: 180px;
-        width:100%;
-        @media screen and (min-width:992px) {
-            width: 786px;
-        }
+   &__tab-section{
+      display: grid;
+      grid-template-columns: auto 1fr;
+      column-gap: 20px;
+      align-items: center;
+      height: 230px;
+      width:100%;
 
-        & > .this-title{
-            display: block;
-            float: left;
-            width:20px;
-            height: 100%;
-            font-weight:400;
-            margin:0;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            color:#C9C9CD;
-            font-size: 12px;
-            text-align: center;
-            writing-mode: vertical-lr;
-            transform: rotate(180deg);
-        }
+      & > .this-title{
+         display: block;
+         float: left;
+         width:20px;
+         height: 100%;
+         font-weight:400;
+         margin:0;
+         letter-spacing: 0.8px;
+         text-transform: uppercase;
+         color:#C9C9CD;
+         font-size: 12px;
+         text-align: center;
+         writing-mode: vertical-lr;
+         transform: rotate(180deg);
+      }
 
-        & > [class*="section"]{
-            display: inline-block;
-        }
-    }
+      & > [class*="section"]{
+         display: inline-block;
+      }
+   }
 
     &__form{
         display: grid;
@@ -209,11 +210,37 @@
 
         &.is-futureClass, &.is-pastClass, &.is-buyOverall{
             position: relative;
-            display: inline-block;
-            padding:0px;
+            display: grid;
+            align-items: center;
+            justify-content: start;
+            column-gap: 20px;
+            row-gap: 0px;
             width:100%;
-            margin-right: -30px;
-            right: -15px;
+            height: 100%;
+            overflow-y: auto;
+            padding:0px;
+
+            &::-webkit-scrollbar {
+               height: 8px;
+            }
+            
+            /* Track */
+            &::-webkit-scrollbar-track {
+               background: #f1f1f1;
+               border-radius: 5px;
+            }
+            
+            /* Handle */
+            &::-webkit-scrollbar-thumb {
+               background: #C9C9CD!important;
+               border-radius: 5px;
+            }
+            
+            /* Handle on hover */
+            &::-webkit-scrollbar-thumb:hover {
+               // background: #FF3E4F!important;
+            }
+
             @media screen and (min-width:992px) {
                 padding: 0px;
             }

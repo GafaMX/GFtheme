@@ -3,15 +3,21 @@
 .#{$pre}-c-orders
 {
     &__section{
-        padding:0px;
-        margin: 0 auto;
-        width:100%;
+      display: inline-grid;
+      grid-auto-flow: column;
+      column-gap: 10px;
+      align-items: start;
+      justify-items: center;
+      row-gap: 0;
+      padding:0px;
+      margin: 0 auto;
+      // width:100%;
 
-        .slick-track{
-            width:100%;
-            margin-left:0px;
-            margin-right:0px;
-        }
+      .slick-track{
+         width:100%;
+         margin-left:0px;
+         margin-right:0px;
+      }
         
         &.is-singleLine{
             .slick-track{

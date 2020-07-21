@@ -83,7 +83,7 @@ class PastClasses extends React.Component {
         return (
             <div className={profileClass + '__section is-pastClass'}>
                 {this.state.list.length > 0
-                    ?   <Slider {...settings} className={ ordersClass + '__section'}>{listItems}</Slider>
+                    ?   <div className={ ordersClass + '__section'}>{listItems}</div>
                     :   <div className="is-empty">
                             <div className="is-notification">
                                 <h3>No cuentas con historial de clases</h3>

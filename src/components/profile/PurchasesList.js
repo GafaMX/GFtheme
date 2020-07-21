@@ -69,12 +69,11 @@ class PurchasesList extends React.Component {
 
             <div className={profileClass + '__section is-buyOverall'} style={{width : this.state.windowWidth}}>
                 {this.state.list.length > 0
-                    ?   <Slider {...settings} className={ ordersClass + '__section'}>{listItems}</Slider>
+                    ?   <div className={ ordersClass + '__section'}>{listItems}</div>
                     :   <div className="is-empty">
-                            <div className="is-notification">
-                                <h3>No cuentas con compras</h3>
-                                {/* <p>Lorem ipsum dolor sit amet</p> */}
-                            </div>
+                           <div className="is-notification">
+                              <h3>No cuentas con compras</h3>
+                           </div>
                         </div>
                 }
             </div>
