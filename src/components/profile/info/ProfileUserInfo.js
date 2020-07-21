@@ -2,7 +2,7 @@
 
 import React from "react";
 import {Button, Tab, Tabs} from "react-bootstrap";
-import CustomScroll from "react-custom-scroll";
+// import CustomScroll from "react-custom-scroll";
 import "react-custom-scroll/dist/customScroll.css"
 import {FormErrors} from "../../form/FormErrors";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
@@ -235,55 +235,51 @@ class ProfileUserInfo extends React.Component {
                     <div className="container">
                         <Tabs defaultActiveKey={1} id={'ProfileTabs'} className={profileClass + '__tab-content'} animation={true}>
                             <Tab eventKey={1} title={Strings.CLASS}>
-                                <CustomScroll heightRelativeToParent="100%">
-                                    <div className={profileClass + '__tab-section'}>
-                                        <h4 className={'this-title'}>Mis próximas clases</h4>
-                                        <FutureClasses />
-                                    </div>
-                                    <hr></hr>
-                                    <div className={profileClass + '__tab-section'}>
-                                        <h4 className={'this-title'}>Historial de clases</h4>
-                                        <PastClasses />
-                                    </div>
-                                    <hr></hr>
-                                    <div className={profileClass + '__tab-section'}>
-                                        <h4 className={'this-title'}>Historial de compras</h4>
-                                        <PurchasesList /> 
-                                    </div>
-                                </CustomScroll>
+                                 <div className={profileClass + '__tab-section'}>
+                                       <h4 className={'this-title'}>Mis próximas clases</h4>
+                                       <FutureClasses />
+                                 </div>
+                                 <hr></hr>
+                                 <div className={profileClass + '__tab-section'}>
+                                       <h4 className={'this-title'}>Historial de clases</h4>
+                                       <PastClasses />
+                                 </div>
+                                 <hr></hr>
+                                 <div className={profileClass + '__tab-section'}>
+                                       <h4 className={'this-title'}>Historial de compras</h4>
+                                       <PurchasesList /> 
+                                 </div>
                             </Tab>
 
                             <Tab eventKey={2} title={Strings.PROFILE}>
                                 <div className={profileClass + '__tab-content'}>
-                                    <CustomScroll heightRelativeToParent="100%">
-                                        <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
-                                            <UserInfo info={this.state} updateState={this.updateState.bind(this)}
-                                                    handleChangeField={this.handleChangeField.bind(this)}/>
-                                            <hr className={formClass + '__divider'}></hr>
-                                            <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
-                                                        getStatesListByCountry={this.getStatesListByCountry.bind(this)}
-                                                        handleChangeField={this.handleChangeField.bind(this)}/>
-                                            <hr className={formClass + '__divider'}></hr>
-                                            <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
-                                                        handleChangeField={this.handleChangeField.bind(this)}/>
+                                    <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
+                                       <UserInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                handleChangeField={this.handleChangeField.bind(this)}/>
+                                       <hr className={formClass + '__divider'}></hr>
+                                       <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                   getStatesListByCountry={this.getStatesListByCountry.bind(this)}
+                                                   handleChangeField={this.handleChangeField.bind(this)}/>
+                                       <hr className={formClass + '__divider'}></hr>
+                                       <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                   handleChangeField={this.handleChangeField.bind(this)}/>
 
-                                            <div className={profileClass + '__section is-save'}>
-                                                <button disabled={!this.state.formValid} type="submit" className={buttonClass + ' ' + buttonClass + "--submit is-primary"}>
-                                                    {Strings.BUTTON_SAVE}
-                                                </button>
+                                       <div className={profileClass + '__section is-save'}>
+                                          <button disabled={!this.state.formValid} type="submit" className={buttonClass + ' ' + buttonClass + "--submit is-primary"}>
+                                                {Strings.BUTTON_SAVE}
+                                          </button>
 
-                                                <div className={formClass + '__notifications'}>
-                                                    <div className="text-danger">
-                                                        <FormErrors formErrors={this.state.formErrors}/>
-                                                        {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                                                    </div>
-                                                    <div className="text-success">
-                                                        {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                                    </div>
+                                          <div className={formClass + '__notifications'}>
+                                                <div className="text-danger">
+                                                   <FormErrors formErrors={this.state.formErrors}/>
+                                                   {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                                                 </div>
-                                            </div>
-                                        </form>
-                                    </CustomScroll>
+                                                <div className="text-success">
+                                                   {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                                </div>
+                                          </div>
+                                       </div>
+                                    </form>
                                 </div>
                             </Tab>
 

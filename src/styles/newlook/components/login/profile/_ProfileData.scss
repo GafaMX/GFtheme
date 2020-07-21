@@ -396,30 +396,30 @@ body.modal-open{
             }
         }
 
-        & > .tab-content{
+         & > .tab-content{
             width:100%;
             & > div{
-                padding: 15px;
-                background-color: white;
-                border-top: 1px solid #DCDCDC;
-                
-                &#ProfileTabs-pane-1{
-                    background-color: transparent;
-                    border-top: 0px transparent none;
-                }
-                
-                @media screen and (min-width:992px) {
-                    padding: 20px 36px 36px;
-                }
+                  padding: 15px;
+                  background-color: white;
+                  border-top: 1px solid #DCDCDC;
+                  
+                  &#ProfileTabs-pane-1{
+                     background-color: transparent;
+                     border-top: 0px transparent none;
+                  }
+                  
+                  @media screen and (min-width:992px) {
+                     padding: 20px 36px 36px;
+                  }
             }
 
             .rcs-inner-container > div > hr{
-                border: 0 transparent none;
-                background-color:#DCDCDC;
-                height: 1px;
-                margin:20px 0;
+                  border: 0 transparent none;
+                  background-color:#DCDCDC;
+                  height: 1px;
+                  margin:20px 0;
             }
-        }
+         }
 
         #HistoryTabs{
             display: grid;
@@ -502,10 +502,33 @@ body.modal-open{
 
         & > .tab-content{
             height:100%;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
+
+            /* width */
+            &::-webkit-scrollbar {
+               width: 8px;
+            }
+            
+            /* Track */
+            &::-webkit-scrollbar-track {
+               background: #f1f1f1;
+               border-radius: 5px;
+            }
+            
+            /* Handle */
+            &::-webkit-scrollbar-thumb {
+               background: #FF3E4F!important;
+               border-radius: 5px;
+            }
+            
+            /* Handle on hover */
+            &::-webkit-scrollbar-thumb:hover {
+               // background: #FF3E4F!important;
+            }
 
             & > .tab-pane{
-                height:100%;
+               min-height:100%;
             }
         }
     }

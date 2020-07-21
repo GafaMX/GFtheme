@@ -2,14 +2,18 @@
 
 .#{$pre}-c-profile
 {
-
-    &__tab-content{
-        height:100%;
-        width:100%;
-    
-        &:focus{
-            outline:none;
-        }
+   
+   &__tab-content{
+      width:100%;
+      
+      #ProfileTabs-pane-2{
+         background-color: white;
+      }
+      
+   
+      &:focus{
+         outline:none;
+      }
     }
 
     &__tab-section{
@@ -41,12 +45,12 @@
     }
 
     &__form{
-        height:100%;
         display: grid;
+        align-items: start;
         row-gap: 15px;
         
         &.is-UserConf{
-            grid-template-rows: 1fr auto 1fr auto 1fr auto;
+            // grid-template-rows: 1fr auto 1fr auto 1fr auto;
         }
 
         &.is-ChangePassword{
