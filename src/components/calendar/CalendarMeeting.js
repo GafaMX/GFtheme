@@ -18,37 +18,37 @@ class CalendarMeeting extends React.Component {
         CalendarStorage.addSegmentedListener(['rooms'], this.updateRoom.bind(this));
     }
 
-    getRoom() {
-        return CalendarStorage.find('rooms', this.props.meeting.rooms_id);
-    }
+   getRoom() {
+      return CalendarStorage.find('rooms', this.props.meeting.rooms_id);
+   }
 
-    updateRoom() {
-        let room = CalendarStorage.find('rooms', this.props.meeting.rooms_id);
-        this.setState({
-            room: room
-        });
-    }
+   updateRoom() {
+      let room = CalendarStorage.find('rooms', this.props.meeting.rooms_id);
+      this.setState({
+         room: room
+      });
+   }
 
-    handleClick(event) {
-        event.preventDefault();
-        let currentElement = this;
+   handleClick(event) {
+      event.preventDefault();
+      let currentElement = this;
 
-        GafaFitSDKWrapper.isAuthenticated(function(auth){
-            if (auth) {
-                currentElement.showBuyFancyForLoggedUsers();
-            } else {
-                currentElement.showLoginForNotLoggedUsers();
-            }
-        });
-    };
+      GafaFitSDKWrapper.isAuthenticated(function(auth){
+         if (auth) {
+               currentElement.showBuyFancyForLoggedUsers();
+         } else {
+               currentElement.showLoginForNotLoggedUsers();
+         }
+      });
+   };
 
-    showBuyFancyForLoggedUsers() {
-        let meeting = this.props.meeting;
-        let location = CalendarStorage.find('locations', meeting.locations_id);
-        if (meeting && location) {
-            GafaFitSDKWrapper.getFancyForMeetingReservation(location.slug, meeting.id, function (result) {});
-        }
-    }
+   showBuyFancyForLoggedUsers() {
+      let meeting = this.props.meeting;
+      let location = CalendarStorage.find('locations', meeting.locations_id);
+      if (meeting && location) {
+         GafaFitSDKWrapper.getFancyForMeetingReservation(location.slug, meeting.id, function (result) {});
+      }
+   }
 
     showLoginForNotLoggedUsers() {
         let location = CalendarStorage.find('locations', this.props.meeting.locations_id);
@@ -63,8 +63,8 @@ class CalendarMeeting extends React.Component {
         let day = this.props.day;
         let classStart = moment(meeting.start_date).toDate();
         let room = this.state.room;
-        // let location = CalendarStorage.find('locations', meeting.locations_id);
-        let location = GlobalStorage.get('currentLocation')
+        let location = CalendarStorage.find('locations', meeting.locations_id);
+      //   let location = GlobalStorage.get('currentLocation')
         let time_format = location.brand.time_format;
 
         let preC = 'GFSDK-c';

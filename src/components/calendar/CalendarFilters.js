@@ -24,34 +24,34 @@ class CalendarFilters extends React.Component {
             has_prev: false,
         };
 
-        CalendarStorage.addSegmentedListener(['rooms', 'filter_location'], this.updateRooms.bind(this));
-        CalendarStorage.addSegmentedListener(['meetings'], this.updateServices.bind(this));
-        CalendarStorage.addSegmentedListener(['start_date'], this.updateStart.bind(this));
-        CalendarStorage.addSegmentedListener(['filter_time_of_day'], this.updateTimeOfDay.bind(this));
+      CalendarStorage.addSegmentedListener(['rooms', 'filter_location'], this.updateRooms.bind(this));
+      CalendarStorage.addSegmentedListener(['meetings'], this.updateServices.bind(this));
+      CalendarStorage.addSegmentedListener(['start_date'], this.updateStart.bind(this));
+      CalendarStorage.addSegmentedListener(['filter_time_of_day'], this.updateTimeOfDay.bind(this));
 
-        this.nextWeek = this.nextWeek.bind(this);
-        this.prevWeek = this.prevWeek.bind(this);
-        this.hasNextPrev = this.hasNextPrev.bind(this);
-        this.getNextButton = this.getNextButton.bind(this);
+      this.nextWeek = this.nextWeek.bind(this);
+      this.prevWeek = this.prevWeek.bind(this);
+      this.hasNextPrev = this.hasNextPrev.bind(this);
+      this.getNextButton = this.getNextButton.bind(this);
     }
 
-    updateServices() {
-        let meetings = CalendarStorage.get('meetings');
-        let services = [];
+   updateServices() {
+      let meetings = CalendarStorage.get('meetings');
+      let services = [];
 
-        meetings.forEach(function (meeting) {
-            let service = meeting.service;
-            if (service && !services.find(o => o.id === service.id)) {
-                services.push(service);
-            }
-        });
+      meetings.forEach(function (meeting) {
+         let service = meeting.service;
+         if (service && !services.find(o => o.id === service.id)) {
+               services.push(service);
+         }
+      });
 
-        this.setState({
-            services: services
-        });
+      this.setState({
+         services: services
+      });
 
-        CalendarStorage.set('services', services);
-    }
+      CalendarStorage.set('services', services);
+   }
 
     updateRooms() {
         let show_rooms = [];
@@ -173,14 +173,13 @@ class CalendarFilters extends React.Component {
     getPrevButton() {
         if (this.state.has_prev) {
             return (
-                <a onClick={this.prevWeek}
-                   className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
+               <a onClick={this.prevWeek} className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
             );
         }
     }
 
     render() {
-        // let locations = CalendarStorage.get('locations');
+        let locations = CalendarStorage.get('locations');
         let rooms = CalendarStorage.get('rooms');
         let {time_of_day} = this.state;
         let filter_name = 'meetings-calendar--filters';
@@ -240,20 +239,22 @@ class CalendarFilters extends React.Component {
                         </div>
                     </div>
 
-                    {/* <div className={formClass + '__section is-location-filter'}>
-                        <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
-                        <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
-                                data-origin="locations"
-                                onChange={this.selectLocation.bind(this)}>
-                            <option value={''}>{Strings.ALL}</option>
-                            {locations.map(function (location, index) {
-                                return (
-                                    <option value={location.id}
-                                            key={`${filter_name}-location--option-${index}`}>{location.name}</option>
-                                );
-                            })}
-                        </select>
-                    </div> */}
+                     {locations.length > 1 ?
+                        <div className={formClass + '__section is-location-filter'}>
+                           <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
+                           <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
+                                 data-origin="locations"
+                                 onChange={this.selectLocation.bind(this)}>
+                                 <option value={''}>{Strings.ALL}</option>
+                                 {locations.map(function (location, index) {
+                                    return (
+                                       <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
+                                    );
+                                 })}
+                           </select>
+                        </div>
+                        : null
+                     }
 
                     <div className={filterClass + '__item ' + formClass + '__section is-room-filter ' + (rooms.length <= 1 ? 'is-empty' : '' )}>
                         <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{Strings.ROOM}: </label>

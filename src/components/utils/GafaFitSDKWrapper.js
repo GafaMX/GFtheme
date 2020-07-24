@@ -2,47 +2,49 @@
 
 import React from "react";
 import GlobalStorage from "../store/GlobalStorage";
+import CalendarStorage from '../calendar/CalendarStorage';
+import moment from "moment";
 
 class GafaFitSDKWrapper extends React.Component {
-    constructor(props) {
-        super(props);
-    }
+   constructor(props) {
+      super(props);
+   }
 
-    static initValues(callback) {
+   static initValues(callback) {
 
-        window.GFtheme = {};
+      window.GFtheme = {};
 
-        if (window.GFThemeOptions != null) {
-            GafaFitSDK.setUrl(window.GFThemeOptions.GAFA_FIT_URL);
-            GafaFitSDK.setCompany(window.GFThemeOptions.COMPANY_ID);
-            window.GFtheme.APIClientID = window.GFThemeOptions.API_CLIENT;
-            window.GFtheme.APIClientSecret = window.GFThemeOptions.API_SECRET;
-            window.GFtheme.TokenMovil = window.GFThemeOptions.TOKENMOVIL;
-            window.GFtheme.CaptchaSecretKey = window.GFThemeOptions.CAPTCHA_SECRET_KEY;
-            window.GFtheme.CaptchaPublicKey = window.GFThemeOptions.CAPTCHA_PUBLIC_KEY;
-            window.GFtheme.RemoteAddr = window.GFThemeOptions.REMOTE_ADDR;
-            window.GFtheme.ConektaPublicKey = window.GFThemeOptions.CONEKTA_PUBLIC_KEY;
-        }
+      if (window.GFThemeOptions != null) {
+         GafaFitSDK.setUrl(window.GFThemeOptions.GAFA_FIT_URL);
+         GafaFitSDK.setCompany(window.GFThemeOptions.COMPANY_ID);
+         window.GFtheme.APIClientID = window.GFThemeOptions.API_CLIENT;
+         window.GFtheme.APIClientSecret = window.GFThemeOptions.API_SECRET;
+         window.GFtheme.TokenMovil = window.GFThemeOptions.TOKENMOVIL;
+         window.GFtheme.CaptchaSecretKey = window.GFThemeOptions.CAPTCHA_SECRET_KEY;
+         window.GFtheme.CaptchaPublicKey = window.GFThemeOptions.CAPTCHA_PUBLIC_KEY;
+         window.GFtheme.RemoteAddr = window.GFThemeOptions.REMOTE_ADDR;
+         // window.GFtheme.ConektaPublicKey = window.GFThemeOptions.CONEKTA_PUBLIC_KEY;
+      }
 
-        GafaFitSDKWrapper.setLocalStorage();
-        GafaFitSDKWrapper.getInitialValues(callback);
-    }
+      GafaFitSDKWrapper.setLocalStorage();
+      GafaFitSDKWrapper.getInitialValues(callback);
+   }
 
-    static setLocalStorage() {
-        let companyID = window.GFThemeOptions.COMPANY_ID;
-        let localCompany = localStorage.getItem('__GFthemeCompany');
+   static setLocalStorage() {
+      let companyID = window.GFThemeOptions.COMPANY_ID;
+      let localCompany = localStorage.getItem('__GFthemeCompany');
 
-        if(localCompany){
-            if(companyID != localCompany){
-                localStorage.removeItem('__GFthemeCompany');
-                localStorage.removeItem('__GFthemeBrand');
-                localStorage.removeItem('__GFthemeLocation');
-                localStorage.setItem('__GFthemeCompany', companyID);
-            }
-        } else {
-            localStorage.setItem('__GFthemeCompany', companyID);
-        }
-    }
+      if(localCompany){
+         if(companyID != localCompany){
+               localStorage.removeItem('__GFthemeCompany');
+               localStorage.removeItem('__GFthemeBrand');
+               localStorage.removeItem('__GFthemeLocation');
+               localStorage.setItem('__GFthemeCompany', companyID);
+         }
+      } else {
+         localStorage.setItem('__GFthemeCompany', companyID);
+      }
+   }
 
     // static setConektaPayment(){
     //     let {ConektaPublicKey} = window.GFtheme;
@@ -53,15 +55,15 @@ class GafaFitSDKWrapper extends React.Component {
     //     });
     // }
 
-    static getInitialValues(locationCallback) {
-        GafaFitSDKWrapper.getCurrentBrand(function () {
-            // GafaFitSDKWrapper.setBasicComponents();
-            GafaFitSDKWrapper.getAllLocations(function(){
-                // GafaFitSDKWrapper.setConektaPayment();
-                GafaFitSDKWrapper.getCurrentLocation(locationCallback);
-            })
-        });
-    }
+   static getInitialValues(locationCallback) {
+      GafaFitSDKWrapper.getCurrentBrand(function () {
+         // GafaFitSDKWrapper.setBasicComponents();
+         GafaFitSDKWrapper.getAllLocations(function(){
+               // GafaFitSDKWrapper.setConektaPayment();
+               GafaFitSDKWrapper.getCurrentLocation(locationCallback);
+         })
+      });
+   }
 
     static getCurrentBrand(callback) {
 
@@ -92,6 +94,37 @@ class GafaFitSDKWrapper extends React.Component {
         }
     }
 
+   static setMeetings(cb){
+      debugger;
+      let locations = CalendarStorage.get('locations');
+      let meetings = [];
+      
+
+      if ( locations ){
+         let start_date = moment().toDate();
+         let end_date = moment().toDate();
+
+         CalendarStorage.set('start_date', start_date);
+
+         locations.forEach(function (location) {
+            start_date = !location.date_start ? start_date : moment(location.date_start).toDate();
+            end_date.setDate(start_date.getDate() + (location.calendar_days - 1));
+
+            let start_string = `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()}`;
+            let end_string = `${end_date.getFullYear()}-${end_date.getMonth() + 1}-${end_date.getDate()}`;
+
+            GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, function(result){
+               meetings = meetings.concat(result);
+               CalendarStorage.push('meetings', meetings);
+               CalendarStorage.set('start_date', start_date);
+               if(cb){
+                  callback();
+               }
+            });
+         });
+      }
+   }
+
     static getAllLocations(callback){
         let brands = GlobalStorage.get('brands');
 
@@ -111,11 +144,11 @@ class GafaFitSDKWrapper extends React.Component {
         if(location){
             window.GFtheme.location = location;
             GafaFitSDKWrapper.getBrandLocations({}, function(result){
-                let locations = result.data;
-                let currentLocation = locations.find(element => element.slug === location);
-                GlobalStorage.set('currentLocation', currentLocation);
-                // GlobalStorage.set('Locations', locations);
-                callback();
+               let locations = result.data;
+               let currentLocation = locations.find(element => element.slug === location);
+               GlobalStorage.set('currentLocation', currentLocation);
+               CalendarStorage.set('locations', locations);
+               callback();
             });
         } else {
             if (window.GFtheme.location == null) {
@@ -546,9 +579,9 @@ class GafaFitSDKWrapper extends React.Component {
         );
     }
 
-    static getMeetingsInLocation(start_date, end_date, callback) {
+    static getMeetingsInLocation(location, start_date, end_date, callback) {
         let brand = GlobalStorage.get('currentBrand').slug;
-        let location = GlobalStorage.get('currentLocation').id;
+      //   let location = GlobalStorage.get('currentLocation').id;
         GafaFitSDK.GetlocationMeetingList(
             brand,
             location, {

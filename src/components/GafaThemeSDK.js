@@ -254,34 +254,29 @@ class GafaThemeSDK extends React.Component {
     };
 
    static renderMeetingsCalendar(selector) {
+      debugger;
       let domContainers = document.querySelectorAll(selector);
       if (domContainers.length > 0) {
-         domContainers.forEach(function(domContainer) {
-            GafaFitSDKWrapper.getBrandLocations({
-               'page': 1,
-               'per_page': 1000,
-            }, function (result) {
-               let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : 1000;
-               let alignment = domContainer.getAttribute("config-bq-cal-alignment") ? domContainer.getAttribute("config-bq-cal-alignment") : 'vertical';
-               let locations = result.data;
-
-               if(limit){
-                  if(limit > 3 && limit < 6){
-                        limit = limit;
-                  } else if(limit < 3 ){
-                        limit = 3;
-                  } else if(limit > 6){
-                        limit = limit;
-                  }
+         domContainers.forEach(function (domContainer) {
+            let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : 1000;
+            let alignment = domContainer.getAttribute("config-bq-cal-alignment") ? domContainer.getAttribute("config-bq-cal-alignment") : 'vertical';
+   
+            if(limit){
+               if(limit > 3 && limit < 6){
+                     limit = limit;
+               } else if(limit < 3 ){
+                     limit = 3;
+               } else if(limit > 6){
+                     limit = limit;
                }
-
-               let props = {
-               'locations': locations,
+            }
+   
+            let props = {
                'limit': limit,
                'alignment': alignment,
-               };
-               GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
-            });
+            };
+   
+            GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
          });
       }
    }
