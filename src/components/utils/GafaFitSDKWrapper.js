@@ -95,10 +95,8 @@ class GafaFitSDKWrapper extends React.Component {
     }
 
    static setMeetings(cb){
-      debugger;
       let locations = CalendarStorage.get('locations');
       let meetings = [];
-      
 
       if ( locations ){
          let start_date = moment().toDate();

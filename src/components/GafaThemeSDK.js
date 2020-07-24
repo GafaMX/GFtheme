@@ -254,7 +254,6 @@ class GafaThemeSDK extends React.Component {
     };
 
    static renderMeetingsCalendar(selector) {
-      debugger;
       let domContainers = document.querySelectorAll(selector);
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {

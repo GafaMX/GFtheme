@@ -34,7 +34,9 @@
     }
 
     &__header{
-        margin-bottom: 10px;
+      display: grid;
+      justify-items: end;
+      margin-bottom: 10px;
     }
 
     &__body{

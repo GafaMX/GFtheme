@@ -145,12 +145,14 @@ class StaffList extends React.Component {
             <div className={staffClass}>
                 <div className={staffClass + '__header'}>
                     <div className={filterClass}>
-                        <select className={filterClass + '__item ' + formClass + '__select' + ' is-service-filter'} onChange={this.change} value={this.state.currentjob}>
+                        <div className={filterClass + '__item ' + formClass + '__section ' + (this.state.jobList.length <= 1 ? 'is-empty' : '' )}>
+                        <select className={formClass + '__select' + ' is-service-filter'} onChange={this.change} value={this.state.currentjob}>
                             <option>Todos</option>
                             {this.state.jobList.map(job => {
                                 return <option key={job} value={job}>{job}</option>
                             })}
                         </select>
+                        </div>
                     </div>
                 </div>
                 <div className={staffClass + '__body'}>

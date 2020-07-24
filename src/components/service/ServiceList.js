@@ -146,12 +146,14 @@ class ServiceList extends React.Component {
             <div className={serviceClass}>
                 <div className={serviceClass + '__header'}>
                     <div className={filterClass}>
-                        <select className={filterClass + '__item ' + formClass + '__select' + ' is-service-filter'} onChange={this.change} value={this.state.value}>
-                            <option>Todos</option>
-                            {this.state.categoryList.map(category => {
-                                return <option key={category} value={category}>{category}</option>
-                            })}
-                        </select>
+                        <div className={filterClass + '__item ' + formClass + '__section ' + (this.state.categoryList.length <= 1 ? 'is-empty' : '' )}>
+                           <select className={formClass + '__select' + ' is-service-filter'} onChange={this.change} value={this.state.value}>
+                              <option>Todos</option>
+                              {this.state.categoryList.map(category => {
+                                 return <option key={category} value={category}>{category}</option>
+                              })}
+                           </select>
+                        </div>
                     </div>
                 </div>
                 <div className={serviceClass + '__body'}>

@@ -63,21 +63,16 @@ class Calendar extends React.Component {
       GafaFitSDKWrapper.setMeetings();
    }
 
-    getRooms() {
-        let component = this;
-        let locations = GlobalStorage.get('currentLocation');
-
-        if(locations){
-            GafaFitSDKWrapper.getBrandRoomsWithoutBrand(locations.brand.slug, {}, function (result) {
-                CalendarStorage.set('rooms', result.data)
-            });
-        }
-    }
+   getRooms() {
+      GafaFitSDKWrapper.getBrandRooms({}, function (result) {
+         CalendarStorage.push('rooms', result.data)
+      })
+   }
 
     setShowLogin(showLogin) {
-        this.setState({
-            showLogin: showLogin
-        });
+      this.setState({
+         showLogin: showLogin
+      });
     }
 
     render() {

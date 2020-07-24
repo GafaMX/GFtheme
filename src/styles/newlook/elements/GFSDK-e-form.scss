@@ -32,18 +32,6 @@
         width:100%;
         letter-spacing: 1.15px;
 
-        &.is-room-filter,
-        &.is-service-filter{
-            grid-column: 1;
-
-            @media screen and (min-width:768px) {
-                grid-column: 2/3;
-            }
-            @media screen and (min-width:992px) {
-                grid-column: 3/4;
-            }
-        }
-
         option{
             padding:10px;
             letter-spacing: 1.15px;

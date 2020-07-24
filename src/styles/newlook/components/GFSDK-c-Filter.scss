@@ -2,17 +2,17 @@
 
 
 .globalFilter{
-    *{
-        font-family: 'DM Sans', sans-serif!important;
-    }
-    
-    &__indicator{
-        color:white!important;
+   *{
+      font-family: 'DM Sans', sans-serif!important;
+   }
+   
+   &__indicator{
+      color:white!important;
 
-        &-separator{
-            display: none!important;
-        }
-    }
+      &-separator{
+         display: none!important;
+      }
+   }
 
     &__control{
         border-radius:100px!important;
@@ -53,82 +53,90 @@
 
 .#{$pre}-c-filter
 {
-    display: grid;
-   //  grid-template-columns: repeat(1, 1fr);
+    display: inline-grid;
     padding:0 10px;
     row-gap: 15px;
     column-gap: 15px;
     justify-items: end;
     @media screen and (min-width:768px) {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    @media screen and (min-width:992px) {
-      //   grid-template-columns: repeat(3, 1fr);
+       // grid-template-columns: repeat(2, 1fr);
+      column-gap: 20px;
       grid-auto-flow: column;
-    }
+   }
+   // @media screen and (min-width:992px) {
+   // }
 
-    & > select, & > div{
-        width:100%;
-    }
+   & > select, & > div{
+      width:100%;
+   }
 
-    & > *{
-        font-family: 'DM Sans', sans-serif;
-    }
+   & > *{
+      font-family: 'DM Sans', sans-serif;
+   }
 
-    &__body{
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        width: 100%;
-    }
+   &__body{
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      width: 100%;
+   }
 
     &__column{
-        display: grid;
-        grid-auto-flow: row;
-        align-items: start;
-        grid-template-rows: auto 1fr;
-        row-gap:15px;
+      display: grid;
+      grid-auto-flow: row;
+      align-items: start;
+      grid-template-rows: auto 1fr;
+      row-gap:15px;
 
-        &__day{
-            display: grid;
-            grid-auto-flow: row;
-            justify-items: center;
-            row-gap: 10px;
+      &__day{
+         display: grid;
+         grid-auto-flow: row;
+         justify-items: center;
+         row-gap: 10px;
 
-            & > time{
-                text-transform: uppercase;
-                line-height: 1;
-                color:#A5A1A1;
+         & > time{
+               text-transform: uppercase;
+               line-height: 1;
+               color:#A5A1A1;
 
-                .is-today &{
-                    color:#232040;
-                }
+               .is-today &{
+                  color:#232040;
+               }
 
-                &:first-child{
-                    font-size: 12px;
-                    font-weight: 600;
-                }
+               &:first-child{
+                  font-size: 12px;
+                  font-weight: 600;
+               }
 
-                &:last-child{
-                    height:30px;
-                    width:30px;
-                    padding:5px;
-                    border-radius: 50%;
-                    display: grid;
-                    font-weight: 400;
-                    align-items: center;
-                    justify-items: center;
+               &:last-child{
+                  height:30px;
+                  width:30px;
+                  padding:5px;
+                  border-radius: 50%;
+                  display: grid;
+                  font-weight: 400;
+                  align-items: center;
+                  justify-items: center;
 
-                    .is-today &{
-                        background-color: #232040;
-                        color:white;
-                    }
-                }
-            }
-        }
+                  .is-today &{
+                     background-color: #232040;
+                     color:white;
+                  }
+               }
+         }
+      }
 
-        &__meeting{
-            border-left: .5px solid #EEEEEE;
-            border-right: .5px solid #EEEEEE;
-        }
-    }
+      
+      &__meeting{
+         border-left: .5px solid #EEEEEE;
+         border-right: .5px solid #EEEEEE;
+      }
+   }
+
+   &__item{
+      select{
+         @media (min-width: 992px){
+            width:250px;
+         }
+      }
+   }
 }

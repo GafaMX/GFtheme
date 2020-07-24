@@ -119,6 +119,7 @@ class CalendarFilters extends React.Component {
     selectLocation(e) {
         this.selectFilter(e);
         CalendarStorage.set('filter_room', null);
+        console.log(CalendarStorage.get('filter_room'))
         this.refs.room.value = '';
     }
 
@@ -239,22 +240,19 @@ class CalendarFilters extends React.Component {
                         </div>
                     </div>
 
-                     {locations.length > 1 ?
-                        <div className={formClass + '__section is-location-filter'}>
-                           <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
-                           <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
-                                 data-origin="locations"
-                                 onChange={this.selectLocation.bind(this)}>
-                                 <option value={''}>{Strings.ALL}</option>
-                                 {locations.map(function (location, index) {
-                                    return (
-                                       <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
-                                    );
-                                 })}
-                           </select>
-                        </div>
-                        : null
-                     }
+                     <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
+                        <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
+                        <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
+                              data-origin="locations"
+                              onChange={this.selectLocation.bind(this)}>
+                              <option value={''}>{Strings.ALL}</option>
+                              {locations.map(function (location, index) {
+                                 return (
+                                    <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
+                                 );
+                              })}
+                        </select>
+                     </div>
 
                     <div className={filterClass + '__item ' + formClass + '__section is-room-filter ' + (rooms.length <= 1 ? 'is-empty' : '' )}>
                         <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{Strings.ROOM}: </label>
