@@ -113,7 +113,8 @@ class GafaFitSDKWrapper extends React.Component {
 
             GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, function(result){
                meetings = meetings.concat(result);
-               CalendarStorage.push('meetings', meetings);
+
+               CalendarStorage.set('meetings', meetings);
                CalendarStorage.set('start_date', start_date);
                if(cb){
                   callback();
