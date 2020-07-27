@@ -9,6 +9,7 @@ import MorningIcon from "../utils/Icons/MorningIcon";
 import AfternoonIcon from "../utils/Icons/AfternoonIcon";
 import AllTimeIcon from "../utils/Icons/AllTimeIcon";
 import moment from 'moment';
+import Select from 'react-select';
 import GlobalStorage from "../store/GlobalStorage";
 
 
@@ -119,7 +120,6 @@ class CalendarFilters extends React.Component {
     selectLocation(e) {
         this.selectFilter(e);
         CalendarStorage.set('filter_room', null);
-        console.log(CalendarStorage.get('filter_room'))
         this.refs.room.value = '';
     }
 
@@ -182,6 +182,7 @@ class CalendarFilters extends React.Component {
     render() {
         let locations = CalendarStorage.get('locations');
         let rooms = CalendarStorage.get('rooms');
+        let {alignment} = this.props;
         let {time_of_day} = this.state;
         let filter_name = 'meetings-calendar--filters';
 
@@ -193,7 +194,7 @@ class CalendarFilters extends React.Component {
         let navigationClass = preE + '-navigation';
 
         return (
-            <div className={calendarClass + '__head'}>
+            <div className={calendarClass + '__head' + (alignment === 'horizontal' ? '-horizontal' : '')}>
                 <div className={calendarClass + '__filter ' + filterClass}>
                     <div className={filterClass + '__item ' + formClass + '__section is-day-filter'}>
                         <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
@@ -240,19 +241,36 @@ class CalendarFilters extends React.Component {
                         </div>
                     </div>
 
-                     <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
-                        <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
-                        <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
-                              data-origin="locations"
-                              onChange={this.selectLocation.bind(this)}>
-                              <option value={''}>{Strings.ALL}</option>
-                              {locations.map(function (location, index) {
-                                 return (
-                                    <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
-                                 );
-                              })}
-                        </select>
-                     </div>
+                    {alignment === 'horizontal'
+                        ?
+                        <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
+                           <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
+                                 data-origin="locations"
+                                 onChange={this.selectLocation.bind(this)}>
+                                 <option value={''}>{Strings.LOCATION}</option>
+                                 {locations.map(function (location, index) {
+                                    return (
+                                       <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
+                                    );
+                                 })}
+                           </select>
+                        </div>
+                        :
+                        <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
+                           <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label>
+                           <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
+                                 data-origin="locations"
+                                 onChange={this.selectLocation.bind(this)}>
+                                 <option value={''}>{Strings.ALL}</option>
+                                 {locations.map(function (location, index) {
+                                    return (
+                                       <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
+                                    );
+                                 })}
+                           </select>
+                        </div>
+                        
+                     }
 
                     <div className={filterClass + '__item ' + formClass + '__section is-room-filter ' + (rooms.length <= 1 ? 'is-empty' : '' )}>
                         <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{Strings.ROOM}: </label>
@@ -286,21 +304,21 @@ class CalendarFilters extends React.Component {
                         </select>
                     </div>
 
-                    <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
+                     <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
                         <label htmlFor={'calendar-filter-service'}  className={formClass + '__label'}>{Strings.SERVICE}: </label>
                         <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
-                                data-origin="services"
-                                onChange={this.selectFilter}>
-                            <option value={''}>{Strings.ALL}</option>
-                            {this.state.services.map(function (service, index) {
-                                return (
+                              data-origin="services"
+                              onChange={this.selectFilter}>
+                           <option value={''}>{Strings.ALL}</option>
+                           {this.state.services.map(function (service, index) {
+                              return (
                                     <option value={service.id}
-                                            className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
-                                            key={`${filter_name}-service--option-${index}`}>{service.name}</option>
-                                );
-                            })}
+                                          className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
+                                          key={`${filter_name}-service--option-${index}`}>{service.name}</option>
+                              );
+                           })}
                         </select>
-                    </div>
+                     </div>
                 </div>
                 <div className={calendarClass + '__navigation ' + navigationClass}>
                     <div className={navigationClass + '__prev'}>

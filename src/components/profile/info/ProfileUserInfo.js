@@ -101,14 +101,14 @@ class ProfileUserInfo extends React.Component {
     //     });
     // }
 
-    findCountryCodeById() {
-        let country = this.state.countries.find(option => option.value === this.state.countries_id);
-        let countryCode = "";
-        if (country != null) {
-            countryCode = country.code;
-        }
-        return countryCode;
-    }
+   findCountryCodeById() {
+      let country = this.state.countries.find(option => option.value === this.state.countries_id);
+      let countryCode = "";
+      if (country != null) {
+         countryCode = country.code;
+      }
+      return countryCode;
+   }
 
     getCountryList(callback) {
         const currentComponent = this;

@@ -34,7 +34,7 @@ class Calendar extends React.Component {
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
       //   this.getMeetings = this.getMeetings.bind(this);
         CalendarStorage.addSegmentedListener(['calendarHeight', 'calendarWidth'], this.updateCalendarDimensions.bind(this));
-        GlobalStorage.addSegmentedListener(['currentLocation'], this.updateCalendar.bind(this));
+        CalendarStorage.addSegmentedListener(['filter_location'], this.updateCalendar.bind(this));
     }
 
    componentDidMount() {
@@ -88,7 +88,7 @@ class Calendar extends React.Component {
       return (
          <div className={calendarClass}>
                <div className={calendarClass + '__container'} style={mystyles}>
-                  <CalendarFilters/>
+                  <CalendarFilters alignment={this.props.alignment}/>
                   <CalendarBody alignment={this.props.alignment} limit={this.props.limit} />
                </div>
                {this.state.showLogin &&

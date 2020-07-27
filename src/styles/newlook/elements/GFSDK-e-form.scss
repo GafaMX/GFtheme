@@ -22,20 +22,27 @@
     }
 
     &__select{
-        padding:10px 23px;
-        font-size:12px;
-        border-radius: 100px;
-        outline: none;
-        border: 1px #575757 solid;
-        color:#575757;
-        background-color:transparent;
-        width:100%;
-        letter-spacing: 1.15px;
+      padding:10px 23px;
+      font-size:12px;
+      border-radius: 100px;
+      outline: none;
+      border: 1px #575757 solid;
+      color:#575757;
+      background-color:transparent;
+      width:100%;
+      letter-spacing: 1.15px;
+      
+      .#{$pre}-c-Calendar__head-horizontal &{
+         padding:0 20px 0 0;
+         border: 0 transparent none;
+         font-size:14px;
+         font-weight:600;
+      }
 
-        option{
-            padding:10px;
-            letter-spacing: 1.15px;
-        }
+      option{
+         padding:10px;
+         letter-spacing: 1.15px;
+      }
     }
     
     &__section{
