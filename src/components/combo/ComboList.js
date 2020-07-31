@@ -105,7 +105,7 @@ class ComboList extends React.Component {
          dots: true,
          speed: 500,
          infinite: false,
-         slidesToShow: this.state.per_slide,
+         slidesToShow: 4,
          slidesToScroll: 1,
          prevArrow: <PrevArrow />,
          nextArrow: <NextArrow />,
