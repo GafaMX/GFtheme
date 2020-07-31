@@ -1,8 +1,10 @@
 const CalendarStorage = {
     listeners: [],
     segmentedListeners: [],
+
     locations: [],
     services: [],
+    
     rooms: [],
     meetings: [],
     currentLocation: null,
@@ -14,6 +16,7 @@ const CalendarStorage = {
     filter_time_of_day: null,
     calendarHeight: null,
     calendarWidth: null,
+
     /**
      *
      * @param property

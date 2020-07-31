@@ -2,6 +2,8 @@
 
 import React from 'react';
 import GlobalStorage from '../../store/GlobalStorage';
+import Strings from "../../utils/Strings/Strings_ES";
+import CalendarStorage from '../../calendar/CalendarStorage';
 import ClassItem from "./ClassItem";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Slider from "react-slick";
@@ -11,142 +13,75 @@ import IconLeftArrow from "../../utils/Icons/IconLeftArrow";
 import IconRightArrow from "../../utils/Icons/IconRightArrow";
 
 class FutureClasses extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            list: [],
-            counterBuyItems: '',
-            sliderRows: 2,
-            windowWidth: 0,
-        }
+   constructor(props) {
+      super(props);
+      this.state = {
+         list: [],
+         counterBuyItems: '',
+      }
 
-        this.updateDimensions = this.updateDimensions.bind(this);
-        this.updateRows = this.updateRows.bind(this);
+      this.getFutureClasses = this.getFutureClasses.bind(this);
+      CalendarStorage.addSegmentedListener(['filter_location'], this.updateFutureClasses.bind(this));
+   }
 
-        GlobalStorage.addSegmentedListener(['currentBrand'], this.updateFutureClasses.bind(this));
-    }
+   componentDidMount() {
+      this.getFutureClasses();
+   }
 
-    componentDidMount() {
-        const currentComponent = this;
-        GafaFitSDKWrapper.getUserFutureReservationsInBrand({
-            reducePopulation: true,
-        }, function (result) {
-            currentComponent.setState({
-                list: result,
-            });
-            currentComponent.updateRows();
-        })
+   getFutureClasses(){
+      const currentComponent = this;
 
-        window.addEventListener('resize', this.updateDimensions);
-    }
+      GafaFitSDKWrapper.getUserFutureReservationsInBrand({
+         reducePopulation: true,
+      }, function (result) {
+         GlobalStorage.set('future_classes', result);
+         currentComponent.setState({list: result});
+      });
+   }
 
-    updateFutureClasses(){
-        const currentComponent = this;
-        GafaFitSDKWrapper.getUserFutureReservationsInBrand({
-            reducePopulation: true,
-        }, function (result) {
-            currentComponent.setState({
-                list: result,
-            });
-            currentComponent.updateRows();
-        })
+   updateFutureClasses(){
+      let location = CalendarStorage.get('filter_location');
+      let classes = GlobalStorage.get('future_classes');
 
-        window.addEventListener('resize', this.updateDimensions);
-    }
+      if(location){
+         classes = classes.filter(function (item) {return item.locations_id === location.id; });
+      }
 
-    updateRows() {
-        let comp = this;
-        let classes = comp.state.list.length;
-        if (classes <= 6 ){
-            comp.setState({ 
-                sliderRows : 1,
-            });
-        } else if (classes > 6 ){
-            comp.setState({ 
-                sliderRows : 2,
-            });
-        }
-    }
+      this.setState({list: classes});
+   }
 
-    updateDimensions() {
-        let comp = this;
-        const container = document.querySelector("#HistoryTabs");
-        comp.setState({
-            // windowWidth: container.offsetWidth,
-        });
-    };
-
-    updateList(list) {
-        this.setState({
-            list: list
-        });
-    }
+   // updateList(list) {
+   //    this.setState({
+   //       list: list
+   //    });
+   // }
 
     render() {
+      let preC = 'GFSDK-c';
+      let preE = 'GFSDK-e';
+      let profileClass = preC + '-profile';
+      let ordersClass = preC + '-orders';
+      let formClass = preE + '-form';
 
-        let preC = 'GFSDK-c';
-        let profileClass = preC + '-profile';
-        let ordersClass = preC + '-orders';
+      const listItems = this.state.list.map((reservation) =>
+         <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>
+      );
 
-        function NextArrow(props){
-            const {onClick} = props;
-            return (
-                <div className={paginationClass + '__controls is-next'}>
-                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
-                        <IconRightArrow />
-                    </button>
-                </div>
-            );
-        };
-    
-        function PrevArrow(props){
-            const {onClick} = props;
-            return (
-                <div className={paginationClass + '__controls is-prev'}>
-                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
-                        <IconLeftArrow />
-                    </button>
-                </div>
-            );
-        };
-
-        let settings = {
-            arrows: false,
-            infinite: false,
-            speed: 500,
-            slidesToScroll: 5,
-            slidesToShow: 5,
-            responsive: [
-                {
-                    breakpoint: 768,
-                    settings: {
-                        slidesToShow: 3,
-                        slidesToScroll: 3,
-                    }
-                },
-            ],
-        };
-
-
-        const listItems = this.state.list.map((reservation) =>
-            <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>
-        );
-
-        return (
-            <div className={profileClass + '__section is-futureClass'}>
-                {this.state.list.length > 0
-                    ?   <div className={ ordersClass + '__section'}>{listItems}</div>
-                    :   <div className="is-empty">
-                            <div className="is-notification">
-                                <h3>No cuentas con próximas clases</h3>
-                                {/* <p>Lorem ipsum dolor sit amet</p> */}
-                            </div>
-                        </div>
-                }
-            </div>
-        )
-    }
-
+      return (
+         <div className={profileClass + '__section is-futureClass'}>
+            
+            {this.state.list.length > 0
+               ?  <div className={ ordersClass + '__section'}>{listItems}</div>
+               :  <div className="is-empty">
+                     <div className="is-notification">
+                        <h3>No cuentas con próximas clases</h3>
+                        {/* <p>Lorem ipsum dolor sit amet</p> */}
+                     </div>
+                  </div>
+            }
+         </div>
+      )
+   }
 }
 
 export default FutureClasses;

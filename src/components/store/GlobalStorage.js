@@ -16,49 +16,53 @@ const GlobalStorage = {
     ConektaPaymentNotification: null,
     ConektaPaymentError: null,
 
-    get(property) {
-        return this[property];
-    },
+    //Future Class
+    future_classes: null,
+    past_classes: null,
 
-    find(property, id) {
-        if (Array.isArray(this[property])) {
-            return this[property].find(o => o.id === parseInt(id));
-        }
-    },
+   get(property) {
+      return this[property];
+   },
 
-    set(property, value, cb) {
-        this[property] = value ? value : null;
-        this.TriggerChange(cb, property);
-    },
+   find(property, id) {
+      if (Array.isArray(this[property])) {
+         return this[property].find(o => o.id === parseInt(id));
+      }
+   },
 
-    push(property, value, cb) {
-        if (Array.isArray(this[property])) {
-            if (Array.isArray(value)) {
-                this[property] = this[property].concat(value);
-            } else {
-                this[property].push(value);
-            }
-            this.TriggerChange(cb, property);
-        }
-    },
+   set(property, value, cb) {
+      this[property] = value ? value : null;
+      this.TriggerChange(cb, property);
+   },
 
-    addListener(callback) {
-        this.listeners.push(callback);
-    },
+   push(property, value, cb) {
+      if (Array.isArray(this[property])) {
+         if (Array.isArray(value)) {
+               this[property] = this[property].concat(value);
+         } else {
+               this[property].push(value);
+         }
+         this.TriggerChange(cb, property);
+      }
+   },
 
-    addSegmentedListener(segment, callback) {
-        if (segment && callback) {
-            if (segment.length) {
-                //array
-                segment.forEach(function (singleSegment) {
-                    GlobalStorage.subscribeToSegment(singleSegment, callback)
-                })
-            } else {
-                //no array
-                GlobalStorage.subscribeToSegment(segment, callback)
-            }
-        }
-    },
+   addListener(callback) {
+      this.listeners.push(callback);
+   },
+
+   addSegmentedListener(segment, callback) {
+      if (segment && callback) {
+         if (segment.length) {
+               //array
+               segment.forEach(function (singleSegment) {
+                  GlobalStorage.subscribeToSegment(singleSegment, callback)
+               })
+         } else {
+               //no array
+               GlobalStorage.subscribeToSegment(segment, callback)
+         }
+      }
+   },
 
     subscribeToSegment(segment, callback) {
         if (!this.segmentedListeners.hasOwnProperty(segment)) {

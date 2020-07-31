@@ -22,6 +22,7 @@ import LocationsFilter from "../../locations/LocationsFilters";
 // import CloseIcon from "../../utils/Icons/CloseIcon";
 // import CheckIcon from "../../utils/Icons/CheckIcon";
 import GlobalStorage from '../../store/GlobalStorage';
+import CalendarStorage from '../../calendar/CalendarStorage';
 
 //Estilos
 import '../../../styles/newlook/components/GFSDK-c-Profile.scss';
@@ -173,12 +174,29 @@ class ProfileUserInfo extends React.Component {
             currentElement.errorSaveMeCallback.bind(this));
     }
 
-    successSaveMeCallback(result) {
-        this.setState({saved: true});
-        if (this.props.successCallback) {
-            this.props.successCallback(result);
-        }
-    }
+   successSaveMeCallback(result) {
+      this.setState({saved: true});
+      if (this.props.successCallback) {
+         this.props.successCallback(result);
+      }
+   }
+
+   selectFilter(e) {
+      let name = e.target.getAttribute('data-name');
+      let origin = e.target.getAttribute('data-origin');
+      let id = e.target.value;
+      let model = null;
+      if (id && id !== '')
+          model = CalendarStorage.find(origin, id);
+
+      CalendarStorage.set(name, model);
+   }
+
+   selectLocation(e) {
+      this.selectFilter(e);
+      CalendarStorage.set('filter_room', null);
+      this.refs.room.value = '';
+   }
 
     // deleteCard(){
     //     let ConektaPaymentNotification = GlobalStorage.get('ConektaPaymentNotification');
@@ -195,149 +213,174 @@ class ProfileUserInfo extends React.Component {
     //     GlobalStorage.set('ConektaPaymentNotification', null);
     // }
 
-    errorSaveMeCallback(error) {
-        this.setState({serverError: error});
-    }
+   errorSaveMeCallback(error) {
+      this.setState({serverError: error});
+   }
 
-    render() {
-        let preE = 'GFSDK-e';
-        let preC = 'GFSDK-c';
-        let profileClass = preC + '-profile';
-        let paymentClass = preC + '-payment';
-        let tabsClass = preC + '-tabs';
-        let buttonClass = preE + '-buttons';
-        let formClass = preE + '-form';
-        let {paymentNotification} = this.state
+   render() {
+      let preE = 'GFSDK-e';
+      let preC = 'GFSDK-c';
+      let profileClass = preC + '-profile';
+      let paymentClass = preC + '-payment';
+      let tabsClass = preC + '-tabs';
+      let buttonClass = preE + '-buttons';
+      let formClass = preE + '-form';
+      let filterClass = preC + '-filter';
+      let filter_name = 'meetings-calendar--filters';
+      let locations = CalendarStorage.locations;
+      let {paymentNotification} = this.state
 
-        return (
-            <div className="profile-info">
-                <div className={'GFSDK-user__container'}>
-                    <div className="profile-user">
-                        <div className="profile-user__content">
-                            <div className="profile-user__data">
-                                <div className="this-picture"></div>
-                                <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
-                                {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
-                            </div>
-                            <div className="profile-user__tools">
-                                <div className="profile-user__tools-container">
-                                    <LocationsFilter />
-                                    <a className='this-logOut' onClick={this.props.handleClickLogout}>
-                                        <IconLogOut/> <span>{Strings.BUTTON_LOGOUT}</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+      return (
+         <div className="profile-info">
+               <div className={'GFSDK-user__container'}>
+                  <div className="profile-user">
+                     <div className="profile-user__content">
+                           <div className="profile-user__data">
+                              <div className="this-picture"></div>
+                              <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
+                              {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
+                           </div>
+                           <div className="profile-user__tools">
+                              <div className="profile-user__tools-container">
+                                 <LocationsFilter />
+                                 <a className='this-logOut' onClick={this.props.handleClickLogout}>
+                                       <IconLogOut/> <span>{Strings.BUTTON_LOGOUT}</span>
+                                 </a>
+                              </div>
+                           </div>
+                     </div>
+                  </div>
+               </div>
 
-                <div className={'profile-tabs'}>
-                    <div className="container">
-                        <Tabs defaultActiveKey={1} id={'ProfileTabs'} className={profileClass + '__tab-content'} animation={true}>
-                            <Tab eventKey={1} title={Strings.CLASS}>
-                                 <div className={profileClass + '__tab-section'}>
-                                       <h4 className={'this-title'}>Mis próximas clases</h4>
-                                       <FutureClasses />
-                                 </div>
-                                 <hr></hr>
-                                 <div className={profileClass + '__tab-section'}>
-                                       <h4 className={'this-title'}>Historial de clases</h4>
-                                       <PastClasses />
-                                 </div>
-                                 <hr></hr>
-                                 <div className={profileClass + '__tab-section'}>
-                                       <h4 className={'this-title'}>Historial de compras</h4>
-                                       <PurchasesList /> 
-                                 </div>
-                            </Tab>
+               <div className={'profile-tabs'}>
+                  <div className="container">
+                     
+                     <Tabs defaultActiveKey={1} id={'ProfileTabs'} className={profileClass + '__tab-content'} animation={true}>
+                        <Tab eventKey={1} title={Strings.CLASS}>
+                           { locations.length > 1 ?
+                              <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
+                                 {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
+                                 <select 
+                                    className={formClass + '__select'} 
+                                    id={'calendar-filter-location'} 
+                                    data-name="filter_location"
+                                    data-origin="locations"
+                                    onChange={this.selectLocation.bind(this)}
+                                    >
+                                    <option value={''}>Ubicaciones</option>
+                                    {locations.map(function (location, index) {
+                                       return (
+                                          <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
+                                       );
+                                    })}
+                                 </select>
+                              </div>
 
-                            <Tab eventKey={2} title={Strings.PROFILE}>
-                                <div className={profileClass + '__tab-content'}>
-                                    <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
-                                       <UserInfo info={this.state} updateState={this.updateState.bind(this)}
+                              : null
+                           }
+                           <div className={profileClass + '__tab-section'}>
+                                 <h4 className={'this-title'}>Mis próximas clases</h4>
+                                 <FutureClasses />
+                           </div>
+                           <hr></hr>
+                           <div className={profileClass + '__tab-section'}>
+                                 <h4 className={'this-title'}>Historial de clases</h4>
+                                 <PastClasses />
+                           </div>
+                           <hr></hr>
+                           <div className={profileClass + '__tab-section'}>
+                                 <h4 className={'this-title'}>Historial de compras</h4>
+                                 <PurchasesList /> 
+                           </div>
+                        </Tab>
+
+                           <Tab eventKey={2} title={Strings.PROFILE}>
+                              <div className={profileClass + '__tab-content'}>
+                                 <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
+                                    <UserInfo info={this.state} updateState={this.updateState.bind(this)}
+                                             handleChangeField={this.handleChangeField.bind(this)}/>
+                                    <hr className={formClass + '__divider'}></hr>
+                                    <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                getStatesListByCountry={this.getStatesListByCountry.bind(this)}
                                                 handleChangeField={this.handleChangeField.bind(this)}/>
-                                       <hr className={formClass + '__divider'}></hr>
-                                       <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
-                                                   getStatesListByCountry={this.getStatesListByCountry.bind(this)}
-                                                   handleChangeField={this.handleChangeField.bind(this)}/>
-                                       <hr className={formClass + '__divider'}></hr>
-                                       <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
-                                                   handleChangeField={this.handleChangeField.bind(this)}/>
+                                    <hr className={formClass + '__divider'}></hr>
+                                    <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
+                                                handleChangeField={this.handleChangeField.bind(this)}/>
 
+                                    <div className={profileClass + '__section is-save'}>
+                                       <button disabled={!this.state.formValid} type="submit" className={buttonClass + ' ' + buttonClass + "--submit is-primary"}>
+                                             {Strings.BUTTON_SAVE}
+                                       </button>
+
+                                       <div className={formClass + '__notifications'}>
+                                             <div className="text-danger">
+                                                <FormErrors formErrors={this.state.formErrors}/>
+                                                {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                                             </div>
+                                             <div className="text-success">
+                                                {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                             </div>
+                                       </div>
+                                    </div>
+                                 </form>
+                              </div>
+                           </Tab>
+
+                           <Tab eventKey={3} title={Strings.CHANGEPASSWORD}>
+                              <div className={profileClass + '__tab-content'}>
+                                 <form className={profileClass + '__form is-ChangePassword'} onSubmit={this.handleSubmit.bind(this)}>
+                                       <ChangePassword info={this.state}
+                                                      handleChangePassword={this.handleChangePassword.bind(this)}
+                                                      handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
                                        <div className={profileClass + '__section is-save'}>
-                                          <button disabled={!this.state.formValid} type="submit" className={buttonClass + ' ' + buttonClass + "--submit is-primary"}>
-                                                {Strings.BUTTON_SAVE}
+                                          <button
+                                             disabled={!this.state.formValid}
+                                             type="submit"
+                                             className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
+                                          >
+                                             {Strings.BUTTON_SAVE}
                                           </button>
 
                                           <div className={formClass + '__notifications'}>
-                                                <div className="text-danger">
+                                             <div className="text-danger">
                                                    <FormErrors formErrors={this.state.formErrors}/>
                                                    {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                                                </div>
-                                                <div className="text-success">
+                                             </div>
+                                             <div className="text-success">
                                                    {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                                </div>
+                                             </div>
                                           </div>
                                        </div>
-                                    </form>
-                                </div>
-                            </Tab>
+                                 </form>
+                              </div>
+                           </Tab>
 
-                            <Tab eventKey={3} title={Strings.CHANGEPASSWORD}>
-                                <div className={profileClass + '__tab-content'}>
-                                    <form className={profileClass + '__form is-ChangePassword'} onSubmit={this.handleSubmit.bind(this)}>
-                                        <ChangePassword info={this.state}
-                                                        handleChangePassword={this.handleChangePassword.bind(this)}
-                                                        handleChangeConfirmationPassword={this.handleChangeConfirmationPassword.bind(this)}/>
-                                        <div className={profileClass + '__section is-save'}>
-                                            <button
-                                                disabled={!this.state.formValid}
-                                                type="submit"
-                                                className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
-                                            >
-                                                {Strings.BUTTON_SAVE}
-                                            </button>
-
-                                            <div className={formClass + '__notifications'}>
-                                                <div className="text-danger">
-                                                    <FormErrors formErrors={this.state.formErrors}/>
-                                                    {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                                                </div>
-                                                <div className="text-success">
-                                                    {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </Tab>
-
-                            {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
-                                <CustomScroll heightRelativeToParent="100%">
-                                    <div className={profileClass + '__tab-section'}>
-                                        <PaymentMethods />
-                                    </div>
-                                </CustomScroll>
-                                <div className={paymentClass + "__notification " + (paymentNotification ? 'is-active' : '')}>
-                                    <div className={paymentClass + "__notification-container"}>
-                                        <p>{!paymentNotification ? 'Error: No encuentré el mensaje' : paymentNotification.message}</p>
-                                        <div className={paymentClass + "__controls"}>
-                                            <button className={buttonClass + "__controls is-success"} onClick={this.deleteCard.bind(this)}>
-                                                <CheckIcon />
-                                            </button>
-                                            <button className={buttonClass + "__controls is-close"} onClick={this.closeNotification.bind(this)}>
-                                                <CloseIcon />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Tab> */}
-                        </Tabs>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+                           {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
+                              <CustomScroll heightRelativeToParent="100%">
+                                 <div className={profileClass + '__tab-section'}>
+                                       <PaymentMethods />
+                                 </div>
+                              </CustomScroll>
+                              <div className={paymentClass + "__notification " + (paymentNotification ? 'is-active' : '')}>
+                                 <div className={paymentClass + "__notification-container"}>
+                                       <p>{!paymentNotification ? 'Error: No encuentré el mensaje' : paymentNotification.message}</p>
+                                       <div className={paymentClass + "__controls"}>
+                                          <button className={buttonClass + "__controls is-success"} onClick={this.deleteCard.bind(this)}>
+                                             <CheckIcon />
+                                          </button>
+                                          <button className={buttonClass + "__controls is-close"} onClick={this.closeNotification.bind(this)}>
+                                             <CloseIcon />
+                                          </button>
+                                       </div>
+                                 </div>
+                              </div>
+                           </Tab> */}
+                     </Tabs>
+                  </div>
+               </div>
+         </div>
+      );
+   }
 }
 
 export default ProfileUserInfo;

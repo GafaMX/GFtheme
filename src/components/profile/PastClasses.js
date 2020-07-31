@@ -3,6 +3,7 @@
 import React from 'react';
 import GlobalStorage from '../store/GlobalStorage';
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+import CalendarStorage from '../calendar/CalendarStorage';
 import PastClassItem from "./PastClassItem";
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
@@ -10,71 +11,45 @@ import 'slick-carousel/slick/slick-theme.css';
 
 class PastClasses extends React.Component {
     constructor(props) {
-        super(props);
-        this.state = {
-            list: [],
-            windowWidth: 0,
-        }
-        GlobalStorage.addSegmentedListener(['currentBrand'], this.updatePastClasses.bind(this));
-    }
+      super(props);
+      this.state = {
+         list: [],
+      }
 
-    componentDidMount() {
-        const currentComponent = this;
-        GafaFitSDKWrapper.getUserPastReservationsInBrand({
-            reducePopulation: true,
-        }, function (result) {
-            currentComponent.setState({
-                list: result.data,
-            });
-            currentComponent.updateRows();
-        })
+      this.getPastClasses = this.getPastClasses.bind(this);
+      CalendarStorage.addSegmentedListener(['filter_location'], this.updatePastClasses.bind(this));
+   }
 
-        window.addEventListener('resize', this.updateDimensions);
-    }
+   componentDidMount() {
+      this.getPastClasses();
+   }
 
-    updatePastClasses() {
-        const currentComponent = this;
-        GafaFitSDKWrapper.getUserPastReservationsInBrand({
-            reducePopulation: true,
-        }, function (result) {
-            currentComponent.setState({
-                list: result.data,
-            });
-            currentComponent.updateRows();
-        })
+   getPastClasses(){
+      const currentComponent = this;
+      GafaFitSDKWrapper.getUserPastReservationsInBrand({
+         reducePopulation: true,
+      }, function (result) {
+         GlobalStorage.set('past_classes', result.data);
+         currentComponent.setState({list: result.data});
+      });
+   }
 
-        window.addEventListener('resize', this.updateDimensions);
-    }
+   updatePastClasses(){
+      let location = CalendarStorage.get('filter_location');
+      let classes = GlobalStorage.get('past_classes');
 
-    updateDimensions() {
-        let comp = this;
-        const container = document.querySelector("#HistoryTabs");
-        comp.setState({
-            // windowWidth: container.offsetWidth,
-        });
-    };
+      if(location){
+         classes = classes.filter(function (item) {return item.locations_id === location.id; });
+      }
+
+      this.setState({list: classes});
+   }
+
 
     render() {
         let preC = 'GFSDK-c';
         let profileClass = preC + '-profile';
         let ordersClass = preC + '-orders';
-
-        let settings = {
-            arrows: false,
-            infinite: false,
-            speed: 500,
-            slidesToScroll: 5,
-            slidesToShow: 5,
-            responsive: [
-                {
-                    breakpoint: 768,
-                    settings: {
-                        slidesToShow: 3,
-                        slidesToScroll: 3,
-                    }
-                },
-            ],
-        };
 
         const listItems = this.state.list.map((pastreservation) =>
             <PastClassItem key={pastreservation.id} reservation={pastreservation} id={pastreservation.id}/>
@@ -87,7 +62,6 @@ class PastClasses extends React.Component {
                     :   <div className="is-empty">
                             <div className="is-notification">
                                 <h3>No cuentas con historial de clases</h3>
-                                {/* <p>Lorem ipsum dolor sit amet</p> */}
                             </div>
                         </div>
                 }
