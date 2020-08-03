@@ -218,10 +218,10 @@ class LoginRegister extends React.Component {
                 <div className={loginClass + '__menu-nav'}>
                     {this.state.triggeredByLogin 
                         ?   (!this.state.me
-                                ?   <a className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
-                                        <IconRunningMan />
-                                    </a>
-                                :   <a onClick={this.handleClickProfile.bind(this)}>
+                                ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
+                                       <IconRunningMan />
+                                    </div>
+                                :   <div onClick={this.handleClickProfile.bind(this)}>
                                         {this.state.me != null 
                                             ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
                                                     <IconRunningMan />
@@ -232,7 +232,7 @@ class LoginRegister extends React.Component {
                                                 </div>
                                             :   Strings.BUTTON_PROFILE
                                         }
-                                    </a>
+                                    </div>
 
                             )
                         :   null
