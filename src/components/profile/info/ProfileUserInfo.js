@@ -63,8 +63,11 @@ class ProfileUserInfo extends React.Component {
             formValid: true,
             serverError: '',
             saved: false,
+            screen: "classes",
             // paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
         };
+
+        this.handleChangeScreen = this.handleChangeScreen.bind(this);
         // GlobalStorage.addSegmentedListener(['ConektaPaymentNotification'], this.updateConektaNotificaction.bind(this));
     }
 
@@ -145,6 +148,20 @@ class ProfileUserInfo extends React.Component {
         });
     }
 
+
+
+   /**
+    * 
+    * @param event
+    */
+   handleChangeScreen(event){
+      let screenVal = event.target.id;
+
+      this.setState({
+         screen: screenVal,
+     })
+   }
+
     handleChangePassword(event) {
         let passvalue = event.target.value;
 
@@ -161,9 +178,9 @@ class ProfileUserInfo extends React.Component {
         })
     }
 
-    updateState(state) {
-        this.setState(state);
-    }
+   updateState(state) {
+      this.setState(state);
+   }
 
     handleSubmit(event) {
         event.preventDefault();
@@ -228,7 +245,7 @@ class ProfileUserInfo extends React.Component {
       let filterClass = preC + '-filter';
       let filter_name = 'meetings-calendar--filters';
       let locations = CalendarStorage.locations;
-      let {paymentNotification} = this.state
+      let {paymentNotification, screen} = this.state
 
       return (
          <div className="profile-info">
@@ -255,46 +272,59 @@ class ProfileUserInfo extends React.Component {
                <div className={'profile-tabs'}>
                   <div className="container">
                      
-                     <Tabs defaultActiveKey={1} id={'ProfileTabs'} className={profileClass + '__tab-content'} animation={true}>
-                        <Tab eventKey={1} title={Strings.CLASS}>
-                           { locations.length > 1 ?
-                              <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
-                                 {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
-                                 <select 
-                                    className={formClass + '__select'} 
-                                    id={'calendar-filter-location'} 
-                                    data-name="filter_location"
-                                    data-origin="locations"
-                                    onChange={this.selectLocation.bind(this)}
-                                    >
-                                    <option value={''}>Ubicaciones</option>
-                                    {locations.map(function (location, index) {
-                                       return (
-                                          <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
-                                       );
-                                    })}
-                                 </select>
+                     <div id={'ProfileTabs'} className={profileClass + '__tab-content'}>
+                        <ul role="tablist" className={tabsClass + ' nav nav-tabs'}>
+                           <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'classes' ? 'active' : '' )}>
+                              <div id="classes" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.CLASS}</div>
+                           </li>
+                           <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'profile' ? 'active' : '' )}>
+                              <div id="profile" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.PROFILE}</div>
+                           </li>
+                           <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'password' ? 'active' : '' )}>
+                              <div id="password" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.CHANGEPASSWORD}</div>
+                           </li>
+                        </ul>
+
+                        <div className={'tab-content'}>
+                           <div id="ProfileTabs-pane-1" className={'fade tab-pane ' + (screen === 'classes' ? 'active' : '' )}>
+                              { locations.length > 1 ?
+                                 <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
+                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
+                                    <select 
+                                       className={formClass + '__select'} 
+                                       id={'calendar-filter-location'} 
+                                       data-name="filter_location"
+                                       data-origin="locations"
+                                       onChange={this.selectLocation.bind(this)}
+                                       >
+                                       <option value={''}>Ubicaciones</option>
+                                       {locations.map(function (location, index) {
+                                          return (
+                                             <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
+                                          );
+                                       })}
+                                    </select>
+                                 </div>
+
+                                 : null
+                              }
+                              <div className={profileClass + '__tab-section'}>
+                                    <h4 className={'this-title'}>Mis próximas clases</h4>
+                                    <FutureClasses />
                               </div>
+                              <hr></hr>
+                              <div className={profileClass + '__tab-section'}>
+                                    <h4 className={'this-title'}>Historial de clases</h4>
+                                    <PastClasses />
+                              </div>
+                              <hr></hr>
+                              <div className={profileClass + '__tab-section'}>
+                                    <h4 className={'this-title'}>Historial de compras</h4>
+                                    <PurchasesList /> 
+                              </div>
+                           </div>
 
-                              : null
-                           }
-                           <div className={profileClass + '__tab-section'}>
-                                 <h4 className={'this-title'}>Mis próximas clases</h4>
-                                 <FutureClasses />
-                           </div>
-                           <hr></hr>
-                           <div className={profileClass + '__tab-section'}>
-                                 <h4 className={'this-title'}>Historial de clases</h4>
-                                 <PastClasses />
-                           </div>
-                           <hr></hr>
-                           <div className={profileClass + '__tab-section'}>
-                                 <h4 className={'this-title'}>Historial de compras</h4>
-                                 <PurchasesList /> 
-                           </div>
-                        </Tab>
-
-                           <Tab eventKey={2} title={Strings.PROFILE}>
+                           <div id="ProfileTabs-pane-2" className={'fade tab-pane ' + (screen === 'profile' ? 'active' : '' )}>
                               <div className={profileClass + '__tab-content'}>
                                  <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
                                     <UserInfo info={this.state} updateState={this.updateState.bind(this)}
@@ -324,9 +354,9 @@ class ProfileUserInfo extends React.Component {
                                     </div>
                                  </form>
                               </div>
-                           </Tab>
+                           </div>
 
-                           <Tab eventKey={3} title={Strings.CHANGEPASSWORD}>
+                           <div id="ProfileTabs-pane-3" className={'fade tab-pane ' + (screen === 'password' ? 'active' : '' )}>
                               <div className={profileClass + '__tab-content'}>
                                  <form className={profileClass + '__form is-ChangePassword'} onSubmit={this.handleSubmit.bind(this)}>
                                        <ChangePassword info={this.state}
@@ -353,7 +383,8 @@ class ProfileUserInfo extends React.Component {
                                        </div>
                                  </form>
                               </div>
-                           </Tab>
+                           </div>
+                        </div>
 
                            {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
                               <CustomScroll heightRelativeToParent="100%">
@@ -375,7 +406,7 @@ class ProfileUserInfo extends React.Component {
                                  </div>
                               </div>
                            </Tab> */}
-                     </Tabs>
+                     </div>
                   </div>
                </div>
          </div>

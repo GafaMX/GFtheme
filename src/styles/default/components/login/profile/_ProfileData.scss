@@ -129,45 +129,45 @@
             border-bottom:0 transparent none;
 
             > li{
-                a{
-                    background: transparent;
-                    border-radius: 0;
-                    border:0;
-                    border-bottom: 1px solid lightgrey;
-                    cursor: pointer;
-                    font-size: 90%;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    font-weight: 600;
-                    color: lightgrey;
-                    margin: 0 .5rem;
-                    padding: 1rem 2rem;
-                    transition: .3s ease-in-out;
-                    transition-property: border-color, background-color, color;
-                    @media screen and (max-width: 1440px) {
-                        padding: .5rem 1rem;
-                    }
-                    &:hover{
-                        color: grey;
-                        background: transparent;
-                        border-color: grey;
-                    }
-                }
-                &:first-child{
-                    a{
-                        margin-left:0;
-                    }
-                }
-                &:last-child{
-                    a{
-                        margin-right:0;
-                    }
-                }
-                &.active a{
-                    color: white;
-                    background: black;
-                    border-color: black;
-                }
+               .GFSDK-c-tabs__link{
+                  background: transparent;
+                  border-radius: 0;
+                  border:0;
+                  border-bottom: 1px solid lightgrey;
+                  cursor: pointer;
+                  font-size: 90%;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                  font-weight: 600;
+                  color: lightgrey;
+                  margin: 0 .5rem;
+                  padding: 1rem 2rem;
+                  transition: .3s ease-in-out;
+                  transition-property: border-color, background-color, color;
+                  @media screen and (max-width: 1440px) {
+                     padding: .5rem 1rem;
+                  }
+                  &:hover{
+                     color: grey;
+                     background: transparent;
+                     border-color: grey;
+                  }
+               }
+               &:first-child{
+                  a{
+                     margin-left:0;
+                  }
+               }
+               &:last-child{
+                  a{
+                     margin-right:0;
+                  }
+               }
+               &.active a{
+                  color: white;
+                  background: black;
+                  border-color: black;
+               }
             }
         }
 

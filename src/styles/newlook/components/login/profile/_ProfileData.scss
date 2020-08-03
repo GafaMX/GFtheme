@@ -330,7 +330,7 @@ body.modal-open{
 
             > li{
                 display:block;
-                a{
+                .GFSDK-c-tabs__link{
                     position: relative;
                     background: transparent;
                     border: 0 transparent none;
@@ -345,6 +345,7 @@ body.modal-open{
                     transition-property: border-color, color;
                     // font-size: 12px;
                     font-size: 10px;
+                    cursor: pointer;
 
                     @media screen and (min-width:992px) {
                         font-size: 12px;
@@ -377,16 +378,16 @@ body.modal-open{
                     }
                 }
                 &:first-child{
-                    a{
+                  .GFSDK-c-tabs__link{
                         margin-left:0;
                     }
                 }
                 &:last-child{
-                    a{
+                  .GFSDK-c-tabs__link{
                         margin-right:0;
                     }
                 }
-                &.active a{
+                &.active  .GFSDK-c-tabs__link{
                     color:#1F1C3D;
 
                     &:before{
