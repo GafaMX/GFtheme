@@ -56,17 +56,17 @@
             width:100%;
          }
 
+         .#{$pre}-c-filter__item.is-service-filter,
          .#{$pre}-c-filter__item.is-location-filter{
             grid-template-rows: initial;
             @media only screen and (max-width:767px){
                width:100%;
             }
          }
-
+         
          .#{$pre}-c-Calendar__navigation,
          .#{$pre}-c-filter__item.is-day-filter,
-         .#{$pre}-c-filter__item.is-room-filter,
-         .#{$pre}-c-filter__item.is-service-filter
+         .#{$pre}-c-filter__item.is-room-filter
          {
             display: none;
          }

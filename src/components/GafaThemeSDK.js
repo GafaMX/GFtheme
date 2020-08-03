@@ -259,6 +259,7 @@ class GafaThemeSDK extends React.Component {
          domContainers.forEach(function (domContainer) {
             let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : 1000;
             let alignment = domContainer.getAttribute("config-bq-cal-alignment") ? domContainer.getAttribute("config-bq-cal-alignment") : 'vertical';
+            let filterService = domContainer.getAttribute("filter-bq-service") ? Boolean(domContainer.getAttribute("filter-bq-service")) : false;
    
             if(limit){
                if(limit > 3 && limit < 6){
@@ -273,6 +274,7 @@ class GafaThemeSDK extends React.Component {
             let props = {
                'limit': limit,
                'alignment': alignment,
+               'filter_service': filterService,
             };
    
             GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);

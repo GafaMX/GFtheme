@@ -183,7 +183,7 @@ class CalendarFilters extends React.Component {
     render() {
         let locations = CalendarStorage.get('locations');
         let rooms = CalendarStorage.get('rooms');
-        let {alignment} = this.props;
+        let {alignment, filterService} = this.props;
         let {time_of_day} = this.state;
         let filter_name = 'meetings-calendar--filters';
 
@@ -304,22 +304,39 @@ class CalendarFilters extends React.Component {
                             })}
                         </select>
                     </div>
+                     
+                     {alignment === 'horizontal' && filterService ?
+                           <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
+                              <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
+                                 data-origin="services"
+                                 onChange={this.selectFilter}>
+                                    <option value={''}>{Strings.SERVICE}</option>
+                                    {this.state.services.map(function (service, index) {
+                                       return (
+                                             <option value={service.id}
+                                                   className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
+                                                   key={`${filter_name}-service--option-${index}`}>{service.name}</option>
+                                       );
+                                    })}
+                              </select>
+                           </div>
 
-                     <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
-                        <label htmlFor={'calendar-filter-service'}  className={formClass + '__label'}>{Strings.SERVICE}: </label>
-                        <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
-                              data-origin="services"
-                              onChange={this.selectFilter}>
-                           <option value={''}>{Strings.ALL}</option>
-                           {this.state.services.map(function (service, index) {
-                              return (
-                                    <option value={service.id}
-                                          className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
-                                          key={`${filter_name}-service--option-${index}`}>{service.name}</option>
-                              );
-                           })}
-                        </select>
-                     </div>
+                        :  <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
+                              <label htmlFor={'calendar-filter-service'}  className={formClass + '__label'}>{Strings.SERVICE}: </label>
+                              <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
+                                    data-origin="services"
+                                    onChange={this.selectFilter}>
+                                 <option value={''}>{Strings.ALL}</option>
+                                 {this.state.services.map(function (service, index) {
+                                    return (
+                                          <option value={service.id}
+                                                className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
+                                                key={`${filter_name}-service--option-${index}`}>{service.name}</option>
+                                    );
+                                 })}
+                              </select>
+                           </div>
+                     }
                 </div>
                 <div className={calendarClass + '__navigation ' + navigationClass}>
                     <div className={navigationClass + '__prev'}>
