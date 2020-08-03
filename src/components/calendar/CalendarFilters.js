@@ -19,6 +19,7 @@ class CalendarFilters extends React.Component {
 
         this.state = {
             services: [],
+            staff: [],
             room_groups: [],
             time_of_day: null,
             has_next: true,
@@ -26,7 +27,7 @@ class CalendarFilters extends React.Component {
         };
 
       CalendarStorage.addSegmentedListener(['rooms', 'filter_location'], this.updateRooms.bind(this));
-      CalendarStorage.addSegmentedListener(['meetings'], this.updateServices.bind(this));
+      CalendarStorage.addSegmentedListener(['meetings'], this.updateServicesStaff.bind(this));
       CalendarStorage.addSegmentedListener(['start_date'], this.updateStart.bind(this));
       CalendarStorage.addSegmentedListener(['filter_time_of_day'], this.updateTimeOfDay.bind(this));
 
@@ -36,22 +37,36 @@ class CalendarFilters extends React.Component {
       this.getNextButton = this.getNextButton.bind(this);
     }
 
-   updateServices() {
+   updateServicesStaff() {
       let meetings = CalendarStorage.get('meetings');
       let services = [];
+      let personal = [];
 
       meetings.forEach(function (meeting) {
          let service = meeting.service;
+         
          if (service && !services.find(o => o.id === service.id)) {
-               services.push(service);
+            services.push(service);
          }
       });
 
+
+      meetings.forEach(function (meeting) {
+         let staff = meeting.staff;
+
+         if (staff && !personal.find(i => i.id === staff.id)) {
+            personal.push(staff);
+         }
+
+      });
+      
       this.setState({
-         services: services
+         services: services,
+         staff: personal
       });
 
       CalendarStorage.set('services', services);
+      CalendarStorage.set('staff', personal);
    }
 
     updateRooms() {
@@ -183,7 +198,7 @@ class CalendarFilters extends React.Component {
     render() {
         let locations = CalendarStorage.get('locations');
         let rooms = CalendarStorage.get('rooms');
-        let {alignment, filterService} = this.props;
+        let {alignment, filterService, filterStaff} = this.props;
         let {time_of_day} = this.state;
         let filter_name = 'meetings-calendar--filters';
 
@@ -306,7 +321,7 @@ class CalendarFilters extends React.Component {
                     </div>
                      
                      {alignment === 'horizontal' && filterService ?
-                           <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
+                           <div className={filterClass + '__item ' + formClass + '__section is-service-filter is-horizontal ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
                               <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
                                  data-origin="services"
                                  onChange={this.selectFilter}>
@@ -316,6 +331,40 @@ class CalendarFilters extends React.Component {
                                              <option value={service.id}
                                                    className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
                                                    key={`${filter_name}-service--option-${index}`}>{service.name}</option>
+                                       );
+                                    })}
+                              </select>
+                           </div>
+
+                        :  <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
+                              <label htmlFor={'calendar-filter-service'}  className={formClass + '__label'}>{Strings.SERVICE}: </label>
+                              <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
+                                    data-origin="services"
+                                    onChange={this.selectFilter}>
+                                 <option value={''}>{Strings.ALL}</option>
+                                 {this.state.services.map(function (service, index) {
+                                    return (
+                                          <option value={service.id}
+                                                className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
+                                                key={`${filter_name}-service--option-${index}`}>{service.name}</option>
+                                    );
+                                 })}
+                              </select>
+                           </div>
+                     }
+
+
+                     {alignment === 'horizontal' && filterStaff ?
+                           <div className={filterClass + '__item ' + formClass + '__section is-staff-filter is-horizontal ' + (this.state.staff.length <= 1 ? 'is-empty' : '' )}>
+                              <select className={formClass + '__select'} id={'calendar-filter-staff'} data-name="filter_staff"
+                                 data-origin="staff"
+                                 onChange={this.selectFilter}>
+                                    <option value={''}>{Strings.STAFF_LIST}</option>
+                                    {this.state.staff.map(function (member, index) {
+                                       return (
+                                             <option value={member.id}
+                                                   className={member.parent_id ? 'calendar-filter-child-staff' : 'calendar-filter-parent-staff'}
+                                                   key={`${filter_name}-staff--option-${index}`}>{member.name}</option>
                                        );
                                     })}
                               </select>

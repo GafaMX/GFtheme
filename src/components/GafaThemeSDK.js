@@ -260,6 +260,7 @@ class GafaThemeSDK extends React.Component {
             let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : 1000;
             let alignment = domContainer.getAttribute("config-bq-cal-alignment") ? domContainer.getAttribute("config-bq-cal-alignment") : 'vertical';
             let filterService = domContainer.getAttribute("filter-bq-service") ? Boolean(domContainer.getAttribute("filter-bq-service")) : false;
+            let filterStaff = domContainer.getAttribute("filter-bq-staff") ? Boolean(domContainer.getAttribute("filter-bq-staff")) : false;
    
             if(limit){
                if(limit > 3 && limit < 6){
@@ -275,6 +276,7 @@ class GafaThemeSDK extends React.Component {
                'limit': limit,
                'alignment': alignment,
                'filter_service': filterService,
+               'filter_staff': filterStaff,
             };
    
             GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);

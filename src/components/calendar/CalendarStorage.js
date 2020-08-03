@@ -4,6 +4,8 @@ const CalendarStorage = {
 
     locations: [],
     services: [],
+
+    staff: [],
     
     rooms: [],
     meetings: [],
@@ -11,6 +13,7 @@ const CalendarStorage = {
     filter_location: null,
     filter_room: null,
     filter_service: null,
+    filter_staff: null,
     start_date: null,
     show_login: null,
     filter_time_of_day: null,

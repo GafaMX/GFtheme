@@ -25,7 +25,7 @@ class CalendarBody extends React.Component {
          widthCalendar: null,
       };
 
-      CalendarStorage.addSegmentedListener(['filter_location', 'filter_service', 'filter_room', 'meetings', 'start_date', 'filter_time_of_day'], this.updateMeetings.bind(this));
+      CalendarStorage.addSegmentedListener(['filter_location', 'filter_service', 'filter_staff', 'filter_room', 'meetings', 'start_date', 'filter_time_of_day'], this.updateMeetings.bind(this));
       this.updateDimensions = this.updateDimensions.bind(this);
     }
 
@@ -79,6 +79,7 @@ class CalendarBody extends React.Component {
       let location = CalendarStorage.get('filter_location');
       let service = CalendarStorage.get('filter_service');
       let room = CalendarStorage.get('filter_room');
+      let staff = CalendarStorage.get('filter_staff');
       let meetings = CalendarStorage.get('meetings');
       let start = CalendarStorage.get('start_date');
       let end = new Date(start.getTime());
@@ -96,6 +97,12 @@ class CalendarBody extends React.Component {
       if (service) {
          meetings = meetings.filter(function (meeting) {
                return meeting.services_id === service.id;
+         })
+      }
+
+      if (staff) {
+         meetings = meetings.filter(function (meeting) {
+            return meeting.staff_id === staff.id;
          })
       }
 
