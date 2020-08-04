@@ -52,7 +52,7 @@ export default {
     DAYS: "días",
     MEMBERSHIPS: "Membresías",
     COMBOS: "Paquetes",
-    STAFF_LIST: "Instructores",
+    STAFF_LIST: "Staff",
     SERVICE_LIST: "Servicios",
     ALL: 'Todos',
     LOCATION: 'Ubicación',
