@@ -286,7 +286,7 @@ class ProfileUserInfo extends React.Component {
                         </ul>
 
                         <div className={'tab-content'}>
-                           <div id="ProfileTabs-pane-1" className={'fade tab-pane ' + (screen === 'classes' ? 'active' : '' )}>
+                           <div id="ProfileTabs-pane-1" className={'fade tab-pane ' + (screen === 'classes' ? 'active in' : '' )}>
                               { locations.length > 1 ?
                                  <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
                                     {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
@@ -324,7 +324,7 @@ class ProfileUserInfo extends React.Component {
                               </div>
                            </div>
 
-                           <div id="ProfileTabs-pane-2" className={'fade tab-pane ' + (screen === 'profile' ? 'active' : '' )}>
+                           <div id="ProfileTabs-pane-2" className={'fade tab-pane ' + (screen === 'profile' ? 'active in' : '' )}>
                               <div className={profileClass + '__tab-content'}>
                                  <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
                                     <UserInfo info={this.state} updateState={this.updateState.bind(this)}
@@ -356,7 +356,7 @@ class ProfileUserInfo extends React.Component {
                               </div>
                            </div>
 
-                           <div id="ProfileTabs-pane-3" className={'fade tab-pane ' + (screen === 'password' ? 'active' : '' )}>
+                           <div id="ProfileTabs-pane-3" className={'fade tab-pane ' + (screen === 'password' ? 'active in' : '' )}>
                               <div className={profileClass + '__tab-content'}>
                                  <form className={profileClass + '__form is-ChangePassword'} onSubmit={this.handleSubmit.bind(this)}>
                                        <ChangePassword info={this.state}
