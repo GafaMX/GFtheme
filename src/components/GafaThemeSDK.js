@@ -17,6 +17,8 @@ import Calendar from "./calendar/Calendar";
 import ProfileUserInfo from "./profile/info/ProfileUserInfo";
 import LoginRegister from "./menu/LoginRegister";
 
+import "../styles/default/reset.scss";
+
 class GafaThemeSDK extends React.Component {
     constructor(props) {
         super(props);

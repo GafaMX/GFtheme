@@ -72,6 +72,10 @@
 
             &.is-horizontal{
                display: grid;
+
+               &.is-empty{
+                  display: none;
+               }
             }
          }
          position: absolute;
