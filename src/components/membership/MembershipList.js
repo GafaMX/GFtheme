@@ -87,7 +87,7 @@ class MembershipList extends React.Component {
             const {className, onClick} = props;
             return (
                 <div className={className + ' ' + paginationClass + '__controls is-next'}>
-                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
+                    <button className={buttonClass + ' ' + buttonClass + '--icon'} onClick={onClick}>
                         <IconRightArrow />
                     </button>
                 </div>
@@ -98,7 +98,7 @@ class MembershipList extends React.Component {
             const {className, onClick} = props;
             return (
                 <div className={className + ' ' + paginationClass + '__controls is-prev'}>
-                    <button className={buttonClass + ' ' + buttonClass + '--icon is-primary is-small'} onClick={onClick}>
+                    <button className={buttonClass + ' ' + buttonClass + '--icon'} onClick={onClick}>
                         <IconLeftArrow />
                     </button>
                 </div>
@@ -106,7 +106,7 @@ class MembershipList extends React.Component {
         };
 
         let settings = {
-            dots: true,
+            dots: false,
             speed: 500,
             infinite: false,
             slidesToShow: 4,

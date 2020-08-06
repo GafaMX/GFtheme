@@ -20,7 +20,7 @@
       background-color:#FAFAFA;
       grid-auto-flow: initial;
       grid-template-columns: 80px 1fr;
-      height: 58px;
+      height: 78px;
       padding:0;
 
       @media only screen and (min-width:992px) {
@@ -111,6 +111,7 @@
          display: inline-grid;
          align-items: center;
          height: initial;
+         row-gap: .5rem;
          padding: 5px 15px;
          box-sizing: border-box;
 
@@ -119,9 +120,14 @@
             color:#000000;
          }
          
-         .this-service{
+         .this-service, .this-location{
             font-size: 11px;
+            letter-spacing: .1px;
             color: #BBBBBC;
+         }
+
+         .this-location{
+            font-weight: 600;
          }
       }
 

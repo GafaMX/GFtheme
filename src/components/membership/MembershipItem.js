@@ -64,11 +64,11 @@ class MembershipItem extends React.Component {
         const services = this.getServicesAndParentsForMembership();
         let {membership} = this.props;
         return (
-            <div className={membershipClass + '__item ' + productClass} onClick={!this.props.has_button ? this.handleClick.bind(this) : null}>
+            <div className={membershipClass + '__item ' + productClass} >
                 <div className={productClass + '__head'}>
                     <h3 className={'this-name'}>{this.props.membership.name}</h3>
                 </div>
-                <hr className={productClass + '__divider'}></hr>
+                {/* <hr className={productClass + '__divider'}></hr> */}
                 <div className={productClass + '__body'}>
                     {this.props.membership.has_discount &&
                     <div>
@@ -85,15 +85,13 @@ class MembershipItem extends React.Component {
                         </p>
                      </div>
                     
-                     {membership.short_description
+                     {/* {membership.short_description
                         ?   <p className={'this-shortDescription'}>{membership.short_description}</p>
                         :   null
-                     }
+                     } */}
 
-                     {this.props.has_button 
-                        ?  <button onClick={this.handleClick.bind(this)}> Comprar </button>
-                        :  null
-                     } 
+                     <button className="buq-accentColor" onClick={this.handleClick.bind(this)}> Comprar </button>
+
                 </div>
                 <div className={productClass + '__footer'}>
                     {membership.expiration_days

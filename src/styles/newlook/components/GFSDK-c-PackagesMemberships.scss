@@ -3,29 +3,29 @@
 .#{$pre}-c-membershipList,
 .#{$pre}-c-comboList
 {
-    width: 100%;
-    padding-right: 15px;
-    padding-left: 15px;
-    margin-right: auto;
-    margin-left: auto;
+   width: 100%;
+   max-width:100%;
+   padding:0;
+   margin-right: auto;
+   margin-left: auto;
 
-    & > *{
-        font-family: 'DM Sans', sans-serif;
-    }
+   & > *{
+      font-family: 'DM Sans', sans-serif;
+   }
 
-    @media (min-width: 576px){
-        max-width: 540px;
-    }
-    @media (min-width: 768px){
-        max-width: 720px;
-    }
-    @media (min-width: 992px){
-        max-width: 960px;
-    }
+   // @media (min-width: 576px){
+   //    max-width: 540px;
+   // }
+   // @media (min-width: 768px){
+   //    max-width: 720px;
+   // }
+   // @media (min-width: 992px){
+   //    max-width: 960px;
+   // }
 
-    @media (min-width: 992px){
-        max-width: 1140px;
-    }
+   // @media (min-width: 992px){
+   //    max-width: 1140px;
+   // }
 
     &__container{
         display: grid;
@@ -34,8 +34,13 @@
 
         .slick-slide{
             & > div{
-                padding:15px;
+               box-sizing: border-box;
+               overflow: visible;
             }
+        }
+
+        .slick-list{
+         border:1px solid #EEEEEE
         }
 
         &.slick-centered{

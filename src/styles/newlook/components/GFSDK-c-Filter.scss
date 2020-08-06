@@ -133,6 +133,7 @@
    }
 
    &__item{
+      position: relative;
       select{
          @media (min-width: 992px){
             width:130px;

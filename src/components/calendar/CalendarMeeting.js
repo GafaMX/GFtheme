@@ -100,7 +100,7 @@ class CalendarMeeting extends React.Component {
                         }
                         <p className={'this-staff'}>{meeting.staff.name}</p>
                         {alignment === 'horizontal' ? <p className={'this-service'}>{meeting.service.name}</p> :  null }
-                        {alignment === 'vertical' ? <p className={'this-location'}>{location ? location.name : ''}</p> :  null }
+                        <p className={'this-location'}>{location ? location.name : ''}</p>
                         
                     </div>
             </div>

@@ -61,11 +61,11 @@ class ComboItem extends React.Component {
         const services = this.getServicesAndParentsForCombo();
 
         return (
-            <div className={comboClass + 'item ' + productClass} onClick={!this.props.has_button ? this.handleClick.bind(this) : null}>
+            <div className={comboClass + 'item ' + productClass}>
                <div className={productClass + '__head'}>
                   <h3 className="this-name">{this.props.combo.name}</h3>
                </div>
-                <hr className={productClass + '__divider'}></hr>
+                {/* <hr className={productClass + '__divider'}></hr> */}
                 <div className={productClass + '__body'}>
                     {this.props.combo.has_discount &&
                         <div>
@@ -82,15 +82,13 @@ class ComboItem extends React.Component {
                         </p>
                     </div>
 
-                     {combo.short_description
+                     {/* {combo.short_description
                         ?   <p className={'this-shortDescription'}>{combo.short_description}</p>
                         :   null
-                     }
+                     } */}
 
-                     {this.props.has_button 
-                        ?  <button onClick={this.handleClick.bind(this)}> Comprar </button>
-                        :  null
-                     } 
+                     <button className="buq-accentColor" onClick={this.handleClick.bind(this)}> Comprar </button>
+
                 </div>
                 <div className={productClass + '__footer'}>
                     {combo.expiration_days

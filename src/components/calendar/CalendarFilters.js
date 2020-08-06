@@ -8,6 +8,7 @@ import CalendarStorage from "./CalendarStorage";
 import MorningIcon from "../utils/Icons/MorningIcon";
 import AfternoonIcon from "../utils/Icons/AfternoonIcon";
 import AllTimeIcon from "../utils/Icons/AllTimeIcon";
+import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
 import moment from 'moment';
 import Select from 'react-select';
 import GlobalStorage from "../store/GlobalStorage";
@@ -270,6 +271,9 @@ class CalendarFilters extends React.Component {
                                     );
                                  })}
                            </select>
+                           <div className={formClass + '__select-icon'}>
+                                    <IconSelectDownArrow />
+                              </div>
                         </div>
                         :
                         <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
@@ -334,6 +338,9 @@ class CalendarFilters extends React.Component {
                                        );
                                     })}
                               </select>
+                              <div className={formClass + '__select-icon'}>
+                                 <IconSelectDownArrow />
+                              </div>
                            </div>
 
                         :  <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
@@ -368,6 +375,9 @@ class CalendarFilters extends React.Component {
                                        );
                                     })}
                               </select>
+                              <div className={formClass + '__select-icon'}>
+                                    <IconSelectDownArrow />
+                              </div>
                            </div>
 
                         :  <div className={filterClass + '__item ' + formClass + '__section is-service-filter ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>

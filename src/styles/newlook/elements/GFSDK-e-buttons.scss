@@ -50,6 +50,7 @@
         background-color: #FF3E4F;
         color: #FFFFFF;
         fill: #FFFFFF;
+        border: 0 transparent none;
         @include transition(background-color);
 
         &:hover{
@@ -156,7 +157,9 @@
         height: 40px;
         width: 40px;
         border-radius: 50%;
+        border: 1px solid rgb(151, 151, 151);
         padding:10px;
+        color: rgb(151, 151, 151);
 
         &.is-small{
             height:30px;
