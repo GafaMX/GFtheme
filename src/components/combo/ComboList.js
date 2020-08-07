@@ -24,6 +24,7 @@ class ComboList extends React.Component {
 
       this.state = {
          showLogin: false,
+         showRegister: false,
          list: this.props.list,
          weAreHome: false,
          per_slide: this.props.per_slide,
@@ -62,6 +63,12 @@ class ComboList extends React.Component {
    setShowLogin(showLogin) {
       this.setState({
          showLogin: showLogin
+      });
+   }
+
+   setShowRegister(showRegister) {
+      this.setState({
+         showRegister: showRegister
       });
    }
 
@@ -150,10 +157,10 @@ class ComboList extends React.Component {
                   ){
                      if(this.props.filterByName){
                         if(combo.name.includes(this.props.filterByName)){
-                           return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowLogin={this.setShowLogin.bind(this)}/>
+                           return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowRegister={this.setShowRegister.bind(this)}/>
                         } 
                      } else {
-                        return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowLogin={this.setShowLogin.bind(this)}/>
+                        return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowRegister={this.setShowRegister.bind(this)}/>
                      }
                   }
                }
@@ -162,10 +169,10 @@ class ComboList extends React.Component {
                   if(this.state.weAreHome === false && combo.status === 'active' || this.state.weAreHome === true && combo.status === 'active'){
                      if(this.props.filterByName){
                         if(combo.name.includes(this.props.filterByName)){
-                           return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowLogin={this.setShowLogin.bind(this)}/>
+                           return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowRegister={this.setShowRegister.bind(this)}/>
                         } 
                      } else {
-                        return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowLogin={this.setShowLogin.bind(this)}/>
+                        return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowRegister={this.setShowRegister.bind(this)}/>
                      }
                   }
                }
@@ -178,8 +185,8 @@ class ComboList extends React.Component {
                {listItems}
             </Slider>
 
-            {this.state.showLogin &&
-               <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
+            {this.state.showRegister &&
+               <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
             }
          </div>
       );

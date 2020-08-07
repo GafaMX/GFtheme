@@ -35,9 +35,9 @@ class CalendarMeeting extends React.Component {
 
       GafaFitSDKWrapper.isAuthenticated(function(auth){
          if (auth) {
-               currentElement.showBuyFancyForLoggedUsers();
+            currentElement.showBuyFancyForLoggedUsers();
          } else {
-               currentElement.showLoginForNotLoggedUsers();
+            currentElement.showRegisterForNotLoggedUsers();
          }
       });
    };
@@ -50,13 +50,23 @@ class CalendarMeeting extends React.Component {
       }
    }
 
-    showLoginForNotLoggedUsers() {
-        let location = CalendarStorage.find('locations', this.props.meeting.locations_id);
-        window.GFtheme.meetings_id = this.props.meeting.id;
-        window.GFtheme.location_slug = location.slug;
-        let login = CalendarStorage.get('show_login');
-        login(true);
-    }
+   showLoginForNotLoggedUsers() {
+      let location = CalendarStorage.find('locations', this.props.meeting.locations_id);
+      window.GFtheme.meetings_id = this.props.meeting.id;
+      window.GFtheme.location_slug = location.slug;
+
+      let login = CalendarStorage.get('show_login');
+      login(true);
+   }
+
+   showRegisterForNotLoggedUsers() {
+      let location = CalendarStorage.find('locations', this.props.meeting.locations_id);
+      window.GFtheme.meetings_id = this.props.meeting.id;
+      window.GFtheme.location_slug = location.slug;
+      
+      let register = CalendarStorage.get('show_register');
+      register(true);
+   }
 
     render() {
         let {meeting, alignment} = this.props;

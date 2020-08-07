@@ -22,6 +22,7 @@ class Calendar extends React.Component {
 
         this.state = {
             showLogin: false,
+            showRegister: false,
             calendarHeight: CalendarStorage.get('calendarHeight'),
             calendarWidth: CalendarStorage.get('calendarWidth'),
             currentLocation: GlobalStorage.get('currentLocation'),
@@ -32,6 +33,7 @@ class Calendar extends React.Component {
 
       //   CalendarStorage.set('locations', this.props.locations);
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
+        CalendarStorage.set('show_register', this.setShowRegister.bind(this));
       //   this.getMeetings = this.getMeetings.bind(this);
         CalendarStorage.addSegmentedListener(['calendarHeight', 'calendarWidth'], this.updateCalendarDimensions.bind(this));
         CalendarStorage.addSegmentedListener(['filter_location'], this.updateCalendar.bind(this));
@@ -69,11 +71,17 @@ class Calendar extends React.Component {
       })
    }
 
-    setShowLogin(showLogin) {
+   setShowLogin(showLogin) {
       this.setState({
          showLogin: showLogin
       });
-    }
+   }
+
+   setShowRegister(showRegister) {
+      this.setState({
+         showRegister: showRegister
+      });
+   }
 
     render() {
       let preC = 'GFSDK-c';
@@ -95,8 +103,8 @@ class Calendar extends React.Component {
                   />
                   <CalendarBody alignment={this.props.alignment} limit={this.props.limit} />
                </div>
-               {this.state.showLogin &&
-               <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
+               {this.state.showRegister &&
+               <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
                }
          </div>
       );

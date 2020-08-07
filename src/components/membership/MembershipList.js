@@ -23,6 +23,7 @@ class MembershipList extends React.Component {
 
         this.state = {
             showLogin: false,
+            showRegister: false,
             list: this.props.list,
             weAreHome: false,
             per_slide: this.props.per_slide,
@@ -49,14 +50,14 @@ class MembershipList extends React.Component {
 
         GafaFitSDKWrapper.getMembershipListWithoutBrand(currentLocation.brand.slug,
             {
-                per_page: 10,
-                only_actives: true,
-                propagate: true,
+               per_page: 10,
+               only_actives: true,
+               propagate: true,
             }, function (result) {
-                let functionReturns = GafaThemeSDK.propsForPagedListComponent(result);
-                component.setState({
-                    list: functionReturns.list
-                });
+               let functionReturns = GafaThemeSDK.propsForPagedListComponent(result);
+               component.setState({
+                  list: functionReturns.list
+               });
         });
     }
 
@@ -65,6 +66,12 @@ class MembershipList extends React.Component {
             showLogin: showLogin
         });
     }
+
+    setShowRegister(showRegister) {
+      this.setState({
+         showRegister: showRegister
+      });
+   }
 
     updatePaginationData(result) {
         this.setState({
@@ -145,38 +152,38 @@ class MembershipList extends React.Component {
             ],
         };
 
-        const listItems = this.state.list.map((membership) =>{
+         const listItems = this.state.list.map((membership) =>{
             if(membership.hide_in_front){
-                if(membership.hide_in_front === false || membership.hide_in_front === 0){
-                    if(
-                        this.state.weAreHome === false && membership.status === 'active' ||
-                        this.state.weAreHome === true && membership.status === 'active' && membership.hide_in_home != true
-                    ){
-                        return <MembershipItem key={membership.id} has_button={this.props.has_button} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
-                    }
-                }
+               if(membership.hide_in_front === false || membership.hide_in_front === 0){
+                  if(
+                     this.state.weAreHome === false && membership.status === 'active' ||
+                     this.state.weAreHome === true && membership.status === 'active' && membership.hide_in_home != true
+                  ){
+                     return <MembershipItem key={membership.id} membership={membership} setShowRegister={this.setShowRegister.bind(this)}/>
+                  }
+               }
             } else {
-                if(membership.hide_in_home === false){
-                    if(
-                        this.state.weAreHome === false && membership.status === 'active' ||
-                        this.state.weAreHome === true && membership.status === 'active'
-                    ){
-                        return <MembershipItem key={membership.id} has_button={this.props.has_button} membership={membership} setShowLogin={this.setShowLogin.bind(this)}/>
-                    }
-                }
+               if(membership.hide_in_home === false){
+                  if(
+                     this.state.weAreHome === false && membership.status === 'active' ||
+                     this.state.weAreHome === true && membership.status === 'active'
+                  ){
+                     return <MembershipItem key={membership.id} membership={membership} setShowRegister={this.setShowRegister.bind(this)}/>
+                  }
+               }
             }
-        });
+         });
 
         return (
             <div className={membershipClass}>
-                <Slider {...settings} className={(membershipClass + '__container ')}>
-                    {listItems}
-                </Slider>
+               <Slider {...settings} className={(membershipClass + '__container ')}>
+                  {listItems}
+               </Slider>
 
-                {
-                    this.state.showLogin &&
-                    <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
-                }
+               {
+                  this.state.showRegister &&
+                  <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
+               }
             </div>
         );
     }

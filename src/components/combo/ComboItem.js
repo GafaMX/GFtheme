@@ -27,10 +27,10 @@ class ComboItem extends React.Component {
         GafaFitSDKWrapper.getFancyForBuyCombo(this.props.combo.id, function (result) {});
     }
 
-    showLoginForNotLoggedUsers() {
-        window.GFtheme.combo_id = this.props.combo.id;
-        this.props.setShowLogin(true);
-    }
+   showLoginForNotLoggedUsers() {
+      window.GFtheme.combo_id = this.props.combo.id;
+      this.props.setShowRegister(true);
+   }
 
     getServicesAndParentsForCombo() {
         let servicesAndParentsForCombo = [];

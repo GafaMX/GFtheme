@@ -30,7 +30,7 @@ class MembershipItem extends React.Component {
 
     showLoginForNotLoggedUsers() {
         window.GFtheme.membership_id = this.props.membership.id;
-        this.props.setShowLogin(true);
+        this.props.setShowRegister(true);
     }
 
     getServicesAndParentsForMembership() {

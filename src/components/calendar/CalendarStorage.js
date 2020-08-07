@@ -7,6 +7,10 @@ const CalendarStorage = {
 
     staff: [],
     
+    show_login: null,
+    show_register: null,
+
+
     rooms: [],
     meetings: [],
     currentLocation: null,
@@ -15,7 +19,6 @@ const CalendarStorage = {
     filter_service: null,
     filter_staff: null,
     start_date: null,
-    show_login: null,
     filter_time_of_day: null,
     calendarHeight: null,
     calendarWidth: null,
