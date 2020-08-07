@@ -212,6 +212,7 @@ class CalendarFilters extends React.Component {
 
         return (
             <div className={calendarClass + '__head' + (alignment === 'horizontal' ? '-horizontal' : '')}>
+               {alignment === 'horizontal' ? <p className={formClass + '__label'}>Filtros:</p> : null}
                 <div className={calendarClass + '__filter ' + filterClass}>
                     <div className={filterClass + '__item ' + formClass + '__section is-day-filter'}>
                         <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
@@ -260,7 +261,7 @@ class CalendarFilters extends React.Component {
 
                     {alignment === 'horizontal'
                         ?
-                        <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
+                        <div className={filterClass + '__item ' + formClass + '__section is-location-filter is-horizontal' + (locations.length <= 1 ? 'is-empty' : '' )}>
                            <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
                                  data-origin="locations"
                                  onChange={this.selectLocation.bind(this)}>

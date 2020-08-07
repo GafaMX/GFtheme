@@ -259,7 +259,7 @@ class GafaThemeSDK extends React.Component {
       let domContainers = document.querySelectorAll(selector);
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
-            let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : 1000;
+            let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : '';
             let alignment = domContainer.getAttribute("config-bq-cal-alignment") ? domContainer.getAttribute("config-bq-cal-alignment") : 'vertical';
             let filterService = domContainer.getAttribute("filter-bq-service") ? Boolean(domContainer.getAttribute("filter-bq-service")) : false;
             let filterStaff = domContainer.getAttribute("filter-bq-staff") ? Boolean(domContainer.getAttribute("filter-bq-staff")) : false;
