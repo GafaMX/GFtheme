@@ -47,12 +47,12 @@
     }
 
     &:hover{
-        border-color: #EF3532;
+      border-color: #EF3532;
 
-        & > hr{
-            background-color: #EF3532;
-        }
-    }
+      & > hr{
+         background-color: #EF3532;
+      }
+   }
 
     @include cleanStyles;
 
@@ -108,10 +108,9 @@
 
    &__body{
       .horizontal &{
-         display: inline-grid;
+         display: block;
          align-items: center;
          height: initial;
-         row-gap: .5rem;
          padding: 5px 15px;
          box-sizing: border-box;
 

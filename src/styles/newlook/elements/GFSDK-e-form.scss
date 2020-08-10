@@ -31,6 +31,7 @@
       color:#575757;
       background-color:transparent;
       width:100%;
+      height:initial!important;
       cursor: pointer;
       letter-spacing: 1.15px;
 
@@ -147,11 +148,11 @@
     }
     
     &__label{
-        font-size:12px;
-        letter-spacing: 1.15px;
-        font-weight: 300;
-        color:#444444;
-        margin-bottom: 0;
+      font-size:12px;
+      letter-spacing: 1.15px;
+      font-weight: 300;
+      color:#444444;
+      margin: 0;
     }
     
     &__input{

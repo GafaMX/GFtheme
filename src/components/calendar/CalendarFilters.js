@@ -212,7 +212,10 @@ class CalendarFilters extends React.Component {
 
         return (
             <div className={calendarClass + '__head' + (alignment === 'horizontal' ? '-horizontal' : '')}>
-               {alignment === 'horizontal' ? <p className={formClass + '__label'}>Filtros:</p> : null}
+               {alignment === 'horizontal' 
+                  ?  <p className={formClass + '__label'}>Filtros:</p> 
+                  :  null
+               }
                 <div className={calendarClass + '__filter ' + filterClass}>
                     <div className={filterClass + '__item ' + formClass + '__section is-day-filter'}>
                         <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
