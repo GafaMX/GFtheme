@@ -11,6 +11,11 @@
     letter-spacing: 1.15px;
     border: 0 transparent none;
 
+    &:disabled{
+       opacity:.6;
+       pointer-events: none;
+    }
+
     &:hover{
         text-decoration: none;
     }

@@ -10,13 +10,12 @@
         border: 0 none transparent;
         border-radius: 0;
         .modal-title{
-            display: inline-block;
+            display: block;
             font-size:22px;
             font-weight: 700;
-            width:50%;
+            width:100%;
+            text-align: center;
             letter-spacing: 1.15px;
-            // text-transform: uppercase;
-            text-align:left;
             padding:0;
             color: #1F1C3D;
         }
@@ -65,16 +64,17 @@
 
     .modal-footer{
         border:0 none transparent;
-        position:absolute;
-        width:calc(100% - 30px);
-        bottom:15px;
-        left: 15px;
 
         ul {
+           display: block;
+           width:100%;
+           padding:0;
             li{
                 list-style-type: none;
+                text-align: center;
 
                 a{
+
                     font-size:12px;
                     line-height: 1.4;
                     letter-spacing: 0.85px;
@@ -92,41 +92,46 @@
 }
 
 .modal-login, .modal-register, .modal-password{
+
+   &__container{
+      max-width:100%;
+      width:100%;
+      display: inline-grid;
+      
+      @media only screen and (min-width:992px){
+         max-width:600px;
+      }
+   }
+   
+   .modal-content{
+      box-shadow: none;
+      display: grid;
+      align-items: center;
+      justify-items: center;
+   }
+
     .modal-header{
         .close{
             color: #FF3E4F;
         }
     }
 
-    .modal-body form{
-        display: grid;
-        row-gap: 15px;
-    }
-
-    .modal-content{
-        height:100%;
-        width:100%;
-        border-radius: 0;
-        box-shadow: none;
-        
 
 
-        & > .row{
-            height:100%;
+   .modal-body form {
+      .GFSDK-e-form__section{
+         margin-bottom:15px;
+      }
 
-            [class*='col-']{
-                display:flex;
-                flex-flow:column nowrap;
-                justify-content:center;
-            }
-        }
-    }
+      button[type="submit"]{
+         margin-top:20px;
+      }
+   }
 }
 
 .modal-login{
 
     &__header{
-        
         h4{
             font-size:18px;
             letter-spacing: 1.15px;

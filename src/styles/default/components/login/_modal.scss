@@ -7,13 +7,7 @@
         display: block;
         border: 0 none transparent;
         border-radius: 0;
-        .modal-title{
-            display: inline-block;
-            font-size:220%;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
+        
         .close{
             position:fixed;
             height:30px;
@@ -55,6 +49,15 @@
 }
 
 .modal-login, .modal-register, .modal-password{
+
+   &__container{
+      max-width:100%;
+
+      @media only screen and (min-width:992px){
+         max-width:600px;
+      }
+   }
+
     .modal-header{
         .close{
             color:white;
