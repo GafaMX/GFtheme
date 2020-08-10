@@ -18,14 +18,15 @@ class CalendarFilters extends React.Component {
     constructor() {
         super();
 
-        this.state = {
-            services: [],
-            staff: [],
-            room_groups: [],
-            time_of_day: null,
-            has_next: true,
-            has_prev: false,
-        };
+      this.state = {
+         services: [],
+         filter_service:'',
+         staff: [],
+         room_groups: [],
+         time_of_day: null,
+         has_next: true,
+         has_prev: false,
+      };
 
       CalendarStorage.addSegmentedListener(['rooms', 'filter_location'], this.updateRooms.bind(this));
       CalendarStorage.addSegmentedListener(['services'], this.updateServiceFilter.bind(this));
@@ -37,6 +38,7 @@ class CalendarFilters extends React.Component {
       this.prevWeek = this.prevWeek.bind(this);
       this.hasNextPrev = this.hasNextPrev.bind(this);
       this.getNextButton = this.getNextButton.bind(this);
+      this.selectFilter = this.selectFilter.bind(this);
    }
 
    componentDidMount(){
@@ -122,14 +124,18 @@ class CalendarFilters extends React.Component {
    }
 
    selectFilter(e) {
+      let curComp = this;
       let name = e.target.getAttribute('data-name');
       let origin = e.target.getAttribute('data-origin');
       let id = e.target.value;
       let model = null;
       if (id && id !== '')
          model = CalendarStorage.find(origin, id);
-
       CalendarStorage.set(name, model);
+
+      if(name === 'filter_service'){
+         curComp.setState({filter_service: model});
+      }
    }
 
    updateStore(e) {
@@ -146,11 +152,13 @@ class CalendarFilters extends React.Component {
 
    updateServiceFilter() {
       let services = CalendarStorage.get('services');
+      let curComp = this;
       let {filterServiceDefault} = this.props;
 
       if(filterServiceDefault){
          let search = services.find(function(service){ return filterServiceDefault.toUpperCase() === service.name.toUpperCase()});
          CalendarStorage.set('filter_service', search);
+         curComp.setState({filter_service: search});
       }
    }
 
@@ -213,7 +221,7 @@ class CalendarFilters extends React.Component {
    render() {
       let locations = CalendarStorage.get('locations');
       let filter_location = CalendarStorage.get('filter_location');
-      let filter_service = CalendarStorage.get('filter_service');
+      let {filter_service} = this.state;
       let rooms = CalendarStorage.get('rooms');
       let {filterService, filterStaff} = this.props;
       let {time_of_day} = this.state;
@@ -336,8 +344,8 @@ class CalendarFilters extends React.Component {
                                  {this.state.services.map(function (service, index) {
                                     return (
                                        <option value={service.id}
-                                             className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
-                                             key={`${filter_name}-service--option-${index}`}>{service.name}</option>
+                                          className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
+                                          key={`${filter_name}-service--option-${index}`}>{service.name}</option>
                                     );
                                  })}
                            </select>
