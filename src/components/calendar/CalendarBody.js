@@ -179,13 +179,11 @@ class CalendarBody extends React.Component {
                            });
 
 
-      let slides = this.props.alignment === "vertical" ? 7 : 1;
-
       let settings = {
          infinite: false,
          speed: 500,
-         slidesToScroll: slides,
-         slidesToShow: slides,
+         slidesToScroll: 1,
+         slidesToShow: 1,
          customPaging: function(i) {
                return (
                   <a>
@@ -214,7 +212,7 @@ class CalendarBody extends React.Component {
       }
 
       return (
-         <div className={calendarClass + '__body ' + this.props.alignment } style={myStyle}>
+         <div className={calendarClass + '__body horizontal' } style={myStyle}>
                <div className={calendarClass + '__body-container'}>
                   <Slider {...settings}>
                      {listItems}
