@@ -132,22 +132,24 @@ class Login extends React.Component {
             <div className="login auth">
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
-                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel>
+                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
                             autoFocus
+                            placeholder={Strings.LABEL_EMAIL}
                             type="email"
                             value={this.state.email}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="password" bsSize="large">
-                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PASSWORD}</ControlLabel>
+                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PASSWORD}</ControlLabel> */}
                         <FormControl
-                            className={formClass + "__input"}
-                            value={this.state.password}
-                            onChange={this.handleChangeField.bind(this)}
-                            type="password"
+                           className={formClass + "__input"}
+                           value={this.state.password}
+                           placeholder={Strings.LABEL_PASSWORD}
+                           onChange={this.handleChangeField.bind(this)}
+                           type="password"
                         />
                     </FormGroup>
                     <button

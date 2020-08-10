@@ -27,6 +27,7 @@
       font-size:11px;
       font-weight:600;
       outline: none;
+      border:0 transparent none;
       color:#575757;
       background-color:transparent;
       width:100%;
@@ -161,6 +162,10 @@
         padding:5px 0px !important;
         height:initial!important;
         width:100%;
+
+        &::placeholder{
+           font-size:12px;
+        }
         
         &:focus{
             outline:none;

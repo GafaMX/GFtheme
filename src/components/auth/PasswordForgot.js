@@ -80,13 +80,14 @@ class PasswordForgot extends React.Component {
             <div className="password-forgot auth">
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
-                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel>
+                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel> */}
                         <FormControl
-                            autoFocus
-                            className={formClass + "__input"}
-                            type="email"
-                            value={this.state.email}
-                            onChange={this.handleChangeField.bind(this)}
+                           autoFocus
+                           className={formClass + "__input"}
+                           placeholder={Strings.LABEL_EMAIL}
+                           type="email"
+                           value={this.state.email}
+                           onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <button

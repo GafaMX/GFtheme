@@ -10,6 +10,7 @@ import PasswordRecovery from "../auth/PasswordRecovery";
 import {Modal} from "react-bootstrap";
 import GlobalStorage from "../store/GlobalStorage";
 import IconRunningMan from "../utils/Icons/IconRunningMan";
+import CloseIcon from "../utils/Icons/CloseIcon";
 
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-Login.scss';
@@ -255,50 +256,55 @@ class LoginRegister extends React.Component {
                         :   null
                     }
 
-                    <Modal className="modal-login" show={this.state.showLogin} onHide={this.handleClickBack.bind(this)}>
-                        <Modal.Header className="modal-login__header" closeButton>
-                              <Modal.Title className="section-title container">{Strings.BUTTON_LOGIN}</Modal.Title>
-                        </Modal.Header>
-                        <Modal.Body className="modal-login__body">
-                              <Login triggeredByLogin={this.state.triggeredByLogin} successCallback={this.successLoginCallback.bind(this)}/>
-                        </Modal.Body>
-                        <Modal.Footer className="modal-login__footer ">
-                        <nav className="nav">
-                              <ul>
-                                 <li>
-                                    <a onClick={this.handleClickRegister.bind(this)}> {Strings.NOT_ACCOUNT_QUESTION}</a>
-                                 </li>
-
-                                 <li>
-                                    <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
-                                 </li>
-                              </ul>
-                        </nav>
-                        </Modal.Footer>
-                    </Modal>
-
-                    <Modal className="modal-register" show={this.state.showRegister} onHide={this.handleClickBack.bind(this)}>
-                       <div className="modal-register__container">  
-                        <Modal.Header className="modal-register__header" closeButton>
-                              <Modal.Title className="section-title container">{Strings.BUTTON_REGISTER}</Modal.Title>
-                        </Modal.Header>
-                        <Modal.Body className="modal-register__body">
-                              <Register triggeredByRegister={this.state.triggeredByRegister}/>
-                        </Modal.Body>
-                        <Modal.Footer className="modal-register__footer">
-                              <nav className="nav">
+                     <Modal className="modal-login" show={this.state.showLogin} onHide={this.handleClickBack.bind(this)}>
+                        <div className="modal-login__container">  
+                           <div className="modal-login__close" onClick={this.handleClickBack.bind(this)}>
+                              <CloseIcon />
+                           </div>
+                           <Modal.Header className="modal-login__header">
+                                 <Modal.Title className="section-title container">{Strings.BUTTON_LOGIN}</Modal.Title>
+                           </Modal.Header>
+                           <Modal.Body className="modal-login__body">
+                                 <Login triggeredByLogin={this.state.triggeredByLogin} successCallback={this.successLoginCallback.bind(this)}/>
+                           </Modal.Body>
+                           <Modal.Footer className="modal-login__footer ">
+                           <nav className="nav">
                                  <ul>
                                     <li>
-                                       <a onClick={this.handleClickLogin.bind(this)}> {Strings.ACCOUNT_QUESTION}</a>
+                                       <a onClick={this.handleClickRegister.bind(this)}> {Strings.NOT_ACCOUNT_QUESTION}</a>
                                     </li>
+
                                     <li>
                                        <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
                                     </li>
                                  </ul>
-                              </nav>
-                        </Modal.Footer>
-                       </div>
-                    </Modal>
+                           </nav>
+                           </Modal.Footer>
+                        </div>
+                     </Modal>
+
+                     <Modal className="modal-register" show={this.state.showRegister} onHide={this.handleClickBack.bind(this)}>
+                        <div className="modal-register__container">  
+                           <Modal.Header className="modal-register__header" closeButton>
+                                 <Modal.Title className="section-title container">{Strings.BUTTON_REGISTER}</Modal.Title>
+                           </Modal.Header>
+                           <Modal.Body className="modal-register__body">
+                                 <Register triggeredByRegister={this.state.triggeredByRegister}/>
+                           </Modal.Body>
+                           <Modal.Footer className="modal-register__footer">
+                                 <nav className="nav">
+                                    <ul>
+                                       <li>
+                                          <a onClick={this.handleClickLogin.bind(this)}> {Strings.ACCOUNT_QUESTION}</a>
+                                       </li>
+                                       <li>
+                                          <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
+                                       </li>
+                                    </ul>
+                                 </nav>
+                           </Modal.Footer>
+                        </div>
+                     </Modal>
 
                     <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)}>
                         <div className="row">
@@ -316,21 +322,14 @@ class LoginRegister extends React.Component {
                     </Modal>
 
                     <Modal className="modal-password" show={this.state.passwordRecovery} onHide={this.handleClickBack.bind(this)}>
-                        <div className="row">
-                            <div className="col-lg-6">
-                                <div className="container">
-                                    <Modal.Header className="modal-password-header" closeButton>
-                                        <Modal.Title className="section-title container">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
-                                    </Modal.Header>
-                                    <Modal.Body className="modal-password-body">
-                                        <PasswordRecovery token={this.state.token} email={this.state.email}
-                                                        successCallback={this.successRecoveryCallback.bind(this)}/>
-                                    </Modal.Body>
-                                </div>
-                            </div>
-                            <div className="col-lg-6">
-                                <div className="modal-login__image"></div>
-                            </div>
+                        <div className="modal-password__container">
+                           <Modal.Header className="modal-password-header" closeButton>
+                                 <Modal.Title className="section-title container">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
+                           </Modal.Header>
+                           <Modal.Body className="modal-password-body">
+                                 <PasswordRecovery token={this.state.token} email={this.state.email}
+                                                successCallback={this.successRecoveryCallback.bind(this)}/>
+                           </Modal.Body>
                         </div>
                     </Modal>
 
