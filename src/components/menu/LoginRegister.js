@@ -284,7 +284,10 @@ class LoginRegister extends React.Component {
                      </Modal>
 
                      <Modal className="modal-register" show={this.state.showRegister} onHide={this.handleClickBack.bind(this)}>
-                        <div className="modal-register__container">  
+                        <div className="modal-register__container">
+                           <div className="modal-register__close" onClick={this.handleClickBack.bind(this)}>
+                              <CloseIcon />
+                           </div>  
                            <Modal.Header className="modal-register__header" closeButton>
                                  <Modal.Title className="section-title container">{Strings.BUTTON_REGISTER}</Modal.Title>
                            </Modal.Header>
@@ -323,6 +326,9 @@ class LoginRegister extends React.Component {
 
                     <Modal className="modal-password" show={this.state.passwordRecovery} onHide={this.handleClickBack.bind(this)}>
                         <div className="modal-password__container">
+                        <div className="modal-password__close" onClick={this.handleClickBack.bind(this)}>
+                              <CloseIcon />
+                           </div>
                            <Modal.Header className="modal-password-header" closeButton>
                                  <Modal.Title className="section-title container">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
                            </Modal.Header>

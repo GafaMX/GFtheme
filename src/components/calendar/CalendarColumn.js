@@ -33,7 +33,7 @@ class CalendarColumn extends React.Component {
       let preC = 'GFSDK-c';
       let calendarClass = preC + '-Calendar';
 
-      let activeClass = day.meetings.map((meeting) => {
+      let activeClass = day.meetings.filter((meeting) => {
                            if (meeting.passed === false) {
                               return meeting;
                            }
