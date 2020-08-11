@@ -1,0 +1,259 @@
+.productSelection__summary.close, .paymentSelection__resume.close, .touchpoint.close{
+   opacity:1!important;
+   font-size:1em;
+   font-weight:initial;
+   line-height: initial;
+   color:initial;
+   text-shadow: none;
+
+   &:hover, &:focus{
+      opacity:1;
+      cursor:initial;
+   }
+}
+
+.gs-checkOut.disabled{
+	pointer-events: none;
+	opacity:.3;
+}
+
+#CreateReservationFancyTemplate{
+   .productSelection__content{
+      .SelectProductsStepNav{
+         & ul{
+         
+            &> li{
+               margin-right:.75rem;
+               
+               *{
+                  font-family: "Roboto", Helvetica Neue, Helvetica, Arial, sans-serif;
+               }
+               
+               &.active, &:hover{
+                  a{
+                     background-color: #FF3E4F;
+                     color:white;
+                  }
+               }
+               
+               &> a{
+                  height: 100%;
+                  border-radius: 23px;
+                  background-color:#EEEEEE;
+                  color:#000000;
+                  padding:0px 24px;
+                  color:inherit;
+                  transition: .3s all ease;
+                  text-transform: initial;
+                  
+                  span{
+                     display: grid;
+                     align-items: center;
+                     padding:0;
+                     height: 100%;
+
+                     &:after{
+                        display: none;
+                     }
+                  }
+               } 
+            } 
+         }
+      }
+
+      .products-container{
+         .GfStore__ProductsItems{
+            @media screen and (max-width: 992px) {
+               padding:15px;
+            }
+            
+            *{
+               font-family: "Roboto", Helvetica Neue, Helvetica, Arial, sans-serif;
+            }
+            
+            .product{
+               
+               & > h3{
+                  font-size: 16px;
+               }
+
+               & > p{
+                  display: none;
+               }
+
+               & > .value{
+                  span{
+                     margin-top: 32px;
+                     font-size:14px;
+                     color:#544C4C;
+                     font-weight:300;
+                  }
+                  
+                  .CombosSelector--combo--price--decimals{
+                     display: none;
+                  }
+               }
+            }
+
+            .amount{
+               display: none;
+            }
+
+            .add-to-card{
+               margin:0;
+               width:100%;
+               background-color:#FF3E4F;
+               border-radius: 4px;
+               padding:11px 29px;
+               font-size:10px;
+               outline: none!important;
+               
+               &:hover{
+                  background: #FFA3AB;
+               }
+
+            }
+            
+            margin:0;
+            border-radius: 0;
+            border: .5px solid #E9E8E8;
+         }
+      }
+   }
+
+   .productSelection__summary, .paymentSelection__resume{
+      .gs-summary{
+         background-color: #f2f2f2;
+         border-radius: 4px 4px 0 0;
+         padding:15px;
+         row-gap: 10px;
+
+         @media screen and (max-width:992px) {
+            padding: 0px;
+         }
+         
+         &__header{
+            padding:0;
+            background-color: transparent;
+
+            @media screen and (max-width:992px) {
+               box-sizing: border-box;
+               row-gap: 5px;
+            }
+
+            h3, h5{
+               color:#000000;
+            }
+         }
+
+         &__body{
+            padding:0;
+
+            .gs-cartItem{
+               background-color: white;
+               border-radius: 4px;
+               padding:10px;
+               box-sizing: border-box;
+
+               &__footer{
+                  margin-bottom: 0;
+               }
+            }
+         }
+
+         &__terms{
+            padding:0;
+
+            .gs-terms{
+               padding:0;
+               background-color: transparent;
+            }
+         }
+         
+         &__footer{
+            padding:0;
+         }
+
+         &__header, &__body, &__footer{
+            @media screen and (max-width:992px) {
+               padding:15px ; 
+            }
+         }
+      }
+      
+      
+   }
+
+   .touchpoint{
+      background-color: #f2f2f2;
+      
+      @media only screen and (min-width:992px){
+         height:initial;
+         border-radius: 0 0 4px 4px;
+         padding:15px;
+         padding-top: 0px;
+      }
+
+      .gs-checkOut{
+         background-color:#FF3E4F;
+         border-radius: 4px;
+         padding:18px 29px;
+         font-size:10px;
+         text-transform: initial;
+         
+         &:hover{
+            background: #FFA3AB;
+         }
+      }
+      .AppReservation--steps{
+         position: relative;
+      }
+   }
+   
+
+   .paymentSelection__method{
+
+      .TabsGafaFit--menu{
+         column-gap: .75rem;
+      }
+
+      .TabsGafaFit--tab-link{
+         border-radius: 23px;
+         background-color:#EEEEEE;
+         color:#000000;
+         padding:8px 18px;
+         text-transform: initial;
+
+         &.TabsGafaFit--tab-link__active, &:hover{
+            background-color: #FF3E4F;
+            color:white;
+         }
+
+         img{
+            display: none;
+         }
+
+         &:after{
+            display: none;
+         }
+      }
+
+      .TabsGafaFit-content{
+         @media only screen and (max-width:992px) {
+            padding-top:15px;
+         }
+      }
+
+      .gafapay-form__container{
+         padding:0;
+      }
+
+      .gafapay-form__group input[type=password], 
+      .gafapay-form__group input[type=text]{
+         background-color:#f9f9f9;
+         padding:10px 1rem!important;
+         border-color: #F0F0F0!important;
+         height: initial;
+      }
+   }
+}
