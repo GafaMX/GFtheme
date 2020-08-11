@@ -89,7 +89,7 @@
             column-gap: 25px;
             justify-items: start;
             align-items: start;
-            overflow:hidden;
+            // overflow:hidden;
             
             @media screen and (min-width:992px) {
                grid-auto-flow: initial;
@@ -305,7 +305,7 @@
             justify-items: start;
             align-items: start;
             column-gap: 25px;
-            overflow: hidden;
+            // overflow: hidden;
             
             @media screen and (min-width:992px) {
                 grid-auto-flow: initial;

@@ -162,29 +162,81 @@
 }
 
 .modal-profile{
-    padding:0;
-    &__header{
-        padding:0;
-    }
-    &__body{
-        background-color: transparent;
-        padding:0;
-        height:100%;
-        overflow: hidden;
+   padding:0!important;
 
-        > .container-fluid, > .container{
-            height: 100%;
-            width: 100%;
-            padding:0px;
-            overflow:hidden;
-            border-radius: 58px 58px 0 0;
-            background-color: transparent;
+   .modal-content{
+      box-shadow: none;
+      display: grid;
+      align-items: center;
+      justify-items: center;
+   }
 
-            > .row{
-                height:100%;
-            }
-        }
-    }
+   &__close{
+      height:16px;
+      width:16px;
+      position:absolute;
+      top:38px;
+      right:30px;
+      cursor: pointer;
+      opacity: 0.8;
+      z-index:1;
+      @media only screen and (min-width:992px){
+         height:20px;
+         width:20px;
+         top:20px;
+         right:20px;
+      }
+
+      svg{
+         color:white;
+
+         @media only screen and (min-width:992px){
+            color:inherit;
+         }
+      }
+      
+      &:hover{
+         opacity: 1;
+      }
+   }
+
+   &__container{
+      max-width:100%;
+      width:100%;
+      display: inline-grid;
+      
+      @media only screen and (min-width:992px){
+         max-width:960px;
+      }
+
+      @media only screen and (min-width:1200px){
+         max-width:1140px;
+      }
+   }
+
+   &__header{
+      padding:0;
+   }
+
+   &__body{
+      background-color: transparent;
+      padding:0;
+      height:100%;
+      overflow: hidden;
+
+      > .container-fluid, > .container{
+         height: 100%;
+         width: 100%;
+         padding:0px;
+         overflow:hidden;
+         border-radius: 10px 10px 0 0;
+         background-color: transparent;
+
+         > .row{
+               height:100%;
+         }
+      }
+   }
     &__image{
         padding:0;
         &-image{

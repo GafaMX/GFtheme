@@ -18,6 +18,7 @@ import PastClasses from "../PastClasses";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
 import IconLogOut from '../../utils/Icons/IconLogOut';
+import IconSelectDownArrow from "../../utils/Icons/IconSelectDownArrow";
 import LocationsFilter from "../../locations/LocationsFilters";
 // import CloseIcon from "../../utils/Icons/CloseIcon";
 // import CheckIcon from "../../utils/Icons/CheckIcon";
@@ -253,7 +254,7 @@ class ProfileUserInfo extends React.Component {
                   <div className="profile-user">
                      <div className="profile-user__content">
                            <div className="profile-user__data">
-                              <div className="this-picture"></div>
+                              {/* <div className="this-picture"></div> */}
                               <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
                               {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
                            </div>
@@ -261,7 +262,7 @@ class ProfileUserInfo extends React.Component {
                               <div className="profile-user__tools-container">
                                  <LocationsFilter />
                                  <a className='this-logOut' onClick={this.props.handleClickLogout}>
-                                       <IconLogOut/> <span>{Strings.BUTTON_LOGOUT}</span>
+                                    <IconLogOut/>
                                  </a>
                               </div>
                            </div>
@@ -304,6 +305,9 @@ class ProfileUserInfo extends React.Component {
                                           );
                                        })}
                                     </select>
+                                    <div className={formClass + '__select-icon'}>
+                                       <IconSelectDownArrow />
+                                    </div>
                                  </div>
 
                                  : null

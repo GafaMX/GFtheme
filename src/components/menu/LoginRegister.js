@@ -310,17 +310,17 @@ class LoginRegister extends React.Component {
                      </Modal>
 
                     <Modal className="modal-profile" show={this.state.showProfile} onHide={this.handleClickBack.bind(this)}>
-                        <div className="row">
-                            <div className="col-lg-12 col-xl-12 modal-profile__body">
-                                <div className="container-fluid">
-                                    <div className="col-lg-12 profile-content">
-                                        <Modal.Header closeButton></Modal.Header>
-                                        <Modal.Body>
-                                            <ProfileUserInfo handleClickLogout={this.handleClickLogout} successCallback={this.successProfileSaveCallback.bind(this)}/>
-                                        </Modal.Body>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="modal-profile__container">
+                           <div className="modal-profile__body">
+                              <div className="profile-content">
+                                 <div className="modal-profile__close" onClick={this.handleClickBack.bind(this)}>
+                                    <CloseIcon />
+                                 </div> 
+                                 <Modal.Body>
+                                    <ProfileUserInfo handleClickLogout={this.handleClickLogout} successCallback={this.successProfileSaveCallback.bind(this)}/>
+                                 </Modal.Body>
+                              </div>
+                           </div>
                         </div>
                     </Modal>
 
