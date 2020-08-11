@@ -288,7 +288,7 @@ class LoginRegister extends React.Component {
                            <div className="modal-register__close" onClick={this.handleClickBack.bind(this)}>
                               <CloseIcon />
                            </div>  
-                           <Modal.Header className="modal-register__header" closeButton>
+                           <Modal.Header className="modal-register__header">
                                  <Modal.Title className="section-title container">{Strings.BUTTON_REGISTER}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-register__body">
@@ -329,7 +329,7 @@ class LoginRegister extends React.Component {
                         <div className="modal-password__close" onClick={this.handleClickBack.bind(this)}>
                               <CloseIcon />
                            </div>
-                           <Modal.Header className="modal-password-header" closeButton>
+                           <Modal.Header className="modal-password-header">
                                  <Modal.Title className="section-title container">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-password-body">
