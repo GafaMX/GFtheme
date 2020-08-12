@@ -15,7 +15,6 @@ import 'moment/locale/es';
 
 Moment.locale('es');
 
-
 class CalendarBody extends React.Component {
     constructor(props) {
       super(props);
@@ -88,6 +87,8 @@ class CalendarBody extends React.Component {
 
       let shown_meetings = [];
 
+      meetings = meetings.filter(function(meeting){return meeting.passed === false});
+
       if (location) {
          meetings = meetings.filter(function (meeting) {
             return meeting.locations_id === location.id;
@@ -159,6 +160,7 @@ class CalendarBody extends React.Component {
 
    render() {
       const {limit, alignment} = this.props;
+      const {meetings_to_show} = this.state;
       let preC = 'GFSDK-c';
       let calendarClass = preC + '-Calendar';
       const dayList = this.state.meetings_to_show.map(function (day) {
@@ -177,19 +179,28 @@ class CalendarBody extends React.Component {
                                  />
                               );
                            });
+      let initialCal;
 
+      for (const [index, el] of meetings_to_show.entries()) {
+         if(el.meetings.length > 0){
+            initialCal = index
+            break;
+         }
+      }
 
       let settings = {
+         draggable : false,
          infinite: false,
+         initialSlide: initialCal,
          speed: 500,
          slidesToScroll: 1,
          slidesToShow: 1,
          customPaging: function(i) {
                return (
-                  <a>
+                  <a className={meetings_to_show[i].meetings.length === 0 ? 'empty-slide' : ''}>
                      <div>
-                           <p className="this-date">{Moment(dayList[i]).format('dd')}</p>
-                           <p className="this-number">{Moment(dayList[i]).format('D')}</p>
+                        <p className="this-date">{Moment(dayList[i]).format('dd')}</p>
+                        <p className="this-number">{Moment(dayList[i]).format('D')}</p>
                      </div>
                   </a>
                );

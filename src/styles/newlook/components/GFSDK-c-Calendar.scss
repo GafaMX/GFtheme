@@ -121,9 +121,11 @@
       .horizontal &{
          grid-row: 1;
          display: inline-grid!important;
-         justify-items: start;
+         column-gap: 20px;
+         justify-items: center;
          position:relative;
          width:initial;
+         
          
          @media only screen and (min-width:767px) {
             width:40%;
@@ -163,19 +165,30 @@
             &:hover{
                text-decoration: none;
             }
-         }
-
-         &.slick-active{
-               a{
-                  .this-date{
-                     color:#1F1C3D;
-                  }
-
-                  .this-number{
-                     background-color:#1F1C3D;
-                     color:white; 
-                  }
+            
+            &.empty-slide{
+   
+               .this-date{
+                  color:#A5A1A1;
                }
+   
+               .this-number{
+                  background-color:#A5A1A1;
+                  color:white; 
+               }
+            }
+         }
+         &.slick-active{
+            a{
+               .this-date{
+                  color:#FF3E4F;
+               }
+
+               .this-number{
+                  background-color:#FF3E4F;
+                  color:white; 
+               }
+            }
          }
       }
 
@@ -218,11 +231,10 @@
 
    &__column{
       display: grid;
-      grid-auto-flow: row;
+      grid-auto-flow: column;
       align-items: start;
       grid-template-rows: auto 1fr;
       row-gap:15px;
-
       
       &__day{
          display: grid;
@@ -292,6 +304,11 @@
          // border-right: 1px solid #EEEEEE;
          padding:0 5px;
          display: grid;
+         column-gap: 15px;
+         grid-auto-flow: column;
+         width: 100%;
+         overflow-x: auto;
+         padding-bottom:10px;
 
          /* width */
          &::-webkit-scrollbar {

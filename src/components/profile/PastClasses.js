@@ -61,7 +61,7 @@ class PastClasses extends React.Component {
                     ?   <div className={ ordersClass + '__section'}>{listItems}</div>
                     :   <div className="is-empty">
                             <div className="is-notification">
-                                <h3>No cuentas con historial de clases</h3>
+                                <h3>No cuentas con historial de {window.GFtheme.ClassName}</h3>
                             </div>
                         </div>
                 }
