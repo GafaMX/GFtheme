@@ -276,7 +276,7 @@ class ProfileUserInfo extends React.Component {
                      <div id={'ProfileTabs'} className={profileClass + '__tab-content'}>
                         <ul role="tablist" className={tabsClass + ' nav nav-tabs'}>
                            <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'classes' ? 'active' : '' )}>
-                              <div id="classes" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.CLASS}</div>
+      <div id="classes" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>Mis {window.GFtheme.ClassName}</div>
                            </li>
                            <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'profile' ? 'active' : '' )}>
                               <div id="profile" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.PROFILE}</div>
@@ -313,12 +313,12 @@ class ProfileUserInfo extends React.Component {
                                  : null
                               }
                               <div className={profileClass + '__tab-section'}>
-                                    <h4 className={'this-title'}>Mis próximas clases</h4>
+                                    <h4 className={'this-title'}>Mis próximas {window.GFtheme.ClassName}</h4>
                                     <FutureClasses />
                               </div>
                               <hr></hr>
                               <div className={profileClass + '__tab-section'}>
-                                    <h4 className={'this-title'}>Historial de clases</h4>
+                                    <h4 className={'this-title'}>Historial de {window.GFtheme.ClassName}</h4>
                                     <PastClasses />
                               </div>
                               <hr></hr>

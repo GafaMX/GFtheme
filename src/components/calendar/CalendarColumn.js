@@ -68,7 +68,7 @@ class CalendarColumn extends React.Component {
                </div>
                <div className={calendarClass + '__column__meeting'}>
                   {listItems.length === 0 
-                     ? <div className={calendarClass + '__empty'}><p>Clases no disponibles</p></div>
+                     ? <div className={calendarClass + '__empty'}><p>{window.GFtheme.ClassName} no disponibles</p></div>
                      : listItems 
                   }
                </div>

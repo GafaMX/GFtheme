@@ -362,12 +362,12 @@ class CalendarFilters extends React.Component {
                            <select className={formClass + '__select'} id={'calendar-filter-staff'} data-name="filter_staff"
                               data-origin="staff"
                               onChange={this.selectFilter}>
-                                 <option value={''}>{Strings.STAFF_LIST}</option>
+                                 <option value={''}>{window.GFtheme.StaffName}</option>
                                  {this.state.staff.map(function (member, index) {
                                     return (
-                                          <option value={member.id}
-                                                className={member.parent_id ? 'calendar-filter-child-staff' : 'calendar-filter-parent-staff'}
-                                                key={`${filter_name}-staff--option-${index}`}>{member.name}</option>
+                                       <option value={member.id}
+                                             className={member.parent_id ? 'calendar-filter-child-staff' : 'calendar-filter-parent-staff'}
+                                             key={`${filter_name}-staff--option-${index}`}>{member.name}</option>
                                     );
                                  })}
                            </select>

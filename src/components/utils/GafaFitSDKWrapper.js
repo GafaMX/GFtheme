@@ -21,6 +21,8 @@ class GafaFitSDKWrapper extends React.Component {
          window.GFtheme.APIClientSecret = window.GFThemeOptions.API_SECRET;
          window.GFtheme.TokenMovil = window.GFThemeOptions.TOKENMOVIL;
          window.GFtheme.CaptchaSecretKey = window.GFThemeOptions.CAPTCHA_SECRET_KEY;
+         window.GFtheme.StaffName = window.GFThemeOptions.STAFF_NAME ? window.GFThemeOptions.STAFF_NAME : 'Staff';
+         window.GFtheme.ClassName = window.GFThemeOptions.CLASS_NAME ? window.GFThemeOptions.CLASS_NAME : 'Clases';
          window.GFtheme.CaptchaPublicKey = window.GFThemeOptions.CAPTCHA_PUBLIC_KEY;
          window.GFtheme.RemoteAddr = window.GFThemeOptions.REMOTE_ADDR;
          // window.GFtheme.ConektaPublicKey = window.GFThemeOptions.CONEKTA_PUBLIC_KEY;

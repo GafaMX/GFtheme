@@ -20,7 +20,7 @@
       background-color:#FAFAFA;
       grid-auto-flow: initial;
       grid-template-columns: 80px 1fr;
-      height: 78px;
+      height: initial;
       padding:0;
 
       @media only screen and (min-width:992px) {
@@ -111,11 +111,18 @@
          display: block;
          align-items: center;
          height: initial;
-         padding: 5px 15px;
+         padding: 10px 15px;
+         width:100%;
          box-sizing: border-box;
+         
+         p{
+            line-height: 1;
+            margin-bottom:.75rem;
+         }
 
          .this-staff{
             font-size: 14px;
+            letter-spacing: .1px;
             color:#000000;
          }
          
@@ -124,7 +131,7 @@
             letter-spacing: .1px;
             color: #BBBBBC;
          }
-
+         
          .this-location{
             font-weight: 600;
          }

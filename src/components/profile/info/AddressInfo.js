@@ -26,6 +26,13 @@ class AddressInfo extends React.Component {
         let formClass = preE + '-form';
         let profileClass = preC + '-profile';
 
+        let address = this.props.info.address ? this.props.info.address : '';
+        let external_number = this.props.info.external_number ? this.props.info.external_number : '';
+        let internal_number = this.props.info.internal_number ? this.props.info.internal_number : '';
+        let postal_code = this.props.info.postal_code ? this.props.info.postal_code : '';
+        let municipality = this.props.info.municipality ? this.props.info.municipality : '';
+        let city = this.props.info.city ? this.props.info.city : '';
+
         return (
             <div className={profileClass + '__section is-address'}>
                 <h4>{Strings.LABEL_ADDRESS}</h4>
@@ -34,7 +41,7 @@ class AddressInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
-                        value={this.props.info.address}
+                        value={address}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
@@ -43,7 +50,7 @@ class AddressInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
-                        value={this.props.info.external_number}
+                        value={external_number}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
@@ -52,7 +59,7 @@ class AddressInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
-                        value={this.props.info.internal_number}
+                        value={internal_number}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
@@ -61,7 +68,7 @@ class AddressInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
-                        value={this.props.info.postal_code}
+                        value={postal_code}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
@@ -70,7 +77,7 @@ class AddressInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
-                        value={this.props.info.municipality}
+                        value={municipality}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
@@ -79,7 +86,7 @@ class AddressInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
-                        value={this.props.info.city}
+                        value={city}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
