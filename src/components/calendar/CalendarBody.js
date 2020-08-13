@@ -191,6 +191,7 @@ class CalendarBody extends React.Component {
       let settings = {
          draggable : false,
          infinite: false,
+         adaptiveHeight: true,
          initialSlide: initialCal,
          speed: 500,
          slidesToScroll: 1,

@@ -305,7 +305,7 @@
          padding:0 5px;
          display: grid;
          column-gap: 15px;
-         grid-auto-flow: column;
+         grid-auto-flow: row;
          width: 100%;
          overflow-x: auto;
          padding-bottom:10px;
@@ -342,9 +342,9 @@
                padding-bottom:10px;
             }
 
-            @media only screen and (min-width:1200px) {
-               grid-template-columns: repeat(5, 1fr);
-            }
+            // @media only screen and (min-width:1200px) {
+               // grid-template-columns: repeat(5, 1fr);
+            // }
          }
       }
    }
