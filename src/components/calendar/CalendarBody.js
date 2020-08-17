@@ -16,34 +16,28 @@ import 'moment/locale/es';
 Moment.locale('es');
 
 class CalendarBody extends React.Component {
-    constructor(props) {
+   constructor(props) {
       super(props);
 
       this.state = {
-         meetings_to_show: this.initialMeetings(),
-         widthCalendar: null,
+         meetings_to_show: [],
+         initialDay: null,
       };
-
-      CalendarStorage.addSegmentedListener(['filter_location', 'filter_service', 'filter_staff', 'filter_room', 'meetings', 'start_date', 'filter_time_of_day'], this.updateMeetings.bind(this));
-      this.updateDimensions = this.updateDimensions.bind(this);
-    }
-
-   componentDidMount(){
-      this.updateDimensions();
-      window.addEventListener('resize', this.updateDimensions);
+      
+      this.initialMeetings = this.initialMeetings.bind(this);
+      // CalendarStorage.addSegmentedListener(['start_date', 'filter_time_of_day'], this.updateMeetings.bind(this));
    }
 
-   updateDimensions(){
-      const body = document.querySelector(".GFSDK-c-Calendar");
-      this.setState({
-         widthCalendar: body.offsetWidth,
-      })
+   componentDidMount() {
+      this.initialMeetings();
    }
 
+   initialMeetings(){
+      let curComp = this;
+      let {meetings, state} = this.props;
 
-   initialMeetings() {
+      let beginsIn;
       let shown_meetings = [];
-      let meetings = CalendarStorage.get('meetings');
       let start = CalendarStorage.get('start_date');
 
       if (!!meetings && !!start) {
@@ -56,95 +50,23 @@ class CalendarBody extends React.Component {
                title: date.toLocaleDateString(),
                date: date.toISOString(),
                meetings: meetings.filter(function (meeting) {
-                  let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss');
-
-
-                  return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime();
+                  let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
+                  return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime() && meeting.passed === false;
                })
             };
-
             shown_meetings.push(meet);
          });
       }
-      return shown_meetings;
-   }
 
-   isFunction(functionToCheck) {
-      return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
-   }
-
-
-   updateMeetings() {
-      let location = CalendarStorage.get('filter_location');
-      let service = CalendarStorage.get('filter_service');
-      let room = CalendarStorage.get('filter_room');
-      let staff = CalendarStorage.get('filter_staff');
-      let meetings = CalendarStorage.get('meetings');
-      let start = CalendarStorage.get('start_date');
-      let end = new Date(start.getTime());
-      end.setDate(start.getDate() + 6);
-      let time_of_day = CalendarStorage.get('filter_time_of_day');
-
-      let shown_meetings = [];
-
-      meetings = meetings.filter(function(meeting){return meeting.passed === false});
-
-      if (location) {
-         meetings = meetings.filter(function (meeting) {
-            return meeting.locations_id === location.id;
-         })
-      }
-
-      if (service) {
-         meetings = meetings.filter(function (meeting) {
-               return meeting.services_id === service.id;
-         })
-      }
-
-      if (staff) {
-         meetings = meetings.filter(function (meeting) {
-            return meeting.staff_id === staff.id;
-         })
-      }
-
-      if (room) {
-         meetings = meetings.filter(function (meeting) {
-               return meeting.rooms_id === room.id;
-         })
-      }
-
-      if (time_of_day) {
-         if (time_of_day === 'morning') {
-            meetings = meetings.filter(function (meeting) {
-               let date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
-               return date.getHours() < 12;
-            })
-         } else if (time_of_day === 'afternoon') {
-            meetings = meetings.filter(function (meeting) {
-               let date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
-               return date.getHours() >= 12;
-            })
-         }
-      }
-
-      let date_array = this.getDates(start, end);
-
-      date_array.forEach(function (date) {
-         let meet = {
-               title: date.toLocaleDateString(),
-               date: date,
-               meetings: meetings.filter(function (meeting) {
-                  let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
-                  return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime();
-               })
-         };
-         shown_meetings.push(meet);
-      });
-
-      this.setState({
-         meetings_to_show: shown_meetings
+      curComp.setState({
+         meetings_to_show: shown_meetings,
       });
    }
+
+   // isFunction(functionToCheck) {
+   //    return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+   // }
+
 
    getDates(startDate, stopDate) {
       let dateArray = [];
@@ -159,40 +81,44 @@ class CalendarBody extends React.Component {
    }
 
    render() {
-      const {limit, alignment} = this.props;
-      const {meetings_to_show} = this.state;
+      const {limit, stateFilter} = this.props;
+      const {meetings_to_show, initialDay} = this.state;
       let preC = 'GFSDK-c';
       let calendarClass = preC + '-Calendar';
-      const dayList = this.state.meetings_to_show.map(function (day) {
-                           return(
-                              Moment(day.date).toDate()
-                           );
-                     });
-      const listItems =   this.state.meetings_to_show.map(function (day, index) {
-                              return (
-                                 <CalendarColumn
-                                       key={`calendar-day--${index}`}
-                                       index={index}
-                                       day={day}
-                                       limit={limit}
-                                       alignment={alignment}
-                                 />
-                              );
-                           });
-      let initialCal;
+      let beginsIn;
+      
+      const dayList = meetings_to_show.map(function (day) {
+         return(
+            Moment(day.date).toDate()
+         );
+      });
 
-      for (const [index, el] of meetings_to_show.entries()) {
-         if(el.meetings.length > 0){
-            initialCal = index
-            break;
+      if(meetings_to_show.length > 0){
+         for (var i = 0; i < meetings_to_show.length; i++) {
+            let day = meetings_to_show[i];
+            if(day.meetings.length > 0){
+               beginsIn = i;
+               break;
+            }
          }
       }
-
+      
+      const listItems =  meetings_to_show.map(function (day, index) {
+                           return (
+                              <CalendarColumn
+                                    key={`calendar-day--${index}`}
+                                    index={index}
+                                    day={day}
+                                    limit={limit}
+                              />
+                           );
+                        });
+      
       let settings = {
          draggable : false,
          infinite: false,
-         initialSlide: initialCal,
-         speed: 500,
+         initialSlide: beginsIn,
+         speed: 300,
          slidesToScroll: 1,
          slidesToShow: 1,
          customPaging: function(i) {
@@ -208,30 +134,28 @@ class CalendarBody extends React.Component {
          dots: true,
          dotsClass: "slick-dots slick-thumb " + calendarClass + '__day-dots',
          responsive: [
-               {
-                  breakpoint: 992,
-                  settings: {
-                     slidesToShow: 1,
-                     slidesToScroll: 1,
-                  }
-               },
+            {
+               breakpoint: 992,
+               settings: {
+                  slidesToShow: 1,
+                  slidesToScroll: 1,
+               }
+            },
          ],
       };
 
-      const myStyle = {
-         width: this.state.widthCalendar + 'px'
-      }
-
       return (
-         <div className={calendarClass + '__body horizontal' } style={myStyle}>
+         <div className={calendarClass + '__body horizontal' }>
                <div className={calendarClass + '__body-container'}>
-                  <Slider {...settings}>
-                     {listItems}
-                  </Slider>
+                  { meetings_to_show.length > 0   
+                     ?  <Slider {...settings}>
+                           {listItems}
+                        </Slider>
+                     :  null
+                  }
                </div>
          </div>
       );
-
    }
 }
 

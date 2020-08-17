@@ -7,23 +7,28 @@
     row-gap: 15px;
     width: 100%;
     
-    @media screen and (min-width: 992px){
-        display: grid;
-    }
+   @media screen and (min-width: 992px){
+      display: grid;
+   }
+   
+   & > *{
+      font-family: 'DM Sans', sans-serif;
+   }
     
-    & > *{
-        font-family: 'DM Sans', sans-serif;
-    }
-    
-    &__container{
-        display: block;
-        position: relative;
-        grid-template-rows: auto 1fr;
-        row-gap: 20px;
-        @media screen and (min-width: 992px){
+   &__container{
+      display: none;
+      position: relative;
+      grid-template-rows: auto 1fr;
+      row-gap: 20px;
+      
+      &.mounted{
+         display: block;
+         
+         @media screen and (min-width: 992px){
             display: grid;
-        }
-    }
+         }
+      }
+   }
 
    &__head{
       display: grid;

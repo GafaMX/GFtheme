@@ -18,57 +18,78 @@ import '../../styles/newlook/elements/GFSDK-e-navigation.scss';
 
 class Calendar extends React.Component {
     constructor(props) {
-        super(props);
+      super(props);
 
-        this.state = {
-            showLogin: false,
-            showRegister: false,
-            calendarHeight: CalendarStorage.get('calendarHeight'),
-            calendarWidth: CalendarStorage.get('calendarWidth'),
-            currentLocation: GlobalStorage.get('currentLocation'),
-            meetings: null,
-            rooms:null,
+      this.state = {
+         showLogin: false,
+         showRegister: false,
+         meetings: [],
+         meetings_to_show: [],
+         // filter: {
+         //    filter_location: '',
+         //    filter_staff: '',
+         //    filter_service: '',
+         // },
+         rooms:null,
+         _is_mounted: false,
+      };
 
-        };
-
-      //   CalendarStorage.set('locations', this.props.locations);
-        CalendarStorage.set('show_login', this.setShowLogin.bind(this));
-        CalendarStorage.set('show_register', this.setShowRegister.bind(this));
-      //   this.getMeetings = this.getMeetings.bind(this);
-        CalendarStorage.addSegmentedListener(['calendarHeight', 'calendarWidth'], this.updateCalendarDimensions.bind(this));
-        CalendarStorage.addSegmentedListener(['filter_location'], this.updateCalendar.bind(this));
-    }
+   //   CalendarStorage.set('locations', this.props.locations);
+      this.getMeetings = this.getMeetings.bind(this);
+      CalendarStorage.set('show_login', this.setShowLogin.bind(this));
+      CalendarStorage.set('show_register', this.setShowRegister.bind(this));
+      CalendarStorage.set('locations', GlobalStorage.get('locations')); // TODO:Eliminar al tener todo en el store global
+      // CalendarStorage.addSegmentedListener(['calendarHeight', 'calendarWidth'], this.updateCalendarDimensions.bind(this));
+      // CalendarStorage.addSegmentedListener(['filter_location'], this.updateCalendar.bind(this));
+   }
 
    componentDidMount() {
       this.getMeetings();
       this.getRooms();
    }
 
-   updateCalendarDimensions(){
-      this.setState({
-         calendarHeight: CalendarStorage.get('calendarHeight'),
-         calendarWidth: CalendarStorage.get('calendarWidth'),
-      });
-   }
+   // updateCalendarDimensions(){
+   //    this.setState({
+   //       calendarHeight: CalendarStorage.get('calendarHeight'),
+   //       calendarWidth: CalendarStorage.get('calendarWidth'),
+   //    });
+   // }
 
-   updateCalendar(){
-      this.getMeetings();
-      this.getRooms();
+   // updateCalendar(){
+      // this.getMeetings();
+      // this.getRooms();
 
-      this.setState({
-         meetings: CalendarStorage.get('meetings'),
-         rooms: CalendarStorage.get('rooms'),
-      });
-   }
+      // this.setState({
+      //    meetings: CalendarStorage.get('meetings'),
+      //    rooms: CalendarStorage.get('rooms'),
+      // });
+   // }
+
+   // getFilters(){
+
+   // }
 
    getMeetings() {
-      GafaFitSDKWrapper.setMeetings();
+      let curComp = this;
+
+      GafaFitSDKWrapper.setMeetings(function(){
+         curComp.setState({
+            is_mounted: true,
+            meetings: CalendarStorage.get('meetings'),
+         });
+      });
    }
 
    getRooms() {
       GafaFitSDKWrapper.getBrandRooms({}, function (result) {
          CalendarStorage.push('rooms', result.data)
       })
+   }
+
+   updateMeetings(meetingsList){
+      this.setState({
+         meetings_to_show: meetingsList
+      });
    }
 
    setShowLogin(showLogin) {
@@ -84,6 +105,7 @@ class Calendar extends React.Component {
    }
 
     render() {
+      let {is_mounted, meetings, filter, meetings_to_show} = this.state;
       let preC = 'GFSDK-c';
       let calendarClass = preC + '-Calendar';
       let widthDimension = CalendarStorage.get('calendarWidth');
@@ -93,16 +115,30 @@ class Calendar extends React.Component {
          width:  widthDimension + 'px',
       }
 
+      console.log(meetings_to_show.length != 0);
+
       return (
          <div className={calendarClass}>
-               <div className={calendarClass + '__container'} style={mystyles}>
-                  <CalendarFilters
-                     filterService={this.props.filter_service}
-                     filterServiceDefault={this.props.filter_service_default}
-                     filterStaff={this.props.filter_staff}
-                  />
-                  <CalendarBody limit={this.props.limit} />
-               </div>
+               {is_mounted 
+                  ?
+                     <div className={calendarClass + '__container ' + (is_mounted ? 'mounted' : '')} style={mystyles}>
+                        <CalendarFilters
+                           filterService={this.props.filter_service}
+                           filterServiceDefault={this.props.filter_service_default}
+                           filterStaff={this.props.filter_staff}
+                           updateMeetings={this.updateMeetings.bind(this)}
+                           meetings={meetings}
+                        />
+                        {meetings_to_show.length != 0
+                           ?
+                           <CalendarBody stateFilter={filter} meetings={meetings_to_show} limit={this.props.limit} />
+                           :
+                           <p>Cargando...</p>
+                        }
+                     </div>
+                  : 
+                     null
+               }
                {this.state.showRegister &&
                <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
                }

@@ -8,15 +8,15 @@ import moment from 'moment';
 import 'moment/locale/es';
 
 class CalendarMeeting extends React.Component {
-    constructor(props) {
-        super(props);
+   constructor(props) {
+      super(props);
 
-        this.state = {
-            room: this.getRoom(),
-        };
+      this.state = {
+         room: this.getRoom(),
+      };
 
-        CalendarStorage.addSegmentedListener(['rooms'], this.updateRoom.bind(this));
-    }
+      CalendarStorage.addSegmentedListener(['rooms'], this.updateRoom.bind(this));
+   }
 
    getRoom() {
       return CalendarStorage.find('rooms', this.props.meeting.rooms_id);
@@ -44,14 +44,14 @@ class CalendarMeeting extends React.Component {
 
    showBuyFancyForLoggedUsers() {
       let meeting = this.props.meeting;
-      let location = CalendarStorage.find('locations', meeting.locations_id);
+      let location = GlobalStorage.find('locations', meeting.locations_id);
       if (meeting && location) {
          GafaFitSDKWrapper.getFancyForMeetingReservation(location.slug, meeting.id, function (result) {});
       }
    }
 
    showLoginForNotLoggedUsers() {
-      let location = CalendarStorage.find('locations', this.props.meeting.locations_id);
+      let location = GlobalStorage.find('locations', this.props.meeting.locations_id);
       window.GFtheme.meetings_id = this.props.meeting.id;
       window.GFtheme.location_slug = location.slug;
 
@@ -60,7 +60,7 @@ class CalendarMeeting extends React.Component {
    }
 
    showRegisterForNotLoggedUsers() {
-      let location = CalendarStorage.find('locations', this.props.meeting.locations_id);
+      let location = GlobalStorage.find('locations', this.props.meeting.locations_id);
       window.GFtheme.meetings_id = this.props.meeting.id;
       window.GFtheme.location_slug = location.slug;
       
@@ -73,7 +73,7 @@ class CalendarMeeting extends React.Component {
         let day = this.props.day;
         let classStart = moment(meeting.start_date).toDate();
         let room = this.state.room;
-        let location = CalendarStorage.find('locations', meeting.locations_id);
+        let location = GlobalStorage.find('locations', meeting.locations_id);
       //   let location = GlobalStorage.get('currentLocation')
         let time_format = location.brand.time_format;
 
