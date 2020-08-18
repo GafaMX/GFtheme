@@ -53,14 +53,9 @@ class CalendarFilters extends React.Component {
       let services = CalendarStorage.get('services');
       let {filterServiceDefault} = this.props;
 
-      if(locations){
-         curComp.setState({filter_location: locations[0]});
-      }
-
-      if(filterServiceDefault){
-         let search = services.find(function(service){ return filterServiceDefault.toUpperCase() === service.name.toUpperCase()});
-         curComp.setState({filter_service: search});
-      }
+      // if(locations){
+      //    CalendarStorage.set('filter_location', locations[0]);
+      // }
    }
 
    updateServicesStaff() {
@@ -97,44 +92,42 @@ class CalendarFilters extends React.Component {
       CalendarStorage.set('staff', personal);
    }
 
-   // Dividir Rooms por hijos y padres
-   // updateRooms() {
-   //    let show_rooms = [];
-   //    let rooms = CalendarStorage.get('rooms');
-   //    let locations = CalendarStorage.get('locations');
+   updateRooms() {
+      let show_rooms = [];
+      let rooms = CalendarStorage.get('rooms');
+      let locations = CalendarStorage.get('locations');
 
+      let groups = [];
 
-   //    let groups = [];
+      locations.forEach(function (location) {
+         let obj = {
+               location: location,
+               rooms: []
+         };
+         obj.rooms = rooms.filter(function (room) {
+               return room.locations_id === location.id;
+         });
 
-   //    locations.forEach(function (location) {
-   //       let obj = {
-   //             location: location,
-   //             rooms: []
-   //       };
-   //       obj.rooms = rooms.filter(function (room) {
-   //             return room.locations_id === location.id;
-   //       });
+         groups.push(obj);
+      });
 
-   //       groups.push(obj);
-   //    });
+      this.setState({
+         room_groups: show_rooms
+      });
+   }
 
-   //    this.setState({
-   //       room_groups: show_rooms
-   //    });
-   // }
+   updateStart() {
+      this.setState({
+         has_next: this.hasNextPrev(),
+         has_prev: this.hasNextPrev(false)
+      })
+   }
 
-   // Cuando tengamos el calendario con más de una semana
-   // updateStart() {
-   //    this.setState({
-   //       has_next: this.hasNextPrev(),
-   //       has_prev: this.hasNextPrev(false)
-   //    })
-   // }
-   // updateTimeOfDay(){
-   //    this.setState({
-   //       'time_of_day': CalendarStorage.get('filter_time_of_day'),
-   //    })
-   // }
+   updateTimeOfDay(){
+      this.setState({
+         'time_of_day': CalendarStorage.get('filter_time_of_day'),
+      })
+   }
 
    selectFilter(e) {
       let curComp = this;
@@ -232,85 +225,43 @@ class CalendarFilters extends React.Component {
       updateMeetings(meetings);
    }
 
-   // updateStore(e) {
-   //    let val = e.target.value;
-   //    let name = e.target.getAttribute('data-name');
-   //    CalendarStorage.set(name, val);
-   // }
+    hasNextPrev(next = true) {
+        let meetings = CalendarStorage.get('meetings');
+        let start = CalendarStorage.get('start_date');
+        let compare_start = new Date(start.getTime());
 
-   // selectLocation(e) {
-   //    this.selectFilter(e);
-   //    CalendarStorage.set('filter_room', null);
-   //    this.refs.room.value = '';
-   // }
+        let added = next ? 7 : 0;
+        compare_start.setDate(compare_start.getDate() + added);
 
-   // updateServiceFilter() {
-   //    let services = CalendarStorage.get('services');
-   //    let curComp = this;
-   //    let {filterServiceDefault} = this.props;
+        let compare = function (date_compare, compare_start) {
+            let compare_string = compare_start.toDateString();
+            return next ? date_compare >= new Date(compare_string) : date_compare < new Date(compare_string);
+        };
 
-   //    if(filterServiceDefault){
-   //       let search = services.find(function(service){ return filterServiceDefault.toUpperCase() === service.name.toUpperCase()});
-   //       CalendarStorage.set('filter_service', search);
-   //       curComp.setState({filter_service: search});
-   //    }
-   // }
+        let next_meetings = meetings.find(function (meeting) {
+            let meeting_date = new Date(meeting.start);
+            let date_compare = new Date(meeting_date.toDateString());
+            return compare(date_compare, compare_start);
+        });
+        return !!next_meetings;
+    }
 
-   // nextWeek(e) {
-   //    let start = CalendarStorage.get('start_date');
-   //    if (this.hasNextPrev()) {
-   //       let compare_start = new Date(start.getTime());
-   //       compare_start.setDate(compare_start.getDate() + 7);
-   //       CalendarStorage.set('start_date', compare_start);
-   //    }
-   // }
+   getNextButton() {
+      if (this.state.has_next) {
+         return (
+               <a onClick={this.nextWeek}
+                  className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
+         );
+      }
+   }
 
-   // prevWeek(e) {
-   //    let start = CalendarStorage.get('start_date');
-   //    if (this.hasNextPrev(false)) {
-   //       let compare_start = new Date(start.getTime());
-   //       compare_start.setDate(compare_start.getDate() - 7);
-   //       CalendarStorage.set('start_date', compare_start);
-   //    }
-   // }
-
-   //  hasNextPrev(next = true) {
-   //      let meetings = CalendarStorage.get('meetings');
-   //      let start = CalendarStorage.get('start_date');
-   //      let compare_start = new Date(start.getTime());
-
-   //      let added = next ? 7 : 0;
-   //      compare_start.setDate(compare_start.getDate() + added);
-
-   //      let compare = function (date_compare, compare_start) {
-   //          let compare_string = compare_start.toDateString();
-   //          return next ? date_compare >= new Date(compare_string) : date_compare < new Date(compare_string);
-   //      };
-
-   //      let next_meetings = meetings.find(function (meeting) {
-   //          let meeting_date = new Date(meeting.start);
-   //          let date_compare = new Date(meeting_date.toDateString());
-   //          return compare(date_compare, compare_start);
-   //      });
-   //      return !!next_meetings;
-   //  }
-
-   //  getNextButton() {
-   //      if (this.state.has_next) {
-   //          return (
-   //              <a onClick={this.nextWeek}
-   //                 className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
-   //          );
-   //      }
-   //  }
-
-   //  getPrevButton() {
-   //      if (this.state.has_prev) {
-   //          return (
-   //             <a onClick={this.prevWeek} className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
-   //          );
-   //      }
-   //  }
+   getPrevButton() {
+      if (this.state.has_prev) {
+         return (
+            <a onClick={this.prevWeek} className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
+         );
+      }
+   }
 
    render() {
       let locations = GlobalStorage.get('locations');
@@ -387,7 +338,8 @@ class CalendarFilters extends React.Component {
                      <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
                            data-origin="locations"
                            value={locationValue}
-                           onChange={this.selectFilter}>
+                           onChange={this.selectLocation.bind(this)}>
+                           <option value={''}>{Strings.ALL}</option>
                            {locations.map(function (location, index) {
                               return (
                                  <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>

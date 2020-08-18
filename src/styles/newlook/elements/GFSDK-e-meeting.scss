@@ -22,7 +22,8 @@
       grid-template-columns: 80px 1fr;
       height: initial;
       padding:0;
-      width:250px;
+      // width:250px; // todo versión horizontal
+      width:100%;
 
       @media only screen and (min-width:992px) {
          width:250px;

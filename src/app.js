@@ -23,12 +23,9 @@ GafaFitSDKWrapper.initValues(
       GafaThemeSDK.renderServiceList('[data-gf-theme="service-list"][data-gf-perpage]');
       GafaThemeSDK.renderServiceListWithoutPagination('[data-gf-theme="service-list"]:not([data-gf-perpage])');
 
-      GafaThemeSDK.renderComboList('[data-gf-theme="combo-list"][data-gf-perpage]');
-      GafaThemeSDK.renderComboListWithFilter('[data-gf-theme="combo-list"][data-gf-filterbyname]');
-      GafaThemeSDK.renderComboListWithoutPagination('[data-gf-theme="combo-list"]:not([data-gf-perpage]):not([data-gf-filterbyname])');
-
-      GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"][data-gf-perpage]');
-      GafaThemeSDK.renderMembershipListWithoutPagination('[data-gf-theme="membership-list"]:not([data-gf-perpage]');
+      GafaThemeSDK.renderComboList('[data-gf-theme="combo-list"]');
+      
+      GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"]');
 
       GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
    //   GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');

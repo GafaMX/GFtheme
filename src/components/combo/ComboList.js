@@ -27,10 +27,10 @@ class ComboList extends React.Component {
          showRegister: false,
          list: this.props.list,
          weAreHome: false,
-         per_slide: this.props.per_slide,
       };
 
-      GlobalStorage.addSegmentedListener(['currentLocation'], this.updateComboList.bind(this));
+      GlobalStorage.addSegmentedListener(['combos'], this.updateComboList.bind(this));
+      this.setShowRegister = this.setShowRegister.bind(this);
    }
 
    componentDidMount(){
@@ -40,24 +40,42 @@ class ComboList extends React.Component {
 
       if(origin === href){
          comp.setState({
-               weAreHome : true
+            weAreHome : true,
          });
       }
    }
 
    updateComboList(){
-      let component = this;
-      let currentLocation = GlobalStorage.get('currentLocation');
-      GafaFitSDKWrapper.getComboListWithoutBrand(currentLocation.brand.slug,
-         {
-               per_page: 1000,
-               only_actives: true,
-               propagate: true,
-         }, function (result) {
-               component.setState({
-                  list: result.data
-               });
-      });
+      let comp = this;
+      let {weAreHome} = this.state;
+      let {filterByName, filterByBrand} = this.props;
+      let combos = GlobalStorage.get('combos');
+
+      combos = combos.filter(function(combo){ return combo.status === 'active' && combo.hide_in_front === false});
+      
+      if(weAreHome === true){
+         combos = combos.filter(function(combo){ 
+            return combo.hide_in_home === false
+         });
+      }
+
+      if(filterByName){
+         combos = combos.filter(function(combo){
+            return combo.name.toUpperCase().includes(filterByName.toUpperCase());
+         });
+      }
+
+      if(filterByBrand){
+         combos = combos.filter(function(combo){
+            return combo.brand.name.toUpperCase().includes(filterByBrand.toUpperCase());
+         });
+      }
+
+      if(combos){
+         comp.setState({
+            list : combos,
+         });
+      }
    }
 
    setShowLogin(showLogin) {
@@ -72,19 +90,22 @@ class ComboList extends React.Component {
       });
    }
 
-   updatePaginationData(result) {
-      this.setState({
-         list: result.data,
-         currentPage: result.current_page
-      })
-   }
+   // updatePaginationData(result) {
+   //    this.setState({
+   //       list: result.data,
+   //       currentPage: result.current_page
+   //    })
+   // }
 
    render() {
       let preC = 'GFSDK-c';
       let preE = 'GFSDK-e';
+      let {list} = this.state;
       let comboClass = preC + '-comboList';
       let paginationClass = preE + '-pagination';
       let buttonClass = preE + '-buttons';
+      let listItems = [];
+
 
       function NextArrow(props){
          const {className, onClick} = props;
@@ -148,41 +169,21 @@ class ComboList extends React.Component {
          ],
       };
 
-      const listItems = this.state.list.map((combo) => {
-            if(combo.hide_in_front){
-               if(combo.hide_in_front === false || combo.hide_in_front === 0){
-                  if(
-                     this.state.weAreHome === false && combo.status === 'active' ||
-                     this.state.weAreHome === true && combo.status === 'active' && combo.hide_in_home === true
-                  ){
-                     if(this.props.filterByName){
-                        if(combo.name.includes(this.props.filterByName)){
-                           return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowRegister={this.setShowRegister.bind(this)}/>
-                        } 
-                     } else {
-                        return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowRegister={this.setShowRegister.bind(this)}/>
-                     }
-                  }
-               }
-            } else {
-               if(combo.hide_in_home === false){
-                  if(this.state.weAreHome === false && combo.status === 'active' || this.state.weAreHome === true && combo.status === 'active'){
-                     if(this.props.filterByName){
-                        if(combo.name.includes(this.props.filterByName)){
-                           return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowRegister={this.setShowRegister.bind(this)}/>
-                        } 
-                     } else {
-                        return <ComboItem key={combo.id} combo={combo} has_button={this.props.has_button} setShowRegister={this.setShowRegister.bind(this)}/>
-                     }
-                  }
-               }
-            }
-         }
-      );
+      if(list){
+         let comp = this;
+
+         listItems = list.map(function(combo){
+            return <ComboItem key={combo.id} combo={combo} setShowRegister={comp.setShowRegister}/>
+         });
+      }
+      
       return (
          <div className={comboClass}>
             <Slider {...settings} className={(comboClass + '__container ')}>
-               {listItems}
+               {listItems.length > 0
+                  ? listItems
+                  : null
+               }
             </Slider>
 
             {this.state.showRegister &&

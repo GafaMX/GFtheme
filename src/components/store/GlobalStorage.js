@@ -13,14 +13,20 @@ const GlobalStorage = {
     locations: [],
    //  currentLocation: null,
 
+    //Combos
+    combos: [],
+    
+    //Combos
+    memberships: [],
+
     //PaymentMethod Controller
     ConektaPaymentInfo: null,
     ConektaPaymentNotification: null,
     ConektaPaymentError: null,
 
-    //Future Class
-    future_classes: null,
-    past_classes: null,
+   //Future Class
+   future_classes: null,
+   past_classes: null,
 
    get(property) {
       return this[property];
@@ -55,15 +61,25 @@ const GlobalStorage = {
    initialValues(brands, cb){
       let curStore = this;
       let currentBrand = brands[0];
+      let locations = [];
+      let loop = 0;
 
       this.brands = brands;
       this.currentBrand = currentBrand;
+      
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
+            locations = locations.concat(result.data);
+            loop++;
 
-      GafaFitSDKWrapper.getBrandLocationsWithoutBrand(this.currentBrand.slug, {}, function (result) {
-         curStore.set('locations', result.data);
-         if(cb){
-            cb();
-         }
+            if(loop === brands.length){
+               GlobalStorage.set('locations', locations);
+
+               if(cb){
+                  cb();
+               }
+            }
+         });
       });
    },
 

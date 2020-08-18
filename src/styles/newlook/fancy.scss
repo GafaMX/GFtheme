@@ -121,6 +121,23 @@
       }
    }
 
+   .gs-paymentMethod__body{
+
+      .card-list{
+         margin-bottom:20px;
+      }
+
+      .card-list__item{
+         & >.type{
+            width:initial;
+            border: 0 transparent none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+         }
+      }
+      
+   }
+
    .productSelection__summary, .paymentSelection__resume{
       .gs-summary{
          background-color: #f2f2f2;

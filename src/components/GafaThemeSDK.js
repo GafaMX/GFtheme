@@ -46,42 +46,42 @@ class GafaThemeSDK extends React.Component {
     }
 
     static renderStaffListWithoutPagination(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
-            GafaFitSDKWrapper.getStaffList({}, function (result) {
-                let props = GafaThemeSDK.propsForPagedListComponent(result);
-                GafaThemeSDK.renderElementIntoContainers(domContainers, StaffList, props);
-            });
-        }
+      let domContainers = document.querySelectorAll(selector);
+      if (domContainers.length > 0) {
+         GafaFitSDKWrapper.getStaffList({}, function (result) {
+               let props = GafaThemeSDK.propsForPagedListComponent(result);
+               GafaThemeSDK.renderElementIntoContainers(domContainers, StaffList, props);
+         });
+      }
     };
 
-    static renderLocationsFilter(selector){
-        let domContainers = document.querySelectorAll(selector);
+   //  static renderLocationsFilter(selector){
+   //      let domContainers = document.querySelectorAll(selector);
 
-        if (domContainers.length > 0) {
-            GafaFitSDKWrapper.getBrandList({}, function(result){
-                let brands = result.data;
-                let locations = [];
+   //      if (domContainers.length > 0) {
+   //          GafaFitSDKWrapper.getBrandList({}, function(result){
+   //              let brands = result.data;
+   //              let locations = [];
 
-                brands.forEach(brand => {
-                    GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
-                        locations.push(result.data[0]);
-                        const currentLocation = locations.find(location => location.slug === window.GFtheme.location);
+   //              brands.forEach(brand => {
+   //                  GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
+   //                      locations.push(result.data[0]);
+   //                      const currentLocation = locations.find(location => location.slug === window.GFtheme.location);
 
-                        let props = {
-                            brands: brands,
-                            locations: locations,
-                            currentLocation : currentLocation,
-                        }
+   //                      let props = {
+   //                          brands: brands,
+   //                          locations: locations,
+   //                          currentLocation : currentLocation,
+   //                      }
 
-                        if(locations.length > 1){
-                            GafaThemeSDK.renderElementIntoContainers(domContainers, LocationsFilter, props);
-                        }
-                    })
-                });
-            });
-        }
-    }
+   //                      if(locations.length > 1){
+   //                          GafaThemeSDK.renderElementIntoContainers(domContainers, LocationsFilter, props);
+   //                      }
+   //                  })
+   //              });
+   //          });
+   //      }
+   //  }
 
     static renderStaffList(selector) {
         let domContainers = document.querySelectorAll(selector);
@@ -101,17 +101,17 @@ class GafaThemeSDK extends React.Component {
         }
     };
 
-    static renderServiceListWithoutPagination(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
-            GafaFitSDKWrapper.getServiceList({
-                per_page: 10,
-            },function (result) {
-                let props = GafaThemeSDK.propsForPagedListComponent(result);
-                GafaThemeSDK.renderElementIntoContainers(domContainers, ServiceList, props);
-            });
-        }
-    };
+   static renderServiceListWithoutPagination(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      if (domContainers.length > 0) {
+         GafaFitSDKWrapper.getServiceList({
+               per_page: 10,
+         },function (result) {
+               let props = GafaThemeSDK.propsForPagedListComponent(result);
+               GafaThemeSDK.renderElementIntoContainers(domContainers, ServiceList, props);
+         });
+      }
+   };
 
     static renderServiceList(selector) {
         let domContainers = document.querySelectorAll(selector);
@@ -128,105 +128,60 @@ class GafaThemeSDK extends React.Component {
         }
     };
 
-   static renderComboListWithoutPagination(selector) {
-      let domContainers = document.querySelectorAll(selector);
-      if (domContainers.length > 0) {
-         domContainers.forEach(function (domContainer) {
-            GafaFitSDKWrapper.getComboList({
-               per_page: 10000,
-               only_actives: true,
-               propagate: true,
-            },function (result) {
-               let byName = domContainer.getAttribute("data-gf-filterbyname");
-               let has_button = domContainer.getAttribute('config-bq-hasbutton') === 'true' ? true : false;
-               let per_slide = Number(domContainer.getAttribute('config-bq-item-per-page'));
-               let props = GafaThemeSDK.propsForPagedListComponent(result);
-               props.filterByName = byName;
-               props.has_button = has_button;
-               props.per_slide = per_slide ? per_slide : 5;
-               GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
-            });
-         });
-      }
-   };
-
-   static renderComboListWithFilter(selector) {
-      let domContainers = document.querySelectorAll(selector);
-      if (domContainers.length > 0) {
-         domContainers.forEach(function (domContainer) {
-            GafaFitSDKWrapper.getComboList({
-               per_page: 10000,
-               only_actives: true,
-               propagate: true,
-            },function (result) {
-               let byName = domContainer.getAttribute("data-gf-filterbyname");
-               let props = GafaThemeSDK.propsForPagedListComponent(result);
-               props.filterByName = byName;
-               GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
-            });
-         });
-      }
-   };
-
     static renderComboList(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
-            domContainers.forEach(function (domContainer) {
-                let per_page = domContainer.getAttribute("data-gf-perpage");
-                if (per_page == null) {
-                    per_page = 10;
-                }
-                GafaFitSDKWrapper.getComboList({
-                    only_actives: true,
-                    propagate: true,
-                }, function (result) {
-                    let props = GafaThemeSDK.propsForPagedListComponent(result);
-                    props.slidesToShow = per_page;
-                    GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
-                });
-            });
-        }
-    };
-
-    static renderMembershipListWithoutPagination(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
+      let domContainers = document.querySelectorAll(selector);
+      let brands = GlobalStorage.get('brands');
+      if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
-               GafaFitSDKWrapper.getMembershipList({
-               per_page: 10000,
-               only_actives: true,
-               propagate: true,
-            },function (result) {
-               let byName = domContainer.getAttribute("data-gf-filterbyname");
-               let has_button = domContainer.getAttribute('config-bq-hasbutton') === 'true' ? true : false;
-               let per_slide = Number(domContainer.getAttribute('config-bq-item-per-page'));
-               let props = GafaThemeSDK.propsForPagedListComponent(result);
-               props.filterByName = byName;
-               props.has_button = has_button;
-               props.per_slide = per_slide ? per_slide : 5;
-               GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
+            let byName = domContainer.getAttribute("data-gf-filterbyname");
+            let byBrand = domContainer.getAttribute("data-buq-brand");
+            let combos = [];
+            let props = {};
+
+            brands.forEach(function(brand){
+               GafaFitSDKWrapper.getComboList( brand.slug,
+                  {per_page: 10000, only_actives: true, propagate: true},
+                  function (result) {
+                     // let props = GafaThemeSDK.propsForPagedListComponent(result);
+                     props.filterByName = byName;
+                     props.filterByBrand = byBrand;
+                     combos = combos.concat(result.data);
+                     GlobalStorage.set('combos', combos);
+                     GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
+                  }
+               );
             });
+            
          });
       }
    };
 
-    static renderMembershipList(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
-            domContainers.forEach(function (domContainer) {
-                let per_page = domContainer.getAttribute("data-gf-perpage");
-                GafaFitSDKWrapper.getMembershipList({
-                    per_page: 1000,
-                    only_actives: true,
-                    propagate: true,
-                }, function (result) {
-                    let props = GafaThemeSDK.propsForPagedListComponent(result);
-                    props.slidesToShow = per_page;
-                    GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
-                });
+   static renderMembershipList(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      let brands = GlobalStorage.get('brands');
+      if (domContainers.length > 0) {
+         domContainers.forEach(function (domContainer) {
+            let byName = domContainer.getAttribute("data-gf-filterbyname");
+            let byBrand = domContainer.getAttribute("data-buq-brand");
+            let memberships = [];
+            let props = {};
+
+            brands.forEach(function(brand){
+               GafaFitSDKWrapper.getMembershipList(
+                  brand.slug,
+                  {per_page: 10000, only_actives: true, propagate: true}, 
+                  function (result) {
+                     props.filterByName = byName;
+                     props.filterByBrand = byBrand;
+                     memberships = memberships.concat(result.data);
+                     GlobalStorage.set('memberships', memberships);
+                     GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
+                  }
+               );
             });
-        }
-    };
+         });
+      }
+   };
 
     static renderLogin(selector) {
         let domContainers = document.querySelectorAll(selector);

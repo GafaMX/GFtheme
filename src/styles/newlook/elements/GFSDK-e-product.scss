@@ -17,36 +17,7 @@
       font-family: 'DM Sans', sans-serif;
    }
 
-    @include cleanStyles;
-
-   //  &:before{
-   //    content: '';
-   //    position:absolute;
-   //    height:100%;
-   //    width:100%;
-   //    border: 1px solid #FF3E4F;
-   //    opacity:0;
-   //    top:0;
-   //    left:0;
-   //    border-radius: 23px;
-   //    z-index: 0;
-   //    @include transition(all);
-   //  }
-
-   // &:hover{
-
-   //    [class*=__divider]{
-   //       background-color:transparent;
-   //       &:before{
-   //             transform: translateY(-50%) scaleX(1);
-   //       }
-   //    }
-
-   //    &:before{
-   //       border: 3px solid #FF3E4F;
-   //       opacity:1;
-   //    }
-   // }
+   @include cleanStyles;
 
    &__head, &__body{
       color: #1F1C3D;
@@ -81,36 +52,12 @@
          overflow: visible;
       }
    }
-
-   //  &__divider{
-   //      position:relative;
-   //      height:1px;
-   //      width:100%;
-   //      margin:0;
-   //      overflow: visible;
-   //      margin-left:-25px;
-   //      border: 0 transparent none;
-   //      background-color:#eee;
-
-   //      &:before{
-   //          content:' ';
-   //          position:absolute;
-   //          width: 100%;
-   //          top:50%;
-   //          left:0;
-   //          transform: translateY(-50%) scaleX(0);
-   //          transform-origin: center left;
-   //          height: 3px;
-   //          z-index:1;
-   //          background-color:#FF3E4F;
-   //          @include transition(transform);
-   //      }
-   //  }
-
    &__body{
+      margin-top:23px;
+      display: grid;
+      row-gap: .75rem;
       .this-price{
          width:100%;
-         margin-top: 32px;
          overflow: hidden;
          p{
             font-size:14px;
@@ -126,9 +73,11 @@
                color:#575757;
             }
          }
-      }
+      } 
 
       button{
+         position: absolute;
+         bottom:30px;
          color: rgb(255, 255, 255);
          background: #FF3E4F;
          min-width: 134px;
@@ -160,11 +109,6 @@
          text-overflow: ellipsis;
          font-weight:400;
       }
-
-      // > .this-shortDescription{
-      //    height: 80px;
-      //    line-height: 1.6;
-      // }
 
       > .this-expiration{
          height: 100%;

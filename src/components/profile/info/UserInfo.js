@@ -40,9 +40,8 @@ class UserInfo extends React.Component {
     }
 
     handleChangeBirthDate(date) {
-        const dateFormatted = moment(date).format('YYYY-MM-DD');
-        this.props.info.birthDate = date;
-        this.props.info.birth_date = dateFormatted + " 00:00:00";
+        const dateFormatted = moment(date).format('YYYY-MM-DD')
+        this.props.info.birth_date = dateFormatted;
         this.props.updateState(this.props.info);
     }
 
@@ -105,6 +104,8 @@ class UserInfo extends React.Component {
                     <ControlLabel className={formClass + "__label"}>{Strings.LABEL_BIRTH_DATE}</ControlLabel>
                     <DatePicker
                         onChange={this.handleChangeBirthDate.bind(this)}
+                        calendarClassName={formClass + "__calendar"}
+                        className={formClass + "__calendar-input"}
                         value={this.props.info.birth_date ? birth_date : moment().toDate()}
                         maxDate={new Date()}
                     />
