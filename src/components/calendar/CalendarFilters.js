@@ -90,7 +90,6 @@ class CalendarFilters extends React.Component {
       let rooms = CalendarStorage.get('rooms');
       let locations = CalendarStorage.get('locations');
 
-
       let groups = [];
 
       locations.forEach(function (location) {

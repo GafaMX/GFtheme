@@ -1,270 +1,408 @@
 @import '../base/variables.scss';
 
 .#{$pre}-e-form{
-    height: 100%;
-    &:focus{
-        outline:none;
-    }
+   height: 100%;
+   &:focus{
+      outline:none;
+   }
 
-    &__container{
-        display:grid;
-        &:focus{
-            outline:none;
-        }
-    }
+   &__container{
+      display:grid;
+      &:focus{
+         outline:none;
+      }
+   }
 
-    &__divider{
-        background-color: #E0E0E0;
-        width:calc(100%);
-        margin: 0 auto;
-        height: 1px;
-        border: 0 transparent none;
-    }
+   &__divider{
+      background-color: #E0E0E0;
+      width:calc(100%);
+      margin: 0 auto;
+      height: 1px;
+      border: 0 transparent none;
+   }
 
-    &__select{
-      appearance: none;
-      padding:0 23px 0 0;
-      font-size:11px;
-      font-weight:600;
-      outline: none;
-      border:0 transparent none;
-      color:#575757;
-      background-color:transparent;
-      width:100%;
+   &__select{
+   appearance: none;
+   padding:0 23px 0 0;
+   font-size:11px;
+   font-weight:600;
+   outline: none;
+   border:0 transparent none;
+   color:#575757;
+   background-color:transparent;
+   width:100%;
+   height:initial!important;
+   cursor: pointer;
+   letter-spacing: 1.15px;
+
+   &-icon{
+      position:absolute;
+      height:100%;
+      width:12px;
+      right: 20px;
+      pointer-events: none;
+   }
+
+   option{
+      padding:10px;
+      letter-spacing: 1.15px;
+   }
+   }
+   
+   &__section{
+      display: grid;
+      grid-template-rows: auto 1fr;
+      align-items: center;
+      row-gap: 5px;
+      margin:0;
+      width: 100%;
+
+      &.is-email_confirm, &.is-first_name_confirm{
+         display: none;
+      }
+
+      &.is-empty{
+         display:none;
+      }
+
+      &.is-gender{
+         align-items: center;
+         height: 100%;
+         grid-template-rows: 1fr;
+      }
+      
+      &.is-gender, &.is-birthday{
+         width: 100%;
+         
+         @media screen and (min-width:992px) {
+               grid-template-rows: 1fr;
+               width: initial;
+         }
+      }
+
+      &.is-country,
+      &.is-state
+      {
+         input{
+               height:initial;
+         }
+      }
+
+      &.is-email{
+         @media screen and (min-width:992px) {
+               grid-column: 2/4;
+         }
+      }
+
+      &.is-state{
+         
+         @media screen and (min-width:992px) {
+               grid-column: 3/5;
+         }
+      }
+
+      &.is-day-filter{
+         display: grid;
+         justify-items: center;
+         align-items: end;
+      }
+
+      .react-date-picker {
+         display: block;
+
+         &__wrapper {
+               display: grid;
+               grid-template-columns: 1fr auto auto;
+               column-gap: 10px;
+               border: 0 transparent none;
+         }
+
+         &__inputGroup {
+               display: inline-grid;
+               grid-template-columns: 1fr auto 1fr auto 1fr;
+               align-items: center;
+               column-gap: 10px;
+               padding: 5px 0px;
+               border-bottom: 0 transparent none!important;
+
+               &__input {
+                  color:#4E4E50;
+                  width:80px!important;
+                  text-align: center;
+                  font-weight: 500;
+                  font-size:16px!important;
+                  
+                  @media screen and (min-width:992px) {
+                     width:80px!important;
+                  }
+
+                  &:focus{
+                     outline: none;
+                  }
+               }
+         }
+      }
+   }
+   
+   &__label{
+   font-size:12px;
+   letter-spacing: 1.15px;
+   font-weight: 300;
+   color:#444444;
+   margin: 0;
+   }
+   
+   &__input{
+      color:#4E4E50;
+      font-size:16px!important;
+      border-top: 0px none transparent!important;
+      border-left: 0px none transparent!important;
+      border-right: 0px none transparent!important;
+      border-bottom: 1px solid #BDBDBD!important;
+      background-color: transparent;
+      border-radius: 0!important;
+      // font-weight: 700;
+      box-shadow: none!important;
+      padding:5px 0px !important;
       height:initial!important;
+      width:100%;
+
+      &::placeholder{
+         font-size:12px;
+      }
+      
+      &:focus{
+         outline:none;
+         border-color: transparent;
+         box-shadow: none;
+      }
+      
+      &:disabled{
+         background-color: transparent;
+         font-weight: 400;
+         color:#C7C7C8;
+         border-bottom: 1px solid lighten(#C7C7C8, 15%)!important;
+      }
+   }
+
+   &__radio-container{
+      display: inline-grid;
+      grid-template-columns: repeat(2, 1fr);
+      column-gap: 25px;
+      
+      &.has-3-columns{
+         grid-template-columns: repeat(3, 40px);
+         grid-template-rows: 1fr;
+         column-gap: 15px;
+         align-items: center;
+      }
+   }
+
+   &__radio{
+      display: inline-grid;
+      grid-auto-flow: column;
+      column-gap: 15px;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      border-radius: 10px;
+      padding: 0px;
+      line-height: 1;
+      font-size: 14px;
+      margin:0;
       cursor: pointer;
-      letter-spacing: 1.15px;
 
-      &-icon{
-         position:absolute;
-         height:100%;
-         width:12px;
-         right: 20px;
-         pointer-events: none;
+      & > .this-radio{
+         position: relative;
+         display: grid;
+         align-items: center;
+         justify-items: center;
+         height:20px;
+         width:20px;
+         border: 1px solid #BDBDBD;
+         border-radius: 100%;
+
+         &:before{
+               content: "";
+               display: block;
+               height: 10px;
+               width: 10px;
+               border-radius: 100%;
+               background-color: transparent;
+               @include transition(background-color);
+         }
+         
+         &.checked{
+               &:before{
+                  background-color: #FF3E4F;
+               }
+         }
       }
 
-      option{
+      .has-3-columns &{
+         grid-template-columns: 1fr;
          padding:10px;
-         letter-spacing: 1.15px;
+         border-radius: 10px;
+
+         &:before{
+               display: none;
+         }
+         svg{
+               height:100%;
+               width:100%;
+               color: #A5A1A1;
+               @include transition (color);
+         }
+
+         input {
+               display: none;
+         }
+         &.checked{
+               svg{
+                  color: #1F1C3D;
+               }
+         }
       }
-    }
-    
-    &__section{
-        display: grid;
-        grid-template-rows: auto 1fr;
-        align-items: center;
-        row-gap: 5px;
-        margin:0;
-        width: 100%;
 
-        &.is-email_confirm, &.is-first_name_confirm{
+      input{
+         display: none;
+      }
+
+      p {
+         margin:0;
+      }
+   }
+
+   &__calendar{
+
+      &-input{
+         border-bottom: 1px solid #BDBDBD !important;
+      }
+
+   }
+}
+
+.react-calendar{
+   border-radius: 20px;
+   overflow: hidden;
+   &__navigation{
+      display: grid!important;
+      grid-auto-flow: column;
+      column-gap: 20px;
+      grid-template-columns: auto 1fr auto;
+
+
+      & > button{
+         display: block;
+         min-width:initial!important;
+         padding:0;
+
+         &.react-calendar__navigation__prev2-button,
+         &.react-calendar__navigation__next2-button{
             display: none;
-        }
-
-        &.is-empty{
-            display:none;
-        }
-
-        &.is-gender{
-            align-items: center;
-            height: 100%;
-            grid-template-rows: 1fr;
-        }
-        
-        &.is-gender, &.is-birthday{
-            width: 100%;
+         }
+         &.react-calendar__navigation__prev-button:active,
+         &.react-calendar__navigation__prev-button:focus,
+         &.react-calendar__navigation__prev-button,
+         &.react-calendar__navigation__next-button:active,
+         &.react-calendar__navigation__next-button:focus,
+         &.react-calendar__navigation__next-button{
+            height:40px;
+            width:40px;
+            font-size: 20px;
+            font-weight: bold;
+            background-color: #FF3E4F!important;
+            color:white;
             
-            @media screen and (min-width:992px) {
-                grid-template-rows: 1fr;
-                width: initial;
-            }
-        }
-
-        &.is-country,
-        &.is-state
-        {
-            input{
-                height:initial;
-            }
-        }
-
-        &.is-email{
-            @media screen and (min-width:992px) {
-                grid-column: 2/4;
-            }
-        }
-
-        &.is-state{
             
-            @media screen and (min-width:992px) {
-                grid-column: 3/5;
-            }
-        }
-
-        &.is-day-filter{
-            display: grid;
-            justify-items: center;
-            align-items: end;
-        }
-
-        .react-date-picker {
-            display: block;
-
-            &__wrapper {
-                display: grid;
-                grid-template-columns: 1fr auto auto;
-                column-gap: 10px;
-                border: 0 transparent none;
+            &:hover{
+               background-color: darken(#FF3E4F, 20%)!important;
             }
 
-            &__inputGroup {
-                display: inline-grid;
-                grid-template-columns: 1fr auto 1fr auto 1fr;
-                align-items: center;
-                column-gap: 10px;
-                padding: 5px 0px;
-                border-bottom: 1px solid #BDBDBD;
-
-                &__input {
-                    color:#4E4E50;
-                    width:80px!important;
-                    text-align: center;
-                    font-weight: 500;
-                    font-size:16px!important;
-                    
-                    @media screen and (min-width:992px) {
-                        width:80px!important;
-                    }
-                }
-            }
-        }
-    }
-    
-    &__label{
-      font-size:12px;
-      letter-spacing: 1.15px;
-      font-weight: 300;
-      color:#444444;
-      margin: 0;
-    }
-    
-    &__input{
-        color:#4E4E50;
-        font-size:16px!important;
-        border-top: 0px none transparent!important;
-        border-left: 0px none transparent!important;
-        border-right: 0px none transparent!important;
-        border-bottom: 1px solid #BDBDBD!important;
-        background-color: transparent;
-        border-radius: 0!important;
-        // font-weight: 700;
-        box-shadow: none!important;
-        padding:5px 0px !important;
-        height:initial!important;
-        width:100%;
-
-        &::placeholder{
-           font-size:12px;
-        }
-        
-        &:focus{
-            outline:none;
-            border-color: transparent;
-            box-shadow: none;
-        }
-        
-        &:disabled{
-            background-color: transparent;
-            font-weight: 400;
-            color:#C7C7C8;
-            border-bottom: 1px solid lighten(#C7C7C8, 15%)!important;
-        }
-    }
-
-    &__radio-container{
-        display: inline-grid;
-        grid-template-columns: repeat(2, 1fr);
-        column-gap: 25px;
-        
-        &.has-3-columns{
-            grid-template-columns: repeat(3, 40px);
-            grid-template-rows: 1fr;
-            column-gap: 15px;
-            align-items: center;
-        }
-    }
-
-    &__radio{
-        display: inline-grid;
-        grid-auto-flow: column;
-        column-gap: 15px;
-        grid-template-columns: auto 1fr;
-        align-items: center;
-        border-radius: 10px;
-        padding: 0px;
-        line-height: 1;
-        font-size: 14px;
-        margin:0;
-        cursor: pointer;
-
-        & > .this-radio{
-            position: relative;
-            display: grid;
-            align-items: center;
-            justify-items: center;
-            height:20px;
-            width:20px;
-            border: 1px solid #BDBDBD;
-            border-radius: 100%;
-
-            &:before{
-                content: "";
-                display: block;
-                height: 10px;
-                width: 10px;
-                border-radius: 100%;
-                background-color: transparent;
-                @include transition(background-color);
+            &:disabled{
+               opacity: 0;
+               pointer-events: none;
             }
             
-            &.checked{
-                &:before{
-                    background-color: #FF3E4F;
-                }
-            }
-        }
+         }
 
-        .has-3-columns &{
-            grid-template-columns: 1fr;
-            padding:10px;
-            border-radius: 10px;
+         &.react-calendar__navigation__label{
+            font-weight: bold;
+            font-size:16px;
+            text-transform: uppercase;
+            color: #444444;
+            border-radius: 0 0 20px 20px;
+         }
+         
+         &.react-calendar__navigation__prev-button{
+            border-radius: 0 0 20px 0;
+         }
+         
+         
+         &.react-calendar__navigation__next-button{
+            border-radius: 0 0 0 20px;
+         }
+      }
+   }
 
-            &:before{
-                display: none;
+   &__year-view, &__century-view, &__decade-view{
+      &__months, &__decades, &__years{
+         display: grid!important;
+         grid-template-columns: repeat(3, 1fr);
+   
+         button{
+            max-width:initial!important;
+            border-radius: 0;
+            width:100%;
+            color:darken(#C7C7C8, 20%)!important;
+            text-transform: uppercase;
+
+            &.react-calendar__tile--hasActive{
+               background-color: #FF3E4F;
+               color:white!important;
             }
-            svg{
-                height:100%;
-                width:100%;
-                color: #A5A1A1;
-                @include transition (color);
+         }
+      }
+   }
+
+   &__month-view{
+      &__weekdays{
+         color: #C9C9CD;
+         abbr[title]{
+            border-bottom:0 transparent none;
+         }
+      }
+
+      &__days{
+         display: grid!important;
+         grid-template-columns: repeat(7, 1fr);
+
+         button{
+            max-width:initial!important;
+            border-radius: 0;
+            width:100%;
+            color:darken(#C7C7C8, 20%)!important;
+
+            &:hover{
+               color: #666666!important;
+               background: #DCDCDC;
             }
 
-            input {
-                display: none;
-            }
-            &.checked{
-                svg{
-                    color: #1F1C3D;
-                }
-            }
-        }
+            &:disabled{
+               pointer-events: none;
+               background-color: #C7C7C8;
+               color:darken(#C7C7C8, 20%);
 
-        input{
-            display: none;
-        }
+               &:hover{
+                  background-color: #C7C7C8;
+                  color:darken(#C7C7C8, 20%);
+               }
+            }
 
-        p {
-            margin:0;
-        }
-    }
+            &.react-calendar__tile--active{
+               background-color: #FF3E4F;
+               color:white!important;
+            }
+         }
+      }
+   }
 }
