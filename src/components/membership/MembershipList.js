@@ -18,77 +18,92 @@ import '../../styles/newlook/elements/GFSDK-e-product.scss';
 import GlobalStorage from "../store/GlobalStorage";
 
 class MembershipList extends React.Component {
-    constructor(props) {
-        super(props);
+   constructor(props) {
+      super(props);
 
-        this.state = {
-            showLogin: false,
-            showRegister: false,
-            list: this.props.list,
-            weAreHome: false,
-            per_slide: this.props.per_slide,
-        };
+      this.state = {
+         showLogin: false,
+         showRegister: false,
+         list: this.props.list,
+         weAreHome: false,
+      };
 
-        GlobalStorage.addSegmentedListener(['currentLocation'], this.updateMembershipList.bind(this));
-    }
+      GlobalStorage.addSegmentedListener(['memberships'], this.updateMembershipList.bind(this));
+      this.setShowRegister = this.setShowRegister.bind(this);
+   }
 
-    componentDidMount(){
-        let comp = this;
-        let origin = window.location.origin + '/';
-        let href = window.location.href;
+   componentDidMount(){
+      let comp = this;
+      let origin = window.location.origin + '/';
+      let href = window.location.href;
 
-        if(origin === href){
-            comp.setState({
-                weAreHome : true
-            });
-        }
-    }
+      if(origin === href){
+         comp.setState({
+            weAreHome : true
+         });
+      }
+   }
 
-    updateMembershipList(){
-        let component = this;
-        let currentLocation = GlobalStorage.get('currentLocation');
+   updateMembershipList(){
+      let comp = this;
+      let {weAreHome} = this.state;
+      let {filterByName, filterByBrand} = this.props;
+      let memberships = GlobalStorage.get('memberships');
 
-        GafaFitSDKWrapper.getMembershipListWithoutBrand(currentLocation.brand.slug,
-            {
-               per_page: 10,
-               only_actives: true,
-               propagate: true,
-            }, function (result) {
-               let functionReturns = GafaThemeSDK.propsForPagedListComponent(result);
-               component.setState({
-                  list: functionReturns.list
-               });
-        });
-    }
+      memberships = memberships.filter(function(membership){ return membership.status === 'active' && membership.hide_in_front === false});
+      
+      if(weAreHome === true){
+         memberships = memberships.filter(function(membership){ 
+            return membership.hide_in_home === false
+         });
+      }
 
-    setShowLogin(showLogin) {
-        this.setState({
-            showLogin: showLogin
-        });
-    }
+      if(filterByName){
+         memberships = memberships.filter(function(membership){
+            return membership.name.toUpperCase().includes(filterByName.toUpperCase());
+         });
+      }
 
-    setShowRegister(showRegister) {
+      if(filterByBrand){
+         memberships = memberships.filter(function(membership){
+            return membership.brand.name.toUpperCase().includes(filterByBrand.toUpperCase());
+         });
+      }
+
+      if(memberships){
+         comp.setState({
+            list : memberships,
+         });
+      }
+   }
+
+   setShowLogin(showLogin) {
+      this.setState({
+         showLogin: showLogin
+      });
+   }
+
+   setShowRegister(showRegister) {
       this.setState({
          showRegister: showRegister
       });
    }
 
-    updatePaginationData(result) {
-        this.setState({
-            list: result.data,
-            currentPage: result.current_page
-        })
-    }
+   //  updatePaginationData(result) {
+   //      this.setState({
+   //          list: result.data,
+   //          currentPage: result.current_page
+   //      })
+   //  }
 
     render() {
         let preC = 'GFSDK-c';
         let preE = 'GFSDK-e';
+        let {list} = this.state;
         let membershipClass = preC + '-membershipList';
         let paginationClass = preE + '-pagination';
         let buttonClass = preE + '-buttons';
-
-        let sliderCentered = this.state.list.length > this.state.slidesToShow ? true : false ;
-        let slidesToShow = this.state.slidesToShow > 1 ? this.state.slidesToShow : 3 ;
+        let listItems = [];
 
         function NextArrow(props){
             const {className, onClick} = props;
@@ -121,63 +136,51 @@ class MembershipList extends React.Component {
             prevArrow: <PrevArrow />,
             nextArrow: <NextArrow />,
             responsive: [
-                {
-                    breakpoint: 481,
-                    settings: {
-                        slidesToShow: 1,
-                        slidesToScroll: 1,
-                    }
-                },
-                {
-                    breakpoint: 769,
-                    settings: {
-                        slidesToShow: 2,
-                        slidesToScroll: 2,
-                    }
-                },
-                {
-                    breakpoint: 992,
-                    settings: {
-                        slidesToShow: 3,
-                        slidesToScroll: 3,
-                    }
-                },
-                {
-                    breakpoint: 1025,
-                    settings: {
-                        slidesToShow: 4,
-                        slidesToScroll: 1,
-                    }
-                },
+               {
+                  breakpoint: 481,
+                  settings: {
+                     slidesToShow: 1,
+                     slidesToScroll: 1,
+                  }
+               },
+               {
+                  breakpoint: 769,
+                  settings: {
+                     slidesToShow: 2,
+                     slidesToScroll: 2,
+                  }
+               },
+               {
+                  breakpoint: 992,
+                  settings: {
+                     slidesToShow: 3,
+                     slidesToScroll: 3,
+                  }
+               },
+               {
+                  breakpoint: 1025,
+                  settings: {
+                     slidesToShow: 4,
+                     slidesToScroll: 1,
+                  }
+               },
             ],
         };
 
-         const listItems = this.state.list.map((membership) =>{
-            if(membership.hide_in_front){
-               if(membership.hide_in_front === false || membership.hide_in_front === 0){
-                  if(
-                     this.state.weAreHome === false && membership.status === 'active' ||
-                     this.state.weAreHome === true && membership.status === 'active' && membership.hide_in_home != true
-                  ){
-                     return <MembershipItem key={membership.id} membership={membership} setShowRegister={this.setShowRegister.bind(this)}/>
-                  }
-               }
-            } else {
-               if(membership.hide_in_home === false){
-                  if(
-                     this.state.weAreHome === false && membership.status === 'active' ||
-                     this.state.weAreHome === true && membership.status === 'active'
-                  ){
-                     return <MembershipItem key={membership.id} membership={membership} setShowRegister={this.setShowRegister.bind(this)}/>
-                  }
-               }
-            }
+      if(list){
+         let comp = this;
+         listItems = list.map(function(membership){
+            return <MembershipItem key={membership.id} membership={membership} setShowRegister={comp.setShowRegister}/>
          });
+      }
 
         return (
             <div className={membershipClass}>
                <Slider {...settings} className={(membershipClass + '__container ')}>
-                  {listItems}
+                  {listItems.length > 0
+                     ? listItems
+                     : null
+                  }
                </Slider>
 
                {

@@ -1,3 +1,5 @@
+import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
+
 const GlobalStorage = {
     listeners: [],
     segmentedListeners: [],
@@ -11,14 +13,20 @@ const GlobalStorage = {
     locations: [],
     currentLocation: null,
 
+    //Combos
+    combos: [],
+    
+    //Combos
+    memberships: [],
+
     //PaymentMethod Controller
     ConektaPaymentInfo: null,
     ConektaPaymentNotification: null,
     ConektaPaymentError: null,
 
-    //Future Class
-    future_classes: null,
-    past_classes: null,
+   //Future Class
+   future_classes: null,
+   past_classes: null,
 
    get(property) {
       return this[property];
@@ -48,6 +56,31 @@ const GlobalStorage = {
 
    addListener(callback) {
       this.listeners.push(callback);
+   },
+
+   initialValues(brands, cb){
+      let curStore = this;
+      let currentBrand = brands[0];
+      let locations = [];
+      let loop = 0;
+
+      this.brands = brands;
+      this.currentBrand = currentBrand;
+      
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
+            locations = locations.concat(result.data);
+            loop++;
+
+            if(loop === brands.length){
+               GlobalStorage.set('locations', locations);
+
+               if(cb){
+                  cb();
+               }
+            }
+         });
+      });
    },
 
    addSegmentedListener(segment, callback) {
