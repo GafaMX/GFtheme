@@ -45,9 +45,9 @@ class CalendarFilters extends React.Component {
       let locations = CalendarStorage.get('locations');
       let {filterServiceDefault} = this.props;
 
-      if(locations){
-         CalendarStorage.set('filter_location', locations[0]);
-      }
+      // if(locations){
+      //    CalendarStorage.set('filter_location', locations[0]);
+      // }
    }
 
    updateServicesStaff() {
@@ -200,22 +200,22 @@ class CalendarFilters extends React.Component {
         return !!next_meetings;
     }
 
-    getNextButton() {
-        if (this.state.has_next) {
-            return (
-                <a onClick={this.nextWeek}
-                   className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
-            );
-        }
-    }
+   getNextButton() {
+      if (this.state.has_next) {
+         return (
+               <a onClick={this.nextWeek}
+                  className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
+         );
+      }
+   }
 
-    getPrevButton() {
-        if (this.state.has_prev) {
-            return (
-               <a onClick={this.prevWeek} className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
-            );
-        }
-    }
+   getPrevButton() {
+      if (this.state.has_prev) {
+         return (
+            <a onClick={this.prevWeek} className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
+         );
+      }
+   }
 
    render() {
       let locations = CalendarStorage.get('locations');
@@ -290,6 +290,7 @@ class CalendarFilters extends React.Component {
                            data-origin="locations"
                            value={locationValue}
                            onChange={this.selectLocation.bind(this)}>
+                           <option value={''}>{Strings.ALL}</option>
                            {locations.map(function (location, index) {
                               return (
                                  <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
