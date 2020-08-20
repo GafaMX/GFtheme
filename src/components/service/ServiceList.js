@@ -30,7 +30,6 @@ class ServiceList extends React.Component {
          list: [],
          is_mounted: false,
       };
-
       // this.change = this.change.bind(this);
       GlobalStorage.addSegmentedListener(['services'], this.setInitialValues.bind(this));
    }

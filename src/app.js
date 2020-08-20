@@ -29,7 +29,7 @@ GafaFitSDKWrapper.initValues(
       // Render lista de membresías
       GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"]');
 
-      GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
+      // GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
    //   GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');
       // GafaThemeSDK.renderLocationsFilter('[data-gf-theme="locations-filter"]');
    }
