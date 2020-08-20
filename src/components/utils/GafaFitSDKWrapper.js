@@ -105,36 +105,7 @@ class GafaFitSDKWrapper extends React.Component {
       }
    }
 
-    // static propsForPagedListComponent(result) {
-    //     return {
-    //         list: result.data,
-    //         currentPage: result.current_page,
-    //         lastPage: result.last_page,
-    //         perPage: result.per_page,
-    //         total: result.total
-    //     };
-    // }
-
-    // static setBasicComponents(){
-    //     //Get staff elements in storage
-    //     GafaFitSDKWrapper.getStaffList({per_page: 1000}, function (result) {
-    //         let staffList = GafaFitSDKWrapper.propsForPagedListComponent(result);
-    //         GlobalStorage.set('staff', staffList);
-    //     });
-    // }
-
-    static getStaffList(options, callback) {
-        let brand = GlobalStorage.get('currentBrand').slug;
-        GafaFitSDK.GetBrandStaffList(
-            brand, options, function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
-            }
-        );
-    };
-
-   static getStaffListWithoutBrand(brand, options, callback) {
+   static getStaffList(brand, options, callback) {
       GafaFitSDK.GetBrandStaffList(
          brand, options, function (error, result) {
             if (error === null) {
@@ -144,25 +115,15 @@ class GafaFitSDKWrapper extends React.Component {
       );
    };
 
-    static getServiceList(options, callback) {
-        GafaFitSDK.GetBrandServiceList(
-            window.GFtheme.brand, options, function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
+   static getServiceList(brand, options, callback) {
+      GafaFitSDK.GetBrandServiceList(
+         brand, options, function (error, result) {
+            if (error === null) {
+               callback(result);
             }
-        );
-    };
-
-    static getServiceListWithoutBrand(brand, options, callback) {
-        GafaFitSDK.GetBrandServiceList(
-            brand, options, function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
-            }
-        );
-    };
+         }
+      );
+   };
 
    static isAuthenticated(callback) {
       GafaFitSDKWrapper.getMe(function (result) {
@@ -206,24 +167,6 @@ class GafaFitSDKWrapper extends React.Component {
          );
       });
    };
-
-   //  static getMembershipListWithoutBrand(brand, options, callback) {
-   //      let functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipList;
-
-   //      GafaFitSDKWrapper.isAuthenticated(function (auth) {
-   //          if (auth) {
-   //              functionToRetrieveMemberships = GafaFitSDK.GetBrandMembershipListForUser;
-   //          }
-
-   //          functionToRetrieveMemberships(
-   //              brand, options, function (error, result) {
-   //                  if (error === null) {
-   //                      callback(result);
-   //                  }
-   //              }
-   //          );
-   //      });
-   //  };
 
     static getFancyForBuyCombo(brand, location, combos_id, callback) {
         GafaFitSDKWrapper.getMe(function (me) {

@@ -39,15 +39,14 @@ class ComboItem extends React.Component {
 
       GafaFitSDKWrapper.isAuthenticated(function(auth){
          if (auth) {
-               currentElement.showBuyFancyForLoggedUsers();
+            currentElement.showBuyFancyForLoggedUsers();
          } else {
-               currentElement.showLoginForNotLoggedUsers();
+            currentElement.showLoginForNotLoggedUsers();
          }
       });
    };
 
    showBuyFancyForLoggedUsers() {
-
       let {combo} = this.props;
       let {currentBrand, currentLocation} = this.state
 

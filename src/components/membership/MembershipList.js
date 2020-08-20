@@ -25,30 +25,25 @@ class MembershipList extends React.Component {
          showLogin: false,
          showRegister: false,
          list: this.props.list,
-         weAreHome: false,
+         is_mounted: false,
       };
 
-      GlobalStorage.addSegmentedListener(['memberships'], this.updateMembershipList.bind(this));
+      GlobalStorage.addSegmentedListener(['memberships'], this.setInitialValues.bind(this));
       this.setShowRegister = this.setShowRegister.bind(this);
    }
 
-   componentDidMount(){
+   setInitialValues(){
       let comp = this;
       let origin = window.location.origin + '/';
       let href = window.location.href;
-
-      if(origin === href){
-         comp.setState({
-            weAreHome : true
-         });
-      }
-   }
-
-   updateMembershipList(){
-      let comp = this;
-      let {weAreHome} = this.state;
       let {filterByName, filterByBrand} = this.props;
       let memberships = GlobalStorage.get('memberships');
+
+      let weAreHome = false;
+
+      if(origin === href){
+         weAreHome = true;
+      }
 
       memberships = memberships.filter(function(membership){ return membership.status === 'active' && membership.hide_in_front === false});
       
@@ -73,6 +68,7 @@ class MembershipList extends React.Component {
       if(memberships){
          comp.setState({
             list : memberships,
+            is_mounted: true,
          });
       }
    }
@@ -99,7 +95,7 @@ class MembershipList extends React.Component {
     render() {
         let preC = 'GFSDK-c';
         let preE = 'GFSDK-e';
-        let {list} = this.state;
+        let {list, showLogin, showRegister, is_mounted} = this.state;
         let membershipClass = preC + '-membershipList';
         let paginationClass = preE + '-pagination';
         let buttonClass = preE + '-buttons';
@@ -176,12 +172,16 @@ class MembershipList extends React.Component {
 
         return (
             <div className={membershipClass}>
-               <Slider {...settings} className={(membershipClass + '__container ')}>
-                  {listItems.length > 0
-                     ? listItems
-                     : null
-                  }
-               </Slider>
+               {is_mounted 
+               ?
+                  <Slider {...settings} className={(membershipClass + '__container ')}>
+                     {listItems.length > 0
+                        ? listItems
+                        : null
+                     }
+                  </Slider>
+                  : <p>Cargando...</p>
+               }
 
                {
                   this.state.showRegister &&

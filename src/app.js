@@ -17,19 +17,21 @@ GafaFitSDKWrapper.initValues(
       GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
       GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
 
-      GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"][data-gf-perpage]');
-      GafaThemeSDK.renderStaffListWithoutPagination('[data-gf-theme="staff-list"]:not([data-gf-perpage])');
-
-      GafaThemeSDK.renderServiceList('[data-gf-theme="service-list"][data-gf-perpage]');
-      GafaThemeSDK.renderServiceListWithoutPagination('[data-gf-theme="service-list"]:not([data-gf-perpage])');
-
+      // Render miembros de staff
+      GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');
+      
+      // Render lista de servicios
+      GafaThemeSDK.renderServiceList('[data-gf-theme="service-list"]');
+      
+      // Render lista de paquetes
       GafaThemeSDK.renderComboList('[data-gf-theme="combo-list"]');
       
+      // Render lista de membresías
       GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"]');
 
       GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
    //   GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');
-      GafaThemeSDK.renderLocationsFilter('[data-gf-theme="locations-filter"]');
+      // GafaThemeSDK.renderLocationsFilter('[data-gf-theme="locations-filter"]');
    }
 );
 

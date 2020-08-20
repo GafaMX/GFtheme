@@ -16,9 +16,15 @@ const GlobalStorage = {
     //Combos
     combos: [],
     
-    //Combos
+    //Memberships
     memberships: [],
-
+    
+    //Staff
+    staff:[],
+    
+    //Staff
+    services:[],
+    
     //PaymentMethod Controller
     ConektaPaymentInfo: null,
     ConektaPaymentNotification: null,

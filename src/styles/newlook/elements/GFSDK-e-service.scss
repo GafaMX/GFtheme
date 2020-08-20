@@ -1,0 +1,83 @@
+@import '../base/variables.scss';
+
+
+
+.#{$pre}-e-service{
+   display: grid;
+   justify-items: start;
+   align-items: center;
+   position: relative;
+   border: 1px solid #EEEEEE;
+   padding: 30px;
+   height:130px;
+   box-sizing: border-box;
+   
+   h2, p{
+      font-family: 'DM Sans', sans-serif;
+   }
+
+   @include cleanStyles;
+
+   &__container{
+      display:inline-grid;
+      grid-auto-flow: row;
+      row-gap: 15px;
+      position: relative;
+      width:100%;
+   }
+
+   &__head, &__body, &__footer{
+      color: #000000;
+   }
+
+   &__head{
+      position: relative;
+      display: block;
+      width:100%;
+        
+      > .this-name{
+         display: block;
+         width: 100%;
+         white-space: normal;
+         font-size: 16px;
+         line-height: 1.4;
+         text-align: left;
+         font-weight: 600;
+         letter-spacing: 1.15px;
+         overflow: visible;
+      }
+   }
+
+   &__body{
+      > .this-date{
+         display: flex;
+         align-items: center;
+         width:100%;
+         height: 100%;
+         white-space: normal;
+         font-size: 14px;
+         line-height: 1.6;
+         font-weight:700;
+         letter-spacing: 1.15px;
+      }
+   }
+
+   &__footer{
+      display: grid;
+      align-items: center;
+
+      // > .this-description{
+      //    width:100%;
+      //    height: 90px;
+      //    white-space: normal;
+      //    font-size: 12px;
+      //    line-height: 18px;
+      //    font-weight:400;
+      //    letter-spacing: .85px;
+      //    overflow: hidden;
+      //    text-align: left;
+      //    text-overflow: ellipsis;
+      //    pointer-events: none;
+      // }
+   }
+}

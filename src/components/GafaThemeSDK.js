@@ -45,15 +45,15 @@ class GafaThemeSDK extends React.Component {
         ReactDOM.render(React.createElement(elementToRender, props), domContainer);
     }
 
-    static renderStaffListWithoutPagination(selector) {
-      let domContainers = document.querySelectorAll(selector);
-      if (domContainers.length > 0) {
-         GafaFitSDKWrapper.getStaffList({}, function (result) {
-               let props = GafaThemeSDK.propsForPagedListComponent(result);
-               GafaThemeSDK.renderElementIntoContainers(domContainers, StaffList, props);
-         });
-      }
-    };
+   //  static renderStaffListWithoutPagination(selector) {
+   //    let domContainers = document.querySelectorAll(selector);
+   //    if (domContainers.length > 0) {
+   //       GafaFitSDKWrapper.getStaffList({}, function (result) {
+   //             let props = GafaThemeSDK.propsForPagedListComponent(result);
+   //             GafaThemeSDK.renderElementIntoContainers(domContainers, StaffList, props);
+   //       });
+   //    }
+   //  };
 
    //  static renderLocationsFilter(selector){
    //      let domContainers = document.querySelectorAll(selector);
@@ -83,52 +83,54 @@ class GafaThemeSDK extends React.Component {
    //      }
    //  }
 
-    static renderStaffList(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
-            domContainers.forEach(function (domContainer) {
-                let per_page = domContainer.getAttribute("data-gf-perpage");
-                if (per_page == null) {
-                    per_page = 10;
-                }
-                GafaFitSDKWrapper.getStaffList({
-                    per_page: 1000,
-                }, function (result) {
-                    let props = GafaThemeSDK.propsForPagedListComponent(result);
-                    GafaThemeSDK.renderElementIntoContainer(domContainer, StaffList, props);
-                });
-            });
-        }
-    };
-
-   static renderServiceListWithoutPagination(selector) {
+   static renderStaffList(selector) {
       let domContainers = document.querySelectorAll(selector);
+      let brands = GlobalStorage.get('brands');
       if (domContainers.length > 0) {
-         GafaFitSDKWrapper.getServiceList({
-               per_page: 10,
-         },function (result) {
-               let props = GafaThemeSDK.propsForPagedListComponent(result);
-               GafaThemeSDK.renderElementIntoContainers(domContainers, ServiceList, props);
+         domContainers.forEach(function (domContainer) {
+            let staff = [];
+            let props = {};   
+            
+            brands.forEach(function(brand){
+               GafaFitSDKWrapper.getStaffList(
+               brand.slug,
+               {per_page: 1000, }, 
+               function (result) {
+                  result.data.forEach(function(person){
+                     person.brand = brand;
+                     staff.push(person);
+                  });
+                  GlobalStorage.set('staff', staff);
+                  GafaThemeSDK.renderElementIntoContainer(domContainer, StaffList, props);
+               });
+            });
          });
       }
    };
 
-    static renderServiceList(selector) {
-        let domContainers = document.querySelectorAll(selector);
-        if (domContainers.length > 0) {
-            domContainers.forEach(function (domContainer) {
-                let per_page = domContainer.getAttribute("data-gf-perpage");
-                GafaFitSDKWrapper.getServiceList({
-                    per_page: per_page,
-                }, function (result) {
-                    let props = GafaThemeSDK.propsForPagedListComponent(result);
-                    GafaThemeSDK.renderElementIntoContainer(domContainer, ServiceList, props);
-                });
+   static renderServiceList(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      let brands = GlobalStorage.get('brands');
+      if (domContainers.length > 0) {
+         domContainers.forEach(function (domContainer) {
+            let services = [];
+            let props = {};
+            brands.forEach(function(brand){
+               GafaFitSDKWrapper.getServiceList(
+                  brand.slug,
+                  {per_page: 1000, }
+                  , function (result) {
+                     services = services.concat(result.data);
+                     GlobalStorage.set('services', services);
+                     GafaThemeSDK.renderElementIntoContainer(domContainer, ServiceList, props);
+                  }   
+               );
             });
-        }
-    };
+         });
+      }
+   };
 
-    static renderComboList(selector) {
+   static renderComboList(selector) {
       let domContainers = document.querySelectorAll(selector);
       let brands = GlobalStorage.get('brands');
       if (domContainers.length > 0) {
@@ -142,7 +144,6 @@ class GafaThemeSDK extends React.Component {
                GafaFitSDKWrapper.getComboList( brand.slug,
                   {per_page: 10000, only_actives: true, propagate: true},
                   function (result) {
-                     // let props = GafaThemeSDK.propsForPagedListComponent(result);
                      props.filterByName = byName;
                      props.filterByBrand = byBrand;
                      combos = combos.concat(result.data);

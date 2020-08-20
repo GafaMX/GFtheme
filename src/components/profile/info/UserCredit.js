@@ -1,7 +1,7 @@
 'use strict';
 
 import React from "react";
-import Moment from 'moment';
+import moment from 'moment';
 import Strings from "../../utils/Strings/Strings_ES";
 
 class UserCredit extends React.Component {
@@ -19,7 +19,7 @@ class UserCredit extends React.Component {
                     <div className="col-md-7">
                         <p className="UserCredit__credits-name">{Strings.CREDITS}</p>
                         {/* <p> {this.props.name}</p> */}
-                        <p className="UserCredit__expiration"> {Strings.EXPIRATION} {Moment(this.props.expirationDate).format('YYYY-MM-DD')}</p>
+                        <p className="UserCredit__expiration"> {Strings.EXPIRATION} {moment(this.props.expirationDate).format('YYYY-MM-DD')}</p>
                     </div>
                 </div>
             </div>

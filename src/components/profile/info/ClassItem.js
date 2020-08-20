@@ -1,7 +1,7 @@
 'use strict';
 
 import React from 'react';
-import Moment from 'moment';
+import moment from 'moment';
 import 'moment/locale/es';
 import Strings from "../../utils/Strings/Strings_ES";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
@@ -11,31 +11,30 @@ import CalendarStorage from "../../calendar/CalendarStorage";
 import CloseIcon from "../../utils/Icons/CloseIcon";
 
 class ClassItem extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state={
-            showCancelation:false,
-        }
-    }
+   constructor(props) {
+      super(props);
+      this.state={
+         showCancelation:false,
+      }
+   }
 
-    handleClick(event) {
-        event.preventDefault();
+   handleClick(event) {
+      event.preventDefault();
 
-        let reservationID = this.props.id;
-        GafaFitSDKWrapper.postUserCancelReservation(reservationID,'',
-            function(result){
-            alert(Strings.CANCELEDRESERVATION);
-                window.location.reload();
-            }
-        )
-    }
+      let reservationID = this.props.id;
+      GafaFitSDKWrapper.postUserCancelReservation(reservationID,'',
+         function(result){
+         alert(Strings.CANCELEDRESERVATION);
+               window.location.reload();
+         }
+      )
+   }
 
    handleShowCancelation(){
       this.setState({
          showCancelation:true
       })
    }
-
 
    handleClickBack(){
       this.setState({
@@ -47,8 +46,6 @@ class ClassItem extends React.Component {
       this.setState({ show: false });
    }
 
-    //todo hacer el modal mas pequeño
-
    render() {
       let preE = 'GFSDK-e';
       let buttonClass = preE + '-buttons';
@@ -56,7 +53,7 @@ class ClassItem extends React.Component {
 
       let membershipCredits = '';
       let cancelation = '';
-      let today= Moment().format('X');
+      let today= moment().format('X');
       if (this.props.reservation.credit === null) {
          membershipCredits = (
                <p className={'reservation-item-membership'}>{Strings.MEMBERSHIP}{this.props.reservation.user_membership.membership['name']}</p>)
@@ -69,7 +66,7 @@ class ClassItem extends React.Component {
          cancelation =(
             <span className={'reservation-item-cancelled close'} aria-label="Close"> <Glyphicon glyph="ban-circle" /> {Strings.CANCELLED} </span>
          )
-      } else if (Moment(reservation.meeting_start).format('X') > today){
+      } else if (moment(reservation.meeting_start).format('X') > today){
          cancelation = (
             <button type="button" className={buttonClass + "__close"} onClick={this.handleShowCancelation.bind(this)}>
                <CloseIcon />
@@ -84,9 +81,9 @@ class ClassItem extends React.Component {
             </div>
             <hr></hr>
             <div className={'card-body'}>
-               <p className={'reservation-item-day'}>{Moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
+               <p className={'reservation-item-day'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
                <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
-               <p className={'reservation-item-time'}>{Moment(this.props.reservation.meeting_start).format('h:mm a')}</p>
+               <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('h:mm a')}</p>
                <p className={'reservation-item-staff'}><strong>{this.props.reservation.staff['name']}</strong></p>
             </div>
 

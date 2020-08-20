@@ -25,31 +25,26 @@ class ComboList extends React.Component {
       this.state = {
          showLogin: false,
          showRegister: false,
-         list: this.props.list,
-         weAreHome: false,
+         list: [],
+         is_mounted: false,
       };
 
-      GlobalStorage.addSegmentedListener(['combos'], this.updateComboList.bind(this));
       this.setShowRegister = this.setShowRegister.bind(this);
+      GlobalStorage.addSegmentedListener(['combos'], this.setInitialValues.bind(this));
    }
 
-   componentDidMount(){
+   setInitialValues(){
       let comp = this;
       let origin = window.location.origin + '/';
       let href = window.location.href;
-
-      if(origin === href){
-         comp.setState({
-            weAreHome : true,
-         });
-      }
-   }
-
-   updateComboList(){
-      let comp = this;
-      let {weAreHome} = this.state;
       let {filterByName, filterByBrand} = this.props;
       let combos = GlobalStorage.get('combos');
+
+      let weAreHome = false;
+
+      if(origin === href){
+         weAreHome = true;
+      }
 
       combos = combos.filter(function(combo){ return combo.status === 'active' && combo.hide_in_front === false});
       
@@ -74,6 +69,7 @@ class ComboList extends React.Component {
       if(combos){
          comp.setState({
             list : combos,
+            is_mounted: true,
          });
       }
    }
@@ -100,12 +96,11 @@ class ComboList extends React.Component {
    render() {
       let preC = 'GFSDK-c';
       let preE = 'GFSDK-e';
-      let {list} = this.state;
+      let {list, showLogin, showRegister, is_mounted} = this.state;
       let comboClass = preC + '-comboList';
       let paginationClass = preE + '-pagination';
       let buttonClass = preE + '-buttons';
       let listItems = [];
-
 
       function NextArrow(props){
          const {className, onClick} = props;
@@ -179,14 +174,18 @@ class ComboList extends React.Component {
       
       return (
          <div className={comboClass}>
-            <Slider {...settings} className={(comboClass + '__container ')}>
-               {listItems.length > 0
-                  ? listItems
-                  : null
-               }
-            </Slider>
+            {is_mounted 
+               ?
+                  <Slider {...settings} className={(comboClass + '__container ')}>
+                     {listItems.length > 0
+                        ?  listItems
+                        :  null
+                     }
+                  </Slider>
+               : <p>Cargando...</p>
+            }
 
-            {this.state.showRegister &&
+            {showRegister &&
                <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
             }
          </div>

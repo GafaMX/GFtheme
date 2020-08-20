@@ -9,11 +9,11 @@ import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
-import Moment from 'moment';
+import moment from 'moment';
 import 'moment/min/moment-with-locales';
 import 'moment/locale/es';
 
-Moment.locale('es');
+moment.locale('es');
 
 class CalendarBody extends React.Component {
    constructor(props) {
@@ -50,7 +50,7 @@ class CalendarBody extends React.Component {
                title: date.toLocaleDateString(),
                date: date.toISOString(),
                meetings: meetings.filter(function (meeting) {
-                  let meeting_date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
+                  let meeting_date = moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
                   return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime() && meeting.passed === false;
                })
             };
@@ -89,7 +89,7 @@ class CalendarBody extends React.Component {
       
       const dayList = meetings_to_show.map(function (day) {
          return(
-            Moment(day.date).toDate()
+            moment(day.date).toDate()
          );
       });
 
@@ -126,8 +126,8 @@ class CalendarBody extends React.Component {
                return (
                   <a className={meetings_to_show[i].meetings.length === 0 ? 'empty-slide' : ''}>
                      <div>
-                        <p className="this-date">{Moment(dayList[i]).format('dd')}</p>
-                        <p className="this-number">{Moment(dayList[i]).format('D')}</p>
+                        <p className="this-date">{moment(dayList[i]).format('dd')}</p>
+                        <p className="this-number">{moment(dayList[i]).format('D')}</p>
                      </div>
                   </a>
                );
