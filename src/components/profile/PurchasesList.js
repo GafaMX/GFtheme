@@ -14,29 +14,41 @@ class PurchasesList extends React.Component {
         this.state = {
             list: [],
         }
-        GlobalStorage.addSegmentedListener(['currentBrand'], this.updatePurchasesList.bind(this));
+
+        this.getPurchase = this.getPurchase.bind(this);
+        GlobalStorage.addSegmentedListener(['purchase', 'filter_brand'], this.updatePurchasesList.bind(this));
     }
 
     componentDidMount() {
-        const currentComponent = this;
-        GafaFitSDKWrapper.getUserPurchasesInBrand({
-            reducePopulation: true,
-        }, function (result) {
-            currentComponent.setState({
-                list: result.data,
-            })
-        })
+      this.getPurchase();
     }
 
-    updatePurchasesList() {
-        const currentComponent = this;
-        GafaFitSDKWrapper.getUserPurchasesInBrand({
-            reducePopulation: true,
-        }, function (result) {
-            currentComponent.setState({
-                list: result.data,
-            })
-        })
+    getPurchase(){
+      const currentComponent = this;
+      let brands = GlobalStorage.get('brands');
+      let purchaseList = [];
+      
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getUserPurchasesInBrand(
+            brand.slug,
+            {reducePopulation: true,}, 
+            function (result) {
+               purchaseList = purchaseList.concat(result.data);
+               GlobalStorage.set('purchase', purchaseList);
+               currentComponent.setState({list: purchasesList});
+         });
+      });
+   }
+
+   updatePurchasesList() {
+      let purchase = GlobalStorage.get('purchase');
+      let brand = GlobalStorage.get('filter_brand');
+
+      if(brand){
+         purchase = purchase.filter(function (item) {return item.brands_id === brand.id; });
+      }
+      
+      this.setState({list: purchase});
     }
 
     render() {

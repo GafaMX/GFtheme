@@ -32,9 +32,16 @@ const GlobalStorage = {
    ConektaPaymentNotification: null,
    ConektaPaymentError: null,
 
+
+   //Profile Filter
+   filter_location: '',
+   filter_brand: '',
+
+
    //Future Class
    future_classes: null,
    past_classes: null,
+   purchase: null,
 
    get(property) {
       return this[property];

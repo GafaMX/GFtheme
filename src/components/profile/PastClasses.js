@@ -17,7 +17,7 @@ class PastClasses extends React.Component {
       }
 
       this.getPastClasses = this.getPastClasses.bind(this);
-      CalendarStorage.addSegmentedListener(['filter_location'], this.updatePastClasses.bind(this));
+      GlobalStorage.addSegmentedListener(['past_classes', 'filter_location', 'filter_brand'], this.updatePastClasses.bind(this));
    }
 
    componentDidMount() {
@@ -26,20 +26,32 @@ class PastClasses extends React.Component {
 
    getPastClasses(){
       const currentComponent = this;
-      GafaFitSDKWrapper.getUserPastReservationsInBrand({
-         reducePopulation: true,
-      }, function (result) {
-         GlobalStorage.set('past_classes', result.data);
-         currentComponent.setState({list: result.data});
+      let brands = GlobalStorage.get('brands');
+      let pastClassesList = [];
+      
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getUserPastReservationsInBrand(
+            brand.slug,
+            {reducePopulation: true,}, 
+            function (result) {
+               pastClassesList = pastClassesList.concat(result.data);
+               GlobalStorage.set('past_classes', pastClassesList);
+               currentComponent.setState({list: pastClassesList});
+         });
       });
    }
 
    updatePastClasses(){
-      let location = CalendarStorage.get('filter_location');
       let classes = GlobalStorage.get('past_classes');
+      let location = GlobalStorage.get('filter_location');
+      let brand = GlobalStorage.get('filter_brand');
 
       if(location){
          classes = classes.filter(function (item) {return item.locations_id === location.id; });
+      }
+
+      if(brand){
+         classes = classes.filter(function (item) {return item.brands_id === brand.id; });
       }
 
       this.setState({list: classes});

@@ -15,6 +15,13 @@ class ContactInfo extends React.Component {
         let preC = 'GFSDK-c';
         let formClass = preE + '-form';
         let profileClass = preC + '-profile';
+        let {info} = this.props;
+
+        let email = info.email === null ? '' : info.email;
+        let phone = info.phone === null ? '' : info.phone;
+        let cel_phone = info.cel_phone === null ? '' : info.cel_phone;
+
+
 
         return (
             <div className={profileClass + '__section is-contact'}>
@@ -24,7 +31,7 @@ class ContactInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="email"
-                        value={this.props.info.email}
+                        value={email}
                         onChange={this.props.handleChangeField}
                         disabled
                     />
@@ -34,7 +41,7 @@ class ContactInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="number"
-                        value={this.props.info.phone}
+                        value={phone}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>
@@ -43,7 +50,7 @@ class ContactInfo extends React.Component {
                     <FormControl
                         className={formClass + "__input"}
                         type="number"
-                        value={this.props.info.cel_phone}
+                        value={cel_phone}
                         onChange={this.props.handleChangeField}
                     />
                 </FormGroup>

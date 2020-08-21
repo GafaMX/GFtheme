@@ -3,7 +3,6 @@
 import React from 'react';
 import GlobalStorage from '../../store/GlobalStorage';
 import Strings from "../../utils/Strings/Strings_ES";
-import CalendarStorage from '../../calendar/CalendarStorage';
 import ClassItem from "./ClassItem";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Slider from "react-slick";
@@ -21,7 +20,7 @@ class FutureClasses extends React.Component {
       }
 
       this.getFutureClasses = this.getFutureClasses.bind(this);
-      CalendarStorage.addSegmentedListener(['filter_location'], this.updateFutureClasses.bind(this));
+      GlobalStorage.addSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureClasses.bind(this));
    }
 
    componentDidMount() {
@@ -30,39 +29,36 @@ class FutureClasses extends React.Component {
 
    getFutureClasses(){
       const currentComponent = this;
-      let brands = GlobalStorage.get(brands);
+      let brands = GlobalStorage.get('brands');
       let futureClassesList = [];
 
-      // brands.forEach(function(brand){
-         // GafaFitSDKWrapper.getUserFutureReservationsInBrand(
-         //    brand.slug,
-         //    {reducePopulation: true,},
-         //    function (result) {
-
-         //    // TODO: futureClassesList = 
-
-         //    GlobalStorage.set('future_classes', result);
-         //    currentComponent.setState({list: result});
-         // });
-      // })
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getUserFutureReservationsInBrand(
+            brand.slug,
+            {reducePopulation: true,},
+            function (result) {
+               futureClassesList = futureClassesList.concat(result);
+               GlobalStorage.set('future_classes', futureClassesList);
+               currentComponent.setState({list: futureClassesList});
+         });
+      })
    }
 
    updateFutureClasses(){
-      let location = CalendarStorage.get('filter_location');
       let classes = GlobalStorage.get('future_classes');
+      let location = GlobalStorage.get('filter_location');
+      let brand = GlobalStorage.get('filter_brand');
 
       if(location){
          classes = classes.filter(function (item) {return item.locations_id === location.id; });
       }
 
+      if(brand){
+         classes = classes.filter(function (item) {return item.brands_id === brand.id; });
+      }
+
       this.setState({list: classes});
    }
-
-   // updateList(list) {
-   //    this.setState({
-   //       list: list
-   //    });
-   // }
 
     render() {
       let preC = 'GFSDK-c';

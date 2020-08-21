@@ -170,7 +170,7 @@ class StaffList extends React.Component {
          <div className={staffClass}>
             <div className={staffClass + '__header'}>
                <div className={filterClass}>
-                  {!jobs.length <= 1
+                  {jobs.length > 1
                      ? <div className={filterClass + '__item is-job-filter'}>
                         <select className={formClass + '__select' + ' is-service-filter'} onChange={this.change} value={filter_job} data-name={"filter_job"}>
                            <option value={'TODOS'}>Todos</option>
@@ -185,8 +185,8 @@ class StaffList extends React.Component {
                      : null
                   }
 
-                  {!brands.length <= 1
-                     ?  <div className={filterClass + '__item is-brand-filter' + (brands.length <= 1 ? 'is-empty' : '' )}>
+                  {brands.length > 1
+                     ?  <div className={filterClass + '__item is-brand-filter'}>
                            <select className={formClass + '__select' + ' is-brand-filter'} onChange={this.change} value={filter_brand} data-name={"filter_brand"}>
                               <option value={'TODOS'}>Todos</option>
                               {brands.map(brand => {

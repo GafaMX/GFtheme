@@ -22,7 +22,6 @@
 
       .GFSDK-e-buttons.is-primary, 
       .TabsGafaFit--tab-link.TabsGafaFit--tab-link__active,
-      .GFSDK-c-Calendar__day-dots li.slick-active a .this-number,
       #CreateReservationFancyTemplate .touchpoint .gs-checkOut,
       #CreateReservationFancyTemplate .productSelection__content .SelectProductsStepNav ul>li.active a, 
       #CreateReservationFancyTemplate .productSelection__content .SelectProductsStepNav ul>li:hover a,
@@ -32,8 +31,15 @@
       .profile-tabs #ProfileTabs>.nav-tabs>li .GFSDK-c-tabs__link:hover:before,
       .profile-tabs #ProfileTabs>.tab-content::-webkit-scrollbar-thumb,
       .GFSDK-c-Calendar__column::-webkit-scrollbar-thumb,
+      .GFSDK-e-buttons__close{
+         background-color: #F2C545!important;
+      }
+      
+
+      .GFSDK-c-Calendar__day-dots li.slick-active a .this-number,
       .buq-accentColor{
          background-color: #F2C545!important;
+         color: black!important;
       }
          
       #CreateReservationFancyTemplate .touchpoint .gs-checkOut:hover,
@@ -41,6 +47,7 @@
       #CreateReservationFancyTemplate .productSelection__content .products-container .GfStore__ProductsItems .add-to-card:hover
       .GFSDK-e-buttons.is-primary:hover,
       .buq-accentColor:hover,
+      .GFSDK-e-buttons__close,
       .GFSDK-e-form__radio > .this-radio.checked:before{
          background-color:#f6cd5c!important;
       }
@@ -48,22 +55,35 @@
       .GFSDK-c-Calendar__day-dots li.slick-active a .this-date{
          color: #F2C545!important;
       }
-
-      .GFSDK-e-meeting:hover,
-      .GFSDK-e-structure__head > .this-image > div:before{
-         border-color:  #F2C545!important;
-      }
       
       .GFSDK-c-staffList__header .GFSDK-c-filter__item,
       .GFSDK-c-serviceList__header .GFSDK-c-filter__item,
-      .GFSDK-c-Calendar__filter .GFSDK-c-filter__item{
-         border-color:  white!important;
+      .GFSDK-c-Calendar__filter .GFSDK-c-filter__item
+      {
+         border-color:  #aaa!important;
+         color: #fff!important;
+      }
+      .GFSDK-c-staffList__header .GFSDK-c-filter__item select,
+      .GFSDK-c-serviceList__header .GFSDK-c-filter__item select,
+      .GFSDK-c-Calendar__filter .GFSDK-c-filter__item select
+      {
+         color: #fff!important;
+      }
+      
+      .GFSDK-e-structure__background:before{
+         background-color:black!important;
       }
 
       .horizontal .GFSDK-e-meeting,
-      .GFSDK-e-structure__background:before,
-      .GFSDK-e-product{
-         background-color: black!important;
+      .GFSDK-e-product,
+      .GFSDK-e-service{
+         background-color: #333!important;
+         border-color: #666!important
+      }
+
+      .horizontal .GFSDK-e-meeting:hover,
+      .GFSDK-e-structure__head > .this-image > div:before{
+         border-color:  #F2C545!important;
       }
 
       .GFSDK-e-service__head, 
@@ -74,6 +94,10 @@
       .GFSDK-e-product__head, .GFSDK-e-product__body,
       .GFSDK-e-product__body .this-price p{
          color:white!important;
+      }
+
+      .GFSDK-c-membershipList:after, .GFSDK-c-comboList:after{
+         background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, black 100%)!important;
       }
     </style>
 </head>
@@ -92,7 +116,8 @@
    <div class="container">
       <section class=" mt-1" data-gf-theme="staff-list"></section>
       <section class=" mt-1" data-gf-theme="service-list"></section>
-      <section class=" mt-1" data-gf-theme="combo-list"></section>
+      <section class=" mt-1" data-gf-theme="combo-list" data-buq-brand="Buq pay"></section>
+      <section class=" mt-1" data-gf-theme="combo-list" data-buq-brand="Buq Fit"></section>
       <section class=" mt-1" data-gf-theme="membership-list"></section>
       <section class="mt-3" filter-bq-brand="true" filter-bq-location="true" data-gf-theme="meetings-calendar"></section>
       <!-- <section class=" mt-3" 
@@ -106,8 +131,6 @@
    <section data-gf-theme="fancy"></section>
    <!-- Fancy  / Termina Aquí-->
    </main>
-
-    <script type="text/javascript" src="https://cdn.conekta.io/js/latest/conekta.js"></script>
     <!-- render parameter equals to CAPTCHA_SITE_KEY. Update it!!! -->
     <script src="https://www.google.com/recaptcha/api.js?render=6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8"></script>
     <!-- Replace this script with the one corresponding to the API for testing! -->
@@ -116,7 +139,7 @@
     <!-- <script src="http://gafafit-prod.test/sdk/dist/main.js"></script> -->
     
     <!-- GafaFitProd -->
-    <script src="https://buq.partners/sdk/dist/main.js"></script>
+    <script src="https://buq.technology/sdk/dist/main.js"></script>
 
     <!--<script data-gf-options type="application/json">
         {
@@ -132,15 +155,15 @@
     </script>-->
    <script data-gf-options type="application/json">
       {
-         "GAFA_FIT_URL": "https://buq.partners/",
-         "COMPANY_ID": 20,
-         "API_CLIENT": 16,
-         "API_SECRET": "gvja7oqM8laLx0dSHON342BPJrXeyJfy3NVTv0Ww",
+         "GAFA_FIT_URL": "https://buq.technology/",
+         "COMPANY_ID": 14,
+         "API_CLIENT": 11,
+         "API_SECRET": "BP4xqsPxoMqBziwkIrON7WQjhEw3yTJwdBJmY6F3",
          "TOKENMOVIL": null,
          "CAPTCHA_SECRET_KEY": "6LcGcsEUAAAAAOQCOt68hLjGsYHuELQZFheZtgbn",
          "CAPTCHA_PUBLIC_KEY": "6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8",
          "STAFF_NAME": "Terapeutas",
-         "CLASS_NAME": "Sesiones",
+         "CLASS_NAME": "sesiones",
          "REMOTE_ADDR": "127.0.0.1"
       }
    </script>

@@ -178,28 +178,39 @@ body.modal-open{
 }
 
 .purchase-item, .futureClasses-item, .pastClass-item{
-    display: grid;
+   //  display: grid;
     position: relative;
     row-gap: 20px;
    //  grid-template-rows: 1fr auto auto;
-    border-radius: 23px;
+    border-radius: 10px;
     align-items: start;
     justify-items: start;
     border: solid 1px lightgrey;
     background-color:white;
     padding: 15px;
-    width:136px;
-   //  height: 160px;
-    box-shadow: 0 4px 6px 0 rgba(0,0,0,0.09);
+    width:160px;
+    height: 180px;
+   //  box-shadow: 0 4px 6px 0 rgba(0,0,0,0.09);
 
    @media screen and (min-width:992px) {
       align-items: start;
-      grid-template-rows: 1fr auto auto;
+      // grid-template-rows: 1fr auto auto;
       grid-template-columns: initial;
-      padding: 20px;
+      padding: 15px;
    }
 
-   & > .card-header{
+   p{
+      margin:0;
+      line-height: 1.8;
+      font-size: 11px;
+      
+      &.reservation-item-cancelled{
+         font-size: 12px;
+         font-weight:600;
+      }
+   }
+
+   &__header{
       width:100%;
       h4{
          display: grid;
@@ -227,36 +238,14 @@ body.modal-open{
       }
    }
 
-    hr{
-        margin: 0;
-        margin-left: -15px;
-        margin-right: 0px;
-        border: 0 transparent none;
-        background-color: lightgray;
-        width: 100%;
-        height: 1px;
-
-        @media screen and (min-width: 992px) {
-            margin-left: -20px;
-        }
-    }
-
-    & > .card-body{
-        display: grid;
-        grid-auto-flow: row;
-        grid-template-rows: repeat(2, auto);
-        grid-row-gap: .5em;
-        time{
-            margin:0;
-            font-size:12px;
-            line-height: 1.4;
-        }
-
-        p{
-            margin: 0;
-            line-height: 1.4;
-            font-size: 11px;
-        }
+    &__body{
+       margin-top:15px;
+       
+      time{
+         margin:0;
+         font-size:12px;
+         line-height: 1.4;
+      }
     }
 
     &-container{

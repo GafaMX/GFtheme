@@ -25,11 +25,10 @@ class ClassItem extends React.Component {
 
         return (
             <div className={'futureClasses-item'}>
-               <div className={'card-header'}>
+               <div className={'futureClasses-item__header'}>
                   <h4>{this.props.reservation.meetings.service['name']}</h4>
                </div>
-               <hr></hr>
-               <div className={'card-body'}>
+               <div className={'futureClasses-item__body'}>
                     <p className={'reservation-item-time'}>{Moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
                     <p className={'reservation-item-staff'}><strong>{this.props.reservation.staff['name']}</strong></p>
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>

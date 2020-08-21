@@ -56,8 +56,22 @@ class MembershipItem extends React.Component {
    }
 
    showLoginForNotLoggedUsers() {
+      let comp = this;
+      let locations = GlobalStorage.get('locations');
+      let brands = GlobalStorage.get('brands');
+
+      let brand = brands.find(function(brand){ return brand.id === comp.props.membership.brands_id});
+      locations = locations.filter(function(location){ return location.brand.id === comp.props.membership.brands_id});
+
+      console.log(brand);
+
       window.GFtheme.membership_id = this.props.membership.id;
-      this.props.setShowRegister(true);
+      window.GFtheme.brand_slug = brand.slug;
+      window.GFtheme.location_slug = locations[0].slug;
+
+      console.log(window.GFtheme);
+
+      // this.props.setShowRegister(true);
    }
 
    //  getServicesAndParentsForMembership() {

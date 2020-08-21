@@ -23,6 +23,10 @@ $pre : GFSDK;
         text-decoration: none;
         cursor: pointer;
     }
+
+    a, button{
+      outline: none;  
+   }
 }
 
 @mixin titleFont ($args) {

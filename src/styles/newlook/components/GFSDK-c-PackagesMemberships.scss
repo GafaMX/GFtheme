@@ -3,11 +3,24 @@
 .#{$pre}-c-membershipList,
 .#{$pre}-c-comboList
 {
+   position: relative;
    width: 100%;
    max-width:100%;
    padding:0;
    margin-right: auto;
    margin-left: auto;
+
+   &:after{
+      content: '';
+      position: absolute;
+      display: block;
+      height: 100%;
+      top:-10px;
+      right:-10px;
+      width:125px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, white 100%);
+      z-index:1;
+   }
 
    & > *{
       font-family: 'DM Sans', sans-serif;

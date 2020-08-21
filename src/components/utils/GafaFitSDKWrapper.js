@@ -493,7 +493,6 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getFancyForMeetingReservation(brand, location, meetings_id, callback) {
         GafaFitSDKWrapper.getMe(function (me) {
-           debugger;
             GafaFitSDK.GetCreateReservationForm(
                 brand,
                 location,
@@ -514,16 +513,16 @@ class GafaFitSDKWrapper extends React.Component {
         GafaFitSDK.GetUserFutureReservationsInBrand(
             brand, options,
             function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
+               if (error === null) {
+                  callback(result);
+               }
             }
         )
     };
 
-    static postUserCancelReservation(reservation, options, callback) {
+    static postUserCancelReservation(brand, reservation, options, callback) {
         GafaFitSDK.PostUserCancelReservation(
-            window.GFtheme.brand, reservation, options,
+            brand, reservation, options,
             function (error, result) {
                 if (error === null) {
                     callback(result);
@@ -532,8 +531,7 @@ class GafaFitSDKWrapper extends React.Component {
         )
     };
 
-    static getUserPastReservationsInBrand(options, callback) {
-        let brand = GlobalStorage.get('currentBrand').slug;
+    static getUserPastReservationsInBrand(brand, options, callback) {
         GafaFitSDK.GetUserPastReservationsInBrand(
             brand, options,
             function (error, result) {
@@ -544,8 +542,7 @@ class GafaFitSDKWrapper extends React.Component {
         )
     };
 
-    static getUserPurchasesInBrand(options, callback) {
-        let brand = GlobalStorage.get('currentBrand').slug;
+    static getUserPurchasesInBrand(brand, options, callback) {
         GafaFitSDK.GetUserPurchasesInBrand(
             brand, options,
             function (error, result) {

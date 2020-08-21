@@ -80,47 +80,67 @@ class Login extends React.Component {
             currentElement.errorLoginCallback.bind(this));
     };
 
-    successLoginCallback(result) {
-        this.setState({logged: true});
+   successLoginCallback(result) {
+      this.setState({logged: true});
 
-        if (this.props.successCallback) {
-            this.props.successCallback(result);
+      if (this.props.successCallback) {
+         this.props.successCallback(result);
 
-            if (window.GFtheme.combo_id != null) {
-                this.buyComboAfterLogin();
-            }
+         if (window.GFtheme.combo_id != null) {
+               this.buyComboAfterLogin();
+         }
 
-            if (window.GFtheme.membership_id != null) {
-                this.buyMembershipAfterLogin();
-            }
+         if (window.GFtheme.membership_id != null) {
+               this.buyMembershipAfterLogin();
+         }
 
-            if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-                this.reserveMeetingAfterLogin();
-            }
-        }
-    }
+         if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+               this.reserveMeetingAfterLogin();
+         }
 
-    errorLoginCallback(error) {
-        this.setState({serverError: error, logged: false});
-    }
+         if (  !window.GFtheme.meetings_id && 
+               !window.GFtheme.location_slug && 
+               !window.GFtheme.membership_id &&
+               !window.GFtheme.combo_id) {
+                  location.reload();
+         }
+      }
+   }
 
-    buyComboAfterLogin() {
-        GafaFitSDKWrapper.getFancyForBuyCombo(window.GFtheme.combo_id, function (result) {
+   errorLoginCallback(error) {
+      this.setState({serverError: error, logged: false});
+   }
 
-            window.GFtheme.combo_id = null;
-        });
-    }
+   buyComboAfterLogin() {
+      GafaFitSDKWrapper.getFancyForBuyCombo(
+            window.GFtheme.brand_slug,
+            window.GFtheme.location_slug,
+            window.GFtheme.combo_id, 
+            function (result) {
+         window.GFtheme.combo_id = null;
+         window.GFtheme.brand_slug = null;
+         window.GFtheme.location_slug = null;
+      });
+   }
 
-    buyMembershipAfterLogin() {
-        GafaFitSDKWrapper.getFancyForBuyMembership(window.GFtheme.membership_id, function (result) { window.GFtheme.membership_id = null; });
-    }
+   buyMembershipAfterLogin() {
+      GafaFitSDKWrapper.getFancyForBuyMembership(
+         window.GFtheme.brand_slug,
+         window.GFtheme.location_slug,
+         window.GFtheme.membership_id,
+         function (result) { 
+         window.GFtheme.membership_id = null;
+         window.GFtheme.brand_slug = null;
+         window.GFtheme.location_slug = null;
+      });
+   }
 
-    reserveMeetingAfterLogin() {
-        GafaFitSDKWrapper.getFancyForMeetingReservation(window.GFtheme.location_slug, window.GFtheme.meetings_id, function (result) {
-            window.GFtheme.meetings_id = null;
-            window.GFtheme.location_slug = null;
-        });
-    }
+   reserveMeetingAfterLogin() {
+      GafaFitSDKWrapper.getFancyForMeetingReservation(window.GFtheme.location_slug, window.GFtheme.meetings_id, function (result) {
+         window.GFtheme.meetings_id = null;
+         window.GFtheme.location_slug = null;
+      });
+   }
 
     render() {
 

@@ -205,15 +205,9 @@ class ProfileUserInfo extends React.Component {
       let id = e.target.value;
       let model = null;
       if (id && id !== '')
-          model = CalendarStorage.find(origin, id);
+          model = GlobalStorage.find(origin, id);
 
-      CalendarStorage.set(name, model);
-   }
-
-   selectLocation(e) {
-      this.selectFilter(e);
-      CalendarStorage.set('filter_room', null);
-      this.refs.room.value = '';
+      GlobalStorage.set(name, model);
    }
 
     // deleteCard(){
@@ -246,6 +240,7 @@ class ProfileUserInfo extends React.Component {
       let filterClass = preC + '-filter';
       let filter_name = 'meetings-calendar--filters';
       let locations = GlobalStorage.get('locations');
+      let brands = GlobalStorage.get('brands');
       let {paymentNotification, screen} = this.state
 
       return (
@@ -288,15 +283,39 @@ class ProfileUserInfo extends React.Component {
 
                         <div className={'tab-content'}>
                            <div id="ProfileTabs-pane-1" className={'fade tab-pane ' + (screen === 'classes' ? 'active in' : '' )}>
+                           { brands.length > 1 ?
+                                 <div className={filterClass + '__item is-location-filter'} style={{ marginRight: '1rem' }}>
+                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
+                                    <select 
+                                       className={formClass + '__select'} 
+                                       id={'calendar-filter-brand'} 
+                                       data-name="filter_brand"
+                                       data-origin="brands"
+                                       onChange={this.selectFilter.bind(this)}
+                                       >
+                                       <option value={''}>Marcas</option>
+                                       {brands.map(function (brand, index) {
+                                          return (
+                                             <option value={brand.id} key={`${filter_name}-location--option-${index}`}>{brand.name}</option>
+                                          );
+                                       })}
+                                    </select>
+                                    <div className={filterClass + '__item-icon'}>
+                                       <IconSelectDownArrow />
+                                    </div>
+                                 </div>
+
+                                 : null
+                              }
                               { locations.length > 1 ?
-                                 <div className={filterClass + '__item ' + formClass + '__section is-location-filter ' + (locations.length <= 1 ? 'is-empty' : '' )}>
+                                 <div className={filterClass + '__item  is-brand-filter'}>
                                     {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
                                     <select 
                                        className={formClass + '__select'} 
                                        id={'calendar-filter-location'} 
                                        data-name="filter_location"
                                        data-origin="locations"
-                                       onChange={this.selectLocation.bind(this)}
+                                       onChange={this.selectFilter.bind(this)}
                                        >
                                        <option value={''}>Ubicaciones</option>
                                        {locations.map(function (location, index) {
@@ -305,13 +324,14 @@ class ProfileUserInfo extends React.Component {
                                           );
                                        })}
                                     </select>
-                                    <div className={formClass + '__select-icon'}>
+                                    <div className={filterClass + '__item-icon'}>
                                        <IconSelectDownArrow />
                                     </div>
                                  </div>
 
                                  : null
                               }
+
                               <div className={profileClass + '__tab-section'}>
                                     <h4 className={'this-title'}>Mis próximas {window.GFtheme.ClassName}</h4>
                                     <FutureClasses />

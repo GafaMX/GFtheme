@@ -22,10 +22,15 @@ class ClassItem extends React.Component {
       event.preventDefault();
 
       let reservationID = this.props.id;
-      GafaFitSDKWrapper.postUserCancelReservation(reservationID,'',
+      let reservation = this.props.reservation;
+
+      GafaFitSDKWrapper.postUserCancelReservation(
+         reservation.brand.slug,
+         reservationID,
+         '',
          function(result){
-         alert(Strings.CANCELEDRESERVATION);
-               window.location.reload();
+            alert(Strings.CANCELEDRESERVATION);
+            window.location.reload();
          }
       )
    }
@@ -64,7 +69,7 @@ class ClassItem extends React.Component {
       
       if(this.props.reservation.cancelled === true){
          cancelation =(
-            <span className={'reservation-item-cancelled close'} aria-label="Close"> <Glyphicon glyph="ban-circle" /> {Strings.CANCELLED} </span>
+            <p className={'reservation-item-cancelled'}>  {Strings.CANCELLED} </p>
          )
       } else if (moment(reservation.meeting_start).format('X') > today){
          cancelation = (
@@ -76,11 +81,10 @@ class ClassItem extends React.Component {
 
       return (
          <div className={'pastClass-item'}>
-            <div className={'card-header'}>
+            <div className={'pastClass-item__header'}>
                <h4>{this.props.reservation.service['name']}</h4>
             </div>
-            <hr></hr>
-            <div className={'card-body'}>
+            <div className={'pastClass-item__body'}>
                <p className={'reservation-item-day'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
                <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
                <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('h:mm a')}</p>
@@ -92,26 +96,23 @@ class ClassItem extends React.Component {
             <Modal className={'modal-cancelation'} show={this.state.showCancelation} animation={false}
                   onHide={this.handleClickBack.bind(this)}>
 
-               <div className="row">
-                  <div className="col-lg-12 col-xl-12 modal-cancelation__body">
-                        <div className="container">
-                           <Modal.Header className={'modal-cancelation-header'} closeButton>
-                              <Modal.Title>{Strings.CANCELATION}</Modal.Title>
-                           </Modal.Header>
-                           <Modal.Body className={'modal-cancelation-body'}>
-                              <h4>{Strings.CANCELATIONMESSAGE}</h4>
-                           </Modal.Body>
-                           <Modal.Footer className={'modal-reservation-footer'}>
-                              <div className="GFSDK-form__section" id="cancel-class">
-                                    <button type="button" className="qodef-btn qodef-btn-solid btn btn-lg btn-primary btn-block" onClick={this.handleClick.bind(this)}>
-                                       <Glyphicon glyph="ok-circle" /> {Strings.BUTTON_ACCEPT}
-                                    </button>
-                                    <button type="button" className="qodef-btn qodef-btn-solid btn btn-lg btn-primary btn-block" onClick={this.handleClose.bind(this)}>
-                                       <Glyphicon glyph="remove" /> {Strings.BUTTON_CANCEL}
-                                    </button>
-                              </div>
-                           </Modal.Footer>
-                        </div>
+               <div className="modal-cancelation__container">
+                  <div className="modal-profile__close" onClick={this.handleClickBack.bind(this)}>
+                     <CloseIcon />
+                  </div> 
+                  <div className={'modal-cancelation__body'}>
+                     <h3>{Strings.CANCELATION}</h3>
+                     <p>{Strings.CANCELATIONMESSAGE}</p>
+                  </div>
+                  <div className={'modal-cancelation__footer'}>
+                     <div className="GFSDK-form__section" id="cancel-class">
+                           <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClick.bind(this)}>
+                              {Strings.BUTTON_ACCEPT}
+                           </button>
+                           <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClose.bind(this)}>
+                              {Strings.BUTTON_CANCEL}
+                           </button>
+                     </div>
                   </div>
                </div>
 

@@ -133,11 +133,32 @@
 }
 
 .modal-cancelation{
-    .modal-header{
-        .close{
-            color:black;
-        }
-    }
+   .modal-content{
+      display:grid;
+      align-items: center;
+      justify-items: center;
+      height:100%;
+   }
+
+   &__container{
+      display: grid;
+      row-gap: 15px;
+      align-items: center;
+      width:500px;
+   }
+
+   &__body{
+      text-align: center;
+   }
+
+   &__footer{
+
+      .GFSDK-form__section{
+         display: grid;
+         grid-template-columns: repeat(2, 1fr);
+         column-gap: 15px;
+      }
+   }
 }
 
 .modal-login{

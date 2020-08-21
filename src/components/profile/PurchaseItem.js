@@ -11,16 +11,15 @@ class PurchaseItem extends React.Component {
 
     render() {
         return (
-            <div className={'purchase-item'}>
-                <div className={'card-header'}>
-                    <h4 className={'purchase-item-name'}><strong>{this.props.purchase.items[0].item_name}</strong></h4>
-                    <h2 className={'purchase-item-price'}> $ {formatMoney(this.props.purchase.total,0)}</h2>
-                </div>
-                <hr></hr>
-                <div className={'card-body'}>
-                    <Moment calendar locale="es">{this.props.purchase.created_at}</Moment>
-                </div>
+         <div className={'purchase-item'}>
+            <div className={'purchase-item__header'}>
+               <h4 className={'purchase-item-name'}><strong>{this.props.purchase.items[0].item_name}</strong></h4>
             </div>
+            <div className={'purchase-item__body'}>
+               <p className={'purchase-item-price'}><strong>$ {formatMoney(this.props.purchase.total,0)}</strong></p>
+               <Moment calendar locale="es">{this.props.purchase.created_at}</Moment>
+            </div>
+         </div>
         )
     }
 }

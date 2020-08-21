@@ -149,7 +149,7 @@ class ServiceList extends React.Component {
          <div className={serviceClass}>
                <div className={serviceClass + '__header'}>
                   <div className={filterClass}>
-                  {!categories.length <= 1
+                  {categories.length > 1
                   ? <div className={filterClass + '__item is-job-filter'}>
                      <select className={formClass + '__select' + ' is-category-filter'} onChange={this.change} value={filter_category} data-name={"filter_category"}>
                         <option value={'TODOS'}>Todos</option>
@@ -163,8 +163,8 @@ class ServiceList extends React.Component {
                   </div>
                   : null
                }
-               {!brands.length <= 1
-                  ?  <div className={filterClass + '__item is-brand-filter' + (brands.length <= 1 ? 'is-empty' : '' )}>
+               {brands.length > 1
+                  ?  <div className={filterClass + '__item is-brand-filter'}>
                         <select className={formClass + '__select' + ' is-brand-filter'} onChange={this.change} value={filter_brand} data-name={"filter_brand"}>
                            <option value={'TODOS'}>Todos</option>
                            {brands.map(brand => {

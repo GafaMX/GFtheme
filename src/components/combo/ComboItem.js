@@ -59,29 +59,16 @@ class ComboItem extends React.Component {
    }
 
    showLoginForNotLoggedUsers() {
+      let comp = this;
+      let locations = GlobalStorage.get('locations');
+      locations = locations.filter(function(location){ return location.brand.slug === comp.props.combo.brand.slug});
+
       window.GFtheme.combo_id = this.props.combo.id;
+      window.GFtheme.brand_slug = this.props.combo.brand.slug;
+      window.GFtheme.location_slug = locations[0].slug;
+
       this.props.setShowRegister(true);
    }
-
-   // getServicesAndParentsForCombo() {
-   //    let servicesAndParentsForCombo = [];
-   //    servicesAndParentsForCombo['services'] = "";
-   //    servicesAndParentsForCombo['parents'] = "";
-
-   //    this.props.combo.credit.services.forEach(function (service) {
-   //       if (service.category != null && !servicesAndParentsForCombo['services'].includes(service.category)) {
-   //             servicesAndParentsForCombo['services'] === "" ? servicesAndParentsForCombo['services'] += service.category :
-   //                servicesAndParentsForCombo['services'] += ", " + service.category;
-   //       }
-
-   //       if (service.service_parent != null && !servicesAndParentsForCombo['parents'].includes(service.service_parent)) {
-   //             servicesAndParentsForCombo['parents'] === "" ? servicesAndParentsForCombo['parents'] += service.service_parent :
-   //                servicesAndParentsForCombo['parents'] += ", " + service.service_parent;
-   //       }
-
-   //    });
-   //    return servicesAndParentsForCombo;
-   // }
 
    render() {
       let preC = 'GFSDK-c';
