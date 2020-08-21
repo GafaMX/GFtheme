@@ -35,15 +35,9 @@ class StaffList extends React.Component {
 
 
       this.change = this.change.bind(this);
-      // this.updateRows = this.updateRows.bind(this);
 
       GlobalStorage.addSegmentedListener(['staff'], this.setInitialValues.bind(this));
    }
-
-   // componentDidMount(){
-   //    let comp = this;
-   //    this.updateRows();
-   // }
 
    setInitialValues(){
       let comp = this;
@@ -215,7 +209,10 @@ class StaffList extends React.Component {
                   </Slider>
                </div>
 
-               : <p>Cargando...</p>
+               : 
+               <div>
+                  <p>Cargando...</p>
+               </div>
             }  
          </div>
       );

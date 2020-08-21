@@ -10,6 +10,8 @@ import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import LoginRegister from "../menu/LoginRegister";
 import moment from "moment";
 
+import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
+
 // Estilos
 import '../../styles/newlook/components/GFSDK-c-Calendar.scss';
 import '../../styles/newlook/components/GFSDK-c-Filter.scss';
@@ -24,29 +26,33 @@ class Calendar extends React.Component {
          showLogin: false,
          showRegister: false,
          meetings: [],
-         meetings_to_show: [],
-         // filter: {
-         //    filter_location: '',
-         //    filter_staff: '',
-         //    filter_service: '',
-         // },
-         rooms:null,
-         _is_mounted: false,
+         filter_staff: "Todos",
+         staff: [],
+         filter_service: "Todos",
+         services: [],
+         filter_brand: "Todos",
+         brands: [],
+         filter_room: "Todos",
+         rooms: [],
+         filter_location: "Todos",
+         locations: [],
+         is_mounted: false,
       };
 
    //   CalendarStorage.set('locations', this.props.locations);
-      this.getMeetings = this.getMeetings.bind(this);
+      this.selectFilter = this.selectFilter.bind(this);
       CalendarStorage.set('show_login', this.setShowLogin.bind(this));
       CalendarStorage.set('show_register', this.setShowRegister.bind(this));
-      CalendarStorage.set('locations', GlobalStorage.get('locations')); // TODO:Eliminar al tener todo en el store global
+      CalendarStorage.addSegmentedListener(['meetings'], this.setInitialValues.bind(this));
+      // CalendarStorage.set('locations', GlobalStorage.get('locations')); // TODO:Eliminar al tener todo en el store global
       // CalendarStorage.addSegmentedListener(['calendarHeight', 'calendarWidth'], this.updateCalendarDimensions.bind(this));
       // CalendarStorage.addSegmentedListener(['filter_location'], this.updateCalendar.bind(this));
    }
 
-   componentDidMount() {
-      this.getMeetings();
-      this.getRooms();
-   }
+   // componentDidMount() {
+   //    this.getMeetings();
+   //    // this.getRooms();
+   // }
 
    // updateCalendarDimensions(){
    //    this.setState({
@@ -69,26 +75,85 @@ class Calendar extends React.Component {
 
    // }
 
-   getMeetings() {
-      let curComp = this;
+   setInitialValues(){
+      let comp = this;
+      let meetings = CalendarStorage.get('meetings');
+      let rooms = GlobalStorage.get('rooms');
+      let {filter_service, filter_service_default, filter_staff, filter_location, filter_brand, filter_room} = this.props;
+      let meetingsWithRoom = [];
+      let meetingsLocations = [];
+      let meetingsBrands = [];
+      let meetingsServices = [];
+      let meetingsStaff = [];
+      let meetingsRooms = [];
 
-      GafaFitSDKWrapper.setMeetings(function(){
-         curComp.setState({
-            is_mounted: true,
-            meetings: CalendarStorage.get('meetings'),
-         });
+      meetings = meetings.filter(function(meeting){return meeting.passed === false});
+
+      meetings.forEach(function(meeting){
+         let room = rooms.find(function(room){return meeting.rooms_id === room.id});
+         meeting.room = room
+         meetingsWithRoom.push(meeting);
       });
-   }
 
-   getRooms() {
-      GafaFitSDKWrapper.getBrandRooms({}, function (result) {
-         CalendarStorage.push('rooms', result.data)
-      })
-   }
+      if(filter_brand){
+         meetingsWithRoom.forEach(function(meeting){
+            if(meeting.location != null && !meetingsBrands.includes(meeting.location.brand.name)){
+               meetingsBrands.push(meeting.location.brand.name);
+            }
+         });
+      }
 
-   updateMeetings(meetingsList){
+      if(filter_location){
+         meetingsWithRoom.forEach(function(meeting){
+            if(meeting.location != null && !meetingsLocations.includes(meeting.location.name)){
+               meetingsLocations.push(meeting.location.name);
+            }
+         });
+      }
+
+      if(filter_room){
+         meetingsWithRoom.forEach(function(meeting){
+            if(meeting.room != null && !meetingsRooms.includes(meeting.room.name)){
+               meetingsRooms.push(meeting.room.name);
+            }
+         });
+      }
+
+      if(filter_staff){
+         meetingsWithRoom.forEach(function(meeting){
+            if(meeting.staff != null && !meetingsStaff.includes(meeting.staff.name)){
+               meetingsStaff.push(meeting.staff.name);
+            }
+         });
+      }
+
+      if(filter_service){
+         meetingsWithRoom.forEach(function(meeting){
+            if(meeting.service != null && !meetingsServices.includes(meeting.service.name)){
+               meetingsServices.push(meeting.service.name);
+            }
+         });
+      }
+
+      setTimeout(function(){ 
+         comp.setState({
+            locations: meetingsLocations,
+            brands: meetingsBrands,
+            rooms: meetingsRooms,
+            services: meetingsServices,
+            staff: meetingsStaff,
+            meetings: meetings,
+            is_mounted: true,
+         });
+      }, 3000);
+   }
+   
+   selectFilter(e) {
+      let name = e.target.getAttribute('data-name');
+      let value = e.target.value;
+
       this.setState({
-         meetings_to_show: meetingsList
+         [name]: value,
       });
    }
 
@@ -105,8 +170,11 @@ class Calendar extends React.Component {
    }
 
     render() {
-      let {is_mounted, meetings, filter, meetings_to_show} = this.state;
+      let {is_mounted, meetings, locations, filter_location, rooms, filter_room, services, filter_service, staff, filter_staff, brands, filter_brand} = this.state;
       let preC = 'GFSDK-c';
+      let preE = 'GFSDK-e';
+      let formClass = preE + '-form';
+      let filterClass = preC + '-filter';
       let calendarClass = preC + '-Calendar';
       let widthDimension = CalendarStorage.get('calendarWidth');
       let heightDimension = CalendarStorage.get('calendarHeight');
@@ -115,33 +183,136 @@ class Calendar extends React.Component {
          width:  widthDimension + 'px',
       }
 
-      console.log(meetings_to_show.length != 0);
+      if(filter_location && filter_location != 'Todos'){
+         meetings = meetings.filter(function(meeting){ return meeting.location.name === filter_location });
+      }
+
+      if(filter_room && filter_room != 'Todos'){
+         meetings = meetings.filter(function(meeting){ return meeting.room.name === filter_room });
+      }
+
+      if(filter_service && filter_service != 'Todos'){
+         meetings = meetings.filter(function(meeting){ return meeting.service.name === filter_service });
+      }
+
+      if(filter_brand && filter_brand != 'Todos'){
+         meetings = meetings.filter(function(meeting){ return meeting.location.brand.name === filter_brand });
+      }
+
+      if(filter_staff && filter_staff != 'Todos'){
+         meetings = meetings.filter(function(meeting){ return meeting.staff.name === filter_staff});
+      }
 
       return (
          <div className={calendarClass}>
+            <div className={calendarClass + '__container'} style={mystyles}>
+               {is_mounted 
+                  ? 
+                  <div className={calendarClass + '__head-horizontal'}>
+                     {  brands.length <= 1 && locations.length <= 1 &&
+                        rooms.length <= 1 && staff.length <= 1 &&
+                        services.length <= 1 
+                        ?
+                           null
+                        : 
+                           <p className={formClass + '__label'}>Filtros:</p> 
+                     }
+                     <div className={calendarClass + '__filter ' + filterClass}>
+                        <div className={filterClass + '__item is-brand-filter' + (brands.length <= 1 ? ' is-empty' : '' )}>
+                           <select className={formClass + '__select'}
+                                 data-name="filter_brand"
+                                 value={filter_brand}
+                                 onChange={this.selectFilter}
+                                 >
+                                 <option value={'Todos'}>Marcas</option>
+                                 {brands.map(brand => {
+                                    return <option value={brand} key={brand}>{brand}</option>
+                                 })}
+                           </select>
+                           <div className={filterClass + '__item-icon'}>
+                              <IconSelectDownArrow />
+                           </div>
+                        </div>
+
+                        <div className={filterClass + '__item is-location-filter' + (locations.length <= 1 ? ' is-empty' : '' )}>
+                           <select className={formClass + '__select'} data-name="filter_location" data-origin="locations"
+                                 value={filter_location}
+                                 onChange={this.selectFilter}
+                                 >
+                                 <option value={'Todos'}>Ubicaciones</option>
+                                 {locations.map(location => {
+                                    return <option value={location} key={location}>{location}</option>
+                                 })}
+                           </select>
+                           <div className={filterClass + '__item-icon'}>
+                              <IconSelectDownArrow />
+                           </div>
+                        </div>
+
+                        <div className={filterClass + '__item is-room-filter' + (rooms.length <= 1 ? ' is-empty' : '' )}>
+                           <select className={formClass + '__select'}
+                                 data-name="filter_room"
+                                 value={filter_room}
+                                 onChange={this.selectFilter}
+                                 >
+                                 <option value={'Todos'}>Salones</option>
+                                 {rooms.map(room => {
+                                    return <option value={room} key={room}>{room}</option>
+                                 })}
+                           </select>
+                           <div className={filterClass + '__item-icon'}>
+                              <IconSelectDownArrow />
+                           </div>
+                        </div>
+                        
+                        <div className={filterClass + '__item is-staff-filter' + (staff.length <= 1 ? ' is-empty' : '' )}>
+                           <select className={formClass + '__select'}
+                                    data-name="filter_staff"
+                                    value={filter_staff}
+                                    onChange={this.selectFilter}
+                                 >
+                                 <option value={'Todos'}>{window.GFtheme.StaffName}</option>
+                                 {staff.map(person => {
+                                    return <option value={person} key={person}>{person}</option>
+                                 })}
+                           </select>
+                           <div className={filterClass + '__item-icon'}>
+                              <IconSelectDownArrow />
+                           </div>
+                        </div>
+
+                        <div className={filterClass + '__item is-service-filter' + (services.length <= 1 ? ' is-empty' : '' )}>
+                           <select className={formClass + '__select'}
+                                 data-name="filter_service"
+                                 value={filter_service}
+                                 onChange={this.selectFilter}
+                              >
+                                 <option value={'Todos'}>Servicios</option>
+                                 {services.map(service => {
+                                    return <option value={service} key={service}>{service}</option>
+                                 })}
+                           </select>
+                           <div className={filterClass + '__item-icon'}>
+                              <IconSelectDownArrow />
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  : null
+               }
                {is_mounted 
                   ?
-                     <div className={calendarClass + '__container ' + (is_mounted ? 'mounted' : '')} style={mystyles}>
-                        <CalendarFilters
-                           filterService={this.props.filter_service}
-                           filterServiceDefault={this.props.filter_service_default}
-                           filterStaff={this.props.filter_staff}
-                           updateMeetings={this.updateMeetings.bind(this)}
-                           meetings={meetings}
-                        />
-                        {meetings_to_show.length != 0
-                           ?
-                           <CalendarBody stateFilter={filter} meetings={meetings_to_show} limit={this.props.limit} />
-                           :
-                           <p>Cargando...</p>
-                        }
+                     <CalendarBody meetings={meetings} limit={this.props.limit} /> 
+                  :
+                     <div>
+                        <p>Cargando...</p>
                      </div>
-                  : 
-                     null
                }
-               {this.state.showRegister &&
-               <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
-               }
+            </div>
+            
+            {this.state.showRegister &&
+            <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
+            }
          </div>
       );
    }

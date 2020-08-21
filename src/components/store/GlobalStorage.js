@@ -1,34 +1,36 @@
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
 const GlobalStorage = {
-    listeners: [],
-    segmentedListeners: [],
-    me: null,
+   listeners: [],
+   segmentedListeners: [],
+   me: null,
 
-    //Brands Controller
-    brands: [],
-    currentBrand: null,
-    
-    //Location Controller
-    locations: [],
-   //  currentLocation: null,
+   //Brands Controller
+   brands: [],
+   currentBrand: null,
+   
+   //Location Controller
+   locations: [],
 
-    //Combos
-    combos: [],
+   //Combos
+   combos: [],
+   
+   //Memberships
+   memberships: [],
+   
+   //Staff
+   staff:[],
+   
+   //Staff
+   services:[],
+   
+   //Rooms
+   rooms:[],
     
-    //Memberships
-    memberships: [],
-    
-    //Staff
-    staff:[],
-    
-    //Staff
-    services:[],
-    
-    //PaymentMethod Controller
-    ConektaPaymentInfo: null,
-    ConektaPaymentNotification: null,
-    ConektaPaymentError: null,
+   //PaymentMethod Controller
+   ConektaPaymentInfo: null,
+   ConektaPaymentNotification: null,
+   ConektaPaymentError: null,
 
    //Future Class
    future_classes: null,
@@ -68,23 +70,29 @@ const GlobalStorage = {
       let curStore = this;
       let currentBrand = brands[0];
       let locations = [];
-      let loop = 0;
+      let rooms = [];
 
+      let loop = 0;
+      
       this.brands = brands;
       this.currentBrand = currentBrand;
       
       brands.forEach(function(brand){
          GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
             locations = locations.concat(result.data);
-            loop++;
 
-            if(loop === brands.length){
-               GlobalStorage.set('locations', locations);
+            GafaFitSDKWrapper.getBrandRooms(brand.slug, {per_page: 1000}, function(result){
+               rooms = rooms.concat(result.data);
+               loop++;
 
-               if(cb){
-                  cb();
+               if(loop === brands.length){
+                  GlobalStorage.locations = locations;
+                  GlobalStorage.rooms = rooms;
+                  if(cb){
+                     cb();
+                  }
                }
-            }
+            });
          });
       });
    },

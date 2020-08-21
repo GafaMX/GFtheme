@@ -21,6 +21,7 @@ class CalendarFilters extends React.Component {
       this.state = {
          services: [],
          staff: [],
+         filter_brand:'',
          filter_service:'',
          filter_location:'',
          filter_staff:'',
@@ -136,13 +137,9 @@ class CalendarFilters extends React.Component {
       let id = e.target.value;
       let model = null;
 
-      debugger;
-
       if (id && id !== '')
          model = CalendarStorage.find(origin, id);
          curComp.setState({[name]: model});
-
-      
    }
 
    // getDates(startDate, stopDate) {
@@ -170,7 +167,7 @@ class CalendarFilters extends React.Component {
       if (filter_location) {
          meetings = meetings.filter(function (meeting) {
             return meeting.locations_id === filter_location.id;
-         })
+         });
       }
 
       // if (service) {
@@ -249,8 +246,8 @@ class CalendarFilters extends React.Component {
    getNextButton() {
       if (this.state.has_next) {
          return (
-               <a onClick={this.nextWeek}
-                  className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
+            <a onClick={this.nextWeek}
+               className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
          );
       }
    }
@@ -338,7 +335,8 @@ class CalendarFilters extends React.Component {
                      <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
                            data-origin="locations"
                            value={locationValue}
-                           onChange={this.selectLocation.bind(this)}>
+                           // onChange={this.selectLocation.bind(this)}
+                           >
                            <option value={''}>{Strings.ALL}</option>
                            {locations.map(function (location, index) {
                               return (

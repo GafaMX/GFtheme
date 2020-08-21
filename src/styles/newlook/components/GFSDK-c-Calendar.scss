@@ -16,17 +16,13 @@
    }
     
    &__container{
-      display: none;
+      display: block;
       position: relative;
       grid-template-rows: auto 1fr;
       row-gap: 20px;
-      
-      &.mounted{
-         display: block;
          
-         @media screen and (min-width: 992px){
-            display: grid;
-         }
+      @media screen and (min-width: 992px){
+         display: grid;
       }
    }
 
@@ -86,22 +82,15 @@
          .#{$pre}-c-filter__item.is-staff-filter,
          .#{$pre}-c-filter__item.is-location-filter
          {
-            display: none;
-            border: 1px solid #000000;
-            grid-template-rows: initial;
-            border-radius: 50px;
-            padding:8px 15px; 
-
-            &.is-horizontal{
-               display: grid;
-               align-items: center;
-               justify-items: center;
-               
-               &.is-empty{
-                  display: none;
-               }
+            display: grid;
+            align-items: center;
+            justify-items: center;
+            
+            &.is-empty{
+               display: none;
             }
          }
+         
          position: absolute;
          right: 0;
          z-index:1;

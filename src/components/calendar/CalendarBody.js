@@ -4,7 +4,6 @@ import React from "react";
 import Strings from "../utils/Strings/Strings_ES";
 import CalendarStorage from "./CalendarStorage";
 import CalendarColumn from './CalendarColumn';
-
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -24,21 +23,13 @@ class CalendarBody extends React.Component {
          initialDay: null,
       };
       
-      this.initialMeetings = this.initialMeetings.bind(this);
-      // CalendarStorage.addSegmentedListener(['start_date', 'filter_time_of_day'], this.updateMeetings.bind(this));
+      this.getMeetingsToShow = this.getMeetingsToShow.bind(this);
    }
 
-   componentDidMount() {
-      this.initialMeetings();
-   }
-
-   initialMeetings(){
-      let curComp = this;
-      let {meetings, state} = this.props;
-
-      let beginsIn;
-      let shown_meetings = [];
+   getMeetingsToShow(props){
+      let meetings = props.meetings;
       let start = CalendarStorage.get('start_date');
+      let shown_meetings = [];
 
       if (!!meetings && !!start) {
          let end = new Date(start.getTime());
@@ -58,15 +49,8 @@ class CalendarBody extends React.Component {
          });
       }
 
-      curComp.setState({
-         meetings_to_show: shown_meetings,
-      });
+      return shown_meetings;
    }
-
-   // isFunction(functionToCheck) {
-   //    return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
-   // }
-
 
    getDates(startDate, stopDate) {
       let dateArray = [];
@@ -76,16 +60,16 @@ class CalendarBody extends React.Component {
          dateArray.push(new_date);
          currentDate.setDate(currentDate.getDate() + 1);
       }
-
       return dateArray;
    }
 
    render() {
-      const {limit, stateFilter} = this.props;
-      const {meetings_to_show, initialDay} = this.state;
+      const {meetings, limit} = this.props;
       let preC = 'GFSDK-c';
       let calendarClass = preC + '-Calendar';
       let beginsIn;
+      
+      let meetings_to_show = this.getMeetingsToShow(this.props);
       
       const dayList = meetings_to_show.map(function (day) {
          return(
@@ -103,22 +87,13 @@ class CalendarBody extends React.Component {
          }
       }
       
-      const listItems =  meetings_to_show.map(function (day, index) {
-                           return (
-                              <CalendarColumn
-                                    key={`calendar-day--${index}`}
-                                    index={index}
-                                    day={day}
-                                    limit={limit}
-                              />
-                           );
-                        });
+      let listItems = meetings_to_show.map((day, index) => { return  <CalendarColumn key={`calendar-day--${index}`} index={index}day={day} limit={limit}/> });
       
       let settings = {
          draggable : false,
          infinite: false,
          adaptiveHeight: true,
-         initialSlide: initialCal,
+         initialSlide: beginsIn,
          speed: 500,
          slidesToScroll: 1,
          slidesToShow: 1,

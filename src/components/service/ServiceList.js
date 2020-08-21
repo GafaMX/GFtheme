@@ -30,7 +30,9 @@ class ServiceList extends React.Component {
          list: [],
          is_mounted: false,
       };
-      // this.change = this.change.bind(this);
+
+      this.change = this.change.bind(this);
+
       GlobalStorage.addSegmentedListener(['services'], this.setInitialValues.bind(this));
    }
 
@@ -80,7 +82,6 @@ class ServiceList extends React.Component {
    change(e) {
       let name = e.target.getAttribute('data-name');
       let value = e.target.value;
-      let {filter_job, filter_brand, list, is_mounted} = this.state;
 
       this.setState({
          [name]: value
@@ -92,7 +93,7 @@ class ServiceList extends React.Component {
       let listItems = [];
       
       if(filter_category && filter_category != 'TODOS'){
-         list = list.filter(function(service){ return service.category.toUpperCase() === filter_category});
+         list = list.filter(function(service){ if(service.category){return service.category && service.category.toUpperCase() === filter_category}});
       }
 
       if(filter_brand && filter_brand != 'TODOS'){
@@ -178,14 +179,17 @@ class ServiceList extends React.Component {
                }
                   </div>
                </div>
-            {is_mounted 
-               ?
-               <div className={serviceClass + '__body'}>
-                  <Slider {...settings} className={serviceClass + '__container'}>
+            {is_mounted
+               ? 
+                  <div className={serviceClass + '__body'}>
+                     <Slider {...settings} className={serviceClass + '__container'}>
                         {listItems}
-                  </Slider>
-               </div>
-               : null
+                     </Slider>
+                  </div>
+               : 
+                  <div>
+                     <p>Cargando...</p>
+                  </div>
             }
          </div>
       );

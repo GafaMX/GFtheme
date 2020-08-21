@@ -245,7 +245,7 @@ class ProfileUserInfo extends React.Component {
       let formClass = preE + '-form';
       let filterClass = preC + '-filter';
       let filter_name = 'meetings-calendar--filters';
-      let locations = CalendarStorage.locations;
+      let locations = GlobalStorage.get('locations');
       let {paymentNotification, screen} = this.state
 
       return (
@@ -260,7 +260,7 @@ class ProfileUserInfo extends React.Component {
                            </div>
                            <div className="profile-user__tools">
                               <div className="profile-user__tools-container">
-                                 <LocationsFilter />
+                                 {/* <LocationsFilter /> */}
                                  <a className='this-logOut' onClick={this.props.handleClickLogout}>
                                     <IconLogOut/>
                                  </a>

@@ -455,24 +455,24 @@ class GafaFitSDKWrapper extends React.Component {
         })
     }
 
-    static getBrandList(options, callback) {
-        options.only_actives = true;
-        GafaFitSDK.GetBrandList(options, function (error, result) {
-            if (error === null) {
-                callback(result);
-            }
-        })
-    }
+   static getBrandList(options, callback) {
+      options.only_actives = true;
+      GafaFitSDK.GetBrandList(options, function (error, result) {
+         if (error === null) {
+               callback(result);
+         }
+      })
+   }
 
-    static getBrandLocations(options, callback) {
-        let brand = GlobalStorage.get('currentBrand').slug;
-        options.only_actives = true;
-        GafaFitSDK.GetBrandLocationList(brand, options, function (error, result) {
-            if (error === null) {
-                callback(result);
-            }
-        })
-    }
+   static getBrandLocations(options, callback) {
+      let brand = GlobalStorage.get('currentBrand').slug;
+      options.only_actives = true;
+      GafaFitSDK.GetBrandLocationList(brand, options, function (error, result) {
+         if (error === null) {
+               callback(result);
+         }
+      })
+   }
 
    static getBrandLocationsWithoutBrand(brand, options, callback) {
       options.only_actives = true;
@@ -483,26 +483,19 @@ class GafaFitSDKWrapper extends React.Component {
       })
    }
 
-    static getBrandRooms(options, callback) {
-        GafaFitSDK.GetRoomsInBrand(window.GFtheme.brand, options, function (error, result) {
-            if (error === null) {
-                callback(result);
-            }
-        });
-    }
+   static getBrandRooms(brand, options, callback) {
+      GafaFitSDK.GetRoomsInBrand(brand, options, function (error, result) {
+         if (error === null) {
+            callback(result);
+         }
+      });
+   }
 
-    static getBrandRoomsWithoutBrand(brand, options, callback) {
-        GafaFitSDK.GetRoomsInBrand(brand, options, function (error, result) {
-            if (error === null) {
-                callback(result);
-            }
-        });
-    }
-
-    static getFancyForMeetingReservation(location, meetings_id, callback) {
+    static getFancyForMeetingReservation(brand, location, meetings_id, callback) {
         GafaFitSDKWrapper.getMe(function (me) {
+           debugger;
             GafaFitSDK.GetCreateReservationForm(
-                window.GFtheme.brand,
+                brand,
                 location,
                 me.id,
                 '[data-gf-theme="fancy"]',
@@ -517,8 +510,7 @@ class GafaFitSDKWrapper extends React.Component {
         });
     };
 
-    static getUserFutureReservationsInBrand(options, callback) {
-        let brand = GlobalStorage.get('currentBrand').slug;
+    static getUserFutureReservationsInBrand(brand, options, callback) {
         GafaFitSDK.GetUserFutureReservationsInBrand(
             brand, options,
             function (error, result) {

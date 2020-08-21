@@ -30,13 +30,21 @@ class FutureClasses extends React.Component {
 
    getFutureClasses(){
       const currentComponent = this;
+      let brands = GlobalStorage.get(brands);
+      let futureClassesList = [];
 
-      GafaFitSDKWrapper.getUserFutureReservationsInBrand({
-         reducePopulation: true,
-      }, function (result) {
-         GlobalStorage.set('future_classes', result);
-         currentComponent.setState({list: result});
-      });
+      // brands.forEach(function(brand){
+         // GafaFitSDKWrapper.getUserFutureReservationsInBrand(
+         //    brand.slug,
+         //    {reducePopulation: true,},
+         //    function (result) {
+
+         //    // TODO: futureClassesList = 
+
+         //    GlobalStorage.set('future_classes', result);
+         //    currentComponent.setState({list: result});
+         // });
+      // })
    }
 
    updateFutureClasses(){
