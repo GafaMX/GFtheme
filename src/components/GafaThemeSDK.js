@@ -199,6 +199,7 @@ class GafaThemeSDK extends React.Component {
             let filterStaff = domContainer.getAttribute("filter-bq-staff") ? Boolean(domContainer.getAttribute("filter-bq-staff")) : false;
             let filterRoom = domContainer.getAttribute("filter-bq-room") ? Boolean(domContainer.getAttribute("filter-bq-room")) : false;
             let filterLocation = domContainer.getAttribute("filter-bq-location") ? Boolean(domContainer.getAttribute("filter-bq-location")) : false;
+            let filterBrand = domContainer.getAttribute("filter-bq-brand") ? Boolean(domContainer.getAttribute("filter-bq-brand")) : false;
             let start_date = moment().toDate();
             let end_date = moment().toDate();
             let meetings = [];
@@ -219,8 +220,9 @@ class GafaThemeSDK extends React.Component {
                'filter_service': filterService,
                'filter_service_default': filterServiceDefault,
                'filter_staff': filterStaff,
-               'filter_room': filterStaff,
+               'filter_room': filterRoom,
                'filter_location': filterLocation,
+               'filter_brand': filterBrand,
             };
 
             locations.forEach(function (location) {

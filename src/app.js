@@ -28,10 +28,9 @@ GafaFitSDKWrapper.initValues(
       
       // Render lista de membresías
       GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"]');
-
+      
+      // Render calendario
       GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
-   //   GafaThemeSDK.renderMeetingsCalendarWithoutLimit('[data-gf-theme="meetings-calendar"]:not([data-gf-limit]');
-      // GafaThemeSDK.renderLocationsFilter('[data-gf-theme="locations-filter"]');
    }
 );
 

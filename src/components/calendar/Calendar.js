@@ -39,41 +39,12 @@ class Calendar extends React.Component {
          is_mounted: false,
       };
 
-   //   CalendarStorage.set('locations', this.props.locations);
       this.selectFilter = this.selectFilter.bind(this);
       CalendarStorage.set('show_login', this.setShowLogin.bind(this));
       CalendarStorage.set('show_register', this.setShowRegister.bind(this));
       CalendarStorage.addSegmentedListener(['meetings'], this.setInitialValues.bind(this));
-      // CalendarStorage.set('locations', GlobalStorage.get('locations')); // TODO:Eliminar al tener todo en el store global
-      // CalendarStorage.addSegmentedListener(['calendarHeight', 'calendarWidth'], this.updateCalendarDimensions.bind(this));
-      // CalendarStorage.addSegmentedListener(['filter_location'], this.updateCalendar.bind(this));
    }
 
-   // componentDidMount() {
-   //    this.getMeetings();
-   //    // this.getRooms();
-   // }
-
-   // updateCalendarDimensions(){
-   //    this.setState({
-   //       calendarHeight: CalendarStorage.get('calendarHeight'),
-   //       calendarWidth: CalendarStorage.get('calendarWidth'),
-   //    });
-   // }
-
-   // updateCalendar(){
-      // this.getMeetings();
-      // this.getRooms();
-
-      // this.setState({
-      //    meetings: CalendarStorage.get('meetings'),
-      //    rooms: CalendarStorage.get('rooms'),
-      // });
-   // }
-
-   // getFilters(){
-
-   // }
 
    setInitialValues(){
       let comp = this;
@@ -145,7 +116,7 @@ class Calendar extends React.Component {
             meetings: meetings,
             is_mounted: true,
          });
-      }, 3000);
+      }, 2000);
    }
    
    selectFilter(e) {
