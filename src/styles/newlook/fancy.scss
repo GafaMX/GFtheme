@@ -181,9 +181,21 @@
          &__terms{
             padding:0;
 
+            .gs-PromotionBox{
+               @media only screen and (max-width: 992px) {
+                  grid-row-gap: 0;
+               }
+            }
+
             .gs-terms{
                padding:0;
                background-color: transparent;
+               font-size:75%;
+               bottom:110%;
+
+               @media only screen and (max-width: 992px) {
+                  display: block;
+               }
             }
          }
          
