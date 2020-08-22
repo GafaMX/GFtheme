@@ -44,7 +44,7 @@ class MembershipList extends React.Component {
       if(origin === href){
          weAreHome = true;
       }
-
+      
       memberships = memberships.filter(function(membership){ return membership.status === 'active' && membership.hide_in_front === false});
       
       if(weAreHome === true){
@@ -52,13 +52,13 @@ class MembershipList extends React.Component {
             return membership.hide_in_home === false
          });
       }
-
+      
       if(filterByName){
          memberships = memberships.filter(function(membership){
             return membership.name.toUpperCase().includes(filterByName.toUpperCase());
          });
       }
-
+      
       if(filterByBrand){
          memberships = memberships.filter(function(membership){
             return membership.brand.name.toUpperCase().includes(filterByBrand.toUpperCase());

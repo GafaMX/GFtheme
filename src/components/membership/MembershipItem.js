@@ -63,15 +63,11 @@ class MembershipItem extends React.Component {
       let brand = brands.find(function(brand){ return brand.id === comp.props.membership.brands_id});
       locations = locations.filter(function(location){ return location.brand.id === comp.props.membership.brands_id});
 
-      console.log(brand);
-
       window.GFtheme.membership_id = this.props.membership.id;
       window.GFtheme.brand_slug = brand.slug;
       window.GFtheme.location_slug = locations[0].slug;
 
-      console.log(window.GFtheme);
-
-      // this.props.setShowRegister(true);
+      this.props.setShowRegister(true);
    }
 
    //  getServicesAndParentsForMembership() {

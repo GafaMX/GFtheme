@@ -40,6 +40,7 @@ class ComboList extends React.Component {
       let {filterByName, filterByBrand} = this.props;
       let combos = GlobalStorage.get('combos');
 
+
       let weAreHome = false;
 
       if(origin === href){
@@ -85,13 +86,6 @@ class ComboList extends React.Component {
          showRegister: showRegister
       });
    }
-
-   // updatePaginationData(result) {
-   //    this.setState({
-   //       list: result.data,
-   //       currentPage: result.current_page
-   //    })
-   // }
 
    render() {
       let preC = 'GFSDK-c';

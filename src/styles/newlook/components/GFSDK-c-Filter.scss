@@ -67,9 +67,9 @@
    // @media screen and (min-width:992px) {
    // }
 
-   & > select, & > div{
-      width:100%;
-   }
+   // & > select, & > div{
+   //    width:100%;
+   // }
 
    & > *{
       font-family: 'DM Sans', sans-serif;
@@ -138,6 +138,7 @@
       border: 1px solid #000000;
       border-radius: 50px;
       padding:8px 15px;
+      line-height: initial;
 
       &-icon{
          position:absolute;
@@ -153,6 +154,7 @@
       }
 
       select{
+         line-height: initial;
          @media (min-width: 992px){
             width:initial;
          }

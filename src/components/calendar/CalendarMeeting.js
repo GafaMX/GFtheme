@@ -35,11 +35,17 @@ class CalendarMeeting extends React.Component {
    }
 
    showLoginForNotLoggedUsers() {
+      window.GFtheme.meetings_id = this.props.meeting.id;
+      window.GFtheme.location_slug = this.props.meeting.location.slug;
+      window.GFtheme.brand_slug = this.props.meeting.location.brand.slug;
       let login = CalendarStorage.get('show_login');
       login(true);
    }
 
    showRegisterForNotLoggedUsers() {
+      window.GFtheme.meetings_id = this.props.meeting.id;
+      window.GFtheme.location_slug = this.props.meeting.location.slug;
+      window.GFtheme.brand_slug = this.props.meeting.location.brand.slug;
       let register = CalendarStorage.get('show_register');
       register(true);
    }

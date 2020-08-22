@@ -167,6 +167,7 @@ class GafaThemeSDK extends React.Component {
          domContainers.forEach(function (domContainer) {
             let byName = domContainer.getAttribute("data-gf-filterbyname");
             let byBrand = domContainer.getAttribute("data-buq-brand");
+
             let memberships = [];
             let props = {};
 
@@ -177,7 +178,12 @@ class GafaThemeSDK extends React.Component {
                   function (result) {
                      props.filterByName = byName;
                      props.filterByBrand = byBrand;
-                     memberships = memberships.concat(result.data);
+
+                     result.data.forEach(function(item){
+                        item.brand = brand;
+                        memberships.push(item);
+                     });
+
                      GlobalStorage.set('memberships', memberships);
                      GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
                   }

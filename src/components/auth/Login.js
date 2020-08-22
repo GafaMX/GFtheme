@@ -45,40 +45,40 @@ class Login extends React.Component {
         }, this.validateForm);
     }
 
-    validatePassword(value, fieldValidationErrors) {
-        let passwordValid = value.length >= 6;
-        fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
-        return passwordValid;
-    }
+   validatePassword(value, fieldValidationErrors) {
+      let passwordValid = value.length >= 6;
+      fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
+      return passwordValid;
+   }
 
-    validateEmail(value, fieldValidationErrors) {
-        let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-        fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
-        return emailValid;
-    }
+   validateEmail(value, fieldValidationErrors) {
+      let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
+      fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
+      return emailValid;
+   }
 
-    validateForm() {
-        this.setState({formValid: this.state.emailValid && this.state.passwordValid});
-    }
+   validateForm() {
+      this.setState({formValid: this.state.emailValid && this.state.passwordValid});
+   }
 
-    handleChangeField(event) {
-        let fieldName = event.target.id;
-        let fieldValue = event.target.value;
-        this.setState({
-            [fieldName]: fieldValue
-        }, () => {
-            this.validateField(fieldName, fieldValue)
-        });
-    };
+   handleChangeField(event) {
+      let fieldName = event.target.id;
+      let fieldValue = event.target.value;
+      this.setState({
+         [fieldName]: fieldValue
+      }, () => {
+         this.validateField(fieldName, fieldValue)
+      });
+   };
 
-    handleSubmit(event) {
-        event.preventDefault();
-        let currentElement = this;
-        currentElement.setState({serverError: ''});
-        GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
-            currentElement.successLoginCallback.bind(this),
-            currentElement.errorLoginCallback.bind(this));
-    };
+   handleSubmit(event) {
+      event.preventDefault();
+      let currentElement = this;
+      currentElement.setState({serverError: ''});
+      GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
+         currentElement.successLoginCallback.bind(this),
+         currentElement.errorLoginCallback.bind(this));
+   };
 
    successLoginCallback(result) {
       this.setState({logged: true});
@@ -87,15 +87,15 @@ class Login extends React.Component {
          this.props.successCallback(result);
 
          if (window.GFtheme.combo_id != null) {
-               this.buyComboAfterLogin();
+            this.buyComboAfterLogin();
          }
 
          if (window.GFtheme.membership_id != null) {
-               this.buyMembershipAfterLogin();
+            this.buyMembershipAfterLogin();
          }
 
          if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-               this.reserveMeetingAfterLogin();
+            this.reserveMeetingAfterLogin();
          }
 
          if (  !window.GFtheme.meetings_id && 
@@ -112,23 +112,28 @@ class Login extends React.Component {
    }
 
    buyComboAfterLogin() {
+      let comp = this;
+
       GafaFitSDKWrapper.getFancyForBuyCombo(
             window.GFtheme.brand_slug,
             window.GFtheme.location_slug,
             window.GFtheme.combo_id, 
             function (result) {
-         window.GFtheme.combo_id = null;
-         window.GFtheme.brand_slug = null;
-         window.GFtheme.location_slug = null;
+            comp.props.handleClickBack();
+            window.GFtheme.combo_id = null;
+            window.GFtheme.brand_slug = null;
+            window.GFtheme.location_slug = null;
       });
    }
 
    buyMembershipAfterLogin() {
+      let comp = this;
       GafaFitSDKWrapper.getFancyForBuyMembership(
          window.GFtheme.brand_slug,
          window.GFtheme.location_slug,
          window.GFtheme.membership_id,
-         function (result) { 
+         function (result) {
+         comp.props.handleClickBack();
          window.GFtheme.membership_id = null;
          window.GFtheme.brand_slug = null;
          window.GFtheme.location_slug = null;
@@ -136,14 +141,20 @@ class Login extends React.Component {
    }
 
    reserveMeetingAfterLogin() {
-      GafaFitSDKWrapper.getFancyForMeetingReservation(window.GFtheme.location_slug, window.GFtheme.meetings_id, function (result) {
+      let comp = this;
+      GafaFitSDKWrapper.getFancyForMeetingReservation(
+         window.GFtheme.brand_slug, 
+         window.GFtheme.location_slug, 
+         window.GFtheme.meetings_id, 
+         function (result) {
+         comp.props.handleClickBack();
          window.GFtheme.meetings_id = null;
          window.GFtheme.location_slug = null;
+         window.GFtheme.brand_slug = null;
       });
    }
 
     render() {
-
         let preE = 'GFSDK-e';
         let buttonClass = preE + '-buttons';
         let formClass = preE + '-form';

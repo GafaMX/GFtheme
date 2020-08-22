@@ -218,8 +218,8 @@ class CalendarFilters extends React.Component {
       //    };
       //    shown_meetings.push(meet);
       // });
-      console.log(meetings);
-      updateMeetings(meetings);
+      // console.log(meetings);
+      // updateMeetings(meetings);
    }
 
     hasNextPrev(next = true) {

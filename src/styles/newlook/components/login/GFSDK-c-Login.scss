@@ -101,6 +101,7 @@
       right:20px;
       cursor: pointer;
       opacity: 0.8;
+      color:black;
       
       &:hover{
          opacity: 1;
@@ -111,6 +112,7 @@
       max-width:100%;
       width:100%;
       display: inline-grid;
+      position: initial;
       
       @media only screen and (min-width:992px){
          max-width:600px;
@@ -186,12 +188,12 @@
          top:20px;
          right:20px;
       }
-
+      
       svg{
          color:white;
-
+         
          @media only screen and (min-width:992px){
-            color:inherit;
+            color:black
          }
       }
       
@@ -204,6 +206,15 @@
       max-width:100%;
       width:100%;
       display: inline-grid;
+      position: initial;
+      
+      & > div{
+         position: initial;
+         
+         & > div{
+            position: initial;
+         }
+      }
       
       @media only screen and (min-width:992px){
          max-width:960px;

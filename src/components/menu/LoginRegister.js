@@ -172,26 +172,25 @@ class LoginRegister extends React.Component {
     }
 
     successLoginCallback(result) {
-        if (this.props.setShowLogin) {
-            this.props.setShowLogin(false);
-        }
+      if (this.props.setShowLogin) {
+         this.props.setShowLogin(false);
+      }
 
-        if (this._isMounted) {
-            let currentComponent = this;
-            GafaFitSDKWrapper.getMeWithCredits(
-                function (result) {
-                    GlobalStorage.set("me", result);
-                    currentComponent.setState({
-                        showLogin: false,
-                        showRegister: false,
-                        showProfile: false,
-                        passwordRecovery: false,
-                    });
-                }
-            );
-        }
-
-        this._isMounted = false;
+      if (this._isMounted) {
+         let currentComponent = this;
+         GafaFitSDKWrapper.getMeWithCredits(
+               function (result) {
+                  GlobalStorage.set("me", result);
+                  currentComponent.setState({
+                     showLogin: false,
+                     showRegister: false,
+                     showProfile: false,
+                     passwordRecovery: false,
+                  });
+               }
+         );
+      }
+      this._isMounted = false;
     }
 
     successProfileSaveCallback(result) {
@@ -265,7 +264,11 @@ class LoginRegister extends React.Component {
                                  <Modal.Title className="section-title container">{Strings.BUTTON_LOGIN}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-login__body">
-                                 <Login triggeredByLogin={this.state.triggeredByLogin} successCallback={this.successLoginCallback.bind(this)}/>
+                                 <Login 
+                                    triggeredByLogin={this.state.triggeredByLogin} 
+                                    handleClickBack={this.handleClickBack.bind(this)} 
+                                    successCallback={this.successLoginCallback.bind(this)}
+                                 />
                            </Modal.Body>
                            <Modal.Footer className="modal-login__footer ">
                            <nav className="nav">

@@ -111,7 +111,11 @@ class StaffList extends React.Component {
       let listItems = [];
 
       if(filter_job && filter_job != 'TODOS'){
-         list = list.filter(function(person){ return person.job.toUpperCase() === filter_job});
+         list = list.filter(function(person){ 
+            if(person.job){
+               return person.job.toUpperCase() === filter_job}
+            }
+         );
       }
 
       if(filter_brand && filter_brand != 'TODOS'){

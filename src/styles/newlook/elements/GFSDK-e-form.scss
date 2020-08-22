@@ -159,13 +159,14 @@
       border-left: 0px none transparent!important;
       border-right: 0px none transparent!important;
       border-bottom: 1px solid #BDBDBD!important;
-      background-color: transparent;
+      background-color: transparent!important;
       border-radius: 0!important;
       // font-weight: 700;
       box-shadow: none!important;
       padding:5px 0px !important;
       height:initial!important;
-      width:100%;
+      width:100%!important;
+      margin:0!important;
 
       &::placeholder{
          font-size:12px;
@@ -310,12 +311,12 @@
             width:40px;
             font-size: 20px;
             font-weight: bold;
-            background-color: #FF3E4F!important;
+            background-color: #FF3E4F;
             color:white;
             
             
             &:hover{
-               background-color: darken(#FF3E4F, 20%)!important;
+               background-color: darken(#FF3E4F, 20%)t;
             }
 
             &:disabled{

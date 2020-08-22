@@ -14,26 +14,28 @@
    width:100%;
 
    h3, p {
-      font-family: 'DM Sans', sans-serif;
+      // font-family: 'DM Sans', sans-serif;
    }
 
    @include cleanStyles;
 
    &__head, &__body{
       color: #1F1C3D;
-
+      position:initial;
+      
       h3, p{
          color: inherit;
       }
    }
+   
+   &__footer{
+      position:initial;
+      color: #575757;
+   }
 
-    &__footer{
-        color: #575757;
-    }
-
-    &__head, &__body{
-        color: #000000;
-    }
+   &__head, &__body{
+      color: #000000;
+   }
 
    &__head{
       display:grid;
@@ -85,6 +87,7 @@
          padding:8px 29px;
          font-size:12px;
          margin-top:70px;
+         cursor: pointer;
          
          &:hover{
             background: #FFA3AB;
