@@ -135,10 +135,15 @@
 
    &__item{
       position: relative;
+      display: inline-grid;
       border: 1px solid #000000;
       border-radius: 50px;
       padding:8px 15px;
       line-height: initial;
+      box-sizing: border-box;
+      width:100%;
+      align-items: center;
+      justify-items: center;
 
       &-icon{
          position:absolute;

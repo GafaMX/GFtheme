@@ -71,9 +71,9 @@
 
          .#{$pre}-c-filter__item.is-location-filter{
             grid-template-rows: initial;
-            @media only screen and (max-width:767px){
-               width:100%;
-            }
+            // @media only screen and (max-width:767px){
+            //    width:100%;
+            // }
          }
 
          .#{$pre}-c-Calendar__navigation,
@@ -116,13 +116,13 @@
       .horizontal &{
          grid-row: 1;
          display: inline-grid!important;
-         column-gap: 20px;
+         column-gap: 4px;
          justify-items: center;
          position:relative;
-         width:initial;
+         width:100%;
          
-         
-         @media only screen and (min-width:767px) {
+         @media only screen and (min-width:992px) {
+            column-gap: 20px;
             width:40%;
          }
       }
@@ -148,14 +148,19 @@
             }
 
             .this-number{
-               height:30px;
-               width:30px;
+               height:20px;
+               width:20px;
                padding:5px;
                border-radius: 50%;
                display: grid;
                font-weight: 400;
                align-items: center;
                justify-items: center;
+               
+               @media only screen and (min-width: 992px) {
+                  height:30px;
+                  width:30px;   
+               }
             }
 
             &:hover{
@@ -320,14 +325,14 @@
       }
 
       &__meeting{
-         // border-left: 1px solid #EEEEEE;
-         // border-right: 1px solid #EEEEEE;
-         padding:0 5px;
          display: inline-grid;
-         column-gap: 15px;
          grid-auto-flow: row;
          width: 100%;
          padding-bottom:10px;
+
+         @media only screen and (min-width:992px) {
+            padding:0 5px;
+         }
 
          .horizontal &{
             
