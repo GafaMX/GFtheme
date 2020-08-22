@@ -277,9 +277,9 @@ class LoginRegister extends React.Component {
                                        <a onClick={this.handleClickRegister.bind(this)}> {Strings.NOT_ACCOUNT_QUESTION}</a>
                                     </li>
 
-                                    <li>
+                                    {/* <li>
                                        <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
-                                    </li>
+                                    </li> */}
                                  </ul>
                            </nav>
                            </Modal.Footer>
@@ -303,9 +303,9 @@ class LoginRegister extends React.Component {
                                        <li>
                                           <a onClick={this.handleClickLogin.bind(this)}> {Strings.ACCOUNT_QUESTION}</a>
                                        </li>
-                                       <li>
+                                       {/* <li>
                                           <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
-                                       </li>
+                                       </li> */}
                                     </ul>
                                  </nav>
                            </Modal.Footer>
