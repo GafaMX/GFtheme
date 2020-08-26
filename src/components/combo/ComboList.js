@@ -13,6 +13,8 @@ import 'slick-carousel/slick/slick-theme.css';
 import IconLeftArrow from "../utils/Icons/IconLeftArrow";
 import IconRightArrow from "../utils/Icons/IconRightArrow";
 
+import Loading from '../common/Loading';
+
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
 import '../../styles/newlook/elements/GFSDK-e-product.scss';
@@ -176,7 +178,7 @@ class ComboList extends React.Component {
                         :  null
                      }
                   </Slider>
-               : <p>Cargando...</p>
+               : <Loading />
             }
 
             {showRegister &&

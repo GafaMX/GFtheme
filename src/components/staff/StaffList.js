@@ -13,6 +13,8 @@ import 'slick-carousel/slick/slick-theme.css';
 
 import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
 
+import Loading from '../common/Loading';
+
 // Estilos
 import '../../styles/newlook/components/GFSDK-c-Filter.scss';
 import '../../styles/newlook/components/GFSDK-c-StaffServices.scss';
@@ -214,9 +216,7 @@ class StaffList extends React.Component {
                </div>
 
                : 
-               <div>
-                  <p>Cargando...</p>
-               </div>
+               <Loading />
             }  
          </div>
       );

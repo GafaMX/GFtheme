@@ -12,6 +12,8 @@ import moment from "moment";
 
 import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
 
+import Loading from '../common/Loading';
+
 // Estilos
 import '../../styles/newlook/components/GFSDK-c-Calendar.scss';
 import '../../styles/newlook/components/GFSDK-c-Filter.scss';
@@ -275,9 +277,7 @@ class Calendar extends React.Component {
                   ?
                      <CalendarBody meetings={meetings} limit={this.props.limit} /> 
                   :
-                     <div>
-                        <p>Cargando...</p>
-                     </div>
+                     <Loading />
                }
             </div>
             

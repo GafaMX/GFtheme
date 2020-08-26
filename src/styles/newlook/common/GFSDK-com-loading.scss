@@ -1,0 +1,52 @@
+@import '../base/variables.scss';
+
+@keyframes dots {
+   50% {
+     opacity: 0;
+     transform: scale(0.7) translateY(10px);
+   }
+ }
+
+.#{$pre}-com-loading{
+   display: grid;
+   padding:40px 0;
+   width:100%;
+   justify-items: center;
+   align-items: center;
+
+   &__container{
+      display: inline-grid;
+      grid-auto-flow: column;
+      column-gap: .8rem;
+   }
+
+   &__dot{
+      display: inline-block;
+      margin: 0 auto;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation-name: dots;
+      animation-duration: 2s;
+      animation-iteration-count: infinite;
+      animation-timing-function: ease-in-out;
+      background-color: #afafaf;
+
+
+      &.dot-1 {
+         animation-delay: 0.2s;
+      }
+       
+      &.dot-2 {
+         animation-delay: 0.4s;
+      }
+       
+      &.dot-3 {
+         animation-delay: 0.6s;
+      }
+       
+      &.dot-4 {
+         animation-delay: 0.8s;
+      }
+   }
+}

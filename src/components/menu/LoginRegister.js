@@ -19,27 +19,27 @@ import '../../styles/newlook/elements/GFSDK-e-form.scss';
 import '../../styles/newlook/elements/GFSDK-e-buttons.scss';
 
 class LoginRegister extends React.Component {
-    constructor(props) {
-        super(props);
+   constructor(props) {
+      super(props);
 
-        this.state = {
-            showLogin: false,
-            showRegister: false,
-            showProfile: false,
-            passwordRecovery: false,
-            serverError: "",
-            email: null,
-            token: null,
-            me: null,
-            loading: false,
-            triggeredByLogin: true,
-            triggeredByRegister: true,
-        };
+      this.state = {
+         showLogin: false,
+         showRegister: false,
+         showProfile: false,
+         passwordRecovery: false,
+         serverError: "",
+         email: null,
+         token: null,
+         me: null,
+         loading: false,
+         triggeredByLogin: true,
+         triggeredByRegister: true,
+      };
 
-        this._isMounted = false;
-        GlobalStorage.addSegmentedListener(['me'], this.updateMe.bind(this));
-        this.handleClickLogout = this.handleClickLogout.bind(this);
-    }
+      this._isMounted = false;
+      GlobalStorage.addSegmentedListener(['me'], this.updateMe.bind(this));
+      this.handleClickLogout = this.handleClickLogout.bind(this);
+   }
 
    componentDidMount() {
       const query = new URLSearchParams(window.location.search);

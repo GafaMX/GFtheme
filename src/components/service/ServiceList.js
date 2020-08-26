@@ -13,6 +13,8 @@ import 'slick-carousel/slick/slick-theme.css';
 
 import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
 
+import Loading from '../common/Loading';
+
 // Estilos
 import '../../styles/newlook/components/GFSDK-c-StaffServices.scss';
 import '../../styles/newlook/components/GFSDK-c-Filter.scss';
@@ -187,9 +189,7 @@ class ServiceList extends React.Component {
                      </Slider>
                   </div>
                : 
-                  <div>
-                     <p>Cargando...</p>
-                  </div>
+                  <Loading />
             }
          </div>
       );
