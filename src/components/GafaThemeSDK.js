@@ -89,108 +89,111 @@ class GafaThemeSDK extends React.Component {
    static renderStaffList(selector) {
       let domContainers = document.querySelectorAll(selector);
       let brands = GlobalStorage.get('brands');
+      let staff = [];
+      let props = {};
+
+
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
-            let staff = [];
-            let props = {};   
-            
-            brands.forEach(function(brand){
-               GafaFitSDKWrapper.getStaffList(
-               brand.slug,
-               {per_page: 1000, }, 
-               function (result) {
-                  result.data.forEach(function(person){
-                     person.brand = brand;
-                     staff.push(person);
-                  });
-                  GlobalStorage.set('staff', staff);
-                  GafaThemeSDK.renderElementIntoContainer(domContainer, StaffList, props);
-               });
-            });
+            GafaThemeSDK.renderElementIntoContainer(domContainer, StaffList, props);
          });
       }
+
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getStaffList(
+         brand.slug,
+         {per_page: 1000, }, 
+         function (result) {
+            result.data.forEach(function(person){
+               person.brand = brand;
+               staff.push(person);
+            });
+            GlobalStorage.set('staff', staff);   
+         });
+      });
    };
 
    static renderServiceList(selector) {
       let domContainers = document.querySelectorAll(selector);
       let brands = GlobalStorage.get('brands');
+
+      let services = [];
+      let props = {};
+
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
-            let services = [];
-            let props = {};
-            brands.forEach(function(brand){
-               GafaFitSDKWrapper.getServiceList(
-                  brand.slug,
-                  {per_page: 1000, }
-                  , function (result) {
-                     services = services.concat(result.data);
-                     GlobalStorage.set('services', services);
-                     GafaThemeSDK.renderElementIntoContainer(domContainer, ServiceList, props);
-                  }   
-               );
-            });
+            GafaThemeSDK.renderElementIntoContainer(domContainer, ServiceList, props);
          });
       }
+
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getServiceList(
+            brand.slug,
+            {per_page: 1000, }
+            , function (result) {
+               services = services.concat(result.data);
+               GlobalStorage.set('services', services);
+            }   
+         );
+      });
    };
 
    static renderComboList(selector) {
       let domContainers = document.querySelectorAll(selector);
       let brands = GlobalStorage.get('brands');
+      let combos = [];
+      let props = {};
+
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
             let byName = domContainer.getAttribute("data-gf-filterbyname");
             let byBrand = domContainer.getAttribute("data-buq-brand");
-            let combos = [];
-            let props = {};
-
-            brands.forEach(function(brand){
-               GafaFitSDKWrapper.getComboList( brand.slug,
-                  {per_page: 10000, only_actives: true, propagate: true},
-                  function (result) {
-                     props.filterByName = byName;
-                     props.filterByBrand = byBrand;
-                     combos = combos.concat(result.data);
-                     GlobalStorage.set('combos', combos);
-                     GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
-                  }
-               );
-            });
+            props.filterByName = byName;
+            props.filterByBrand = byBrand;
             
+            GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
          });
       }
+
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getComboList( brand.slug,
+            {per_page: 10000, only_actives: true, propagate: true},
+            function (result) {
+               combos = combos.concat(result.data);
+               GlobalStorage.set('combos', combos);
+            }
+         );
+      });
    };
 
    static renderMembershipList(selector) {
       let domContainers = document.querySelectorAll(selector);
       let brands = GlobalStorage.get('brands');
+      let memberships = [];
+      let props = {};
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
             let byName = domContainer.getAttribute("data-gf-filterbyname");
             let byBrand = domContainer.getAttribute("data-buq-brand");
-
-            let memberships = [];
-            let props = {};
-
-            brands.forEach(function(brand){
-               GafaFitSDKWrapper.getMembershipList(
-                  brand.slug,
-                  {per_page: 10000, only_actives: true, propagate: true}, 
-                  function (result) {
-                     props.filterByName = byName;
-                     props.filterByBrand = byBrand;
-
-                     result.data.forEach(function(item){
-                        item.brand = brand;
-                        memberships.push(item);
-                     });
-
-                     GlobalStorage.set('memberships', memberships);
-                     GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
-                  }
-               );
-            });
+            props.filterByName = byName;
+            props.filterByBrand = byBrand;
+            GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
          });
       }
+
+      brands.forEach(function(brand){
+         GafaFitSDKWrapper.getMembershipList(
+            brand.slug,
+            {per_page: 10000, only_actives: true, propagate: true}, 
+            function (result) {
+               result.data.forEach(function(item){
+                  item.brand = brand;
+                  memberships.push(item);
+               });
+               GlobalStorage.set('memberships', memberships);
+            }
+         );
+      });
    };
 
    static renderMeetingsCalendar(selector) {

@@ -84,20 +84,6 @@ class StaffList extends React.Component {
       }
    }
 
-   // updateRows() {
-   //    let comp = this;
-   //    let classes = comp.state.list.length;
-   //    if (classes < 10 ){
-   //       comp.setState({ 
-   //          sliderRows : 1,
-   //       });
-   //    } else if (classes >= 10 ){
-   //       comp.setState({ 
-   //          sliderRows : 2,
-   //       });
-   //    }
-   // }
-
    change(e) {
       let name = e.target.getAttribute('data-name');
       let value = e.target.value;

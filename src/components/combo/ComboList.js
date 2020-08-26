@@ -31,8 +31,8 @@ class ComboList extends React.Component {
          is_mounted: false,
       };
 
-      this.setShowRegister = this.setShowRegister.bind(this);
       GlobalStorage.addSegmentedListener(['combos'], this.setInitialValues.bind(this));
+      this.setShowRegister = this.setShowRegister.bind(this);
    }
 
    setInitialValues(){
@@ -41,7 +41,6 @@ class ComboList extends React.Component {
       let href = window.location.href;
       let {filterByName, filterByBrand} = this.props;
       let combos = GlobalStorage.get('combos');
-
 
       let weAreHome = false;
 
@@ -56,12 +55,14 @@ class ComboList extends React.Component {
             return combo.hide_in_home === false
          });
       }
+      
 
       if(filterByName){
          combos = combos.filter(function(combo){
             return combo.name.toUpperCase().includes(filterByName.toUpperCase());
          });
       }
+
 
       if(filterByBrand){
          combos = combos.filter(function(combo){
