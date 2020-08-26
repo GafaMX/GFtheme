@@ -199,6 +199,9 @@ class GafaThemeSDK extends React.Component {
    static renderMeetingsCalendar(selector) {
       let domContainers = document.querySelectorAll(selector);
       let locations = GlobalStorage.get('locations');
+      let meetings = [];
+
+      debugger;
 
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
@@ -209,10 +212,6 @@ class GafaThemeSDK extends React.Component {
             let filterRoom = domContainer.getAttribute("filter-bq-room") ? Boolean(domContainer.getAttribute("filter-bq-room")) : false;
             let filterLocation = domContainer.getAttribute("filter-bq-location") ? Boolean(domContainer.getAttribute("filter-bq-location")) : false;
             let filterBrand = domContainer.getAttribute("filter-bq-brand") ? Boolean(domContainer.getAttribute("filter-bq-brand")) : false;
-            let start_date = moment().toDate();
-            let end_date = moment().toDate();
-            let meetings = [];
-            let loop = 0;
 
             if(limit){
                if(limit > 3 && limit < 6){
@@ -234,32 +233,35 @@ class GafaThemeSDK extends React.Component {
                'filter_brand': filterBrand,
             };
 
-            locations.forEach(function (location) {
-               start_date = !location.date_start ? start_date : moment(location.date_start).toDate();
-               end_date.setDate(start_date.getDate() + (location.calendar_days - 1));
-
-   
-               let start_string = `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()}`;
-               let end_string = `${end_date.getFullYear()}-${end_date.getMonth() + 1}-${end_date.getDate()}`;
-   
-               GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, function(result){
-                  result.forEach(function(meeting){
-                     meeting.location = location;
-                     meetings.push(meeting);
-                  });
-                  CalendarStorage.set('meetings', meetings);
-                  CalendarStorage.set('start_date', start_date);
-                  GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
-               });
-            });
+            GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
          });
       }
+
+      locations.forEach(function (location) {
+         let start_date = moment().toDate();
+         let end_date = moment().toDate();
+         
+         start_date = !location.date_start ? start_date : moment(location.date_start).toDate();
+         end_date.setDate(start_date.getDate() + (location.calendar_days - 1));
+
+         let start_string = `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()}`;
+         let end_string = `${end_date.getFullYear()}-${end_date.getMonth() + 1}-${end_date.getDate()}`;
+
+         GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, function(result){
+            result.forEach(function(meeting){
+               meeting.location = location;
+               meetings.push(meeting);
+            });
+            CalendarStorage.set('meetings', meetings);
+            CalendarStorage.set('start_date', start_date);
+         });
+      });
    };
 
    static renderLogin(selector) {
       let domContainers = document.querySelectorAll(selector);
       if (domContainers.length > 0) {
-          GafaThemeSDK.renderElementIntoContainers(domContainers, Login, {});
+         GafaThemeSDK.renderElementIntoContainers(domContainers, Login, {});
       }
    };
 
