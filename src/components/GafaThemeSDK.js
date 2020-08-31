@@ -201,8 +201,6 @@ class GafaThemeSDK extends React.Component {
       let locations = GlobalStorage.get('locations');
       let meetings = [];
 
-      debugger;
-
       if (domContainers.length > 0) {
          domContainers.forEach(function (domContainer) {
             let limit = domContainer.getAttribute("data-gf-limit") ? domContainer.getAttribute("data-gf-limit") : '';

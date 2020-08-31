@@ -355,12 +355,12 @@
 
    &__empty{
       display:grid;
-      border: 1px solid #EEEEEE;
       justify-items: start;
+      font-weight:bold;
+      text-transform: uppercase;
       align-items: center;
       padding:15px;
       border-radius: 10px;
-      background-color: white;
 
       p{
          margin:0;
