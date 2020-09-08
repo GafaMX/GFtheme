@@ -60,7 +60,7 @@ class Calendar extends React.Component {
       let meetingsStaff = [];
       let meetingsRooms = [];
 
-      let preFilterStaff = 'todos';
+      let preFilterStaff = 'Todos';
 
       let params = (new URL(document.location)).searchParams;
       let staffParam = window.GFtheme.StaffName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
