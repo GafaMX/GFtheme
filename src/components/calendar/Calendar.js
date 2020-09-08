@@ -60,6 +60,12 @@ class Calendar extends React.Component {
       let meetingsStaff = [];
       let meetingsRooms = [];
 
+      let preFilterStaff = 'todos';
+
+      let params = (new URL(document.location)).searchParams;
+      let staffParam = window.GFtheme.StaffName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      let memberParams = params.get(staffParam);
+      
       meetings = meetings.filter(function(meeting){return meeting.passed === false});
 
       meetings.forEach(function(meeting){
@@ -96,6 +102,12 @@ class Calendar extends React.Component {
          meetingsWithRoom.forEach(function(meeting){
             if(meeting.staff != null && !meetingsStaff.includes(meeting.staff.name)){
                meetingsStaff.push(meeting.staff.name);
+
+               if(memberParams){
+                  if(memberParams === meeting.staff.slug){
+                     preFilterStaff = meeting.staff.name;
+                  }
+               }
             }
          });
       }
@@ -114,11 +126,12 @@ class Calendar extends React.Component {
             brands: meetingsBrands,
             rooms: meetingsRooms,
             services: meetingsServices,
+            filter_staff: preFilterStaff,
             staff: meetingsStaff,
             meetings: meetings,
             is_mounted: true,
          });
-      }, 2000);
+      }, 3000);
    }
    
    selectFilter(e) {
