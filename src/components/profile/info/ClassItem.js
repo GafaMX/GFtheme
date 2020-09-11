@@ -97,7 +97,7 @@ class ClassItem extends React.Component {
                   onHide={this.handleClickBack.bind(this)}>
 
                <div className="modal-cancelation__container">
-                  <div className="modal-profile__close" onClick={this.handleClickBack.bind(this)}>
+                  <div className="modal-login__close" onClick={this.handleClickBack.bind(this)}>
                      <CloseIcon />
                   </div> 
                   <div className={'modal-cancelation__body'}>
@@ -109,7 +109,7 @@ class ClassItem extends React.Component {
                            <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClick.bind(this)}>
                               {Strings.BUTTON_ACCEPT}
                            </button>
-                           <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClose.bind(this)}>
+                           <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClickBack.bind(this)}>
                               {Strings.BUTTON_CANCEL}
                            </button>
                      </div>

@@ -144,8 +144,14 @@
       display: grid;
       row-gap: 15px;
       align-items: center;
-      width:500px;
+      width:100%;
+      padding:0 15px; 
       position: initial;
+      
+      @media only screen and (min-width: 992px) {
+         padding:0; 
+         width:500px;
+      }
    }
 
    &__body{
@@ -156,8 +162,13 @@
 
       .GFSDK-form__section{
          display: grid;
-         grid-template-columns: repeat(2, 1fr);
+         // grid-template-columns: repeat(2, 1fr);
+         row-gap: 15px;
          column-gap: 15px;
+         
+         @media only screen and (min-width: 992px) {
+            grid-template-columns: repeat(2, 1fr);
+         }
       }
    }
 }
