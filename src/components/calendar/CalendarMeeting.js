@@ -73,9 +73,9 @@ class CalendarMeeting extends React.Component {
                </div>
                <hr></hr>
                <div className={meetingClass + '__body'}>
-                  <p className={'this-staff'}>{meeting.staff.name}</p>
-                  <p className={'this-service'}>{meeting.service.name}</p>
-                  <p className={'this-location'}>{meeting.location.name}</p>
+                  <p className={'this-staff'}>{meeting.staff.name.toLowerCase()}</p>
+                  <p className={'this-service'}>{meeting.service.name.toLowerCase()}</p>
+                  <p className={'this-location'}>{meeting.location.name.toLowerCase()}</p>
                </div>
             </div>
         );

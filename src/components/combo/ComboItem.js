@@ -86,11 +86,11 @@ class ComboItem extends React.Component {
             <div className={productClass + '__body'}>
                {this.props.combo.has_discount &&
                   <div>
-                        <div className="this-price has-discount">
-                           <p>
-                              ${formatMoney(this.props.combo.price, 0)} MXN
-                           </p>
-                        </div>
+                     <div className="this-price has-discount">
+                        <p>
+                           ${formatMoney(this.props.combo.price, 0)} MXN
+                        </p>
+                     </div>
                   </div>
                }
                <div className="this-price has-total">

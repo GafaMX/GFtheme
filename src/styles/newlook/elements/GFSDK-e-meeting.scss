@@ -120,6 +120,7 @@
          p{
             line-height: 1;
             margin-bottom:.75rem;
+            text-transform: capitalize;
          }
 
          .this-staff{
@@ -131,11 +132,11 @@
          .this-service, .this-location{
             font-size: 11px;
             letter-spacing: .1px;
+            font-weight: 600;
             color: #BBBBBC;
          }
          
          .this-location{
-            font-weight: 600;
             margin-bottom:0;
          }
       }

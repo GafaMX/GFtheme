@@ -227,7 +227,7 @@ class Calendar extends React.Component {
                                  >
                                  <option value={'Todos'}>Ubicaciones</option>
                                  {locations.map(location => {
-                                    return <option value={location} key={location}>{location}</option>
+                                    return <option value={location} key={location}>{location.toLowerCase()}</option>
                                  })}
                            </select>
                            <div className={filterClass + '__item-icon'}>
@@ -259,7 +259,7 @@ class Calendar extends React.Component {
                                  >
                                  <option value={'Todos'}>{window.GFtheme.StaffName}</option>
                                  {staff.map(person => {
-                                    return <option value={person} key={person}>{person}</option>
+                                    return <option value={person} key={person}>{person.toLowerCase()}</option>
                                  })}
                            </select>
                            <div className={filterClass + '__item-icon'}>
@@ -275,7 +275,7 @@ class Calendar extends React.Component {
                               >
                                  <option value={'Todos'}>Servicios</option>
                                  {services.map(service => {
-                                    return <option value={service} key={service}>{service}</option>
+                                    return <option value={service} key={service}>{service.toLowerCase()}</option>
                                  })}
                            </select>
                            <div className={filterClass + '__item-icon'}>

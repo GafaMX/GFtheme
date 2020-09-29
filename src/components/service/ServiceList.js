@@ -156,7 +156,7 @@ class ServiceList extends React.Component {
                      <select className={formClass + '__select' + ' is-category-filter'} onChange={this.change} value={filter_category} data-name={"filter_category"}>
                         <option value={'TODOS'}>Todos</option>
                         {categories.map(category => {
-                           return <option key={category} value={category} > {category} </option>
+                           return <option key={category} value={category} > {category.toLowerCase()} </option>
                         })}
                      </select>
                      <div className={filterClass + '__item-icon'}>
@@ -170,7 +170,7 @@ class ServiceList extends React.Component {
                         <select className={formClass + '__select' + ' is-brand-filter'} onChange={this.change} value={filter_brand} data-name={"filter_brand"}>
                            <option value={'TODOS'}>Todos</option>
                            {brands.map(brand => {
-                              return <option key={brand} value={brand}> {brand} </option>
+                              return <option key={brand} value={brand}> {brand.toLowerCase()} </option>
                            })}
                         </select>
                         <div className={filterClass + '__item-icon'}>

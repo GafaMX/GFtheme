@@ -167,7 +167,7 @@ class StaffList extends React.Component {
                         <select className={formClass + '__select' + ' is-service-filter'} onChange={this.change} value={filter_job} data-name={"filter_job"}>
                            <option value={'TODOS'}>Todos</option>
                            {jobs.map(job => {
-                              return <option key={job} value={job} > {job} </option>
+                              return <option key={job} value={job} > {job.toLowerCase()} </option>
                            })}
                         </select>
                         <div className={filterClass + '__item-icon'}>
@@ -182,7 +182,7 @@ class StaffList extends React.Component {
                            <select className={formClass + '__select' + ' is-brand-filter'} onChange={this.change} value={filter_brand} data-name={"filter_brand"}>
                               <option value={'TODOS'}>Todos</option>
                               {brands.map(brand => {
-                                 return <option key={brand} value={brand}> {brand} </option>
+                                 return <option key={brand} value={brand}> {brand.toLowerCase()} </option>
                               })}
                            </select>
                            <div className={filterClass + '__item-icon'}>
