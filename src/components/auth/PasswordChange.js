@@ -1,7 +1,7 @@
 'use strict';
 
 import React from "react";
-import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
+import {FormGroup, FormControl} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
@@ -33,9 +33,9 @@ class PasswordChange extends React.Component {
                 break;
             case 'passwordConfirmation':
                 passwordConfirmationValid = this.validatePasswordConfirmation(value, fieldValidationErrors);
-                break;
+               break;
             default:
-                break;
+               break;
         }
         this.setState({
             formErrors: fieldValidationErrors,
@@ -57,10 +57,9 @@ class PasswordChange extends React.Component {
     }
 
     validateForm() {
-        this.setState(
-            {
-                formValid: this.state.passwordValid && this.state.passwordConfirmationValid
-            });
+      this.setState({ 
+         formValid: this.state.passwordValid && this.state.passwordConfirmationValid 
+      });
     }
 
     handleChangeField(event) {
@@ -82,57 +81,62 @@ class PasswordChange extends React.Component {
             currentElement.errorPasswordForgotCallback.bind(this));
     };
 
-    successPasswordForgotCallback(result) {
-        this.setState({passwordChanged: true});
-        if (this.props.successCallback) {
-            this.props.successCallback();
-        }
-    }
+   successPasswordForgotCallback(result) {
+      this.setState({passwordChanged: true});
+      alert("¡Felicidades, tienes una nueva contraseña!");
+      this.props.handleClickBack();
+   }
 
-    errorPasswordForgotCallback(error) {
-        this.setState({serverError: error});
-    }
+   errorPasswordForgotCallback(error) {
+      this.setState({serverError: error});
+   }
 
-    render() {
-        return (
-            <div className="password-change auth">
-                <form onSubmit={this.handleSubmit.bind(this)}>
-                    <FormGroup controlId="password" bsSize="large">
-                        <ControlLabel>{Strings.LABEL_PASSWORD}</ControlLabel>
-                        <FormControl
-                            value={this.state.password}
-                            onChange={this.handleChangeField.bind(this)}
-                            type="password"
-                        />
-                    </FormGroup>
-                    <FormGroup controlId="passwordConfirmation" bsSize="large">
-                        <ControlLabel>{Strings.LABEL_PASSWORD_CONFIRM}</ControlLabel>
-                        <FormControl
-                            value={this.state.passwordConfirmation}
-                            onChange={this.handleChangeField.bind(this)}
-                            type="password"
-                        />
-                    </FormGroup>
-                    <Button
-                        block
-                        bsSize="large"
-                        bsStyle="primary"
-                        disabled={!this.state.formValid}
-                        type="submit"
-                    >
-                        {Strings.BUTTON_PASSWORD_CHANGE}
-                    </Button>
-                    <div className="text-danger">
-                        <FormErrors formErrors={this.state.formErrors}/>
-                        {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                    </div>
-                    <div className="text-success">
-                        {this.state.passwordChanged && <small>{Strings.PASSWORD_CHANGE_SUCCESS}</small>}
-                    </div>
-                </form>
-            </div>
-        );
-    }
+   render() {
+   let preE = 'GFSDK-e';
+   let buttonClass = preE + '-buttons';
+   let formClass = preE + '-form';
+
+      return (
+         <div className="password-change auth">
+               <form onSubmit={this.handleSubmit.bind(this)}>
+                  <FormGroup className={formClass + "__section"} controlId="password">
+                     <FormControl
+                        autoFocus
+                        className={formClass + "__input"}
+                        value={this.state.password}
+                        placeholder={Strings.LABEL_PASSWORD}
+                        onChange={this.handleChangeField.bind(this)}
+                        type="password"
+                     />
+                  </FormGroup>
+                  <FormGroup className={formClass + "__section"} controlId="passwordConfirmation">
+                     <FormControl
+                        autoFocus
+                        className={formClass + "__input"}
+                        value={this.state.passwordConfirmation}
+                        placeholder={Strings.LABEL_PASSWORD_CONFIRM}
+                        onChange={this.handleChangeField.bind(this)}
+                        type="password"
+                     />
+                  </FormGroup>
+                  <button
+                     className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
+                     disabled={!this.state.formValid}
+                     type="submit"
+                  >
+                     {Strings.BUTTON_PASSWORD_CHANGE}
+                  </button>
+                  <div className="text-danger">
+                     <FormErrors formErrors={this.state.formErrors}/>
+                     {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                  </div>
+                  <div className="text-success">
+                     {this.state.passwordChanged && <small>{Strings.PASSWORD_CHANGE_SUCCESS}</small>}
+                  </div>
+               </form>
+         </div>
+      );
+   }
 }
 
 export default PasswordChange;

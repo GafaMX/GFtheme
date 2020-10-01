@@ -81,6 +81,7 @@ class Login extends React.Component {
    };
 
    successLoginCallback(result) {
+      let comp = this;
       this.setState({logged: true});
 
       if (this.props.successCallback) {
@@ -102,7 +103,7 @@ class Login extends React.Component {
                !window.GFtheme.location_slug && 
                !window.GFtheme.membership_id &&
                !window.GFtheme.combo_id) {
-                  location.reload();
+                  comp.props.handleClickBack();
          }
       }
    }

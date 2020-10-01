@@ -22,23 +22,23 @@ class PasswordForgot extends React.Component {
     }
 
     validateField(fieldName, value) {
-        let fieldValidationErrors = this.state.formErrors;
-        let emailValid = this.validateEmail(value, fieldValidationErrors);
+      let fieldValidationErrors = this.state.formErrors;
+      let emailValid = this.validateEmail(value, fieldValidationErrors);
 
-        this.setState({
-            formErrors: fieldValidationErrors,
-            emailValid: emailValid
-        }, this.validateForm);
+      this.setState({
+         formErrors: fieldValidationErrors,
+         emailValid: emailValid
+      }, this.validateForm);
     }
 
     validateEmail(value, fieldValidationErrors) {
-        let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-        fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
-        return emailValid;
+      let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
+      fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
+      return emailValid;
     }
 
     validateForm() {
-        this.setState({formValid: this.state.emailValid});
+      this.setState({formValid: this.state.emailValid});
     }
 
     handleChangeField(event) {
@@ -51,25 +51,24 @@ class PasswordForgot extends React.Component {
         });
     };
 
-    handleSubmit(event) {
-        event.preventDefault();
-        let currentElement = this;
-        currentElement.setState({serverError: '', sent: '' });
-        GafaFitSDKWrapper.postPasswordForgot(this.state,
-            currentElement.successPasswordForgotCallback.bind(this),
-            currentElement.errorPasswordForgotCallback.bind(this));
-    };
+   handleSubmit(event) {
+      event.preventDefault();
+      let currentElement = this;
+      currentElement.setState({serverError: '', sent: '' });
+      GafaFitSDKWrapper.postPasswordForgot(this.state,
+         currentElement.successPasswordForgotCallback.bind(this),
+         currentElement.errorPasswordForgotCallback.bind(this));
+   };
 
-    successPasswordForgotCallback(result) {
-        this.setState({sent: true});
-        if (this.props.successCallback) {
-            this.props.successCallback();
-        }
-    }
+   successPasswordForgotCallback(result) {
+      this.setState({sent: true});
+      alert("¡La contraseña ha sido cambiada! Revisa tu bandeja de correo electrónico para continuar el proceso.");
+      this.props.handleClickBack();
+   }
 
-    errorPasswordForgotCallback(error) {
-        this.setState({serverError: error});
-    }
+   errorPasswordForgotCallback(error) {
+      this.setState({serverError: error});
+   }
 
     render() {
         let preE = 'GFSDK-e';
