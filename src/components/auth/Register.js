@@ -111,30 +111,93 @@ class Register extends React.Component {
         });
     }
 
-    handleSubmit(event) {
-        event.preventDefault();
+   handleSubmit(event) {
+      event.preventDefault();
 
-        let currentElement = this;
+      let currentElement = this;
 
-        grecaptcha.ready(function () {
-            grecaptcha.execute(window.GFtheme.CaptchaPublicKey, { action: 'register' })
-                .then(function (token) {
-                    currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
+      grecaptcha.ready(function () {
+         grecaptcha.execute(window.GFtheme.CaptchaPublicKey, { action: 'register' }) .then(function (token) {
+            currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
+            GafaFitSDKWrapper.postRegister(currentElement.state, currentElement.successRegisterCallback.bind(currentElement), currentElement.errorRegisterCallback.bind(currentElement));
+         });
+      });
+   }
 
-                    GafaFitSDKWrapper.postRegister(currentElement.state,
-                        currentElement.successRegisterCallback.bind(currentElement),
-                        currentElement.errorRegisterCallback.bind(currentElement))
-                });
-        });
-    }
+   successRegisterCallback(result) {
+      let comp = this;
+      this.setState({registered: true});
 
-    successRegisterCallback(result) {
-        this.setState({registered: true});
-    }
+      if (this.props.successCallback) {
+         this.props.successCallback(result);
 
-    errorRegisterCallback(error) {
-        this.setState({serverError: error});
-    }
+         if (window.GFtheme.combo_id != null) {
+            this.buyComboAfterRegister();
+         }
+
+         if (window.GFtheme.membership_id != null) {
+            this.buyMembershipAfterRegister();
+         }
+
+         if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+            this.reserveMeetingAfterRegister();
+         }
+
+         if (  !window.GFtheme.meetings_id && 
+               !window.GFtheme.location_slug && 
+               !window.GFtheme.membership_id &&
+               !window.GFtheme.combo_id) {
+                  comp.props.handleClickBack();
+         }
+      }
+   }
+
+   buyComboAfterRegister() {
+      let comp = this;
+
+      GafaFitSDKWrapper.getFancyForBuyCombo(
+            window.GFtheme.brand_slug,
+            window.GFtheme.location_slug,
+            window.GFtheme.combo_id, 
+            function (result) {
+            comp.props.handleClickBack();
+            window.GFtheme.combo_id = null;
+            window.GFtheme.brand_slug = null;
+            window.GFtheme.location_slug = null;
+      });
+   }
+
+   buyMembershipAfterRegister() {
+      let comp = this;
+      GafaFitSDKWrapper.getFancyForBuyMembership(
+         window.GFtheme.brand_slug,
+         window.GFtheme.location_slug,
+         window.GFtheme.membership_id,
+         function (result) {
+         comp.props.handleClickBack();
+         window.GFtheme.membership_id = null;
+         window.GFtheme.brand_slug = null;
+         window.GFtheme.location_slug = null;
+      });
+   }
+
+   reserveMeetingAfterRegister() {
+      let comp = this;
+      GafaFitSDKWrapper.getFancyForMeetingReservation(
+         window.GFtheme.brand_slug, 
+         window.GFtheme.location_slug, 
+         window.GFtheme.meetings_id, 
+         function (result) {
+         comp.props.handleClickBack();
+         window.GFtheme.meetings_id = null;
+         window.GFtheme.location_slug = null;
+         window.GFtheme.brand_slug = null;
+      });
+   }
+
+   errorRegisterCallback(error) {
+      this.setState({serverError: error});
+   }
 
     render() {
         let preE = 'GFSDK-e';

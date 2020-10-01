@@ -270,19 +270,23 @@ class GafaFitSDKWrapper extends React.Component {
             params.first_name,
             options,
             function (error, result) {
-                if (error != null) {
-                    let errorToPrint = Object.keys(error).map(function (key) {
-                        return error[key];
-                    }).join(". ");
-                    errorCallback(errorToPrint);
-                } else {
-                    successCallback(result);
-
-                    // Automatic login
-                    GafaFitSDKWrapper.getToken(params.email, params.password,
-                        me.successLoginCallback.bind(me),
-                        me.errorLoginCallback.bind(me));
-                }
+               if (error != null) {
+                  let errorToPrint = Object.keys(error).map(function (key) {
+                     return error[key];
+                  }).join(". ");
+                  errorCallback(errorToPrint);
+               } else {
+                  // Automatic login
+                  GafaFitSDKWrapper.getToken(
+                     params.email, 
+                     params.password, 
+                     function(){
+                        me.successLoginCallback.bind(me);
+                        successCallback(result);
+                     }, 
+                     me.errorLoginCallback.bind(me)
+                  );
+               }
             }
         );
     };
@@ -335,14 +339,14 @@ class GafaFitSDKWrapper extends React.Component {
             params.passwordConfirmation,
             params.token,
             function (error, result) {
-                if (error != null) {
-                    let errorToPrint = Object.keys(error).map(function (key) {
-                        return error[key];
-                    }).join(". ");
-                    errorCallback(errorToPrint);
-                } else {
-                    successCallback(result)
-                }
+               if (error != null) {
+                  let errorToPrint = Object.keys(error).map(function (key) {
+                     return error[key];
+                  }).join(". ");
+                  errorCallback(errorToPrint);
+               } else {
+                  successCallback(result)
+               }
             }
         );
     };

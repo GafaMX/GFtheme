@@ -45,23 +45,29 @@ class LoginRegister extends React.Component {
       const query = new URLSearchParams(window.location.search);
       const token = query.get('token');
       const email = query.get('email');
+
+
       let currentComponent = this;
       if (token != null && email != null) {
          this.setState({
-               showLogin: false,
-               showRegister: false,
-               showProfile: false,
-               passwordRecovery: true,
-               email: email,
-               token: token
+            showLogin: false,
+            showRegister: false,
+            showProfile: false,
+            passwordRecovery: true,
+            email: email,
+            token: token
          });
       }
 
       GafaFitSDKWrapper.getMeWithCredits(
          function (result) {
-               GlobalStorage.set("me", result);
+            GlobalStorage.set("me", result);
          }
       );
+
+      if(token && email){
+         this.handleClickRecovery.bind(this);
+      }
 
       if (this.props.setShowLogin) {
          this.setState({
@@ -125,7 +131,7 @@ class LoginRegister extends React.Component {
       });
    }
 
-   handleClickForgot() {
+   handleClickRecovery() {
       this.setState({
          showLogin: false,
          showRegister: false,
@@ -135,6 +141,10 @@ class LoginRegister extends React.Component {
    }
 
    handleClickBack() {
+      const query = new URLSearchParams(window.location.search);
+      const token = query.get('token');
+      const email = query.get('email');
+
       this.setState({
          showLogin: false,
          showRegister: false,
@@ -149,6 +159,11 @@ class LoginRegister extends React.Component {
       if (this.props.setShowRegister) {
          this.props.setShowRegister(false);
       }
+
+      if(token && email){
+         location.replace(window.location.origin);
+      }
+      
    } 
 
    successLogoutCallback(result) {
@@ -167,11 +182,11 @@ class LoginRegister extends React.Component {
       });
    }
 
-    errorLogoutCallback(error) {
-        this.setState({serverError: '', logged: false});
-    }
+   errorLogoutCallback(error) {
+      this.setState({serverError: '', logged: false});
+   }
 
-    successLoginCallback(result) {
+   successLoginCallback(result) {
       if (this.props.setShowLogin) {
          this.props.setShowLogin(false);
       }
@@ -179,38 +194,25 @@ class LoginRegister extends React.Component {
       if (this._isMounted) {
          let currentComponent = this;
          GafaFitSDKWrapper.getMeWithCredits(
-               function (result) {
-                  GlobalStorage.set("me", result);
-                  currentComponent.setState({
-                     showLogin: false,
-                     showRegister: false,
-                     showProfile: false,
-                     passwordRecovery: false,
-                  });
-               }
+            function (result) {
+               GlobalStorage.set("me", result);
+               currentComponent.setState({
+                  showLogin: false,
+                  showRegister: false,
+                  showProfile: false,
+                  passwordRecovery: false,
+               });
+            }
          );
       }
       this._isMounted = false;
-    }
+   }
 
-    successProfileSaveCallback(result) {
-        if (this._isMounted) {
-            GlobalStorage.set("me", result);
-        }
-    }
-
-    successRecoveryCallback() {
-        this.setState({
-            showLogin: false,
-            showRegister: false,
-            showProfile: false,
-            passwordRecovery: false,
-            showButtons: true
-        });
-        if (this.props.setShowLogin) {
-            this.props.setShowLogin(false);
-        }
-    }
+   successProfileSaveCallback(result) {
+      if (this._isMounted) {
+         GlobalStorage.set("me", result);
+      }
+   }
 
     handleClickLogout() {
         let currentElement = this;
@@ -277,9 +279,9 @@ class LoginRegister extends React.Component {
                                        <a onClick={this.handleClickRegister.bind(this)}> {Strings.NOT_ACCOUNT_QUESTION}</a>
                                     </li>
 
-                                    {/* <li>
-                                       <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
-                                    </li> */}
+                                    <li>
+                                       <a onClick={this.handleClickRecovery.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
+                                    </li>
                                  </ul>
                            </nav>
                            </Modal.Footer>
@@ -295,7 +297,11 @@ class LoginRegister extends React.Component {
                                  <Modal.Title className="section-title container">{Strings.BUTTON_REGISTER}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-register__body">
-                                 <Register triggeredByRegister={this.state.triggeredByRegister}/>
+                                 <Register 
+                                    triggeredByRegister={this.state.triggeredByRegister}
+                                    handleClickBack={this.handleClickBack.bind(this)} 
+                                    successCallback={this.successLoginCallback.bind(this)}
+                                 />
                            </Modal.Body>
                            <Modal.Footer className="modal-register__footer">
                                  <nav className="nav">
@@ -303,9 +309,9 @@ class LoginRegister extends React.Component {
                                        <li>
                                           <a onClick={this.handleClickLogin.bind(this)}> {Strings.ACCOUNT_QUESTION}</a>
                                        </li>
-                                       {/* <li>
-                                          <a onClick={this.handleClickForgot.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
-                                       </li> */}
+                                       <li>
+                                          <a onClick={this.handleClickRecovery.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
+                                       </li>
                                     </ul>
                                  </nav>
                            </Modal.Footer>
@@ -336,8 +342,11 @@ class LoginRegister extends React.Component {
                                  <Modal.Title className="section-title container">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-password-body">
-                                 <PasswordRecovery token={this.state.token} email={this.state.email}
-                                                successCallback={this.successRecoveryCallback.bind(this)}/>
+                                 <PasswordRecovery 
+                                    token={this.state.token} 
+                                    email={this.state.email} 
+                                    handleClickBack={this.handleClickBack.bind(this)}   
+                                 />
                            </Modal.Body>
                         </div>
                     </Modal>
