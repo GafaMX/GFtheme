@@ -9,7 +9,7 @@ import MorningIcon from "../utils/Icons/MorningIcon";
 import AfternoonIcon from "../utils/Icons/AfternoonIcon";
 import AllTimeIcon from "../utils/Icons/AllTimeIcon";
 import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
-import Moment from 'Moment';
+// import moment from 'moment';
 import Select from 'react-select';
 import GlobalStorage from "../store/GlobalStorage";
 

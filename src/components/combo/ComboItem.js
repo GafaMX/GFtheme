@@ -54,7 +54,10 @@ class ComboItem extends React.Component {
          currentBrand.slug,
          currentLocation.slug,
          combo.id, 
-         function (result) {}
+         function (result) {
+
+            // document.body.addEventListener("click", 
+         }
       );
    }
 

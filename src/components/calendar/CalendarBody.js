@@ -9,7 +9,7 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
 import moment from 'moment';
-import 'moment/min/moment-with-locales';
+// import 'moment/min/moment-with-locales';
 import 'moment/locale/es';
 
 moment.locale('es');

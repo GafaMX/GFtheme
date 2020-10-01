@@ -2,9 +2,9 @@
 
 import React from "react";
 import CalendarMeeting from "./CalendarMeeting";
-import Moment from "react-moment";
+import moment from "moment";
 import 'moment/locale/es';
-import uid from 'uid'
+import uid from 'uid';
 
 class CalendarColumn extends React.Component {
     constructor(props) {
@@ -62,9 +62,9 @@ class CalendarColumn extends React.Component {
          <div
                className={calendarClass + '__column' + (index === 0 ? ' first-day' : '') + (index >= 6 ? ' last-day' : '') + (dayDate.includes(date) ? ' is-today' : '')}>
                <div className={calendarClass + '__column__day'}>
-                  <Moment className={'is-short'} calendar locale="es" format="dd">{dayDate}</Moment>
-                  <Moment className={'is-long'} calendar locale="es" format="dddd">{dayDate}</Moment>
-                  <Moment className='this-day' calendar locale="es" format="D">{dayDate}</Moment>
+                  <p className={'is-short'} >{moment(dayDate).format('dd')}</p>
+                  <p className={'is-long'}>{moment(dayDate).format('dddd')}</p>
+                  <p className='this-day'>{moment(dayDate).format('D')}</p>
                </div>
                <div className={calendarClass + '__column__meeting'}>
                   {listItems.length === 0 

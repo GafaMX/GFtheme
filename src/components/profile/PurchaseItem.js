@@ -1,7 +1,7 @@
 'use strict';
 
 import React from 'react';
-import Moment from 'react-moment';
+import moment from 'moment';
 import {formatMoney} from "../utils/FormatUtils";
 
 class PurchaseItem extends React.Component {
@@ -17,7 +17,7 @@ class PurchaseItem extends React.Component {
             </div>
             <div className={'purchase-item__body'}>
                <p className={'purchase-item-price'}><strong>$ {formatMoney(this.props.purchase.total,0)}</strong></p>
-               <Moment calendar locale="es">{this.props.purchase.created_at}</Moment>
+               <p>{moment(this.props.purchase.created_at).calendar()}</p>
             </div>
          </div>
         )

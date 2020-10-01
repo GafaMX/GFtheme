@@ -1,7 +1,7 @@
 'use strict';
 
 import React from 'react';
-import Moment from 'moment';
+import moment from 'moment';
 import Strings from "../utils/Strings/Strings_ES";
 
 
@@ -29,7 +29,7 @@ class ClassItem extends React.Component {
                   <h4>{this.props.reservation.meetings.service['name']}</h4>
                </div>
                <div className={'futureClasses-item__body'}>
-                    <p className={'reservation-item-time'}>{Moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
+                    <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
                     <p className={'reservation-item-staff'}><strong>{this.props.reservation.staff['name']}</strong></p>
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
                </div>
