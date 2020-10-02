@@ -243,6 +243,24 @@ class CalendarFilters extends React.Component {
         return !!next_meetings;
     }
 
+   nextWeek(e) {
+      let start = CalendarStorage.get('start_date');
+      if (this.hasNextPrev()) {
+          let compare_start = new Date(start.getTime());
+          compare_start.setDate(compare_start.getDate() + 7);
+          CalendarStorage.set('start_date', compare_start);
+      }
+   }
+
+   prevWeek(e) {
+         let start = CalendarStorage.get('start_date');
+         if (this.hasNextPrev(false)) {
+            let compare_start = new Date(start.getTime());
+            compare_start.setDate(compare_start.getDate() - 7);
+            CalendarStorage.set('start_date', compare_start);
+         }
+   }
+
    getNextButton() {
       if (this.state.has_next) {
          return (

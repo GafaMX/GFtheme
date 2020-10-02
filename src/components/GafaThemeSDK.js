@@ -213,11 +213,11 @@ class GafaThemeSDK extends React.Component {
 
             if(limit){
                if(limit > 3 && limit < 6){
-                     limit = limit;
+                  limit = limit;
                } else if(limit < 3 ){
-                     limit = 3;
+                  limit = 3;
                } else if(limit > 6){
-                     limit = limit;
+                  limit = limit;
                }
             }
    
