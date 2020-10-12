@@ -204,47 +204,48 @@ class GafaFitSDKWrapper extends React.Component {
       });
    };
 
-    static getToken(email, password, successCallback, errorCallback) {
-        GafaFitSDK.GetToken(
-            window.GFtheme.APIClientID,
-            window.GFtheme.APIClientSecret,
-            email,
-            password,
-            {
-                "grant_type": "password",
-                "scope": "*"
-            },
-            function (error, result) {
-                if (error != null) {
-                    let errorToPrint = Object.keys(error).map(function (key) {
-                        return error[key];
-                    }).join(". ");
-                    errorCallback(errorToPrint);
-                } else {
-                    GafaFitSDKWrapper.getMe(function () {
-                        successCallback(result)
-                    });
-                }
-            }
-        );
-    };
+   static getToken(email, password, successCallback, errorCallback) {
+      GafaFitSDK.GetToken(
+         window.GFtheme.APIClientID,
+         window.GFtheme.APIClientSecret,
+         email,
+         password,
+         {
+               "grant_type": "password",
+               "scope": "*"
+         },
+         function (error, result) {
+               if (error != null) {
+                  let errorToPrint = Object.keys(error).map(function (key) {
+                     return error[key];
+                  }).join(". ");
+                  errorCallback(errorToPrint);
+               } else {
+                  GafaFitSDKWrapper.getMe(function () {
+                     successCallback(result)
+                  });
+               }
+         }
+      );
+   };
 
-    static getUserCredits(callback) {
-        GafaFitSDK.GetUserCredits(
-            window.GFtheme.brand, {}, function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
+   static getUserCredits(brand, callback) {
+      GafaFitSDK.GetUserCredits(
+         brand, {}, function (error, result) {
+            if (error === null) {
+               callback(result);
             }
-        );
-    };
+         }
+      );
+   };
 
-    static getUserMemberships(callback) {
+    static getUserMemberships(brand, callback) {
         GafaFitSDK.GetUserMembership(
-            window.GFtheme.brand, {}, function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
+               brand, {}, function (error, result) {
+               
+               if (error === null) {
+                  callback(result);
+               }
             }
         );
     };
@@ -351,55 +352,62 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static getMe(callback) {
-        if (GlobalStorage.get('me') == null) {
-            GafaFitSDK.GetMe(
-                function (error, result) {
-                    if (error == null) {
-                        GlobalStorage.set("me", result);
-                        callback(result);
-                    } else {
-                        callback(null);
-                    }
-                }
-            );
-        } else {
-            callback(GlobalStorage.get("me"));
-        }
-    };
+   static getMe(callback) {
+      if (GlobalStorage.get('me') == null) {
+         GafaFitSDK.GetMe(
+            function (error, result) {
+               if (error == null) {
+                  callback(result);
+               } else {
+                  callback(null);
+               }
+            }
+         );
+      } else {
+         callback(GlobalStorage.get("me"));
+      }
+   };
 
-    static getMeWithCredits(callback) {
-        GafaFitSDKWrapper.getMe(function (result) {
-            let user = result;
-            GafaFitSDKWrapper.getUserCredits(function (result) {
-                user.credits = result;
-                user.creditsTotal = 0;
-                user.credits.forEach(function (elem) {
-                    user.creditsTotal += elem.total;
-                });
-                GlobalStorage.set("me", user);
-                callback(user);
+   static getMeWithPurchase(callback) {
+      GafaFitSDKWrapper.getMe(function (result) {
+         let user = result;
+         let brands = GlobalStorage.get('brands');
+         let credits = [];
+         let memberships = [];
+         
+         brands.forEach(function(brand){
+            
+            GafaFitSDKWrapper.getUserCredits(brand.slug, function (result) {
+               credits = result;
+               user.credits = credits;
+
+               GafaFitSDKWrapper.getUserMemberships(brand.slug, function (result){
+                  memberships = memberships.concat(result);
+                  user.memberships = memberships;
+                  callback(user);
+               });
             });
-        });
-    }
+         });
+      });
+   }
 
     static putMe(params, successCallback, errorCallback) {
-        GafaFitSDK.PutMe(
-            params,
-            function (error, result) {
-                if (error != null) {
-                    let errorToPrint = Object.keys(error).map(function (key) {
-                        return error[key];
-                    }).join(". ");
-                    errorCallback(errorToPrint);
-                } else {
-                    GlobalStorage.set("me", result);
-                    GafaFitSDKWrapper.getMeWithCredits(
-                        successCallback
-                    );
-                }
-            }
-        );
+      GafaFitSDK.PutMe(
+         params,
+         function (error, result) {
+               if (error != null) {
+                  let errorToPrint = Object.keys(error).map(function (key) {
+                     return error[key];
+                  }).join(". ");
+                  errorCallback(errorToPrint);
+               } else {
+               GlobalStorage.set("me", result);
+               GafaFitSDKWrapper.getMeWithPurchase(
+                  successCallback
+               );
+               }
+         }
+      );
     };
 
     static getCountries(callback) {

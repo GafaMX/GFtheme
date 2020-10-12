@@ -21,7 +21,6 @@ import '../../styles/newlook/elements/GFSDK-e-buttons.scss';
 class LoginRegister extends React.Component {
    constructor(props) {
       super(props);
-
       this.state = {
          showLogin: false,
          showRegister: false,
@@ -46,7 +45,6 @@ class LoginRegister extends React.Component {
       const token = query.get('token');
       const email = query.get('email');
 
-
       let currentComponent = this;
       if (token != null && email != null) {
          this.setState({
@@ -59,7 +57,7 @@ class LoginRegister extends React.Component {
          });
       }
 
-      GafaFitSDKWrapper.getMeWithCredits(
+      GafaFitSDKWrapper.getMeWithPurchase(
          function (result) {
             GlobalStorage.set("me", result);
          }
@@ -86,9 +84,9 @@ class LoginRegister extends React.Component {
       this._isMounted = true;
    }
 
-    // componentWillUnmount() {
-    //     this._isMounted = false;
-    // }
+   // componentWillUnmount() {
+   //     this._isMounted = false;
+   // }
 
    updateMe() {
       this.setState({
@@ -193,7 +191,7 @@ class LoginRegister extends React.Component {
 
       if (this._isMounted) {
          let currentComponent = this;
-         GafaFitSDKWrapper.getMeWithCredits(
+         GafaFitSDKWrapper.getMeWithPurchase(
             function (result) {
                GlobalStorage.set("me", result);
                currentComponent.setState({
@@ -229,6 +227,7 @@ class LoginRegister extends React.Component {
         let preE = 'GFSDK-e';
         let loginClass = preC + '-login';
         let buttonClass = preE + '-buttons';
+        let {me} = this.state;
 
         const combo = !window.GFtheme.combo_id ? null : window.GFtheme.combo_id;
 
@@ -244,10 +243,6 @@ class LoginRegister extends React.Component {
                                     {this.state.me != null 
                                        ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
                                              <IconRunningMan />
-                                             {this.state.me.creditsTotal > 0
-                                                ? <p className="profile-button-credits-total">{this.state.me.creditsTotal}</p>
-                                                : null
-                                             }
                                           </div>
                                        :   Strings.BUTTON_PROFILE
                                     }
@@ -326,7 +321,11 @@ class LoginRegister extends React.Component {
                                     <CloseIcon />
                                  </div> 
                                  <Modal.Body>
-                                    <ProfileUserInfo handleClickLogout={this.handleClickLogout} successCallback={this.successProfileSaveCallback.bind(this)}/>
+                                    <ProfileUserInfo 
+                                       handleClickLogout={this.handleClickLogout} 
+                                       successCallback={this.successProfileSaveCallback.bind(this)} 
+                                       userData={me}
+                                    />
                                  </Modal.Body>
                               </div>
                            </div>

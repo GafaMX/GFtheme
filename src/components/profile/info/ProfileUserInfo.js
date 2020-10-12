@@ -7,13 +7,15 @@ import "react-custom-scroll/dist/customScroll.css"
 import {FormErrors} from "../../form/FormErrors";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Strings from "../../utils/Strings/Strings_ES";
+import moment from "moment";
 import {isFunction} from "../../utils/TypeUtils";
-import 'moment/locale/es';
 import UserInfo from "./UserInfo";
 import AddressInfo from "./AddressInfo";
 import ContactInfo from "./ContactInfo";
 import FutureClasses from "./FutureClasses";
 import PastClasses from "../PastClasses";
+
+import ProfileCreditsMemberships from "./ProfileCreditsMemberships";
 // import PaymentMethods from "./Payment/PaymentMethods";
 import PurchasesList from "../PurchasesList";
 import ChangePassword from "./ChangePassword";
@@ -24,7 +26,9 @@ import LocationsFilter from "../../locations/LocationsFilters";
 // import CheckIcon from "../../utils/Icons/CheckIcon";
 import GlobalStorage from '../../store/GlobalStorage';
 import CalendarStorage from '../../calendar/CalendarStorage';
+import MediaQuery from 'react-responsive';
 
+import 'moment/locale/es';
 //Estilos
 import '../../../styles/newlook/components/GFSDK-c-Profile.scss';
 import '../../../styles/newlook/components/GFSDK-c-Orders.scss';
@@ -35,68 +39,75 @@ import '../../../styles/newlook/elements/GFSDK-e-scroll.scss';
 import '../../../styles/newlook/elements/GFSDK-e-buttons.scss';
 
 class ProfileUserInfo extends React.Component {
-    constructor(props) {
-        super(props);
 
-        this.state = {
-            email: "",
-            first_name: "",
-            last_name: "",
-            // birthDate: new Date(),
-            birth_date: "",
-            password: "",
-            password_confirmation: "",
-            address: "",
-            internal_number: "",
-            external_number: "",
-            municipality: "",
-            postal_code: "",
-            city: "",
-            countries_id: "",
-            country_states_id: "",
-            countries: [],
-            states: [],
-            phone: "",
-            cel_phone: "",
-            gender: "",
-            formErrors: {first_name: ''},
-            first_nameValid: true,
-            formValid: true,
-            serverError: '',
-            saved: false,
-            screen: "classes",
-            // paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
-        };
+   constructor(props) {
+      super(props);
 
-        this.handleChangeScreen = this.handleChangeScreen.bind(this);
-        // GlobalStorage.addSegmentedListener(['ConektaPaymentNotification'], this.updateConektaNotificaction.bind(this));
-    }
+      this.state = {
+         email: "",
+         first_name: "",
+         last_name: "",
+         // birthDate: new Date(),
+         birth_date: "",
+         password: "",
+         password_confirmation: "",
+         address: "",
+         internal_number: "",
+         external_number: "",
+         municipality: "",
+         postal_code: "",
+         city: "",
+         countries_id: "",
+         country_states_id: "",
+         countries: [],
+         states: [],
+         phone: "",
+         cel_phone: "",
+         gender: "",
+         formErrors: {first_name: ''},
+         first_nameValid: true,
+         formValid: true,
+         serverError: '',
+         saved: false,
+         screen: "classes",
+         // paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
+      };
+
+      this.handleChangeScreen = this.handleChangeScreen.bind(this);
+      // GlobalStorage.addSegmentedListener(['ConektaPaymentNotification'], this.updateConektaNotificaction.bind(this));
+   }
 
     componentDidMount() {
-        const currentComponent = this;
-        GafaFitSDKWrapper.getMe(function (result) {
-            currentComponent.setState(
-                {
-                    email: result.email,
-                    first_name: result.first_name,
-                    last_name: result.last_name,
-                    // birthDate: new Date(result.birth_date.substring(0, 11)),
-                    birth_date: result.birth_date,
-                    address: result.address,
-                    internal_number: result.internal_number,
-                    external_number: result.external_number,
-                    municipality: result.municipality,
-                    postal_code: result.postal_code,
-                    city: result.city,
-                    countries_id: result.countries_id,
-                    country_states_id: result.country_states_id,
-                    phone: result.phone,
-                    cel_phone: result.cel_phone,
-                    gender: result.gender,
-                });
-            // GlobalStorage.set('me', result);
-            currentComponent.getCountryList(currentComponent.getStatesListByCountry.bind(currentComponent));
-        });
+      const currentComponent = this;
+      GafaFitSDKWrapper.getMe(function (result) {
+         currentComponent.setState(
+            {
+               email: result.email,
+               first_name: result.first_name,
+               last_name: result.last_name,
+               // birthDate: new Date(result.birth_date.substring(0, 11)),
+               birth_date: moment(result.birth_date).format('YYYY-MM-DD'),
+               address: result.address,
+               internal_number: result.internal_number,
+               external_number: result.external_number,
+               municipality: result.municipality,
+               postal_code: result.postal_code,
+               city: result.city,
+               countries_id: result.countries_id,
+               country_states_id: result.country_states_id,
+               phone: result.phone,
+               cel_phone: result.cel_phone,
+               gender: result.gender,
+            });
+         // GlobalStorage.set('me', result);
+         currentComponent.getCountryList(currentComponent.getStatesListByCountry.bind(currentComponent));
+      });
+
+      GafaFitSDKWrapper.getMeWithPurchase(
+         function (result) {
+            GlobalStorage.set("me", result);
+         }
+      );
     }
 
     // updateConektaNotificaction(){
@@ -141,15 +152,13 @@ class ProfileUserInfo extends React.Component {
         });
     }
 
-    handleChangeField(event) {
-        let fieldName = event.target.id;
-        let fieldValue = event.target.value;
-        this.setState({
-            [fieldName]: fieldValue
-        });
-    }
-
-
+   handleChangeField(event) {
+      let fieldName = event.target.id;
+      let fieldValue = event.target.value;
+      this.setState({
+         [fieldName]: fieldValue
+      });
+   }
 
    /**
     * 
@@ -183,14 +192,14 @@ class ProfileUserInfo extends React.Component {
       this.setState(state);
    }
 
-    handleSubmit(event) {
-        event.preventDefault();
-        let currentElement = this;
-        currentElement.setState({serverError: '', saved: false});
-        GafaFitSDKWrapper.putMe(this.state,
-            currentElement.successSaveMeCallback.bind(this),
-            currentElement.errorSaveMeCallback.bind(this));
-    }
+   handleSubmit(event) {
+      event.preventDefault();
+      let currentElement = this;
+      currentElement.setState({serverError: '', saved: false});
+      GafaFitSDKWrapper.putMe(this.state,
+         currentElement.successSaveMeCallback.bind(this),
+         currentElement.errorSaveMeCallback.bind(this));
+   }
 
    successSaveMeCallback(result) {
       this.setState({saved: true});
@@ -240,6 +249,7 @@ class ProfileUserInfo extends React.Component {
       let filterClass = preC + '-filter';
       let filter_name = 'meetings-calendar--filters';
       let locations = GlobalStorage.get('locations');
+      let me = GlobalStorage.get("me");
       let brands = GlobalStorage.get('brands');
       let {paymentNotification, screen} = this.state
 
@@ -253,6 +263,13 @@ class ProfileUserInfo extends React.Component {
                               <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
                               {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
                            </div>
+
+                           <MediaQuery minWidth={992}>
+                              <div className="profile-user__credits">
+                                 <ProfileCreditsMemberships me={me} />
+                              </div>
+                           </MediaQuery>
+
                            <div className="profile-user__tools">
                               <div className="profile-user__tools-container">
                                  {/* <LocationsFilter /> */}
@@ -264,6 +281,10 @@ class ProfileUserInfo extends React.Component {
                      </div>
                   </div>
                </div>
+
+               <MediaQuery maxWidth={991}>
+                  <ProfileCreditsMemberships me={me} />
+               </MediaQuery>
 
                <div className={'profile-tabs'}>
                   <div className="container">

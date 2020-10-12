@@ -286,6 +286,7 @@ class GafaThemeSDK extends React.Component {
 
    static renderLoginRegister(selector) {
       let domContainers = document.querySelectorAll(selector);
+
       if (domContainers.length > 0) {
          GafaThemeSDK.renderElementIntoContainers(domContainers, LoginRegister, {});
       }

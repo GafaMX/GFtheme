@@ -40,7 +40,7 @@ class UserInfo extends React.Component {
     }
 
     handleChangeBirthDate(date) {
-        const dateFormatted = moment(date).format('YYYY-MM-DD')
+        const dateFormatted = moment(date).format('YYYY-MM-DD');
         this.props.info.birth_date = dateFormatted;
         this.props.updateState(this.props.info);
     }
