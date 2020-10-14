@@ -4,6 +4,7 @@ const GlobalStorage = {
    listeners: [],
    segmentedListeners: [],
    me: null,
+   wallet: null,
 
    //Brands Controller
    brands: [],

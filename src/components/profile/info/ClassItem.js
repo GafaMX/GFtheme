@@ -79,6 +79,8 @@ class ClassItem extends React.Component {
          )
       }
 
+      console.log(reservation);
+
       return (
          <div className={'pastClass-item'}>
             <div className={'pastClass-item__header'}>

@@ -32,13 +32,15 @@ class ProfileCreditsMemberships extends React.Component {
       let comp = this;
       let {credits, memberships} = GlobalStorage.get('me');
 
-      setTimeout(function(){
-         comp.setState({
-            credits, 
-            memberships,
-            is_mounted : true,
-         });
-      }, 1500);
+      if(credits && memberships){
+         setTimeout(function(){
+            comp.setState({
+               credits, 
+               memberships,
+               is_mounted : true,
+            });
+         }, 1500);
+      }
    }
 
    render() {
@@ -53,7 +55,7 @@ class ProfileCreditsMemberships extends React.Component {
          credits.forEach(function(credit){
             list = list.concat(
                <UserCredit
-               key={credit.id}
+               key={credit.credit.id}
                creditsTotal={credit.total}
                name={credit.credit.name}
                expirationDate={credit.expiration_date}/>
@@ -116,6 +118,7 @@ class ProfileCreditsMemberships extends React.Component {
          nextArrow: <NextArrow />
       };
 
+      
       return (
          <div className={'creditosUser'}>
             {is_mounted 
@@ -123,7 +126,9 @@ class ProfileCreditsMemberships extends React.Component {
                ?  <Slider {...settings} className={'creditosUser__container'}>
                      {list.length > 0
                         ?  list
-                        :  null
+                        :  <div className={'creditosUser__empty'}>
+                              <h3>¡No cuentas con créditos ni membresías!</h3>
+                           </div>
                      }
                   </Slider>
                :  <Loading />

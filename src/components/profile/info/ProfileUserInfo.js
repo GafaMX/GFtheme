@@ -80,13 +80,14 @@ class ProfileUserInfo extends React.Component {
     componentDidMount() {
       const currentComponent = this;
       GafaFitSDKWrapper.getMe(function (result) {
+         let birth_date = result.birth_date ? moment(result.birth_date).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
          currentComponent.setState(
             {
                email: result.email,
                first_name: result.first_name,
                last_name: result.last_name,
                // birthDate: new Date(result.birth_date.substring(0, 11)),
-               birth_date: moment(result.birth_date).format('YYYY-MM-DD'),
+               birth_date: birth_date,
                address: result.address,
                internal_number: result.internal_number,
                external_number: result.external_number,
@@ -203,6 +204,7 @@ class ProfileUserInfo extends React.Component {
 
    successSaveMeCallback(result) {
       this.setState({saved: true});
+
       if (this.props.successCallback) {
          this.props.successCallback(result);
       }

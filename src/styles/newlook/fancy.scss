@@ -30,13 +30,13 @@
                }
                
                &.active, &:hover{
-                  a{
+                  div{
                      background-color: #FF3E4F;
                      color:white;
                   }
                }
                
-               &> a{
+               & > div{
                   height: 100%;
                   border-radius: 23px;
                   background-color:#EEEEEE;

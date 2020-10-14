@@ -598,7 +598,7 @@ body.modal-open{
       border-bottom: 1px solid #eee;
       grid-template-columns: 1fr auto;
       @media screen and (min-width: 992px) {
-         grid-template-columns: 1fr 3fr auto;
+         grid-template-columns: auto 1fr auto;
          row-gap: 25px;
          align-items: start;
       }

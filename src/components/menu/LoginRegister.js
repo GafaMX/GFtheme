@@ -165,6 +165,7 @@ class LoginRegister extends React.Component {
    } 
 
    successLogoutCallback(result) {
+
       if (this.props.setShowLogin) {
          this.props.setShowLogin(false);
       }
@@ -178,6 +179,8 @@ class LoginRegister extends React.Component {
          showProfile: false,
          passwordRecovery: false,
       });
+
+      GlobalStorage.set("me", null);
    }
 
    errorLogoutCallback(error) {
@@ -212,14 +215,14 @@ class LoginRegister extends React.Component {
       }
    }
 
-    handleClickLogout() {
-        let currentElement = this;
-        this.setState({serverError: ''});
-        GafaFitSDKWrapper.logout(
-            currentElement.successLogoutCallback.bind(this),
-            currentElement.errorLogoutCallback.bind(this)
-        );
-    }
+   handleClickLogout() {
+      let currentElement = this;
+      this.setState({serverError: ''});
+      GafaFitSDKWrapper.logout(
+         currentElement.successLogoutCallback.bind(this),
+         currentElement.errorLogoutCallback.bind(this)
+      );
+   }
 
     render() {
 

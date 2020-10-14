@@ -405,7 +405,7 @@ class GafaFitSDKWrapper extends React.Component {
                GafaFitSDKWrapper.getMeWithPurchase(
                   successCallback
                );
-               }
+            }
          }
       );
     };
@@ -438,15 +438,14 @@ class GafaFitSDKWrapper extends React.Component {
         GafaFitSDK.PostLogout(
             {},
             function (error, result) {
-                if (error != null) {
-                    let errorToPrint = Object.keys(error).map(function (key) {
-                        return error[key];
-                    }).join(". ");
-                    errorCallback(errorToPrint);
-                } else {
-                    GlobalStorage.set("me", null);
-                    successCallback(result);
-                }
+               if (error != null) {
+                  let errorToPrint = Object.keys(error).map(function (key) {
+                     return error[key];
+                  }).join(". ");
+                  errorCallback(errorToPrint);
+               } else {
+                  successCallback(result);
+               }
             }
         );
     }
