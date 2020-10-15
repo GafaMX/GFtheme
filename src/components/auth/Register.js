@@ -20,6 +20,7 @@ class Register extends React.Component {
             formErrors: {email: '', password: '', passwordConfirmation: '', fullName: ''},
             emailValid: false,
             passwordValid: false,
+            tokenmovil: window.GFtheme.TokenMovil,
             passwordConfirmationValid: false,
             fullNameValid: false,
             formValid: false,
@@ -119,7 +120,11 @@ class Register extends React.Component {
       grecaptcha.ready(function () {
          grecaptcha.execute(window.GFtheme.CaptchaPublicKey, { action: 'register' }) .then(function (token) {
             currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
-            GafaFitSDKWrapper.postRegister(currentElement.state, currentElement.successRegisterCallback.bind(currentElement), currentElement.errorRegisterCallback.bind(currentElement));
+            GafaFitSDKWrapper.postRegister(
+               currentElement.state, 
+               currentElement.successRegisterCallback.bind(currentElement),
+               currentElement.errorRegisterCallback.bind(currentElement)
+            );
          });
       });
    }
