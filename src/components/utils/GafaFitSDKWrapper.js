@@ -19,6 +19,7 @@ class GafaFitSDKWrapper extends React.Component {
          GafaFitSDK.setCompany(window.GFThemeOptions.COMPANY_ID);
          window.GFtheme.APIClientID = window.GFThemeOptions.API_CLIENT;
          window.GFtheme.APIClientSecret = window.GFThemeOptions.API_SECRET;
+         window.GFtheme.BrandID = window.GFThemeOptions.BRAND_ID;
          window.GFtheme.TokenMovil = window.GFThemeOptions.TOKENMOVIL;
          window.GFtheme.CaptchaSecretKey = window.GFThemeOptions.CAPTCHA_SECRET_KEY;
          window.GFtheme.StaffName = window.GFThemeOptions.STAFF_NAME ? window.GFThemeOptions.STAFF_NAME : 'Staff';
