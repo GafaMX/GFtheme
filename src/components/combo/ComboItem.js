@@ -50,13 +50,37 @@ class ComboItem extends React.Component {
       let {combo} = this.props;
       let {currentBrand, currentLocation} = this.state
 
+      const fancy = document.querySelector('[data-gf-theme="fancy"]');
+      fancy.classList.add('active');
+
+      setTimeout(function(){
+         fancy.classList.add('show');
+      }, 400);
+
       GafaFitSDKWrapper.getFancyForBuyCombo(
          currentBrand.slug,
          currentLocation.slug,
          combo.id, 
          function (result) {
+            getFancy();
 
-            // document.body.addEventListener("click", 
+            function getFancy(){
+               if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
+                  const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+                  
+                  closeFancy.addEventListener('click', function(e){
+                     fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+
+                     fancy.classList.remove('show');
+
+                     setTimeout(function(){
+                        fancy.classList.remove('active');
+                     }, 400);
+                  })
+               } else {
+                  setTimeout(getFancy, 1000);
+               }
+            }
          }
       );
    }

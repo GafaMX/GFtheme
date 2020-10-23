@@ -45,14 +45,29 @@ class CalendarColumn extends React.Component {
       if (limit) {
          listItems = activeClass.slice(0, limit).map((meeting) => {
                if (meeting) {
-                  return (<CalendarMeeting key={`column-day--${uid()}--meeting--${meeting.id}`} meeting={meeting} day={day} alignment={alignment}/> )
+                  return(  
+                     <CalendarMeeting 
+                        key={`column-day--${uid()}--meeting--${meeting.id}`} 
+                        meeting={meeting} day={day} 
+                        alignment={alignment}
+                        openFancy = {this.props.openFancy}
+                        closedFancy = {this.props.closedFancy}
+                     /> 
+                  )
                }
          });
       } else {
          listItems = activeClass.map((meeting) => {
             if (meeting) {
                return (
-                  <CalendarMeeting key={`column-day--${uid()}--meeting--${meeting.id}`} meeting={meeting} day={day} alignment={alignment}/> 
+                  <CalendarMeeting 
+                     key={`column-day--${uid()}--meeting--${meeting.id}`} 
+                     meeting={meeting} 
+                     day={day} 
+                     alignment={alignment}
+                     openFancy = {this.props.openFancy}
+                     closedFancy = {this.props.closedFancy}
+                  /> 
                );
             }
          });

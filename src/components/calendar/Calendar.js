@@ -42,6 +42,8 @@ class Calendar extends React.Component {
       };
 
       this.selectFilter = this.selectFilter.bind(this);
+      this.openFancy = this.openFancy.bind(this);
+      this.closedFancy = this.closedFancy.bind(this);
       CalendarStorage.set('show_login', this.setShowLogin.bind(this));
       CalendarStorage.set('show_register', this.setShowRegister.bind(this));
       CalendarStorage.addSegmentedListener(['meetings'], this.setInitialValues.bind(this));
@@ -132,6 +134,21 @@ class Calendar extends React.Component {
             is_mounted: true,
          });
       }, 3000);
+   }
+
+   openFancy(e){
+      console.log('Open');
+      // this.setState({
+      //    fancy_mounted: true
+      // });
+   }
+
+   closedFancy(e){
+      console.log('Closed');
+
+      // this.setState({
+      //    fancy_mounted: false
+      // });
    }
    
    selectFilter(e) {
@@ -288,7 +305,12 @@ class Calendar extends React.Component {
                }
                {is_mounted 
                   ?
-                     <CalendarBody meetings={meetings} limit={this.props.limit} /> 
+                     <CalendarBody  
+                        meetings={meetings} 
+                        limit={this.props.limit} 
+                        openFancy = {this.openFancy}
+                        closedFancy = {this.closedFancy}
+                     /> 
                   :
                      <Loading />
                }

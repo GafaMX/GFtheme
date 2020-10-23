@@ -33,19 +33,3 @@ GafaFitSDKWrapper.initValues(
       GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
    }
 );
-
-function handler(target, event){
-   while(document.querySelector('[data-gf-theme="fancy"]').firstChild)
-      document.querySelector('[data-gf-theme="fancy"]').removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
-
-   event.preventDefault();
-};
-
-document.addEventListener('click', function(e) {
-   for (var target = e.target; target && target != this; target = target.parentNode) {
-      if (target.matches("#CreateReservationFancyTemplate--Close")) {
-         handler(target, e);
-         break;
-      }
-   }
-}, false);

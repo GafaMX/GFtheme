@@ -27,10 +27,44 @@ class CalendarMeeting extends React.Component {
    };
 
    showBuyFancyForLoggedUsers() {
+      let comp = this;
       let meeting = this.props.meeting;
 
+      const fancy = document.querySelector('[data-gf-theme="fancy"]');
+      fancy.classList.add('active');
+
+      setTimeout(function(){
+         fancy.classList.add('show');
+      }, 400);
+
       if (meeting) {
-         GafaFitSDKWrapper.getFancyForMeetingReservation(meeting.location.brand.slug, meeting.location.slug, meeting.id, function (result) {});
+
+         GafaFitSDKWrapper.getFancyForMeetingReservation(
+            meeting.location.brand.slug, 
+            meeting.location.slug, 
+            meeting.id, 
+            function (result) {
+               getFancy();
+
+               function getFancy(){
+                  if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
+                     const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+                     
+                     closeFancy.addEventListener('click', function(e){
+                        fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+
+                        fancy.classList.remove('show');
+
+                        setTimeout(function(){
+                           fancy.classList.remove('active');
+                        }, 400);
+                     })
+                  } else {
+                     setTimeout(getFancy, 1000);
+                  }
+               }
+            }
+         );
       }
    }
 

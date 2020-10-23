@@ -1,3 +1,27 @@
+[data-gf-theme="fancy"]{
+   position: fixed;
+   pointer-events: none;
+   top:0;
+   left:0;
+   background-color:white;
+   opacity:0;
+   transform: scale(.8);
+   height:100%;
+   width:100%;
+   z-index: 9999;
+   transition: all 300ms ease;
+   
+   &.active{
+      pointer-events: all;
+   }
+   
+   &.show{
+      opacity:1;
+      transform: scale(1);
+   }
+}
+
+
 .productSelection__summary.close, .paymentSelection__resume.close, .touchpoint.close{
    opacity:1!important;
    font-size:1em;

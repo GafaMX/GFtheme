@@ -207,7 +207,17 @@ class CalendarBody extends React.Component {
          };
       }
 
-      let listItems = meetings_to_show.map((day, index) => { return  <CalendarColumn key={`calendar-day--${index}`} index={index}day={day} limit={limit}/> });
+      let listItems =   meetings_to_show.map(
+                           (day, index) => { 
+                              return   <CalendarColumn  
+                                          key={`calendar-day--${index}`} 
+                                          index={index}day={day} 
+                                          limit={limit}
+                                          openFancy = {this.props.openFancy}
+                                          closedFancy = {this.props.closedFancy}
+                                       /> 
+                           }
+                        );
       
       return (
          <div className={calendarClass + '__body horizontal' }>
