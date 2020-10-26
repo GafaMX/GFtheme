@@ -10,6 +10,10 @@ import 'moment/locale/es';
 class CalendarMeeting extends React.Component {
    constructor(props) {
       super(props);
+
+      this.state = {
+         openFancy: false,
+      }
    }
 
 
@@ -32,6 +36,10 @@ class CalendarMeeting extends React.Component {
 
       const fancy = document.querySelector('[data-gf-theme="fancy"]');
       fancy.classList.add('active');
+
+      comp.setState({
+         openFancy: true,
+      })
 
       setTimeout(function(){
          fancy.classList.add('show');
@@ -58,6 +66,10 @@ class CalendarMeeting extends React.Component {
                         setTimeout(function(){
                            fancy.classList.remove('active');
                         }, 400);
+
+                        comp.setState({
+                           openFancy: false,
+                        })
                      })
                   } else {
                      setTimeout(getFancy, 1000);
@@ -86,6 +98,7 @@ class CalendarMeeting extends React.Component {
 
     render() {
         let {meeting} = this.props;
+        let {openFancy} = this.state;
         let day = this.props.day;
         let classStart = moment(meeting.start_date).toDate();
         let time_format = meeting.location.brand.time_format;
@@ -95,10 +108,10 @@ class CalendarMeeting extends React.Component {
         let meetingClass = preE + '-meeting';
 
         return (
-            <div key={`column-day--${day.date}--meeting--${meeting.id}`}
+            <div key={`column-day--${day.date}--meeting--${meeting.id}`} style={{ pointerEvents: openFancy ? 'none' : 'auto' }}
                  className={calendarClass + '__item ' + meetingClass + (meeting.passed ? ' has-pasted' : '')}
                  data-id={meeting.id}
-                 onClick={this.handleClick.bind(this)}>
+                 onClick={openFancy ? null : this.handleClick.bind(this)}>
                <div className={meetingClass + '__header'}>
                      { time_format === '12'
                      ? <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')} {moment(classStart).format('a')}</p>
