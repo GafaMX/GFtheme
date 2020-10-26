@@ -9,13 +9,6 @@ import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 
 window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 
-var fancy = document.createElement("div"); 
-fancy.setAttribute("data-gf-theme", "fancy");
-fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
-document.body.appendChild(fancy);
-
-
-
 GafaFitSDKWrapper.initValues(
    () => {
       GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
