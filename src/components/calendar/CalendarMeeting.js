@@ -34,12 +34,12 @@ class CalendarMeeting extends React.Component {
       let comp = this;
       let meeting = this.props.meeting;
 
-      const fancy = document.querySelector('[data-gf-theme="fancy"]');
-      fancy.classList.add('active');
-
       comp.setState({
          openFancy: true,
-      })
+      });
+
+      const fancy = document.querySelector('[data-gf-theme="fancy"]');
+      fancy.classList.add('active');
 
       setTimeout(function(){
          fancy.classList.add('show');

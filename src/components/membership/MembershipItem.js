@@ -13,6 +13,7 @@ class MembershipItem extends React.Component {
       this.state = {
          currentBrand: null,
          currentLocation: null,
+         openFancy: false,
       }
    }
 
@@ -45,8 +46,13 @@ class MembershipItem extends React.Component {
    };
 
    showBuyFancyForLoggedUsers() {
+      let comp = this;
       let {membership} = this.props;
       let {currentBrand, currentLocation} = this.state
+
+      comp.setState({
+         openFancy: true,
+      });
 
       const fancy = document.querySelector('[data-gf-theme="fancy"]');
       fancy.classList.add('active');
@@ -60,7 +66,6 @@ class MembershipItem extends React.Component {
          currentLocation.slug,
          membership.id, 
          function (result) {
-
             getFancy();
 
             function getFancy(){
@@ -75,6 +80,10 @@ class MembershipItem extends React.Component {
                      setTimeout(function(){
                         fancy.classList.remove('active');
                      }, 400);
+
+                     comp.setState({
+                        openFancy: false,
+                     })
                   })
                } else {
                   setTimeout(getFancy, 1000);
@@ -128,6 +137,7 @@ class MembershipItem extends React.Component {
       let productClass = preE + '-product';
       let membershipClass = preC + '-membershipList';
       let {membership} = this.props;
+      let {openFancy} = this.state;
       // const services = this.getServicesAndParentsForMembership();
       
       return (
@@ -151,7 +161,7 @@ class MembershipItem extends React.Component {
                      </p>
                   </div>
 
-                  <button className="buq-accentColor" onClick={this.handleClick.bind(this)}> Comprar </button>
+                  <button style={{ pointerEvents: openFancy ? 'none' : 'auto' }} className="buq-accentColor" onClick={openFancy ? null : this.handleClick.bind(this)}> Comprar </button>
 
                </div>
                <div className={productClass + '__footer'}>
