@@ -49,17 +49,18 @@ class MembershipItem extends React.Component {
       let comp = this;
       let {membership} = this.props;
       let {currentBrand, currentLocation} = this.state
-
+      
+      const fancy = document.querySelector('[data-gf-theme="fancy"]');
+      fancy.classList.add('active');
+      
       comp.setState({
          openFancy: true,
       });
-
-      const fancy = document.querySelector('[data-gf-theme="fancy"]');
-      fancy.classList.add('active');
-
+      
       setTimeout(function(){
          fancy.classList.add('show');
       }, 400);
+
 
       GafaFitSDKWrapper.getFancyForBuyMembership(
          currentBrand.slug,
@@ -79,6 +80,7 @@ class MembershipItem extends React.Component {
 
                      setTimeout(function(){
                         fancy.classList.remove('active');
+                        fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
                      }, 400);
 
                      comp.setState({
