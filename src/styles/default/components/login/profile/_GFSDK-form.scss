@@ -105,10 +105,15 @@
       &#cancel-class{
          display: inline-grid;
          align-items: start;
-         grid-template-columns: repeat(2, auto);
+         // grid-template-columns: repeat(2, auto);
          column-gap: 15px;
+         
+         @media only screen and (min-width: 992px){
+            grid-template-columns: 1fr;
+         }
+         
          button{
-               padding: 10px 20px;
+            padding: 10px 20px;
          }
       }
 

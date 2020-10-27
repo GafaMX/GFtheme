@@ -150,12 +150,28 @@
       
       @media only screen and (min-width: 992px) {
          padding:0; 
-         width:500px;
+         width:400px;
       }
    }
 
    &__body{
       text-align: center;
+   }
+
+   &__error{
+      opacity: 0;
+      transform: translateY(-10px);
+      color:#FF3E4F;
+      transition: all .3s ease;
+      transition-delay: .3s;
+      font-size: 12px;
+      padding-top:10px;
+      text-align: center;
+      
+      &.res_has_error{
+         opacity: 1;
+         transform: translateY(0);
+      }
    }
 
    &__footer{
@@ -167,7 +183,7 @@
          column-gap: 15px;
          
          @media only screen and (min-width: 992px) {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
          }
       }
    }

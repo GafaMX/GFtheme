@@ -30,6 +30,7 @@ class GafaFitSDKWrapper extends React.Component {
       }
 
       // GafaFitSDKWrapper.setLocalStorage();
+     
       GafaFitSDKWrapper.getInitialValues(callback);
    }
 
@@ -49,6 +50,7 @@ class GafaFitSDKWrapper extends React.Component {
             cb();
          });
       });
+      
    }
 
    static setMeetings(cb){
@@ -532,13 +534,15 @@ class GafaFitSDKWrapper extends React.Component {
         )
     };
 
-    static postUserCancelReservation(brand, reservation, options, callback) {
+    static postUserCancelReservation(brand, reservation, options, callbackSuccess, callbackError) {
         GafaFitSDK.PostUserCancelReservation(
             brand, reservation, options,
             function (error, result) {
-                if (error === null) {
-                    callback(result);
-                }
+               if (error === null) {
+                  callbackSuccess(result);
+               } else {
+                  callbackError(error);
+               }
             }
         )
     };

@@ -15,12 +15,13 @@ class ClassItem extends React.Component {
       super(props);
       this.state={
          showCancelation:false,
+         errorCancelation: null,
       }
    }
 
    handleClick(event) {
       event.preventDefault();
-
+      let comp = this;
       let reservationID = this.props.id;
       let reservation = this.props.reservation;
 
@@ -31,6 +32,11 @@ class ClassItem extends React.Component {
          function(result){
             alert(Strings.CANCELEDRESERVATION);
             window.location.reload();
+         },
+         function(error){
+            comp.setState({
+               errorCancelation: error.error,
+            })
          }
       )
    }
@@ -55,6 +61,7 @@ class ClassItem extends React.Component {
       let preE = 'GFSDK-e';
       let buttonClass = preE + '-buttons';
       let {reservation} = this.props;
+      let {errorCancelation} = this.state;
 
       let membershipCredits = '';
       let cancelation = '';
@@ -107,11 +114,18 @@ class ClassItem extends React.Component {
                   <div className={'modal-cancelation__footer'}>
                      <div className="GFSDK-form__section" id="cancel-class">
                            <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClick.bind(this)}>
-                              {Strings.BUTTON_ACCEPT}
+                              Sí, deseo cancelar
                            </button>
-                           <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClickBack.bind(this)}>
+                           {/* <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClickBack.bind(this)}>
                               {Strings.BUTTON_CANCEL}
-                           </button>
+                           </button> */}
+                     </div>
+
+                     <div className={"modal-cancelation__error " + (errorCancelation ? 'res_has_error' : null)} >
+                        {errorCancelation 
+                           ? errorCancelation
+                           : null   
+                        }
                      </div>
                   </div>
                </div>

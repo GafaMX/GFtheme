@@ -31,5 +31,8 @@ GafaFitSDKWrapper.initValues(
       
       // Render calendario
       GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
+
+      const fancy = document.querySelector('[data-gf-theme="fancy"]');
+      fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
    }
 );
