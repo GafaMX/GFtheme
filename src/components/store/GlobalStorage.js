@@ -79,19 +79,18 @@ const GlobalStorage = {
       let currentBrand = brands[0];
       let locations = [];
       let rooms = [];
+      let brandList = !window.GFtheme.BrandID ? brands : brands.filter(brand => brand.id === window.GFtheme.BrandID);
 
       let loop = 0;
 
-      if(!window.GFtheme.BrandID){
-         this.brands = brands;
-         this.currentBrand = currentBrand;
-      } else {
-         let pickedBrand = brands.filter(brand => brand.id === window.GFtheme.BrandID);
-         this.brands = pickedBrand;
+      console.log(brandList);
+
+      if(brandList){
+         this.brands = brandList;
          this.currentBrand = currentBrand;
       }
-      
-      brands.forEach(function(brand){
+
+      brandList.forEach(function(brand){
          GafaFitSDKWrapper.getBrandLocationsWithoutBrand(brand.slug, {}, function (result) {
             locations = locations.concat(result.data);
 
@@ -99,7 +98,7 @@ const GlobalStorage = {
                rooms = rooms.concat(result.data);
                loop++;
 
-               if(loop === brands.length){
+               if(loop === brandList.length){
                   GlobalStorage.locations = locations;
                   GlobalStorage.rooms = rooms;
                   if(cb){

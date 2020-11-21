@@ -53,35 +53,35 @@ class GafaFitSDKWrapper extends React.Component {
       
    }
 
-   static setMeetings(cb){
-      let locations = GlobalStorage.get('locations');
-      let meetings = [];
+   // static setMeetings(cb){
+   //    let locations = GlobalStorage.get('locations');
+   //    let meetings = [];
 
-      if ( locations ){
-         let start_date = moment().toDate();
-         let end_date = moment().toDate();
+   //    if ( locations ){
+   //       let start_date = moment().toDate();
+   //       let end_date = moment().toDate();
 
-         CalendarStorage.set('start_date', start_date);
+   //       CalendarStorage.set('start_date', start_date);
 
-         locations.forEach(function (location) {
-            start_date = !location.date_start ? start_date : moment(location.date_start).toDate();
-            end_date.setDate(start_date.getDate() + (location.calendar_days - 1));
+   //       locations.forEach(function (location) {
+   //          start_date = !location.date_start ? start_date : moment(location.date_start).toDate();
+   //          end_date.setDate(start_date.getDate() + (location.calendar_days - 1));
 
-            let start_string = `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()}`;
-            let end_string = `${end_date.getFullYear()}-${end_date.getMonth() + 1}-${end_date.getDate()}`;
+   //          let start_string = `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()}`;
+   //          let end_string = `${end_date.getFullYear()}-${end_date.getMonth() + 1}-${end_date.getDate()}`;
 
-            GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, function(result){
-               meetings = meetings.concat(result);
+   //          GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, function(result){
+   //             meetings = meetings.concat(result);
 
-               CalendarStorage.set('meetings', meetings);
-               CalendarStorage.set('start_date', start_date);
-               if(cb){
-                  cb();
-               }
-            });
-         });
-      }
-   }
+   //             CalendarStorage.set('meetings', meetings);
+   //             CalendarStorage.set('start_date', start_date);
+   //             if(cb){
+   //                cb();
+   //             }
+   //          });
+   //       });
+   //    }
+   // }
 
    static getCurrentLocation(callback) {
       let location = localStorage.getItem('__GFthemeLocation');
