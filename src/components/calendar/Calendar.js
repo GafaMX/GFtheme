@@ -61,6 +61,7 @@ class Calendar extends React.Component {
       let meetingsRooms = [];
 
       let preFilterStaff = 'Todos';
+      let preFilterService = 'Todos';
 
       let params = (new URL(document.location)).searchParams;
       let staffParam = window.GFtheme.StaffName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -116,6 +117,13 @@ class Calendar extends React.Component {
          meetingsWithRoom.forEach(function(meeting){
             if(meeting.service != null && !meetingsServices.includes(meeting.service.name)){
                meetingsServices.push(meeting.service.name);
+               
+               if(filter_service_default){
+                  if(filter_service_default === meeting.service.name){
+                     debugger;
+                     preFilterService = meeting.service.name;
+                  }
+               }
             }
          });
       }
@@ -127,6 +135,7 @@ class Calendar extends React.Component {
             rooms: meetingsRooms,
             services: meetingsServices,
             filter_staff: preFilterStaff,
+            filter_service: preFilterService,
             staff: meetingsStaff,
             meetings: meetings,
             is_mounted: true,
@@ -164,6 +173,8 @@ class Calendar extends React.Component {
       let calendarClass = preC + '-Calendar';
       let widthDimension = CalendarStorage.get('calendarWidth');
       let heightDimension = CalendarStorage.get('calendarHeight');
+
+      // console.log(services);
 
       const mystyles = {
          width:  widthDimension + 'px',

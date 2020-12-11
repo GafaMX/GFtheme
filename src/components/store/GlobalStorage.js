@@ -83,7 +83,7 @@ const GlobalStorage = {
 
       let loop = 0;
 
-      console.log(brandList);
+      // console.log(brandList);
 
       if(brandList){
          this.brands = brandList;
