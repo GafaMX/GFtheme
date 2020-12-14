@@ -120,7 +120,6 @@ class Calendar extends React.Component {
                
                if(filter_service_default){
                   if(filter_service_default === meeting.service.name){
-                     debugger;
                      preFilterService = meeting.service.name;
                   }
                }
