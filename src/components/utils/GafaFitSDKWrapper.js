@@ -27,6 +27,17 @@ class GafaFitSDKWrapper extends React.Component {
          window.GFtheme.CaptchaPublicKey = window.GFThemeOptions.CAPTCHA_PUBLIC_KEY;
          window.GFtheme.RemoteAddr = window.GFThemeOptions.REMOTE_ADDR;
          // window.GFtheme.ConektaPublicKey = window.GFThemeOptions.CONEKTA_PUBLIC_KEY;
+      } else if (gafa){
+         GafaFitSDK.setUrl(gafa.b_base);
+         GafaFitSDK.setCompany(parseInt(gafa.b_company));
+         window.GFtheme.APIClientID = gafa.b_id;
+         window.GFtheme.APIClientSecret = gafa.b_secret;
+
+         // TODO: Encontras si son elementos necesarios
+         // window.GFtheme.BrandID = window.GFThemeOptions.BRAND_ID;
+         // window.GFtheme.TokenMovil = window.GFThemeOptions.TOKENMOVIL;
+         // window.GFtheme.StaffName = window.GFThemeOptions.STAFF_NAME ? window.GFThemeOptions.STAFF_NAME : 'Staff';
+         // window.GFtheme.ClassName = window.GFThemeOptions.CLASS_NAME ? window.GFThemeOptions.CLASS_NAME : 'Clases';
       }
 
       // GafaFitSDKWrapper.setLocalStorage();
@@ -473,7 +484,7 @@ class GafaFitSDKWrapper extends React.Component {
       options.only_actives = true;
       GafaFitSDK.GetBrandList(options, function (error, result) {
          if (error === null) {
-               callback(result);
+            callback(result);
          }
       })
    }
