@@ -63,10 +63,15 @@ class Calendar extends React.Component {
       let preFilterStaff = 'Todos';
       let preFilterService = 'Todos';
 
-      let params = (new URL(document.location)).searchParams;
-      let staffParam = window.GFtheme.StaffName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      let memberParams = params.get(staffParam);
       
+      let params = (new URL(document.location)).searchParams;
+      let memberParams;
+      
+      if(!gafa && window.GFtheme){
+         let staffParam = window.GFtheme.StaffName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+         memberParams = params.get(staffParam);
+      }
+
       meetings = meetings.filter(function(meeting){return meeting.passed === false});
 
       meetings.forEach(function(meeting){
