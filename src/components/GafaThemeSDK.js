@@ -8,6 +8,10 @@ import CalendarStorage from "./calendar/CalendarStorage";
 import ServiceList from "./service/ServiceList";
 import StaffList from "./staff/StaffList";
 import Login from "./auth/Login";
+import FutureClasses from "./profile/info/FutureClasses";
+import PastClasses from "./profile/PastClasses";
+import PurchasesList from "./profile/PurchasesList";
+import ProfileCreditsMemberships from "./profile/info/ProfileCreditsMemberships";
 import LocationsFilter from "./locations/LocationsFilters"
 import GafaFitSDKWrapper from "./utils/GafaFitSDKWrapper";
 import ComboList from "./combo/ComboList";
@@ -86,6 +90,50 @@ class GafaThemeSDK extends React.Component {
    //          });
    //      }
    //  }
+
+   static renderProfileWallet(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      let props = {};
+
+      if (domContainers.length > 0) {
+         domContainers.forEach(function (domContainer) {
+            GafaThemeSDK.renderElementIntoContainer(domContainer, ProfileCreditsMemberships, props);
+         });
+      }
+   };
+
+   static renderFutureClasses(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      let props = {};
+
+      if (domContainers.length > 0) {
+         domContainers.forEach(function (domContainer) {
+            GafaThemeSDK.renderElementIntoContainer(domContainer, FutureClasses, props);
+         });
+      }
+   };
+
+   static renderPastClasses(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      let props = {};
+
+      if (domContainers.length > 0) {
+         domContainers.forEach(function (domContainer) {
+            GafaThemeSDK.renderElementIntoContainer(domContainer, PastClasses, props);
+         });
+      }
+   };
+
+   static renderPurchaseList(selector) {
+      let domContainers = document.querySelectorAll(selector);
+      let props = {};
+
+      if (domContainers.length > 0) {
+         domContainers.forEach(function (domContainer) {
+            GafaThemeSDK.renderElementIntoContainer(domContainer, PurchasesList, props);
+         });
+      }
+   };
 
    static renderStaffList(selector) {
       let domContainers = document.querySelectorAll(selector);

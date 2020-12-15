@@ -58,28 +58,28 @@ class PastClasses extends React.Component {
    }
 
 
-    render() {
-        let preC = 'GFSDK-c';
-        let profileClass = preC + '-profile';
-        let ordersClass = preC + '-orders';
+   render() {
+      let preC = 'GFSDK-c';
+      let profileClass = preC + '-profile';
+      let ordersClass = preC + '-orders';
 
-        const listItems = this.state.list.map((pastreservation) =>
-            <PastClassItem key={pastreservation.id} reservation={pastreservation} id={pastreservation.id}/>
-        );
+      const listItems = this.state.list.map((pastreservation) =>
+         <PastClassItem key={pastreservation.id} reservation={pastreservation} id={pastreservation.id}/>
+      );
 
-        return (
-            <div className={profileClass + '__section is-pastClass'}>
-                {this.state.list.length > 0
-                    ?   <div className={ ordersClass + '__section'}>{listItems}</div>
-                    :   <div className="is-empty">
-                            <div className="is-notification">
-                                <h3>No cuentas con historial de {window.GFtheme.ClassName}</h3>
-                            </div>
-                        </div>
-                }
-            </div>
-        );
-    }
+      return (
+         <div className={profileClass + '__section is-pastClass'}>
+               {this.state.list.length > 0
+                  ?   <div className={ ordersClass + '__section'}>{listItems}</div>
+                  :   <div className="is-empty">
+                           <div className="is-notification">
+                              <h3>No cuentas con historial de {window.GFtheme.ClassName ? window.GFtheme.ClassName : 'clases'}</h3>
+                           </div>
+                     </div>
+               }
+         </div>
+      );
+   }
 }
 
 export default PastClasses;
