@@ -23,6 +23,18 @@ GafaFitSDKWrapper.initValues(
       }
       
 
+      // Render créditos
+      GafaThemeSDK.renderProfileWallet('[data-gf-theme="profile-wallet"]');
+
+      // Render clases futuras
+      GafaThemeSDK.renderFutureClasses('[data-gf-theme="future-classes"]');
+      
+      // Render clases pasadas
+      GafaThemeSDK.renderPastClasses('[data-gf-theme="past-classes"]');
+      
+      // Render compras realizadas
+      GafaThemeSDK.renderPurchaseList('[data-gf-theme="purchase-list"]');
+
       // Render miembros de staff
       GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');
       
