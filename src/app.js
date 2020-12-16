@@ -7,6 +7,8 @@ import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 //     window.jQuery = window.$ = jQuery;
 // }
 
+let gafa = gafa ? gafa : null;
+
 if(!gafa){
    window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 }
@@ -20,20 +22,19 @@ GafaFitSDKWrapper.initValues(
          GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
          GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
          GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
+      } else {
+         // Render créditos
+         GafaThemeSDK.renderProfileWallet('[data-gf-theme="profile-wallet"]');
+   
+         // Render clases futuras
+         GafaThemeSDK.renderFutureClasses('[data-gf-theme="future-classes"]');
+         
+         // Render clases pasadas
+         GafaThemeSDK.renderPastClasses('[data-gf-theme="past-classes"]');
+         
+         // Render compras realizadas
+         GafaThemeSDK.renderPurchaseList('[data-gf-theme="purchase-list"]');
       }
-      
-
-      // Render créditos
-      GafaThemeSDK.renderProfileWallet('[data-gf-theme="profile-wallet"]');
-
-      // Render clases futuras
-      GafaThemeSDK.renderFutureClasses('[data-gf-theme="future-classes"]');
-      
-      // Render clases pasadas
-      GafaThemeSDK.renderPastClasses('[data-gf-theme="past-classes"]');
-      
-      // Render compras realizadas
-      GafaThemeSDK.renderPurchaseList('[data-gf-theme="purchase-list"]');
 
       // Render miembros de staff
       GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');

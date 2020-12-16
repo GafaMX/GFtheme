@@ -20,6 +20,7 @@ class CalendarMeeting extends React.Component {
       let currentElement = this;
       let params = (new URL(document.location)).searchParams;
       let reservation_id = parseInt(params.get('reservation-id'));
+      let gafa = gafa ? gafa : null;
 
       if (gafa && reservation_id) {
          GafaFitSDKWrapper.isAuthenticated(function(auth){

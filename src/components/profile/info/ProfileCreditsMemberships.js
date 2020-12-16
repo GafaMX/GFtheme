@@ -36,6 +36,8 @@ class ProfileCreditsMemberships extends React.Component {
       let comp = this;
       let memberships, credits;
 
+      let gafa = gafa ? gafa : null;
+
       if(!gafa){
          memberships = GlobalStorage.get('me').memberships;
          credits = GlobalStorage.get('me').credits;

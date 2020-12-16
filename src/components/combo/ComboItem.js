@@ -25,6 +25,8 @@ class ComboItem extends React.Component {
       let params = (new URL(document.location)).searchParams;
       let combo_id = parseInt(params.get('combo-id'));
 
+      let gafa = gafa ? gafa : null;
+
       if(locations){
          locations = locations.filter(function(location){
             return combo.brand.id === location.brand.id
