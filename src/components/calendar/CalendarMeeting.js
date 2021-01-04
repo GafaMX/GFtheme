@@ -20,9 +20,8 @@ class CalendarMeeting extends React.Component {
       let currentElement = this;
       let params = (new URL(document.location)).searchParams;
       let reservation_id = parseInt(params.get('reservation-id'));
-      let gafa = gafa ? gafa : null;
 
-      if (gafa && reservation_id) {
+      if(!typeof gafa === 'undefined' && reservation_id) {
          GafaFitSDKWrapper.isAuthenticated(function(auth){
             if (auth) {
                currentElement.showReserveFancybyUrl(reservation_id);
@@ -95,9 +94,10 @@ class CalendarMeeting extends React.Component {
             function getFancy(){
                if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
                   const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
-                  
                   closeFancy.addEventListener('click', function(e){
-                     if(gafa && cleanUrl){
+
+
+                     if(!typeof gafa === 'undefined' && cleanUrl){
                         var url = window.location.href.split('?')[0];
                         window.history.pushState("buq-home", "Home", url);
                      }
@@ -134,7 +134,7 @@ class CalendarMeeting extends React.Component {
       window.GFtheme.location_slug = this.props.meeting.location.slug;
       window.GFtheme.brand_slug = this.props.meeting.location.brand.slug;
       
-      if(!gafa){
+      if(typeof gafa === 'undefined'){
          let register = CalendarStorage.get('show_register');
          window.GFtheme.meetings_id = this.props.meeting.id;
          register(true);

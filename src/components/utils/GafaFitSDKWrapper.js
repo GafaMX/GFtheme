@@ -11,12 +11,11 @@ class GafaFitSDKWrapper extends React.Component {
    }
 
    static initValues(callback) {
-
-      let gafa = gafa ? gafa : null;
-
       window.GFtheme = {};
 
-      if (window.GFThemeOptions != null) {
+      var selection = document.querySelector('[data-gf-options]');
+
+      if (selection !== null) {
          GafaFitSDK.setUrl(window.GFThemeOptions.GAFA_FIT_URL);
          GafaFitSDK.setCompany(window.GFThemeOptions.COMPANY_ID);
          window.GFtheme.APIClientID = window.GFThemeOptions.API_CLIENT;
@@ -29,7 +28,7 @@ class GafaFitSDKWrapper extends React.Component {
          window.GFtheme.CaptchaPublicKey = window.GFThemeOptions.CAPTCHA_PUBLIC_KEY;
          window.GFtheme.RemoteAddr = window.GFThemeOptions.REMOTE_ADDR;
          // window.GFtheme.ConektaPublicKey = window.GFThemeOptions.CONEKTA_PUBLIC_KEY;
-      } else if (gafa){
+      } else {
          GafaFitSDK.setUrl(gafa.b_base);
          GafaFitSDK.setCompany(parseInt(gafa.b_company));
          window.GFtheme.APIClientID = gafa.b_id;
@@ -47,14 +46,14 @@ class GafaFitSDKWrapper extends React.Component {
       GafaFitSDKWrapper.getInitialValues(callback);
    }
 
-    // static setConektaPayment(){
-    //     let {ConektaPublicKey} = window.GFtheme;
-    //     Conekta.setPublicKey(ConektaPublicKey)
+   // static setConektaPayment(){
+   //     let {ConektaPublicKey} = window.GFtheme;
+   //     Conekta.setPublicKey(ConektaPublicKey)
 
-    //     GafaFitSDKWrapper.getUserPaymentInfo('', function (result) {
-    //         GlobalStorage.set('ConektaPaymentInfo',  result.conekta)
-    //     });
-    // }
+   //     GafaFitSDKWrapper.getUserPaymentInfo('', function (result) {
+   //         GlobalStorage.set('ConektaPaymentInfo',  result.conekta)
+   //     });
+   // }
 
    static getInitialValues(cb) {
       let component = this;
@@ -521,17 +520,17 @@ class GafaFitSDKWrapper extends React.Component {
     static getFancyForMeetingReservation(brand, location, meetings_id, callback) {
         GafaFitSDKWrapper.getMe(function (me) {
             GafaFitSDK.GetCreateReservationForm(
-                brand,
-                location,
-                me.id,
-                '[data-gf-theme="fancy"]',
-                {
-                    'meetings_id': meetings_id,
-                }, function (error, result) {
-                    if (error === null) {
-                        callback(result);
-                    }
-                }
+               brand,
+               location,
+               me.id,
+               '[data-gf-theme="fancy"]',
+               {
+                  'meetings_id': meetings_id,
+               }, function (error, result) {
+                  if (error === null) {
+                     callback(result);
+                  }
+               }
             );
         });
     };

@@ -123,8 +123,8 @@
       }
 
       li{
-         height: initial;
-         width:initial;
+         height: initial!important;
+         width:initial!important;
          margin:0;
          
          a{
@@ -421,6 +421,10 @@
             // }
          }
       }
+   }
+
+   .GFSDK-c-login__menu{
+      display:none;
    }
 
    &__empty{

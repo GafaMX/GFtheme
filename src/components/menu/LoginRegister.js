@@ -173,14 +173,20 @@ class LoginRegister extends React.Component {
       if (this.props.setShowRegister) {
          this.props.setShowRegister(false);
       }
-      this.setState({
-         showLogin: false,
-         showRegister: false,
-         showProfile: false,
-         passwordRecovery: false,
-      });
 
-      GlobalStorage.set("me", null);
+      debugger;
+
+      window.location.reload();
+      
+      // this.setState({
+      //    showLogin: false,
+      //    showRegister: false,
+      //    showProfile: false,
+      //    passwordRecovery: false,
+      // });
+
+      // GlobalStorage.set("me", null);
+
    }
 
    errorLogoutCallback(error) {
@@ -225,12 +231,12 @@ class LoginRegister extends React.Component {
    }
 
     render() {
+      let preC = 'GFSDK-c';
+      let preE = 'GFSDK-e';
+      let loginClass = preC + '-login';
+      let buttonClass = preE + '-buttons';
+      let {me} = this.state;
 
-        let preC = 'GFSDK-c';
-        let preE = 'GFSDK-e';
-        let loginClass = preC + '-login';
-        let buttonClass = preE + '-buttons';
-        let {me} = this.state;
 
         const combo = !window.GFtheme.combo_id ? null : window.GFtheme.combo_id;
 

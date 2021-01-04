@@ -25,8 +25,6 @@ class MembershipItem extends React.Component {
       let params = (new URL(document.location)).searchParams;
       let membership_id = parseInt(params.get('membership-id'));
 
-      let gafa = gafa ? gafa : null;
-
       if(locations){
          locations = locations.filter(function(location){
             return membership.brands_id === location.brand.id
@@ -38,7 +36,7 @@ class MembershipItem extends React.Component {
          currentLocation: locations[0],
       })
 
-      if (gafa && membership_id) {
+      if (!typeof gafa === 'undefined' && membership_id) {
          GafaFitSDKWrapper.isAuthenticated(function(auth){
             if (auth) {
                currentElement.showBuyFancybyUrl(membership_id);
@@ -114,7 +112,7 @@ class MembershipItem extends React.Component {
                   const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
             
                   closeFancy.addEventListener('click', function(e){
-                     if(gafa && cleanUrl){
+                     if(!typeof gafa === 'undefined' && cleanUrl){
                         var url = window.location.href.split('?')[0];
                         window.history.pushState("buq-home", "Home", url);
                      }
@@ -149,7 +147,7 @@ class MembershipItem extends React.Component {
       window.GFtheme.brand_slug = brand.slug;
       window.GFtheme.location_slug = locations[0].slug;
       
-      if(!gafa){
+      if(typeof gafa === 'undefined'){
          window.GFtheme.membership_id = this.props.membership.id;
          this.props.setShowRegister(true);
       } else {

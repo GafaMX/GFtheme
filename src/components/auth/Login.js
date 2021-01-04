@@ -103,7 +103,7 @@ class Login extends React.Component {
                !window.GFtheme.location_slug && 
                !window.GFtheme.membership_id &&
                !window.GFtheme.combo_id) {
-                  comp.props.handleClickBack();
+               comp.props.handleClickBack();
          }
       }
    }
@@ -115,44 +115,154 @@ class Login extends React.Component {
    buyComboAfterLogin() {
       let comp = this;
 
+      const fancy = document.querySelector('[data-gf-theme="fancy"]');
+      fancy.classList.add('active');
+
+      setTimeout(function(){
+         fancy.classList.add('show');
+      }, 400);
+
       GafaFitSDKWrapper.getFancyForBuyCombo(
-            window.GFtheme.brand_slug,
-            window.GFtheme.location_slug,
-            window.GFtheme.combo_id, 
-            function (result) {
+         window.GFtheme.brand_slug,
+         window.GFtheme.location_slug,
+         window.GFtheme.combo_id, 
+         function (result) {
             comp.props.handleClickBack();
             window.GFtheme.combo_id = null;
             window.GFtheme.brand_slug = null;
             window.GFtheme.location_slug = null;
-      });
+
+            getFancy();
+
+            function getFancy(){
+               if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
+                  const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+                  
+                  closeFancy.addEventListener('click', function(e){
+                     if(!typeof gafa === 'undefined' && cleanUrl){
+                        var url = window.location.href.split('?')[0];
+                        window.history.pushState("buq-home", "Home", url);
+                     }
+
+                     fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+                     fancy.classList.remove('show');
+                     
+                     setTimeout(function(){
+                        fancy.classList.remove('active');
+                        fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+                     }, 400);
+                     
+                     comp.setState({
+                        openFancy: false,
+                     });
+                     
+                  })
+               } else {
+                  setTimeout(getFancy, 1000);
+               }
+            }
+
+         }
+      );
    }
 
    buyMembershipAfterLogin() {
       let comp = this;
+
+      const fancy = document.querySelector('[data-gf-theme="fancy"]');
+      fancy.classList.add('active');
+
+      setTimeout(function(){
+         fancy.classList.add('show');
+      }, 400);
+
       GafaFitSDKWrapper.getFancyForBuyMembership(
          window.GFtheme.brand_slug,
          window.GFtheme.location_slug,
          window.GFtheme.membership_id,
          function (result) {
-         comp.props.handleClickBack();
-         window.GFtheme.membership_id = null;
-         window.GFtheme.brand_slug = null;
-         window.GFtheme.location_slug = null;
-      });
+            comp.props.handleClickBack();
+            window.GFtheme.membership_id = null;
+            window.GFtheme.brand_slug = null;
+            window.GFtheme.location_slug = null;
+
+            getFancy();
+
+            function getFancy(){
+               if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
+                  const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+            
+                  closeFancy.addEventListener('click', function(e){
+                     if(!typeof gafa === 'undefined' && cleanUrl){
+                        var url = window.location.href.split('?')[0];
+                        window.history.pushState("buq-home", "Home", url);
+                     }
+
+                     fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+                     fancy.classList.remove('show');
+
+                     setTimeout(function(){
+                        fancy.classList.remove('active');
+                        fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+                     }, 400);
+
+                     comp.setState({
+                        openFancy: false,
+                     })
+                  })
+               } else {
+                  setTimeout(getFancy, 1000);
+               }
+            }
+         }
+      );
    }
 
    reserveMeetingAfterLogin() {
       let comp = this;
+
+      const fancy = document.querySelector('[data-gf-theme="fancy"]');
+      fancy.classList.add('active');
+
+      setTimeout(function(){
+         fancy.classList.add('show');
+      }, 400);
+
       GafaFitSDKWrapper.getFancyForMeetingReservation(
          window.GFtheme.brand_slug, 
          window.GFtheme.location_slug, 
          window.GFtheme.meetings_id, 
          function (result) {
-         comp.props.handleClickBack();
-         window.GFtheme.meetings_id = null;
-         window.GFtheme.location_slug = null;
-         window.GFtheme.brand_slug = null;
-      });
+            comp.props.handleClickBack();
+            window.GFtheme.meetings_id = null;
+            window.GFtheme.location_slug = null;
+            window.GFtheme.brand_slug = null;
+            getFancy();
+
+            function getFancy(){
+               if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
+                  const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+                  closeFancy.addEventListener('click', function(e){
+
+                     if(!typeof gafa === 'undefined' && cleanUrl){
+                        var url = window.location.href.split('?')[0];
+                        window.history.pushState("buq-home", "Home", url);
+                     }
+
+                     fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+                     fancy.classList.remove('show');
+
+                     setTimeout(function(){
+                        fancy.classList.remove('active');
+                        fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+                     }, 400);
+                  })
+               } else {
+                  setTimeout(getFancy, 1000);
+               }
+            }
+         }
+      );
    }
 
     render() {

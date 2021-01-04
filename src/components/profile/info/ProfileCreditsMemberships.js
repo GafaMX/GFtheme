@@ -36,9 +36,7 @@ class ProfileCreditsMemberships extends React.Component {
       let comp = this;
       let memberships, credits;
 
-      let gafa = gafa ? gafa : null;
-
-      if(!gafa){
+      if(typeof gafa === 'undefined'){
          memberships = GlobalStorage.get('me').memberships;
          credits = GlobalStorage.get('me').credits;
          comp.setWalletState(credits, memberships)
