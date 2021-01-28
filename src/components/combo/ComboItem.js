@@ -186,6 +186,11 @@ class ComboItem extends React.Component {
                   </p>
                </div>
 
+               {this.props.combo.short_description &&
+                  <p className={'this-shortDescription'}>{this.props.combo.short_description}</p>
+               }
+
+
                <button style={{ pointerEvents: openFancy ? 'none' : 'auto' }} className="buq-accentColor" onClick={openFancy ? null :this.handleClick.bind(this)}> Comprar </button>
 
             </div>
