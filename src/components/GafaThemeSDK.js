@@ -28,9 +28,10 @@ import "../styles/newlook/reset.scss";
 import "../styles/newlook/fancy.scss";
 
 class GafaThemeSDK extends React.Component {
-   constructor(props) {
-      super(props);
-   }
+    constructor(props) {
+        super(props);
+        
+    }
 
     static propsForPagedListComponent(result) {
         return {

@@ -1,17 +1,22 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 
-var selection = document.querySelector('[data-gf-options]');
 
-if (selection !== null) {
+// if(!jQuery){
+//     import jQuery from 'jquery';
+//     window.jQuery = window.$ = jQuery;
+// }
+
+let gafa = gafa ? gafa : null;
+
+if(!gafa){
    window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 }
 
-
-
 GafaFitSDKWrapper.initValues(
    () => {
-      if(typeof gafa === 'undefined'){
+
+      if(!gafa){
          GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
          GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
          GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
