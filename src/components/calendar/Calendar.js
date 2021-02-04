@@ -63,7 +63,6 @@ class Calendar extends React.Component {
       let preFilterStaff = 'Todos';
       let preFilterService = 'Todos';
 
-      let gafa = gafa ? gafa : null;
       
       let params = (new URL(document.location)).searchParams;
       let memberParams;

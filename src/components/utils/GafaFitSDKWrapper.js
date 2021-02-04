@@ -12,8 +12,6 @@ class GafaFitSDKWrapper extends React.Component {
 
    static initValues(callback) {
 
-      let gafa = gafa ? gafa : null;
-
       window.GFtheme = {};
 
       if (window.GFThemeOptions != null) {

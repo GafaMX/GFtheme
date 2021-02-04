@@ -25,8 +25,6 @@ class MembershipItem extends React.Component {
       let params = (new URL(document.location)).searchParams;
       let membership_id = parseInt(params.get('membership-id'));
 
-      let gafa = gafa ? gafa : null;
-
       if(locations){
          locations = locations.filter(function(location){
             return membership.brands_id === location.brand.id
