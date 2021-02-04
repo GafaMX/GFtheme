@@ -21,7 +21,6 @@ class ComboItem extends React.Component {
       let currentElement = this;
       let {combo} = this.props;
       let locations = GlobalStorage.get('locations');
-
       let params = (new URL(document.location)).searchParams;
       let combo_id = parseInt(params.get('combo-id'));
 
@@ -75,7 +74,7 @@ class ComboItem extends React.Component {
             fancy.classList.add('show');
          }, 400);
          
-         comp.getFancyForCombo(combo, currentBrand ,currentLocation, fancy , true);
+         comp.getFancyForCombo(combo, currentBrand ,currentLocation, fancy);
       }
    }
 
@@ -95,10 +94,10 @@ class ComboItem extends React.Component {
          fancy.classList.add('show');
       }, 400);
 
-      comp.getFancyForCombo(combo, currentBrand ,currentLocation, fancy, false);
+      comp.getFancyForCombo(combo, currentBrand ,currentLocation, fancy);
    }
 
-   getFancyForCombo(combo, currentBrand, currentLocation, fancySelector , cleanUrl){
+   getFancyForCombo(combo, currentBrand, currentLocation, fancySelector){
       let comp = this;
 
       GafaFitSDKWrapper.getFancyForBuyCombo(
@@ -113,7 +112,7 @@ class ComboItem extends React.Component {
                   const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
                   
                   closeFancy.addEventListener('click', function(e){
-                     if(gafa && cleanUrl){
+                     if(gafa){
                         var url = window.location.href.split('?')[0];
                         window.history.pushState("buq-home", "Home", url);
                      }
