@@ -15,20 +15,7 @@ class CalendarMeeting extends React.Component {
          openFancy: false,
       }
    }
-   
-   componentDidMount(){
-      let currentElement = this;
-      let params = (new URL(document.location)).searchParams;
-      let reservation_id = parseInt(params.get('reservation-id'));
 
-      if (gafa && reservation_id) {
-         GafaFitSDKWrapper.isAuthenticated(function(auth){
-            if (auth) {
-               currentElement.showReserveFancybyUrl(reservation_id);
-            }
-         });
-      };
-   }
 
    handleClick(event) {
       event.preventDefault();
@@ -42,26 +29,6 @@ class CalendarMeeting extends React.Component {
          }
       });
    };
-
-   showReserveFancybyUrl(reservation_id) {
-      let comp = this;
-      let meeting = this.props.meeting;
-
-      if(reservation_id === meeting.id){
-         const fancy = document.querySelector('[data-gf-theme="fancy"]');
-         fancy.classList.add('active');
-         
-         comp.setState({
-            openFancy: true,
-         });
-
-         setTimeout(function(){
-            fancy.classList.add('show');
-         }, 400);
-         
-         comp.getFancyForReservation(meeting, fancy, true);
-      }
-   }
 
    showBuyFancyForLoggedUsers() {
       let comp = this;
@@ -78,47 +45,40 @@ class CalendarMeeting extends React.Component {
          fancy.classList.add('show');
       }, 400);
 
-      comp.getFancyForReservation(meeting, fancy, false);
-   }
+      if (meeting) {
 
+         GafaFitSDKWrapper.getFancyForMeetingReservation(
+            meeting.location.brand.slug, 
+            meeting.location.slug, 
+            meeting.id, 
+            function (result) {
+               getFancy();
 
-   getFancyForReservation(meeting, fancySelector , cleanUrl){
-      let comp = this;
-      GafaFitSDKWrapper.getFancyForMeetingReservation(
-         meeting.location.brand.slug, 
-         meeting.location.slug, 
-         meeting.id, 
-         function (result) {
-            getFancy();
+               function getFancy(){
+                  if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
+                     const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+                     
+                     closeFancy.addEventListener('click', function(e){
+                        fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
 
-            function getFancy(){
-               if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
-                  const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
-                  
-                  closeFancy.addEventListener('click', function(e){
-                     if(gafa && cleanUrl){
-                        var url = window.location.href.split('?')[0];
-                        window.history.pushState("buq-home", "Home", url);
-                     }
+                        fancy.classList.remove('show');
 
-                     fancySelector.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
-                     fancySelector.classList.remove('show');
+                        setTimeout(function(){
+                           fancy.classList.remove('active');
+                           fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+                        }, 400);
 
-                     setTimeout(function(){
-                        fancySelector.classList.remove('active');
-                        fancySelector.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
-                     }, 400);
-
-                     comp.setState({
-                        openFancy: false,
+                        comp.setState({
+                           openFancy: false,
+                        })
                      })
-                  })
-               } else {
-                  setTimeout(getFancy, 1000);
+                  } else {
+                     setTimeout(getFancy, 1000);
+                  }
                }
             }
-         }
-      );
+         );
+      }
    }
 
    showLoginForNotLoggedUsers() {
@@ -130,17 +90,11 @@ class CalendarMeeting extends React.Component {
    }
 
    showRegisterForNotLoggedUsers() {
+      window.GFtheme.meetings_id = this.props.meeting.id;
       window.GFtheme.location_slug = this.props.meeting.location.slug;
       window.GFtheme.brand_slug = this.props.meeting.location.brand.slug;
-      
-      if(!gafa){
-         let register = CalendarStorage.get('show_register');
-         window.GFtheme.meetings_id = this.props.meeting.id;
-         register(true);
-      } else {
-         let reservation_url = gafa.b_login + '?reservation-id=' + this.props.meeting.id;
-         window.location.replace(reservation_url);
-      }
+      let register = CalendarStorage.get('show_register');
+      register(true);
    }
 
     render() {
