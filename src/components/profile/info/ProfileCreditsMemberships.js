@@ -28,30 +28,10 @@ class ProfileCreditsMemberships extends React.Component {
       GlobalStorage.addSegmentedListener(['me'], this.updatePurchase.bind(this));
    }
 
-   componentDidMount(){
-      this.updatePurchase();
-   }
-
    updatePurchase(){
       let comp = this;
-      let memberships, credits;
+      let {credits, memberships} = GlobalStorage.get('me');
 
-      if(!gafa){
-         memberships = GlobalStorage.get('me').memberships;
-         credits = GlobalStorage.get('me').credits;
-         comp.setWalletState(credits, memberships)
-      } else {
-         GafaFitSDKWrapper.getMeWithPurchase(function (result) {
-            memberships = result.memberships;
-            credits = result.credits;
-            comp.setWalletState(credits, memberships)
-         });
-      }
-   }
-   
-   setWalletState(credits, memberships){
-      let comp = this;
-      
       if(credits && memberships){
          setTimeout(function(){
             comp.setState({

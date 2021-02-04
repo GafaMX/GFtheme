@@ -18,7 +18,6 @@ class MembershipItem extends React.Component {
    }
 
    componentDidMount(){
-      let currentElement = this;
       let {membership} = this.props;
       let locations = GlobalStorage.get('locations');
 
