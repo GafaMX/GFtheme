@@ -7,21 +7,15 @@ import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 //     window.jQuery = window.$ = jQuery;
 // }
 
-if(!gafa){
-   window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
-}
+window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 
 GafaFitSDKWrapper.initValues(
    () => {
-
-      if(!gafa){
-         GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
-         GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
-         GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
-         GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
-         GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
-      }
-      
+      GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
+      GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
+      GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
+      GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
+      GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
 
       // Render miembros de staff
       GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');
