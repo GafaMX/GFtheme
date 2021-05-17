@@ -214,8 +214,8 @@ class MembershipItem extends React.Component {
                         </p>
                     </div>
 
-                    {this.props.combo.short_description &&
-                    <p className={'this-shortDescription'}>{this.props.combo.short_description}</p>
+                    {this.props.membership.short_description &&
+                    <p className={'this-shortDescription'}>{this.props.membership.short_description}</p>
                     }
 
                     <button style={{pointerEvents: openFancy ? 'none' : 'auto'}} className="buq-accentColor"
