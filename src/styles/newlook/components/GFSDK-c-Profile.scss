@@ -1,342 +1,345 @@
 @import '../base/variables.scss';
 
-.#{$pre}-c-profile
-{
-   
-   &__tab-content{
-      width:100%;
-      
-      #ProfileTabs-pane-2{
-         background-color: white;
-      }
-   
-      &:focus{
-         outline:none;
-      }
+.pastClass-item__body {
+  margin-top: 0px !important;
+}
+
+.#{$pre}-c-profile {
+
+  &__tab-content {
+    width: 100%;
+
+    #ProfileTabs-pane-2 {
+      background-color: white;
     }
 
-   &__tab-section{
-      display: grid;
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__tab-section {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 20px;
+    align-items: center;
+    height: 230px;
+    width: 100%;
+
+    & > .this-title {
+      display: block;
+      float: left;
+      width: 20px;
+      height: 100%;
+      font-weight: 400;
+      margin: 0;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #C9C9CD;
+      font-size: 12px;
+      text-align: center;
+      writing-mode: vertical-lr;
+      transform: rotate(180deg);
+    }
+
+    & > [class*="section"] {
+      display: inline-block;
+    }
+  }
+
+  &__form {
+    display: grid;
+    align-items: start;
+    row-gap: 15px;
+
+    &.is-UserConf {
+      // grid-template-rows: 1fr auto 1fr auto 1fr auto;
+    }
+
+    &.is-ChangePassword {
+      grid-template-rows: auto auto;
+      height: initial;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    // &.is{}
+  }
+
+  &__section {
+    display: grid;
+    padding: 15px 20px 15px 0px;
+    row-gap: 15px;
+    column-gap: 15px;
+
+    @media screen and (min-width: 992px) {
+      padding: 15px 10px 15px 0px;
+    }
+
+    h4 {
+      color: #707073;
+      letter-spacing: 0.85px;
+      font-size: 19px;
+      margin: 0;
+      line-height: 22px;
+    }
+
+    &.is-user, &.is-contact {
       grid-template-columns: auto 1fr;
-      column-gap: 20px;
+      grid-template-rows: repeat(4, 1fr);
+      column-gap: 25px;
+      justify-items: start;
+      align-items: start;
+      // overflow:hidden;
+
+      @media screen and (min-width: 992px) {
+        grid-auto-flow: initial;
+        grid-template-rows: 1fr 1fr;
+        grid-template-columns: auto 1fr 1fr;
+      }
+
+      h4 {
+        width: 100%;
+        writing-mode: vertical-lr;
+        grid-row: 1/5;
+        grid-column: 1/2;
+        color: #C9C9CD;
+        font-size: 12px;
+        font-weight: 400;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        transform: rotate(180deg);
+
+        @media screen and (min-width: 992px) {
+          grid-column: 1/2;
+          grid-row: 1/3;
+        }
+      }
+    }
+
+    &.is-addCard {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+
+      @media screen and (min-width: 768px) {
+        grid-template-columns: repeat(6, 1fr);
+      }
+
+      & > .is-CardNumber {
+        grid-row: 1;
+        grid-column: 1/4;
+        @media screen and (min-width: 768px) {
+          grid-column: 1/4;
+        }
+      }
+      & > .is-CardExpMonth {
+        grid-row: 2;
+        grid-column: 1/2;
+        @media screen and (min-width: 768px) {
+          grid-row: 1;
+          grid-column: 4/5;
+        }
+      }
+      & > .is-CardExpYear {
+        grid-row: 2;
+        grid-column: 2/3;
+        @media screen and (min-width: 768px) {
+          grid-row: 1;
+          grid-column: 5/6;
+        }
+      }
+      & > .is-CardCVC {
+        grid-row: 2;
+        grid-column: 3/4;
+        @media screen and (min-width: 768px) {
+          grid-row: 1;
+          grid-column: 6/7;
+        }
+      }
+      & > .is-CardName {
+        grid-row: 3;
+        grid-column: 1/4;
+        @media screen and (min-width: 768px) {
+          grid-row: 2;
+          grid-column: 1/4;
+        }
+      }
+      & > .is-CardPhone {
+        grid-row: 4;
+        grid-column: 1/4;
+        @media screen and (min-width: 768px) {
+          grid-row: 2;
+          grid-column: 4/7;
+        }
+      }
+    }
+
+    &.is-payment {
+      display: inline-grid;
+      grid-template-columns: auto 1fr;
+      column-gap: 25px;
+      justify-items: start;
+      align-items: start;
+      width: 100%;
+
+      h4 {
+        width: 100%;
+        writing-mode: vertical-lr;
+        grid-row: 1/5;
+        grid-column: 1/2;
+        color: #C9C9CD;
+        font-size: 12px;
+        font-weight: 400;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        transform: rotate(180deg);
+
+        @media screen and (min-width: 992px) {
+          grid-column: 1/2;
+          grid-row: 1/3;
+        }
+      }
+    }
+
+    &.is-contact {
+      grid-template-rows: repeat(3, 1fr);
+
+      @media screen and (min-width: 992px) {
+        grid-template-rows: repeat(2, 1fr);
+      }
+    }
+
+    &.is-futureClass, &.is-pastClass, &.is-buyOverall {
+      position: relative;
+      display: grid;
       align-items: center;
-      height: 230px;
-      width:100%;
+      justify-content: start;
+      column-gap: 20px;
+      row-gap: 0px;
+      width: 100%;
+      height: 100%;
+      overflow-x: auto;
+      padding: 0px;
 
-      & > .this-title{
-         display: block;
-         float: left;
-         width:20px;
-         height: 100%;
-         font-weight:400;
-         margin:0;
-         letter-spacing: 0.8px;
-         text-transform: uppercase;
-         color:#C9C9CD;
-         font-size: 12px;
-         text-align: center;
-         writing-mode: vertical-lr;
-         transform: rotate(180deg);
+      &::-webkit-scrollbar {
+        height: 8px;
       }
 
-      & > [class*="section"]{
-         display: inline-block;
+      /* Track */
+      &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 5px;
       }
-   }
 
-    &__form{
-        display: grid;
-        align-items: start;
-        row-gap: 15px;
-        
-        &.is-UserConf{
-            // grid-template-rows: 1fr auto 1fr auto 1fr auto;
+      /* Handle */
+      &::-webkit-scrollbar-thumb {
+        background: #C9C9CD;
+        border-radius: 5px;
+      }
+
+      /* Handle on hover */
+      &::-webkit-scrollbar-thumb:hover {
+        // background: #FF3E4F!important;
+      }
+
+      @media screen and (min-width: 992px) {
+        padding: 0px;
+      }
+
+      .is-empty {
+        display: inline-grid;
+        align-items: center;
+        padding: 20px;
+        justify-items: left;
+        width: 100%;
+        height: 180px;
+
+        h3, p {
+          color: #C9C9CD;
+          text-align: left;
+          letter-spacing: 1.15px;
         }
 
-        &.is-ChangePassword{
-            grid-template-rows: auto auto;
-            height:initial;
+        h3 {
+          font-weight: 400;
+          width: 160px;
+          font-size: 16px;
+          line-height: 1.4;
+          margin: 0;
         }
-
-        &:focus{
-            outline:none;
+        p {
+          font-size: 12px;
+          width: 160px;
+          line-height: 1.4;
+          margin: 10px 0;
         }
-
-        // &.is{}
+      }
     }
 
-    &__section{
-        display: grid;
-        padding: 15px 20px 15px 0px;
-        row-gap: 15px;
-        column-gap: 15px;
-        
-        @media screen and (min-width:992px) {
-            padding: 15px 10px 15px 0px;
+    &.is-password {
+      padding-left: 40px;
+
+      @media screen and (min-width: 992px) {
+        grid-template-columns: 1fr 1fr;
+        padding: 0;
+      }
+
+      h4 {
+        width: 100%;
+        writing-mode: vertical-rl;
+        color: #C9C9CD;
+        font-size: 12px;
+        letter-spacing: 0.8px;
+        line-height: 16px;
+        height: 60px;
+        text-transform: uppercase;
+        transform: rotate(180deg);
+        @media screen and (min-width: 992px) {
+          grid-column: 1/2;
+          grid-row: 1/2;
         }
-
-        h4{
-            color:#707073;
-            letter-spacing: 0.85px;
-            font-size:19px;
-            margin: 0;
-            line-height: 22px;
-        }
-
-        &.is-user, &.is-contact{
-            grid-template-columns:auto 1fr;
-            grid-template-rows: repeat(4, 1fr);
-            column-gap: 25px;
-            justify-items: start;
-            align-items: start;
-            // overflow:hidden;
-            
-            @media screen and (min-width:992px) {
-               grid-auto-flow: initial;
-               grid-template-rows: 1fr 1fr;
-               grid-template-columns: auto 1fr 1fr;
-            }
-
-            h4{
-                width:100%;
-                writing-mode: vertical-lr;
-                grid-row: 1/5;
-                grid-column: 1/2;
-                color: #C9C9CD;
-                font-size: 12px;
-                font-weight: 400;
-                letter-spacing: 0.8px;
-                text-transform: uppercase;
-                transform: rotate(180deg);
-
-                @media screen and (min-width:992px) {
-                    grid-column: 1/2;
-                    grid-row: 1/3;
-                }
-            }
-        }
-
-        &.is-addCard{
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            
-            @media screen and (min-width:768px){
-                grid-template-columns: repeat(6, 1fr);
-            }
-
-            & > .is-CardNumber{
-                grid-row: 1;
-                grid-column: 1/4;
-                @media screen and (min-width:768px){
-                    grid-column: 1/4;
-                }
-            }
-            & > .is-CardExpMonth{
-                grid-row: 2;
-                grid-column: 1/2;
-                @media screen and (min-width:768px){
-                    grid-row: 1;
-                    grid-column: 4/5;
-                }
-            }
-            & > .is-CardExpYear{
-                grid-row: 2;
-                grid-column: 2/3;
-                @media screen and (min-width:768px){
-                    grid-row: 1;
-                    grid-column: 5/6;
-                }
-            }
-            & > .is-CardCVC{
-                grid-row: 2;
-                grid-column: 3/4;
-                @media screen and (min-width:768px){
-                    grid-row: 1;
-                    grid-column: 6/7;
-                }
-            }
-            & > .is-CardName{
-                grid-row: 3;
-                grid-column: 1/4;
-                @media screen and (min-width:768px){
-                    grid-row: 2;
-                    grid-column: 1/4;
-                }
-            }
-            & > .is-CardPhone{
-                grid-row: 4;
-                grid-column: 1/4;
-                @media screen and (min-width:768px){
-                    grid-row: 2;
-                    grid-column: 4/7;
-                }
-            }
-        }
-
-        &.is-payment{
-            display:inline-grid;
-            grid-template-columns:auto 1fr;
-            column-gap: 25px;
-            justify-items: start;
-            align-items: start;
-            width:100%;
-
-            h4{
-                width:100%;
-                writing-mode: vertical-lr;
-                grid-row: 1/5;
-                grid-column: 1/2;
-                color: #C9C9CD;
-                font-size: 12px;
-                font-weight: 400;
-                letter-spacing: 0.8px;
-                text-transform: uppercase;
-                transform: rotate(180deg);
-
-                @media screen and (min-width:992px) {
-                    grid-column: 1/2;
-                    grid-row: 1/3;
-                }
-            }
-        }
-
-        &.is-contact{
-            grid-template-rows: repeat(3, 1fr);
-
-            @media screen and (min-width: 992px) {
-                grid-template-rows: repeat(2, 1fr);
-            }
-        }
-
-        &.is-futureClass, &.is-pastClass, &.is-buyOverall{
-            position: relative;
-            display: grid;
-            align-items: center;
-            justify-content: start;
-            column-gap: 20px;
-            row-gap: 0px;
-            width:100%;
-            height: 100%;
-            overflow-x: auto;
-            padding:0px;
-
-            &::-webkit-scrollbar {
-               height: 8px;
-            }
-            
-            /* Track */
-            &::-webkit-scrollbar-track {
-               background: #f1f1f1;
-               border-radius: 5px;
-            }
-            
-            /* Handle */
-            &::-webkit-scrollbar-thumb {
-               background: #C9C9CD;
-               border-radius: 5px;
-            }
-            
-            /* Handle on hover */
-            &::-webkit-scrollbar-thumb:hover {
-               // background: #FF3E4F!important;
-            }
-
-            @media screen and (min-width:992px) {
-                padding: 0px;
-            }
-
-            .is-empty{
-                display: inline-grid;
-                align-items: center;
-                padding:20px;
-                justify-items: left;
-                width:100%;
-                height:180px;
-
-                h3, p{
-                    color:#C9C9CD;
-                    text-align: left;
-                    letter-spacing: 1.15px;
-                }
-
-                h3{
-                    font-weight: 400;
-                    width:160px;
-                    font-size: 16px;
-                    line-height: 1.4;
-                    margin:0;
-                }
-                p{
-                    font-size: 12px;
-                    width:160px;
-                    line-height: 1.4;
-                    margin:10px 0;
-                }
-            }
-        }
-
-        &.is-password{
-            padding-left: 40px;
-            
-            @media screen and (min-width:992px) {
-                grid-template-columns: 1fr 1fr;
-                padding:0;
-            }
-            
-            h4{
-                width:100%;
-                writing-mode: vertical-rl;
-                color: #C9C9CD;
-                font-size: 12px;
-                letter-spacing: 0.8px;
-                line-height: 16px;
-                height:60px;
-                text-transform: uppercase;
-                transform: rotate(180deg);
-                @media screen and (min-width:992px) {
-                    grid-column: 1/2;
-                    grid-row: 1/2;
-                }
-            }
-        }
-
-        &.is-address{
-            grid-template-columns:auto 1fr;
-            justify-items: start;
-            align-items: start;
-            column-gap: 25px;
-            // overflow: hidden;
-            
-            @media screen and (min-width:992px) {
-                grid-auto-flow: initial;
-                grid-template-rows: 1fr 1fr;
-                grid-template-columns: auto 2fr 1fr 1fr;
-                justify-items: start;
-            }
-
-            h4{
-                width:100%;
-                writing-mode: vertical-lr;
-                color: #C9C9CD;
-                font-size: 12px;
-                grid-column: 1/2;
-                grid-row: 1/9;
-                letter-spacing: 0.8px;
-                text-transform: uppercase;
-                transform: rotate(180deg);
-                @media screen and (min-width:992px) {
-                    grid-column: 1/2;
-                    grid-row: 1/5;
-                }
-            }
-        }
-
-        &.is-save{
-           overflow: hidden;
-            grid-template-columns: 1fr auto 1fr;
-            [class*="buttons"]{
-                grid-column: 2/3;
-            }
-        }
+      }
     }
+
+    &.is-address {
+      grid-template-columns: auto 1fr;
+      justify-items: start;
+      align-items: start;
+      column-gap: 25px;
+      // overflow: hidden;
+
+      @media screen and (min-width: 992px) {
+        grid-auto-flow: initial;
+        grid-template-rows: 1fr 1fr;
+        grid-template-columns: auto 2fr 1fr 1fr;
+        justify-items: start;
+      }
+
+      h4 {
+        width: 100%;
+        writing-mode: vertical-lr;
+        color: #C9C9CD;
+        font-size: 12px;
+        grid-column: 1/2;
+        grid-row: 1/9;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        transform: rotate(180deg);
+        @media screen and (min-width: 992px) {
+          grid-column: 1/2;
+          grid-row: 1/5;
+        }
+      }
+    }
+
+    &.is-save {
+      overflow: hidden;
+      grid-template-columns: 1fr auto 1fr;
+      [class*="buttons"] {
+        grid-column: 2/3;
+      }
+    }
+  }
 }
