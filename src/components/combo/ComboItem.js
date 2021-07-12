@@ -168,6 +168,7 @@ class ComboItem extends React.Component {
         let {combo} = this.props;
         let {openFancy} = this.state;
         // const services = this.getServicesAndParentsForCombo();
+        let currency = GlobalStorage.getBrandCurrency(combo.brand);
 
         return (
             <div className={comboClass + 'item ' + productClass}>
@@ -179,14 +180,14 @@ class ComboItem extends React.Component {
                     <div>
                         <div className="this-price has-discount">
                             <p>
-                                ${formatMoney(this.props.combo.price, 0)} MXN
+                                ${formatMoney(this.props.combo.price, 0)} {currency.sufijo}
                             </p>
                         </div>
                     </div>
                     }
                     <div className="this-price has-total">
                         <p>
-                            ${formatMoney(this.props.combo.price_final, 0)} MXN
+                            ${formatMoney(this.props.combo.price_final, 0)} {currency.sufijo}
                         </p>
                     </div>
 
