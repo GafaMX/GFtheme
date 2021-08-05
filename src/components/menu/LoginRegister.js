@@ -40,6 +40,12 @@ class LoginRegister extends React.Component {
       this.handleClickLogout = this.handleClickLogout.bind(this);
    }
 
+   get defaultProps(){
+      return {
+         initial: 'login'
+      };
+   }
+
    componentDidMount() {
       const query = new URLSearchParams(window.location.search);
       const token = query.get('token');
@@ -231,6 +237,7 @@ class LoginRegister extends React.Component {
         let loginClass = preC + '-login';
         let buttonClass = preE + '-buttons';
         let {me} = this.state;
+       let initial=this.props.initial;
 
         const combo = !window.GFtheme.combo_id ? null : window.GFtheme.combo_id;
 
@@ -239,7 +246,10 @@ class LoginRegister extends React.Component {
                 <div className={loginClass + '__menu-nav'}>
                     {this.state.triggeredByLogin || this.state.triggeredByRegister
                         ?  (!this.state.me
-                              ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
+                                ?   <div
+                                    className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'}
+                                    onClick={initial==='register' ? this.handleClickRegister.bind(this) : this.handleClickLogin.bind(this)}
+                                >
                                     <IconRunningMan />
                                  </div>
                               :   <div onClick={this.handleClickProfile.bind(this)}>

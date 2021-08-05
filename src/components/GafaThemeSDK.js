@@ -289,7 +289,11 @@ class GafaThemeSDK extends React.Component {
       let domContainers = document.querySelectorAll(selector);
 
       if (domContainers.length > 0) {
-         GafaThemeSDK.renderElementIntoContainers(domContainers, LoginRegister, {});
+         domContainers.forEach(function (domContainer) {
+            let initial = domContainer.getAttribute("data-gf-initial") ? domContainer.getAttribute("data-gf-initial") : 'login';
+
+            GafaThemeSDK.renderElementIntoContainer(domContainer, LoginRegister, {initial: initial});
+         });
       }
    };
 }
