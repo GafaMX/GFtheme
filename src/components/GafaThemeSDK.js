@@ -150,13 +150,13 @@ class GafaThemeSDK extends React.Component {
       brands.forEach(function(brand){
          GafaFitSDKWrapper.getStaffList(
          brand.slug,
-         {per_page: 1000, }, 
+         {per_page: 1000, },
          function (result) {
             result.data.forEach(function(person){
                person.brand = brand;
                staff.push(person);
             });
-            GlobalStorage.set('staff', staff);   
+            GlobalStorage.set('staff', staff);
          });
       });
    };
@@ -181,7 +181,7 @@ class GafaThemeSDK extends React.Component {
             , function (result) {
                services = services.concat(result.data);
                GlobalStorage.set('services', services);
-            }   
+            }
          );
       });
    };
@@ -198,7 +198,7 @@ class GafaThemeSDK extends React.Component {
             let byBrand = domContainer.getAttribute("data-buq-brand");
             props.filterByName = byName;
             props.filterByBrand = byBrand;
-            
+
             GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
          });
       }
@@ -232,7 +232,7 @@ class GafaThemeSDK extends React.Component {
       brands.forEach(function(brand){
          GafaFitSDKWrapper.getMembershipList(
             brand.slug,
-            {per_page: 10000, only_actives: true, propagate: true}, 
+            {per_page: 10000, only_actives: true, propagate: true},
             function (result) {
                result.data.forEach(function(item){
                   item.brand = brand;
@@ -268,7 +268,7 @@ class GafaThemeSDK extends React.Component {
                   limit = limit;
                }
             }
-   
+
             let props = {
                'limit': limit,
                'filter_service': filterService,
@@ -286,7 +286,7 @@ class GafaThemeSDK extends React.Component {
       locations.forEach(function (location) {
          let start_date = moment().toDate();
          let end_date = moment().toDate();
-         
+
          start_date = !location.date_start ? start_date : moment(location.date_start).toDate();
          end_date.setDate(start_date.getDate() + (location.calendar_days - 1));
 
@@ -336,7 +336,11 @@ class GafaThemeSDK extends React.Component {
       let domContainers = document.querySelectorAll(selector);
 
       if (domContainers.length > 0) {
-         GafaThemeSDK.renderElementIntoContainers(domContainers, LoginRegister, {});
+         domContainers.forEach(function (domContainer) {
+            let initial = domContainer.getAttribute("data-gf-initial") ? domContainer.getAttribute("data-gf-initial") : 'login';
+
+            GafaThemeSDK.renderElementIntoContainer(domContainer, LoginRegister, {initial: initial});
+         });
       }
    };
 }
