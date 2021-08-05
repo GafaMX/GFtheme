@@ -40,6 +40,12 @@ class LoginRegister extends React.Component {
       this.handleClickLogout = this.handleClickLogout.bind(this);
    }
 
+   get defaultProps(){
+      return {
+         initial: 'login'
+      };
+   }
+
    componentDidMount() {
       const query = new URLSearchParams(window.location.search);
       const token = query.get('token');
@@ -161,8 +167,8 @@ class LoginRegister extends React.Component {
       if(token && email){
          location.replace(window.location.origin);
       }
-      
-   } 
+
+   }
 
    successLogoutCallback(result) {
 
@@ -177,7 +183,7 @@ class LoginRegister extends React.Component {
       debugger;
 
       window.location.reload();
-      
+
       // this.setState({
       //    showLogin: false,
       //    showRegister: false,
@@ -236,6 +242,7 @@ class LoginRegister extends React.Component {
       let loginClass = preC + '-login';
       let buttonClass = preE + '-buttons';
       let {me} = this.state;
+      let initial=this.props.initial;
 
 
         const combo = !window.GFtheme.combo_id ? null : window.GFtheme.combo_id;
@@ -245,11 +252,14 @@ class LoginRegister extends React.Component {
                 <div className={loginClass + '__menu-nav'}>
                     {this.state.triggeredByLogin || this.state.triggeredByRegister
                         ?  (!this.state.me
-                              ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'} onClick={this.handleClickRegister.bind(this)}>
+                              ?   <div
+                                    className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary not-logged'}
+                                    onClick={initial==='register' ? this.handleClickRegister.bind(this) : this.handleClickLogin.bind(this)}
+                                >
                                     <IconRunningMan />
                                  </div>
                               :   <div onClick={this.handleClickProfile.bind(this)}>
-                                    {this.state.me != null 
+                                    {this.state.me != null
                                        ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
                                              <IconRunningMan />
                                           </div>
@@ -262,7 +272,7 @@ class LoginRegister extends React.Component {
                     }
 
                      <Modal className="modal-login" show={this.state.showLogin} onHide={this.handleClickBack.bind(this)}>
-                        <div className="modal-login__container">  
+                        <div className="modal-login__container">
                            <div className="modal-login__close" onClick={this.handleClickBack.bind(this)}>
                               <CloseIcon />
                            </div>
@@ -270,9 +280,9 @@ class LoginRegister extends React.Component {
                                  <Modal.Title className="section-title container">{Strings.BUTTON_LOGIN}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-login__body">
-                                 <Login 
-                                    triggeredByLogin={this.state.triggeredByLogin} 
-                                    handleClickBack={this.handleClickBack.bind(this)} 
+                                 <Login
+                                    triggeredByLogin={this.state.triggeredByLogin}
+                                    handleClickBack={this.handleClickBack.bind(this)}
                                     successCallback={this.successLoginCallback.bind(this)}
                                  />
                            </Modal.Body>
@@ -296,14 +306,14 @@ class LoginRegister extends React.Component {
                         <div className="modal-register__container">
                            <div className="modal-register__close" onClick={this.handleClickBack.bind(this)}>
                               <CloseIcon />
-                           </div>  
+                           </div>
                            <Modal.Header className="modal-register__header">
                                  <Modal.Title className="section-title container">{Strings.BUTTON_REGISTER}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-register__body">
-                                 <Register 
+                                 <Register
                                     triggeredByRegister={this.state.triggeredByRegister}
-                                    handleClickBack={this.handleClickBack.bind(this)} 
+                                    handleClickBack={this.handleClickBack.bind(this)}
                                     successCallback={this.successLoginCallback.bind(this)}
                                  />
                            </Modal.Body>
@@ -328,11 +338,11 @@ class LoginRegister extends React.Component {
                               <div className="profile-content">
                                  <div className="modal-profile__close" onClick={this.handleClickBack.bind(this)}>
                                     <CloseIcon />
-                                 </div> 
+                                 </div>
                                  <Modal.Body>
-                                    <ProfileUserInfo 
-                                       handleClickLogout={this.handleClickLogout} 
-                                       successCallback={this.successProfileSaveCallback.bind(this)} 
+                                    <ProfileUserInfo
+                                       handleClickLogout={this.handleClickLogout}
+                                       successCallback={this.successProfileSaveCallback.bind(this)}
                                        userData={me}
                                     />
                                  </Modal.Body>
@@ -350,10 +360,10 @@ class LoginRegister extends React.Component {
                                  <Modal.Title className="section-title container">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-password-body">
-                                 <PasswordRecovery 
-                                    token={this.state.token} 
-                                    email={this.state.email} 
-                                    handleClickBack={this.handleClickBack.bind(this)}   
+                                 <PasswordRecovery
+                                    token={this.state.token}
+                                    email={this.state.email}
+                                    handleClickBack={this.handleClickBack.bind(this)}
                                  />
                            </Modal.Body>
                         </div>
@@ -368,7 +378,7 @@ class LoginRegister extends React.Component {
                     </div>}
                 </div>
             </div>
-                
+
         );
     }
 }
