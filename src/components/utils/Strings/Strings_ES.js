@@ -91,4 +91,5 @@ export default {
     CANCELATIONMESSAGE: '¿Desea cancelar esta reserva?',
     RESERVATION: 'Reserva',
     PAYMENT: 'Formas de pago',
+    AVAILABILITY: 'Disponible',
 }
