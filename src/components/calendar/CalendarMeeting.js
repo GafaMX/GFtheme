@@ -6,6 +6,7 @@ import CalendarStorage from "./CalendarStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import moment from 'moment';
 import 'moment/locale/es';
+import Strings from "../utils/Strings/Strings_ES";
 
 class CalendarMeeting extends React.Component {
    constructor(props) {
@@ -48,16 +49,16 @@ class CalendarMeeting extends React.Component {
       if (meeting) {
 
          GafaFitSDKWrapper.getFancyForMeetingReservation(
-            meeting.location.brand.slug, 
-            meeting.location.slug, 
-            meeting.id, 
+            meeting.location.brand.slug,
+            meeting.location.slug,
+            meeting.id,
             function (result) {
                getFancy();
 
                function getFancy(){
                   if(document.querySelector('[data-gf-theme="fancy"]').firstChild){
                      const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
-                     
+
                      closeFancy.addEventListener('click', function(e){
                         fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
 
@@ -122,6 +123,7 @@ class CalendarMeeting extends React.Component {
                <hr></hr>
                <div className={meetingClass + '__body'}>
                   <p className={'this-staff'}>{meeting.staff.name.toLowerCase()}</p>
+                   <p className={'this-availability'}>{Strings.AVAILABILITY}: {meeting.available} / {meeting.capacity}</p>
                   <p className={'this-service'}>{meeting.service.name.toLowerCase()}</p>
                   <p className={'this-location'}>{meeting.location.name.toLowerCase()}</p>
                </div>
