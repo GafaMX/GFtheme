@@ -311,6 +311,10 @@ class Calendar extends React.Component {
             {this.state.showRegister &&
             <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
             }
+
+             {this.state.showLogin &&
+             <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
+             }
          </div>
       );
    }
