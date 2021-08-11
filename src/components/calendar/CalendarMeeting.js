@@ -27,8 +27,8 @@ class CalendarMeeting extends React.Component {
            if (auth) {
                currentElement.showBuyFancyForLoggedUsers();
            } else {
-               // login_initial ? currentElement.showLoginForNotLoggedUsers() : currentElement.showRegisterForNotLoggedUsers();
-               currentElement.showRegisterForNotLoggedUsers();
+               login_initial ? currentElement.showLoginForNotLoggedUsers() : currentElement.showRegisterForNotLoggedUsers();
+               /*currentElement.showRegisterForNotLoggedUsers();*/
            }
        });
    };
