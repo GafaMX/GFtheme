@@ -68,6 +68,7 @@ class CalendarColumn extends React.Component {
                      alignment={alignment}
                      openFancy = {this.props.openFancy}
                      closedFancy = {this.props.closedFancy}
+                     login_initial={login_initial}
                   /> 
                );
             }
