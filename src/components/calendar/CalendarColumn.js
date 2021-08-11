@@ -26,7 +26,7 @@ class CalendarColumn extends React.Component {
    }
 
    render() {
-      let {day, index, limit, alignment} = this.props;
+      let {day, index, limit, alignment, login_initial} = this.props;
 
       let dayDate = this.isString(day.date) ? day.date :day.date.toDateString();
       let listItems;
@@ -52,6 +52,7 @@ class CalendarColumn extends React.Component {
                         alignment={alignment}
                         openFancy = {this.props.openFancy}
                         closedFancy = {this.props.closedFancy}
+                        login_initial={login_initial}
                      /> 
                   )
                }

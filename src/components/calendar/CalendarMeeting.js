@@ -19,16 +19,17 @@ class CalendarMeeting extends React.Component {
 
 
    handleClick(event) {
-      event.preventDefault();
-      let currentElement = this;
+       event.preventDefault();
+       let currentElement = this;
+       let login_initial = this.props.login_initial;
 
-      GafaFitSDKWrapper.isAuthenticated(function(auth){
-         if (auth) {
-            currentElement.showBuyFancyForLoggedUsers();
-         } else {
-            currentElement.showRegisterForNotLoggedUsers();
-         }
-      });
+       GafaFitSDKWrapper.isAuthenticated(function(auth){
+           if (auth) {
+               currentElement.showBuyFancyForLoggedUsers();
+           } else {
+               login_initial ? currentElement.showLoginForNotLoggedUsers() : currentElement.showRegisterForNotLoggedUsers();
+           }
+       });
    };
 
    showBuyFancyForLoggedUsers() {
