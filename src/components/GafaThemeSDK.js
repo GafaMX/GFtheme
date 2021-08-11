@@ -211,6 +211,7 @@ class GafaThemeSDK extends React.Component {
             let filterRoom = domContainer.getAttribute("filter-bq-room") ? Boolean(domContainer.getAttribute("filter-bq-room")) : false;
             let filterLocation = domContainer.getAttribute("filter-bq-location") ? Boolean(domContainer.getAttribute("filter-bq-location")) : false;
             let filterBrand = domContainer.getAttribute("filter-bq-brand") ? Boolean(domContainer.getAttribute("filter-bq-brand")) : false;
+            let loginInitial = domContainer.getAttribute("data-login-initial") ? domContainer.getAttribute("data-login-initial") : false;
 
             if(limit){
                if(limit > 3 && limit < 6){
@@ -230,6 +231,7 @@ class GafaThemeSDK extends React.Component {
                'filter_room': filterRoom,
                'filter_location': filterLocation,
                'filter_brand': filterBrand,
+               'login_initial': loginInitial,
             };
 
             GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);

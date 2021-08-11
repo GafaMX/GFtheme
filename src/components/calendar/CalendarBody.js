@@ -145,7 +145,7 @@ class CalendarBody extends React.Component {
 
 
    render() {
-      const {meetings, limit} = this.props;
+      const {meetings, limit, login_initial} = this.props;
       let {start, end, has_next, has_prev} = this.state;
       let preC = 'GFSDK-c';
       let preE = 'GFSDK-e';
@@ -215,6 +215,7 @@ class CalendarBody extends React.Component {
                                           limit={limit}
                                           openFancy = {this.props.openFancy}
                                           closedFancy = {this.props.closedFancy}
+                                          login_initial={login_initial}
                                        /> 
                            }
                         );

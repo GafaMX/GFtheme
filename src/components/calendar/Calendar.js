@@ -52,7 +52,7 @@ class Calendar extends React.Component {
       let comp = this;
       let meetings = CalendarStorage.get('meetings');
       let rooms = GlobalStorage.get('rooms');
-      let {filter_service, filter_service_default, filter_staff, filter_location, filter_brand, filter_room} = this.props;
+      let {filter_service, filter_service_default, filter_staff, filter_location, filter_brand, filter_room, filter_location_default} = this.props;
       let meetingsWithRoom = [];
       let meetingsLocations = [];
       let meetingsBrands = [];
@@ -61,8 +61,9 @@ class Calendar extends React.Component {
       let meetingsRooms = [];
 
       let preFilterStaff = 'Todos';
+       let preFilterLocation = 'Todos';
 
-      let params = (new URL(document.location)).searchParams;
+       let params = (new URL(document.location)).searchParams;
       let staffParam = window.GFtheme.StaffName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       let memberParams = params.get(staffParam);
       
@@ -86,6 +87,12 @@ class Calendar extends React.Component {
          meetingsWithRoom.forEach(function(meeting){
             if(meeting.location != null && !meetingsLocations.includes(meeting.location.name)){
                meetingsLocations.push(meeting.location.name);
+
+                if(filter_location_default){
+                    if(filter_location_default === meeting.location.name){
+                        preFilterLocation = meeting.location.name;
+                    }
+                }
             }
          });
       }
@@ -127,6 +134,7 @@ class Calendar extends React.Component {
             rooms: meetingsRooms,
             services: meetingsServices,
             filter_staff: preFilterStaff,
+             filter_location: preFilterLocation,
             staff: meetingsStaff,
             meetings: meetings,
             is_mounted: true,
@@ -293,6 +301,7 @@ class Calendar extends React.Component {
                         limit={this.props.limit} 
                         openFancy = {this.openFancy}
                         closedFancy = {this.closedFancy}
+                        login_initial={this.props.login_initial}
                      /> 
                   :
                      <Loading />
