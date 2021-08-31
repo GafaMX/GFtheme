@@ -192,6 +192,7 @@ class MembershipItem extends React.Component {
         let {membership} = this.props;
         let {openFancy} = this.state;
         // const services = this.getServicesAndParentsForMembership();
+        let currency = GlobalStorage.getBrandCurrency(membership.brand);
 
         return (
             <div className={membershipClass + '__item ' + productClass}>
@@ -203,14 +204,14 @@ class MembershipItem extends React.Component {
                     <div>
                         <div className={'this-price has-discount'}>
                             <p>
-                                ${formatMoney(this.props.membership.price, 0)} MXN
+                                {currency.prefijo}{formatMoney(this.props.membership.price, 0)} {currency.sufijo}
                             </p>
                         </div>
                     </div>
                     }
                     <div className="this-price has-total">
                         <p>
-                            ${formatMoney(this.props.membership.price_final, 0)} MXN
+                            {currency.prefijo}{formatMoney(this.props.membership.price_final, 0)} {currency.sufijo}
                         </p>
                     </div>
 
