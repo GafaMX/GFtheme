@@ -60,55 +60,58 @@ class UserInfo extends React.Component {
                 <h4>
                     {Strings.LABEL_PROFILE_INFO}
                 </h4>
-
-                <FormGroup className={formClass + "__section is-first_name"} controlId="first_name">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_FIRST_NAME}</ControlLabel>
-                    <FormControl
-                        className={formClass + "__input"}
-                        autoFocus
-                        type="text"
-                        value={first_name}
-                        onChange={this.handleChangeFirstName.bind(this)}
-                    />
-                </FormGroup>
-                <FormGroup className={formClass + "__section is-last_name"} controlId="last_name">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_LAST_NAME}</ControlLabel>
-                    <FormControl
-                        className={formClass + "__input"}
-                        type="text"
-                        value={last_name}
-                        onChange={this.props.handleChangeField}
-                    />
-                </FormGroup>
-                <FormGroup className={formClass + "__section is-gender"}>
-                    <div className={formClass + "__radio-container"}>
-                        <label className={formClass + "__radio"}>
-                            <input className="mr-2" type="radio" value="male"
-                                   checked={this.props.info.gender === "male"}
-                                   name="gender"
-                                   onChange={this.handleGenderChange.bind(this)}/>
-                            <div className={'this-radio ' + (this.props.info.gender === 'male' ? 'checked' : '')}></div>
-                            <p className={formClass + "__label"}>Hombre</p>
-                        </label>
-                        <label className={formClass + "__radio"}>
-                            <input className="mr-2" type="radio" value="female"
-                                   checked={this.props.info.gender === "female"}
-                                   name="gender"
-                                   onChange={this.handleGenderChange.bind(this)}/>
-                            <div className={'this-radio ' + (this.props.info.gender === 'female' ? 'checked' : '')}></div>
-                            <p className={formClass + "__label"}>Mujer</p>
-                        </label>
+                <div className={'PROFILE__section__container'}>
+                    <FormGroup className={formClass + "__section is-first_name"} controlId="first_name">
+                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_FIRST_NAME}</ControlLabel>
+                        <FormControl
+                            className={formClass + "__input"}
+                            autoFocus
+                            type="text"
+                            value={first_name}
+                            onChange={this.handleChangeFirstName.bind(this)}
+                        />
+                    </FormGroup>
+                    <FormGroup className={formClass + "__section is-last_name"} controlId="last_name">
+                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_LAST_NAME}</ControlLabel>
+                        <FormControl
+                            className={formClass + "__input"}
+                            type="text"
+                            value={last_name}
+                            onChange={this.props.handleChangeField}
+                        />
+                    </FormGroup>
+                    <FormGroup className={formClass + "__section is-gender"}>
+                        <div className={formClass + "__radio-container"}>
+                            <label className={formClass + "__radio"}>
+                                <input className="mr-2" type="radio" value="male"
+                                       checked={this.props.info.gender === "male"}
+                                       name="gender"
+                                       onChange={this.handleGenderChange.bind(this)}/>
+                                <div
+                                    className={'this-radio ' + (this.props.info.gender === 'male' ? 'checked' : '')}/>
+                                <p className={formClass + "__label"}>Hombre</p>
+                            </label>
+                            <label className={formClass + "__radio"}>
+                                <input className="mr-2" type="radio" value="female"
+                                       checked={this.props.info.gender === "female"}
+                                       name="gender"
+                                       onChange={this.handleGenderChange.bind(this)}/>
+                                <div
+                                    className={'this-radio ' + (this.props.info.gender === 'female' ? 'checked' : '')}/>
+                                <p className={formClass + "__label"}>Mujer</p>
+                            </label>
+                        </div>
+                    </FormGroup>
+                    <div className={formClass + "__section is-birthday"}>
+                        <ControlLabel className={formClass + "__label"}>{Strings.LABEL_BIRTH_DATE}</ControlLabel>
+                        <DatePicker
+                            onChange={this.handleChangeBirthDate.bind(this)}
+                            calendarClassName={formClass + "__calendar"}
+                            className={formClass + "__calendar-input"}
+                            value={this.props.info.birth_date ? birth_date : moment().toDate()}
+                            maxDate={new Date()}
+                        />
                     </div>
-                </FormGroup>
-                <div className={formClass + "__section is-birthday"}>
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_BIRTH_DATE}</ControlLabel>
-                    <DatePicker
-                        onChange={this.handleChangeBirthDate.bind(this)}
-                        calendarClassName={formClass + "__calendar"}
-                        className={formClass + "__calendar-input"}
-                        value={this.props.info.birth_date ? birth_date : moment().toDate()}
-                        maxDate={new Date()}
-                    />
                 </div>
             </div>
         );

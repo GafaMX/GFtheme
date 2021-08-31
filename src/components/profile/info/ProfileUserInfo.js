@@ -261,9 +261,7 @@ class ProfileUserInfo extends React.Component {
                   <div className="profile-user">
                      <div className="profile-user__content">
                            <div className="profile-user__data">
-                              {/* <div className="this-picture"></div> */}
-                              <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
-                              {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
+                              <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br/> Bienvenido</h3>
                            </div>
 
                            <MediaQuery minWidth={992}>
@@ -332,8 +330,7 @@ class ProfileUserInfo extends React.Component {
                               }
                               { locations.length > 1 ?
                                  <div className={filterClass + '__item  is-brand-filter'}>
-                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
-                                    <select 
+                                    <select
                                        className={formClass + '__select'} 
                                        id={'calendar-filter-location'} 
                                        data-name="filter_location"
@@ -359,12 +356,12 @@ class ProfileUserInfo extends React.Component {
                                     <h4 className={'this-title'}>Mis próximas {window.GFtheme.ClassName}</h4>
                                     <FutureClasses />
                               </div>
-                              <hr></hr>
+                              <hr/>
                               <div className={profileClass + '__tab-section'}>
                                     <h4 className={'this-title'}>Historial de {window.GFtheme.ClassName}</h4>
                                     <PastClasses />
                               </div>
-                              <hr></hr>
+                              <hr/>
                               <div className={profileClass + '__tab-section'}>
                                     <h4 className={'this-title'}>Historial de compras</h4>
                                     <PurchasesList /> 
@@ -376,11 +373,11 @@ class ProfileUserInfo extends React.Component {
                                  <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
                                     <UserInfo info={this.state} updateState={this.updateState.bind(this)}
                                              handleChangeField={this.handleChangeField.bind(this)}/>
-                                    <hr className={formClass + '__divider'}></hr>
+                                    <hr className={formClass + '__divider'}/>
                                     <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
                                                 getStatesListByCountry={this.getStatesListByCountry.bind(this)}
                                                 handleChangeField={this.handleChangeField.bind(this)}/>
-                                    <hr className={formClass + '__divider'}></hr>
+                                    <hr className={formClass + '__divider'}/>
                                     <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
                                                 handleChangeField={this.handleChangeField.bind(this)}/>
 
@@ -432,27 +429,6 @@ class ProfileUserInfo extends React.Component {
                               </div>
                            </div>
                         </div>
-
-                           {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
-                              <CustomScroll heightRelativeToParent="100%">
-                                 <div className={profileClass + '__tab-section'}>
-                                       <PaymentMethods />
-                                 </div>
-                              </CustomScroll>
-                              <div className={paymentClass + "__notification " + (paymentNotification ? 'is-active' : '')}>
-                                 <div className={paymentClass + "__notification-container"}>
-                                       <p>{!paymentNotification ? 'Error: No encuentré el mensaje' : paymentNotification.message}</p>
-                                       <div className={paymentClass + "__controls"}>
-                                          <button className={buttonClass + "__controls is-success"} onClick={this.deleteCard.bind(this)}>
-                                             <CheckIcon />
-                                          </button>
-                                          <button className={buttonClass + "__controls is-close"} onClick={this.closeNotification.bind(this)}>
-                                             <CloseIcon />
-                                          </button>
-                                       </div>
-                                 </div>
-                              </div>
-                           </Tab> */}
                      </div>
                   </div>
                </div>
