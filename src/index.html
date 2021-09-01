@@ -5,172 +5,173 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>GAFA theme testing</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <style>
 
-       /* body{
-         background-color:black;
-      } */
+        /* body{
+          background-color:black;
+       } */
 
-      .mt-1{
-         margin:2rem 0;
-      }
+        .mt-1 {
+            margin: 2rem 0;
+        }
 
-      .mt-3{
-         margin:6rem 0;
-      }
+        .mt-3 {
+            margin: 6rem 0;
+        }
 
-      /*.GFSDK-e-buttons.is-primary, 
-      .TabsGafaFit--tab-link.TabsGafaFit--tab-link__active,
-      #CreateReservationFancyTemplate .touchpoint .gs-checkOut,
-      #CreateReservationFancyTemplate .productSelection__content .SelectProductsStepNav ul>li.active a, 
-      #CreateReservationFancyTemplate .productSelection__content .SelectProductsStepNav ul>li:hover a,
-      #CreateReservationFancyTemplate .productSelection__content .products-container .GfStore__ProductsItems .add-to-card,
-      .profile-user__tools,
-      .profile-tabs #ProfileTabs>.nav-tabs>li.active .GFSDK-c-tabs__link:before,
-      .profile-tabs #ProfileTabs>.nav-tabs>li .GFSDK-c-tabs__link:hover:before,
-      .profile-tabs #ProfileTabs>.tab-content::-webkit-scrollbar-thumb,
-      .GFSDK-c-Calendar__column::-webkit-scrollbar-thumb,
-      .GFSDK-e-buttons__close{
-         background-color: #F2C545!important;
-      }
-      
+        /*.GFSDK-e-buttons.is-primary,
+        .TabsGafaFit--tab-link.TabsGafaFit--tab-link__active,
+        #CreateReservationFancyTemplate .touchpoint .gs-checkOut,
+        #CreateReservationFancyTemplate .productSelection__content .SelectProductsStepNav ul>li.active a,
+        #CreateReservationFancyTemplate .productSelection__content .SelectProductsStepNav ul>li:hover a,
+        #CreateReservationFancyTemplate .productSelection__content .products-container .GfStore__ProductsItems .add-to-card,
+        .profile-user__tools,
+        .profile-tabs #ProfileTabs>.nav-tabs>li.active .GFSDK-c-tabs__link:before,
+        .profile-tabs #ProfileTabs>.nav-tabs>li .GFSDK-c-tabs__link:hover:before,
+        .profile-tabs #ProfileTabs>.tab-content::-webkit-scrollbar-thumb,
+        .GFSDK-c-Calendar__column::-webkit-scrollbar-thumb,
+        .GFSDK-e-buttons__close{
+           background-color: #F2C545!important;
+        }
 
-      .GFSDK-c-Calendar__day-dots li.slick-active a .this-number,
-      .buq-accentColor{
-         background-color: #F2C545!important;
-         color: black!important;
-      }
-         
-      #CreateReservationFancyTemplate .touchpoint .gs-checkOut:hover,
-      #CreateReservationFancyTemplate .productSelection__content .SelectProductsStepNav ul>li.active a:hover,
-      #CreateReservationFancyTemplate .productSelection__content .products-container .GfStore__ProductsItems .add-to-card:hover
-      .GFSDK-e-buttons.is-primary:hover,
-      .buq-accentColor:hover,
-      .GFSDK-e-buttons__close,
-      .GFSDK-e-form__radio > .this-radio.checked:before{
-         background-color:#f6cd5c!important;
-      }
-      
-      .GFSDK-c-Calendar__day-dots li.slick-active a .this-date{
-         color: #F2C545!important;
-      }
-      
-      .GFSDK-c-staffList__header .GFSDK-c-filter__item,
-      .GFSDK-c-serviceList__header .GFSDK-c-filter__item,
-      .GFSDK-c-Calendar__filter .GFSDK-c-filter__item
-      {
-         border-color:  #aaa!important;
-         color: #fff!important;
-      }
-      .GFSDK-c-staffList__header .GFSDK-c-filter__item select,
-      .GFSDK-c-serviceList__header .GFSDK-c-filter__item select,
-      .GFSDK-c-Calendar__filter .GFSDK-c-filter__item select
-      {
-         color: #fff!important;
-      }
-      
-      .GFSDK-e-structure__background:before{
-         background-color:black!important;
-      }
 
-      .horizontal .GFSDK-e-meeting,
-      .GFSDK-e-product,
-      .GFSDK-e-service{
-         background-color: #333!important;
-         border-color: #666!important
-      }
+        .GFSDK-c-Calendar__day-dots li.slick-active a .this-number,
+        .buq-accentColor{
+           background-color: #F2C545!important;
+           color: black!important;
+        }
 
-      .horizontal .GFSDK-e-meeting:hover,
-      .GFSDK-e-structure__head > .this-image > div:before{
-         border-color:  #F2C545!important;
-      }
+        #CreateReservationFancyTemplate .touchpoint .gs-checkOut:hover,
+        #CreateReservationFancyTemplate .productSelection__content .SelectProductsStepNav ul>li.active a:hover,
+        #CreateReservationFancyTemplate .productSelection__content .products-container .GfStore__ProductsItems .add-to-card:hover
+        .GFSDK-e-buttons.is-primary:hover,
+        .buq-accentColor:hover,
+        .GFSDK-e-buttons__close,
+        .GFSDK-e-form__radio > .this-radio.checked:before{
+           background-color:#f6cd5c!important;
+        }
 
-      .GFSDK-e-service__head, 
-      .GFSDK-e-service__body, 
-      .GFSDK-e-service__footer,
-      .horizontal .GFSDK-e-meeting__header,
-      .horizontal .GFSDK-e-meeting__body .this-staff,
-      .GFSDK-e-product__head, .GFSDK-e-product__body,
-      .GFSDK-e-product__body .this-price p{
-         color:white!important;
-      }
+        .GFSDK-c-Calendar__day-dots li.slick-active a .this-date{
+           color: #F2C545!important;
+        }
 
-      .GFSDK-c-membershipList:after, .GFSDK-c-comboList:after{
-         background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, black 100%)!important;
-      } */
+        .GFSDK-c-staffList__header .GFSDK-c-filter__item,
+        .GFSDK-c-serviceList__header .GFSDK-c-filter__item,
+        .GFSDK-c-Calendar__filter .GFSDK-c-filter__item
+        {
+           border-color:  #aaa!important;
+           color: #fff!important;
+        }
+        .GFSDK-c-staffList__header .GFSDK-c-filter__item select,
+        .GFSDK-c-serviceList__header .GFSDK-c-filter__item select,
+        .GFSDK-c-Calendar__filter .GFSDK-c-filter__item select
+        {
+           color: #fff!important;
+        }
+
+        .GFSDK-e-structure__background:before{
+           background-color:black!important;
+        }
+
+        .horizontal .GFSDK-e-meeting,
+        .GFSDK-e-product,
+        .GFSDK-e-service{
+           background-color: #333!important;
+           border-color: #666!important
+        }
+
+        .horizontal .GFSDK-e-meeting:hover,
+        .GFSDK-e-structure__head > .this-image > div:before{
+           border-color:  #F2C545!important;
+        }
+
+        .GFSDK-e-service__head,
+        .GFSDK-e-service__body,
+        .GFSDK-e-service__footer,
+        .horizontal .GFSDK-e-meeting__header,
+        .horizontal .GFSDK-e-meeting__body .this-staff,
+        .GFSDK-e-product__head, .GFSDK-e-product__body,
+        .GFSDK-e-product__body .this-price p{
+           color:white!important;
+        }
+
+        .GFSDK-c-membershipList:after, .GFSDK-c-comboList:after{
+           background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, black 100%)!important;
+        } */
     </style>
 </head>
 <body>
-   <header>
-      <div class="container">
-         <div class="logo">
+<header>
+    <div class="container">
+        <div class="logo">
             <!-- <img src="./assets/img/buq-logo.svg" /> -->
-         </div>
-         <nav class="menu">
-         </nav>
-         <div data-gf-theme="login-register"></div>
-      </div>
-   </header>
-   <main>
-   <div class="container">
-      <!--
-         filter-bq-location="true"
-         filter-bq-room="true" 
-      --> 
-      <section class="mt-3" 
-         filter-bq-brand="true" 
-         filter-bq-service="true" 
-         filter-bq-staff="true"
-         filter-bq-location="true"
-         data-gf-theme="meetings-calendar"
-      ></section>
-      <section class=" mt-1" data-gf-theme="staff-list"></section>
-      <section class=" mt-1" data-gf-theme="service-list"></section>
-      <section class=" mt-1" data-gf-theme="combo-list" ></section>
-      <section class=" mt-1" data-gf-theme="membership-list"></section>
-      
-      <!-- <section class=" mt-3" 
-         data-gf-theme="meetings-calendar"
-         filter-bq-service="true" 
-         filter-bq-service-default="Buq live" 
-         filter-bq-staff="true">
-      </section> -->
-   </div>
-   <!-- Fancy  / Inicia Aquí-->
-   <section data-gf-theme="fancy">
-   </section>
-   <!-- Fancy  / Termina Aquí-->
-   </main>
+        </div>
+        <nav class="menu">
+        </nav>
+        <div data-gf-theme="login-register"></div>
+    </div>
+</header>
+<main>
+    <div class="container">
+        <!--
+           filter-bq-location="true"
+           filter-bq-room="true"
+        -->
+        <section class="mt-3"
+                 filter-bq-brand="true"
+                 filter-bq-service="true"
+                 filter-bq-staff="true"
+                 filter-bq-location="true"
+                 data-gf-theme="meetings-calendar"
+        ></section>
+        <section class=" mt-1" data-gf-theme="staff-list"></section>
+        <section class=" mt-1" data-gf-theme="service-list"></section>
+        <section class=" mt-1" data-gf-theme="combo-list"></section>
+        <section class=" mt-1" data-gf-theme="membership-list"></section>
 
-    <script src="https://www.google.com/recaptcha/api.js?render=6LdGgNcZAAAAACVnfh-CaZZuh25V59KkP1cbsjzr"></script>
-    <script src="https://buq.technology/sdk/dist/main.js"></script>
-    <!-- <script src="http://gafafit.test/sdk/dist/main.js"></script> -->
-    <script data-gf-options type="application/json">
-      {
-         "GAFA_FIT_URL": "https://buq.technology/",
-         "COMPANY_ID": 14,
-         "API_CLIENT": 11,
-         "API_SECRET": "BP4xqsPxoMqBziwkIrON7WQjhEw3yTJwdBJmY6F3",
-         "TOKENMOVIL": null,
-         "CAPTCHA_SECRET_KEY": "6LdGgNcZAAAAAA48wauwPMDVgE22ABP2TKfwhqGf",
-         "CAPTCHA_PUBLIC_KEY": "6LdGgNcZAAAAACVnfh-CaZZuh25V59KkP1cbsjzr",
-         "STAFF_NAME": "Fisios",
-         "REMOTE_ADDR": "127.0.0.1"
-      }
-   </script>
-    <!-- <script data-gf-options type="application/json">
-      {
-         "GAFA_FIT_URL": "http://gafafit.test/",
-         "COMPANY_ID": 3,
-         "API_CLIENT": 3,
-         "API_SECRET": "egbjSnIv9nUM0hfLsltiPwUp4HeRkgsWtuOsFeiI",
-         "TOKENMOVIL": null,
-         "CAPTCHA_SECRET_KEY": "6LcGcsEUAAAAAOQCOt68hLjGsYHuELQZFheZtgbn",
-         "CAPTCHA_PUBLIC_KEY": "6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8",
-         "STAFF_NAME": "Fisios",
-         "REMOTE_ADDR": "127.0.0.1"
-      }
-   </script> -->
+        <!-- <section class=" mt-3"
+           data-gf-theme="meetings-calendar"
+           filter-bq-service="true"
+           filter-bq-service-default="Buq live"
+           filter-bq-staff="true">
+        </section> -->
+    </div>
+    <!-- Fancy  / Inicia Aquí-->
+    <section data-gf-theme="fancy">
+    </section>
+    <!-- Fancy  / Termina Aquí-->
+</main>
+
+<script src="https://www.google.com/recaptcha/api.js?render=6LdGgNcZAAAAACVnfh-CaZZuh25V59KkP1cbsjzr"></script>
+<script src="https://buq.technology/sdk/dist/main.js"></script>
+<!-- <script src="http://gafafit.test/sdk/dist/main.js"></script> -->
+<script data-gf-options type="application/json">
+    {
+        "GAFA_FIT_URL": "https://buq.technology/",
+        "COMPANY_ID": 78,
+        "API_CLIENT": 12,
+        "API_SECRET": "m2c1cF0iUnxBWigWH97DKtDYwDAeq5ztx7aLMi86",
+        "TOKENMOVIL": null,
+        "CAPTCHA_SECRET_KEY": "6LdGgNcZAAAAAA48wauwPMDVgE22ABP2TKfwhqGf",
+        "CAPTCHA_PUBLIC_KEY": "6LdGgNcZAAAAACVnfh-CaZZuh25V59KkP1cbsjzr",
+        "STAFF_NAME": "Fisios",
+        "REMOTE_ADDR": "127.0.0.1"
+    }
+</script>
+<!-- <script data-gf-options type="application/json">
+  {
+     "GAFA_FIT_URL": "http://gafafit.test/",
+     "COMPANY_ID": 3,
+     "API_CLIENT": 3,
+     "API_SECRET": "egbjSnIv9nUM0hfLsltiPwUp4HeRkgsWtuOsFeiI",
+     "TOKENMOVIL": null,
+     "CAPTCHA_SECRET_KEY": "6LcGcsEUAAAAAOQCOt68hLjGsYHuELQZFheZtgbn",
+     "CAPTCHA_PUBLIC_KEY": "6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8",
+     "STAFF_NAME": "Fisios",
+     "REMOTE_ADDR": "127.0.0.1"
+  }
+</script> -->
 </body>
 </html>
