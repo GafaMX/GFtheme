@@ -112,108 +112,118 @@ class Register extends React.Component {
         });
     }
 
-   handleSubmit(event) {
-      event.preventDefault();
+    handleSubmit(event) {
+        event.preventDefault();
 
-      let currentElement = this;
+        let currentElement = this;
 
-      grecaptcha.ready(function () {
-         grecaptcha.execute(window.GFtheme.CaptchaPublicKey, { action: 'register' }) .then(function (token) {
-            currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
-            GafaFitSDKWrapper.postRegister(
-               currentElement.state, 
-               currentElement.successRegisterCallback.bind(currentElement),
-               currentElement.errorRegisterCallback.bind(currentElement)
-            );
-         });
-      });
-   }
+        grecaptcha.ready(function () {
+            grecaptcha.execute(window.GFtheme.CaptchaPublicKey, {action: 'register'}).then(function (token) {
+                currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
+                GafaFitSDKWrapper.postRegister(
+                    currentElement.state,
+                    currentElement.successRegisterCallback.bind(currentElement),
+                    currentElement.errorRegisterCallback.bind(currentElement)
+                );
+            });
+        });
+    }
 
-   successRegisterCallback(result) {
-      let comp = this;
-      this.setState({registered: true});
+    successRegisterCallback(result) {
+        let comp = this;
+        this.setState(
+            {
+                registered: true
+            }, () => {
+                setTimeout(() => {
+                    if (comp.props.successCallback) {
+                        comp.props.successCallback(result);
 
-      if (this.props.successCallback) {
-         this.props.successCallback(result);
+                        if (window.GFtheme.combo_id != null) {
+                            comp.buyComboAfterRegister();
+                        }
 
-         if (window.GFtheme.combo_id != null) {
-            this.buyComboAfterRegister();
-         }
+                        if (window.GFtheme.membership_id != null) {
+                            comp.buyMembershipAfterRegister();
+                        }
 
-         if (window.GFtheme.membership_id != null) {
-            this.buyMembershipAfterRegister();
-         }
+                        if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+                            comp.reserveMeetingAfterRegister();
+                        }
 
-         if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-            this.reserveMeetingAfterRegister();
-         }
+                        if (!window.GFtheme.meetings_id &&
+                            !window.GFtheme.location_slug &&
+                            !window.GFtheme.membership_id &&
+                            !window.GFtheme.combo_id) {
+                            comp.props.handleClickBack();
+                        }
+                    }
+                }, 3500);
+            }
+        );
+    }
 
-         if (  !window.GFtheme.meetings_id && 
-               !window.GFtheme.location_slug && 
-               !window.GFtheme.membership_id &&
-               !window.GFtheme.combo_id) {
-                  comp.props.handleClickBack();
-         }
-      }
-   }
+    buyComboAfterRegister() {
+        let comp = this;
 
-   buyComboAfterRegister() {
-      let comp = this;
-
-      GafaFitSDKWrapper.getFancyForBuyCombo(
+        GafaFitSDKWrapper.getFancyForBuyCombo(
             window.GFtheme.brand_slug,
             window.GFtheme.location_slug,
-            window.GFtheme.combo_id, 
+            window.GFtheme.combo_id,
             function (result) {
-            comp.props.handleClickBack();
-            window.GFtheme.combo_id = null;
-            window.GFtheme.brand_slug = null;
-            window.GFtheme.location_slug = null;
-      });
-   }
+                comp.props.handleClickBack();
+                window.GFtheme.combo_id = null;
+                window.GFtheme.brand_slug = null;
+                window.GFtheme.location_slug = null;
+            });
+    }
 
-   buyMembershipAfterRegister() {
-      let comp = this;
-      GafaFitSDKWrapper.getFancyForBuyMembership(
-         window.GFtheme.brand_slug,
-         window.GFtheme.location_slug,
-         window.GFtheme.membership_id,
-         function (result) {
-         comp.props.handleClickBack();
-         window.GFtheme.membership_id = null;
-         window.GFtheme.brand_slug = null;
-         window.GFtheme.location_slug = null;
-      });
-   }
+    buyMembershipAfterRegister() {
+        let comp = this;
+        GafaFitSDKWrapper.getFancyForBuyMembership(
+            window.GFtheme.brand_slug,
+            window.GFtheme.location_slug,
+            window.GFtheme.membership_id,
+            function (result) {
+                comp.props.handleClickBack();
+                window.GFtheme.membership_id = null;
+                window.GFtheme.brand_slug = null;
+                window.GFtheme.location_slug = null;
+            });
+    }
 
-   reserveMeetingAfterRegister() {
-      let comp = this;
-      GafaFitSDKWrapper.getFancyForMeetingReservation(
-         window.GFtheme.brand_slug, 
-         window.GFtheme.location_slug, 
-         window.GFtheme.meetings_id, 
-         function (result) {
-         comp.props.handleClickBack();
-         window.GFtheme.meetings_id = null;
-         window.GFtheme.location_slug = null;
-         window.GFtheme.brand_slug = null;
-      });
-   }
+    reserveMeetingAfterRegister() {
+        let comp = this;
+        GafaFitSDKWrapper.getFancyForMeetingReservation(
+            window.GFtheme.brand_slug,
+            window.GFtheme.location_slug,
+            window.GFtheme.meetings_id,
+            function (result) {
+                comp.props.handleClickBack();
+                window.GFtheme.meetings_id = null;
+                window.GFtheme.location_slug = null;
+                window.GFtheme.brand_slug = null;
+            });
+    }
 
-   errorRegisterCallback(error) {
-      this.setState({serverError: error});
-   }
+    errorRegisterCallback(error) {
+        this.setState({serverError: error});
+    }
 
     render() {
         let preE = 'GFSDK-e';
         let buttonClass = preE + '-buttons';
         let formClass = preE + '-form';
-        let {g_recaptcha_response} = this.state;
+        let {
+            g_recaptcha_response,
+            registered
+        } = this.state;
 
         return (
             <div className="register auth">
-                <form id="register-form" onSubmit={this.handleSubmit.bind(this)}>
-                    <input type="hidden" name="g-recaptcha-response" value={g_recaptcha_response} />
+                <form id="register-form" className={`register-form ${registered ? 'register-form__registered' : ''}`}
+                      onSubmit={this.handleSubmit.bind(this)}>
+                    <input type="hidden" name="g-recaptcha-response" value={g_recaptcha_response}/>
                     <FormGroup className={formClass + "__section"} controlId="fullName" bsSize="large">
                         {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_FULL_NAME}</ControlLabel> */}
                         <FormControl
@@ -266,8 +276,8 @@ class Register extends React.Component {
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
-                    <div className="text-success">
-                        {this.state.registered && <small>{Strings.REGISTER_SUCCESS}</small>}
+                    <div className="register-form-success text-success">
+                        {Strings.REGISTER_SUCCESS}
                     </div>
                 </form>
             </div>
