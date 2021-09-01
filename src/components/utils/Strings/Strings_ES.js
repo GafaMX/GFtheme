@@ -17,7 +17,8 @@ export default {
     VALIDATION_FULL_NAME: 'no debe estar vacío.',
     THE_FIELD: 'El campo ',
     LOGIN_SUCCESS: 'Ha iniciado sesión correctamente',
-    REGISTER_SUCCESS: 'Se ha registrado correctamente',
+    REGISTER_SUCCESS: 'Bienvenido. Se ha registrado correctamente.' +
+    ' En breves lo redireccionaremos.',
     SAVE_ME_SUCCESS: 'Información del usuario guardada correctamente',
     PASSWORD_FORGOT_SUCCESS: 'Le hemos enviado un enlace para recuperar su contraseña',
     PASSWORD_CHANGE_SUCCESS: 'Se ha cambiado correctamente su contraseña',
