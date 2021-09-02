@@ -6,8 +6,12 @@ import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 //     import jQuery from 'jquery';
 //     window.jQuery = window.$ = jQuery;
 // }
+var selection = document.querySelector('[data-gf-options]');
 
-window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
+if (selection !== null) {
+    window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
+}
+// window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 
 GafaFitSDKWrapper.initValues(
    () => {
