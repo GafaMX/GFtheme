@@ -76,8 +76,8 @@ class Login extends React.Component {
       let currentElement = this;
       currentElement.setState({serverError: ''});
       GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
-         currentElement.successLoginCallback.bind(this),
-         currentElement.errorLoginCallback.bind(this));
+         currentElement.successLoginCallback.bind(currentElement),
+         currentElement.errorLoginCallback.bind(currentElement));
    };
 
    successLoginCallback(result) {
