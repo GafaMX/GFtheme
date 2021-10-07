@@ -113,7 +113,7 @@ class CalendarMeeting extends React.Component {
 
         return (
             <div key={`column-day--${day.date}--meeting--${meeting.id}`} style={{ pointerEvents: openFancy ? 'none' : 'auto' }}
-                 className={calendarClass + '__item ' + meetingClass + (meeting.passed ? ' has-pasted' : '')}
+                 className={calendarClass + '__item ' + meetingClass + (meeting.passed ? ' has-pasted' : '') + ` ${meeting.available>0 ? '' : 'no-availability'}`}
                  data-id={meeting.id}
                  onClick={openFancy ? null : this.handleClick.bind(this)}>
                <div className={meetingClass + '__header'}>
