@@ -25,6 +25,19 @@
       // width:250px; // todo versión horizontal
       width:100%;
 
+     &.no-availability.disable {
+       background-color: #DBDBDB66;
+       pointer-events: none !important;
+
+       &:hover {
+         border: 1px solid #EEEEEE;
+       }
+
+       .this-time,.this-staff {
+         color: #949494;
+       }
+     }
+
       @media only screen and (min-width:992px) {
          width:250px;
       }
@@ -139,6 +152,10 @@
          .this-location{
             margin-bottom:0;
          }
+
+        .no-availability {
+          background-color: red !important;
+        }
       }
 
       p{
