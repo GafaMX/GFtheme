@@ -1,10 +1,10 @@
 'use strict';
 
 import React from "react";
-import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
+import {FormControl, FormGroup} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Strings from "../utils/Strings/Strings_ES";
+import StringStore from "../utils/Strings/StringStore";
 
 class Register extends React.Component {
     constructor(props) {
@@ -72,25 +72,25 @@ class Register extends React.Component {
 
     validatePassword(value, fieldValidationErrors) {
         let passwordValid = value.length >= 6;
-        fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
+        fieldValidationErrors.password = passwordValid ? '' : StringStore.get('VALIDATION_PASSWORD');
         return passwordValid;
     }
 
     validatePasswordConfirmation(value, fieldValidationErrors) {
         let passwordConfirmationValid = value === this.state.password;
-        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : Strings.VALIDATION_EQUAL_PASSWORDS;
+        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : StringStore.get('VALIDATION_EQUAL_PASSWORDS');
         return passwordConfirmationValid;
     }
 
     validateEmail(value, fieldValidationErrors) {
         let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-        fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
+        fieldValidationErrors.email = emailValid ? '' : StringStore.get('VALIDATION_EMAIL');
         return emailValid;
     }
 
     validateFullName(value, fieldValidationErrors) {
         let fullNameValid = value !== '' && value !== null;
-        fieldValidationErrors.fullName = fullNameValid ? '' : Strings.VALIDATION_FULL_NAME;
+        fieldValidationErrors.fullName = fullNameValid ? '' : StringStore.get('VALIDATION_FULL_NAME');
         return fullNameValid;
     }
 
@@ -98,7 +98,7 @@ class Register extends React.Component {
         this.setState(
             {
                 formValid: this.state.emailValid && this.state.passwordValid && this.state.passwordConfirmationValid &&
-                this.state.fullNameValid
+                    this.state.fullNameValid
             });
     }
 
@@ -112,97 +112,97 @@ class Register extends React.Component {
         });
     }
 
-   handleSubmit(event) {
-      event.preventDefault();
+    handleSubmit(event) {
+        event.preventDefault();
 
-      let currentElement = this;
+        let currentElement = this;
 
-      grecaptcha.ready(function () {
-         grecaptcha.execute(window.GFtheme.CaptchaPublicKey, { action: 'register' }) .then(function (token) {
-            currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
-            GafaFitSDKWrapper.postRegister(
-               currentElement.state, 
-               currentElement.successRegisterCallback.bind(currentElement),
-               currentElement.errorRegisterCallback.bind(currentElement)
-            );
-         });
-      });
-   }
+        grecaptcha.ready(function () {
+            grecaptcha.execute(window.GFtheme.CaptchaPublicKey, {action: 'register'}).then(function (token) {
+                currentElement.setState({serverError: '', registered: false, g_recaptcha_response: token});
+                GafaFitSDKWrapper.postRegister(
+                    currentElement.state,
+                    currentElement.successRegisterCallback.bind(currentElement),
+                    currentElement.errorRegisterCallback.bind(currentElement)
+                );
+            });
+        });
+    }
 
-   successRegisterCallback(result) {
-      let comp = this;
-      this.setState({registered: true});
+    successRegisterCallback(result) {
+        let comp = this;
+        this.setState({registered: true});
 
-      if (this.props.successCallback) {
-         this.props.successCallback(result);
+        if (this.props.successCallback) {
+            this.props.successCallback(result);
 
-         if (window.GFtheme.combo_id != null) {
-            this.buyComboAfterRegister();
-         }
+            if (window.GFtheme.combo_id != null) {
+                this.buyComboAfterRegister();
+            }
 
-         if (window.GFtheme.membership_id != null) {
-            this.buyMembershipAfterRegister();
-         }
+            if (window.GFtheme.membership_id != null) {
+                this.buyMembershipAfterRegister();
+            }
 
-         if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-            this.reserveMeetingAfterRegister();
-         }
+            if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+                this.reserveMeetingAfterRegister();
+            }
 
-         if (  !window.GFtheme.meetings_id && 
-               !window.GFtheme.location_slug && 
-               !window.GFtheme.membership_id &&
-               !window.GFtheme.combo_id) {
-                  comp.props.handleClickBack();
-         }
-      }
-   }
+            if (!window.GFtheme.meetings_id &&
+                !window.GFtheme.location_slug &&
+                !window.GFtheme.membership_id &&
+                !window.GFtheme.combo_id) {
+                comp.props.handleClickBack();
+            }
+        }
+    }
 
-   buyComboAfterRegister() {
-      let comp = this;
+    buyComboAfterRegister() {
+        let comp = this;
 
-      GafaFitSDKWrapper.getFancyForBuyCombo(
+        GafaFitSDKWrapper.getFancyForBuyCombo(
             window.GFtheme.brand_slug,
             window.GFtheme.location_slug,
-            window.GFtheme.combo_id, 
+            window.GFtheme.combo_id,
             function (result) {
-            comp.props.handleClickBack();
-            window.GFtheme.combo_id = null;
-            window.GFtheme.brand_slug = null;
-            window.GFtheme.location_slug = null;
-      });
-   }
+                comp.props.handleClickBack();
+                window.GFtheme.combo_id = null;
+                window.GFtheme.brand_slug = null;
+                window.GFtheme.location_slug = null;
+            });
+    }
 
-   buyMembershipAfterRegister() {
-      let comp = this;
-      GafaFitSDKWrapper.getFancyForBuyMembership(
-         window.GFtheme.brand_slug,
-         window.GFtheme.location_slug,
-         window.GFtheme.membership_id,
-         function (result) {
-         comp.props.handleClickBack();
-         window.GFtheme.membership_id = null;
-         window.GFtheme.brand_slug = null;
-         window.GFtheme.location_slug = null;
-      });
-   }
+    buyMembershipAfterRegister() {
+        let comp = this;
+        GafaFitSDKWrapper.getFancyForBuyMembership(
+            window.GFtheme.brand_slug,
+            window.GFtheme.location_slug,
+            window.GFtheme.membership_id,
+            function (result) {
+                comp.props.handleClickBack();
+                window.GFtheme.membership_id = null;
+                window.GFtheme.brand_slug = null;
+                window.GFtheme.location_slug = null;
+            });
+    }
 
-   reserveMeetingAfterRegister() {
-      let comp = this;
-      GafaFitSDKWrapper.getFancyForMeetingReservation(
-         window.GFtheme.brand_slug, 
-         window.GFtheme.location_slug, 
-         window.GFtheme.meetings_id, 
-         function (result) {
-         comp.props.handleClickBack();
-         window.GFtheme.meetings_id = null;
-         window.GFtheme.location_slug = null;
-         window.GFtheme.brand_slug = null;
-      });
-   }
+    reserveMeetingAfterRegister() {
+        let comp = this;
+        GafaFitSDKWrapper.getFancyForMeetingReservation(
+            window.GFtheme.brand_slug,
+            window.GFtheme.location_slug,
+            window.GFtheme.meetings_id,
+            function (result) {
+                comp.props.handleClickBack();
+                window.GFtheme.meetings_id = null;
+                window.GFtheme.location_slug = null;
+                window.GFtheme.brand_slug = null;
+            });
+    }
 
-   errorRegisterCallback(error) {
-      this.setState({serverError: error});
-   }
+    errorRegisterCallback(error) {
+        this.setState({serverError: error});
+    }
 
     render() {
         let preE = 'GFSDK-e';
@@ -213,43 +213,43 @@ class Register extends React.Component {
         return (
             <div className="register auth">
                 <form id="register-form" onSubmit={this.handleSubmit.bind(this)}>
-                    <input type="hidden" name="g-recaptcha-response" value={g_recaptcha_response} />
+                    <input type="hidden" name="g-recaptcha-response" value={g_recaptcha_response}/>
                     <FormGroup className={formClass + "__section"} controlId="fullName" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_FULL_NAME}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_FULL_NAME')}</ControlLabel> */}
                         <FormControl
                             autoFocus
                             className={formClass + "__input"}
-                            placeholder={Strings.LABEL_FULL_NAME}
+                            placeholder={StringStore.get('LABEL_FULL_NAME')}
                             type="text"
                             value={this.state.fullName}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_EMAIL')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
-                            placeholder={Strings.LABEL_EMAIL}
+                            placeholder={StringStore.get('LABEL_EMAIL')}
                             type="email"
                             value={this.state.email}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="password" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PASSWORD}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PASSWORD')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
-                            placeholder={Strings.LABEL_PASSWORD}
+                            placeholder={StringStore.get('LABEL_PASSWORD')}
                             value={this.state.password}
                             onChange={this.handleChangeField.bind(this)}
                             type="password"
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="passwordConfirmation" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PASSWORD_CONFIRM}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PASSWORD_CONFIRM')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
-                            placeholder={Strings.LABEL_PASSWORD_CONFIRM}
+                            placeholder={StringStore.get('LABEL_PASSWORD_CONFIRM')}
                             value={this.state.passwordConfirmation}
                             onChange={this.handleChangeField.bind(this)}
                             type="password"
@@ -260,14 +260,14 @@ class Register extends React.Component {
                         disabled={!this.state.formValid}
                         type="submit"
                     >
-                        {Strings.BUTTON_REGISTER}
+                        {StringStore.get('BUTTON_REGISTER')}
                     </button>
                     <div className="text-danger">
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     <div className="text-success">
-                        {this.state.registered && <small>{Strings.REGISTER_SUCCESS}</small>}
+                        {this.state.registered && <small>{StringStore.get('REGISTER_SUCCESS')}</small>}
                     </div>
                 </form>
             </div>

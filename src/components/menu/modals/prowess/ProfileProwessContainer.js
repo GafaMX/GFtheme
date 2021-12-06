@@ -33,7 +33,7 @@ export default class ProfileProwessContainer extends React.Component{
                                 <li className="nav-item">
                                     <a className="qodef-btn qodef-btn-small qodef-btn-solid qodef-btn-icon" onClick={this.props.handleClickLogout}>
                                         <span className={"qodef-btn-text"}>
-                                            <span className={"qodef-btn-text-inner"}>{Strings.BUTTON_LOGOUT}</span>
+                                            <span className={"qodef-btn-text-inner"}>{StringStore.get('BUTTON_LOGOUT')}</span>
                                         </span>
                                         <span className={"qodef-btn-text-inner qodef-btn-text-inner-icon"}>
                                             <i className={"qodef-icon-ion-icon ion-arrow-right-c "}></i> 

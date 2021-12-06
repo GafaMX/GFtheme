@@ -1,10 +1,10 @@
 'use strict';
 
 import React from "react";
-import {FormGroup, FormControl} from "react-bootstrap";
+import {FormControl, FormGroup} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Strings from "../utils/Strings/Strings_ES";
+import StringStore from "../utils/Strings/StringStore";
 
 class PasswordChange extends React.Component {
     constructor(props) {
@@ -33,9 +33,9 @@ class PasswordChange extends React.Component {
                 break;
             case 'passwordConfirmation':
                 passwordConfirmationValid = this.validatePasswordConfirmation(value, fieldValidationErrors);
-               break;
+                break;
             default:
-               break;
+                break;
         }
         this.setState({
             formErrors: fieldValidationErrors,
@@ -46,20 +46,20 @@ class PasswordChange extends React.Component {
 
     validatePassword(value, fieldValidationErrors) {
         let passwordValid = value.length >= 6;
-        fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
+        fieldValidationErrors.password = passwordValid ? '' : StringStore.get('VALIDATION_PASSWORD');
         return passwordValid;
     }
 
     validatePasswordConfirmation(value, fieldValidationErrors) {
         let passwordConfirmationValid = value === this.state.password;
-        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : Strings.VALIDATION_EQUAL_PASSWORDS;
+        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : StringStore.get('VALIDATION_EQUAL_PASSWORDS');
         return passwordConfirmationValid;
     }
 
     validateForm() {
-      this.setState({ 
-         formValid: this.state.passwordValid && this.state.passwordConfirmationValid 
-      });
+        this.setState({
+            formValid: this.state.passwordValid && this.state.passwordConfirmationValid
+        });
     }
 
     handleChangeField(event) {
@@ -75,68 +75,68 @@ class PasswordChange extends React.Component {
     handleSubmit(event) {
         event.preventDefault();
         let currentElement = this;
-        currentElement.setState({serverError: '', passwordChanged: '' });
+        currentElement.setState({serverError: '', passwordChanged: ''});
         GafaFitSDKWrapper.postPasswordChange(this.state,
             currentElement.successPasswordForgotCallback.bind(this),
             currentElement.errorPasswordForgotCallback.bind(this));
     };
 
-   successPasswordForgotCallback(result) {
-      this.setState({passwordChanged: true});
-      alert("¡Felicidades, tienes una nueva contraseña!");
-      this.props.handleClickBack();
-   }
+    successPasswordForgotCallback(result) {
+        this.setState({passwordChanged: true});
+        alert("¡Felicidades, tienes una nueva contraseña!");
+        this.props.handleClickBack();
+    }
 
-   errorPasswordForgotCallback(error) {
-      this.setState({serverError: error});
-   }
+    errorPasswordForgotCallback(error) {
+        this.setState({serverError: error});
+    }
 
-   render() {
-   let preE = 'GFSDK-e';
-   let buttonClass = preE + '-buttons';
-   let formClass = preE + '-form';
+    render() {
+        let preE = 'GFSDK-e';
+        let buttonClass = preE + '-buttons';
+        let formClass = preE + '-form';
 
-      return (
-         <div className="password-change auth">
-               <form onSubmit={this.handleSubmit.bind(this)}>
-                  <FormGroup className={formClass + "__section"} controlId="password">
-                     <FormControl
-                        autoFocus
-                        className={formClass + "__input"}
-                        value={this.state.password}
-                        placeholder={Strings.LABEL_PASSWORD}
-                        onChange={this.handleChangeField.bind(this)}
-                        type="password"
-                     />
-                  </FormGroup>
-                  <FormGroup className={formClass + "__section"} controlId="passwordConfirmation">
-                     <FormControl
-                        autoFocus
-                        className={formClass + "__input"}
-                        value={this.state.passwordConfirmation}
-                        placeholder={Strings.LABEL_PASSWORD_CONFIRM}
-                        onChange={this.handleChangeField.bind(this)}
-                        type="password"
-                     />
-                  </FormGroup>
-                  <button
-                     className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
-                     disabled={!this.state.formValid}
-                     type="submit"
-                  >
-                     {Strings.BUTTON_PASSWORD_CHANGE}
-                  </button>
-                  <div className="text-danger">
-                     <FormErrors formErrors={this.state.formErrors}/>
-                     {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
-                  </div>
-                  <div className="text-success">
-                     {this.state.passwordChanged && <small>{Strings.PASSWORD_CHANGE_SUCCESS}</small>}
-                  </div>
-               </form>
-         </div>
-      );
-   }
+        return (
+            <div className="password-change auth">
+                <form onSubmit={this.handleSubmit.bind(this)}>
+                    <FormGroup className={formClass + "__section"} controlId="password">
+                        <FormControl
+                            autoFocus
+                            className={formClass + "__input"}
+                            value={this.state.password}
+                            placeholder={StringStore.get('LABEL_PASSWORD')}
+                            onChange={this.handleChangeField.bind(this)}
+                            type="password"
+                        />
+                    </FormGroup>
+                    <FormGroup className={formClass + "__section"} controlId="passwordConfirmation">
+                        <FormControl
+                            autoFocus
+                            className={formClass + "__input"}
+                            value={this.state.passwordConfirmation}
+                            placeholder={StringStore.get('LABEL_PASSWORD_CONFIRM')}
+                            onChange={this.handleChangeField.bind(this)}
+                            type="password"
+                        />
+                    </FormGroup>
+                    <button
+                        className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
+                        disabled={!this.state.formValid}
+                        type="submit"
+                    >
+                        {StringStore.get('BUTTON_PASSWORD_CHANGE')}
+                    </button>
+                    <div className="text-danger">
+                        <FormErrors formErrors={this.state.formErrors}/>
+                        {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
+                    </div>
+                    <div className="text-success">
+                        {this.state.passwordChanged && <small>{StringStore.get('PASSWORD_CHANGE_SUCCESS')}</small>}
+                    </div>
+                </form>
+            </div>
+        );
+    }
 }
 
 export default PasswordChange;

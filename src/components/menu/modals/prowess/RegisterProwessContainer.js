@@ -1,29 +1,30 @@
 import React from "react";
 import {Modal} from "react-bootstrap";
 import Register from "../../../auth/Register/Register";
-import Strings from "../../../utils/Strings/Strings_ES";
+import StringStore from "../../../utils/Strings/StringStore";
 
-export default class RegisterProwessContainer extends React.Component{
-    render(){
-        return(
-            <Modal className="modal-register" show={this.props.showRegister} animation={false} onHide={this.props.handleClickBack}>
+export default class RegisterProwessContainer extends React.Component {
+    render() {
+        return (
+            <Modal className="modal-register" show={this.props.showRegister} animation={false}
+                   onHide={this.props.handleClickBack}>
                 <div className="row">
                     <div className="col-lg-6">
                         <div className="container">
                             <Modal.Header className="modal-register__header" closeButton>
-                                <h2>{Strings.BUTTON_REGISTER}</h2>
+                                <h2>{StringStore.get('BUTTON_REGISTER')}</h2>
                             </Modal.Header>
                             <Modal.Body className="modal-register__body">
-                                <Register template = {this.props.template}/>
+                                <Register template={this.props.template}/>
                             </Modal.Body>
                             <Modal.Footer className="modal-register__footer">
                                 <nav className="modal-footer__nav">
                                     <ul>
                                         <li>
-                                            <a onClick={this.props.handleClickLogin}> {Strings.ACCOUNT_QUESTION}</a>
+                                            <a onClick={this.props.handleClickLogin}> {StringStore.get('ACCOUNT_QUESTION')}</a>
                                         </li>
                                         <li>
-                                            <a onClick={this.props.handleClickForgot}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
+                                            <a onClick={this.props.handleClickForgot}> {StringStore.get('FORGOT_PASSWORD_QUESTION')}</a>
                                         </li>
                                     </ul>
                                 </nav>

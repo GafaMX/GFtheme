@@ -21,7 +21,17 @@ const StringStore = {
     get(key) {
         if (key) {
             let strings = this.getLanguageObject();
-            return strings[key] ? strings[key] : '';
+            let keys = key.split('.');
+            key = keys[0];
+            if (strings[key]) {
+                if (keys.length > 1) {
+                    let strobject = strings[key];
+                    if (typeof strobject === "object") {
+                        return strobject[keys[1]] ? strobject[keys[1]] : '';
+                    }
+                }
+                return strings[key] ? strings[key] : '';
+            }
         }
 
         return '';
@@ -36,6 +46,13 @@ const StringStore = {
         };
 
         return languages[lang];
+    },
+    initLang() {
+        let language_element = document.querySelector('[data-gf-language]');
+        if (language_element) {
+            let lang = language_element.getAttribute('data-gf-language');
+            this.setLanguage(lang);
+        }
     }
 };
 

@@ -1,37 +1,36 @@
-
 import React from "react";
 import {Modal} from "react-bootstrap";
 import LoginDefault from "../../../auth/Login/Default/LoginDefault";
-import Strings from "../../../utils/Strings/Strings_ES";
+import StringStore from "../../../utils/Strings/StringStore";
 
 
-export default class LoginDefaultContainer extends React.Component{
+export default class LoginDefaultContainer extends React.Component {
 
-    render(){
-        return(
+    render() {
+        return (
             <Modal className="modal-login" show={this.props.showLogin} animation={false}
-                onHide={this.props.handleClickBack}>
+                   onHide={this.props.handleClickBack}>
                 <div className="row">
                     <div className="col-lg-6">
                         <div className="container modal-grid__form">
                             <Modal.Header className="modal-login__header" closeButton>
-                                <h2>{Strings.BUTTON_LOGIN}</h2>
+                                <h2>{StringStore.get('BUTTON_LOGIN')}</h2>
                             </Modal.Header>
                             <Modal.Body className="modal-login__body">
                                 <LoginDefault successCallback={this.props.successLoginCallback}/>
                             </Modal.Body>
                             <Modal.Footer className="modal-login__footer">
-                            <nav className="modal-footer__nav">
-                                <ul>
-                                    <li>
-                                        <a onClick={this.props.handleClickRegister}> {Strings.NOT_ACCOUNT_QUESTION}</a>
-                                    </li>
+                                <nav className="modal-footer__nav">
+                                    <ul>
+                                        <li>
+                                            <a onClick={this.props.handleClickRegister}> {StringStore.get('NOT_ACCOUNT_QUESTION')}</a>
+                                        </li>
 
-                                    <li>
-                                        <a onClick={this.props.handleClickForgot}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
-                                    </li>
-                                </ul>
-                            </nav>
+                                        <li>
+                                            <a onClick={this.props.handleClickForgot}> {StringStore.get('FORGOT_PASSWORD_QUESTION')}</a>
+                                        </li>
+                                    </ul>
+                                </nav>
                             </Modal.Footer>
                         </div>
                     </div>

@@ -2,10 +2,10 @@
 
 import React from "react";
 import {ControlLabel, FormControl, FormGroup} from "react-bootstrap";
-import Strings from "../../utils/Strings/Strings_ES";
 import DatePicker from 'react-date-picker';
 import moment from 'moment'
 import 'moment/locale/es';
+import StringStore from "../../utils/Strings/StringStore";
 
 class UserInfo extends React.Component {
     constructor(props) {
@@ -15,7 +15,7 @@ class UserInfo extends React.Component {
     validateFirstName(fieldName, value) {
         let fieldValidationErrors = this.props.info.formErrors;
         let first_nameValid = value !== '' && value !== null;
-        fieldValidationErrors.first_name = first_nameValid ? '' : Strings.VALIDATION_FULL_NAME;
+        fieldValidationErrors.first_name = first_nameValid ? '' : StringStore.get('VALIDATION_FULL_NAME');
         this.props.info.formErrors = fieldValidationErrors;
         this.props.info.first_nameValid = first_nameValid;
         this.validateForm();
@@ -58,11 +58,11 @@ class UserInfo extends React.Component {
         return (
             <div className={profileClass + '__section is-user'}>
                 <h4>
-                    {Strings.LABEL_PROFILE_INFO}
+                    {StringStore.get('LABEL_PROFILE_INFO')}
                 </h4>
 
                 <FormGroup className={formClass + "__section is-first_name"} controlId="first_name">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_FIRST_NAME}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_FIRST_NAME')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         autoFocus
@@ -72,7 +72,7 @@ class UserInfo extends React.Component {
                     />
                 </FormGroup>
                 <FormGroup className={formClass + "__section is-last_name"} controlId="last_name">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_LAST_NAME}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_LAST_NAME')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
@@ -95,13 +95,14 @@ class UserInfo extends React.Component {
                                    checked={this.props.info.gender === "female"}
                                    name="gender"
                                    onChange={this.handleGenderChange.bind(this)}/>
-                            <div className={'this-radio ' + (this.props.info.gender === 'female' ? 'checked' : '')}></div>
+                            <div
+                                className={'this-radio ' + (this.props.info.gender === 'female' ? 'checked' : '')}></div>
                             <p className={formClass + "__label"}>Mujer</p>
                         </label>
                     </div>
                 </FormGroup>
                 <div className={formClass + "__section is-birthday"}>
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_BIRTH_DATE}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_BIRTH_DATE')}</ControlLabel>
                     <DatePicker
                         onChange={this.handleChangeBirthDate.bind(this)}
                         calendarClassName={formClass + "__calendar"}

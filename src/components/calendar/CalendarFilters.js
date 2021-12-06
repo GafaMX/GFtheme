@@ -1,226 +1,221 @@
 'use strict';
 
 import React from "react";
-import Strings from "../utils/Strings/Strings_ES";
 import IconLeftArrow from "../utils/Icons/IconLeftArrow";
 import IconRightArrow from "../utils/Icons/IconRightArrow";
 import CalendarStorage from "./CalendarStorage";
-import MorningIcon from "../utils/Icons/MorningIcon";
-import AfternoonIcon from "../utils/Icons/AfternoonIcon";
-import AllTimeIcon from "../utils/Icons/AllTimeIcon";
 import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
 // import moment from 'moment';
-import Select from 'react-select';
 import GlobalStorage from "../store/GlobalStorage";
+import StringStore from "../utils/Strings/StringStore";
 
 
 class CalendarFilters extends React.Component {
     constructor() {
         super();
 
-      this.state = {
-         services: [],
-         staff: [],
-         filter_brand:'',
-         filter_service:'',
-         filter_location:'',
-         filter_staff:'',
-         // room_groups: [],
-         // time_of_day: null,
-         // has_next: true,
-         // has_prev: false,
-      };
+        this.state = {
+            services: [],
+            staff: [],
+            filter_brand: '',
+            filter_service: '',
+            filter_location: '',
+            filter_staff: '',
+            // room_groups: [],
+            // time_of_day: null,
+            // has_next: true,
+            // has_prev: false,
+        };
 
-      // CalendarStorage.addSegmentedListener(['rooms', 'filter_location'], this.updateRooms.bind(this));
-      // CalendarStorage.addSegmentedListener(['services'], this.updateServiceFilter.bind(this));
-      // CalendarStorage.addSegmentedListener(['meetings'], this.updateMeetings.bind(this));
-      // CalendarStorage.addSegmentedListener(['start_date'], this.updateStart.bind(this));
-      // CalendarStorage.addSegmentedListener(['filter_time_of_day'], this.updateTimeOfDay.bind(this));
+        // CalendarStorage.addSegmentedListener(['rooms', 'filter_location'], this.updateRooms.bind(this));
+        // CalendarStorage.addSegmentedListener(['services'], this.updateServiceFilter.bind(this));
+        // CalendarStorage.addSegmentedListener(['meetings'], this.updateMeetings.bind(this));
+        // CalendarStorage.addSegmentedListener(['start_date'], this.updateStart.bind(this));
+        // CalendarStorage.addSegmentedListener(['filter_time_of_day'], this.updateTimeOfDay.bind(this));
 
-      // this.nextWeek = this.nextWeek.bind(this);
-      // this.prevWeek = this.prevWeek.bind(this);
-      // this.hasNextPrev = this.hasNextPrev.bind(this);
-      // this.getNextButton = this.getNextButton.bind(this);
-      this.updateServicesStaff = this.updateServicesStaff.bind(this);
-      this.updateMeetings = this.updateMeetings.bind(this);
-      this.selectFilter = this.selectFilter.bind(this);
-   }
+        // this.nextWeek = this.nextWeek.bind(this);
+        // this.prevWeek = this.prevWeek.bind(this);
+        // this.hasNextPrev = this.hasNextPrev.bind(this);
+        // this.getNextButton = this.getNextButton.bind(this);
+        this.updateServicesStaff = this.updateServicesStaff.bind(this);
+        this.updateMeetings = this.updateMeetings.bind(this);
+        this.selectFilter = this.selectFilter.bind(this);
+    }
 
-   componentDidMount(){
-      this.updateServicesStaff();
+    componentDidMount() {
+        this.updateServicesStaff();
 
-      let curComp = this;
-      let locations = GlobalStorage.get('locations');
-      let services = CalendarStorage.get('services');
-      let {filterServiceDefault} = this.props;
+        let curComp = this;
+        let locations = GlobalStorage.get('locations');
+        let services = CalendarStorage.get('services');
+        let {filterServiceDefault} = this.props;
 
-      // if(locations){
-      //    CalendarStorage.set('filter_location', locations[0]);
-      // }
-   }
+        // if(locations){
+        //    CalendarStorage.set('filter_location', locations[0]);
+        // }
+    }
 
-   updateServicesStaff() {
-      let {filterStaff, filterService, meetings} = this.props;
+    updateServicesStaff() {
+        let {filterStaff, filterService, meetings} = this.props;
 
-      let services = [];
-      let personal = [];
+        let services = [];
+        let personal = [];
 
-      if(filterService){
-         meetings.forEach(function (meeting) {
-            let service = meeting.service;
-            
-            if (service && !services.find(o => o.id === service.id)) {
-               services.push(service);
-            }
-         });
-      }
+        if (filterService) {
+            meetings.forEach(function (meeting) {
+                let service = meeting.service;
 
-      if(filterStaff){
-         meetings.forEach(function (meeting) {
-            let staff = meeting.staff;
-            if (staff && !personal.find(i => i.id === staff.id)) {
-               personal.push(staff);
-            }
-         });
-      }
-      
-      this.setState({
-         services: services,
-         staff: personal
-      });
+                if (service && !services.find(o => o.id === service.id)) {
+                    services.push(service);
+                }
+            });
+        }
 
-      CalendarStorage.set('services', services);
-      CalendarStorage.set('staff', personal);
-   }
+        if (filterStaff) {
+            meetings.forEach(function (meeting) {
+                let staff = meeting.staff;
+                if (staff && !personal.find(i => i.id === staff.id)) {
+                    personal.push(staff);
+                }
+            });
+        }
 
-   updateRooms() {
-      let show_rooms = [];
-      let rooms = CalendarStorage.get('rooms');
-      let locations = CalendarStorage.get('locations');
+        this.setState({
+            services: services,
+            staff: personal
+        });
 
-      let groups = [];
+        CalendarStorage.set('services', services);
+        CalendarStorage.set('staff', personal);
+    }
 
-      locations.forEach(function (location) {
-         let obj = {
-               location: location,
-               rooms: []
-         };
-         obj.rooms = rooms.filter(function (room) {
-               return room.locations_id === location.id;
-         });
+    updateRooms() {
+        let show_rooms = [];
+        let rooms = CalendarStorage.get('rooms');
+        let locations = CalendarStorage.get('locations');
 
-         groups.push(obj);
-      });
+        let groups = [];
 
-      this.setState({
-         room_groups: show_rooms
-      });
-   }
+        locations.forEach(function (location) {
+            let obj = {
+                location: location,
+                rooms: []
+            };
+            obj.rooms = rooms.filter(function (room) {
+                return room.locations_id === location.id;
+            });
 
-   updateStart() {
-      this.setState({
-         has_next: this.hasNextPrev(),
-         has_prev: this.hasNextPrev(false)
-      })
-   }
+            groups.push(obj);
+        });
 
-   updateTimeOfDay(){
-      this.setState({
-         'time_of_day': CalendarStorage.get('filter_time_of_day'),
-      })
-   }
+        this.setState({
+            room_groups: show_rooms
+        });
+    }
 
-   selectFilter(e) {
-      let curComp = this;
-      let name = e.target.getAttribute('data-name');
-      let origin = e.target.getAttribute('data-origin');
-      let id = e.target.value;
-      let model = null;
+    updateStart() {
+        this.setState({
+            has_next: this.hasNextPrev(),
+            has_prev: this.hasNextPrev(false)
+        })
+    }
 
-      if (id && id !== '')
-         model = CalendarStorage.find(origin, id);
-         curComp.setState({[name]: model});
-   }
+    updateTimeOfDay() {
+        this.setState({
+            'time_of_day': CalendarStorage.get('filter_time_of_day'),
+        })
+    }
 
-   // getDates(startDate, stopDate) {
-   //    let dateArray = [];
-   //    let currentDate = new Date(startDate.getTime());
-   //    while (currentDate <= stopDate) {
-   //       let new_date = new Date(currentDate.getTime());
-   //       dateArray.push(new_date);
-   //       currentDate.setDate(currentDate.getDate() + 1);
-   //    }
+    selectFilter(e) {
+        let curComp = this;
+        let name = e.target.getAttribute('data-name');
+        let origin = e.target.getAttribute('data-origin');
+        let id = e.target.value;
+        let model = null;
 
-   //    return dateArray;
-   // }
+        if (id && id !== '')
+            model = CalendarStorage.find(origin, id);
+        curComp.setState({[name]: model});
+    }
 
-   updateMeetings(){
-      let {filter_staff, filter_service, filter_location} = this.state;
-      let {updateMeetings} = this.props;
-      let meetings = this.props.meetings;
-      let start = CalendarStorage.get('start_date');
-      let end = new Date(start.getTime());
-      end.setDate(start.getDate() + 6);
-      let time_of_day = CalendarStorage.get('filter_time_of_day');
-      let shown_meetings = [];
+    // getDates(startDate, stopDate) {
+    //    let dateArray = [];
+    //    let currentDate = new Date(startDate.getTime());
+    //    while (currentDate <= stopDate) {
+    //       let new_date = new Date(currentDate.getTime());
+    //       dateArray.push(new_date);
+    //       currentDate.setDate(currentDate.getDate() + 1);
+    //    }
 
-      if (filter_location) {
-         meetings = meetings.filter(function (meeting) {
-            return meeting.locations_id === filter_location.id;
-         });
-      }
+    //    return dateArray;
+    // }
 
-      // if (service) {
-      //    meetings = meetings.filter(function (meeting) {
-      //       return meeting.services_id === service.id;
-      //    })
-      // }
+    updateMeetings() {
+        let {filter_staff, filter_service, filter_location} = this.state;
+        let {updateMeetings} = this.props;
+        let meetings = this.props.meetings;
+        let start = CalendarStorage.get('start_date');
+        let end = new Date(start.getTime());
+        end.setDate(start.getDate() + 6);
+        let time_of_day = CalendarStorage.get('filter_time_of_day');
+        let shown_meetings = [];
 
-      // if (staff) {
-      //    meetings = meetings.filter(function (meeting) {
-      //       return meeting.staff_id === staff.id;
-      //    })
-      // }
+        if (filter_location) {
+            meetings = meetings.filter(function (meeting) {
+                return meeting.locations_id === filter_location.id;
+            });
+        }
 
-      // if (room) {
-      //    meetings = meetings.filter(function (meeting) {
-      //       return meeting.rooms_id === room.id;
-      //    })
-      // }
+        // if (service) {
+        //    meetings = meetings.filter(function (meeting) {
+        //       return meeting.services_id === service.id;
+        //    })
+        // }
 
-      // if (time_of_day) {
-      //    if (time_of_day === 'morning') {
-      //       meetings = meetings.filter(function (meeting) {
-      //          let date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
-      //          return date.getHours() < 12;
-      //       })
-      //    } else if (time_of_day === 'afternoon') {
-      //       meetings = meetings.filter(function (meeting) {
-      //          let date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
-      //          return date.getHours() >= 12;
-      //       })
-      //    }
-      // }
+        // if (staff) {
+        //    meetings = meetings.filter(function (meeting) {
+        //       return meeting.staff_id === staff.id;
+        //    })
+        // }
+
+        // if (room) {
+        //    meetings = meetings.filter(function (meeting) {
+        //       return meeting.rooms_id === room.id;
+        //    })
+        // }
+
+        // if (time_of_day) {
+        //    if (time_of_day === 'morning') {
+        //       meetings = meetings.filter(function (meeting) {
+        //          let date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
+        //          return date.getHours() < 12;
+        //       })
+        //    } else if (time_of_day === 'afternoon') {
+        //       meetings = meetings.filter(function (meeting) {
+        //          let date = Moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
+        //          return date.getHours() >= 12;
+        //       })
+        //    }
+        // }
 
 
+        // let date_array = this.getDates(start, end);
 
-      // let date_array = this.getDates(start, end);
-
-      // date_array.forEach(function (date) {
-      //    let meet = {
-      //          title: date.toLocaleDateString(),
-      //          date: date,
-      //          meetings: meetings.filter(function (meeting) {
-      //             let meeting_date = Moment(meeting.start_date).format('YYYY-MM-DD');
-      //             return Moment(date).format('YYYY-MM-DD') === meeting_date && meeting.passed === false
-      //             // return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime() && meeting.passed === false;
-      //          })
-      //    };
-      //    shown_meetings.push(meet);
-      // });
-      // console.log(meetings);
-      // updateMeetings(meetings);
-   }
+        // date_array.forEach(function (date) {
+        //    let meet = {
+        //          title: date.toLocaleDateString(),
+        //          date: date,
+        //          meetings: meetings.filter(function (meeting) {
+        //             let meeting_date = Moment(meeting.start_date).format('YYYY-MM-DD');
+        //             return Moment(date).format('YYYY-MM-DD') === meeting_date && meeting.passed === false
+        //             // return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime() && meeting.passed === false;
+        //          })
+        //    };
+        //    shown_meetings.push(meet);
+        // });
+        // console.log(meetings);
+        // updateMeetings(meetings);
+    }
 
     hasNextPrev(next = true) {
         let meetings = CalendarStorage.get('meetings');
@@ -243,69 +238,72 @@ class CalendarFilters extends React.Component {
         return !!next_meetings;
     }
 
-   nextWeek(e) {
-      let start = CalendarStorage.get('start_date');
-      if (this.hasNextPrev()) {
-          let compare_start = new Date(start.getTime());
-          compare_start.setDate(compare_start.getDate() + 7);
-          CalendarStorage.set('start_date', compare_start);
-      }
-   }
+    nextWeek(e) {
+        let start = CalendarStorage.get('start_date');
+        if (this.hasNextPrev()) {
+            let compare_start = new Date(start.getTime());
+            compare_start.setDate(compare_start.getDate() + 7);
+            CalendarStorage.set('start_date', compare_start);
+        }
+    }
 
-   prevWeek(e) {
-         let start = CalendarStorage.get('start_date');
-         if (this.hasNextPrev(false)) {
+    prevWeek(e) {
+        let start = CalendarStorage.get('start_date');
+        if (this.hasNextPrev(false)) {
             let compare_start = new Date(start.getTime());
             compare_start.setDate(compare_start.getDate() - 7);
             CalendarStorage.set('start_date', compare_start);
-         }
-   }
+        }
+    }
 
-   getNextButton() {
-      if (this.state.has_next) {
-         return (
-            <a onClick={this.nextWeek}
-               className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
-         );
-      }
-   }
+    getNextButton() {
+        if (this.state.has_next) {
+            return (
+                <a onClick={this.nextWeek}
+                   className={'next-button calendar-control-button'}>{StringStore.get('NEXT_WEEK')}
+                    <IconRightArrow/></a>
+            );
+        }
+    }
 
-   getPrevButton() {
-      if (this.state.has_prev) {
-         return (
-            <a onClick={this.prevWeek} className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
-         );
-      }
-   }
+    getPrevButton() {
+        if (this.state.has_prev) {
+            return (
+                <a onClick={this.prevWeek}
+                   className={'prev-button calendar-control-button'}><IconLeftArrow/> {StringStore.get('PREVIOUS_WEEK')}
+                </a>
+            );
+        }
+    }
 
-   render() {
-      let locations = GlobalStorage.get('locations');
-      // let filter_location = CalendarStorage.get('filter_location');
-      let {filter_service, filter_location, filter_staff} = this.state;
-      let rooms = CalendarStorage.get('rooms');
-      let {filterService, filterStaff} = this.props;
-      let {time_of_day} = this.state;
-      let filter_name = 'meetings-calendar--filters';
+    render() {
+        let locations = GlobalStorage.get('locations');
+        // let filter_location = CalendarStorage.get('filter_location');
+        let {filter_service, filter_location, filter_staff} = this.state;
+        let rooms = CalendarStorage.get('rooms');
+        let {filterService, filterStaff} = this.props;
+        let {time_of_day} = this.state;
+        let filter_name = 'meetings-calendar--filters';
 
-      let preC = 'GFSDK-c';
-      let preE = 'GFSDK-e';
-      let calendarClass = preC + '-Calendar';
-      let filterClass = preC + '-filter';
-      let formClass = preE + '-form';
-      let navigationClass = preE + '-navigation';
+        let preC = 'GFSDK-c';
+        let preE = 'GFSDK-e';
+        let calendarClass = preC + '-Calendar';
+        let filterClass = preC + '-filter';
+        let formClass = preE + '-form';
+        let navigationClass = preE + '-navigation';
 
-      let locationValue = filter_location ? filter_location.id : '';
-      let serviceValue = filter_service ? filter_service.id : '';
-      let staffValue = filter_staff ? filter_staff.id : '';
+        let locationValue = filter_location ? filter_location.id : '';
+        let serviceValue = filter_service ? filter_service.id : '';
+        let staffValue = filter_staff ? filter_staff.id : '';
 
-      // this.updateMeetings();
+        // this.updateMeetings();
 
-      return (
-         <div className={calendarClass + '__head-horizontal'}>
-            <p className={formClass + '__label'}>Filtros:</p> 
-               <div className={calendarClass + '__filter ' + filterClass}>
-                  {/* <div className={filterClass + '__item ' + formClass + '__section is-day-filter'}>
-                     <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
+        return (
+            <div className={calendarClass + '__head-horizontal'}>
+                <p className={formClass + '__label'}>Filtros:</p>
+                <div className={calendarClass + '__filter ' + filterClass}>
+                    {/* <div className={filterClass + '__item ' + formClass + '__section is-day-filter'}>
+                     <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{StringStore.get('TIME_OF_DAY')}: </label>
                         <div className={formClass + "__radio-container has-3-columns"}>
                            <label className={formClass + "__radio " + (time_of_day === null || time_of_day === ' ' ? 'checked' : '')}>
                               <input  type="radio"
@@ -349,31 +347,34 @@ class CalendarFilters extends React.Component {
                      </div>
                   </div> */}
 
-                  <div className={filterClass + '__item ' + formClass + '__section is-location-filter is-horizontal' + (locations.length <= 1 ? 'is-empty' : '' )}>
-                     <select className={formClass + '__select'} id={'calendar-filter-location'} data-name="filter_location"
-                           data-origin="locations"
-                           value={locationValue}
-                           // onChange={this.selectLocation.bind(this)}
-                           >
-                           <option value={''}>{Strings.ALL}</option>
-                           {locations.map(function (location, index) {
-                              return (
-                                 <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
-                              );
-                           })}
-                     </select>
-                     <div className={formClass + '__select-icon'}>
-                        <IconSelectDownArrow />
-                     </div>
-                  </div>
+                    <div
+                        className={filterClass + '__item ' + formClass + '__section is-location-filter is-horizontal' + (locations.length <= 1 ? 'is-empty' : '')}>
+                        <select className={formClass + '__select'} id={'calendar-filter-location'}
+                                data-name="filter_location"
+                                data-origin="locations"
+                                value={locationValue}
+                            // onChange={this.selectLocation.bind(this)}
+                        >
+                            <option value={''}>{StringStore.get('ALL')}</option>
+                            {locations.map(function (location, index) {
+                                return (
+                                    <option value={location.id}
+                                            key={`${filter_name}-location--option-${index}`}>{location.name}</option>
+                                );
+                            })}
+                        </select>
+                        <div className={formClass + '__select-icon'}>
+                            <IconSelectDownArrow/>
+                        </div>
+                    </div>
 
-                  {/* <div className={filterClass + '__item ' + formClass + '__section is-room-filter ' + (rooms.length <= 1 ? 'is-empty' : '' )}>
-                     <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{Strings.ROOM}: </label>
+                    {/* <div className={filterClass + '__item ' + formClass + '__section is-room-filter ' + (rooms.length <= 1 ? 'is-empty' : '' )}>
+                     <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{StringStore.get('ROOM')}: </label>
                      <select className={formClass + '__select'} id={'calendar-filter-room'} data-name="filter_room"
                               data-origin="rooms" ref={'room'}
                               onChange={this.selectFilter}>
-                           <option value={''}>{Strings.ALL}</option> */}
-                           {/* {this.state.room_groups.map(function (group, index) {
+                           <option value={''}>{StringStore.get('ALL')}</option> */}
+                    {/* {this.state.room_groups.map(function (group, index) {
                               return (
                                  <optgroup label={group.location.name}
                                              key={`${filter_name}-room-group--option-${index}`}>
@@ -386,7 +387,7 @@ class CalendarFilters extends React.Component {
                                  </optgroup>
                               );
                            })} */}
-                           {/* {this.state.room_groups.map(function (group, index) {
+                    {/* {this.state.room_groups.map(function (group, index) {
                               return (
                                  group.rooms.map(function (room, r_index) {
                                        return (
@@ -398,52 +399,56 @@ class CalendarFilters extends React.Component {
                            })}
                      </select>
                   </div> */}
-                  
-                  {filterService ?
-                        <div className={filterClass + '__item ' + formClass + '__section is-service-filter is-horizontal ' + (this.state.services.length <= 1 ? 'is-empty' : '' )}>
-                           <select className={formClass + '__select'} id={'calendar-filter-service'} data-name="filter_service"
-                              data-origin="services"
-                              value={serviceValue}
-                              onChange={this.selectFilter}>
-                                 <option value={''}>{Strings.SERVICE}</option>
-                                 {this.state.services.map(function (service, index) {
+
+                    {filterService ?
+                        <div
+                            className={filterClass + '__item ' + formClass + '__section is-service-filter is-horizontal ' + (this.state.services.length <= 1 ? 'is-empty' : '')}>
+                            <select className={formClass + '__select'} id={'calendar-filter-service'}
+                                    data-name="filter_service"
+                                    data-origin="services"
+                                    value={serviceValue}
+                                    onChange={this.selectFilter}>
+                                <option value={''}>{StringStore.get('SERVICE')}</option>
+                                {this.state.services.map(function (service, index) {
                                     return (
-                                       <option value={service.id}
-                                          className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
-                                          key={`${filter_name}-service--option-${index}`}>{service.name}</option>
+                                        <option value={service.id}
+                                                className={service.parent_id ? 'calendar-filter-child-service' : 'calendar-filter-parent-service'}
+                                                key={`${filter_name}-service--option-${index}`}>{service.name}</option>
                                     );
-                                 })}
-                           </select>
-                           <div className={formClass + '__select-icon'}>
-                              <IconSelectDownArrow />
-                           </div>
+                                })}
+                            </select>
+                            <div className={formClass + '__select-icon'}>
+                                <IconSelectDownArrow/>
+                            </div>
                         </div>
-                     :  null
-                  }
+                        : null
+                    }
 
 
-                  {filterStaff ?
-                        <div className={filterClass + '__item ' + formClass + '__section is-staff-filter is-horizontal ' + (this.state.staff.length <= 1 ? 'is-empty' : '' )}>
-                           <select className={formClass + '__select'} id={'calendar-filter-staff'} data-name="filter_staff"
-                              data-origin="staff"
-                              onChange={this.selectFilter}>
-                                 <option value={''}>{window.GFtheme.StaffName}</option>
-                                 {this.state.staff.map(function (member, index) {
+                    {filterStaff ?
+                        <div
+                            className={filterClass + '__item ' + formClass + '__section is-staff-filter is-horizontal ' + (this.state.staff.length <= 1 ? 'is-empty' : '')}>
+                            <select className={formClass + '__select'} id={'calendar-filter-staff'}
+                                    data-name="filter_staff"
+                                    data-origin="staff"
+                                    onChange={this.selectFilter}>
+                                <option value={''}>{window.GFtheme.StaffName}</option>
+                                {this.state.staff.map(function (member, index) {
                                     return (
-                                       <option value={member.id}
-                                             className={member.parent_id ? 'calendar-filter-child-staff' : 'calendar-filter-parent-staff'}
-                                             key={`${filter_name}-staff--option-${index}`}>{member.name}</option>
+                                        <option value={member.id}
+                                                className={member.parent_id ? 'calendar-filter-child-staff' : 'calendar-filter-parent-staff'}
+                                                key={`${filter_name}-staff--option-${index}`}>{member.name}</option>
                                     );
-                                 })}
-                           </select>
-                           <div className={formClass + '__select-icon'}>
-                                 <IconSelectDownArrow />
-                           </div>
+                                })}
+                            </select>
+                            <div className={formClass + '__select-icon'}>
+                                <IconSelectDownArrow/>
+                            </div>
                         </div>
-                     :  null
-                  }
-               </div>
-               {/* <div className={calendarClass + '__navigation ' + navigationClass}>
+                        : null
+                    }
+                </div>
+                {/* <div className={calendarClass + '__navigation ' + navigationClass}>
                   <div className={navigationClass + '__prev'}>
                      {this.getPrevButton()}
                   </div>
@@ -451,9 +456,9 @@ class CalendarFilters extends React.Component {
                      {this.getNextButton()}
                   </div>
                </div> */}
-         </div>
-      );
-   }
+            </div>
+        );
+    }
 }
 
 export default CalendarFilters;
