@@ -37,6 +37,7 @@ import '../../../styles/newlook/components/GFSDK-c-Tabs.scss';
 import '../../../styles/newlook/elements/GFSDK-e-form.scss';
 import '../../../styles/newlook/elements/GFSDK-e-scroll.scss';
 import '../../../styles/newlook/elements/GFSDK-e-buttons.scss';
+import StringStore from "../../utils/Strings/StringStore";
 
 class ProfileUserInfo extends React.Component {
 
@@ -297,10 +298,10 @@ class ProfileUserInfo extends React.Component {
       <div id="classes" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>Mis {window.GFtheme.ClassName}</div>
                            </li>
                            <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'profile' ? 'active' : '' )}>
-                              <div id="profile" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.PROFILE}</div>
+                              <div id="profile" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{StringStore.get('PROFILE')}</div>
                            </li>
                            <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'password' ? 'active' : '' )}>
-                              <div id="password" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.CHANGEPASSWORD}</div>
+                              <div id="password" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{StringStore.get('CHANGEPASSWORD')}</div>
                            </li>
                         </ul>
 
@@ -308,7 +309,7 @@ class ProfileUserInfo extends React.Component {
                            <div id="ProfileTabs-pane-1" className={'fade tab-pane ' + (screen === 'classes' ? 'active in' : '' )}>
                            { brands.length > 1 ?
                                  <div className={filterClass + '__item is-location-filter'} style={{ marginRight: '1rem' }}>
-                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
+                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{StringStore.get('LOCATION')}: </label> */}
                                     <select 
                                        className={formClass + '__select'} 
                                        id={'calendar-filter-brand'} 
@@ -332,7 +333,7 @@ class ProfileUserInfo extends React.Component {
                               }
                               { locations.length > 1 ?
                                  <div className={filterClass + '__item  is-brand-filter'}>
-                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
+                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{StringStore.get('LOCATION}: </label> */}
                                     <select 
                                        className={formClass + '__select'} 
                                        id={'calendar-filter-location'} 
@@ -386,7 +387,7 @@ class ProfileUserInfo extends React.Component {
 
                                     <div className={profileClass + '__section is-save'}>
                                        <button disabled={!this.state.formValid} type="submit" className={buttonClass + ' ' + buttonClass + "--submit is-primary"}>
-                                             {Strings.BUTTON_SAVE}
+                                             {StringStore.get('BUTTON_SAVE')}
                                        </button>
 
                                        <div className={formClass + '__notifications'}>
@@ -395,7 +396,7 @@ class ProfileUserInfo extends React.Component {
                                                 {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                                              </div>
                                              <div className="text-success">
-                                                {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                                {this.state.saved && <small>{StringStore.get('SAVE_ME_SUCCESS')}</small>}
                                              </div>
                                        </div>
                                     </div>
@@ -415,7 +416,7 @@ class ProfileUserInfo extends React.Component {
                                              type="submit"
                                              className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
                                           >
-                                             {Strings.BUTTON_SAVE}
+                                             {StringStore.get('BUTTON_SAVE')}
                                           </button>
 
                                           <div className={formClass + '__notifications'}>
@@ -424,7 +425,7 @@ class ProfileUserInfo extends React.Component {
                                                    {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                                              </div>
                                              <div className="text-success">
-                                                   {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                                   {this.state.saved && <small>{StringStore.get('SAVE_ME_SUCCESS')}</small>}
                                              </div>
                                           </div>
                                        </div>
@@ -433,7 +434,7 @@ class ProfileUserInfo extends React.Component {
                            </div>
                         </div>
 
-                           {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={Strings.PAYMENT}>
+                           {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={StringStore.get('PAYMENT')}>
                               <CustomScroll heightRelativeToParent="100%">
                                  <div className={profileClass + '__tab-section'}>
                                        <PaymentMethods />

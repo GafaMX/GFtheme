@@ -1,5 +1,6 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
+import StringStore from "./components/utils/Strings/StringStore";
 
 
 // if(!jQuery){
@@ -15,6 +16,7 @@ if (selection !== null) {
 
 GafaFitSDKWrapper.initValues(
    () => {
+         StringStore.initLang();
       GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
       GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
       GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');

@@ -5,6 +5,7 @@ import {FormGroup, FormControl} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
+import StringStore from "../utils/Strings/StringStore";
 
 class PasswordChange extends React.Component {
     constructor(props) {
@@ -46,13 +47,13 @@ class PasswordChange extends React.Component {
 
     validatePassword(value, fieldValidationErrors) {
         let passwordValid = value.length >= 6;
-        fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
+        fieldValidationErrors.password = passwordValid ? '' : StringStore.get('VALIDATION_PASSWORD');
         return passwordValid;
     }
 
     validatePasswordConfirmation(value, fieldValidationErrors) {
         let passwordConfirmationValid = value === this.state.password;
-        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : Strings.VALIDATION_EQUAL_PASSWORDS;
+        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : StringStore.get('VALIDATION_EQUAL_PASSWORDS');
         return passwordConfirmationValid;
     }
 
@@ -104,7 +105,7 @@ class PasswordChange extends React.Component {
                         autoFocus
                         className={formClass + "__input"}
                         value={this.state.password}
-                        placeholder={Strings.LABEL_PASSWORD}
+                        placeholder={StringStore.get('LABEL_PASSWORD')}
                         onChange={this.handleChangeField.bind(this)}
                         type="password"
                      />
@@ -114,7 +115,7 @@ class PasswordChange extends React.Component {
                         autoFocus
                         className={formClass + "__input"}
                         value={this.state.passwordConfirmation}
-                        placeholder={Strings.LABEL_PASSWORD_CONFIRM}
+                        placeholder={StringStore.get('LABEL_PASSWORD_CONFIRM')}
                         onChange={this.handleChangeField.bind(this)}
                         type="password"
                      />
@@ -124,14 +125,14 @@ class PasswordChange extends React.Component {
                      disabled={!this.state.formValid}
                      type="submit"
                   >
-                     {Strings.BUTTON_PASSWORD_CHANGE}
+                     {StringStore.get('BUTTON_PASSWORD_CHANGE')}
                   </button>
                   <div className="text-danger">
                      <FormErrors formErrors={this.state.formErrors}/>
                      {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                   </div>
                   <div className="text-success">
-                     {this.state.passwordChanged && <small>{Strings.PASSWORD_CHANGE_SUCCESS}</small>}
+                     {this.state.passwordChanged && <small>{StringStore.get('PASSWORD_CHANGE_SUCCESS')}</small>}
                   </div>
                </form>
          </div>

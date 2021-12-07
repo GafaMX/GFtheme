@@ -6,6 +6,7 @@ import GlobalStorage from "../store/GlobalStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
 import {formatMoney} from "../utils/FormatUtils";
+import StringStore from "../utils/Strings/StringStore";
 
 class MembershipItem extends React.Component {
     constructor(props) {
@@ -175,8 +176,8 @@ class MembershipItem extends React.Component {
                 </div>
                 <div className={productClass + '__footer'}>
                     {membership.expiration_days
-                        ? <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span>
-                            <strong>{membership.expiration_days} {Strings.DAYS}</strong></p>
+                        ? <p className={'this-expiration'}><span>{StringStore.get('EXPIRE_IN')}</span>
+                            <strong>{membership.expiration_days} {StringStore.get('DAYS')}</strong></p>
                         : null
                     }
                 </div>

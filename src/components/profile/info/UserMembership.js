@@ -4,6 +4,7 @@ import React from "react";
 import moment from 'moment';
 import IconCalendarAlt from '../../utils/Icons/IconCalendarAlt';
 import Strings from "../../utils/Strings/Strings_ES";
+import StringStore from "../../utils/Strings/StringStore";
 
 class UserMembership extends React.Component {
 
@@ -19,8 +20,8 @@ class UserMembership extends React.Component {
                </div>
                 <div className="UserMembership__data">
                     <p className="UserMembership__credits-name">{this.props.name}</p>
-                    {/* <p className="UserMembership__credits-name">{Strings.CREATE} {moment(this.props.from).format('YYYY-MM-DD')}, </p> */}
-                    <p> {Strings.EXPIRATION} {moment(this.props.to).format('DD[/]MMM[/]YYYY')}</p>
+                    {/* <p className="UserMembership__credits-name">{StringStore.get('CREATE} {moment(this.props.from).format('YYYY-MM-DD')}, </p> */}
+                    <p> {StringStore.get('EXPIRATION')} {moment(this.props.to).format('DD[/]MMM[/]YYYY')}</p>
                 </div>
             </div>
         )

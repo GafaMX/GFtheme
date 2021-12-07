@@ -12,6 +12,7 @@ import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
 // import moment from 'moment';
 import Select from 'react-select';
 import GlobalStorage from "../store/GlobalStorage";
+import StringStore from "../utils/Strings/StringStore";
 
 
 class CalendarFilters extends React.Component {
@@ -265,7 +266,7 @@ class CalendarFilters extends React.Component {
       if (this.state.has_next) {
          return (
             <a onClick={this.nextWeek}
-               className={'next-button calendar-control-button'}>{Strings.NEXT_WEEK} <IconRightArrow /></a>
+               className={'next-button calendar-control-button'}>{StringStore.get('NEXT_WEEK')} <IconRightArrow /></a>
          );
       }
    }
@@ -273,7 +274,7 @@ class CalendarFilters extends React.Component {
    getPrevButton() {
       if (this.state.has_prev) {
          return (
-            <a onClick={this.prevWeek} className={'prev-button calendar-control-button'}><IconLeftArrow /> {Strings.PREVIOUS_WEEK}</a>
+            <a onClick={this.prevWeek} className={'prev-button calendar-control-button'}><IconLeftArrow /> {StringStore.get('PREVIOUS_WEEK')}</a>
          );
       }
    }
@@ -305,7 +306,7 @@ class CalendarFilters extends React.Component {
             <p className={formClass + '__label'}>Filtros:</p> 
                <div className={calendarClass + '__filter ' + filterClass}>
                   {/* <div className={filterClass + '__item ' + formClass + '__section is-day-filter'}>
-                     <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{Strings.TIME_OF_DAY}: </label>
+                     <label htmlFor={'calendar-time-of-day'}  className={formClass + '__label'}>{StringStore.get('TIME_OF_DAY')}: </label>
                         <div className={formClass + "__radio-container has-3-columns"}>
                            <label className={formClass + "__radio " + (time_of_day === null || time_of_day === ' ' ? 'checked' : '')}>
                               <input  type="radio"
@@ -355,7 +356,7 @@ class CalendarFilters extends React.Component {
                            value={locationValue}
                            // onChange={this.selectLocation.bind(this)}
                            >
-                           <option value={''}>{Strings.ALL}</option>
+                           <option value={''}>{StringStore.get('ALL')}</option>
                            {locations.map(function (location, index) {
                               return (
                                  <option value={location.id} key={`${filter_name}-location--option-${index}`}>{location.name}</option>
@@ -368,11 +369,11 @@ class CalendarFilters extends React.Component {
                   </div>
 
                   {/* <div className={filterClass + '__item ' + formClass + '__section is-room-filter ' + (rooms.length <= 1 ? 'is-empty' : '' )}>
-                     <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{Strings.ROOM}: </label>
+                     <label htmlFor={'calendar-filter-room'}  className={formClass + '__label'}>{StringStore.get('ROOM')}: </label>
                      <select className={formClass + '__select'} id={'calendar-filter-room'} data-name="filter_room"
                               data-origin="rooms" ref={'room'}
                               onChange={this.selectFilter}>
-                           <option value={''}>{Strings.ALL}</option> */}
+                           <option value={''}>{StringStore.get('ALL')}</option> */}
                            {/* {this.state.room_groups.map(function (group, index) {
                               return (
                                  <optgroup label={group.location.name}
@@ -405,7 +406,7 @@ class CalendarFilters extends React.Component {
                               data-origin="services"
                               value={serviceValue}
                               onChange={this.selectFilter}>
-                                 <option value={''}>{Strings.SERVICE}</option>
+                                 <option value={''}>{StringStore.get('SERVICE')}</option>
                                  {this.state.services.map(function (service, index) {
                                     return (
                                        <option value={service.id}
