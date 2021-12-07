@@ -13,6 +13,7 @@ import 'slick-carousel/slick/slick-theme.css';
 import moment from 'moment';
 // import 'moment/min/moment-with-locales';
 import 'moment/locale/es';
+import StringStore from "../utils/Strings/StringStore";
 
 moment.locale('es');
 
@@ -228,10 +229,10 @@ class CalendarBody extends React.Component {
                         <span className={buttonClass + ' ' + buttonClass + '--icon'}>
                            <IconLeftArrow /> 
                         </span>
-                        <span className={'this-label'}>Semana anterior</span>
+                        <span className={'this-label'}>{StringStore.get('PREVIOUS_WEEK')}</span>
                      </button>
                      <button className={calendarClass + '__body-weeksSection is-next'} disabled={!has_next} onClick={this.nextWeek.bind(this)}>
-                        <span className={'this-label'}>Semana siguiente</span>
+                        <span className={'this-label'}>{StringStore.get('NEXT_WEEK')}</span>
                         <span className={buttonClass + ' ' + buttonClass + '--icon'}>
                            <IconRightArrow />
                         </span>
@@ -249,10 +250,10 @@ class CalendarBody extends React.Component {
                         <span className={buttonClass + ' ' + buttonClass + '--icon'}>
                            <IconLeftArrow /> 
                         </span>
-                        <span className={'this-label'}>Semana anterior</span>
+                        <span className={'this-label'}>{StringStore.get('PREVIOUS_WEEK')}</span>
                      </button>
                      <button className={calendarClass + '__body-weeksSection is-next'} disabled={!has_next} onClick={this.nextWeek.bind(this)}>
-                        <span className={'this-label'}>Semana siguiente</span>
+                        <span className={'this-label'}>{StringStore.get('NEXT_WEEK')}</span>
                         <span className={buttonClass + ' ' + buttonClass + '--icon'}>
                            <IconRightArrow />
                         </span>
