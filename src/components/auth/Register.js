@@ -5,6 +5,7 @@ import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
+import StringStore from "../utils/Strings/StringStore";
 
 class Register extends React.Component {
     constructor(props) {
@@ -72,25 +73,25 @@ class Register extends React.Component {
 
     validatePassword(value, fieldValidationErrors) {
         let passwordValid = value.length >= 6;
-        fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
+        fieldValidationErrors.password = passwordValid ? '' : StringStore.get('VALIDATION_PASSWORD');
         return passwordValid;
     }
 
     validatePasswordConfirmation(value, fieldValidationErrors) {
         let passwordConfirmationValid = value === this.state.password;
-        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : Strings.VALIDATION_EQUAL_PASSWORDS;
+        fieldValidationErrors.passwordConfirmation = passwordConfirmationValid ? '' : StringStore.get('VALIDATION_EQUAL_PASSWORDS');
         return passwordConfirmationValid;
     }
 
     validateEmail(value, fieldValidationErrors) {
         let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-        fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
+        fieldValidationErrors.email = emailValid ? '' : StringStore.get('VALIDATION_EMAIL');
         return emailValid;
     }
 
     validateFullName(value, fieldValidationErrors) {
         let fullNameValid = value !== '' && value !== null;
-        fieldValidationErrors.fullName = fullNameValid ? '' : Strings.VALIDATION_FULL_NAME;
+        fieldValidationErrors.fullName = fullNameValid ? '' : StringStore.get('VALIDATION_FULL_NAME');
         return fullNameValid;
     }
 
@@ -225,41 +226,41 @@ class Register extends React.Component {
                       onSubmit={this.handleSubmit.bind(this)}>
                     <input type="hidden" name="g-recaptcha-response" value={g_recaptcha_response}/>
                     <FormGroup className={formClass + "__section"} controlId="fullName" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_FULL_NAME}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_FULL_NAME')}</ControlLabel> */}
                         <FormControl
                             autoFocus
                             className={formClass + "__input"}
-                            placeholder={Strings.LABEL_FULL_NAME}
+                            placeholder={StringStore.get('LABEL_FULL_NAME')}
                             type="text"
                             value={this.state.fullName}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_EMAIL')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
-                            placeholder={Strings.LABEL_EMAIL}
+                            placeholder={StringStore.get('LABEL_EMAIL')}
                             type="email"
                             value={this.state.email}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="password" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PASSWORD}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PASSWORD')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
-                            placeholder={Strings.LABEL_PASSWORD}
+                            placeholder={StringStore.get('LABEL_PASSWORD')}
                             value={this.state.password}
                             onChange={this.handleChangeField.bind(this)}
                             type="password"
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="passwordConfirmation" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PASSWORD_CONFIRM}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PASSWORD_CONFIRM')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
-                            placeholder={Strings.LABEL_PASSWORD_CONFIRM}
+                            placeholder={StringStore.get('LABEL_PASSWORD_CONFIRM')}
                             value={this.state.passwordConfirmation}
                             onChange={this.handleChangeField.bind(this)}
                             type="password"
@@ -270,14 +271,14 @@ class Register extends React.Component {
                         disabled={!this.state.formValid}
                         type="submit"
                     >
-                        {Strings.BUTTON_REGISTER}
+                        {StringStore.get('BUTTON_REGISTER')}
                     </button>
                     <div className="text-danger">
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     <div className="register-form-success text-success">
-                        {Strings.REGISTER_SUCCESS}
+                        {StringStore.get('REGISTER_SUCCESS')}
                     </div>
                 </form>
             </div>

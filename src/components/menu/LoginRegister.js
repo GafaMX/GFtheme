@@ -17,6 +17,7 @@ import '../../styles/newlook/components/GFSDK-c-Login.scss';
 import '../../styles/newlook/thirdParties/modalComp.scss';
 import '../../styles/newlook/elements/GFSDK-e-form.scss';
 import '../../styles/newlook/elements/GFSDK-e-buttons.scss';
+import StringStore from "../utils/Strings/StringStore";
 
 class LoginRegister extends React.Component {
    constructor(props) {
@@ -257,7 +258,7 @@ class LoginRegister extends React.Component {
                                        ?   <div className={'this-item ' + buttonClass + ' ' + buttonClass + '--icon' + ' is-primary'}>
                                              <IconRunningMan />
                                           </div>
-                                       :   Strings.BUTTON_PROFILE
+                                       :   StringStore.get('BUTTON_PROFILE')
                                     }
                                  </div>
 
@@ -271,7 +272,7 @@ class LoginRegister extends React.Component {
                               <CloseIcon />
                            </div>
                            <Modal.Header className="modal-login__header">
-                                 <Modal.Title className="section-title container">{Strings.BUTTON_LOGIN}</Modal.Title>
+                                 <Modal.Title className="section-title container">{StringStore.get('BUTTON_LOGIN')}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-login__body">
                                  <Login 
@@ -284,11 +285,11 @@ class LoginRegister extends React.Component {
                            <nav className="nav">
                                  <ul>
                                     <li>
-                                       <a onClick={this.handleClickRegister.bind(this)}> {Strings.NOT_ACCOUNT_QUESTION}</a>
+                                       <a onClick={this.handleClickRegister.bind(this)}> {StringStore.get('NOT_ACCOUNT_QUESTION')}</a>
                                     </li>
 
                                     <li>
-                                       <a onClick={this.handleClickRecovery.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
+                                       <a onClick={this.handleClickRecovery.bind(this)}> {StringStore.get('FORGOT_PASSWORD_QUESTION')}</a>
                                     </li>
                                  </ul>
                            </nav>
@@ -302,7 +303,7 @@ class LoginRegister extends React.Component {
                               <CloseIcon />
                            </div>  
                            <Modal.Header className="modal-register__header">
-                                 <Modal.Title className="section-title container">{Strings.BUTTON_REGISTER}</Modal.Title>
+                                 <Modal.Title className="section-title container">{StringStore.get('BUTTON_REGISTER')}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-register__body">
                                  <Register 
@@ -315,10 +316,10 @@ class LoginRegister extends React.Component {
                                  <nav className="nav">
                                     <ul>
                                        <li>
-                                          <a onClick={this.handleClickLogin.bind(this)}> {Strings.ACCOUNT_QUESTION}</a>
+                                          <a onClick={this.handleClickLogin.bind(this)}> {StringStore.get('ACCOUNT_QUESTION')}</a>
                                        </li>
                                        <li>
-                                          <a onClick={this.handleClickRecovery.bind(this)}> {Strings.FORGOT_PASSWORD_QUESTION}</a>
+                                          <a onClick={this.handleClickRecovery.bind(this)}> {StringStore.get('FORGOT_PASSWORD_QUESTION')}</a>
                                        </li>
                                     </ul>
                                  </nav>
@@ -351,7 +352,7 @@ class LoginRegister extends React.Component {
                               <CloseIcon />
                            </div>
                            <Modal.Header className="modal-password-header">
-                                 <Modal.Title className="section-title container">{Strings.BUTTON_PASSWORD_FORGOT}</Modal.Title>
+                                 <Modal.Title className="section-title container">{StringStore.get('BUTTON_PASSWORD_FORGOT')}</Modal.Title>
                            </Modal.Header>
                            <Modal.Body className="modal-password-body">
                                  <PasswordRecovery 

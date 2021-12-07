@@ -6,6 +6,7 @@ import {FormErrors} from "../form/FormErrors";
 import GlobalStorage from "../store/GlobalStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
+import StringStore from "../utils/Strings/StringStore";
 
 class Login extends React.Component {
     constructor(props) {
@@ -47,13 +48,13 @@ class Login extends React.Component {
 
    validatePassword(value, fieldValidationErrors) {
       let passwordValid = value.length >= 6;
-      fieldValidationErrors.password = passwordValid ? '' : Strings.VALIDATION_PASSWORD;
+      fieldValidationErrors.password = passwordValid ? '' : StringStore.get('VALIDATION_PASSWORD');
       return passwordValid;
    }
 
    validateEmail(value, fieldValidationErrors) {
       let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-      fieldValidationErrors.email = emailValid ? '' : Strings.VALIDATION_EMAIL;
+      fieldValidationErrors.email = emailValid ? '' : StringStore.get('VALIDATION_EMAIL');
       return emailValid;
    }
 
@@ -164,22 +165,22 @@ class Login extends React.Component {
             <div className="login auth">
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_EMAIL')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
                             autoFocus
-                            placeholder={Strings.LABEL_EMAIL}
+                            placeholder={StringStore.get('LABEL_EMAIL')}
                             type="email"
                             value={this.state.email}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="password" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PASSWORD}</ControlLabel> */}
+                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PASSWORD')}</ControlLabel> */}
                         <FormControl
                            className={formClass + "__input"}
                            value={this.state.password}
-                           placeholder={Strings.LABEL_PASSWORD}
+                           placeholder={StringStore.get('LABEL_PASSWORD')}
                            onChange={this.handleChangeField.bind(this)}
                            type="password"
                         />
@@ -189,14 +190,14 @@ class Login extends React.Component {
                         disabled={!this.state.formValid}
                         type="submit"
                     >
-                        {Strings.BUTTON_LOGIN}
+                        {StringStore.get('BUTTON_LOGIN')}
                     </button>
                     <div className="text-danger">
                         <FormErrors formErrors={this.state.formErrors}/>
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     <div className="text-success">
-                        {this.state.logged && <small>{Strings.LOGIN_SUCCESS}</small>}
+                        {this.state.logged && <small>{StringStore.get('LOGIN_SUCCESS')}</small>}
                     </div>
                 </form>
             </div>

@@ -5,6 +5,7 @@ import {ControlLabel, FormControl, FormGroup} from "react-bootstrap";
 import Strings from "../../utils/Strings/Strings_ES";
 import 'moment/locale/es';
 import Select from "react-select";
+import StringStore from "../../utils/Strings/StringStore";
 
 class AddressInfo extends React.Component {
     constructor(props) {
@@ -35,9 +36,9 @@ class AddressInfo extends React.Component {
 
         return (
             <div className={profileClass + '__section is-address'}>
-                <h4>{Strings.LABEL_ADDRESS}</h4>
+                <h4>{StringStore.get('LABEL_ADDRESS')}</h4>
                 <FormGroup className={formClass + "__section is-address"} controlId="address">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_ADDRESS}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_ADDRESS')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
@@ -46,7 +47,7 @@ class AddressInfo extends React.Component {
                     />
                 </FormGroup>
                 <FormGroup className={formClass + "__section is-external_number"} controlId="external_number">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EXTERNAL_NUMBER}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_EXTERNAL_NUMBER')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
@@ -55,7 +56,7 @@ class AddressInfo extends React.Component {
                     />
                 </FormGroup>
                 <FormGroup className={formClass + "__section is-internal_number"} controlId="internal_number">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_INTERNAL_NUMBER}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_INTERNAL_NUMBER')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
@@ -64,7 +65,7 @@ class AddressInfo extends React.Component {
                     />
                 </FormGroup>
                 <FormGroup className={formClass + "__section is-postal_code"} controlId="postal_code">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_POSTAL_CODE}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_POSTAL_CODE')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
@@ -73,7 +74,7 @@ class AddressInfo extends React.Component {
                     />
                 </FormGroup>
                 <FormGroup className={formClass + "__section is-municipality"} controlId="municipality">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_MUNICIPALITY}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_MUNICIPALITY')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
@@ -82,7 +83,7 @@ class AddressInfo extends React.Component {
                     />
                 </FormGroup>
                 <FormGroup className={formClass + "__section is-city"} controlId="city">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_CITY}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_CITY')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="text"
@@ -91,7 +92,7 @@ class AddressInfo extends React.Component {
                     />
                 </FormGroup>
                 <div className={formClass + "__section is-country"}>
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_COUNTRY}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_COUNTRY')}</ControlLabel>
                     <Select options={this.props.info.countries}
                             placeholder={'Seleccionar'}
                             value={this.props.info.countries.find(option => option.value === this.props.info.countries_id)}
@@ -99,7 +100,7 @@ class AddressInfo extends React.Component {
                     />
                 </div>
                 <div className={formClass + "__section is-state"}>
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_STATE}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_STATE')}</ControlLabel>
                     <Select options={this.props.info.states}
                             placeholder={'Seleccionar'}
                             value={this.props.info.states.find(option => option.value === this.props.info.country_states_id)}

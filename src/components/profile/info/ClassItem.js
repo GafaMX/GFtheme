@@ -9,6 +9,7 @@ import Glyphicon from "react-bootstrap/es/Glyphicon";
 import Modal from "react-bootstrap/es/Modal";
 import CalendarStorage from "../../calendar/CalendarStorage";
 import CloseIcon from "../../utils/Icons/CloseIcon";
+import StringStore from "../../utils/Strings/StringStore";
 
 class ClassItem extends React.Component {
    constructor(props) {
@@ -30,7 +31,7 @@ class ClassItem extends React.Component {
          reservationID,
          '',
          function(result){
-            alert(Strings.CANCELEDRESERVATION);
+            alert(StringStore.get('CANCELEDRESERVATION'));
             window.location.reload();
          },
          function(error){
@@ -68,15 +69,15 @@ class ClassItem extends React.Component {
       let today= moment().format('X');
       if (this.props.reservation.credit === null) {
          membershipCredits = (
-               <p className={'reservation-item-membership'}>{Strings.MEMBERSHIP}{this.props.reservation.user_membership.membership['name']}</p>)
+               <p className={'reservation-item-membership'}>{StringStore.get('MEMBERSHIP')}{this.props.reservation.user_membership.membership['name']}</p>)
       } else {
          membershipCredits = (
-               <p className={'reservation-item-credits'}>{Strings.CREDIT}{this.props.reservation.credit['name']}</p>)
+               <p className={'reservation-item-credits'}>{StringStore.get('CREDIT')}{this.props.reservation.credit['name']}</p>)
       }
       
       if(this.props.reservation.cancelled === true){
          cancelation =(
-            <p className={'reservation-item-cancelled'}>  {Strings.CANCELLED} </p>
+            <p className={'reservation-item-cancelled'}>  {StringStore.get('CANCELLED')} </p>
          )
       } else if (moment(reservation.meeting_start).format('X') > today){
          cancelation = (
@@ -108,8 +109,8 @@ class ClassItem extends React.Component {
                      <CloseIcon />
                   </div> 
                   <div className={'modal-cancelation__body'}>
-                     <h3>{Strings.CANCELATION}</h3>
-                     <p>{Strings.CANCELATIONMESSAGE}</p>
+                     <h3>{StringStore.get('CANCELATION')}</h3>
+                     <p>{StringStore.get('CANCELATIONMESSAGE')}</p>
                   </div>
                   <div className={'modal-cancelation__footer'}>
                      <div className="GFSDK-form__section" id="cancel-class">
@@ -117,7 +118,7 @@ class ClassItem extends React.Component {
                               Sí, deseo cancelar
                            </button>
                            {/* <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClickBack.bind(this)}>
-                              {Strings.BUTTON_CANCEL}
+                              {StringStore.get('BUTTON_CANCEL')}
                            </button> */}
                      </div>
 
