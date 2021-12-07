@@ -48,7 +48,7 @@ export default {
         fullName: 'full name',
         first_name: 'name',
     },
-    EXPIRE_IN: "Expiration",
+    EXPIRE_IN: "Expires in ",
     DAYS: "days",
     MEMBERSHIPS: "Memberships",
     COMBOS: "Combos",

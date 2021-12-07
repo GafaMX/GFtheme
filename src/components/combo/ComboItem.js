@@ -147,7 +147,7 @@ class ComboItem extends React.Component {
                     }
 
                     <button style={{pointerEvents: openFancy ? 'none' : 'auto'}} className="buq-accentColor"
-                            onClick={openFancy ? null : this.handleClick.bind(this)}> Comprar
+                            onClick={openFancy ? null : this.handleClick.bind(this)}> {StringStore.get('BUTTON_BUY')}
                     </button>
 
                 </div>
