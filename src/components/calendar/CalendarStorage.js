@@ -6,7 +6,7 @@ const CalendarStorage = {
     services: [],
 
     staff: [],
-    
+
     show_login: null,
     show_register: null,
 
@@ -22,6 +22,7 @@ const CalendarStorage = {
     filter_time_of_day: null,
     calendarHeight: null,
     calendarWidth: null,
+    show_description: false,
 
     /**
      *
