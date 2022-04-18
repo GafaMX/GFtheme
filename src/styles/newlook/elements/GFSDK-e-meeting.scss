@@ -1,176 +1,177 @@
 @import '../base/variables.scss';
 
-.#{$pre}-e-meeting{
-   display:grid;
-   grid-auto-flow: row;
-   row-gap: 15px;
-   column-gap: 15px;
-   border: 1px solid #EEEEEE;
-   justify-items: start;
-   align-items: center;
-   padding:15px;
-   border-radius: 10px;
-   background-color: white;
-   margin-bottom:10px;
-   cursor: pointer;
-   box-sizing: border-box;
-   @include transition(border-color);
+.#{$pre}-e-meeting {
+  display: grid;
+  grid-auto-flow: row;
+  row-gap: 15px;
+  column-gap: 15px;
+  border: 1px solid #EEEEEE;
+  justify-items: start;
+  align-items: center;
+  padding: 15px;
+  border-radius: 10px;
+  background-color: white;
+  margin-bottom: 10px;
+  cursor: pointer;
+  box-sizing: border-box;
+  @include transition(border-color);
 
-   .horizontal &{
-      background-color:#FAFAFA;
-      grid-auto-flow: initial;
-      grid-template-columns: 80px 1fr;
-      height: initial;
-      padding:0;
-      // width:250px; // todo versión horizontal
-      width:100%;
+  .horizontal & {
+    background-color: #FAFAFA;
+    grid-auto-flow: initial;
+    grid-template-columns: 80px 1fr;
+    height: initial;
+    padding: 0;
+    // width:250px; // todo versión horizontal
+    width: 100%;
 
-     &.no-availability.disable {
-       background-color: #DBDBDB66;
-       pointer-events: none !important;
+    &.no-availability.disable {
+      background-color: #DBDBDB66;
+      pointer-events: none !important;
 
-       &:hover {
-         border: 1px solid #EEEEEE;
-       }
-
-       .this-time,.this-staff {
-         color: #949494;
-       }
-     }
-
-      @media only screen and (min-width:992px) {
-         width:250px;
+      &:hover {
+        border: 1px solid #EEEEEE;
       }
-   }
+
+      .this-time, .this-staff {
+        color: #949494;
+      }
+    }
+
+    @media only screen and (min-width: 992px) {
+      width: 250px;
+    }
+  }
+
+  p {
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  @media screen and (min-width: 992px) {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+
+  &:last-child {
+    border-bottom: 1px solid #EEEEEE;
+  }
+
+  &.has-pasted {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  &:hover {
+    border-color: #EF3532;
+
+    & > hr {
+      background-color: #EF3532;
+    }
+  }
+
+  @include cleanStyles;
+
+  &__header {
+    & > p {
+      text-align: left !important;
+      word-break: normal;
+    }
+
+    .horizontal & {
+      display: grid;
+      align-items: center;
+      justify-items: center;
+      height: 100%;
+      width: 100%;
+      border-right: 1px solid #EDEDED;
+
+      .this-time {
+        padding: 0 15px;
+        font-size: 10px;
+      }
+    }
+
+    & > .this-service, & > .this-room {
+      font-size: 12px;
+      line-height: 1.4;
+      letter-spacing: .85px;
+      color: #8E8E93;
+    }
+
+    & > .this-service {
+      font-weight: 700;
+    }
+  }
+
+  & > hr {
+    width: 1px;
+    height: 100%;
+    margin: 0;
+    background-color: #E9E8E8;
+    border: 0 transparent none;
+    @include transition(background-color);
+
+    .horizontal & {
+      display: none;
+    }
+
+    @media screen and (min-width: 992px) {
+      width: 90%;
+      height: 1px;
+      margin-left: -15px;
+    }
+  }
+
+  &__body {
+    .horizontal & {
+      display: block;
+      align-items: center;
+      height: initial;
+      padding: 10px 15px;
+      width: 100%;
+      box-sizing: border-box;
+
+      p {
+        line-height: 1;
+        margin-bottom: .75rem;
+        text-transform: capitalize;
+      }
+
+      .this-staff {
+        font-size: 14px;
+        letter-spacing: .1px;
+        color: #000000;
+      }
+
+      .this-service, .this-location, .this-availability, .this-description {
+        font-size: 11px;
+        letter-spacing: .1px;
+        font-weight: 600;
+        color: #BBBBBC;
+      }
+
+      //.this-location {
+      //  margin-bottom: 0;
+      //}
+
+      .no-availability {
+        background-color: red !important;
+      }
+    }
 
     p {
-        font-family: 'DM Sans', sans-serif;
+      text-align: left !important;
     }
 
-    @media screen and (min-width:992px) {
-        grid-template-columns: 1fr;
-        column-gap: 0;
+    & > .this-time, & > .this-staff, & > .this-location {
+      font-size: 12px;
+      line-height: 1.6;
+      letter-spacing: .85px;
+      color: #8E8E93;
     }
 
-    &:last-child{
-        border-bottom: 1px solid #EEEEEE;
+    & > .this-staff {
+      font-weight: 700;
     }
-
-    &.has-pasted{
-        opacity:0.4;
-        pointer-events: none;
-    }
-
-    &:hover{
-      border-color: #EF3532;
-
-      & > hr{
-         background-color: #EF3532;
-      }
-   }
-
-    @include cleanStyles;
-
-    &__header{
-        & > p{
-            text-align: left!important;
-            word-break: normal;
-        }
-
-        .horizontal &{
-           display: grid;
-           align-items: center;
-           justify-items: center;
-           height: 100%;
-           width:100%;
-           border-right: 1px solid #EDEDED;
-           
-           .this-time{
-              padding: 0 15px;
-              font-size:10px;
-            }
-         }
-
-        & > .this-service, & > .this-room{
-            font-size:12px;
-            line-height: 1.4;
-            letter-spacing: .85px;
-            color: #8E8E93;
-        }
-
-        & > .this-service{
-            font-weight: 700;
-        }
-    }
-
-    & > hr{
-        width:1px;
-        height:100%;
-        margin:0;
-        background-color: #E9E8E8;
-        border: 0 transparent none;
-        @include transition(background-color);
-        .horizontal &{
-         display: none;
-         }
-        
-        @media screen and (min-width:992px) {
-            width:90%;
-            height:1px;
-            margin-left: -15px;
-        }
-    }
-
-   &__body{
-      .horizontal &{
-         display: block;
-         align-items: center;
-         height: initial;
-         padding: 10px 15px;
-         width:100%;
-         box-sizing: border-box;
-         
-         p{
-            line-height: 1;
-            margin-bottom:.75rem;
-            text-transform: capitalize;
-         }
-
-         .this-staff{
-            font-size: 14px;
-            letter-spacing: .1px;
-            color:#000000;
-         }
-
-        .this-service, .this-location, .this-availability{
-            font-size: 11px;
-            letter-spacing: .1px;
-            font-weight: 600;
-            color: #BBBBBC;
-         }
-         
-         .this-location{
-            margin-bottom:0;
-         }
-
-        .no-availability {
-          background-color: red !important;
-        }
-      }
-
-      p{
-         text-align: left!important;
-      }
-
-      & > .this-time, & > .this-staff, & > .this-location{
-         font-size:12px;
-         line-height: 1.6;
-         letter-spacing: .85px;
-         color: #8E8E93;
-      }
-
-      & > .this-staff{
-         font-weight: 700;
-      }
-   }
+  }
 }
