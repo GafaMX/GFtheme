@@ -301,6 +301,10 @@ class GafaThemeSDK extends React.Component {
                 GafaThemeSDK.renderElementIntoContainer(domContainer, LoginRegister, {initial: initial});
             });
         }
+
+        GafaFitSDKWrapper.getCatalogSpecialTextsGroupsWithFields(1, ['register'], function (result) {
+            GlobalStorage.set('special_texts_register', result);
+        });
     };
 }
 

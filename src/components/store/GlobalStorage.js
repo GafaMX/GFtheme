@@ -44,6 +44,9 @@ const GlobalStorage = {
     past_classes: null,
     purchase: null,
 
+    //Special Texts
+    special_texts_register: [],
+
     get(property) {
         return this[property];
     },
