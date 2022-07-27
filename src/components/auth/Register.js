@@ -1,15 +1,20 @@
 'use strict';
 
 import React from "react";
-import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
+import {FormControl, FormGroup} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Strings from "../utils/Strings/Strings_ES";
 import StringStore from "../utils/Strings/StringStore";
+import GlobalStorage from "../store/GlobalStorage";
+import Checkbox from "react-bootstrap/lib/Checkbox";
+import {Select} from "react-select";
 
 class Register extends React.Component {
     constructor(props) {
         super(props);
+
+        let special_texts = GlobalStorage.get('special_texts_register');
+        let special_texts_values = this.defaultSpecialTexts(special_texts);
 
         this.state = {
             email: "",
@@ -28,7 +33,39 @@ class Register extends React.Component {
             serverError: '',
             registered: false,
             g_recaptcha_response: '',
+            special_texts: special_texts,
+            special_texts_values: special_texts_values
         };
+
+        GlobalStorage.addListener(this.updateSpecialTexts.bind(this));
+    }
+
+    defaultSpecialTexts(special_texts) {
+        let special_texts_values = {};
+
+        if (special_texts.length) {
+            special_texts.forEach(function (group) {
+                special_texts_values[group.id] = {};
+                special_texts_values[group.id][0] = {};
+                group.active_fields.forEach(function (field) {
+                    special_texts_values[group.id][0][field.id] = {};
+                    special_texts_values[group.id][0][field.id][0] = '';
+                })
+            });
+        }
+
+        return special_texts;
+    }
+
+    updateSpecialTexts() {
+        let special_texts = GlobalStorage.get('special_texts_register');
+
+        let special_texts_values = this.defaultSpecialTexts(special_texts);
+
+        this.setState({
+            special_texts: special_texts,
+            special_texts_values: special_texts_values
+        })
     }
 
     splitFullName(value) {
@@ -95,11 +132,16 @@ class Register extends React.Component {
         return fullNameValid;
     }
 
+    validateSpecialTexts() {
+        return true;
+    }
+
     validateForm() {
+
         this.setState(
             {
                 formValid: this.state.emailValid && this.state.passwordValid && this.state.passwordConfirmationValid &&
-                this.state.fullNameValid
+                    this.state.fullNameValid && this.validateSpecialTexts()
             });
     }
 
@@ -110,6 +152,31 @@ class Register extends React.Component {
             [fieldName]: fieldValue
         }, () => {
             this.validateField(fieldName, fieldValue)
+        });
+    }
+
+    handleChangeSpecialText(event) {
+        let fieldId = event.target.getAttribute('data-field-id');
+        let groupId = event.target.getAttribute('data-group-id');
+
+        let fieldValue = event.target.value;
+        let special_texts = this.state.special_texts_values;
+        console.error(special_texts);
+        if (!special_texts[groupId][0][fieldId][0]) {
+            if (!special_texts[groupId]) {
+                special_texts[groupId] = {};
+                special_texts[groupId][0] = {}
+            }
+            if (!special_texts[fieldId]) {
+                special_texts[groupId][0][fieldId] = {};
+                special_texts[groupId][0][fieldId][0] = {}
+            }
+        }
+        special_texts[groupId][0][fieldId][0] = fieldValue;
+        this.setState({
+            special_texts_values: special_texts
+        }, () => {
+            // this.validateField(fieldName, fieldValue)
         });
     }
 
@@ -211,6 +278,142 @@ class Register extends React.Component {
         this.setState({serverError: error});
     }
 
+    printSpecialTextsFields() {
+        var component = this;
+        let {special_texts} = this.state;
+        if (special_texts.length) {
+            let to_print = [];
+            special_texts.forEach(function (group) {
+                to_print.push((<h4 key={`register-form--group-${group.id}`}>{group.name}</h4>));
+                group.active_fields.forEach(function (field) {
+                    to_print.push(component.printSpecialText(field, group));
+                });
+            });
+
+            return (<div>{to_print}</div>);
+        }
+    }
+
+    printSpecialText(text, group) {
+        let preE = 'GFSDK-e';
+        let buttonClass = preE + '-buttons';
+        let formClass = preE + '-form';
+        let input = null;
+        let input_name = text.slug;
+
+        let type = text.type;
+
+        switch (type) {
+            case 'checkbox':
+                let value = text.catalog_field_options.length ? text.catalog_field_options[0].value : '';
+                input = (<FormGroup key={`register-form--input-${text.slug}`} className={formClass + "__section"}
+                                    controlId={input_name} bsSize="large">
+                    <Checkbox
+                        className={formClass + "__input"}
+                        title={text.name}
+                        onChange={this.handleChangeSpecialText.bind(this)}
+                        id={input_name}
+                        name={input_name}
+                        data-group-id={group.id}
+                        data-field-id={text.id}
+                        value={value}
+                    >
+                        <span dangerouslySetInnerHTML={{__html: text.name}}></span>
+                    </Checkbox>
+                </FormGroup>);
+                break;
+            case 'textarea':
+                input = (<FormGroup
+                    key={`register-form--input-${text.slug}`}
+                    className={formClass + "__section"}
+                    controlId={input_name}
+                    bsSize="large"
+                >
+                    <textarea
+                        className={formClass + "__input"}
+                        title={text.name}
+                        onChange={this.handleChangeSpecialText.bind(this)}
+                        id={input_name}
+                        name={input_name}
+                        placeholder={text.name}
+                        data-group-id={group.id}
+                        data-field-id={text.id}
+                    >
+                    </textarea>
+                </FormGroup>);
+                break;
+            case 'select':
+                let options = text.catalog_field_options.map(function (item) {
+                    return (<option key={`${text.slug}--option_${item.id}`} value={item.value}>{item.value}</option>)
+                });
+                input = (<FormGroup
+                    key={`register-form--input-${text.slug}`}
+                    className={formClass + "__section"}
+                    controlId={input_name}
+                    bsSize="large">
+                    <label htmlFor={text.slug}>{text.name}</label>
+                    <select
+                        onChange={this.handleChangeSpecialText.bind(this)}
+                        id={input_name}
+                        className={formClass + '__select'}
+                        placeholder={text.name}
+                        name={input_name}
+                        data-group-id={group.id}
+                        data-field-id={text.id}
+                    >
+                        {options}
+                    </select>
+                </FormGroup>);
+                break;
+            case 'radio':
+                let component = this;
+                let radio_options = text.catalog_field_options.map(function (item) {
+                    let name = `${text.slug}--radio_option_${item.id}`;
+                    return (<span key={name}>
+                        <label htmlFor={name}>
+                            <input
+                                className={formClass + "__radio"}
+                                type={'radio'}
+                                value={item.value}
+                                name={input_name}
+                                data-group-id={group.id}
+                                data-field-id={text.id}
+                                onChange={component.handleChangeSpecialText.bind(component)}
+                            />
+                            {item.value}
+                        </label>
+                    </span>)
+                });
+                input = (<FormGroup
+                    key={`register-form--input-${text.slug}`}
+                    className={formClass + "__section"}
+                    controlId={input_name}
+                    bsSize="large"
+                >
+                    {radio_options}
+                </FormGroup>);
+                break;
+            default:
+                input = (<FormGroup
+                    key={`register-form--input-${text.slug}`}
+                    className={formClass + "__section"}
+                    controlId={input_name}
+                    bsSize="large">
+                    <FormControl
+                        className={formClass + "__input"}
+                        placeholder={text.name}
+                        type={text.type}
+                        onChange={this.handleChangeSpecialText.bind(this)}
+                        data-group-id={group.id}
+                        data-field-id={text.id}
+                    />
+                </FormGroup>);
+                break;
+        }
+
+        return input;
+    }
+
     render() {
         let preE = 'GFSDK-e';
         let buttonClass = preE + '-buttons';
@@ -222,7 +425,8 @@ class Register extends React.Component {
 
         return (
             <div className="register auth">
-                <form id="register-form" className={`register-form ${registered ? 'register-form__registered' : ''}`}
+                <form id="register-form"
+                      className={`register-form ${registered ? 'register-form__registered' : ''}`}
                       onSubmit={this.handleSubmit.bind(this)}>
                     <input type="hidden" name="g-recaptcha-response" value={g_recaptcha_response}/>
                     <FormGroup className={formClass + "__section"} controlId="fullName" bsSize="large">
@@ -232,12 +436,10 @@ class Register extends React.Component {
                             className={formClass + "__input"}
                             placeholder={StringStore.get('LABEL_FULL_NAME')}
                             type="text"
-                            value={this.state.fullName}
                             onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_EMAIL')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
                             placeholder={StringStore.get('LABEL_EMAIL')}
@@ -247,7 +449,6 @@ class Register extends React.Component {
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="password" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PASSWORD')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
                             placeholder={StringStore.get('LABEL_PASSWORD')}
@@ -257,7 +458,6 @@ class Register extends React.Component {
                         />
                     </FormGroup>
                     <FormGroup className={formClass + "__section"} controlId="passwordConfirmation" bsSize="large">
-                        {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PASSWORD_CONFIRM')}</ControlLabel> */}
                         <FormControl
                             className={formClass + "__input"}
                             placeholder={StringStore.get('LABEL_PASSWORD_CONFIRM')}
@@ -266,6 +466,7 @@ class Register extends React.Component {
                             type="password"
                         />
                     </FormGroup>
+                    {this.printSpecialTextsFields()}
                     <button
                         className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
                         disabled={!this.state.formValid}
