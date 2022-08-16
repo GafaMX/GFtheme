@@ -54,7 +54,7 @@ class Register extends React.Component {
             });
         }
 
-        return special_texts;
+        return special_texts_values;
     }
 
     updateSpecialTexts() {
@@ -133,7 +133,25 @@ class Register extends React.Component {
     }
 
     validateSpecialTexts() {
-        return true;
+        let special_texts = this.state.special_texts;
+        let special_texts_values = this.state.special_texts_values;
+        let valid = true;
+
+        if (special_texts) {
+            special_texts.forEach(function (group) {
+                if (group.active_fields) {
+                    group.active_fields.forEach(function (field) {
+                        let validation = field.validation;
+                        if (validation && validation.includes('required')) {
+                            let fieldValue = special_texts_values[group.id][0][field.id][0];
+                            valid &= !!(fieldValue && fieldValue !== '');
+                        }
+                    });
+                }
+            });
+        }
+
+        return valid;
     }
 
     validateForm() {
@@ -158,10 +176,17 @@ class Register extends React.Component {
     handleChangeSpecialText(event) {
         let fieldId = event.target.getAttribute('data-field-id');
         let groupId = event.target.getAttribute('data-group-id');
+        let fieldType = event.target.getAttribute('data-field-type');
 
-        let fieldValue = event.target.value;
+        let fieldValue = '';
+
+        if (fieldType === 'checkbox' || fieldType === 'radio') {
+            fieldValue = event.target.checked ? event.target.value : '';
+        } else {
+            fieldValue = event.target.value;
+        }
+
         let special_texts = this.state.special_texts_values;
-        console.error(special_texts);
         if (!special_texts[groupId][0][fieldId][0]) {
             if (!special_texts[groupId]) {
                 special_texts[groupId] = {};
@@ -176,7 +201,7 @@ class Register extends React.Component {
         this.setState({
             special_texts_values: special_texts
         }, () => {
-            // this.validateField(fieldName, fieldValue)
+            this.validateForm()
         });
     }
 
@@ -316,6 +341,7 @@ class Register extends React.Component {
                         name={input_name}
                         data-group-id={group.id}
                         data-field-id={text.id}
+                        data-field-type={type}
                         value={value}
                     >
                         <span dangerouslySetInnerHTML={{__html: text.name}}></span>
@@ -338,6 +364,7 @@ class Register extends React.Component {
                         placeholder={text.name}
                         data-group-id={group.id}
                         data-field-id={text.id}
+                        data-field-type={type}
                     >
                     </textarea>
                 </FormGroup>);
@@ -360,6 +387,7 @@ class Register extends React.Component {
                         name={input_name}
                         data-group-id={group.id}
                         data-field-id={text.id}
+                        data-field-type={type}
                     >
                         {options}
                     </select>
@@ -378,6 +406,7 @@ class Register extends React.Component {
                                 name={input_name}
                                 data-group-id={group.id}
                                 data-field-id={text.id}
+                                data-field-type={type}
                                 onChange={component.handleChangeSpecialText.bind(component)}
                             />
                             {item.value}
@@ -406,6 +435,7 @@ class Register extends React.Component {
                         onChange={this.handleChangeSpecialText.bind(this)}
                         data-group-id={group.id}
                         data-field-id={text.id}
+                        data-field-type={type}
                     />
                 </FormGroup>);
                 break;
