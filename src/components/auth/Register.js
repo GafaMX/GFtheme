@@ -1,11 +1,11 @@
 'use strict';
 
 import React from "react";
-import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
+import {FormControl, FormGroup} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Strings from "../utils/Strings/Strings_ES";
 import StringStore from "../utils/Strings/StringStore";
+import GlobalStorage from "../store/GlobalStorage";
 
 class Register extends React.Component {
     constructor(props) {
@@ -99,7 +99,7 @@ class Register extends React.Component {
         this.setState(
             {
                 formValid: this.state.emailValid && this.state.passwordValid && this.state.passwordConfirmationValid &&
-                this.state.fullNameValid
+                    this.state.fullNameValid
             });
     }
 
@@ -140,22 +140,26 @@ class Register extends React.Component {
                     if (comp.props.successCallback) {
                         comp.props.successCallback(result);
 
-                        if (window.GFtheme.combo_id != null) {
-                            comp.buyComboAfterRegister();
-                        }
+                        if (!GlobalStorage.get('block_after_login')) {
+                            if (window.GFtheme.combo_id != null) {
+                                comp.buyComboAfterRegister();
+                            }
 
-                        if (window.GFtheme.membership_id != null) {
-                            comp.buyMembershipAfterRegister();
-                        }
+                            if (window.GFtheme.membership_id != null) {
+                                comp.buyMembershipAfterRegister();
+                            }
 
-                        if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-                            comp.reserveMeetingAfterRegister();
-                        }
+                            if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+                                comp.reserveMeetingAfterRegister();
+                            }
 
-                        if (!window.GFtheme.meetings_id &&
-                            !window.GFtheme.location_slug &&
-                            !window.GFtheme.membership_id &&
-                            !window.GFtheme.combo_id) {
+                            if (!window.GFtheme.meetings_id &&
+                                !window.GFtheme.location_slug &&
+                                !window.GFtheme.membership_id &&
+                                !window.GFtheme.combo_id) {
+                                comp.props.handleClickBack();
+                            }
+                        } else {
                             comp.props.handleClickBack();
                         }
                     }

@@ -1,12 +1,11 @@
 'use strict';
 
 import React from "react";
-import {Button, FormGroup, FormControl, ControlLabel} from "react-bootstrap";
+import {FormControl, FormGroup} from "react-bootstrap";
 import {FormErrors} from "../form/FormErrors";
-import GlobalStorage from "../store/GlobalStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import Strings from "../utils/Strings/Strings_ES";
 import StringStore from "../utils/Strings/StringStore";
+import GlobalStorage from "../store/GlobalStorage";
 
 class Login extends React.Component {
     constructor(props) {
@@ -46,115 +45,119 @@ class Login extends React.Component {
         }, this.validateForm);
     }
 
-   validatePassword(value, fieldValidationErrors) {
-      let passwordValid = value.length >= 6;
-      fieldValidationErrors.password = passwordValid ? '' : StringStore.get('VALIDATION_PASSWORD');
-      return passwordValid;
-   }
+    validatePassword(value, fieldValidationErrors) {
+        let passwordValid = value.length >= 6;
+        fieldValidationErrors.password = passwordValid ? '' : StringStore.get('VALIDATION_PASSWORD');
+        return passwordValid;
+    }
 
-   validateEmail(value, fieldValidationErrors) {
-      let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-      fieldValidationErrors.email = emailValid ? '' : StringStore.get('VALIDATION_EMAIL');
-      return emailValid;
-   }
+    validateEmail(value, fieldValidationErrors) {
+        let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
+        fieldValidationErrors.email = emailValid ? '' : StringStore.get('VALIDATION_EMAIL');
+        return emailValid;
+    }
 
-   validateForm() {
-      this.setState({formValid: this.state.emailValid && this.state.passwordValid});
-   }
+    validateForm() {
+        this.setState({formValid: this.state.emailValid && this.state.passwordValid});
+    }
 
-   handleChangeField(event) {
-      let fieldName = event.target.id;
-      let fieldValue = event.target.value;
-      this.setState({
-         [fieldName]: fieldValue
-      }, () => {
-         this.validateField(fieldName, fieldValue)
-      });
-   };
+    handleChangeField(event) {
+        let fieldName = event.target.id;
+        let fieldValue = event.target.value;
+        this.setState({
+            [fieldName]: fieldValue
+        }, () => {
+            this.validateField(fieldName, fieldValue)
+        });
+    };
 
-   handleSubmit(event) {
-      event.preventDefault();
-      let currentElement = this;
-      currentElement.setState({serverError: ''});
-      GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
-         currentElement.successLoginCallback.bind(currentElement),
-         currentElement.errorLoginCallback.bind(currentElement));
-   };
+    handleSubmit(event) {
+        event.preventDefault();
+        let currentElement = this;
+        currentElement.setState({serverError: ''});
+        GafaFitSDKWrapper.getToken(this.state.email, this.state.password,
+            currentElement.successLoginCallback.bind(currentElement),
+            currentElement.errorLoginCallback.bind(currentElement));
+    };
 
-   successLoginCallback(result) {
-      let comp = this;
-      this.setState({logged: true});
+    successLoginCallback(result) {
+        let comp = this;
+        this.setState({logged: true});
 
-      if (this.props.successCallback) {
-         this.props.successCallback(result);
+        if (this.props.successCallback) {
+            this.props.successCallback(result);
 
-         if (window.GFtheme.combo_id != null) {
-            this.buyComboAfterLogin();
-         }
+            if (!GlobalStorage.get('block_after_login')) {
+                if (window.GFtheme.combo_id != null) {
+                    this.buyComboAfterLogin();
+                }
 
-         if (window.GFtheme.membership_id != null) {
-            this.buyMembershipAfterLogin();
-         }
+                if (window.GFtheme.membership_id != null) {
+                    this.buyMembershipAfterLogin();
+                }
 
-         if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-            this.reserveMeetingAfterLogin();
-         }
+                if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+                    this.reserveMeetingAfterLogin();
+                }
 
-         if (  !window.GFtheme.meetings_id && 
-               !window.GFtheme.location_slug && 
-               !window.GFtheme.membership_id &&
-               !window.GFtheme.combo_id) {
-                  comp.props.handleClickBack();
-         }
-      }
-   }
+                if (!window.GFtheme.meetings_id &&
+                    !window.GFtheme.location_slug &&
+                    !window.GFtheme.membership_id &&
+                    !window.GFtheme.combo_id) {
+                    comp.props.handleClickBack();
+                }
+            } else {
+                comp.props.handleClickBack();
+            }
+        }
+    }
 
-   errorLoginCallback(error) {
-      this.setState({serverError: error, logged: false});
-   }
+    errorLoginCallback(error) {
+        this.setState({serverError: error, logged: false});
+    }
 
-   buyComboAfterLogin() {
-      let comp = this;
+    buyComboAfterLogin() {
+        let comp = this;
 
-      GafaFitSDKWrapper.getFancyForBuyCombo(
+        GafaFitSDKWrapper.getFancyForBuyCombo(
             window.GFtheme.brand_slug,
             window.GFtheme.location_slug,
-            window.GFtheme.combo_id, 
+            window.GFtheme.combo_id,
             function (result) {
-            comp.props.handleClickBack();
-            window.GFtheme.combo_id = null;
-            window.GFtheme.brand_slug = null;
-            window.GFtheme.location_slug = null;
-      });
-   }
+                comp.props.handleClickBack();
+                window.GFtheme.combo_id = null;
+                window.GFtheme.brand_slug = null;
+                window.GFtheme.location_slug = null;
+            });
+    }
 
-   buyMembershipAfterLogin() {
-      let comp = this;
-      GafaFitSDKWrapper.getFancyForBuyMembership(
-         window.GFtheme.brand_slug,
-         window.GFtheme.location_slug,
-         window.GFtheme.membership_id,
-         function (result) {
-         comp.props.handleClickBack();
-         window.GFtheme.membership_id = null;
-         window.GFtheme.brand_slug = null;
-         window.GFtheme.location_slug = null;
-      });
-   }
+    buyMembershipAfterLogin() {
+        let comp = this;
+        GafaFitSDKWrapper.getFancyForBuyMembership(
+            window.GFtheme.brand_slug,
+            window.GFtheme.location_slug,
+            window.GFtheme.membership_id,
+            function (result) {
+                comp.props.handleClickBack();
+                window.GFtheme.membership_id = null;
+                window.GFtheme.brand_slug = null;
+                window.GFtheme.location_slug = null;
+            });
+    }
 
-   reserveMeetingAfterLogin() {
-      let comp = this;
-      GafaFitSDKWrapper.getFancyForMeetingReservation(
-         window.GFtheme.brand_slug, 
-         window.GFtheme.location_slug, 
-         window.GFtheme.meetings_id, 
-         function (result) {
-         comp.props.handleClickBack();
-         window.GFtheme.meetings_id = null;
-         window.GFtheme.location_slug = null;
-         window.GFtheme.brand_slug = null;
-      });
-   }
+    reserveMeetingAfterLogin() {
+        let comp = this;
+        GafaFitSDKWrapper.getFancyForMeetingReservation(
+            window.GFtheme.brand_slug,
+            window.GFtheme.location_slug,
+            window.GFtheme.meetings_id,
+            function (result) {
+                comp.props.handleClickBack();
+                window.GFtheme.meetings_id = null;
+                window.GFtheme.location_slug = null;
+                window.GFtheme.brand_slug = null;
+            });
+    }
 
     render() {
         let preE = 'GFSDK-e';
@@ -178,11 +181,11 @@ class Login extends React.Component {
                     <FormGroup className={formClass + "__section"} controlId="password" bsSize="large">
                         {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PASSWORD')}</ControlLabel> */}
                         <FormControl
-                           className={formClass + "__input"}
-                           value={this.state.password}
-                           placeholder={StringStore.get('LABEL_PASSWORD')}
-                           onChange={this.handleChangeField.bind(this)}
-                           type="password"
+                            className={formClass + "__input"}
+                            value={this.state.password}
+                            placeholder={StringStore.get('LABEL_PASSWORD')}
+                            onChange={this.handleChangeField.bind(this)}
+                            type="password"
                         />
                     </FormGroup>
                     <button

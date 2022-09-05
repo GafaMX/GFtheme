@@ -3,8 +3,6 @@
 import React from "react";
 import MembershipItem from "./MembershipItem";
 import LoginRegister from "../menu/LoginRegister";
-import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
-import GafaThemeSDK from "../GafaThemeSDK";
 
 import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
@@ -13,86 +11,88 @@ import IconLeftArrow from "../utils/Icons/IconLeftArrow";
 import IconRightArrow from "../utils/Icons/IconRightArrow";
 
 import Loading from '../common/Loading';
-
 //Estilos
 import '../../styles/newlook/components/GFSDK-c-PackagesMemberships.scss';
 import '../../styles/newlook/elements/GFSDK-e-product.scss';
 import GlobalStorage from "../store/GlobalStorage";
 
 class MembershipList extends React.Component {
-   constructor(props) {
-      super(props);
+    constructor(props) {
+        super(props);
 
-      this.state = {
-         showLogin: false,
-         showRegister: false,
-         list: this.props.list,
-         is_mounted: false,
-      };
+        this.state = {
+            showLogin: false,
+            showRegister: false,
+            list: this.props.list,
+            is_mounted: false,
+        };
 
-      GlobalStorage.addSegmentedListener(['memberships'], this.setInitialValues.bind(this));
-      this.setShowRegister = this.setShowRegister.bind(this);
-   }
+        GlobalStorage.addSegmentedListener(['memberships'], this.setInitialValues.bind(this));
+        GlobalStorage.set('block_after_login', props.block_after_login);
+        this.setShowRegister = this.setShowRegister.bind(this);
+    }
 
-   setInitialValues(){
-      let comp = this;
-      let origin = window.location.origin + '/';
-      let href = window.location.href;
-      let {filterByName, filterByBrand} = this.props;
-      let memberships = GlobalStorage.get('memberships');
+    setInitialValues() {
+        let comp = this;
+        let origin = window.location.origin + '/';
+        let href = window.location.href;
+        let {filterByName, filterByBrand} = this.props;
+        let memberships = GlobalStorage.get('memberships');
 
-      let weAreHome = false;
+        let weAreHome = false;
 
-      if(origin === href){
-         weAreHome = true;
-      }
-      
-      memberships = memberships.filter(function(membership){ return membership.status === 'active' && membership.hide_in_front === false});
-      
-      if(weAreHome === true){
-         memberships = memberships.filter(function(membership){ 
-            return membership.hide_in_home === false
-         });
-      }
-      
-      if(filterByName){
-         memberships = memberships.filter(function(membership){
-            return membership.name.toUpperCase().includes(filterByName.toUpperCase());
-         });
-      }
-      
-      if(filterByBrand){
-         memberships = memberships.filter(function(membership){
-            return membership.brand.name.toUpperCase().includes(filterByBrand.toUpperCase());
-         });
-      }
+        if (origin === href) {
+            weAreHome = true;
+        }
 
-      if(memberships){
-         comp.setState({
-            list : memberships,
-            is_mounted: true,
-         });
-      }
-   }
+        memberships = memberships.filter(function (membership) {
+            return membership.status === 'active' && membership.hide_in_front === false
+        });
 
-   setShowLogin(showLogin) {
-      this.setState({
-         showLogin: showLogin
-      });
-   }
+        if (weAreHome === true) {
+            memberships = memberships.filter(function (membership) {
+                return membership.hide_in_home === false
+            });
+        }
 
-   setShowRegister(showRegister) {
-      this.setState({
-         showRegister: showRegister
-      });
-   }
+        if (filterByName) {
+            memberships = memberships.filter(function (membership) {
+                return membership.name.toUpperCase().includes(filterByName.toUpperCase());
+            });
+        }
 
-   //  updatePaginationData(result) {
-   //      this.setState({
-   //          list: result.data,
-   //          currentPage: result.current_page
-   //      })
-   //  }
+        if (filterByBrand) {
+            memberships = memberships.filter(function (membership) {
+                return membership.brand.name.toUpperCase().includes(filterByBrand.toUpperCase());
+            });
+        }
+
+        if (memberships) {
+            comp.setState({
+                list: memberships,
+                is_mounted: true,
+            });
+        }
+    }
+
+    setShowLogin(showLogin) {
+        this.setState({
+            showLogin: showLogin
+        });
+    }
+
+    setShowRegister(showRegister) {
+        this.setState({
+            showRegister: showRegister
+        });
+    }
+
+    //  updatePaginationData(result) {
+    //      this.setState({
+    //          list: result.data,
+    //          currentPage: result.current_page
+    //      })
+    //  }
 
     render() {
         let preC = 'GFSDK-c';
@@ -103,23 +103,23 @@ class MembershipList extends React.Component {
         let buttonClass = preE + '-buttons';
         let listItems = [];
 
-        function NextArrow(props){
+        function NextArrow(props) {
             const {className, onClick} = props;
             return (
                 <div className={className + ' ' + paginationClass + '__controls is-next'}>
                     <button className={buttonClass + ' ' + buttonClass + '--icon'} onClick={onClick}>
-                        <IconRightArrow />
+                        <IconRightArrow/>
                     </button>
                 </div>
             );
         };
-    
-        function PrevArrow(props){
+
+        function PrevArrow(props) {
             const {className, onClick} = props;
             return (
                 <div className={className + ' ' + paginationClass + '__controls is-prev'}>
                     <button className={buttonClass + ' ' + buttonClass + '--icon'} onClick={onClick}>
-                        <IconLeftArrow />
+                        <IconLeftArrow/>
                     </button>
                 </div>
             );
@@ -131,64 +131,65 @@ class MembershipList extends React.Component {
             infinite: false,
             slidesToShow: 4,
             slidesToScroll: 1,
-            prevArrow: <PrevArrow />,
-            nextArrow: <NextArrow />,
+            prevArrow: <PrevArrow/>,
+            nextArrow: <NextArrow/>,
             responsive: [
-               {
-                  breakpoint: 481,
-                  settings: {
-                     slidesToShow: 1,
-                     slidesToScroll: 1,
-                  }
-               },
-               {
-                  breakpoint: 769,
-                  settings: {
-                     slidesToShow: 2,
-                     slidesToScroll: 2,
-                  }
-               },
-               {
-                  breakpoint: 992,
-                  settings: {
-                     slidesToShow: 3,
-                     slidesToScroll: 3,
-                  }
-               },
-               {
-                  breakpoint: 1025,
-                  settings: {
-                     slidesToShow: 4,
-                     slidesToScroll: 1,
-                  }
-               },
+                {
+                    breakpoint: 481,
+                    settings: {
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    }
+                },
+                {
+                    breakpoint: 769,
+                    settings: {
+                        slidesToShow: 2,
+                        slidesToScroll: 2,
+                    }
+                },
+                {
+                    breakpoint: 992,
+                    settings: {
+                        slidesToShow: 3,
+                        slidesToScroll: 3,
+                    }
+                },
+                {
+                    breakpoint: 1025,
+                    settings: {
+                        slidesToShow: 4,
+                        slidesToScroll: 1,
+                    }
+                },
             ],
         };
 
-      if(list){
-         let comp = this;
-         listItems = list.map(function(membership){
-            return <MembershipItem key={membership.id} membership={membership} setShowRegister={comp.setShowRegister}/>
-         });
-      }
+        if (list) {
+            let comp = this;
+            listItems = list.map(function (membership) {
+                return <MembershipItem key={membership.id} membership={membership}
+                                       setShowRegister={comp.setShowRegister}/>
+            });
+        }
 
         return (
             <div className={membershipClass}>
-               {is_mounted 
-               ?
-                  <Slider {...settings} className={(membershipClass + '__container ')}>
-                     {listItems.length > 0
-                        ? listItems
-                        : null
-                     }
-                  </Slider>
-                  : <Loading />
-               }
+                {is_mounted
+                    ?
+                    <Slider {...settings} className={(membershipClass + '__container ')}>
+                        {listItems.length > 0
+                            ? listItems
+                            : null
+                        }
+                    </Slider>
+                    : <Loading/>
+                }
 
-               {
-                  this.state.showRegister &&
-                  <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
-               }
+                {
+                    this.state.showRegister &&
+                    <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
+                }
             </div>
         );
     }

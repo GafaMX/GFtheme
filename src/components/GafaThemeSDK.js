@@ -148,8 +148,10 @@ class GafaThemeSDK extends React.Component {
             domContainers.forEach(function (domContainer) {
                 let byName = domContainer.getAttribute("data-gf-filterbyname");
                 let byBrand = domContainer.getAttribute("data-buq-brand");
+                let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
                 props.filterByName = byName;
                 props.filterByBrand = byBrand;
+                props.block_after_login = blockAfterLogin;
 
                 GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
             });
@@ -175,8 +177,10 @@ class GafaThemeSDK extends React.Component {
             domContainers.forEach(function (domContainer) {
                 let byName = domContainer.getAttribute("data-gf-filterbyname");
                 let byBrand = domContainer.getAttribute("data-buq-brand");
+                let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
                 props.filterByName = byName;
                 props.filterByBrand = byBrand;
+                props.block_after_login = blockAfterLogin;
                 GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
             });
         }
@@ -213,6 +217,7 @@ class GafaThemeSDK extends React.Component {
                 let loginInitial = domContainer.getAttribute("data-login-initial") ? domContainer.getAttribute("data-login-initial") : false;
                 let filterLocationDefault = domContainer.getAttribute("filter-bq-location-default") ? domContainer.getAttribute("filter-bq-location-default") : false;
                 let showDescription = domContainer.getAttribute("data-bq-show-description") ? domContainer.getAttribute("data-bq-show-description") === 'true' : false;
+                let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
 
 
                 if (limit) {
@@ -236,6 +241,7 @@ class GafaThemeSDK extends React.Component {
                     'filter_brand': filterBrand,
                     'login_initial': loginInitial,
                     'show_description': showDescription,
+                    'block_after_login': blockAfterLogin
                 };
 
                 GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
