@@ -232,22 +232,26 @@ class Register extends React.Component {
                     if (comp.props.successCallback) {
                         comp.props.successCallback(result);
 
-                        if (window.GFtheme.combo_id != null) {
-                            comp.buyComboAfterRegister();
-                        }
+                        if(!GlobalStorage.get('block_after_login')) {
+                            if (window.GFtheme.combo_id != null) {
+                                comp.buyComboAfterRegister();
+                            }
 
-                        if (window.GFtheme.membership_id != null) {
-                            comp.buyMembershipAfterRegister();
-                        }
+                            if (window.GFtheme.membership_id != null) {
+                                comp.buyMembershipAfterRegister();
+                            }
 
-                        if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
-                            comp.reserveMeetingAfterRegister();
-                        }
+                            if (window.GFtheme.meetings_id != null && window.GFtheme.location_slug != null) {
+                                comp.reserveMeetingAfterRegister();
+                            }
 
-                        if (!window.GFtheme.meetings_id &&
-                            !window.GFtheme.location_slug &&
-                            !window.GFtheme.membership_id &&
-                            !window.GFtheme.combo_id) {
+                            if (!window.GFtheme.meetings_id &&
+                                !window.GFtheme.location_slug &&
+                                !window.GFtheme.membership_id &&
+                                !window.GFtheme.combo_id) {
+                                comp.props.handleClickBack();
+                            }
+                        } else {
                             comp.props.handleClickBack();
                         }
                     }
