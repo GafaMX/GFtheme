@@ -40,6 +40,7 @@ class Calendar extends React.Component {
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
         CalendarStorage.set('show_register', this.setShowRegister.bind(this));
         CalendarStorage.set('show_description', props.show_description);
+        GlobalStorage.set('block_after_login', props.block_after_login);
         CalendarStorage.addSegmentedListener(['meetings'], this.setInitialValues.bind(this));
     }
 
@@ -207,6 +208,7 @@ class Calendar extends React.Component {
             });
         }
 
+        console.error(GlobalStorage.get('block_after_login'), this.props.block_after_login);
         return (
             <div className={calendarClass}>
                 <div className={calendarClass + '__container'} style={mystyles}>

@@ -47,6 +47,8 @@ const GlobalStorage = {
     //Special Texts
     special_texts_register: [],
 
+    block_after_login: false,
+
     get(property) {
         return this[property];
     },
@@ -55,11 +57,11 @@ const GlobalStorage = {
      * @param brand
      * @returns {*|{sufijo, prefijo}}
      */
-    getBrandCurrency(brand){
+    getBrandCurrency(brand) {
         let currencyId = !!brand && brand.hasOwnProperty('currencies_id') ? brand.currencies_id : 1;
         return GlobalStorage.getCurrency(currencyId);
     },
-    getCurrency(currency_id){
+    getCurrency(currency_id) {
         switch (currency_id) {
             case 2:
                 return {
@@ -107,7 +109,7 @@ const GlobalStorage = {
         this.listeners.push(callback);
     },
 
-    initialValues(brands, cb){
+    initialValues(brands, cb) {
         let curStore = this;
         let currentBrand = brands[0];
         let locations = [];
