@@ -46,12 +46,12 @@ class MembershipList extends React.Component {
         }
 
         memberships = memberships.filter(function (membership) {
-            return membership.status === 'active' && membership.hide_in_front === false
+            return membership.status === 'active' && (membership.hide_in_front === false || membership.hide_in_front === 0);
         });
 
         if (weAreHome === true) {
             memberships = memberships.filter(function (membership) {
-                return membership.hide_in_home === false
+                return (membership.hide_in_home === false || membership.hide_in_home === 0);
             });
         }
 

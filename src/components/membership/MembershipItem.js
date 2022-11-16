@@ -1,7 +1,6 @@
 'use strict';
 
 import React from "react";
-import Strings from "../utils/Strings/Strings_ES";
 import GlobalStorage from "../store/GlobalStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
@@ -149,7 +148,7 @@ class MembershipItem extends React.Component {
         let currency = GlobalStorage.getBrandCurrency(membership.brand);
 
         return (
-            <div className={membershipClass + '__item ' + productClass}>
+            <div className={membershipClass + '__item ' + productClass} data-membership-id={membership.id}>
                 <div className={productClass + '__head'}>
                     <h3 className={'this-name'}>{this.props.membership.name}</h3>
                 </div>
