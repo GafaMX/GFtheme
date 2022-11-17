@@ -4,6 +4,7 @@ import React from "react";
 import {ControlLabel, FormControl, FormGroup} from "react-bootstrap";
 import Strings from "../../utils/Strings/Strings_ES";
 import 'moment/locale/es';
+import StringStore from "../../utils/Strings/StringStore";
 
 class ContactInfo extends React.Component {
     constructor(props) {
@@ -25,9 +26,9 @@ class ContactInfo extends React.Component {
 
         return (
             <div className={profileClass + '__section is-contact'}>
-                <h4>{Strings.LABEL_CONTACT}</h4>
+                <h4>{StringStore.get('LABEL_CONTACT')}</h4>
                 <FormGroup className={formClass + "__section is-email"} controlId="email">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_EMAIL}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_EMAIL')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="email"
@@ -37,7 +38,7 @@ class ContactInfo extends React.Component {
                     />
                 </FormGroup>
                 <FormGroup className={formClass + "__section is-phone"} controlId="phone" bsSize="large">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_PHONE}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_PHONE')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="number"
@@ -46,7 +47,7 @@ class ContactInfo extends React.Component {
                     />
                 </FormGroup>
                 <FormGroup className={formClass + "__section is-phone"} controlId="cel_phone" bsSize="large">
-                    <ControlLabel className={formClass + "__label"}>{Strings.LABEL_CEL_PHONE}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_CEL_PHONE')}</ControlLabel>
                     <FormControl
                         className={formClass + "__input"}
                         type="number"

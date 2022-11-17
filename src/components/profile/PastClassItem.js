@@ -3,6 +3,7 @@
 import React from 'react';
 import moment from 'moment';
 import Strings from "../utils/Strings/Strings_ES";
+import StringStore from "../utils/Strings/StringStore";
 
 
 class ClassItem extends React.Component {
@@ -16,10 +17,10 @@ class ClassItem extends React.Component {
 
         if (this.props.reservation.credit === null) {
             membershipCredits = (
-                <p className={'reservation-item-membership'}>{Strings.MEMBERSHIP}</p>)
+                <p className={'reservation-item-membership'}>{StringStore.get('MEMBERSHIP')}</p>)
         } else {
             membershipCredits = (
-                <p className={'reservation-item-credits'}>{Strings.CREDIT}{this.props.reservation.credit['name']}</p>)
+                <p className={'reservation-item-credits'}>{StringStore.get('CREDIT')}{this.props.reservation.credit['name']}</p>)
         }
 
 

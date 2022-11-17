@@ -3,6 +3,7 @@
 import React from "react";
 import moment from 'moment';
 import Strings from "../../utils/Strings/Strings_ES";
+import StringStore from "../../utils/Strings/StringStore";
 
 class UserCredit extends React.Component {
     constructor(props) {
@@ -17,7 +18,7 @@ class UserCredit extends React.Component {
                </div>
                <div className="UserCredit__data">
                   <p className="UserCredit__credits-name">{this.props.name}</p>
-                  <p className="UserCredit__expiration"> {Strings.EXPIRATION} {moment(this.props.expirationDate).format('DD[/]MMM[/]YYYY')}</p>
+                  <p className="UserCredit__expiration"> {StringStore.get('EXPIRATION')} {moment(this.props.expirationDate).format('DD[/]MMM[/]YYYY')}</p>
                </div>
             </div>
         )

@@ -6,6 +6,7 @@ import GlobalStorage from "../store/GlobalStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
 import {formatMoney} from "../utils/FormatUtils";
+import StringStore from "../utils/Strings/StringStore";
 
 class ComboItem extends React.Component {
     constructor(props) {
@@ -18,33 +19,19 @@ class ComboItem extends React.Component {
     }
 
     componentDidMount() {
-        let currentElement = this;
         let {combo} = this.props;
         let locations = GlobalStorage.get('locations');
-
-        let params = (new URL(document.location)).searchParams;
-        let combo_id = parseInt(params.get('combo-id'));
 
         if (locations) {
             locations = locations.filter(function (location) {
                 return combo.brand.id === location.brand.id
-            });
+            })
         }
-        ;
 
         this.setState({
             currentBrand: locations[0].brand,
             currentLocation: locations[0],
-        });
-
-        if (!typeof gafa === 'undefined' && combo_id) {
-            GafaFitSDKWrapper.isAuthenticated(function (auth) {
-                if (auth) {
-                    currentElement.showBuyFancybyUrl(combo_id);
-                }
-            });
-        }
-        ;
+        })
     }
 
     handleClick(event) {
@@ -60,31 +47,10 @@ class ComboItem extends React.Component {
         });
     };
 
-    showBuyFancybyUrl(combo_id) {
-        let comp = this;
-        let {combo} = this.props;
-        let {currentBrand, currentLocation} = this.state;
-
-        if (combo_id === combo.id) {
-            comp.setState({
-                openFancy: true,
-            });
-
-            const fancy = document.querySelector('[data-gf-theme="fancy"]');
-            fancy.classList.add('active');
-
-            setTimeout(function () {
-                fancy.classList.add('show');
-            }, 400);
-
-            comp.getFancyForCombo(combo, currentBrand, currentLocation, fancy, true);
-        }
-    }
-
     showBuyFancyForLoggedUsers() {
         let comp = this;
         let {combo} = this.props;
-        let {currentBrand, currentLocation} = this.state;
+        let {currentBrand, currentLocation} = this.state
 
         comp.setState({
             openFancy: true,
@@ -96,12 +62,6 @@ class ComboItem extends React.Component {
         setTimeout(function () {
             fancy.classList.add('show');
         }, 400);
-
-        comp.getFancyForCombo(combo, currentBrand, currentLocation, fancy, false);
-    }
-
-    getFancyForCombo(combo, currentBrand, currentLocation, fancySelector, cleanUrl) {
-        let comp = this;
 
         GafaFitSDKWrapper.getFancyForBuyCombo(
             currentBrand.slug,
@@ -115,23 +75,19 @@ class ComboItem extends React.Component {
                         const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
 
                         closeFancy.addEventListener('click', function (e) {
-                            if (!typeof gafa === 'undefined' && cleanUrl) {
-                                var url = window.location.href.split('?')[0];
-                                window.history.pushState("buq-home", "Home", url);
-                            }
+                            fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
 
-                            fancySelector.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
-                            fancySelector.classList.remove('show');
+                            fancy.classList.remove('show');
 
                             setTimeout(function () {
-                                fancySelector.classList.remove('active');
-                                fancySelector.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+                                fancy.classList.remove('active');
+                                fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+
                             }, 400);
 
                             comp.setState({
                                 openFancy: false,
-                            });
-
+                            })
                         })
                     } else {
                         setTimeout(getFancy, 1000);
@@ -148,16 +104,11 @@ class ComboItem extends React.Component {
             return location.brand.slug === comp.props.combo.brand.slug
         });
 
+        window.GFtheme.combo_id = this.props.combo.id;
         window.GFtheme.brand_slug = this.props.combo.brand.slug;
         window.GFtheme.location_slug = locations[0].slug;
 
-        if (typeof gafa === 'undefined') {
-            this.props.setShowRegister(true);
-            window.GFtheme.combo_id = this.props.combo.id;
-        } else {
-            let combo_url = gafa.b_login + '?combo-id=' + this.props.combo.id;
-            window.location.replace(combo_url);
-        }
+        this.props.setShowRegister(true);
     }
 
     render() {
@@ -195,16 +146,15 @@ class ComboItem extends React.Component {
                     <p className={'this-shortDescription'}>{this.props.combo.short_description}</p>
                     }
 
-
                     <button style={{pointerEvents: openFancy ? 'none' : 'auto'}} className="buq-accentColor"
-                            onClick={openFancy ? null : this.handleClick.bind(this)}> Comprar
+                            onClick={openFancy ? null : this.handleClick.bind(this)}> {StringStore.get('BUTTON_BUY')}
                     </button>
 
                 </div>
                 <div className={productClass + '__footer'}>
                     {combo.expiration_days
-                        ? <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span>
-                            <strong>{combo.expiration_days} {Strings.DAYS}</strong></p>
+                        ? <p className={'this-expiration'}><span>{StringStore.get('EXPIRE_IN')}</span>
+                            <strong>{combo.expiration_days} {StringStore.get('DAYS')}</strong></p>
                         : null
                     }
                 </div>

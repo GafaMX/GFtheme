@@ -6,6 +6,7 @@ import GlobalStorage from "../store/GlobalStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
 import {formatMoney} from "../utils/FormatUtils";
+import StringStore from "../utils/Strings/StringStore";
 
 class MembershipItem extends React.Component {
     constructor(props) {
@@ -18,12 +19,8 @@ class MembershipItem extends React.Component {
     }
 
     componentDidMount() {
-        let currentElement = this;
         let {membership} = this.props;
         let locations = GlobalStorage.get('locations');
-
-        let params = (new URL(document.location)).searchParams;
-        let membership_id = parseInt(params.get('membership-id'));
 
         if (locations) {
             locations = locations.filter(function (location) {
@@ -35,15 +32,6 @@ class MembershipItem extends React.Component {
             currentBrand: locations[0].brand,
             currentLocation: locations[0],
         })
-
-        if (!typeof gafa === 'undefined' && membership_id) {
-            GafaFitSDKWrapper.isAuthenticated(function (auth) {
-                if (auth) {
-                    currentElement.showBuyFancybyUrl(membership_id);
-                }
-            });
-        }
-        ;
     }
 
     handleClick(event) {
@@ -74,32 +62,6 @@ class MembershipItem extends React.Component {
             fancy.classList.add('show');
         }, 400);
 
-        comp.getFancyForMembership(membership, currentBrand, currentLocation, fancy, false);
-    }
-
-    showBuyFancybyUrl(membership_id) {
-        let comp = this;
-        let {membership} = this.props;
-        let {currentBrand, currentLocation} = this.state
-
-        if (membership_id === membership.id) {
-            const fancy = document.querySelector('[data-gf-theme="fancy"]');
-            fancy.classList.add('active');
-
-            comp.setState({
-                openFancy: true,
-            });
-
-            setTimeout(function () {
-                fancy.classList.add('show');
-            }, 400);
-
-            comp.getFancyForMembership(membership, currentBrand, currentLocation, fancy, true);
-        }
-    }
-
-    getFancyForMembership(membership, currentBrand, currentLocation, fancySelector, cleanUrl) {
-        let comp = this;
 
         GafaFitSDKWrapper.getFancyForBuyMembership(
             currentBrand.slug,
@@ -113,17 +75,13 @@ class MembershipItem extends React.Component {
                         const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
 
                         closeFancy.addEventListener('click', function (e) {
-                            if (!typeof gafa === 'undefined' && cleanUrl) {
-                                var url = window.location.href.split('?')[0];
-                                window.history.pushState("buq-home", "Home", url);
-                            }
+                            fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
 
-                            fancySelector.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
-                            fancySelector.classList.remove('show');
+                            fancy.classList.remove('show');
 
                             setTimeout(function () {
-                                fancySelector.classList.remove('active');
-                                fancySelector.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+                                fancy.classList.remove('active');
+                                fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
                             }, 400);
 
                             comp.setState({
@@ -149,16 +107,12 @@ class MembershipItem extends React.Component {
         locations = locations.filter(function (location) {
             return location.brand.id === comp.props.membership.brands_id
         });
+
+        window.GFtheme.membership_id = this.props.membership.id;
         window.GFtheme.brand_slug = brand.slug;
         window.GFtheme.location_slug = locations[0].slug;
 
-        if (typeof gafa === 'undefined') {
-            window.GFtheme.membership_id = this.props.membership.id;
-            this.props.setShowRegister(true);
-        } else {
-            let membership_url = gafa.b_login + '?membership-id=' + this.props.membership.id;
-            window.location.replace(membership_url);
-        }
+        this.props.setShowRegister(true);
     }
 
     //  getServicesAndParentsForMembership() {
@@ -226,8 +180,8 @@ class MembershipItem extends React.Component {
                 </div>
                 <div className={productClass + '__footer'}>
                     {membership.expiration_days
-                        ? <p className={'this-expiration'}><span>{Strings.EXPIRE_IN}</span>
-                            <strong>{membership.expiration_days} {Strings.DAYS}</strong></p>
+                        ? <p className={'this-expiration'}><span>{StringStore.get('EXPIRE_IN')}</span>
+                            <strong>{membership.expiration_days} {StringStore.get('DAYS')}</strong></p>
                         : null
                     }
                 </div>

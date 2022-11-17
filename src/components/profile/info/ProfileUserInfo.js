@@ -37,6 +37,7 @@ import '../../../styles/newlook/components/GFSDK-c-Tabs.scss';
 import '../../../styles/newlook/elements/GFSDK-e-form.scss';
 import '../../../styles/newlook/elements/GFSDK-e-scroll.scss';
 import '../../../styles/newlook/elements/GFSDK-e-buttons.scss';
+import StringStore from "../../utils/Strings/StringStore";
 
 class ProfileUserInfo extends React.Component {
 
@@ -261,7 +262,9 @@ class ProfileUserInfo extends React.Component {
                   <div className="profile-user">
                      <div className="profile-user__content">
                            <div className="profile-user__data">
-                              <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br/> Bienvenido</h3>
+                              {/* <div className="this-picture"></div> */}
+                              <h3 className="profile-user__name">¡Hola {this.state.first_name}! <br></br> Bienvenido</h3>
+                              {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
                            </div>
 
                            <MediaQuery minWidth={992}>
@@ -295,10 +298,10 @@ class ProfileUserInfo extends React.Component {
       <div id="classes" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>Mis {window.GFtheme.ClassName}</div>
                            </li>
                            <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'profile' ? 'active' : '' )}>
-                              <div id="profile" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.PROFILE}</div>
+                              <div id="profile" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{StringStore.get('PROFILE')}</div>
                            </li>
                            <li role={'presentation'} className={tabsClass + '__items ' + (screen === 'password' ? 'active' : '' )}>
-                              <div id="password" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{Strings.CHANGEPASSWORD}</div>
+                              <div id="password" onClick={this.handleChangeScreen} className={tabsClass + '__link'}>{StringStore.get('CHANGEPASSWORD')}</div>
                            </li>
                         </ul>
 
@@ -306,7 +309,7 @@ class ProfileUserInfo extends React.Component {
                            <div id="ProfileTabs-pane-1" className={'fade tab-pane ' + (screen === 'classes' ? 'active in' : '' )}>
                            { brands.length > 1 ?
                                  <div className={filterClass + '__item is-location-filter'} style={{ marginRight: '1rem' }}>
-                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{Strings.LOCATION}: </label> */}
+                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{StringStore.get('LOCATION')}: </label> */}
                                     <select 
                                        className={formClass + '__select'} 
                                        id={'calendar-filter-brand'} 
@@ -330,7 +333,8 @@ class ProfileUserInfo extends React.Component {
                               }
                               { locations.length > 1 ?
                                  <div className={filterClass + '__item  is-brand-filter'}>
-                                    <select
+                                    {/* <label htmlFor={'calendar-filter-location'} className={formClass + '__label'}>{StringStore.get('LOCATION}: </label> */}
+                                    <select 
                                        className={formClass + '__select'} 
                                        id={'calendar-filter-location'} 
                                        data-name="filter_location"
@@ -356,12 +360,12 @@ class ProfileUserInfo extends React.Component {
                                     <h4 className={'this-title'}>Mis próximas {window.GFtheme.ClassName}</h4>
                                     <FutureClasses />
                               </div>
-                              <hr/>
+                              <hr></hr>
                               <div className={profileClass + '__tab-section'}>
                                     <h4 className={'this-title'}>Historial de {window.GFtheme.ClassName}</h4>
                                     <PastClasses />
                               </div>
-                              <hr/>
+                              <hr></hr>
                               <div className={profileClass + '__tab-section'}>
                                     <h4 className={'this-title'}>Historial de compras</h4>
                                     <PurchasesList /> 
@@ -373,17 +377,17 @@ class ProfileUserInfo extends React.Component {
                                  <form className={profileClass + '__form is-UserConf'} onSubmit={this.handleSubmit.bind(this)}>
                                     <UserInfo info={this.state} updateState={this.updateState.bind(this)}
                                              handleChangeField={this.handleChangeField.bind(this)}/>
-                                    <hr className={formClass + '__divider'}/>
+                                    <hr className={formClass + '__divider'}></hr>
                                     <AddressInfo info={this.state} updateState={this.updateState.bind(this)}
                                                 getStatesListByCountry={this.getStatesListByCountry.bind(this)}
                                                 handleChangeField={this.handleChangeField.bind(this)}/>
-                                    <hr className={formClass + '__divider'}/>
+                                    <hr className={formClass + '__divider'}></hr>
                                     <ContactInfo info={this.state} updateState={this.updateState.bind(this)}
                                                 handleChangeField={this.handleChangeField.bind(this)}/>
 
                                     <div className={profileClass + '__section is-save'}>
                                        <button disabled={!this.state.formValid} type="submit" className={buttonClass + ' ' + buttonClass + "--submit is-primary"}>
-                                             {Strings.BUTTON_SAVE}
+                                             {StringStore.get('BUTTON_SAVE')}
                                        </button>
 
                                        <div className={formClass + '__notifications'}>
@@ -392,7 +396,7 @@ class ProfileUserInfo extends React.Component {
                                                 {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                                              </div>
                                              <div className="text-success">
-                                                {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                                {this.state.saved && <small>{StringStore.get('SAVE_ME_SUCCESS')}</small>}
                                              </div>
                                        </div>
                                     </div>
@@ -412,7 +416,7 @@ class ProfileUserInfo extends React.Component {
                                              type="submit"
                                              className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
                                           >
-                                             {Strings.BUTTON_SAVE}
+                                             {StringStore.get('BUTTON_SAVE')}
                                           </button>
 
                                           <div className={formClass + '__notifications'}>
@@ -421,7 +425,7 @@ class ProfileUserInfo extends React.Component {
                                                    {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                                              </div>
                                              <div className="text-success">
-                                                   {this.state.saved && <small>{Strings.SAVE_ME_SUCCESS}</small>}
+                                                   {this.state.saved && <small>{StringStore.get('SAVE_ME_SUCCESS')}</small>}
                                              </div>
                                           </div>
                                        </div>
@@ -429,6 +433,27 @@ class ProfileUserInfo extends React.Component {
                               </div>
                            </div>
                         </div>
+
+                           {/* <Tab className={tabsClass + '-container is-payment'} eventKey={4} title={StringStore.get('PAYMENT')}>
+                              <CustomScroll heightRelativeToParent="100%">
+                                 <div className={profileClass + '__tab-section'}>
+                                       <PaymentMethods />
+                                 </div>
+                              </CustomScroll>
+                              <div className={paymentClass + "__notification " + (paymentNotification ? 'is-active' : '')}>
+                                 <div className={paymentClass + "__notification-container"}>
+                                       <p>{!paymentNotification ? 'Error: No encuentré el mensaje' : paymentNotification.message}</p>
+                                       <div className={paymentClass + "__controls"}>
+                                          <button className={buttonClass + "__controls is-success"} onClick={this.deleteCard.bind(this)}>
+                                             <CheckIcon />
+                                          </button>
+                                          <button className={buttonClass + "__controls is-close"} onClick={this.closeNotification.bind(this)}>
+                                             <CloseIcon />
+                                          </button>
+                                       </div>
+                                 </div>
+                              </div>
+                           </Tab> */}
                      </div>
                   </div>
                </div>

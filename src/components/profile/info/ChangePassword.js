@@ -3,6 +3,7 @@
 import React from 'react';
 import Strings from "../../utils/Strings/Strings_ES";
 import {ControlLabel, FormControl, FormGroup} from "react-bootstrap";
+import StringStore from "../../utils/Strings/StringStore";
 
 class ChangePassword extends React.Component{
     constructor(props){
@@ -18,7 +19,7 @@ class ChangePassword extends React.Component{
         return(
             <div className={profileClass + '__section is-password'}>
 
-                {/* <h4>{Strings.CHANGEPASSWORD}</h4> */}
+                {/* <h4>{StringStore.get('CHANGEPASSWORD')}</h4> */}
                 <FormGroup className={formClass + "__section is-email_confirm"} controlId="email_confirm">
                     <FormControl className={formClass + "__input"} type={'text'} value={this.props.info.email} disabled/>
                 </FormGroup>
@@ -28,7 +29,7 @@ class ChangePassword extends React.Component{
                 </FormGroup>
 
                 <FormGroup className={formClass + "__section is-password"} controlId="password">
-                    <ControlLabel className={formClass + "__label"}>{Strings.NEWPASSWORD}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('NEWPASSWORD')}</ControlLabel>
                     <FormControl
                         type={'password'}
                         className={formClass + "__input"}
@@ -37,7 +38,7 @@ class ChangePassword extends React.Component{
                 </FormGroup>
 
                 <FormGroup className={formClass + "__section is-confirmationPassword"} controlId="confirmationPassword" bsSize={'large'}>
-                    <ControlLabel className={formClass + "__label"}>{Strings.PASSWORDCONFIRM}</ControlLabel>
+                    <ControlLabel className={formClass + "__label"}>{StringStore.get('PASSWORDCONFIRM')}</ControlLabel>
                     <FormControl 
                         type={'password'}
                         className={formClass + "__input"}

@@ -43,16 +43,25 @@ const GlobalStorage = {
     future_classes: null,
     past_classes: null,
     purchase: null,
+
+    //Special Texts
+    special_texts_register: [],
+
+    block_after_login: false,
+
+    get(property) {
+        return this[property];
+    },
     /**
      *
      * @param brand
      * @returns {*|{sufijo, prefijo}}
      */
-    getBrandCurrency(brand){
+    getBrandCurrency(brand) {
         let currencyId = !!brand && brand.hasOwnProperty('currencies_id') ? brand.currencies_id : 1;
         return GlobalStorage.getCurrency(currencyId);
     },
-    getCurrency(currency_id){
+    getCurrency(currency_id) {
         switch (currency_id) {
             case 2:
                 return {
@@ -74,11 +83,6 @@ const GlobalStorage = {
                 break
         }
     },
-
-    get(property) {
-        return this[property];
-    },
-
     find(property, id) {
         if (Array.isArray(this[property])) {
             return this[property].find(o => o.id === parseInt(id));
@@ -105,7 +109,7 @@ const GlobalStorage = {
         this.listeners.push(callback);
     },
 
-    initialValues(brands, cb){
+    initialValues(brands, cb) {
         let curStore = this;
         let currentBrand = brands[0];
         let locations = [];
@@ -113,6 +117,8 @@ const GlobalStorage = {
         let brandList = !window.GFtheme.BrandID ? brands : brands.filter(brand => brand.id === window.GFtheme.BrandID);
 
         let loop = 0;
+
+        console.log(brandList);
 
         if (brandList) {
             this.brands = brandList;

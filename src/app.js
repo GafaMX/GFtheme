@@ -1,35 +1,27 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
+import StringStore from "./components/utils/Strings/StringStore";
 
+
+// if(!jQuery){
+//     import jQuery from 'jquery';
+//     window.jQuery = window.$ = jQuery;
+// }
 var selection = document.querySelector('[data-gf-options]');
 
 if (selection !== null) {
-   window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
+    window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 }
-
-
+// window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 
 GafaFitSDKWrapper.initValues(
    () => {
-      if(typeof gafa === 'undefined'){
-         GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
-         GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
-         GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
-         GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
-         GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
-      } else {
-         // Render créditos
-         GafaThemeSDK.renderProfileWallet('[data-gf-theme="profile-wallet"]');
-   
-         // Render clases futuras
-         GafaThemeSDK.renderFutureClasses('[data-gf-theme="future-classes"]');
-         
-         // Render clases pasadas
-         GafaThemeSDK.renderPastClasses('[data-gf-theme="past-classes"]');
-         
-         // Render compras realizadas
-         GafaThemeSDK.renderPurchaseList('[data-gf-theme="purchase-list"]');
-      }
+         StringStore.initLang();
+      GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
+      GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
+      GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
+      GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
+      GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
 
       // Render miembros de staff
       GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');
