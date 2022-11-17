@@ -6,9 +6,10 @@ class ServiceItem extends React.Component {
     constructor(props) {
         super(props);
     }
+
     render() {
         const sectionStyle = {
-            backgroundImage: "url(" +this.props.service.pic+ ")",
+            backgroundImage: "url(" + this.props.service.pic + ")",
         };
 
         let preC = 'GFSDK-c';
@@ -17,7 +18,8 @@ class ServiceItem extends React.Component {
         let serviceClass = preC + '-serviceList';
 
         return (
-            <div className={serviceClass + '__item is-active ' + serviceItemClass}>
+            <div className={serviceClass + '__item is-active ' + serviceItemClass}
+                 data-service-id={this.props.service.id}>
                 <div className={serviceItemClass + '__container'}>
                     <div className={serviceItemClass + '__head'}>
                         <h3 className="this-name">{this.props.service.name}</h3>

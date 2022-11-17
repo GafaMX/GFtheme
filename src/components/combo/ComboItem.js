@@ -1,7 +1,6 @@
 'use strict';
 
 import React from "react";
-import Strings from "../utils/Strings/Strings_ES";
 import GlobalStorage from "../store/GlobalStorage";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 
@@ -122,7 +121,7 @@ class ComboItem extends React.Component {
         let currency = GlobalStorage.getBrandCurrency(combo.brand);
 
         return (
-            <div className={comboClass + 'item ' + productClass}>
+            <div className={comboClass + 'item ' + productClass} data-combo-id={combo.id}>
                 <div className={productClass + '__head'}>
                     <h3 className="this-name">{this.props.combo.name}</h3>
                 </div>

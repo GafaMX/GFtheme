@@ -218,6 +218,7 @@ class GafaThemeSDK extends React.Component {
                 let filterLocationDefault = domContainer.getAttribute("filter-bq-location-default") ? domContainer.getAttribute("filter-bq-location-default") : false;
                 let showDescription = domContainer.getAttribute("data-bq-show-description") ? domContainer.getAttribute("data-bq-show-description") === 'true' : false;
                 let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
+                let visualization = domContainer.getAttribute("data-bq-calendar-visualization") ? domContainer.getAttribute("data-bq-calendar-visualization") : false;
 
                 if (limit) {
                     if (limit > 3 && limit < 6) {
@@ -240,7 +241,8 @@ class GafaThemeSDK extends React.Component {
                     'filter_brand': filterBrand,
                     'login_initial': loginInitial,
                     'show_description': showDescription,
-                    'block_after_login': blockAfterLogin
+                    'block_after_login': blockAfterLogin,
+                    'visualization': visualization
                 };
 
                 GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
