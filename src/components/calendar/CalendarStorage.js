@@ -23,6 +23,7 @@ const CalendarStorage = {
     calendarHeight: null,
     calendarWidth: null,
     show_description: false,
+    visualization: false,
 
     /**
      *

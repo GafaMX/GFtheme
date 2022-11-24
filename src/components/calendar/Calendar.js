@@ -37,6 +37,7 @@ class Calendar extends React.Component {
         };
 
         this.selectFilter = this.selectFilter.bind(this);
+        CalendarStorage.set('visualization', props.visualization);
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
         CalendarStorage.set('show_register', this.setShowRegister.bind(this));
         CalendarStorage.set('show_description', props.show_description);
@@ -173,10 +174,11 @@ class Calendar extends React.Component {
         let calendarClass = preC + '-Calendar';
         let widthDimension = CalendarStorage.get('calendarWidth');
         let heightDimension = CalendarStorage.get('calendarHeight');
+        let visualization = CalendarStorage.get('visualization');
 
         const mystyles = {
             width: widthDimension + 'px',
-        }
+        };
 
         if (filter_location && filter_location != 'Todos') {
             meetings = meetings.filter(function (meeting) {
@@ -208,13 +210,14 @@ class Calendar extends React.Component {
             });
         }
 
-        console.error(GlobalStorage.get('block_after_login'), this.props.block_after_login);
+        let head_class = '__head-' + (visualization === 'vertical' ? visualization : 'horizontal');
+
         return (
             <div className={calendarClass}>
                 <div className={calendarClass + '__container'} style={mystyles}>
                     {is_mounted
                         ?
-                        <div className={calendarClass + '__head-horizontal'}>
+                        <div className={calendarClass + head_class}>
                             {brands.length <= 1 && locations.length <= 1 &&
                             rooms.length <= 1 && staff.length <= 1 &&
                             services.length <= 1
@@ -251,7 +254,7 @@ class Calendar extends React.Component {
                                         <option value={'Todos'}>Ubicaciones</option>
                                         {locations.map(location => {
                                             return <option value={location}
-                                                           key={location}>{location.toLowerCase()}</option>
+                                                           key={location}>{location}</option>
                                         })}
                                     </select>
                                     <div className={filterClass + '__item-icon'}>
@@ -303,7 +306,7 @@ class Calendar extends React.Component {
                                         <option value={'Todos'}>Servicios</option>
                                         {services.map(service => {
                                             return <option value={service}
-                                                           key={service}>{service.toLowerCase()}</option>
+                                                           key={service}>{service}</option>
                                         })}
                                     </select>
                                     <div className={filterClass + '__item-icon'}>

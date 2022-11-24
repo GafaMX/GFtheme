@@ -144,8 +144,8 @@ class CalendarMeeting extends React.Component {
                 <div className={meetingClass + '__body'}>
                     <p className={'this-staff'}>{meeting.staff.name.toLowerCase()}</p>
                     <p className={'this-availability'}>{StringStore.get('AVAILABILITY')}: {meeting.available} / {meeting.capacity}</p>
-                    <p className={'this-service'}>{meeting.service.name.toLowerCase()}</p>
-                    <p className={'this-location'}>{meeting.location.name.toLowerCase()}</p>
+                    <p className={'this-service'}>{meeting.service.name}</p>
+                    <p className={'this-location'}>{meeting.location.name}</p>
                     {this.printDescription()}
                 </div>
             </div>

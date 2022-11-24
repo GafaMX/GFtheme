@@ -4,3 +4,18 @@
 @import "elements/index";
 @import "template/index";
 @import "components/index";
+
+
+.GFSDK-c-profile__section.is-user , .GFSDK-c-profile__section.is-contact, .GFSDK-c-profile__section.is-address .GFSDK-e-form__section,.GFSDK-c-profile__section {
+  display: block !important;
+}
+.GFSDK-c-profile__section.is-user h4, .GFSDK-c-profile__section.is-contact h4,.GFSDK-c-profile__section.is-address h4{
+  transform: none !important;
+  writing-mode:horizontal-tb !important;
+}
+.GFSDK-e-form__radio{
+  margin:20px 0;
+}
+.GFSDK-e-form__radio p {
+  padding-bottom: 0 !important;
+}
