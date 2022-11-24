@@ -23,7 +23,9 @@ export default class VerticalCalendarBody extends React.Component {
 
         let dayTags = !!dayList && dayList.length ? dayList.map(function (item, i) {
             return (
-                <a className={meetings_to_show[i].meetings.length === 0 ? 'empty-slide' : ''}>
+                <a
+                    key={`${preC}-Calendar--vertical-head--${item}`}
+                    className={meetings_to_show[i].meetings.length === 0 ? 'empty-slide' : ''}>
                     <div>
                         <p className="this-date">{moment(item).format('dd')}</p>
                         <p className="this-number">{moment(item).format('D')}</p>
@@ -69,7 +71,11 @@ export default class VerticalCalendarBody extends React.Component {
                 }
             });
 
-            listItems.push(<div className={`${preC}-Calendar__day_column_vertical`} data-date={day.date}>
+            listItems.push(<div
+                key={`${preC}-Calendar__day_column_vertical--${day.date}`}
+                className={`${preC}-Calendar__day_column_vertical`}
+                data-date={day.date}
+            >
                 {column_days}
             </div>)
         });
