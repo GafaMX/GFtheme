@@ -38,7 +38,6 @@ class ComboList extends React.Component {
         let href = window.location.href;
         let {filterByName, filterByBrand} = this.props;
         let combos = GlobalStorage.get('combos');
-        console.log(combos);
 
         let weAreHome = false;
 
@@ -56,7 +55,6 @@ class ComboList extends React.Component {
             });
         }
 
-        console.log(combos);
 
         if (filterByName) {
             combos = combos.filter(function (combo) {
