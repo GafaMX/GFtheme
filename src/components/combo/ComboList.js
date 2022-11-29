@@ -46,11 +46,13 @@ class ComboList extends React.Component {
         }
 
         combos = combos.filter(function (combo) {
+            console.log('front',combo.hide_in_front === false,combo.hide_in_front === 0,combo.status,combo);
             return combo.status === 'active' && (combo.hide_in_front === false || combo.hide_in_front === 0);
         });
 
         if (weAreHome === true) {
             combos = combos.filter(function (combo) {
+                console.log('home',combo.hide_in_home === false,combo.hide_in_home === 0,combo.status,combo);
                 return (combo.hide_in_home === false || combo.hide_in_home === 0);
             });
         }
