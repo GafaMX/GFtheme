@@ -144,7 +144,7 @@
       }
 
       .this-service, .this-location, .this-availability, .this-description {
-        font-size: 11px;
+        font-size: 13px;
         letter-spacing: .1px;
         font-weight: 600;
         color: #BBBBBC;
@@ -172,6 +172,10 @@
 
     & > .this-staff {
       font-weight: 700;
+    }
+
+    .this-availability, .this-service {
+      font-size: 13px;
     }
   }
 }

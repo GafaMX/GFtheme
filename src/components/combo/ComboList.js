@@ -38,7 +38,6 @@ class ComboList extends React.Component {
         let href = window.location.href;
         let {filterByName, filterByBrand} = this.props;
         let combos = GlobalStorage.get('combos');
-        console.log(combos);
 
         let weAreHome = false;
 
@@ -46,17 +45,17 @@ class ComboList extends React.Component {
             weAreHome = true;
         }
 
-        combos = combos.filter(function (combo) {
-            return combo.status === 'active' && (combo.hide_in_front === false || combo.hide_in_front === 0);
-        });
+        // combos = combos.filter(function (combo) {
+        //     console.log('front',combo.hide_in_front === false,combo.hide_in_front === 0,combo.status,combo);
+        //     // return combo.status === 'active' && (combo.hide_in_front === false || combo.hide_in_front === 0);
+        // });
 
-        if (weAreHome === true) {
+        // if (weAreHome === true) {
             combos = combos.filter(function (combo) {
-                return (combo.hide_in_home === false || combo.hide_in_home === 0);
+                return  combo.status === 'active' && (combo.hide_in_home === false || combo.hide_in_home === 0);
             });
-        }
+        // }
 
-        console.log(combos);
 
         if (filterByName) {
             combos = combos.filter(function (combo) {
