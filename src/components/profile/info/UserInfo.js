@@ -89,7 +89,7 @@ class UserInfo extends React.Component {
                                    name="gender"
                                    onChange={this.handleGenderChange.bind(this)}/>
                             <div className={'this-radio ' + (this.props.info.gender === 'male' ? 'checked' : '')}></div>
-                            <p className={formClass + "__label"}>Hombre</p>
+                            <p className={formClass + "__label"}>{StringStore.get('PROFILE_MALE_GENDER')}</p>
                         </label>
                         <label className={formClass + "__radio"}>
                             <input className="mr-2" type="radio" value="female"
@@ -97,7 +97,7 @@ class UserInfo extends React.Component {
                                    name="gender"
                                    onChange={this.handleGenderChange.bind(this)}/>
                             <div className={'this-radio ' + (this.props.info.gender === 'female' ? 'checked' : '')}></div>
-                            <p className={formClass + "__label"}>Mujer</p>
+                            <p className={formClass + "__label"}>{StringStore.get('PROFILE_FEMALE_GENDER')}</p>
                         </label>
                     </div>
                 </FormGroup>

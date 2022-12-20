@@ -5,6 +5,7 @@ import GafaFitSDKWrapper from "../../../utils/GafaFitSDKWrapper";
 import {ControlLabel, FormControl, FormGroup} from "react-bootstrap";
 import Card from "../Payment/Card";
 import GlobalStorage from "../../../store/GlobalStorage";
+import StringStore from "../../../utils/Strings/StringStore";
 
 
 class PaymentMethods extends React.Component {
@@ -37,7 +38,7 @@ class PaymentMethods extends React.Component {
         });
     };
 
-    updateConektaInfo(){
+    updateConektaInfo() {
         let currentComponent = this;
 
         currentComponent.setState({
@@ -47,30 +48,31 @@ class PaymentMethods extends React.Component {
         GlobalStorage.set('ConektaPaymentNotification', null);
     }
 
-    handleSubmit(e){
+    handleSubmit(e) {
         e.preventDefault();
 
         const currentComponent = this;
         let {cardNumber, cardName, cardExpYear, cardExpMonth, cardCVC} = currentComponent.state;
 
         Conekta.Token.create({
-            "card": {
-                "number": cardNumber,
-                "name": cardName,
-                "exp_year": cardExpYear,
-                "exp_month": cardExpMonth,
-                "cvc": cardCVC
-            }},
+                "card": {
+                    "number": cardNumber,
+                    "name": cardName,
+                    "exp_year": cardExpYear,
+                    "exp_month": cardExpMonth,
+                    "cvc": cardCVC
+                }
+            },
             this.onSuccessTokenHandler,
             this.onFailTokenHandler
         );
     }
 
-    onSuccessTokenHandler(token){
+    onSuccessTokenHandler(token) {
         const currentComponent = this;
         let {cardPhone} = currentComponent.state;
 
-        if(token && cardPhone){
+        if (token && cardPhone) {
             GafaFitSDKWrapper.postUserAddPaymentOption(
                 2,
                 token.id,
@@ -82,7 +84,7 @@ class PaymentMethods extends React.Component {
         }
     };
 
-    onFailTokenHandler(error){
+    onFailTokenHandler(error) {
         console.log('conekta err', error);
         // const messageTxt = `Ocurrió un error al completar el pago con Conekta. ${error.message_to_purchaser}`;
         // this.props.onGafaPayErrAction({
@@ -104,32 +106,33 @@ class PaymentMethods extends React.Component {
 
         // Buscando tarjetas de conekta
         const ConektaCards = list
-            ?   list.map((card, index) => {
-                    return <Card key={index} card={card} paymentMethod={2} updatePaymentList={this.updatePaymentList}/>
-                })
-            :   null
+            ? list.map((card, index) => {
+                return <Card key={index} card={card} paymentMethod={2} updatePaymentList={this.updatePaymentList}/>
+            })
+            : null
         ;
         // Buscando tarjetas de conekta
         return (
             <div className={profileClass + '__section is-payment'}>
-                <h4>Mis tarjetas</h4>
+                <h4>{StringStore.get('PROFILE_MY_CARDS')}</h4>
                 <div className={paymentClass}>
                     <div className={paymentClass + "__card-container"}>
-                    {this.state.list.length > 0
-                        ?   <div>
-                                { ConektaCards }
+                        {this.state.list.length > 0
+                            ? <div>
+                                {ConektaCards}
                             </div>
-                        :   <div className="is-notification">
-                                <h3>No cuentas con tarjetas para pagos</h3>
+                            : <div className="is-notification">
+                                <h3>{StringStore.get('PROFILE_NO_PAYMENT_CARDS')}</h3>
                             </div>
-                    }
+                        }
                     </div>
                     <hr class="GFSDK-e-form__divider"></hr>
                     <div className={paymentClass + "__addCard-container"}>
                         <form className={profileClass + '__form'} onSubmit={this.handleSubmit.bind(this)}>
                             <div className={profileClass + '__section is-addCard'}>
                                 <FormGroup className={formClass + "__section is-CardNumber"} controlId="cardNumber">
-                                    <ControlLabel className={formClass + "__label"}>Número de tarjeta</ControlLabel>
+                                    <ControlLabel
+                                        className={formClass + "__label"}>{StringStore.get('PROFILE_CARD_NUMBER')}</ControlLabel>
                                     <FormControl
                                         onChange={this.handleChangeField.bind(this)}
                                         className={formClass + "__input"}
@@ -183,7 +186,7 @@ class PaymentMethods extends React.Component {
                                     type="submit"
                                     className={buttonClass + ' ' + buttonClass + "--submit is-primary"}
                                 >
-                                    Agregar tarjeta
+                                    {StringStore.get('PROFILE_ADD_CARD')}
                                 </button>
                             </div>
                         </form>

@@ -184,6 +184,8 @@ class CalendarBody extends React.Component {
                 slidesToScroll: 1,
                 slidesToShow: 1,
                 customPaging: function (i) {
+
+                    moment.locale(StringStore.getLanguage().toLowerCase());
                     return (
                         <a className={meetings_to_show[i].meetings.length === 0 ? 'empty-slide' : ''}>
                             <div>
