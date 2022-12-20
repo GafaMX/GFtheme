@@ -14,6 +14,7 @@ import '../../styles/newlook/components/GFSDK-c-Calendar.scss';
 import '../../styles/newlook/components/GFSDK-c-Filter.scss';
 import '../../styles/newlook/elements/GFSDK-e-meeting.scss';
 import '../../styles/newlook/elements/GFSDK-e-navigation.scss';
+import StringStore from "../utils/Strings/StringStore";
 
 class Calendar extends React.Component {
     constructor(props) {
@@ -224,7 +225,7 @@ class Calendar extends React.Component {
                                 ?
                                 null
                                 :
-                                <p className={formClass + '__label'}>Filtros:</p>
+                                <p className={formClass + '__label'}>{StringStore.get('FILTER_LABEL')}:</p>
                             }
                             <div className={calendarClass + '__filter ' + filterClass}>
                                 <div
@@ -234,7 +235,7 @@ class Calendar extends React.Component {
                                             value={filter_brand}
                                             onChange={this.selectFilter}
                                     >
-                                        <option value={'Todos'}>Marcas</option>
+                                        <option value={'Todos'}>{StringStore.get('FILTER_ALL_BRANDS')}</option>
                                         {brands.map(brand => {
                                             return <option value={brand} key={brand}>{brand}</option>
                                         })}
@@ -251,7 +252,7 @@ class Calendar extends React.Component {
                                             value={filter_location}
                                             onChange={this.selectFilter}
                                     >
-                                        <option value={'Todos'}>Ubicaciones</option>
+                                        <option value={'Todos'}>{StringStore.get('FILTER_ALL_LOCATIONS')}</option>
                                         {locations.map(location => {
                                             return <option value={location}
                                                            key={location}>{location}</option>
@@ -269,7 +270,7 @@ class Calendar extends React.Component {
                                             value={filter_room}
                                             onChange={this.selectFilter}
                                     >
-                                        <option value={'Todos'}>Salones</option>
+                                        <option value={'Todos'}>{StringStore.get('FILTER_ALL_LOCATIONS')}</option>
                                         {rooms.map(room => {
                                             return <option value={room} key={room}>{room}</option>
                                         })}
@@ -303,7 +304,7 @@ class Calendar extends React.Component {
                                             value={filter_service}
                                             onChange={this.selectFilter}
                                     >
-                                        <option value={'Todos'}>Servicios</option>
+                                        <option value={'Todos'}>{StringStore.get('FILTER_ALL_SERVICES')}</option>
                                         {services.map(service => {
                                             return <option value={service}
                                                            key={service}>{service}</option>
