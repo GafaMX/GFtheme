@@ -4,9 +4,9 @@ import React from 'react';
 import GlobalStorage from '../store/GlobalStorage';
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import PurchaseItem from "./PurchaseItem";
-import Slider from "react-slick";
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import StringStore from "../utils/Strings/StringStore";
 
 class PurchasesList extends React.Component {
     constructor(props) {
@@ -20,35 +20,37 @@ class PurchasesList extends React.Component {
     }
 
     componentDidMount() {
-      this.getPurchase();
+        this.getPurchase();
     }
 
-    getPurchase(){
-      const currentComponent = this;
-      let brands = GlobalStorage.get('brands');
-      let purchaseList = [];
-      
-      brands.forEach(function(brand){
-         GafaFitSDKWrapper.getUserPurchasesInBrand(
-            brand.slug,
-            {reducePopulation: true,}, 
-            function (result) {
-               purchaseList = purchaseList.concat(result.data);
-               GlobalStorage.set('purchase', purchaseList);
-               currentComponent.setState({list: purchasesList});
-         });
-      });
-   }
+    getPurchase() {
+        const currentComponent = this;
+        let brands = GlobalStorage.get('brands');
+        let purchaseList = [];
 
-   updatePurchasesList() {
-      let purchase = GlobalStorage.get('purchase');
-      let brand = GlobalStorage.get('filter_brand');
+        brands.forEach(function (brand) {
+            GafaFitSDKWrapper.getUserPurchasesInBrand(
+                brand.slug,
+                {reducePopulation: true,},
+                function (result) {
+                    purchaseList = purchaseList.concat(result.data);
+                    GlobalStorage.set('purchase', purchaseList);
+                    currentComponent.setState({list: purchasesList});
+                });
+        });
+    }
 
-      if(brand){
-         purchase = purchase.filter(function (item) {return item.brands_id === brand.id; });
-      }
-      
-      this.setState({list: purchase});
+    updatePurchasesList() {
+        let purchase = GlobalStorage.get('purchase');
+        let brand = GlobalStorage.get('filter_brand');
+
+        if (brand) {
+            purchase = purchase.filter(function (item) {
+                return item.brands_id === brand.id;
+            });
+        }
+
+        this.setState({list: purchase});
     }
 
     render() {
@@ -79,14 +81,14 @@ class PurchasesList extends React.Component {
         );
         return (
 
-            <div className={profileClass + '__section is-buyOverall'} style={{width : this.state.windowWidth}}>
+            <div className={profileClass + '__section is-buyOverall'} style={{width: this.state.windowWidth}}>
                 {this.state.list.length > 0
-                    ?   <div className={ ordersClass + '__section'}>{listItems}</div>
-                    :   <div className="is-empty">
-                           <div className="is-notification">
-                              <h3>No cuentas con compras</h3>
-                           </div>
+                    ? <div className={ordersClass + '__section'}>{listItems}</div>
+                    : <div className="is-empty">
+                        <div className="is-notification">
+                            <h3>{StringStore.get('PROFILE_NO_PURCHASES')}</h3>
                         </div>
+                    </div>
                 }
             </div>
         )
