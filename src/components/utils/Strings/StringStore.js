@@ -41,7 +41,7 @@ const StringStore = {
             }
         }
 
-        return return_string;
+        return typeof return_string==="string" ? return_string : '';
     },
 
     getLanguageObject() {
