@@ -58,11 +58,11 @@ class StaffList extends React.Component {
             weAreHome = true;
         }
 
-        if (weAreHome === true) {
+        // if (weAreHome === true) {
             staff = staff.filter(function (person) {
                 return (person.hide_in_home === false || person.hide_in_home === 0)
             });
-        }
+        // }
 
         staff.forEach(function (person) {
             if (person.job != null && !staffJobs.includes(person.job.toUpperCase())) {
