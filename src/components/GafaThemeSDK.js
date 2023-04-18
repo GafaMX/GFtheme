@@ -322,7 +322,12 @@ class GafaThemeSDK extends React.Component {
             buttons.forEach(function (button) {
                 let domContainer = document.createElement('div');
                 domContainer.style.display = 'none';
-                GafaThemeSDK.renderElementIntoContainer(domContainer, PurchaseButton, {container: button})
+                GafaThemeSDK.renderElementIntoContainer(domContainer, PurchaseButton, {
+                    container: button,
+                    combo_id: button.getAttribute('data-bq-combo-id'),
+                    location_id: button.getAttribute('data-bq-location-id'),
+                    no_loading: button.getAttribute('data-bq-no-loading') === 'true'
+                })
                 button.append(domContainer);
             });
         }
