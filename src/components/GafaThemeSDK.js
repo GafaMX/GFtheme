@@ -21,6 +21,7 @@ import moment from "moment";
 
 import "../styles/newlook/reset.scss";
 import "../styles/newlook/fancy.scss";
+import PurchaseButton from "./purchase_button/PurchaseButton";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
@@ -313,6 +314,24 @@ class GafaThemeSDK extends React.Component {
             GlobalStorage.set('special_texts_register', result);
         });
     };
+
+    static renderPurchaseBtton(selector) {
+        let buttons = document.querySelectorAll(selector);
+
+        if (buttons.length > 0) {
+            buttons.forEach(function (button) {
+                let domContainer = document.createElement('div');
+                domContainer.style.display = 'none';
+                GafaThemeSDK.renderElementIntoContainer(domContainer, PurchaseButton, {
+                    container: button,
+                    combo_id: button.getAttribute('data-bq-combo-id'),
+                    location_id: button.getAttribute('data-bq-location-id'),
+                    no_loading: button.getAttribute('data-bq-no-loading') === 'true'
+                })
+                button.append(domContainer);
+            });
+        }
+    }
 }
 
 export default GafaThemeSDK;
