@@ -206,12 +206,14 @@ class LoginRegister extends React.Component {
             GafaFitSDKWrapper.getMeWithPurchase(
                 function (result) {
                     GlobalStorage.set("me", result);
-                    currentComponent.setState({
-                        showLogin: false,
-                        showRegister: false,
-                        showProfile: false,
-                        passwordRecovery: false,
-                    });
+                    if (!(currentComponent.props.hasOwnProperty('preventLoginStateChange') && currentComponent.props.preventLoginStateChange)) {
+                        currentComponent.setState({
+                            showLogin: false,
+                            showRegister: false,
+                            showProfile: false,
+                            passwordRecovery: false,
+                        });
+                    }
                 }
             );
         }
@@ -377,9 +379,9 @@ class LoginRegister extends React.Component {
                         {this.state.serverError !== '' && <small>{this.state.serverError}</small>}
                     </div>
                     {this.state.loading &&
-                    <div className="modal-backdrop">
-                        <div className="circle-loading"/>
-                    </div>}
+                        <div className="modal-backdrop">
+                            <div className="circle-loading"/>
+                        </div>}
                 </div>
             </div>
 
