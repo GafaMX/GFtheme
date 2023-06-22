@@ -96,6 +96,7 @@ export default {
     FILTER_ALL_BRANDS: 'Brands',
     FILTER_ALL_LOCATIONS: 'Locations',
     FILTER_ALL_SERVICES: 'Services',
+    FILTER_ALL_ROOMS: 'Rooms',
     PROFILE_NEXT_CLASSES: 'My upcoming _|_',
     PROFILE_PAST_CLASSES: 'History of _|_',
     PROFILE_PURCHASE_HISTORY: 'Purchase history',
