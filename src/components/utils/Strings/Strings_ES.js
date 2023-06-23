@@ -97,6 +97,7 @@ export default {
     FILTER_ALL_BRANDS: 'Marcas',
     FILTER_ALL_LOCATIONS: 'Ubicaciones',
     FILTER_ALL_SERVICES: 'Servicios',
+    FILTER_ALL_ROOMS: 'Salones',
     PROFILE_NEXT_CLASSES: 'Mis próximas _|_',
     PROFILE_PAST_CLASSES: 'Historial de _|_',
     PROFILE_PURCHASE_HISTORY: 'Historial de compras',

@@ -51,7 +51,18 @@ class Calendar extends React.Component {
         let comp = this;
         let meetings = CalendarStorage.get('meetings');
         let rooms = GlobalStorage.get('rooms');
-        let {filter_service, filter_service_default, filter_staff, filter_location, filter_brand, filter_room, filter_location_default} = this.props;
+        let {
+            filter_service,
+            filter_service_default,
+            filter_staff,
+            filter_staff_default,
+            filter_location,
+            filter_location_default,
+            filter_brand,
+            filter_brand_default,
+            filter_room,
+            filter_room_default
+        } = this.props;
         let meetingsWithRoom = [];
         let meetingsLocations = [];
         let meetingsBrands = [];
@@ -61,6 +72,9 @@ class Calendar extends React.Component {
 
         let preFilterStaff = 'Todos';
         let preFilterLocation = 'Todos';
+        let preFilterBrand = 'Todos';
+        let preFilterService = 'Todos';
+        let preFilterRoom = 'Todos';
 
         let params = (new URL(document.location)).searchParams;
         let staffParam = window.GFtheme.StaffName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -82,6 +96,12 @@ class Calendar extends React.Component {
             meetingsWithRoom.forEach(function (meeting) {
                 if (meeting.location != null && !meetingsBrands.includes(meeting.location.brand.name)) {
                     meetingsBrands.push(meeting.location.brand.name);
+
+                    if (filter_brand_default) {
+                        if (filter_brand_default === meeting.location.brand.name) {
+                            preFilterBrand = meeting.location.brand.name;
+                        }
+                    }
                 }
             });
         }
@@ -104,6 +124,12 @@ class Calendar extends React.Component {
             meetingsWithRoom.forEach(function (meeting) {
                 if (meeting.room != null && !meetingsRooms.includes(meeting.room.name)) {
                     meetingsRooms.push(meeting.room.name);
+
+                    if (filter_room_default) {
+                        if (filter_room_default === meeting.room.name) {
+                            preFilterRoom = meeting.room.name;
+                        }
+                    }
                 }
             });
         }
@@ -117,6 +143,8 @@ class Calendar extends React.Component {
                         if (memberParams === meeting.staff.slug) {
                             preFilterStaff = meeting.staff.name;
                         }
+                    } else if ((meeting.staff.name + ' ' + meeting.staff.lastname) === filter_staff_default) {
+                        preFilterStaff = meeting.staff.name;
                     }
                 }
             });
@@ -126,9 +154,16 @@ class Calendar extends React.Component {
             meetingsWithRoom.forEach(function (meeting) {
                 if (meeting.service != null && !meetingsServices.includes(meeting.service.name)) {
                     meetingsServices.push(meeting.service.name);
+
+                    if (filter_service_default) {
+                        if (filter_service_default === meeting.service.name) {
+                            preFilterService = meeting.service.name;
+                        }
+                    }
                 }
             });
         }
+
 
         setTimeout(function () {
             comp.setState({
@@ -138,11 +173,25 @@ class Calendar extends React.Component {
                 services: meetingsServices,
                 filter_staff: preFilterStaff,
                 filter_location: preFilterLocation,
+                filter_brand: preFilterBrand,
+                filter_service: preFilterService,
+                filter_room: preFilterRoom,
                 staff: meetingsStaff,
                 meetings: meetings,
                 is_mounted: true,
-            });
+            }, comp.initExternalButtons);
         }, 3000);
+    }
+
+    /**
+     * Initialize external filter buttons
+     */
+    initExternalButtons() {
+        var buttons = document.querySelectorAll('[data-gf-theme="calendar-filter-button"]');
+        var component = this;
+        buttons.forEach(function (button) {
+            button.addEventListener('click', component.externalFilter.bind(component, button), false);
+        });
     }
 
     selectFilter(e) {
@@ -166,8 +215,55 @@ class Calendar extends React.Component {
         });
     }
 
+    /**
+     *
+     * @param button
+     * @param event
+     */
+    externalFilter(button, event) {
+        var type = button.getAttribute('data-bq-calendar-filter-type');
+        var type_id = button.getAttribute('data-bq-calendar-filter-id');
+
+        if (typeof type !== "undefined" && type !== null && type !== '' &&
+            typeof type_id !== "undefined" && type_id !== null && type_id !== '') {
+            var data_type = type.replace(/s+$/, "");
+            var prop_filter_name = `filter_${data_type}`;
+            if (this.props[prop_filter_name]) {
+                var elements = GlobalStorage[type];
+                if (Array.isArray(elements) && elements.length) {
+                    var element = elements.find(function (item) {
+                        return parseInt(item.id) === parseInt(type_id);
+                    });
+                    if (element) {
+                        var name = element.name;
+                        this.setState({
+                            [prop_filter_name]: name
+                        }, function () {
+                            var no_scroll = button.hasAttribute('data-bq-no-scroll');
+                            if (!no_scroll)
+                                this.refs['this-calendar'].scrollIntoView({'behavior': 'smooth'});
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     render() {
-        let {is_mounted, meetings, locations, filter_location, rooms, filter_room, services, filter_service, staff, filter_staff, brands, filter_brand} = this.state;
+        let {
+            is_mounted,
+            meetings,
+            locations,
+            filter_location,
+            rooms,
+            filter_room,
+            services,
+            filter_service,
+            staff,
+            filter_staff,
+            brands,
+            filter_brand
+        } = this.state;
         let preC = 'GFSDK-c';
         let preE = 'GFSDK-e';
         let formClass = preE + '-form';
@@ -215,7 +311,7 @@ class Calendar extends React.Component {
 
         return (
             <div className={calendarClass}>
-                <div className={calendarClass + '__container'} style={mystyles}>
+                <div className={calendarClass + '__container'} style={mystyles} ref={'this-calendar'}>
                     {is_mounted
                         ?
                         <div className={calendarClass + head_class}>
@@ -270,7 +366,7 @@ class Calendar extends React.Component {
                                             value={filter_room}
                                             onChange={this.selectFilter}
                                     >
-                                        <option value={'Todos'}>{StringStore.get('FILTER_ALL_LOCATIONS')}</option>
+                                        <option value={'Todos'}>{StringStore.get('FILTER_ALL_ROOMS')}</option>
                                         {rooms.map(room => {
                                             return <option value={room} key={room}>{room}</option>
                                         })}
@@ -333,11 +429,11 @@ class Calendar extends React.Component {
                 </div>
 
                 {this.state.showRegister &&
-                <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
+                    <LoginRegister setShowRegister={this.setShowRegister.bind(this)}/>
                 }
 
                 {this.state.showLogin &&
-                <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
+                    <LoginRegister setShowLogin={this.setShowLogin.bind(this)}/>
                 }
             </div>
         );

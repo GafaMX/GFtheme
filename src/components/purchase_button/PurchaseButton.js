@@ -16,6 +16,7 @@ class PurchaseButton extends React.Component {
             brand: null,
             location: null,
             combo_id: props.combo_id,
+            membership_id: props.membership_id,
             loaded: false,
             showRegister: false,
         }
@@ -109,7 +110,7 @@ class PurchaseButton extends React.Component {
 
     makePurchase() {
         let comp = this;
-        let {combo_id} = this.props;
+        let {combo_id, membership_id} = this.props;
         let {brand, location} = this.state;
 
         const fancy = document.querySelector('[data-gf-theme="fancy"]');
@@ -120,42 +121,78 @@ class PurchaseButton extends React.Component {
             fancy.classList.add('show');
         }, 400);
 
-        GafaFitSDKWrapper.getFancyForBuyCombo(
-            brand.slug,
-            location.slug,
-            combo_id,
-            function (result) {
-                getFancy();
+        if (typeof combo_id !== "undefined" && combo_id !== null) {
+            GafaFitSDKWrapper.getFancyForBuyCombo(
+                brand.slug,
+                location.slug,
+                combo_id,
+                function (result) {
+                    getFancy();
 
-                function getFancy() {
-                    if (document.querySelector('[data-gf-theme="fancy"]').firstChild) {
-                        const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+                    function getFancy() {
+                        if (document.querySelector('[data-gf-theme="fancy"]').firstChild) {
+                            const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
 
-                        closeFancy.addEventListener('click', function (e) {
-                            fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+                            closeFancy.addEventListener('click', function (e) {
+                                fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
 
-                            fancy.classList.remove('show');
+                                fancy.classList.remove('show');
 
-                            setTimeout(function () {
-                                fancy.classList.remove('active');
-                                fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+                                setTimeout(function () {
+                                    fancy.classList.remove('active');
+                                    fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
 
-                            }, 400);
+                                }, 400);
 
-                            comp.setState({
-                                loaded: true
-                            });
-                        })
-                    } else {
-                        setTimeout(getFancy, 1000);
+                                comp.setState({
+                                    loaded: true
+                                });
+                            })
+                        } else {
+                            setTimeout(getFancy, 1000);
+                        }
                     }
                 }
-            }
-        );
+            );
+        } else if (typeof membership_id !== "undefined" && membership_id !== null) {
+            GafaFitSDKWrapper.getFancyForBuyMembership(
+                brand.slug,
+                location.slug,
+                membership_id,
+                function (result) {
+                    getFancy();
+
+                    function getFancy() {
+                        if (document.querySelector('[data-gf-theme="fancy"]').firstChild) {
+                            const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+
+                            closeFancy.addEventListener('click', function (e) {
+                                fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+
+                                fancy.classList.remove('show');
+
+                                setTimeout(function () {
+                                    fancy.classList.remove('active');
+                                    fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+
+                                }, 400);
+
+                                comp.setState({
+                                    loaded: true
+                                });
+                            })
+                        } else {
+                            setTimeout(getFancy, 1000);
+                        }
+                    }
+                }
+            );
+        }
     }
 
     showLoginForNotLoggedUsers() {
         window.GFtheme.combo_id = this.props.combo_id;
+        window.GFtheme.membership_id = this.props.membership_id;
         window.GFtheme.brand_slug = this.state.brand.slug;
         window.GFtheme.location_slug = this.state.location.slug;
 
