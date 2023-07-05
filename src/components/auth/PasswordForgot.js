@@ -63,7 +63,7 @@ class PasswordForgot extends React.Component {
 
    successPasswordForgotCallback(result) {
       this.setState({sent: true});
-      alert("¡La contraseña ha sido cambiada! Revisa tu bandeja de correo electrónico para continuar el proceso.");
+      alert(StringStore.get('PASSWORD_RESET_SENT_EMAIL_ALERT'));
       this.props.handleClickBack();
    }
 
