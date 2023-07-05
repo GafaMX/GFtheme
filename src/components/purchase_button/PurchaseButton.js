@@ -15,8 +15,6 @@ class PurchaseButton extends React.Component {
         this.state = {
             brand: null,
             location: null,
-            combo_id: props.combo_id,
-            membership_id: props.membership_id,
             loaded: false,
             showRegister: false,
         }
@@ -110,7 +108,7 @@ class PurchaseButton extends React.Component {
 
     makePurchase() {
         let comp = this;
-        let {combo_id, membership_id} = this.props;
+        let {combo_id, membership_id, default_store_tab} = this.props;
         let {brand, location} = this.state;
 
         const fancy = document.querySelector('[data-gf-theme="fancy"]');
@@ -126,67 +124,51 @@ class PurchaseButton extends React.Component {
                 brand.slug,
                 location.slug,
                 combo_id,
-                function (result) {
-                    getFancy();
-
-                    function getFancy() {
-                        if (document.querySelector('[data-gf-theme="fancy"]').firstChild) {
-                            const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
-
-                            closeFancy.addEventListener('click', function (e) {
-                                fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
-
-                                fancy.classList.remove('show');
-
-                                setTimeout(function () {
-                                    fancy.classList.remove('active');
-                                    fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
-
-                                }, 400);
-
-                                comp.setState({
-                                    loaded: true
-                                });
-                            })
-                        } else {
-                            setTimeout(getFancy, 1000);
-                        }
-                    }
-                }
+                comp.purchaseCallback.bind(comp, fancy)
             );
         } else if (typeof membership_id !== "undefined" && membership_id !== null) {
             GafaFitSDKWrapper.getFancyForBuyMembership(
                 brand.slug,
                 location.slug,
                 membership_id,
-                function (result) {
-                    getFancy();
-
-                    function getFancy() {
-                        if (document.querySelector('[data-gf-theme="fancy"]').firstChild) {
-                            const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
-
-                            closeFancy.addEventListener('click', function (e) {
-                                fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
-
-                                fancy.classList.remove('show');
-
-                                setTimeout(function () {
-                                    fancy.classList.remove('active');
-                                    fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
-
-                                }, 400);
-
-                                comp.setState({
-                                    loaded: true
-                                });
-                            })
-                        } else {
-                            setTimeout(getFancy, 1000);
-                        }
-                    }
-                }
+                comp.purchaseCallback.bind(comp, fancy)
             );
+        } else {
+            GafaFitSDKWrapper.getFancyForBuyStore(
+                brand.slug,
+                location.slug,
+                default_store_tab,
+                comp.purchaseCallback.bind(comp, fancy)
+            );
+        }
+    }
+
+    purchaseCallback(fancy, result) {
+        let comp = this;
+        getFancy();
+
+        function getFancy() {
+            if (document.querySelector('[data-gf-theme="fancy"]').firstChild) {
+                const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+
+                closeFancy.addEventListener('click', function (e) {
+                    fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+
+                    fancy.classList.remove('show');
+
+                    setTimeout(function () {
+                        fancy.classList.remove('active');
+                        fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+
+                    }, 400);
+
+                    comp.setState({
+                        loaded: true
+                    });
+                })
+            } else {
+                setTimeout(getFancy, 1000);
+            }
         }
     }
 
