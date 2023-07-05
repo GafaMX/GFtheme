@@ -11,9 +11,11 @@ class PasswordForgot extends React.Component {
     constructor(props) {
         super(props);
 
+        let returnUrl = window.location.href.split('?')[0].split('#')[0];
+
         this.state = {
             email: "",
-            returnUrl: window.location.href,
+            returnUrl: returnUrl,
             formErrors: {email: ''},
             emailValid: false,
             formValid: false,
@@ -23,23 +25,23 @@ class PasswordForgot extends React.Component {
     }
 
     validateField(fieldName, value) {
-      let fieldValidationErrors = this.state.formErrors;
-      let emailValid = this.validateEmail(value, fieldValidationErrors);
+        let fieldValidationErrors = this.state.formErrors;
+        let emailValid = this.validateEmail(value, fieldValidationErrors);
 
-      this.setState({
-         formErrors: fieldValidationErrors,
-         emailValid: emailValid
-      }, this.validateForm);
+        this.setState({
+            formErrors: fieldValidationErrors,
+            emailValid: emailValid
+        }, this.validateForm);
     }
 
     validateEmail(value, fieldValidationErrors) {
-      let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
-      fieldValidationErrors.email = emailValid ? '' : StringStore.get('VALIDATION_EMAIL');
-      return emailValid;
+        let emailValid = value.match(/^([\w.%+-]+)@([\w-]+\.)+([\w]{2,})$/i);
+        fieldValidationErrors.email = emailValid ? '' : StringStore.get('VALIDATION_EMAIL');
+        return emailValid;
     }
 
     validateForm() {
-      this.setState({formValid: this.state.emailValid});
+        this.setState({formValid: this.state.emailValid});
     }
 
     handleChangeField(event) {
@@ -52,24 +54,27 @@ class PasswordForgot extends React.Component {
         });
     };
 
-   handleSubmit(event) {
-      event.preventDefault();
-      let currentElement = this;
-      currentElement.setState({serverError: '', sent: '' });
-      GafaFitSDKWrapper.postPasswordForgot(this.state,
-         currentElement.successPasswordForgotCallback.bind(this),
-         currentElement.errorPasswordForgotCallback.bind(this));
-   };
+    handleSubmit(event) {
+        event.preventDefault();
+        let currentElement = this;
+        currentElement.setState({
+            serverError: '',
+            sent: ''
+        });
+        GafaFitSDKWrapper.postPasswordForgot(this.state,
+            currentElement.successPasswordForgotCallback.bind(this),
+            currentElement.errorPasswordForgotCallback.bind(this));
+    };
 
-   successPasswordForgotCallback(result) {
-      this.setState({sent: true});
-      alert(StringStore.get('PASSWORD_RESET_SENT_EMAIL_ALERT'));
-      this.props.handleClickBack();
-   }
+    successPasswordForgotCallback(result) {
+        this.setState({sent: true});
+        alert(StringStore.get('PASSWORD_RESET_SENT_EMAIL_ALERT'));
+        this.props.handleClickBack();
+    }
 
-   errorPasswordForgotCallback(error) {
-      this.setState({serverError: error});
-   }
+    errorPasswordForgotCallback(error) {
+        this.setState({serverError: error});
+    }
 
     render() {
         let preE = 'GFSDK-e';
@@ -82,12 +87,12 @@ class PasswordForgot extends React.Component {
                     <FormGroup className={formClass + "__section"} controlId="email" bsSize="large">
                         {/* <ControlLabel className={formClass + "__label"}>{StringStore.get('LABEL_EMAIL')}</ControlLabel> */}
                         <FormControl
-                           autoFocus
-                           className={formClass + "__input"}
-                           placeholder={StringStore.get('LABEL_EMAIL')}
-                           type="email"
-                           value={this.state.email}
-                           onChange={this.handleChangeField.bind(this)}
+                            autoFocus
+                            className={formClass + "__input"}
+                            placeholder={StringStore.get('LABEL_EMAIL')}
+                            type="email"
+                            value={this.state.email}
+                            onChange={this.handleChangeField.bind(this)}
                         />
                     </FormGroup>
                     <button
