@@ -206,6 +206,24 @@ class GafaFitSDKWrapper extends React.Component {
         });
     };
 
+    static getFancyForBuyStore(brand, location, default_store_tab, callback) {
+        GafaFitSDKWrapper.getMe(function (me) {
+            GafaFitSDK.GetCreateReservationForm(
+                brand,
+                location,
+                me.id,
+                '[data-gf-theme="fancy"]',
+                {
+                    'default_store_tab': default_store_tab,
+                }, function (error, result) {
+                    if (error === null) {
+                        callback(result);
+                    }
+                }
+            );
+        });
+    };
+
     static getToken(email, password, successCallback, errorCallback) {
         GafaFitSDK.GetToken(
             window.GFtheme.APIClientID,
