@@ -1,14 +1,93 @@
 @import '../base/variables.scss';
 
-.#{$pre}-c-login
-{
+.#{$pre}-c-login {
 
-    &__menu{
-        display: inline-block;
-        line-height:1.2;
-        
-        &-nav{
-            display: inline-block;
-        }
+  &__menu {
+    display: inline-block;
+    line-height: 1.2;
+
+    &-nav {
+      display: inline-block;
     }
+
+    &.is-loading {
+      opacity: 0.5;
+      pointer-events: none;
+
+      -webkit-animation: fadeInFromNone 0.75s ease-out;
+      -moz-animation: fadeInFromNone 0.75s ease-out;
+      -o-animation: fadeInFromNone 0.75s ease-out;
+      animation: fadeInFromNone 0.75s ease-out;
+
+      animation-iteration-count: infinite;
+    }
+  }
+}
+
+@-webkit-keyframes fadeInFromNone {
+  0% {
+    display: none;
+    opacity: 0.3;
+  }
+
+  50% {
+    display: block;
+    opacity: 0.5;
+  }
+
+  100% {
+    display: block;
+    opacity: 0.7;
+  }
+}
+
+@-moz-keyframes fadeInFromNone {
+  0% {
+    display: none;
+    opacity: 0.4;
+  }
+
+  1% {
+    display: block;
+    opacity: 0.5;
+  }
+
+  100% {
+    display: block;
+    opacity: 0.6;
+  }
+}
+
+@-o-keyframes fadeInFromNone {
+  0% {
+    display: none;
+    opacity: 0.4;
+  }
+
+  1% {
+    display: block;
+    opacity: 0.5;
+  }
+
+  100% {
+    display: block;
+    opacity: 0.6;
+  }
+}
+
+@keyframes fadeInFromNone {
+  0% {
+    display: none;
+    opacity: 0.4;
+  }
+
+  1% {
+    display: block;
+    opacity: 0.5;
+  }
+
+  100% {
+    display: block;
+    opacity: 0.6;
+  }
 }
