@@ -32,6 +32,7 @@ class LoginRegister extends React.Component {
             loading: false,
             triggeredByLogin: true,
             triggeredByRegister: true,
+            preLoading: true
         };
 
         this._isMounted = false;
@@ -68,6 +69,9 @@ class LoginRegister extends React.Component {
         GafaFitSDKWrapper.getMeWithPurchase(
             function (result) {
                 GlobalStorage.set("me", result);
+                currentComponent.setState({
+                    preLoading: false
+                });
             }
         );
 
@@ -241,13 +245,13 @@ class LoginRegister extends React.Component {
         let preE = 'GFSDK-e';
         let loginClass = preC + '-login';
         let buttonClass = preE + '-buttons';
-        let {me} = this.state;
-        let initial = this.props.initial;
+        let {me, preLoading} = this.state;
+        let {initial, allowsPreLoading} = this.props;
 
         const combo = !window.GFtheme.combo_id ? null : window.GFtheme.combo_id;
 
         return (
-            <div className={loginClass + '__menu'}>
+            <div className={loginClass + '__menu' + ` ${preLoading && allowsPreLoading ? 'is-loading' : ''}`}>
                 <div className={loginClass + '__menu-nav'}>
                     {this.state.triggeredByLogin || this.state.triggeredByRegister
                         ? (!this.state.me
