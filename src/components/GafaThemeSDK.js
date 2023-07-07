@@ -311,8 +311,12 @@ class GafaThemeSDK extends React.Component {
         if (domContainers.length > 0) {
             domContainers.forEach(function (domContainer) {
                 let initial = domContainer.getAttribute("data-gf-initial") ? domContainer.getAttribute("data-gf-initial") : 'login';
+                let allowsPreLoading = domContainer.getAttribute("data-bq-preloading") ? domContainer.getAttribute("data-bq-preloading") === 'true' : false;
 
-                GafaThemeSDK.renderElementIntoContainer(domContainer, LoginRegister, {initial: initial});
+                GafaThemeSDK.renderElementIntoContainer(domContainer, LoginRegister, {
+                    initial: initial,
+                    allowsPreLoading: allowsPreLoading
+                });
             });
         }
 

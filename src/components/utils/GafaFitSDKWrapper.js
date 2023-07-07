@@ -396,19 +396,23 @@ class GafaFitSDKWrapper extends React.Component {
             let credits = [];
             let memberships = [];
 
-            brands.forEach(function (brand) {
+            if (user !== null) {
+                brands.forEach(function (brand) {
 
-                GafaFitSDKWrapper.getUserCredits(brand.slug, function (result) {
-                    credits = result;
-                    user.credits = credits;
+                    GafaFitSDKWrapper.getUserCredits(brand.slug, function (result) {
+                        credits = result;
+                        user.credits = credits;
 
-                    GafaFitSDKWrapper.getUserMemberships(brand.slug, function (result) {
-                        memberships = memberships.concat(result);
-                        user.memberships = memberships;
-                        callback(user);
+                        GafaFitSDKWrapper.getUserMemberships(brand.slug, function (result) {
+                            memberships = memberships.concat(result);
+                            user.memberships = memberships;
+                            callback(user);
+                        });
                     });
                 });
-            });
+            } else {
+                callback(result);
+            }
         });
     }
 
