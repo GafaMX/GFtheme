@@ -483,12 +483,32 @@ class GafaFitSDKWrapper extends React.Component {
             location, {
                 'only_actives': true,
                 'start': start_date,
-                'end': end_date
+                'end': end_date,
+                'reducePopulation': true
             }, function (error, result) {
                 if (error === null) {
                     callback(result);
                 }
             })
+    }
+
+    static getMeetingsInRoom(room_id, location, start_date, end_date, callback) {
+        let brand = GlobalStorage.get('currentBrand').slug;
+        //   let location = GlobalStorage.get('currentLocation').id;
+        GafaFitSDK.GetRoomMeetingList(
+            brand,
+            location,
+            room_id,
+            {
+                'only_actives': true,
+                'start': start_date,
+                'end': end_date,
+                'reducePopulation': true
+            }, function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            });
     }
 
     static getBrandList(options, callback) {
