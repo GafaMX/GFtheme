@@ -240,6 +240,8 @@ The current list of available components to be rendered are:
     * `data-bq-block-after-login` Prevents opening the purchase window after user
       logs in. This should only be used when there's a compatibility issue with the
       styles of the web page the calendar is on.
+    * `data-bq-partial-loading` Changes the loading of meetings so it loads by room instead 
+      of loading by location. Use if there's a lot of meetings to load.
 
 * `login-register`   Login/Register component, when is clicked open up a dialog with the options. Ideal for app menu.
   If the user is logged in, the component shows the user name with the available credits, when click open a dialog with
