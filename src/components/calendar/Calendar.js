@@ -43,6 +43,7 @@ class Calendar extends React.Component {
         CalendarStorage.set('show_register', this.setShowRegister.bind(this));
         CalendarStorage.set('show_description', props.show_description);
         GlobalStorage.set('block_after_login', props.block_after_login);
+        CalendarStorage.set('show_parent', props.show_parent);
         CalendarStorage.addSegmentedListener(['meetings'], this.setInitialValues.bind(this));
     }
 
