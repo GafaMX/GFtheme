@@ -24,6 +24,7 @@ const CalendarStorage = {
     calendarWidth: null,
     show_description: false,
     visualization: false,
+    show_parent: false,
 
     /**
      *
