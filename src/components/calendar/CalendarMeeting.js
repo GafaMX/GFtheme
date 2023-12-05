@@ -125,6 +125,8 @@ class CalendarMeeting extends React.Component {
         let calendarClass = preC + '-Calendar';
         let meetingClass = preE + '-meeting';
         let no_availability_display = meeting.location.brand.no_availability_display ? meeting.location.brand.no_availability_display : 'default';
+        let show_parent = CalendarStorage.get('show_parent');
+        let parent_service = meeting.service.parent_service_recursive;
 
         return (
             <div key={`column-day--${day.date}--meeting--${meeting.id}`}
@@ -144,6 +146,7 @@ class CalendarMeeting extends React.Component {
                 <div className={meetingClass + '__body'}>
                     <p className={'this-staff'}>{meeting.staff.name.toLowerCase()}</p>
                     <p className={'this-availability'}>{StringStore.get('AVAILABILITY')}: {meeting.available} / {meeting.capacity}</p>
+                    {show_parent && parent_service ? (<p className={'this-parent-service'}>{parent_service.name}</p>) : null}
                     <p className={'this-service'}>{meeting.service.name}</p>
                     <p className={'this-location'}>{meeting.location.name}</p>
                     {this.printDescription()}
