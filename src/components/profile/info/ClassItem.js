@@ -67,13 +67,13 @@ class ClassItem extends React.Component {
       let membershipCredits = '';
       let cancelation = '';
       let today= moment().format('X');
-      if (this.props.reservation.credit === null) {
-         membershipCredits = (
-               <p className={'reservation-item-membership'}>{StringStore.get('MEMBERSHIP')}{this.props.reservation.user_membership.membership['name']}</p>)
-      } else {
-         membershipCredits = (
-               <p className={'reservation-item-credits'}>{StringStore.get('CREDIT')}{this.props.reservation.credit['name']}</p>)
-      }
+      // if (this.props.reservation.credit === null) {
+      //    membershipCredits = (
+      //          <p className={'reservation-item-membership'}>{StringStore.get('MEMBERSHIP')}{this.props.reservation.user_membership.membership['name']}</p>)
+      // } else {
+      //    membershipCredits = (
+      //          <p className={'reservation-item-credits'}>{StringStore.get('CREDIT')}{this.props.reservation.credit['name']}</p>)
+      // }
       
       if(this.props.reservation.cancelled === true){
          cancelation =(
