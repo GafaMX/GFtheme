@@ -12,6 +12,23 @@ class ClassItem extends React.Component {
 
     }
 
+    printPosition() {
+        let _return = null;
+        let {reservation} = this.props;
+        if (reservation && typeof reservation === 'object') {
+            let _object = reservation.object;
+            if (_object && typeof _object === 'object' && _object.hasOwnProperty('position_number')) {
+                let text = _object.position_text ? _object.position_text : `#${_object.position_number}`;
+
+                _return = (
+                    <p className={'reservation-item-position'}>{text}</p>
+                );
+            }
+        }
+
+        return _return;
+    }
+
     render() {
         let membershipCredits = '';
 
@@ -26,14 +43,15 @@ class ClassItem extends React.Component {
 
         return (
             <div className={'futureClasses-item'}>
-               <div className={'futureClasses-item__header'}>
-                  <h4>{this.props.reservation.meetings.service['name']}</h4>
-               </div>
-               <div className={'futureClasses-item__body'}>
+                <div className={'futureClasses-item__header'}>
+                    <h4>{this.props.reservation.meetings.service['name']}</h4>
+                </div>
+                <div className={'futureClasses-item__body'}>
                     <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
                     <p className={'reservation-item-staff'}><strong>{this.props.reservation.staff['name']}</strong></p>
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
-               </div>
+                    {this.printPosition()}
+                </div>
             </div>
         )
     }
