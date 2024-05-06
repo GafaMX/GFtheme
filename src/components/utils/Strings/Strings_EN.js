@@ -112,5 +112,6 @@ export default {
     PROFILE_CARD_NUMBER: 'Card number',
     PROFILE_MY_CARDS: 'My cards',
     PROFILE_ADD_CARD: 'Add card',
-    PASSWORD_RESET_SENT_EMAIL_ALERT: 'Password reset email sent! Check your inbox to follow the process.'
+    PASSWORD_RESET_SENT_EMAIL_ALERT: 'Password reset email sent! Check your inbox to follow the process.',
+    PROFILE_POSITION: 'Position: _|_'
 }
