@@ -18,7 +18,9 @@ class ClassItem extends React.Component {
         if (reservation && typeof reservation === 'object') {
             let _object = reservation.object;
             if (_object && typeof _object === 'object' && _object.hasOwnProperty('position_number')) {
-                let text = _object.position_text ? _object.position_text : `#${_object.position_number}`;
+                let position_number = _object.position_text && !isNaN(_object.position_text) ? _object.position_text : _object.position_number;
+
+                let text = _object.position_text && isNaN(_object.position_text) ? _object.position_text : `#${position_number}`;
 
                 _return = (
                     <p className={'reservation-item-position'}>{text}</p>
