@@ -113,5 +113,6 @@ export default {
     PROFILE_CARD_NUMBER: 'Número de tarjeta',
     PROFILE_MY_CARDS: 'Mis tarjetas',
     PROFILE_ADD_CARD: 'Añadir tarjeta',
-    PASSWORD_RESET_SENT_EMAIL_ALERT: '¡Correo de cambio de contraseña enviado! Revisa tu bandeja de correo electrónico para continuar el proceso.'
+    PASSWORD_RESET_SENT_EMAIL_ALERT: '¡Correo de cambio de contraseña enviado! Revisa tu bandeja de correo electrónico para continuar el proceso.',
+    PROFILE_POSITION: 'Posición: _|_'
 }

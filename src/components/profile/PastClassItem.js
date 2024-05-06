@@ -23,7 +23,7 @@ class ClassItem extends React.Component {
                 let text = _object.position_text && isNaN(_object.position_text) ? _object.position_text : `#${position_number}`;
 
                 _return = (
-                    <p className={'reservation-item-position'}>{text}</p>
+                    <p className={'reservation-item-position'}>{StringStore.get('PROFILE_POSITION',[text])}</p>
                 );
             }
         }
