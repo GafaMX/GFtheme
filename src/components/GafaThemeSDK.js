@@ -225,7 +225,7 @@ class GafaThemeSDK extends React.Component {
                 let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
                 let visualization = domContainer.getAttribute("data-bq-calendar-visualization") ? domContainer.getAttribute("data-bq-calendar-visualization") : false;
                 partial_loading = domContainer.getAttribute("data-bq-partial-loading") ? Boolean(domContainer.getAttribute("data-bq-partial-loading")) : false;
-                let show_parent = domContainer.getAttribute("data-bq-show-parent") ? Boolean(domContainer.getAttribute("data-bq-partial-loading")) : false;
+                let show_parent = domContainer.getAttribute("data-bq-show-parent") ? Boolean(domContainer.getAttribute("data-bq-show-parent")) : false;
 
                 if (limit) {
                     if (limit > 3 && limit < 6) {
