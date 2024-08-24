@@ -372,6 +372,7 @@ class GafaThemeSDK extends React.Component {
                 GafaThemeSDK.renderElementIntoContainer(domContainer, PurchaseButton, {
                     container: button,
                     combo_id: button.getAttribute('data-bq-combo-id'),
+                    membership_id: button.getAttribute('data-bq-membership-id'),
                     product_id: button.getAttribute('data-bq-product-id'),
                     reservation_id: button.getAttribute('data-bq-reservation-id'),
                     location_id: button.getAttribute('data-bq-location-id'),
