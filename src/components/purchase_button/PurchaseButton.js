@@ -108,7 +108,7 @@ class PurchaseButton extends React.Component {
 
     makePurchase() {
         let comp = this;
-        let {combo_id, membership_id, default_store_tab} = this.props;
+        let {combo_id, membership_id, product_id, reservation_id, default_store_tab} = this.props;
         let {brand, location} = this.state;
 
         const fancy = document.querySelector('[data-gf-theme="fancy"]');
@@ -131,6 +131,14 @@ class PurchaseButton extends React.Component {
                 brand.slug,
                 location.slug,
                 membership_id,
+                comp.purchaseCallback.bind(comp, fancy)
+            );
+        } else if (typeof product_id !== "undefined" && product_id !== null) {
+            GafaFitSDKWrapper.getFancyForBuyProduct(
+                brand.slug,
+                location.slug,
+                product_id,
+                reservation_id,
                 comp.purchaseCallback.bind(comp, fancy)
             );
         } else {
