@@ -54,11 +54,16 @@ class ProfileCreditsMemberships extends React.Component {
 
         if (credits) {
             credits.forEach(function (credit) {
+                let credit_name = credit.hasOwnProperty('purchase_item') &&
+                typeof credit.purchase_item === 'object' &&
+                credit.purchase_item.hasOwnProperty('item_name') ?
+                    credit.purchase_item.item_name : credit.credit.name;
+
                 list = list.concat(
                     <UserCredit
                         key={credit.credit.id}
                         creditsTotal={credit.total}
-                        name={credit.credit.name}
+                        name={credit_name}
                         expirationDate={credit.expiration_date}/>
                 )
             });
