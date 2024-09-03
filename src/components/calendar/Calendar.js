@@ -153,8 +153,37 @@ class Calendar extends React.Component {
 
         if (filter_service) {
             meetingsWithRoom.forEach(function (meeting) {
-                if (meeting.service != null && !meetingsServices.includes(meeting.service.name)) {
-                    meetingsServices.push(meeting.service.name);
+                if (meeting.hasOwnProperty('service') && meeting.service != null) {
+                    let service = meeting.service;
+
+                    if (service.parent_id !== null && service.parent_service_recursive !== null) {
+                        let parent = service.parent_service_recursive;
+                        let parent_service = meetingsServices.find(e => e.name === parent.name);
+                        if (!parent_service) {
+                            parent_service = {
+                                name: parent.name,
+                                children: []
+                            };
+                            meetingsServices.push(parent_service);
+                        }
+
+                        if (parent_service.hasOwnProperty('children') &&
+                            Array.isArray(parent_service.children) &&
+                            !parent_service.children.some(e => e.name === meeting.service.name)) {
+                            let parent_service_index = meetingsServices.findIndex(e => e.name === parent.name);
+                            parent_service.children.push({
+                                name: meeting.service.name,
+                            });
+                            if (parent_service_index < 0) {
+                                meetingsServices.splice(parent_service_index, 1, parent_service);
+                            }
+                        }
+
+                    } else {
+                        if (!meetingsServices.some(e => e.name === meeting.service.name)) {
+                            meetingsServices.push({name: meeting.service.name});
+                        }
+                    }
 
                     if (filter_service_default) {
                         if (filter_service_default === meeting.service.name) {
@@ -292,7 +321,8 @@ class Calendar extends React.Component {
 
         if (filter_service && filter_service != 'Todos') {
             meetings = meetings.filter(function (meeting) {
-                return meeting.service.name === filter_service
+                return meeting.service.name === filter_service ||
+                    (meeting.service.parent_id !== null && meeting.service.parent_service_recursive !== null && meeting.service.parent_service_recursive.name === filter_service);
             });
         }
 
@@ -309,6 +339,40 @@ class Calendar extends React.Component {
         }
 
         let head_class = '__head-' + (visualization === 'vertical' ? visualization : 'horizontal');
+
+
+        let services_return = [];
+        services.forEach(service => {
+            if (service.hasOwnProperty('children') &&
+                service.children !== null &&
+                Array.isArray(service.children) &&
+                service.children.length > 0) {
+                services_return.push((
+                    <option value={service.name}
+                            key={service.name}
+                            className={'service_parent'}>{service.name}</option>
+                ));
+                let children_group = [];
+                service.children.forEach(function (item) {
+                    children_group.push((
+                        <option
+                            value={item.name}
+                            key={item.name}
+                            data-parent={service.name}
+                            className={'service_child'}>{item.name}</option>
+                    ));
+                });
+                services_return.push((
+                    <optgroup className={'service_children_group'}>
+                        {children_group}
+                    </optgroup>
+                ))
+            } else {
+                services_return.push((<option value={service.name}
+                                              key={service.name}>{service.name}</option>))
+            }
+        });
+
 
         return (
             <div className={calendarClass}>
@@ -402,10 +466,7 @@ class Calendar extends React.Component {
                                             onChange={this.selectFilter}
                                     >
                                         <option value={'Todos'}>{StringStore.get('FILTER_ALL_SERVICES')}</option>
-                                        {services.map(service => {
-                                            return <option value={service}
-                                                           key={service}>{service}</option>
-                                        })}
+                                        {services_return}
                                     </select>
                                     <div className={filterClass + '__item-icon'}>
                                         <IconSelectDownArrow/>

@@ -130,7 +130,9 @@ class GafaThemeSDK extends React.Component {
         brands.forEach(function (brand) {
             GafaFitSDKWrapper.getServiceList(
                 brand.slug,
-                {per_page: 1000,}
+                {
+                    per_page: 1000,
+                }
                 , function (result) {
                     services = services.concat(result.data);
                     GlobalStorage.set('services', services);

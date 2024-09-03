@@ -85,6 +85,16 @@
         }
       }
 
+      .#{$pre}-c-filter__item.is-service-filter {
+        .service_children_group {
+          font-size: 0;
+        }
+
+        .service_child {
+          font-size: 12px;
+        }
+      }
+
       position: absolute;
       right: 0;
       z-index: 1;
@@ -447,6 +457,16 @@
     & > a {
       width: 14%;
       text-align: center;
+    }
+  }
+
+  .#{$pre}-c-filter__item.is-service-filter {
+    & .service_children_group {
+      font-size: 0;
+    }
+
+    & .service_child {
+      font-size: 10px;
     }
   }
 
