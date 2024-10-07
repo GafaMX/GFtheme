@@ -160,8 +160,9 @@ class PurchaseButton extends React.Component {
                 const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
 
                 closeFancy.addEventListener('click', function (e) {
-                    var event_before=new Event('buq__reservation_fancy_before_closed');
+                    var event_before = new Event('buq__reservation_fancy_before_closed');
                     dispatchEvent(event_before);
+
                     fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
 
                     fancy.classList.remove('show');
