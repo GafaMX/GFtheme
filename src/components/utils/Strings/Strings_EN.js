@@ -113,5 +113,13 @@ export default {
     PROFILE_MY_CARDS: 'My cards',
     PROFILE_ADD_CARD: 'Add card',
     PASSWORD_RESET_SENT_EMAIL_ALERT: 'Password reset email sent! Check your inbox to follow the process.',
-    PROFILE_POSITION: 'Position: _|_'
+    PROFILE_POSITION: 'Position: _|_',
+    PROFILETOTALS: 'Totals',
+    RESERVED_CLASSES: 'Reserved Classes',
+    ATTENDED_CLASSES: 'Attended Classes',
+    NO_SHOW_CLASSES: 'No Show',
+    CANCELLED_CLASSES: 'Cancelled Classes',
+    TIME_ASSISTED: 'Attended Minutes',
+    FAVORITE_STAFF: 'Favorite Instructors',
+    FAVORITE_TIME: 'Favorite Times',
 }

@@ -67,6 +67,7 @@ class ProfileUserInfo extends React.Component {
             serverError: '',
             saved: false,
             screen: "classes",
+            totals_page: null,
             // paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
         };
 
@@ -104,6 +105,11 @@ class ProfileUserInfo extends React.Component {
         GafaFitSDKWrapper.getMeWithPurchase(
             function (result) {
                 GlobalStorage.set("me", result);
+                if (result.hasOwnProperty('totals_page')) {
+                    currentComponent.setState({
+                        totals_page: result.totals_page
+                    });
+                }
             }
         );
     }
@@ -250,7 +256,7 @@ class ProfileUserInfo extends React.Component {
         let locations = GlobalStorage.get('locations');
         let me = GlobalStorage.get("me");
         let brands = GlobalStorage.get('brands');
-        let {paymentNotification, screen} = this.state
+        let {paymentNotification, screen, totals_page} = this.state;
 
         return (
             <div className="profile-info">
@@ -259,7 +265,8 @@ class ProfileUserInfo extends React.Component {
                         <div className="profile-user__content">
                             <div className="profile-user__data">
                                 {/* <div className="this-picture"></div> */}
-                                <h3 className="profile-user__name">{StringStore.get('PROFILE_USER_GREETING',[this.state.first_name])} <br></br> Bienvenido
+                                <h3 className="profile-user__name">{StringStore.get('PROFILE_USER_GREETING', [this.state.first_name])}
+                                    <br></br> Bienvenido
                                 </h3>
                                 {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
                             </div>
@@ -305,6 +312,11 @@ class ProfileUserInfo extends React.Component {
                                     className={tabsClass + '__items ' + (screen === 'password' ? 'active' : '')}>
                                     <div id="password" onClick={this.handleChangeScreen}
                                          className={tabsClass + '__link'}>{StringStore.get('CHANGEPASSWORD')}</div>
+                                </li>
+                                <li role={'presentation'}
+                                    className={tabsClass + '__items ' + (screen === 'totals_page' ? 'active' : '')}>
+                                    <div id="totals_page" onClick={this.handleChangeScreen}
+                                         className={tabsClass + '__link'}>{StringStore.get('PROFILETOTALS')}</div>
                                 </li>
                             </ul>
 
@@ -404,11 +416,11 @@ class ProfileUserInfo extends React.Component {
                                                     <div className="text-danger">
                                                         <FormErrors formErrors={this.state.formErrors}/>
                                                         {this.state.serverError !== '' &&
-                                                        <small>{this.state.serverError}</small>}
+                                                            <small>{this.state.serverError}</small>}
                                                     </div>
                                                     <div className="text-success">
                                                         {this.state.saved &&
-                                                        <small>{StringStore.get('SAVE_ME_SUCCESS')}</small>}
+                                                            <small>{StringStore.get('SAVE_ME_SUCCESS')}</small>}
                                                     </div>
                                                 </div>
                                             </div>
@@ -437,15 +449,95 @@ class ProfileUserInfo extends React.Component {
                                                     <div className="text-danger">
                                                         <FormErrors formErrors={this.state.formErrors}/>
                                                         {this.state.serverError !== '' &&
-                                                        <small>{this.state.serverError}</small>}
+                                                            <small>{this.state.serverError}</small>}
                                                     </div>
                                                     <div className="text-success">
                                                         {this.state.saved &&
-                                                        <small>{StringStore.get('SAVE_ME_SUCCESS')}</small>}
+                                                            <small>{StringStore.get('SAVE_ME_SUCCESS')}</small>}
                                                     </div>
                                                 </div>
                                             </div>
                                         </form>
+                                    </div>
+                                </div>
+
+                                <div id="ProfileTabs-pane-4"
+                                     className={'fade tab-pane ' + (screen === 'totals_page' ? 'active in' : '')}>
+                                    <div className={profileClass + '__tab-content'}>
+                                        {totals_page !== null ?
+                                            (
+                                                <div className="userTotals__row">
+                                                    <div className="userTotals__row userTotals__grid__horizontal">
+                                                        <div className="userTotals__grid_cell">
+                                                            <div className="userTotals__large">
+                                                                {totals_page.hasOwnProperty('reservations_without_cancelled_count') ? totals_page.reservations_without_cancelled_count : 0}
+                                                            </div>
+                                                            <div
+                                                                className="userTotals__subtitle userTotals__total_reserved">
+                                                                {StringStore.get('RESERVED_CLASSES')}
+                                                            </div>
+                                                        </div>
+                                                        <div className="userTotals__grid_cell">
+                                                            <div className="userTotals__large">
+                                                                {totals_page.hasOwnProperty('attended_count') ? totals_page.attended_count : 0}
+                                                            </div>
+                                                            <div
+                                                                className="userTotals__subtitle userTotals__total_attended">
+                                                                {StringStore.get('ATTENDED_CLASSES')}
+                                                            </div>
+                                                        </div>
+                                                        <div className="userTotals__grid_cell">
+                                                            <div className="userTotals__large">
+                                                                {totals_page.hasOwnProperty('no_show_count') ? totals_page.no_show_count : 0}
+                                                            </div>
+                                                            <div
+                                                                className="userTotals__subtitle userTotals__total_no_show">
+                                                                {StringStore.get('NO_SHOW_CLASSES')}
+                                                            </div>
+                                                        </div>
+                                                        <div className="userTotals__grid_cell">
+                                                            <div className="userTotals__large">
+                                                                {totals_page.hasOwnProperty('reservations_cancelled_count') ? totals_page.reservations_cancelled_count : 0}
+                                                            </div>
+                                                            <div
+                                                                className="userTotals__subtitle userTotals__total_cancelled">
+                                                                {StringStore.get('CANCELLED_CLASSES')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="userTotals__row userTotals__grid__horizontal">
+                                                        <div className="userTotals__grid_cell">
+                                                            <div className="userTotals__large">
+                                                                {totals_page.hasOwnProperty('time_sum') ? totals_page.time_sum : 0}
+                                                            </div>
+                                                            <div
+                                                                className="userTotals__subtitle userTotals__total_minutes">
+                                                                {StringStore.get('TIME_ASSISTED')}
+                                                            </div>
+                                                        </div>
+                                                        <div className="userTotals__grid_cell">
+                                                            <div className="userTotals__large_list">
+                                                                {totals_page.hasOwnProperty('favorite_staff') ? totals_page.favorite_staff : ''}
+                                                            </div>
+                                                            <div
+                                                                className="userTotals__subtitle userTotals__favorite_staff">
+                                                                {StringStore.get('FAVORITE_STAFF')}
+                                                            </div>
+                                                        </div>
+                                                        <div className="userTotals__grid_cell">
+                                                            <div className="userTotals__large_list">
+                                                                {totals_page.hasOwnProperty('favorite_time') ? totals_page.favorite_time : ''}
+                                                            </div>
+                                                            <div
+                                                                className="userTotals__subtitle userTotals__favorite_time">
+                                                                {StringStore.get('FAVORITE_TIME')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) :
+                                            null
+                                        }
                                     </div>
                                 </div>
                             </div>
