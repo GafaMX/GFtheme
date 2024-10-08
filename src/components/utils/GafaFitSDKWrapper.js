@@ -293,17 +293,6 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
-    static getUserTotalsPage(callback) {
-        GafaFitSDK.GetUserTotals(
-            {only_totals: true}, function (error, result) {
-
-                if (error === null) {
-                    callback(result);
-                }
-            }
-        );
-    };
-
     static postRegister(params, successCallback, errorCallback) {
         let options = {};
         options.last_name = params.last_name;
@@ -431,21 +420,16 @@ class GafaFitSDKWrapper extends React.Component {
             let memberships = [];
 
             if (user !== null) {
-                GafaFitSDKWrapper.getUserTotalsPage(function (result) {
-                    user.totals_page = result;
+                brands.forEach(function (brand) {
 
-                    brands.forEach(function (brand) {
+                    GafaFitSDKWrapper.getUserCredits(brand.slug, function (result) {
+                        credits = result;
+                        user.credits = credits;
 
-                        GafaFitSDKWrapper.getUserCredits(brand.slug, function (result) {
-                            credits = credits.concat(result);
-                            user.credits = credits;
-
-                            GafaFitSDKWrapper.getUserMemberships(brand.slug, function (result) {
-                                memberships = memberships.concat(result);
-                                user.memberships = memberships;
-
-                                callback(user);
-                            });
+                        GafaFitSDKWrapper.getUserMemberships(brand.slug, function (result) {
+                            memberships = memberships.concat(result);
+                            user.memberships = memberships;
+                            callback(user);
                         });
                     });
                 });
