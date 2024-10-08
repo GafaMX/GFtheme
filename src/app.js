@@ -3,6 +3,7 @@ import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 import StringStore from "./components/utils/Strings/StringStore";
 
 
+// Buq SDK
 // if(!jQuery){
 //     import jQuery from 'jquery';
 //     window.jQuery = window.$ = jQuery;
