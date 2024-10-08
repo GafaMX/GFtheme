@@ -104,12 +104,19 @@ class ProfileUserInfo extends React.Component {
 
         GafaFitSDKWrapper.getMeWithPurchase(
             function (result) {
-                GlobalStorage.set("me", result);
-                if (result.hasOwnProperty('totals_page')) {
-                    currentComponent.setState({
-                        totals_page: result.totals_page
+                GlobalStorage.set("me", result, () => {
+                    GafaFitSDKWrapper.getUserTotalsPage(function (totals_result) {
+                        let user = GlobalStorage.get('me');
+                        user.totals_page = totals_result;
+
+                        GlobalStorage.set('me', user, () => {
+                            currentComponent.setState({
+                                totals_page: totals_result
+                            });
+                        });
                     });
-                }
+                });
+
             }
         );
     }
