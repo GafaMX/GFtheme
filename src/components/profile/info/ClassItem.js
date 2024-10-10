@@ -69,12 +69,28 @@ class ClassItem extends React.Component {
                 let text = _object.position_text && isNaN(_object.position_text) ? _object.position_text : `#${position_number}`;
 
                 _return = (
-                    <p className={'reservation-item-position'}>{StringStore.get('PROFILE_POSITION',[text])}</p>
+                    <p className={'reservation-item-position'}>{StringStore.get('PROFILE_POSITION', [text])}</p>
                 );
             }
         }
 
         return _return;
+    }
+
+    printStaff() {
+        let {reservation} = this.props;
+        let staff = reservation.staff;
+
+        if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
+            return (
+                <p className={'reservation-item-staff'}><strong>{staff['job']}</strong></p>
+            )
+        } else {
+            return (
+                <p className={'reservation-item-staff'}>
+                    <strong>{staff['name']} {staff.hasOwnProperty('lastname') ? staff['lastname'] : ''}</strong></p>
+            );
+        }
     }
 
     render() {
@@ -116,7 +132,7 @@ class ClassItem extends React.Component {
                     <p className={'reservation-item-day'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
                     <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('h:mm a')}</p>
-                    <p className={'reservation-item-staff'}><strong>{this.props.reservation.staff['name']}</strong></p>
+                    {this.printStaff()}
                     {this.printPosition()}
                 </div>
 

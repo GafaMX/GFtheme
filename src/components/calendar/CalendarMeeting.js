@@ -61,7 +61,7 @@ class CalendarMeeting extends React.Component {
                             const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
 
                             closeFancy.addEventListener('click', function (e) {
-                                var event_before=new Event('buq__reservation_fancy_before_closed');
+                                var event_before = new Event('buq__reservation_fancy_before_closed');
                                 dispatchEvent(event_before);
                                 fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
 
@@ -116,6 +116,21 @@ class CalendarMeeting extends React.Component {
         return null;
     }
 
+    printStaff() {
+        let {meeting} = this.props;
+        let staff = meeting.staff;
+
+        if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
+            return (
+                <p className={'this-staff'}>{staff.job}</p>
+            )
+        } else {
+            return (
+                <p className={'this-staff'}>{meeting.staff.name} {meeting.staff.lastname}</p>
+            );
+        }
+    }
+
     render() {
         let {meeting} = this.props;
         let {openFancy} = this.state;
@@ -146,9 +161,10 @@ class CalendarMeeting extends React.Component {
                 </div>
                 <hr></hr>
                 <div className={meetingClass + '__body'}>
-                    <p className={'this-staff'}>{meeting.staff.name.toLowerCase()}</p>
                     <p className={'this-availability'}>{StringStore.get('AVAILABILITY')}: {meeting.available} / {meeting.capacity}</p>
-                    {show_parent && parent_service ? (<p className={'this-parent-service'}>{parent_service.name}</p>) : null}
+                    {this.printStaff()}
+                    {show_parent && parent_service ? (
+                        <p className={'this-parent-service'}>{parent_service.name}</p>) : null}
                     <p className={'this-service'}>{meeting.service.name}</p>
                     <p className={'this-location'}>{meeting.location.name}</p>
                     {this.printDescription()}
