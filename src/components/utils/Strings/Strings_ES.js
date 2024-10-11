@@ -115,7 +115,7 @@ export default {
     PROFILE_ADD_CARD: 'Añadir tarjeta',
     PASSWORD_RESET_SENT_EMAIL_ALERT: '¡Correo de cambio de contraseña enviado! Revisa tu bandeja de correo electrónico para continuar el proceso.',
     PROFILE_POSITION: 'Posición: _|_',
-    PROFILETOTALS: 'Totales',
+    PROFILETOTALS: 'Mi Actividad',
     RESERVED_CLASSES: 'Clases Reservadas',
     ATTENDED_CLASSES: 'Clases Asistidas',
     NO_SHOW_CLASSES: 'No Show',
