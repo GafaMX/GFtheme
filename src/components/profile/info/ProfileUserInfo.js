@@ -34,6 +34,7 @@ import '../../../styles/newlook/elements/GFSDK-e-form.scss';
 import '../../../styles/newlook/elements/GFSDK-e-scroll.scss';
 import '../../../styles/newlook/elements/GFSDK-e-buttons.scss';
 import StringStore from "../../utils/Strings/StringStore";
+import Loading from "../../common/Loading";
 
 class ProfileUserInfo extends React.Component {
 
@@ -543,7 +544,7 @@ class ProfileUserInfo extends React.Component {
                                                     </div>
                                                 </div>
                                             ) :
-                                            null
+                                            (<Loading/>)
                                         }
                                     </div>
                                 </div>

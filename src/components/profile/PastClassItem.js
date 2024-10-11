@@ -31,6 +31,22 @@ class ClassItem extends React.Component {
         return _return;
     }
 
+    printStaff() {
+        let {reservation} = this.props;
+        let staff = reservation.staff;
+
+        if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
+            return (
+                <p className={'reservation-item-staff'}><strong>{staff['job']}</strong></p>
+            )
+        } else {
+            return (
+                <p className={'reservation-item-staff'}>
+                    <strong>{staff['name']} {staff.hasOwnProperty('lastname') ? staff['lastname'] : ''}</strong></p>
+            );
+        }
+    }
+
     render() {
         let membershipCredits = '';
 
@@ -50,7 +66,7 @@ class ClassItem extends React.Component {
                 </div>
                 <div className={'futureClasses-item__body'}>
                     <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
-                    <p className={'reservation-item-staff'}><strong>{this.props.reservation.staff['name']}</strong></p>
+                    {this.printStaff()}
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
                     {this.printPosition()}
                 </div>
