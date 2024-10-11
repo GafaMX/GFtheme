@@ -137,15 +137,22 @@ class Calendar extends React.Component {
 
         if (filter_staff) {
             meetingsWithRoom.forEach(function (meeting) {
-                if (meeting.staff != null && !meetingsStaff.includes(meeting.staff.name)) {
-                    meetingsStaff.push(meeting.staff.name);
+                if (meeting.staff != null) {
+                    let staff = meeting.staff;
+                    let name = staff.name + ' ' + (staff.hasOwnProperty('lastname') ? staff.lastname : '');
+                    if (staff.hasOwnProperty('job') && staff.job !== null) {
+                        name = staff.job;
+                    }
+                    if (!meetingsStaff.includes(name)) {
+                        meetingsStaff.push(name);
 
-                    if (memberParams) {
-                        if (memberParams === meeting.staff.slug) {
-                            preFilterStaff = meeting.staff.name;
+                        if (memberParams) {
+                            if (memberParams === meeting.staff.slug) {
+                                preFilterStaff = name;
+                            }
+                        } else if ((name) === filter_staff_default) {
+                            preFilterStaff = name;
                         }
-                    } else if ((meeting.staff.name + ' ' + meeting.staff.lastname) === filter_staff_default) {
-                        preFilterStaff = meeting.staff.name;
                     }
                 }
             });
@@ -334,7 +341,11 @@ class Calendar extends React.Component {
 
         if (filter_staff && filter_staff != 'Todos') {
             meetings = meetings.filter(function (meeting) {
-                return meeting.staff.name === filter_staff
+                let staff_name = meeting.staff.name + ' ' + (meeting.staff.hasOwnProperty('lastname') ? meeting.staff.lastname : '');
+                if (meeting.staff.hasOwnProperty('job') && meeting.staff.job !== null) {
+                    staff_name = meeting.staff.job;
+                }
+                return staff_name === filter_staff
             });
         }
 
