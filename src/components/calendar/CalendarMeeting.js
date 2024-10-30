@@ -119,6 +119,9 @@ class CalendarMeeting extends React.Component {
     printStaff() {
         let {meeting} = this.props;
         let staff = meeting.staff;
+        const coachExtraInfo = meeting.extra_fields && meeting.extra_fields.coachExtraInfo;
+        
+
 
         if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
             return (
@@ -126,7 +129,7 @@ class CalendarMeeting extends React.Component {
             )
         } else {
             return (
-                <p className={'this-staff'}>{meeting.staff.name} {meeting.staff.lastname}</p>
+                <p className={'this-staff'}>{meeting.staff.name} {meeting.staff.lastname} {coachExtraInfo ? ` / ${coachExtraInfo}` : ''}</p>
             );
         }
     }
