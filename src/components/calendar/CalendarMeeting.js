@@ -125,7 +125,7 @@ class CalendarMeeting extends React.Component {
 
         if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
             return (
-                <p className={'this-staff'}>{staff.job}</p>
+                <p className={'this-staff'}>{staff.job} {coachExtraInfo ? ` / ${coachExtraInfo}` : '' }</p>
             )
         } else {
             return (
