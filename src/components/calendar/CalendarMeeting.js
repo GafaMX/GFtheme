@@ -120,18 +120,36 @@ class CalendarMeeting extends React.Component {
         let {meeting} = this.props;
         let staff = meeting.staff;
         const coachExtraInfo = meeting.extra_fields && meeting.extra_fields.coachExtraInfo;
-        
 
 
         if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
             return (
-                <p className={'this-staff'}>{staff.job} {coachExtraInfo ? ` / ${coachExtraInfo}` : '' }</p>
+                <p className={'this-staff'}>{staff.job} {coachExtraInfo ? ` / ${coachExtraInfo}` : ''}</p>
             )
         } else {
             return (
                 <p className={'this-staff'}>{meeting.staff.name} {meeting.staff.lastname} {coachExtraInfo ? ` / ${coachExtraInfo}` : ''}</p>
             );
         }
+    }
+
+    printSubstituteStaff() {
+        let {meeting} = this.props;
+        let substitute_staff = meeting.substitute_staff;
+
+        if (substitute_staff) {
+            if (substitute_staff.hasOwnProperty('job') && substitute_staff.job !== null) {
+                return (
+                    <p className={'this-substitute-staff'}>{StringStore.get('SUBSTITUTE_INDICATOR')} {substitute_staff.job}</p>
+                );
+            } else {
+                return (
+                    <p className={'this-substitute-staff'}>{StringStore.get('SUBSTITUTE_INDICATOR')} {substitute_staff.name} {substitute_staff.lastname}</p>
+                );
+            }
+        }
+
+        return null;
     }
 
     render() {
@@ -166,6 +184,7 @@ class CalendarMeeting extends React.Component {
                 <div className={meetingClass + '__body'}>
                     <p className={'this-availability'}>{StringStore.get('AVAILABILITY')}: {meeting.available} / {meeting.capacity}</p>
                     {this.printStaff()}
+                    {this.printSubstituteStaff()}
                     {show_parent && parent_service ? (
                         <p className={'this-parent-service'}>{parent_service.name}</p>) : null}
                     <p className={'this-service'}>{meeting.service.name}</p>
