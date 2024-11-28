@@ -29,6 +29,7 @@ export default {
     LABEL_FIRST_NAME: 'Nombre(s)',
     LABEL_LAST_NAME: 'Apellido(s)',
     LABEL_BIRTH_DATE: 'Fecha de nacimiento',
+    LABEL_PICTURE: 'Imágen de Perfil',
     LABEL_ADDRESS: 'Dirección',
     LABEL_INTERNAL_NUMBER: 'Interior',
     LABEL_EXTERNAL_NUMBER: 'Exterior',
@@ -123,4 +124,5 @@ export default {
     TIME_ASSISTED: 'Minutos Asistidos',
     FAVORITE_STAFF: 'Instructores Favoritos',
     FAVORITE_TIME: 'Horarios Favoritos',
+    SUBSTITUTE_INDICATOR: 'S:',
 }
