@@ -89,6 +89,7 @@ export default {
     CANCELLED: 'Cancelled',
     CANCELATIONCONFIRM: 'Confirm cancellation',
     CANCELATIONMESSAGE: 'Do you want to cancel this reservation?',
+    CANCELLATION_WITHOUT_CREDIT_ALERT: 'The deadline for cancellation has passed. If you cancel now you will not receive your credit back.',
     RESERVATION: 'Reservation',
     PAYMENT: 'Payment types',
     AVAILABILITY: 'Available',

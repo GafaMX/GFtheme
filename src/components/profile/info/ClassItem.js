@@ -114,13 +114,13 @@ class ClassItem extends React.Component {
             cancelation = (
                 <p className={'reservation-item-cancelled'}>  {StringStore.get('CANCELLED')} </p>
             )
-        } else if (moment(reservation.meeting_start).format('X') > today) {
+        } else if (reservation.canBeCancelled || reservation.canBeCancelledWithoutCredit) {
             cancelation = (
                 <button type="button" className={buttonClass + "__close"}
                         onClick={this.handleShowCancelation.bind(this)}>
                     <CloseIcon/>
                 </button>
-            )
+            );
         }
 
         return (
@@ -148,12 +148,15 @@ class ClassItem extends React.Component {
                         <div className={'modal-cancelation__body'}>
                             <h3>{StringStore.get('CANCELATION')}</h3>
                             <p>{StringStore.get('CANCELATIONMESSAGE')}</p>
+                            {reservation.canBeCancelledWithoutCredit ? (
+                                <p className={'modal_cancelation__container--alert'}>{StringStore.get('CANCELLATION_WITHOUT_CREDIT_ALERT')}</p>
+                            ) : null}
                         </div>
                         <div className={'modal-cancelation__footer'}>
                             <div className="GFSDK-form__section" id="cancel-class">
                                 <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary"
                                         onClick={this.handleClick.bind(this)}>
-                                    Sí, deseo cancelar
+                                    {StringStore.get('CANCELATIONCONFIRM')}
                                 </button>
                                 {/* <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClickBack.bind(this)}>
                               {StringStore.get('BUTTON_CANCEL')}
