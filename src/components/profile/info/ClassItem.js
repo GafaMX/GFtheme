@@ -93,6 +93,26 @@ class ClassItem extends React.Component {
         }
     }
 
+    printSubstituteStaff() {
+        let {reservation} = this.props;
+        let staff = reservation.substitute_staff;
+
+        if (staff) {
+            if (staff.hasOwnProperty('job') && staff.job !== null) {
+                return (
+                    <p className={'reservation-item-staff'}><strong>{staff['job']}</strong></p>
+                )
+            } else {
+                return (
+                    <p className={'reservation-item-staff'}>
+                        <strong>{staff['name']} {staff.hasOwnProperty('lastname') ? staff['lastname'] : ''}</strong></p>
+                );
+            }
+        }
+
+        return null;
+    }
+
     render() {
         let preE = 'GFSDK-e';
         let buttonClass = preE + '-buttons';
@@ -133,6 +153,7 @@ class ClassItem extends React.Component {
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
                     <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('h:mm a')}</p>
                     {this.printStaff()}
+                    {this.printSubstituteStaff()}
                     {this.printPosition()}
                 </div>
 

@@ -69,10 +69,13 @@ class ProfileUserInfo extends React.Component {
             saved: false,
             screen: "classes",
             totals_page: null,
+            picture: null,
+            '_delete-picture': false
             // paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
         };
 
         this.handleChangeScreen = this.handleChangeScreen.bind(this);
+        this.transformStateToForm = this.transformStateToForm.bind(this);
         // GlobalStorage.addSegmentedListener(['ConektaPaymentNotification'], this.updateConektaNotificaction.bind(this));
     }
 
@@ -98,6 +101,7 @@ class ProfileUserInfo extends React.Component {
                     phone: result.phone,
                     cel_phone: result.cel_phone,
                     gender: result.gender,
+                    picture: result.picture
                 });
             // GlobalStorage.set('me', result);
             currentComponent.getCountryList(currentComponent.getStatesListByCountry.bind(currentComponent));
@@ -204,11 +208,23 @@ class ProfileUserInfo extends React.Component {
         this.setState(state);
     }
 
+    transformStateToForm() {
+        let formData = new FormData();
+        let state = this.state;
+        Object.entries(state).forEach(([key, value]) => {
+            if (key !== 'countries' && key !== 'states' && key !== 'formErrors' && key !== 'first_nameValid' && key !== 'formValid' && key !== 'serverError' && key !== 'saved' && key !== 'screen' && key !== 'totals_page')
+                formData.append(key, value === null ? '' : value);
+        });
+
+        return formData;
+    }
+
     handleSubmit(event) {
         event.preventDefault();
         let currentElement = this;
         currentElement.setState({serverError: '', saved: false});
-        GafaFitSDKWrapper.putMe(this.state,
+        let formData = this.transformStateToForm();
+        GafaFitSDKWrapper.putMe(formData,
             currentElement.successSaveMeCallback.bind(this),
             currentElement.errorSaveMeCallback.bind(this));
     }

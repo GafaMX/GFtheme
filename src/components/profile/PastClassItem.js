@@ -23,7 +23,7 @@ class ClassItem extends React.Component {
                 let text = _object.position_text && isNaN(_object.position_text) ? _object.position_text : `#${position_number}`;
 
                 _return = (
-                    <p className={'reservation-item-position'}>{StringStore.get('PROFILE_POSITION',[text])}</p>
+                    <p className={'reservation-item-position'}>{StringStore.get('PROFILE_POSITION', [text])}</p>
                 );
             }
         }
@@ -47,6 +47,28 @@ class ClassItem extends React.Component {
         }
     }
 
+    printSubstituteStaff() {
+        let {reservation} = this.props;
+        let staff = reservation.meetings.substitute_staff;
+
+        if (staff) {
+            if (staff.hasOwnProperty('job') && staff.job !== null) {
+                return (
+                    <p className={'reservation-item-staff'}>
+                        <strong>{StringStore.get('SUBSTITUTE_INDICATOR')} {staff['job']}</strong></p>
+                )
+            } else {
+                return (
+                    <p className={'reservation-item-staff'}>
+                        <strong>{StringStore.get('SUBSTITUTE_INDICATOR')} {staff['name']} {staff.hasOwnProperty('lastname') ? staff['lastname'] : ''}</strong>
+                    </p>
+                );
+            }
+        }
+
+        return null;
+    }
+
     render() {
         let membershipCredits = '';
 
@@ -67,6 +89,7 @@ class ClassItem extends React.Component {
                 <div className={'futureClasses-item__body'}>
                     <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
                     {this.printStaff()}
+                    {this.printSubstituteStaff()}
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
                     {this.printPosition()}
                 </div>

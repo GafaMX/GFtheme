@@ -7,6 +7,7 @@ import DatePicker from 'react-date-picker';
 import moment from 'moment'
 import 'moment/locale/es';
 import StringStore from "../../utils/Strings/StringStore";
+import ImageSelect from "./ImageSelect";
 
 class UserInfo extends React.Component {
     constructor(props) {
@@ -43,6 +44,12 @@ class UserInfo extends React.Component {
     handleChangeBirthDate(date) {
         const dateFormatted = moment(date).format('YYYY-MM-DD');
         this.props.info.birth_date = dateFormatted;
+        this.props.updateState(this.props.info);
+    }
+
+    handleChangePicture(file, remove = false) {
+        this.props.info.picture = file;
+        this.props.info['_delete-picture'] = remove ? 'on' : null;
         this.props.updateState(this.props.info);
     }
 
@@ -96,7 +103,8 @@ class UserInfo extends React.Component {
                                    checked={this.props.info.gender === "female"}
                                    name="gender"
                                    onChange={this.handleGenderChange.bind(this)}/>
-                            <div className={'this-radio ' + (this.props.info.gender === 'female' ? 'checked' : '')}></div>
+                            <div
+                                className={'this-radio ' + (this.props.info.gender === 'female' ? 'checked' : '')}></div>
                             <p className={formClass + "__label"}>{StringStore.get('PROFILE_FEMALE_GENDER')}</p>
                         </label>
                     </div>
@@ -111,6 +119,18 @@ class UserInfo extends React.Component {
                         maxDate={new Date()}
                     />
                 </div>
+
+                <div className={'placeholder-block'}></div>
+                <FormGroup className={formClass + "__section is-picture"}>
+                    {/*<div className={formClass + "__section "}>*/}
+                    <ControlLabel
+                        className={formClass + "__label"}>{StringStore.get('LABEL_PICTURE')}</ControlLabel>
+                    <ImageSelect
+                        picture={this.props.info.picture}
+                        handleChangePicture={this.handleChangePicture.bind(this)}
+                    />
+                    {/*</div>*/}
+                </FormGroup>
             </div>
         );
     }
