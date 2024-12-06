@@ -73,6 +73,7 @@ export default {
     PASSWORDCONFIRM: 'Confirm password',
     EXPIRATION: 'Expires:',
     CREDITS: 'Available credits',
+    STORE_CREDIT_AVAILABLE: 'Available store credit',
     CREATE: 'Created since:',
     CLASS: 'My classes',
     PROFILE: 'My profile',

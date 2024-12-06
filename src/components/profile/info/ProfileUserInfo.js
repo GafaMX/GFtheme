@@ -35,6 +35,7 @@ import '../../../styles/newlook/elements/GFSDK-e-scroll.scss';
 import '../../../styles/newlook/elements/GFSDK-e-buttons.scss';
 import StringStore from "../../utils/Strings/StringStore";
 import Loading from "../../common/Loading";
+import StoreCredit from "./StoreCredit";
 
 class ProfileUserInfo extends React.Component {
 
@@ -70,7 +71,7 @@ class ProfileUserInfo extends React.Component {
             screen: "classes",
             totals_page: null,
             picture: null,
-            '_delete-picture': false
+            '_delete-picture': false,
             // paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
         };
 
@@ -109,14 +110,22 @@ class ProfileUserInfo extends React.Component {
 
         GafaFitSDKWrapper.getMeWithPurchase(
             function (result) {
-                GlobalStorage.set("me", result, () => {
-                    GafaFitSDKWrapper.getUserTotalsPage(function (totals_result) {
-                        let user = GlobalStorage.get('me');
-                        user.totals_page = totals_result;
+                GafaFitSDKWrapper.getUserStoreCredit((store_data) => {
+                    if (store_data && store_data.hasOwnProperty('store_credit')) {
+                        result['store_credit_total'] = store_data.store_credit;
+                    } else {
+                        result['store_credit_total'] = 0;
+                    }
 
-                        GlobalStorage.set('me', user, () => {
-                            currentComponent.setState({
-                                totals_page: totals_result
+                    GlobalStorage.set("me", result, () => {
+                        GafaFitSDKWrapper.getUserTotalsPage(function (totals_result) {
+                            let user = GlobalStorage.get('me');
+                            user.totals_page = totals_result;
+
+                            GlobalStorage.set('me', user, () => {
+                                currentComponent.setState({
+                                    totals_page: totals_result
+                                });
                             });
                         });
                     });
@@ -290,7 +299,7 @@ class ProfileUserInfo extends React.Component {
                             <div className="profile-user__data">
                                 {/* <div className="this-picture"></div> */}
                                 <h3 className="profile-user__name">{StringStore.get('PROFILE_USER_GREETING', [this.state.first_name])}
-                                    <br></br> Bienvenido
+                                    <br></br> {StringStore.get('PROFILE_WELCOME')}
                                 </h3>
                                 {/* <h4 className="profile-user__venue">{this.state.email}</h4> */}
                             </div>
@@ -298,6 +307,7 @@ class ProfileUserInfo extends React.Component {
                             <MediaQuery minWidth={992}>
                                 <div className="profile-user__credits">
                                     <ProfileCreditsMemberships me={me}/>
+                                    <StoreCredit me={me}/>
                                 </div>
                             </MediaQuery>
 
@@ -315,6 +325,7 @@ class ProfileUserInfo extends React.Component {
 
                 <MediaQuery maxWidth={991}>
                     <ProfileCreditsMemberships me={me}/>
+                    <StoreCredit me={me}/>
                 </MediaQuery>
 
                 <div className={'profile-tabs'}>
