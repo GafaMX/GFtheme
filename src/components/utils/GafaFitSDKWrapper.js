@@ -304,6 +304,16 @@ class GafaFitSDKWrapper extends React.Component {
         );
     };
 
+    static getUserStoreCredit(callback) {
+        GafaFitSDK.GetUserStoreCredit(
+            {}, function (error, result) {
+                if (error === null) {
+                    callback(result);
+                }
+            }
+        );
+    }
+
     static postRegister(params, successCallback, errorCallback) {
         let options = {};
         options.last_name = params.last_name;
@@ -440,11 +450,10 @@ class GafaFitSDKWrapper extends React.Component {
                         GafaFitSDKWrapper.getUserMemberships(brand.slug, function (result) {
                             memberships = memberships.concat(result);
                             user.memberships = memberships;
-
-                            callback(user);
                         });
                     });
                 });
+                callback(user);
             } else {
                 callback(result);
             }
