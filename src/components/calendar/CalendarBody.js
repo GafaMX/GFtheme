@@ -38,10 +38,8 @@ class CalendarBody extends React.Component {
 
     componentDidMount() {
         let start = CalendarStorage.get('start_date');
-        let end = new Date(start.getTime());
-        end.setDate(start.getDate() + 6);
-
-
+        let end = new Date(start.getFullYear(), start.getMonth() + 1, 0); // Último día del mes
+    
         this.setState({
             start,
             end
@@ -52,14 +50,11 @@ class CalendarBody extends React.Component {
     getMeetingsToShow(props, start, end) {
         let meetings = props.meetings;
         let shown_meetings = [];
-
+    
         if (start && end) {
             let date_array = this.getDates(start, end);
-
+    
             if (!!meetings && !!start) {
-                let end = new Date(start.getTime());
-                end.setDate(start.getDate() + 6);
-
                 date_array.forEach(function (date) {
                     let meet = {
                         title: date.toLocaleDateString(),
@@ -72,16 +67,16 @@ class CalendarBody extends React.Component {
                     shown_meetings.push(meet);
                 });
             }
-
+    
             return shown_meetings;
         }
     }
+    
 
     updateStart() {
         let start = CalendarStorage.get('start_date');
-        let end = new Date(start.getTime());
-        end.setDate(start.getDate() + 6);
-
+        let end = new Date(start.getFullYear(), start.getMonth() + 1, 0); // Último día del mes
+    
         this.setState({
             start,
             end,
@@ -101,44 +96,50 @@ class CalendarBody extends React.Component {
         return dateArray;
     }
 
+    getMonthTitle() {
+        const { start } = this.state;
+        return start ? moment(start).format('MMMM YYYY') : ''; // Devuelve el mes y el año
+    }
+    
+
     hasNextPrev(next = true) {
         let meetings = CalendarStorage.get('meetings');
         let start = CalendarStorage.get('start_date');
         let compare_start = new Date(start.getTime());
-
-        let added = next ? 7 : 0;
-        compare_start.setDate(compare_start.getDate() + added);
-
+    
+        compare_start.setMonth(compare_start.getMonth() + (next ? 1 : -1));
+    
         let compare = function (date_compare, compare_start) {
             let compare_string = compare_start.toDateString();
             return next ? date_compare >= new Date(compare_string) : date_compare < new Date(compare_string);
         };
-
+    
         let next_meetings = meetings.find(function (meeting) {
             let meeting_date = new Date(meeting.start);
             let date_compare = new Date(meeting_date.toDateString());
             return compare(date_compare, compare_start);
         });
-
+    
         return !!next_meetings;
     }
+    
 
-    nextWeek(e) {
+    nextMonth(e) {
         let start = CalendarStorage.get('start_date');
-
+    
         if (this.hasNextPrev()) {
             let compare_start = new Date(start.getTime());
-            compare_start.setDate(compare_start.getDate() + 7);
+            compare_start.setMonth(compare_start.getMonth() + 1); // Avanza un mes
             CalendarStorage.set('start_date', compare_start);
         }
     }
 
-    prevWeek(e) {
+    prevMonth(e) {
         let start = CalendarStorage.get('start_date');
-
+    
         if (this.hasNextPrev(false)) {
             let compare_start = new Date(start.getTime());
-            compare_start.setDate(compare_start.getDate() - 7);
+            compare_start.setMonth(compare_start.getMonth() - 1); // Retrocede un mes
             CalendarStorage.set('start_date', compare_start);
         }
     }
@@ -320,17 +321,22 @@ class CalendarBody extends React.Component {
 
         return (
             <div className={calendarClass + '__body ' + visualization}>
+                <div className={calendarClass + '__body-header'}>
+                    <h2 className={calendarClass + '__month-title'}>
+                        {this.getMonthTitle()}
+                    </h2>
+                </div>
                 <div className={calendarClass + '__body-container'}>
                     <div className={calendarClass + '__body-weeks is-mobile'}>
                         <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
-                                onClick={this.prevWeek.bind(this)}>
+                                onClick={this.prevMonth.bind(this)}>
                         <span className={buttonClass + ' ' + buttonClass + '--icon'}>
                            <IconLeftArrow/>
                         </span>
                             <span className={'this-label'}>{StringStore.get('PREVIOUS_WEEK')}</span>
                         </button>
                         <button className={calendarClass + '__body-weeksSection is-next'} disabled={!has_next}
-                                onClick={this.nextWeek.bind(this)}>
+                                onClick={this.nextMonth.bind(this)}>
                             <span className={'this-label'}>{StringStore.get('NEXT_WEEK')}</span>
                             <span className={buttonClass + ' ' + buttonClass + '--icon'}>
                            <IconRightArrow/>
@@ -338,17 +344,17 @@ class CalendarBody extends React.Component {
                         </button>
                     </div>
                     {this.printCalendarColumns()}
-
+        
                     <div className={calendarClass + '__body-weeks is-desktop'}>
                         <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
-                                onClick={this.prevWeek.bind(this)}>
+                                onClick={this.prevMonth.bind(this)}>
                         <span className={buttonClass + ' ' + buttonClass + '--icon'}>
                            <IconLeftArrow/>
                         </span>
                             <span className={'this-label'}>{StringStore.get('PREVIOUS_WEEK')}</span>
                         </button>
                         <button className={calendarClass + '__body-weeksSection is-next'} disabled={!has_next}
-                                onClick={this.nextWeek.bind(this)}>
+                                onClick={this.nextMonth.bind(this)}>
                             <span className={'this-label'}>{StringStore.get('NEXT_WEEK')}</span>
                             <span className={buttonClass + ' ' + buttonClass + '--icon'}>
                            <IconRightArrow/>
@@ -358,6 +364,7 @@ class CalendarBody extends React.Component {
                 </div>
             </div>
         );
+        
     }
 }
 
