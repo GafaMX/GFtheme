@@ -36,6 +36,7 @@
     "popper.js": "^1.14.6",
     "react": "^16.8.6",
     "react-bootstrap": "^0.32.4",
+    "react-calendar": "^5.1.0",
     "react-custom-scroll": "^4.1.5",
     "react-date-picker": "^7.1.1",
     "react-dom": "^16.8.6",

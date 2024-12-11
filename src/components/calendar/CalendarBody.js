@@ -39,8 +39,7 @@ class CalendarBody extends React.Component {
     componentDidMount() {
         let start = CalendarStorage.get('start_date');
         let end = new Date(start.getTime());
-        end.setDate(start.getDate() + 6);
-
+        end.setDate(start.getDate() + 60); // aumenta la consulta de meetings del dia actual +60 dias        
 
         this.setState({
             start,
@@ -58,7 +57,7 @@ class CalendarBody extends React.Component {
 
             if (!!meetings && !!start) {
                 let end = new Date(start.getTime());
-                end.setDate(start.getDate() + 6);
+                end.setDate(start.getDate() + 60); // aumenta la consulta de meetings del dia actual +60 dias
 
                 date_array.forEach(function (date) {
                     let meet = {
@@ -80,7 +79,7 @@ class CalendarBody extends React.Component {
     updateStart() {
         let start = CalendarStorage.get('start_date');
         let end = new Date(start.getTime());
-        end.setDate(start.getDate() + 6);
+        end.setDate(start.getDate() + 60); // aumenta la consulta de meetings del dia actual +60 dias
 
         this.setState({
             start,
@@ -321,7 +320,7 @@ class CalendarBody extends React.Component {
         return (
             <div className={calendarClass + '__body ' + visualization}>
                 <div className={calendarClass + '__body-container'}>
-                    <div className={calendarClass + '__body-weeks is-mobile'}>
+                    {/* <div className={calendarClass + '__body-weeks is-mobile'}>
                         <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
                                 onClick={this.prevWeek.bind(this)}>
                         <span className={buttonClass + ' ' + buttonClass + '--icon'}>
@@ -336,10 +335,10 @@ class CalendarBody extends React.Component {
                            <IconRightArrow/>
                         </span>
                         </button>
-                    </div>
+                    </div> */}
                     {this.printCalendarColumns()}
 
-                    <div className={calendarClass + '__body-weeks is-desktop'}>
+                    {/* <div className={calendarClass + '__body-weeks is-desktop'}>
                         <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
                                 onClick={this.prevWeek.bind(this)}>
                         <span className={buttonClass + ' ' + buttonClass + '--icon'}>
@@ -354,7 +353,7 @@ class CalendarBody extends React.Component {
                            <IconRightArrow/>
                         </span>
                         </button>
-                    </div>
+                    </div> */}
                 </div>
             </div>
         );
