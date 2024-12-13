@@ -55,7 +55,7 @@ export default class VerticalCalendarBody extends React.Component {
               })
             : [];
 
-        return <div className={`${preC}-Calendar__header_vertical`}>{dayTags}</div>;
+        return <div className={`${preC}-Calendar__header_vertical calendar-month`}>{dayTags}</div>;
     }
 
     printMeetingsBody() {
@@ -99,7 +99,7 @@ export default class VerticalCalendarBody extends React.Component {
             listItems.push(
                 <div
                     key={`${preC}-Calendar__day_column_vertical--${day.date}`}
-                    className={`${preC}-Calendar__day_column_vertical`}
+                    className={`${preC}-Calendar__day_column_vertical month-calendar`}
                     data-date={day.date}
                 >
                     {column_days}
