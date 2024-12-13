@@ -6,9 +6,28 @@ import CalendarMeeting from "../CalendarMeeting";
 import uid from "uid";
 import Slider from "react-slick";
 
+
 export default class VerticalCalendarBody extends React.Component {
     constructor(props) {
         super(props);
+
+        // Estado para la fecha seleccionada
+        this.state = {
+            selectedDate: new Date(),
+        };
+
+        this.handleDateChange = this.handleDateChange.bind(this);
+    }
+
+
+    // Método para manejar cambios de fecha
+    handleDateChange(newDate) {
+        this.setState({ selectedDate: newDate });
+
+        // actualizar las reuniones según la fecha seleccionada
+        if (this.props.onDateChange) {
+            this.props.onDateChange(moment(newDate).format('YYYY-MM-DD'));
+        }
     }
 
     printDaysHeader() {
@@ -101,5 +120,24 @@ export default class VerticalCalendarBody extends React.Component {
             {this.printMeetingsBody()}
             {this.printMeetingsBodyMobile()}
         </div>)
+        const { selectedDate } = this.state;
+
+        return (
+            <div>
+                {/* React Calendar */}
+                <div className="calendar-selector">
+                    <Calendar
+                        onChange={this.handleDateChange}
+                        value={selectedDate}
+                        minDate={this.minDate} 
+                        maxDate={this.maxDate}
+                    />
+                </div>
+
+                {/* {this.printDaysHeader()} */}
+                {this.printMeetingsBody()}
+                {this.printMeetingsBodyMobile()}
+            </div>
+        );
     }
 }

@@ -46,6 +46,19 @@ const CalendarStorage = {
      * @param cb
      */
     set(property, value, cb) {
+        if (property === 'start_date') {
+            const currentDate = new Date(); // Fecha actual
+            currentDate.setHours(0, 0, 0, 0); // Ignorar hora, minuto, etc.
+    
+            const newDate = new Date(value); // Fecha a configurar
+            newDate.setHours(0, 0, 0, 0); // comparar solo fechas
+    
+            if (newDate < currentDate) {
+                console.warn(`Ignorando cambio de fecha start_date: ${newDate} es anterior a (${currentDate}).`);
+                return; // No permitimos el cambio
+            }
+        }
+    
         this[property] = value ? value : null;
         this.TriggerChange(cb, property);
     },

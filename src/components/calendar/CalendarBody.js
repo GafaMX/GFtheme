@@ -14,6 +14,7 @@ import moment from 'moment';
 import 'moment/locale/es';
 import StringStore from "../utils/Strings/StringStore";
 import VerticalCalendarBody from "./vertical/VerticalCalendarBody";
+import MonthCalendarBody from "./vertical/MonthCalendarBody";
 
 moment.locale('es');
 
@@ -39,8 +40,11 @@ class CalendarBody extends React.Component {
     componentDidMount() {
         let start = CalendarStorage.get('start_date');
         let end = new Date(start.getTime());
-        end.setDate(start.getDate() + 6);
 
+
+        let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+
+        end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias        
 
         this.setState({
             start,
@@ -58,7 +62,11 @@ class CalendarBody extends React.Component {
 
             if (!!meetings && !!start) {
                 let end = new Date(start.getTime());
-                end.setDate(start.getDate() + 6);
+
+
+                let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+
+                end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias
 
                 date_array.forEach(function (date) {
                     let meet = {
@@ -80,7 +88,11 @@ class CalendarBody extends React.Component {
     updateStart() {
         let start = CalendarStorage.get('start_date');
         let end = new Date(start.getTime());
-        end.setDate(start.getDate() + 6);
+
+
+        let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+
+        end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias
 
         this.setState({
             start,
@@ -128,7 +140,8 @@ class CalendarBody extends React.Component {
 
         if (this.hasNextPrev()) {
             let compare_start = new Date(start.getTime());
-            compare_start.setDate(compare_start.getDate() + 7);
+            let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+            compare_start.setDate(compare_start.getDate() + daysToAdd);
             CalendarStorage.set('start_date', compare_start);
         }
     }
@@ -138,7 +151,8 @@ class CalendarBody extends React.Component {
 
         if (this.hasNextPrev(false)) {
             let compare_start = new Date(start.getTime());
-            compare_start.setDate(compare_start.getDate() - 7);
+            let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+            compare_start.setDate(compare_start.getDate() - daysToAdd);
             CalendarStorage.set('start_date', compare_start);
         }
     }
@@ -223,6 +237,15 @@ class CalendarBody extends React.Component {
         );
         if (visualization === 'vertical') {
             response = (<VerticalCalendarBody
+                meetings_to_show={meetings_to_show}
+                openFancy={this.props.openFancy}
+                closedFancy={this.props.closedFancy}
+                login_initial={login_initial}
+                sliderSettings={settings}
+                sliderItems={listItems}
+            />);
+        } else if (visualization === 'month') { // se agrega un nuevo modo de vista
+            response = (<MonthCalendarBody
                 meetings_to_show={meetings_to_show}
                 openFancy={this.props.openFancy}
                 closedFancy={this.props.closedFancy}
@@ -321,44 +344,58 @@ class CalendarBody extends React.Component {
         return (
             <div className={calendarClass + '__body ' + visualization}>
                 <div className={calendarClass + '__body-container'}>
-                    <div className={calendarClass + '__body-weeks is-mobile'}>
-                        <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
-                                onClick={this.prevWeek.bind(this)}>
-                        <span className={buttonClass + ' ' + buttonClass + '--icon'}>
-                           <IconLeftArrow/>
-                        </span>
-                            <span className={'this-label'}>{StringStore.get('PREVIOUS_WEEK')}</span>
-                        </button>
-                        <button className={calendarClass + '__body-weeksSection is-next'} disabled={!has_next}
-                                onClick={this.nextWeek.bind(this)}>
-                            <span className={'this-label'}>{StringStore.get('NEXT_WEEK')}</span>
-                            <span className={buttonClass + ' ' + buttonClass + '--icon'}>
-                           <IconRightArrow/>
-                        </span>
-                        </button>
-                    </div>
+                    {visualization === 'vertical' && (
+                        <div className={calendarClass + '__body-weeks is-mobile'}>
+                            <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
+                                    onClick={this.prevWeek.bind(this)}>
+                                <span className={buttonClass + ' ' + buttonClass + '--icon'}>
+                                    <IconLeftArrow />
+                                </span>
+                                <span className={'this-label'}>{StringStore.get('PREVIOUS_WEEK')}</span>
+                            </button>
+                            <button className={calendarClass + '__body-weeksSection is-next'} disabled={!has_next}
+                                    onClick={this.nextWeek.bind(this)}>
+                                <span className={'this-label'}>{StringStore.get('NEXT_WEEK')}</span>
+                                <span className={buttonClass + ' ' + buttonClass + '--icon'}>
+                                    <IconRightArrow />
+                                </span>
+                            </button>
+                        </div>
+                    )}
+        
                     {this.printCalendarColumns()}
-
-                    <div className={calendarClass + '__body-weeks is-desktop'}>
-                        <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
-                                onClick={this.prevWeek.bind(this)}>
-                        <span className={buttonClass + ' ' + buttonClass + '--icon'}>
-                           <IconLeftArrow/>
-                        </span>
-                            <span className={'this-label'}>{StringStore.get('PREVIOUS_WEEK')}</span>
-                        </button>
-                        <button className={calendarClass + '__body-weeksSection is-next'} disabled={!has_next}
-                                onClick={this.nextWeek.bind(this)}>
-                            <span className={'this-label'}>{StringStore.get('NEXT_WEEK')}</span>
-                            <span className={buttonClass + ' ' + buttonClass + '--icon'}>
-                           <IconRightArrow/>
-                        </span>
-                        </button>
-                    </div>
+        
+                    {visualization === 'vertical' && (
+                        <div className={calendarClass + '__body-weeks is-desktop'}>
+                            <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
+                                    onClick={this.prevWeek.bind(this)}>
+                                <span className={buttonClass + ' ' + buttonClass + '--icon'}>
+                                    <IconLeftArrow />
+                                </span>
+                                <span className={'this-label'}>{StringStore.get('PREVIOUS_WEEK')}</span>
+                            </button>
+                            <button className={calendarClass + '__body-weeksSection is-next'} disabled={!has_next}
+                                    onClick={this.nextWeek.bind(this)}>
+                                <span className={'this-label'}>{StringStore.get('NEXT_WEEK')}</span>
+                                <span className={buttonClass + ' ' + buttonClass + '--icon'}>
+                                    <IconRightArrow />
+                                </span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         );
+        
     }
+}
+
+// funcion para evaluar los dias a partir del tipo de visualizacion
+function getDaysToAddBasedOnVisualization() {
+    // Obtenemos el tipo de visualización
+    let visualization = CalendarStorage.get('visualization');
+    // Determinamos los días a agregar según el tipo
+    return visualization === 'vertical' ? 7 : 60;
 }
 
 export default CalendarBody;

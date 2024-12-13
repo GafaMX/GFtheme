@@ -153,7 +153,7 @@ class CalendarMeeting extends React.Component {
     }
 
     render() {
-        let {meeting} = this.props;
+        let { meeting, visualization } = this.props;
         let {openFancy} = this.state;
         let day = this.props.day;
         let classStart = moment(meeting.start_date).toDate();
@@ -180,17 +180,18 @@ class CalendarMeeting extends React.Component {
                         <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>
                     }
                 </div>
-                <hr></hr>
-                <div className={meetingClass + '__body'}>
-                    <p className={'this-availability'}>{StringStore.get('AVAILABILITY')}: {meeting.available} / {meeting.capacity}</p>
-                    {this.printStaff()}
-                    {this.printSubstituteStaff()}
-                    {show_parent && parent_service ? (
-                        <p className={'this-parent-service'}>{parent_service.name}</p>) : null}
-                    <p className={'this-service'}>{meeting.service.name}</p>
-                    <p className={'this-location'}>{meeting.location.name}</p>
-                    {this.printDescription()}
-                </div>
+              
+                    <hr></hr>
+                    <div className={meetingClass + '__body'}>
+                        <p className={'this-availability'}>{StringStore.get('AVAILABILITY')}: {meeting.available} / {meeting.capacity}</p>
+                        {this.printStaff()}
+                        {this.printSubstituteStaff()}
+                        {show_parent && parent_service ? (
+                            <p className={'this-parent-service'}>{parent_service.name}</p>) : null}
+                        <p className={'this-service'}>{meeting.service.name}</p>
+                        <p className={'this-location'}>{meeting.location.name}</p>
+                        {this.printDescription()}
+                    </div>                                
             </div>
         );
     }
