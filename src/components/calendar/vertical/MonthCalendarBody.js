@@ -7,6 +7,7 @@ import uid from "uid";
 import Slider from "react-slick";
 import Calendar from "react-calendar"; // Importar react-calendar
 import 'react-calendar/dist/Calendar.css'; // Importar estilos predeterminados
+import './css/MonthCalendarBody.css'; // Custom css
 
 export default class VerticalCalendarBody extends React.Component {
     constructor(props) {
