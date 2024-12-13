@@ -26,7 +26,7 @@ export default class VerticalCalendarBody extends React.Component {
         let locations = GlobalStorage.get('locations');
         let daaMin = null;
         let dataMax = null;
-
+    
         if (Array.isArray(locations)) {
             locations.forEach(location => {
                 if (!daaMin || new Date(location.since) < new Date(daaMin)) {
@@ -39,12 +39,12 @@ export default class VerticalCalendarBody extends React.Component {
         } else {
             console.log("No es un array o los datos no están en el formato esperado.");
         }
-
+    
         // Valores predeterminados si no se encuentran fechas válidas
-        this.minDate = daaMin ? new Date(daaMin) : moment().subtract(60, 'days').toDate();
-        this.maxDate = dataMax ? new Date(dataMax) : new Date();
+        const now = new Date();
+        this.minDate = daaMin ? new Date(daaMin) : now; // La fecha mínima es hoy
+        this.maxDate = dataMax ? new Date(dataMax) : moment(now).add(60, 'days').toDate(); // La fecha máxima es 60 días en el futuro
     }
-
     // Método para manejar cambios de fecha
     handleDateChange(newDate) {
         this.setState({ selectedDate: newDate });

@@ -40,6 +40,15 @@
     margin: 15px 3px 0 3px !important;
 }
 
+.GFSDK-c-Calendar__day_column_vertical.month-calendar .GFSDK-c-Calendar__item.GFSDK-e-meeting .GFSDK-e-meeting__body {
+    display: none;
+}
+
+.GFSDK-c-Calendar__day_column_vertical.month-calendar .GFSDK-c-Calendar__item.GFSDK-e-meeting hr {
+    display: none;
+}
+
+
 @media (max-width: 992px) {
     .calendar-selector{
         display: none;
