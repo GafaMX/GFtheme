@@ -16,7 +16,7 @@ import '../../styles/newlook/elements/GFSDK-e-meeting.scss';
 import '../../styles/newlook/elements/GFSDK-e-navigation.scss';
 import StringStore from "../utils/Strings/StringStore";
 
-class CalendarOne extends React.Component {
+class Calendar extends React.Component {
     constructor(props) {
         super(props);
 
@@ -513,4 +513,4 @@ class CalendarOne extends React.Component {
     }
 }
 
-export default CalendarOne;
+export default Calendar;

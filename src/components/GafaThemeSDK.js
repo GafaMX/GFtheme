@@ -13,7 +13,7 @@ import ComboList from "./combo/ComboList";
 import MembershipList from "./membership/MembershipList";
 import Register from "./auth/Register";
 import PasswordRecovery from "./auth/PasswordRecovery";
-import CalendarOne from "./calendar/Calendar";
+import Calendar from "./calendar/Calendar";
 import CalendarReact from "./calendar/CalendarReact";
 import ProfileUserInfo from "./profile/info/ProfileUserInfo";
 import LoginRegister from "./menu/LoginRegister";
@@ -277,7 +277,7 @@ class GafaThemeSDK extends React.Component {
                     'date_max': dataMax, 
                 };
 
-                GafaThemeSDK.renderElementIntoContainer(domContainer, CalendarReact, props);
+                GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
             });
         }
 

@@ -8,6 +8,7 @@ import Slider from "react-slick";
 import Calendar from "react-calendar"; // Importar react-calendar
 import 'react-calendar/dist/Calendar.css'; // Importar estilos predeterminados
 import './css/MonthCalendarBody.css'; // Custom css
+import GlobalStorage from "../../store/GlobalStorage";
 
 export default class VerticalCalendarBody extends React.Component {
     constructor(props) {
@@ -19,6 +20,29 @@ export default class VerticalCalendarBody extends React.Component {
         };
 
         this.handleDateChange = this.handleDateChange.bind(this);
+    }
+
+    componentDidMount() {
+        let locations = GlobalStorage.get('locations');
+        let daaMin = null;
+        let dataMax = null;
+
+        if (Array.isArray(locations)) {
+            locations.forEach(location => {
+                if (!daaMin || new Date(location.since) < new Date(daaMin)) {
+                    daaMin = location.since; // Encuentra la fecha mínima
+                }
+                if (!dataMax || new Date(location.until) > new Date(dataMax)) {
+                    dataMax = location.until; // Encuentra la fecha máxima
+                }
+            });
+        } else {
+            console.log("No es un array o los datos no están en el formato esperado.");
+        }
+
+        // Valores predeterminados si no se encuentran fechas válidas
+        this.minDate = daaMin ? new Date(daaMin) : moment().subtract(60, 'days').toDate();
+        this.maxDate = dataMax ? new Date(dataMax) : new Date();
     }
 
     // Método para manejar cambios de fecha
@@ -126,7 +150,8 @@ export default class VerticalCalendarBody extends React.Component {
                     <Calendar
                         onChange={this.handleDateChange}
                         value={selectedDate}
-                        minDate={new Date()} // deshabilitar fechas pasadas
+                        minDate={this.minDate} 
+                        maxDate={this.maxDate} // deshabilitar fechas pasadas
                     />
                 </div>
 
