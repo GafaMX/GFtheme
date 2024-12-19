@@ -1,23 +1,8 @@
-
-.calendar-selector {
-    flex: 1;
+.calendar-wrapper {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Alinea los elementos al inicio verticalmente */
+    position: relative; /* Necesario si quieres usar posiciones absolutas */
 }
-
-.react-calendar {
-    width: 80%;
-    height: auto;
-}
-
-/* .GFSDK-c-Calendar__week_body_vertical {
-    display: flex;
-    flex: 1;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: stretch;
-} */
 
 .GFSDK-c-Calendar__day_column_vertical.month-calendar {
     flex: 1;
@@ -25,8 +10,6 @@
     flex-direction: row;
     margin: 10px;
     padding: 10px;
-    justify-content: center;
-    align-content: center;
     flex-wrap: wrap;
     align-items: center;
 }
