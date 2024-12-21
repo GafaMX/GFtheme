@@ -527,7 +527,7 @@ class GafaFitSDKWrapper extends React.Component {
         //   let location = GlobalStorage.get('currentLocation').id;
         GafaFitSDK.GetlocationMeetingList(
             brand,
-            location, {
+            location.id, {
                 'only_actives': true,
                 'start': start_date,
                 'end': end_date,
@@ -547,7 +547,7 @@ class GafaFitSDKWrapper extends React.Component {
         //   let location = GlobalStorage.get('currentLocation').id;
         GafaFitSDK.GetRoomMeetingList(
             brand,
-            location,
+            location.id,
             room_id,
             {
                 'only_actives': true,
