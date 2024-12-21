@@ -217,7 +217,7 @@ class Calendar extends React.Component {
                 meetings: meetings,
                 is_mounted: true,
             }, comp.initExternalButtons);
-        }, 3000);
+        }, 5000);
     }
 
     /**
