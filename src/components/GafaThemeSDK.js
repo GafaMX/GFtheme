@@ -265,7 +265,7 @@ class GafaThemeSDK extends React.Component {
         let rooms = GlobalStorage.get('rooms');
 
 
-        locations.forEach(function (location) {
+        locations.forEach(function (location, location_index) {
             let start_date = moment().toDate();
             let end_date = moment().toDate();
 
@@ -298,18 +298,19 @@ class GafaThemeSDK extends React.Component {
 
                     let room = location_rooms[index];
                     if (!!room) {
-                        GafaFitSDKWrapper.getMeetingsInRoom(room.id, location.id, start_string, end_string, process_room_meetings);
+                        GafaFitSDKWrapper.getMeetingsInRoom(room.id, location, start_string, end_string, process_room_meetings);
                     }
 
                 }
             } else {
-                GafaFitSDKWrapper.getMeetingsInLocation(location.id, start_string, end_string, function (result) {
+                GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, end_string, function (result) {
                     result.forEach(function (meeting) {
                         meeting.location = location;
                         meetings.push(meeting);
                     });
                     CalendarStorage.set('meetings', meetings);
-                    CalendarStorage.set('start_date', start_date);
+                    if (location_index === 0)
+                        CalendarStorage.set('start_date', start_date);
                 });
             }
 
