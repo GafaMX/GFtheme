@@ -53,7 +53,7 @@ export default class VerticalCalendarBody extends React.Component {
             );
         }) : [];
 
-        return (<div className={`${preC}-Calendar__header_vertical`}>
+        return (<div className={`${preC}-Calendar__header_vertical calendar-vertical`}>
             {dayTags}
         </div>)
     }
