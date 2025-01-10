@@ -1,3 +1,9 @@
+div.GFSDK-c-Calendar__body.month {
+    max-width: 600px !important; /* Limita el ancho máximo a 600px */
+    padding: 15px !important;  /* Agrega un padding interno */
+    box-sizing: border-box !important; /* Asegura que el padding no aumente el ancho total */
+}
+
 .calendar-wrapper {
     display: flex;
     align-items: flex-start; /* Alinea los elementos al inicio verticalmente */
@@ -22,6 +28,18 @@
 .GFSDK-e-meeting{
     margin: 15px 3px 0 3px !important;
 }
+
+.GFSDK-c-Calendar__day_column_vertical.month-calendar {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important; /* 2 columnas */
+    grid-auto-rows: auto !important; /* Ajuste automático de altura */
+    
+    max-height: calc(3 * 120px) !important; /* Máximo 3 filas (ajusta 120px según el diseño) */
+    overflow-y: auto !important; /* Scroll vertical para más elementos */
+    padding: 10px !important;
+    box-sizing: border-box !important;
+}
+
 
 .GFSDK-c-Calendar__day_column_vertical.month-calendar .GFSDK-c-Calendar__item.GFSDK-e-meeting .GFSDK-e-meeting__body {
     display: none;
