@@ -40,6 +40,10 @@ div.GFSDK-c-Calendar__body.month {
     box-sizing: border-box !important;
 }
 
+button.react-calendar__tile {
+    padding: 10px;
+}
+
 
 .GFSDK-c-Calendar__day_column_vertical.month-calendar .GFSDK-c-Calendar__item.GFSDK-e-meeting .GFSDK-e-meeting__body, .GFSDK-c-Calendar__day_column_vertical.month-calendar .GFSDK-c-Calendar__item.GFSDK-e-meeting hr {
     display: none;
