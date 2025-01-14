@@ -409,7 +409,7 @@ class GafaThemeSDK extends React.Component {
     static renderServiceButton(selector) {
         let buttons = document.querySelectorAll(selector);
         let locations = GlobalStorage.get('locations');
-        console.log(locations);
+       
     
         let daaMin = null;
         let dataMax = null;
@@ -436,7 +436,7 @@ class GafaThemeSDK extends React.Component {
     
                     // Verificar si el atributo data-bq-calendar-visualization es igual a 'month'
                     const visualization = button.getAttribute("data-bq-calendar-visualization");
-                    console.log("Visualización de calendario:", visualization);
+                    
     
                     if (visualization === "month") {
                         // Obtener los atributos del botón
@@ -448,12 +448,23 @@ class GafaThemeSDK extends React.Component {
                         const filterStaff = button.getAttribute("filter-bq-staff");
                         const filterLocation = button.getAttribute("filter-bq-location");
                         const filterRoom = button.getAttribute("filter-bq-room");
-                        const metingCalendar = button.getAttribute("data-gf-theme");
+                        let metingCalendar = button.getAttribute("data-gf-theme");
                         const showDescription = button.getAttribute("data-bq-show-description");
                         const blockAfterLogin = button.getAttribute("data-bq-block-after-login");
                         const partialLoading = button.getAttribute("data-bq-partial-loading");
                         const showParent = button.getAttribute("data-bq-show-parent");
-    
+
+                        let meetingCalendarView;
+                        if (metingCalendar === "service-button") {
+                            meetingCalendarView = "meetings-calendar";  
+                             
+                        } else {
+                                 console.log('no calendario');
+                        }
+
+                        console.log(meetingCalendarView);  // Debería ser: data-gf-theme="meetings-calendar"
+
+
                         // Crear el contenedor para el calendario emergente
                         let domContainer = document.createElement('div');
                         domContainer.style.width = "100%";
@@ -490,7 +501,7 @@ class GafaThemeSDK extends React.Component {
                             filter_staff: filterStaff === 'true',  // Convertir a booleano
                             filter_location: filterLocation === 'true',  // Convertir a booleano
                             filter_room: filterRoom === 'true',  // Convertir a booleano
-                            metingCalendar: metingCalendar,
+                            metingCalendar: 'meetings-calendar',
                             show_description: showDescription === 'true',  // Convertir a booleano
                             block_after_login: blockAfterLogin === 'false' ? false : true,  // Convertir a booleano
                             partial_loading: partialLoading === 'true',  // Convertir a booleano

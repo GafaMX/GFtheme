@@ -1,8 +1,10 @@
 'use strict';
 
 import React from "react";
-import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import GlobalStorage from "../store/GlobalStorage";
+import Loading from "../common/Loading";
+import { renderToString } from "react-dom/server";
+import Calendar from "../calendar/Calendar"; 
 
 class ServiceCalendarButton extends React.Component {
     constructor(props) {
@@ -89,30 +91,7 @@ class ServiceCalendarButton extends React.Component {
 
         return (
             <div>
-                <a
-                    data-gf-theme="service-button"
-                    data-bq-service-id={services_id}
-                    data-bq-location-id={location_id}
-                    data-bq-calendar-visualization="month"
-                    style={{
-                        padding: "7px 25px",
-                        color: "white",
-                        backgroundColor: "red",
-                        borderRadius: "10px",
-                        cursor: "pointer",
-                    }}
-                    onClick={this.handleClick}
-                >
-                    Agendar por servicio
-                </a>
-
-                {/* Mostrar mensaje de error si ocurrió un problema */}
-                {error && <div style={{ color: "red" }}>{error}</div>}
-
-                {/* Mostrar el contenedor de calendario */}
-                <div data-gf-theme="meetings-calendar" className="calendar-container">
-                    {!loaded && <div>Cargando calendario...</div>}
-                </div>
+          
             </div>
         );
     }
