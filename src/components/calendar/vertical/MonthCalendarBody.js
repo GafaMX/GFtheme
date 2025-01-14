@@ -144,21 +144,21 @@ export default class VerticalCalendarBody extends React.Component {
         const { selectedDate } = this.state;
 
         return (
-            <div>
-                {/* React Calendar */}
-                <div className="calendar-selector">
-                    <Calendar
-                        onChange={this.handleDateChange}
-                        value={selectedDate}
-                        minDate={this.minDate} 
-                        maxDate={this.maxDate} // deshabilitar fechas pasadas
-                    />
-                </div>
-
-                {/* {this.printDaysHeader()} */}
-                {this.printMeetingsBody()}
-                {this.printMeetingsBodyMobile()}
+            <div className="calendar-wrapper">
+            {/* React Calendar */}
+            <div className="calendar-selector">
+                <Calendar
+                    onChange={this.handleDateChange}
+                    value={selectedDate}
+                    minDate={this.minDate} 
+                    maxDate={this.maxDate}
+                />
             </div>
+
+            {/* Meetings Body */}
+            {this.printMeetingsBody()}
+            {this.printMeetingsBodyMobile()}
+        </div>
         );
     }
 }
