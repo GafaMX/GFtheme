@@ -335,10 +335,10 @@
       border-radius: 5px;
     }
 
-    /* Handle on hover */
+    /* Handle on hover 
     &::-webkit-scrollbar-thumb:hover {
       // background: #FF3E4F!important;
-    }
+    } */
 
     &__day {
       display: grid;
@@ -508,9 +508,9 @@
       }
     }
 
-    .#{$pre}-c-Calendar__week_body_vertical,
+    /*.#{$pre}-c-Calendar__week_body_vertical,
     .#{$pre}-c-Calendar__header_vertical {
       display: none;
-    }
+    }*/
   }
 }

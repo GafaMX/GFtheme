@@ -14,6 +14,7 @@ import MembershipList from "./membership/MembershipList";
 import Register from "./auth/Register";
 import PasswordRecovery from "./auth/PasswordRecovery";
 import Calendar from "./calendar/Calendar";
+import CalendarReact from "./calendar/CalendarReact";
 import ProfileUserInfo from "./profile/info/ProfileUserInfo";
 import LoginRegister from "./menu/LoginRegister";
 
@@ -206,6 +207,22 @@ class GafaThemeSDK extends React.Component {
     static renderMeetingsCalendar(selector) {
         let domContainers = document.querySelectorAll(selector);
         let locations = GlobalStorage.get('locations');
+        let daaMin = null;
+        let dataMax = null;
+
+        if (Array.isArray(locations)) {
+        locations.forEach(location => {
+            if (!daaMin || new Date(location.since) < new Date(daaMin)) {
+                daaMin = location.since; // Encuentra la fecha mínima
+            }
+            if (!dataMax || new Date(location.until) > new Date(dataMax)) {
+                dataMax = location.until; // Encuentra la fecha máxima
+            }
+        });
+    } else {
+        console.log("No es un array o los datos no están en el formato esperado.");
+    }
+
         let meetings = [];
         let partial_loading = false;
 
@@ -255,7 +272,9 @@ class GafaThemeSDK extends React.Component {
                     'show_description': showDescription,
                     'block_after_login': blockAfterLogin,
                     'visualization': visualization,
-                    'show_parent': show_parent
+                    'show_parent': show_parent,
+                    'date_min': daaMin, 
+                    'date_max': dataMax, 
                 };
 
                 GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
@@ -386,6 +405,7 @@ class GafaThemeSDK extends React.Component {
             });
         }
     }
+    
 }
 
 export default GafaThemeSDK;
