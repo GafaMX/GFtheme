@@ -41,8 +41,6 @@ GafaFitSDKWrapper.initValues(
 
        GafaThemeSDK.renderPurchaseBtton('[data-gf-theme="purchase-button"]');
 
-       GafaThemeSDK.renderServiceButton('[data-gf-theme="service-button"]');
-
       const fancy = document.querySelector('[data-gf-theme="fancy"]');
       fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
    }
