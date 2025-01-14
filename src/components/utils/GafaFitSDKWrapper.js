@@ -521,10 +521,13 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getMeetingsInLocation(location, start_date, end_date, callback) {
         let brand = GlobalStorage.get('currentBrand').slug;
+        if (location.hasOwnProperty('brand') && location.brand !== null && location.brand.hasOwnProperty('slug') && location.brand.slug !== null) {
+            brand = location.brand.slug;
+        }
         //   let location = GlobalStorage.get('currentLocation').id;
         GafaFitSDK.GetlocationMeetingList(
             brand,
-            location, {
+            location.id, {
                 'only_actives': true,
                 'start': start_date,
                 'end': end_date,
@@ -538,10 +541,13 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getMeetingsInRoom(room_id, location, start_date, end_date, callback) {
         let brand = GlobalStorage.get('currentBrand').slug;
+        if (location.hasOwnProperty('brand') && location.brand !== null && location.brand.hasOwnProperty('slug') && location.brand.slug !== null) {
+            brand = location.brand.slug;
+        }
         //   let location = GlobalStorage.get('currentLocation').id;
         GafaFitSDK.GetRoomMeetingList(
             brand,
-            location,
+            location.id,
             room_id,
             {
                 'only_actives': true,
