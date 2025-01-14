@@ -23,6 +23,7 @@ import moment from "moment";
 import "../styles/newlook/reset.scss";
 import "../styles/newlook/fancy.scss";
 import PurchaseButton from "./purchase_button/PurchaseButton";
+import ServiceCalendarButton from "./service/ServiceCalendarButton";
 
 class GafaThemeSDK extends React.Component {
     constructor(props) {
@@ -404,6 +405,145 @@ class GafaThemeSDK extends React.Component {
             });
         }
     }
+
+    static renderServiceButton(selector) {
+        let buttons = document.querySelectorAll(selector);
+        let locations = GlobalStorage.get('locations');
+       
+    
+        let daaMin = null;
+        let dataMax = null;
+    
+        // Verificar si locations es un array
+        if (Array.isArray(locations)) {
+            locations.forEach(location => {
+                if (!daaMin || new Date(location.since) < new Date(daaMin)) {
+                    daaMin = location.since; // Encuentra la fecha mínima
+                }
+                if (!dataMax || new Date(location.until) > new Date(dataMax)) {
+                    dataMax = location.until; // Encuentra la fecha máxima
+                }
+            });
+        } else {
+            console.log("No es un array o los datos no están en el formato esperado.");
+        }
+    
+        // Comprobar si hay botones y asignarles el evento
+        if (buttons.length > 0) {
+            buttons.forEach(function (button) {
+                button.addEventListener("click", function (event) {
+                    event.preventDefault();
+    
+                    // Verificar si el atributo data-bq-calendar-visualization es igual a 'month'
+                    const visualization = button.getAttribute("data-bq-calendar-visualization");
+                    
+    
+                    if (visualization === "month") {
+                        // Obtener los atributos del botón
+                        const serviceId = button.getAttribute("data-bq-service-id");
+                        const locationId = button.getAttribute("data-bq-location-id");
+                        const filterBrand = button.getAttribute("filter-bq-brand");
+                        const filterService = button.getAttribute("filter-bq-service");
+                        const filterBrandDefault = button.getAttribute("filter-bq-brand-default");
+                        const filterStaff = button.getAttribute("filter-bq-staff");
+                        const filterLocation = button.getAttribute("filter-bq-location");
+                        const filterRoom = button.getAttribute("filter-bq-room");
+                        let metingCalendar = button.getAttribute("data-gf-theme");
+                        const showDescription = button.getAttribute("data-bq-show-description");
+                        const blockAfterLogin = button.getAttribute("data-bq-block-after-login");
+                        const partialLoading = button.getAttribute("data-bq-partial-loading");
+                        const showParent = button.getAttribute("data-bq-show-parent");
+
+                        let meetingCalendarView;
+                        if (metingCalendar === "service-button") {
+                            meetingCalendarView = "meetings-calendar";  
+                             
+                        } else {
+                                 console.log('no calendario');
+                        }
+
+                        console.log(meetingCalendarView);  // Debería ser: data-gf-theme="meetings-calendar"
+
+
+                        // Crear el contenedor para el calendario emergente
+                        let domContainer = document.createElement('div');
+                        domContainer.style.width = "100%";
+                        domContainer.style.height = "100%";
+                        domContainer.style.position = "absolute";
+                        domContainer.style.top = "0";
+                        domContainer.style.left = "0";
+                        domContainer.style.zIndex = "1000";
+                        domContainer.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+                        domContainer.style.display = "flex";
+                        domContainer.style.justifyContent = "center";
+                        domContainer.style.alignItems = "center";
+    
+                        // Crear el contenedor para el calendario
+                        let calendarPopup = document.createElement('div');
+                        calendarPopup.style.backgroundColor = "white";
+                        calendarPopup.style.padding = "20px";
+                        calendarPopup.style.borderRadius = "10px";
+                        calendarPopup.style.width = "80%";
+                        calendarPopup.style.maxHeight = "90%";
+                        calendarPopup.style.overflowY = "auto";
+    
+                        // Agregar el calendario al contenedor emergente
+                        domContainer.appendChild(calendarPopup);
+                        document.body.appendChild(domContainer);
+    
+                        // Preparar las propiedades para el componente React
+                        let props = {
+                            service_id: serviceId,
+                            location_id: locationId,
+                            filter_brand: filterBrand === 'true',  // Convertir a booleano
+                            filter_service: filterService === 'true',  // Convertir a booleano
+                            filter_default: filterBrandDefault,
+                            filter_staff: filterStaff === 'true',  // Convertir a booleano
+                            filter_location: filterLocation === 'true',  // Convertir a booleano
+                            filter_room: filterRoom === 'true',  // Convertir a booleano
+                            metingCalendar: 'meetings-calendar',
+                            show_description: showDescription === 'true',  // Convertir a booleano
+                            block_after_login: blockAfterLogin === 'false' ? false : true,  // Convertir a booleano
+                            partial_loading: partialLoading === 'true',  // Convertir a booleano
+                            show_parent: showParent === 'true',  // Convertir a booleano
+                            visualization: visualization,
+                            date_min: daaMin,  // Fechas mínimas y máximas para el filtro
+                            date_max: dataMax,
+                        };
+    
+                        console.log(props);
+    
+                        // Renderizar el calendario en el contenedor
+                        ReactDOM.render(<Calendar {...props} />, calendarPopup);
+    
+                        // Botón para cerrar el popup
+                        let closeButton = document.createElement('button');
+                        closeButton.textContent = "Cerrar";
+                        closeButton.style.position = "absolute";
+                        closeButton.style.top = "10px";
+                        closeButton.style.right = "10px";
+                        closeButton.style.padding = "10px 20px";
+                        closeButton.style.backgroundColor = "#FF0000";
+                        closeButton.style.color = "white";
+                        closeButton.style.border = "none";
+                        closeButton.style.cursor = "pointer";
+                        closeButton.addEventListener("click", function () {
+                            document.body.removeChild(domContainer);
+                        });
+                        domContainer.appendChild(closeButton);
+                    }
+                });
+            });
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
 }
 
 export default GafaThemeSDK;
