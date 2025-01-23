@@ -94,6 +94,14 @@ export default class VerticalCalendarBody extends React.Component {
 
         let listItems = [];
 
+        if (filteredMeetings.length === 0 || filteredMeetings.every(day => day.meetings.length === 0)) {
+            return (
+                <div className={`${preC}-Calendar__week_body_vertical no-meetings`}>
+                    <p className="no-meetings-message">"Sin horarios disponibles para este día"</p>
+                </div>
+            );
+        }
+
         filteredMeetings.forEach(function (day, index) {
             let column_days = [];
             let activeClass = day.meetings.filter((meeting) => {
