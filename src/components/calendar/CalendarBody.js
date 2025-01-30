@@ -93,7 +93,6 @@ class CalendarBody extends React.Component {
         let daysToAdd = getDaysToAddToEndBasedOnVisualization(); //funcion para evaluar los dias
 
         end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias
-        console.log(end,daysToAdd);
 
         this.setState({
             start,
@@ -142,9 +141,7 @@ class CalendarBody extends React.Component {
         if (this.hasNextPrev()) {
             let compare_start = new Date(start.getTime());
             let daysToAdd = getDaysToAddToStartBasedOnVisualization(); //funcion para evaluar los dias
-            console.log(start,compare_start,daysToAdd)
             compare_start.setDate(compare_start.getDate() + daysToAdd);
-            console.log(compare_start);
             CalendarStorage.set('start_date', compare_start);
         }
     }
@@ -180,7 +177,6 @@ class CalendarBody extends React.Component {
                     moment(day.date).toDate()
                 );
             });
-            // console.log(start,end,dayList,meetings_to_show)
 
             if (meetings_to_show.length > 0) {
                 for (var i = 0; i < meetings_to_show.length; i++) {
