@@ -42,7 +42,7 @@ class CalendarBody extends React.Component {
         let end = new Date(start.getTime());
 
 
-        let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+        let daysToAdd = getDaysToAddToEndBasedOnVisualization(); //funcion para evaluar los dias
 
         end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias        
 
@@ -64,7 +64,7 @@ class CalendarBody extends React.Component {
                 let end = new Date(start.getTime());
 
 
-                let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+                let daysToAdd = getDaysToAddToEndBasedOnVisualization(); //funcion para evaluar los dias
 
                 end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias
 
@@ -90,7 +90,7 @@ class CalendarBody extends React.Component {
         let end = new Date(start.getTime());
 
 
-        let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+        let daysToAdd = getDaysToAddToEndBasedOnVisualization(); //funcion para evaluar los dias
 
         end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias
 
@@ -140,7 +140,7 @@ class CalendarBody extends React.Component {
 
         if (this.hasNextPrev()) {
             let compare_start = new Date(start.getTime());
-            let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+            let daysToAdd = getDaysToAddToStartBasedOnVisualization(); //funcion para evaluar los dias
             compare_start.setDate(compare_start.getDate() + daysToAdd);
             CalendarStorage.set('start_date', compare_start);
         }
@@ -151,7 +151,7 @@ class CalendarBody extends React.Component {
 
         if (this.hasNextPrev(false)) {
             let compare_start = new Date(start.getTime());
-            let daysToAdd = getDaysToAddBasedOnVisualization(); //funcion para evaluar los dias
+            let daysToAdd = getDaysToAddToStartBasedOnVisualization(); //funcion para evaluar los dias
             compare_start.setDate(compare_start.getDate() - daysToAdd);
             CalendarStorage.set('start_date', compare_start);
         }
@@ -305,6 +305,7 @@ class CalendarBody extends React.Component {
                 slidesToScroll: 1,
                 slidesToShow: 1,
                 customPaging: function (i) {
+                    moment.locale(StringStore.getLanguage().toLowerCase());
                     return (
                         <a className={meetings_to_show[i].meetings.length === 0 ? 'empty-slide' : ''}>
                             <div>
@@ -390,12 +391,27 @@ class CalendarBody extends React.Component {
     }
 }
 
-// funcion para evaluar los dias a partir del tipo de visualizacion
-function getDaysToAddBasedOnVisualization() {
+/*
+ *funcion para evaluar los dias a partir del tipo de visualizacion
+ *
+ * @returns {number}
+ */
+function getDaysToAddToStartBasedOnVisualization() {
     // Obtenemos el tipo de visualización
     let visualization = CalendarStorage.get('visualization');
     // Determinamos los días a agregar según el tipo
-    return visualization === 'vertical' ? 7 : 60;
+    return (visualization === 'vertical' || visualization === 'horizontal') ? 7  : 60;
+}
+
+/**
+ *
+ * @returns {number}
+ */
+function getDaysToAddToEndBasedOnVisualization() {
+    // Obtenemos el tipo de visualización
+    let visualization = CalendarStorage.get('visualization');
+    // Determinamos los días a agregar según el tipo
+    return (visualization === 'vertical' || visualization === 'horizontal') ? 6 : 60;
 }
 
 export default CalendarBody;

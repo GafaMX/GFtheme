@@ -248,7 +248,7 @@ class CalendarFilters extends React.Component {
       let start = CalendarStorage.get('start_date');
       if (this.hasNextPrev()) {
           let compare_start = new Date(start.getTime());
-          compare_start.setDate(compare_start.getDate() + 7);
+          compare_start.setDate(compare_start.getDate() + 6);
           CalendarStorage.set('start_date', compare_start);
       }
    }
