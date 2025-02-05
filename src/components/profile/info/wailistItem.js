@@ -1,4 +1,4 @@
-'use strict';
+'use strict'; 
 
 import React from 'react';
 import moment from 'moment';
@@ -10,21 +10,29 @@ class WailistItem extends React.Component {
     }
 
     render() {
-        const { meeting_start, staff } = this.props;
-        
-        // Formatear la fecha de la clase
-        const formattedDate = meeting_start ? moment(meeting_start).format('LLLL') : 'Sin fecha';
-        
-        // Verificar si existe el nombre del staff
-        const staffName = staff && staff.name ? staff.name : 'Sin nombre de staff';
+        const { waitlist } = this.props;
+        const { meeting_start, staff, service, location } = waitlist;
+
+        // Formatear fecha de la clase
+        const formattedDateDay = meeting_start ? moment(meeting_start).format('D [de] MMM') : 'Sin fecha';
+        const formattedDateTime = meeting_start ? moment(meeting_start).format('h:mm a') : 'Sin horario';
+
+        // Verificar datos de staff, servicio y ubicación
+        const staffName = (staff && staff.name) ? staff.name : 'Sin nombre de staff';
+        const serviceName = (service && service.name) ? service.name : 'Sin servicio';
+        const locationName = (location && location.name) ? location.name : 'Sin ubicación';
 
         return (
             <div className={'pastClass-item'}>
                 <div className={'pastClass-item__header'}>
-                    <h3>Inicio de la Clase: {formattedDate}</h3>
+                    <h4>{serviceName}</h4>
                 </div>
                 <div className={'pastClass-item__body'}>
-                    <p>Instructor: {staffName}</p>
+                    <p className={'reservation-item-day'}>{formattedDateDay}</p>
+                    <p className={'reservation-item-location'}>{locationName}</p>
+                    <p className={'reservation-item-time'}>{formattedDateTime}</p>
+                    <p className={'reservation-item-staff'}><strong>{staffName}</strong></p>
+                    <p className={'reservation-item-cancelled'}><strong>Waitlist</strong></p>
                 </div>
             </div>
         );
@@ -32,4 +40,3 @@ class WailistItem extends React.Component {
 }
 
 export default WailistItem;
-

@@ -69,7 +69,7 @@ class FutureClasses extends React.Component {
         let ordersClass = preC + '-orders';
         let formClass = preE + '-form';
 
-        console.log('State list:', this.state.list);
+     
 
         const listItems = this.state.list.length > 0 
   ? this.state.list.flatMap(item => 
@@ -83,16 +83,13 @@ class FutureClasses extends React.Component {
   const wailistItems = this.state.list.length > 0 
   ? this.state.list.flatMap(item => 
       (item.waitlists && Array.isArray(item.waitlists)) 
-          ? item.waitlists.map(waitlist => 
-            <WailistItem 
-            key={waitlist.id} 
-            meeting_start={waitlist.meeting_start} 
-            staff={waitlist.staff} 
-          />
-            ) 
-          : []
-  )
+        ? item.waitlists.map(waitlist => 
+            <WailistItem key={waitlist.id} waitlist={waitlist} />
+          ) 
+        : []
+    )
   : [];
+
        
         return (
             <div className={profileClass + '__section is-futureClass'}>
