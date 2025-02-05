@@ -29,6 +29,11 @@ div.GFSDK-c-Calendar__body.month {
     margin: 15px 3px 0 3px !important;
 }
 
+p.no-meetings-message {
+    margin-left: 30px;
+    margin-top: 75px;
+}
+
 .GFSDK-c-Calendar__day_column_vertical.month-calendar {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important; /* 2 columnas */

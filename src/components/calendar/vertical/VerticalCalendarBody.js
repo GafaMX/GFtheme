@@ -5,6 +5,7 @@ import moment from "moment";
 import CalendarMeeting from "../CalendarMeeting";
 import uid from "uid";
 import Slider from "react-slick";
+import StringStore from "../../utils/Strings/StringStore";
 
 
 export default class VerticalCalendarBody extends React.Component {
@@ -41,6 +42,7 @@ export default class VerticalCalendarBody extends React.Component {
         });
 
         let dayTags = !!dayList && dayList.length ? dayList.map(function (item, i) {
+            moment.locale(StringStore.getLanguage().toLowerCase());
             return (
                 <a
                     key={`${preC}-Calendar--vertical-head--${item}`}
