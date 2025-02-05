@@ -74,7 +74,7 @@ class WaitlistItem extends React.Component {
         let cancelation = (
             <button type="button" className={buttonClass + "__close"}
                     onClick={this.handleShowCancelation.bind(this)}>
-                Cancelar Waitlist
+                <CloseIcon/>
             </button>
         );
 

@@ -93,7 +93,7 @@ export default {
     CANCELEDWAITLIST: 'Waitlist Cancelada',
     CANCELATIONCONFIRM: 'Sí, deseo cancelar',
     CANCELATIONMESSAGE: '¿Desea cancelar esta reserva?',
-    CANCELATIONMESSAGEWAITLIST: '¿Desea cancelar su lugar en el waitlist?',
+    CANCELATIONMESSAGEWAITLIST: '¿Le gustaría cancelar su lugar en la lista de espera?',
     CANCELLATION_WITHOUT_CREDIT_ALERT: 'Ya ha pasado la hora límite para cancelar. Si cancelas ahora no recibirás tu crédito de vuelta.',
     RESERVATION: 'Reserva',
     PAYMENT: 'Formas de pago',
