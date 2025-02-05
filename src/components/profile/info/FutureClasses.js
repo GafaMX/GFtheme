@@ -3,6 +3,7 @@
 import React from 'react';
 import GlobalStorage from '../../store/GlobalStorage';
 import ClassItem from "./ClassItem";
+import WailistItem from './wailistItem';
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -68,15 +69,36 @@ class FutureClasses extends React.Component {
         let ordersClass = preC + '-orders';
         let formClass = preE + '-form';
 
-        const listItems = this.state.list.map((reservation) =>
-            <ClassItem key={reservation.id} reservation={reservation} id={reservation.id}/>
-        );
+        console.log('State list:', this.state.list);
 
+        const listItems = this.state.list.length > 0 
+  ? this.state.list.flatMap(item => 
+      item.reservations.map(reservation => 
+        <ClassItem key={reservation.id} reservation={reservation} id={reservation.id} />
+      )
+    )
+  : [];
+
+
+  const wailistItems = this.state.list.length > 0 
+  ? this.state.list.flatMap(item => 
+      (item.waitlists && Array.isArray(item.waitlists)) 
+          ? item.waitlists.map(waitlist => 
+            <WailistItem 
+            key={waitlist.id} 
+            meeting_start={waitlist.meeting_start} 
+            staff={waitlist.staff} 
+          />
+            ) 
+          : []
+  )
+  : [];
+       
         return (
             <div className={profileClass + '__section is-futureClass'}>
 
                 {this.state.list.length > 0
-                    ? <div className={ordersClass + '__section'}>{listItems}</div>
+                    ? <div className={ordersClass + '__section'}>{listItems}{wailistItems}</div>
                     : <div className="is-empty">
                         <div className="is-notification">
                             <h3>{StringStore.get('PROFILE_NO_UPCOMING_CLASSES', [window.GFtheme.ClassName])}</h3>
