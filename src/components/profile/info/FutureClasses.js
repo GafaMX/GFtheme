@@ -3,7 +3,7 @@
 import React from 'react';
 import GlobalStorage from '../../store/GlobalStorage';
 import ClassItem from "./ClassItem";
-import WailistItem from './wailistItem';
+import WaitlistItem from './WaitlistItem';
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -84,7 +84,7 @@ class FutureClasses extends React.Component {
   ? this.state.list.flatMap(item => 
       (item.waitlists && Array.isArray(item.waitlists)) 
         ? item.waitlists.map(waitlist => 
-            <WailistItem key={waitlist.id} waitlist={waitlist} />
+            <WaitlistItem key={waitlist.id} waitlist={waitlist} />
           ) 
         : []
     )
