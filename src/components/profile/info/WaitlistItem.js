@@ -79,7 +79,7 @@ class WaitlistItem extends React.Component {
         );
 
         return (
-            <div className={'pastClass-item'}>
+            <div className={'pastClass-item waitlist'}>
                 <div className={'pastClass-item__header'}>
                     <h4>{serviceName}</h4>
                 </div>
