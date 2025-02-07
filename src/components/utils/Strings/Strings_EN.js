@@ -88,6 +88,7 @@ export default {
     CANCELEDRESERVATION: 'Reservation Canceled.',
     DELETEDCARD: 'Card deleted.',
     CANCELATION: 'Cancel',
+    CANCELATIONMESSAGEWAITLIST: 'Would you like to cancel your spot on the waitlist?',
     CANCELLED: 'Cancelled',
     CANCELATIONCONFIRM: 'Confirm cancellation',
     CANCELATIONMESSAGE: 'Do you want to cancel this reservation?',

@@ -626,6 +626,18 @@ class GafaFitSDKWrapper extends React.Component {
         )
     };
 
+    static cancelWaitlist(brand, waitlistId, options, callbackSuccess, callbackError) {
+        GafaFitSDK.PostUserCancelWaitlistInBrand(brand, waitlistId, options, 
+            function (error, result) {
+                if (error === null) {
+                    callbackSuccess(result);
+                } else {
+                    callbackError(error);
+                }
+            }
+        );
+    };    
+
     static postUserCancelReservation(brand, reservation, options, callbackSuccess, callbackError) {
         GafaFitSDK.PostUserCancelReservation(
             brand, reservation, options,
