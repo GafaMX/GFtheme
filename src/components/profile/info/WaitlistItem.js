@@ -1,4 +1,4 @@
-'use strict'; 
+'use strict';
 
 import React from 'react';
 import moment from 'moment';
@@ -20,8 +20,8 @@ class WaitlistItem extends React.Component {
     handleClick(event) {
         event.preventDefault();
         let comp = this;
-        const { waitlist } = this.props;
-        const { brand, id, } = waitlist;
+        const {waitlist} = this.props;
+        const {brand, id,} = waitlist;
 
         GafaFitSDKWrapper.cancelWaitlist(
             brand.slug,
@@ -59,17 +59,20 @@ class WaitlistItem extends React.Component {
     render() {
         let preE = 'GFSDK-e';
         let buttonClass = preE + '-buttons';
-        const { waitlist } = this.props;
-        const { meeting_start, staff, service, location } = waitlist;
+        const {waitlist} = this.props;
+        const {meeting_start, staff, service, location} = waitlist;
+
+        let lang = StringStore.getLanguage();
+        let format = StringStore.get('PROFILE_RESERVATIONS_FORMAT')
 
         // Formatear fecha de la clase
-        const formattedDateDay = meeting_start ? moment(meeting_start).format('D [de] MMM') : 'Sin fecha';
-        const formattedDateTime = meeting_start ? moment(meeting_start).format('h:mm a') : 'Sin horario';
+        const formattedDateDay = meeting_start ? moment(meeting_start).locale(lang).format(format) : StringStore.get('PROFILE_RESERVATIONS_NO_DATE');
+        const formattedDateTime = meeting_start ? moment(meeting_start).locale(lang).format('h:mm a') : StringStore.get('PROFILE_RESERVATIONS_NO_TIME');
 
         // Verificar datos de staff, servicio y ubicación
-        const staffName = (staff && staff.name) ? staff.name : 'Sin nombre de staff';
-        const serviceName = (service && service.name) ? service.name : 'Sin servicio';
-        const locationName = (location && location.name) ? location.name : 'Sin ubicación';
+        const staffName = (staff && staff.name) ? staff.name : StringStore.get('PROFILE_RESERVATIONS_NO_STAFF');
+        const serviceName = (service && service.name) ? service.name : StringStore.get('PROFILE_RESERVATIONS_NO_SERVICE');
+        const locationName = (location && location.name) ? location.name : StringStore.get('PROFILE_RESERVATIONS_NO_LOCATION');
 
         let cancelation = (
             <button type="button" className={buttonClass + "__close"}
@@ -97,7 +100,7 @@ class WaitlistItem extends React.Component {
 
                     <div className="modal-cancelation__container">
                         <div className="modal-login__close" onClick={this.handleClickBack.bind(this)}>
-                            <CloseIcon />
+                            <CloseIcon/>
                         </div>
                         <div className={'modal-cancelation__body'}>
                             <h3>{StringStore.get('CANCELATION')}</h3>
@@ -110,7 +113,8 @@ class WaitlistItem extends React.Component {
                                     {StringStore.get('CANCELATIONCONFIRM')}
                                 </button>
                             </div>
-                            <div className={"modal-cancelation__error " + (this.state.errorCancelation ? 'res_has_error' : null)}>
+                            <div
+                                className={"modal-cancelation__error " + (this.state.errorCancelation ? 'res_has_error' : null)}>
                                 {this.state.errorCancelation ? this.state.errorCancelation : null}
                             </div>
                         </div>
