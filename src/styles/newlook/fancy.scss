@@ -158,6 +158,10 @@
                   display: none;
                }
 
+               & > p.expiration{
+                  display: block;
+               }
+
                & > .value{
                   span{
                      margin-top: 32px;
