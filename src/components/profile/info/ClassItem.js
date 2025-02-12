@@ -143,15 +143,18 @@ class ClassItem extends React.Component {
             );
         }
 
+        let lang=StringStore.getLanguage();
+        let format=StringStore.get('PROFILE_RESERVATIONS_FORMAT');
+
         return (
             <div className={'pastClass-item'}>
                 <div className={'pastClass-item__header'}>
                     <h4>{this.props.reservation.service['name']}</h4>
                 </div>
                 <div className={'pastClass-item__body'}>
-                    <p className={'reservation-item-day'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
+                    <p className={'reservation-item-day'}>{moment(this.props.reservation.meeting_start).locale(lang).format(format)}</p>
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
-                    <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('h:mm a')}</p>
+                    <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).locale(lang).format('h:mm a')}</p>
                     {this.printStaff()}
                     {this.printSubstituteStaff()}
                     {this.printPosition()}

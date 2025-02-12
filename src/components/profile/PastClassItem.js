@@ -80,6 +80,8 @@ class ClassItem extends React.Component {
                 <p className={'reservation-item-credits'}>{StringStore.get('CREDIT')}{this.props.reservation.credit['name']}</p>)
         }
 
+        let lang = StringStore.getLanguage();
+        let format = StringStore.get('PROFILE_RESERVATIONS_FORMAT');
 
         return (
             <div className={'futureClasses-item'}>
@@ -87,7 +89,7 @@ class ClassItem extends React.Component {
                     <h4>{this.props.reservation.meetings.service['name']}</h4>
                 </div>
                 <div className={'futureClasses-item__body'}>
-                    <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).format('D [de] MMM')}</p>
+                    <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).locale(lang).format(format)}</p>
                     {this.printStaff()}
                     {this.printSubstituteStaff()}
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
