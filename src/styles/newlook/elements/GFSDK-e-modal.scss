@@ -154,7 +154,7 @@
       }
 
      &--alert {
-       color: #FF3E4F;
+       color: #000000;
        font-size: 12px;
      }
    }
@@ -166,7 +166,7 @@
    &__error{
       opacity: 0;
       transform: translateY(-10px);
-      color:#FF3E4F;
+      color:#000000;
       transition: all .3s ease;
       transition-delay: .3s;
       font-size: 12px;

@@ -20,6 +20,14 @@ div.GFSDK-c-Calendar__body.month {
     align-items: center;
 }
 
+button.GFSDK-c-Calendar__body-weeksSection {
+    padding: 0;
+}
+
+.GFSDK-c-Calendar__head-vertical p.GFSDK-e-form__label , .gs-paymentMethod__header .gs-title{
+    display: none;
+ }
+
 .vertical-calendar--mobile {
     width: 100%;
     margin-top: 20px;
@@ -47,6 +55,10 @@ p.no-meetings-message {
 
 button.react-calendar__tile {
     padding: 10px;
+}
+
+.GFSDK-c-Calendar__column__meeting{
+    width:99%;
 }
 
 

@@ -238,7 +238,7 @@
          
          &.checked{
                &:before{
-                  background-color: #FF3E4F;
+                  background-color: #000000;
                }
          }
       }
@@ -315,12 +315,12 @@
             width:40px;
             font-size: 20px;
             font-weight: bold;
-            background-color: #FF3E4F;
+            background-color: #000000;
             color:white;
             
             
             &:hover{
-               background-color: darken(#FF3E4F, 20%)t;
+               background-color: darken(#000000, 20%)t;
             }
 
             &:disabled{
@@ -362,7 +362,7 @@
             text-transform: uppercase;
 
             &.react-calendar__tile--hasActive{
-               background-color: #FF3E4F;
+               background-color: #000000;
                color:white!important;
             }
          }
@@ -404,7 +404,7 @@
             }
 
             &.react-calendar__tile--active{
-               background-color: #FF3E4F;
+               background-color: #000000;
                color:white!important;
             }
          }
