@@ -130,4 +130,10 @@ export default {
     FAVORITE_STAFF: 'Instructores Favoritos',
     FAVORITE_TIME: 'Horarios Favoritos',
     SUBSTITUTE_INDICATOR: 'S:',
+    PROFILE_RESERVATIONS_FORMAT: 'dd DD [de] MMM',
+    PROFILE_RESERVATIONS_NO_DATE: 'Sin fecha',
+    PROFILE_RESERVATIONS_NO_TIME: 'Sin horario',
+    PROFILE_RESERVATIONS_NO_STAFF: 'Sin nombre de staff',
+    PROFILE_RESERVATIONS_NO_SERVICE: 'Sin servicio',
+    PROFILE_RESERVATIONS_NO_LOCATION: 'Sin ubicación',
 }

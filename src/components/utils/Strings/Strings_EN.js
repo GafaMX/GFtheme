@@ -127,4 +127,5 @@ export default {
     FAVORITE_STAFF: 'Favorite Instructors',
     FAVORITE_TIME: 'Favorite Times',
     SUBSTITUTE_INDICATOR: 'S:',
+    PROFILE_RESERVATIONS_FORMAT: 'dd Do [of] MMM'
 }
