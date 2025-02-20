@@ -18,7 +18,7 @@ export default class VerticalCalendarBody extends React.Component {
         this.state = {
             selectedDate: new Date(),
         };
-
+  
         this.handleDateChange = this.handleDateChange.bind(this);
     }
 
@@ -87,6 +87,8 @@ export default class VerticalCalendarBody extends React.Component {
         let { selectedDate } = this.state;
         let preC = 'GFSDK-c';
 
+         const formattedDate = moment(selectedDate).format('dddd D [de] MMMM ');
+
         // Filtrar reuniones del día seleccionado
         const filteredMeetings = meetings_to_show.filter((day) => {
             return moment(day.date).isSame(moment(selectedDate), 'day');
@@ -96,8 +98,14 @@ export default class VerticalCalendarBody extends React.Component {
 
         if (filteredMeetings.length === 0 || filteredMeetings.every(day => day.meetings.length === 0)) {
             return (
+                <div>
+                    <div className="selected-date-wrapper">
+                        <p className="selected-date">{formattedDate}</p>
+                    </div>
+
                 <div className={`${preC}-Calendar__week_body_vertical no-meetings`}>
                     <p className="no-meetings-message">"Sin horarios disponibles para este día"</p>
+                </div>
                 </div>
             );
         }
@@ -138,8 +146,17 @@ export default class VerticalCalendarBody extends React.Component {
                 </div>
             );
         });
-
-        return <div className={`${preC}-Calendar__week_body_vertical`}>{listItems}</div>;
+ 
+        return (
+            <div>
+                <div className="selected-date-wrapper">
+                    <p className="selected-date">{formattedDate}</p>
+                </div>
+                <div className={`${preC}-Calendar__week_body_vertical`}>
+                    {listItems}
+                </div>
+            </div>
+        );
     }
 
     printMeetingsBodyMobile() {
