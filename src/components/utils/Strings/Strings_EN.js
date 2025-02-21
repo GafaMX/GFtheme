@@ -127,5 +127,6 @@ export default {
     FAVORITE_STAFF: 'Favorite Instructors',
     FAVORITE_TIME: 'Favorite Times',
     SUBSTITUTE_INDICATOR: 'S:',
-    PROFILE_RESERVATIONS_FORMAT: 'dd Do [of] MMM'
+    PROFILE_RESERVATIONS_FORMAT: 'dd Do [of] MMM',
+    CALENDAR_ALREADY_RESERVED: 'You already have have one or more reservations in this class'
 }

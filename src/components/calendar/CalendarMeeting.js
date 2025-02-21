@@ -6,6 +6,7 @@ import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import moment from 'moment';
 import 'moment/locale/es';
 import StringStore from "../utils/Strings/StringStore";
+import Check from "../icons/Check";
 
 class CalendarMeeting extends React.Component {
     constructor(props) {
@@ -13,6 +14,7 @@ class CalendarMeeting extends React.Component {
 
         this.state = {
             openFancy: false,
+            showTooltip: false,
         }
     }
 
@@ -152,9 +154,20 @@ class CalendarMeeting extends React.Component {
         return null;
     }
 
+    showTooltip(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        let {showTooltip} = this.state;
+        console.log(showTooltip);
+
+        this.setState({
+            showTooltip: !showTooltip
+        });
+    }
+
     render() {
-        let { meeting, visualization } = this.props;
-        let {openFancy} = this.state;
+        let {meeting, visualization} = this.props;
+        let {openFancy, showTooltip} = this.state;
         let day = this.props.day;
         let classStart = moment(meeting.start_date).toDate();
         let time_format = meeting.location.brand.time_format;
@@ -180,18 +193,38 @@ class CalendarMeeting extends React.Component {
                         <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>
                     }
                 </div>
-              
-                    <hr></hr>
-                    <div className={meetingClass + '__body'}>
-                        <p className={'this-availability'}>{StringStore.get('AVAILABILITY')}: {meeting.available} / {meeting.capacity}</p>
-                        {this.printStaff()}
-                        {this.printSubstituteStaff()}
-                        {show_parent && parent_service ? (
-                            <p className={'this-parent-service'}>{parent_service.name}</p>) : null}
-                        <p className={'this-service'}>{meeting.service.name}</p>
-                        <p className={'this-location'}>{meeting.location.name}</p>
-                        {this.printDescription()}
-                    </div>                                
+
+                <hr></hr>
+                <div className={meetingClass + '__body'}>
+                    <p className={'this-availability'}>{StringStore.get('AVAILABILITY')}: {meeting.available} / {meeting.capacity}</p>
+                    {this.printStaff()}
+                    {this.printSubstituteStaff()}
+                    {show_parent && parent_service ? (
+                        <p className={'this-parent-service'}>{parent_service.name}</p>) : null}
+                    <p className={'this-service'}>{meeting.service.name}</p>
+                    <p className={'this-location'}>{meeting.location.name}</p>
+                    {this.printDescription()}
+                    {meeting.is_reserved === 1 ? (
+                        <div className={meetingClass + '__reserved_mark'}>
+                            <Check
+                                width={'15px'}
+                                className={meetingClass + '__reserved_mark__icon'}
+                                onClick={this.showTooltip.bind(this)}
+                            />
+                            <input
+                                type={'checkbox'}
+                                hidden={true}
+                                className={meetingClass + '__reserved_mark__checkbox'}
+                                checked={showTooltip}
+                                onChange={this.showTooltip.bind(this)}
+                            />
+                            <div
+                                className={meetingClass + '__reserved_mark__tooltip' + (showTooltip ? ' showTooltip' : '')}>
+                                {StringStore.get('CALENDAR_ALREADY_RESERVED')}
+                            </div>
+                        </div>
+                    ) : null}
+                </div>
             </div>
         );
     }
