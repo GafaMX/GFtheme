@@ -24,6 +24,7 @@
     padding: 0;
     // width:250px; // todo versión horizontal
     width: 100%;
+    max-width: calc(100% - 6px);
 
     &.no-availability.disable {
       background-color: #DBDBDB66;
@@ -123,6 +124,8 @@
   }
 
   &__body {
+    position: relative;
+
     .horizontal &, .vertical .vertical-calendar--mobile & {
       display: block;
       align-items: center;
@@ -176,6 +179,42 @@
 
     .this-availability, .this-service {
       font-size: 13px;
+    }
+  }
+
+  &__reserved_mark {
+    bottom: 2px;
+    width: 100%;
+    text-align: end;
+
+    &__tooltip {
+      display: none;
+      width: 100px;
+      text-align: left;
+      padding: 4px;
+      background-color: #eee;
+      opacity: 1;
+      font-size: 12px;
+      line-height: 1.6;
+      letter-spacing: .85px;
+      color: #8E8E93;
+    }
+
+    @media screen and (min-width: 992px) {
+      &:hover &__tooltip {
+        display: block;
+        position: absolute;
+      }
+    }
+
+    @media screen and (max-width: 992px) {
+      &__tooltip.showTooltip {
+        display: block;
+        position: absolute;
+        z-index: 1;
+        right: 15px;
+        width: 200px;
+      }
     }
   }
 }
