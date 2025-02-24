@@ -187,11 +187,11 @@
       &.slick-active {
         a {
           .this-date {
-            color: #FF3E4F;
+            color: #000000;
           }
 
           .this-number {
-            background-color: #FF3E4F;
+            background-color: #000000;
             color: white;
           }
         }
@@ -331,7 +331,7 @@
 
     /* Handle */
     &::-webkit-scrollbar-thumb {
-      background: #FF3E4F;
+      background: #000000;
       border-radius: 5px;
     }
 

@@ -47,19 +47,19 @@
         height: 20px;
         width: 20px;
         border-radius: 50%;
-        background-color:darken(#FF3E4F, 30%);
+        background-color:darken(#000000, 30%);
         color:white;
     }
 
     &.is-primary{
-        background-color: #FF3E4F;
+        background-color: #000000;
         color: #FFFFFF;
         fill: #FFFFFF;
         border: 0 transparent none;
         @include transition(background-color);
 
         &:hover{
-            background-color: darken(#FF3E4F, 10%);
+            background-color: darken(#000000, 10%);
         }
     }
 
@@ -107,7 +107,7 @@
         padding: 8px;
         border-radius: 100%;
         border: 0 transparent none;
-        background-color:#FF3E4F;
+        background-color:#000000;
         align-items: center;
         justify-items: center;
 
@@ -123,7 +123,7 @@
         }
         
         &:hover{
-            background-color:darken(#FF3E4F, 10%);
+            background-color:darken(#000000, 10%);
         }
         
         .svg-icon{

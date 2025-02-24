@@ -94,6 +94,27 @@
 	opacity:.3;
 }
 
+.gs-button.is-return {
+   border: 0;
+}
+
+.gs-table th, .gs-table td {
+   padding: 5px;
+   border: 0px;
+   background: transparent !important;
+}
+
+
+
+input {
+   background-color: transparent !important;
+   color: #000;
+}
+
+label {
+   color: #000 !important;
+}
+
 #CreateReservationFancyTemplate{
    .productSelection__content{
       .SelectProductsStepNav{
@@ -108,7 +129,7 @@
                
                &.active, &:hover{
                   div{
-                     background-color: #FF3E4F;
+                     background-color: #000000;
                      color:white;
                   }
                }
@@ -183,7 +204,7 @@
             .add-to-card{
                margin:0;
                width:100%;
-               background-color:#FF3E4F;
+               background-color:#000000;
                border-radius: 4px;
                padding:11px 29px;
                font-size:10px;
@@ -307,7 +328,7 @@
       }
 
       .gs-checkOut{
-         background-color:#FF3E4F;
+         background-color:#000000;
          border-radius: 4px;
          padding:18px 29px;
          font-size:10px;
@@ -337,7 +358,7 @@
          text-transform: initial;
 
          &.TabsGafaFit--tab-link__active, &:hover{
-            background-color: #FF3E4F;
+            background-color: #000000;
             color:white;
          }
 

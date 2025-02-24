@@ -14,11 +14,19 @@ div.GFSDK-c-Calendar__body.month {
     flex: 1;
     display: flex;
     flex-direction: row;
-    margin: 10px;
-    padding: 10px;
+    /*margin: 10px;
+    padding: 10px;*/
     flex-wrap: wrap;
     align-items: center;
 }
+
+button.GFSDK-c-Calendar__body-weeksSection {
+    padding: 0;
+}
+
+.GFSDK-c-Calendar__head-vertical p.GFSDK-e-form__label , .gs-paymentMethod__header .gs-title{
+    display: none;
+ }
 
 .vertical-calendar--mobile {
     width: 100%;
@@ -39,7 +47,7 @@ p.no-meetings-message {
     grid-template-columns: repeat(2, 1fr) !important; /* 2 columnas */
     grid-auto-rows: auto !important; /* Ajuste automático de altura */
     
-    max-height: calc(3 * 120px) !important; /* Máximo 3 filas (ajusta 120px según el diseño) */
+    max-height: calc(3 * 67px) !important; /* Máximo 3 filas (ajusta 120px según el diseño) */
     overflow-y: auto !important; /* Scroll vertical para más elementos */
     padding: 10px !important;
     box-sizing: border-box !important;
@@ -49,9 +57,20 @@ button.react-calendar__tile {
     padding: 10px;
 }
 
+.GFSDK-c-Calendar__column__meeting{
+    width:99%;
+}
+
 
 .GFSDK-c-Calendar__day_column_vertical.month-calendar .GFSDK-c-Calendar__item.GFSDK-e-meeting .GFSDK-e-meeting__body, .GFSDK-c-Calendar__day_column_vertical.month-calendar .GFSDK-c-Calendar__item.GFSDK-e-meeting hr {
     display: none;
+}
+
+.selected-date-wrapper {
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 15px;
 }
 
 @media (max-width: 992px) {
