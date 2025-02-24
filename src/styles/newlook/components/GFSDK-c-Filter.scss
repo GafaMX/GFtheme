@@ -100,7 +100,7 @@
                color:#A5A1A1;
 
                .is-today &{
-                  color:#232040;
+                  color:#000;
                }
 
                &:first-child{
@@ -119,7 +119,7 @@
                   justify-items: center;
 
                   .is-today &{
-                     background-color: #232040;
+                     background-color: #000;
                      color:white;
                   }
                }

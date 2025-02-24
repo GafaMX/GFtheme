@@ -30,7 +30,7 @@
    
    &__footer{
       position:initial;
-      color: #575757;
+      color: #8B8B8C;
    }
 
    &__head, &__body{
@@ -64,7 +64,7 @@
          p{
             font-size:14px;
             font-weight: 300;
-            color:#544C4C;
+            color:#8B8B8C;
          }
 
          &.has-discount{
@@ -90,7 +90,7 @@
          cursor: pointer;
          
          &:hover{
-            background: #FFA3AB;
+            background: #8B8B8C;
          }
       }
    }
@@ -121,7 +121,7 @@
             display:inline;
             font-weight:400;
             font-size:11px;
-            color:#BBBBBD;
+            color:#8B8B8C;
          }
       }
    }

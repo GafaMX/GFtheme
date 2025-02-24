@@ -276,6 +276,10 @@ body.modal-open {
   height: 100%;
   overflow: hidden;
 
+  .profile-tabs #ProfileTabs>.tab-content>.tab-pane {
+    min-height: 600px;
+   }
+
   @media screen and (min-width: 992px) {
     border-radius: 23px;
     // padding: 0 36px 36px;
@@ -717,6 +721,10 @@ body.modal-open {
           width: 13px;
         }
       }
+
+      a.this-logOut {
+        color: #fff !important;
+     }
     }
   }
 
@@ -759,13 +767,13 @@ body.modal-open {
   &__name {
     font-size: 18px;
     font-weight: 600;
-    color: #1F1C3D;
+    color: #000;
     line-height: 26px;
   }
 
   &__venue {
     font-size: 14px;
-    color: lighten(#1F1C3D, 20%);
+    color: lighten(#000, 20%);
     line-height: 21px;
   }
 
