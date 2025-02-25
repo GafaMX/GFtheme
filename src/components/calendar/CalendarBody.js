@@ -39,6 +39,13 @@ class CalendarBody extends React.Component {
 
     componentDidMount() {
         let start = CalendarStorage.get('start_date');
+
+        if (!start) {
+            console.warn("start_date es null en componentDidMount, estableciendo una fecha por defecto");
+            start = new Date(); // Establece una fecha por defecto
+            CalendarStorage.set('start_date', start);
+        }
+    
         let end = new Date(start.getTime());
 
 
@@ -87,6 +94,12 @@ class CalendarBody extends React.Component {
 
     updateStart() {
         let start = CalendarStorage.get('start_date');
+        if (!start) {
+            console.warn("start_date es null en updateStart, estableciendo una fecha por defecto");
+            start = new Date();
+            CalendarStorage.set('start_date', start);
+        }
+        
         let end = new Date(start.getTime());
 
 
@@ -116,6 +129,12 @@ class CalendarBody extends React.Component {
     hasNextPrev(next = true) {
         let meetings = CalendarStorage.get('meetings');
         let start = CalendarStorage.get('start_date');
+
+        if (!start) {
+            console.error("Error: start_date es null en hasNextPrev");
+            return false; // Devuelve false para evitar errores
+        }
+
         let compare_start = new Date(start.getTime());
 
         let added = next ? 7 : 0;

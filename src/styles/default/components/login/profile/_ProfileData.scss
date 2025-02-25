@@ -123,6 +123,10 @@
         }
     }
 
+    .profile-tabs #ProfileTabs>.tab-content>.tab-pane {
+        min-height: 600px !important;
+       }
+
     #ProfileTabs{
         > .nav-tabs{
             margin:0 0 1rem;

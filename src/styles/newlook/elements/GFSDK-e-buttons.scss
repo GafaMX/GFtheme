@@ -83,9 +83,9 @@
         }
         
         &.is-close{
-            background-color: #F1565D;
+            background-color: #8B8B8C;
             &:hover{
-                background-color: darken(#F1565D, 10%);
+                background-color: darken(#8B8B8C, 10%);
             }
         }
 
@@ -115,10 +115,10 @@
             // position:relative;
             top:initial;
             right:20px;
-            background-color: #1F1C3D;
+            background-color: #000;
 
             &:hover{
-                background-color: lighten(#1F1C3D, 10%);
+                background-color: lighten(#000, 10%);
             }
         }
         
@@ -157,6 +157,10 @@
         }
     }
 
+    button.GFSDK-e-buttons.GFSDK-e-buttons--icon:hover {
+        background: transparent;
+    }
+
    &--icon{
       position: relative;
       height: 40px;
@@ -187,7 +191,7 @@
         align-items: center;
         justify-content: center;
         line-height: 30px;
-        background-color:#BDBDBD;
+        background-color:#8B8B8C;
         padding:8px;
         height:30px;
         width:30px;
