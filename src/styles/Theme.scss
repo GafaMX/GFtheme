@@ -10,6 +10,10 @@ section[data-gf-theme="staff-list"]{
     display:none!important;
 }
 
+section.active.show {
+    z-index: 999999;
+}
+
 header{
     position:fixed;
     display: grid;

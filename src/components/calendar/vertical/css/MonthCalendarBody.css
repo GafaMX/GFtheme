@@ -4,6 +4,18 @@ div.GFSDK-c-Calendar__body.month {
     box-sizing: border-box !important; /* Asegura que el padding no aumente el ancho total */
 }
 
+.selected-date-container {
+    height: 100%;
+}
+
+.GFSDK-e-meeting__header {
+    width: 100%;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .calendar-wrapper {
     display: flex;
     align-items: flex-start; /* Alinea los elementos al inicio verticalmente */
@@ -42,13 +54,43 @@ p.no-meetings-message {
     margin-top: 75px;
 }
 
+.GFSDK-c-Calendar__item.GFSDK-e-meeting {
+    width: 100px; 
+    height: 60px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap; 
+}
+
+p.this-time {
+    font-size: 14px; 
+    margin: 0;
+    padding: 0;
+    white-space: nowrap; 
+    overflow: hidden;
+    
+}
+
+.react-calendar__tile--now {
+    background: #727272 !important;
+}
+
+.react-calendar__tile--active {
+    background: #000 !important;
+    color: white;
+}
+
+
 .GFSDK-c-Calendar__day_column_vertical.month-calendar {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important; /* 2 columnas */
-    grid-auto-rows: auto !important; /* Ajuste automático de altura */
+    grid-auto-rows: auto !important; 
     
-    max-height: calc(3 * 67px) !important; /* Máximo 3 filas (ajusta 120px según el diseño) */
-    overflow-y: auto !important; /* Scroll vertical para más elementos */
+    max-height: calc(3 * 80px) !important; 
+    overflow-y: auto !important; 
     padding: 10px !important;
     box-sizing: border-box !important;
 }
@@ -71,6 +113,17 @@ button.react-calendar__tile {
     font-weight: bold;
     font-size: 16px;
     margin-top: 15px;
+}
+
+p.selected-date {
+    text-transform: uppercase;
+    margin-left: 10px;
+		font-size:14px;
+		margin-bottom: 0px;
+}
+	
+	.react-calendar {
+    margin-right: 20px;
 }
 
 @media (max-width: 992px) {
