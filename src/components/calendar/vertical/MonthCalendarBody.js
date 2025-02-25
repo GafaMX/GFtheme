@@ -100,7 +100,7 @@ export default class VerticalCalendarBody extends React.Component {
 
         if (filteredMeetings.length === 0 || filteredMeetings.every(day => day.meetings.length === 0)) {
             return (
-                <div>
+                <div className="selected-date-container">
                     <div className="selected-date-wrapper">
                         <p className="selected-date">{formattedDate}</p>
                     </div>
@@ -150,7 +150,7 @@ export default class VerticalCalendarBody extends React.Component {
         });
  
         return (
-            <div>
+            <div className="selected-date-container">
                 <div className="selected-date-wrapper">
                     <p className="selected-date">{formattedDate}</p>
                 </div>
