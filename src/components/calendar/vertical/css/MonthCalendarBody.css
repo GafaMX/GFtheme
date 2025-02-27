@@ -54,7 +54,7 @@ p.no-meetings-message {
     margin-top: 75px;
 }
 
-.GFSDK-c-Calendar__item.GFSDK-e-meeting {
+.month-calendar .GFSDK-c-Calendar__item.GFSDK-e-meeting {
     width: 100px; 
     height: 60px; 
     display: flex;
@@ -64,6 +64,7 @@ p.no-meetings-message {
     overflow: hidden;
     white-space: nowrap; 
 }
+
 
 p.this-time {
     font-size: 14px; 
