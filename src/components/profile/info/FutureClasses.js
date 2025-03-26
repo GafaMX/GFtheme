@@ -69,28 +69,31 @@ class FutureClasses extends React.Component {
         let ordersClass = preC + '-orders';
         let formClass = preE + '-form';
 
-     
 
-        const listItems = this.state.list.length > 0 
-  ? this.state.list.flatMap(item => 
-      item.reservations.map(reservation => 
-        <ClassItem key={reservation.id} reservation={reservation} id={reservation.id} />
-      )
-    )
-  : [];
+        const listItems = this.state.list.length > 0
+            ? this.state.list.flatMap(item =>
+                item.reservations.map(reservation => {
+                    if (reservation.is_waitlist) {
+                        return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
+                    } else {
+                        return (<ClassItem key={`future-reservation-list--${reservation.id}`} reservation={reservation} id={reservation.id}/>)
+                    }
+                })
+            )
+            : [];
 
 
-  const wailistItems = this.state.list.length > 0 
-  ? this.state.list.flatMap(item => 
-      (item.waitlists && Array.isArray(item.waitlists)) 
-        ? item.waitlists.map(waitlist => 
-            <WaitlistItem key={waitlist.id} waitlist={waitlist} />
-          ) 
-        : []
-    )
-  : [];
+        const wailistItems = this.state.list.length > 0
+            ? this.state.list.flatMap(item =>
+                (item.waitlists && Array.isArray(item.waitlists))
+                    ? item.waitlists.map(waitlist =>
+                        <WaitlistItem key={waitlist.id} waitlist={waitlist}/>
+                    )
+                    : []
+            )
+            : [];
 
-       
+
         return (
             <div className={profileClass + '__section is-futureClass'}>
 

@@ -91,7 +91,7 @@ class WaitlistItem extends React.Component {
                     <p className={'reservation-item-location'}>{locationName}</p>
                     <p className={'reservation-item-time'}>{formattedDateTime}</p>
                     <p className={'reservation-item-staff'}><strong>{staffName}</strong></p>
-                    <p className={'reservation-item-cancelled'}><strong>Waitlist</strong></p>
+                    <p className={'reservation-item-cancelled'}><strong>{StringStore.get('IN_WAITLIST')}</strong></p>
                 </div>
                 {cancelation}
 
