@@ -87,7 +87,9 @@ export default class VerticalCalendarBody extends React.Component {
         let { selectedDate } = this.state;
         let preC = 'GFSDK-c';
 
-         const formattedDate = moment(selectedDate).format('dddd D [de] MMMM ');
+        const formattedDate = moment(selectedDate)
+        .format('dddd, D [de] MMMM')
+        .replace(/^\w/, (c) => c.toUpperCase());
 
         // Filtrar reuniones del día seleccionado
         const filteredMeetings = meetings_to_show.filter((day) => {
@@ -98,7 +100,7 @@ export default class VerticalCalendarBody extends React.Component {
 
         if (filteredMeetings.length === 0 || filteredMeetings.every(day => day.meetings.length === 0)) {
             return (
-                <div>
+                <div className="selected-date-container">
                     <div className="selected-date-wrapper">
                         <p className="selected-date">{formattedDate}</p>
                     </div>
@@ -148,7 +150,7 @@ export default class VerticalCalendarBody extends React.Component {
         });
  
         return (
-            <div>
+            <div className="selected-date-container">
                 <div className="selected-date-wrapper">
                     <p className="selected-date">{formattedDate}</p>
                 </div>

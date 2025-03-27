@@ -136,5 +136,6 @@ export default {
     PROFILE_RESERVATIONS_NO_STAFF: 'Sin nombre de staff',
     PROFILE_RESERVATIONS_NO_SERVICE: 'Sin servicio',
     PROFILE_RESERVATIONS_NO_LOCATION: 'Sin ubicación',
-    CALENDAR_ALREADY_RESERVED: 'Ya tienes una o más reservas en esta clase'
+    CALENDAR_ALREADY_RESERVED: 'Ya tienes una o más reservas en esta clase',
+    IN_WAITLIST: 'En lista de espera'
 }

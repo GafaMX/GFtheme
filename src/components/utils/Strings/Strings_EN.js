@@ -128,5 +128,6 @@ export default {
     FAVORITE_TIME: 'Favorite Times',
     SUBSTITUTE_INDICATOR: 'S:',
     PROFILE_RESERVATIONS_FORMAT: 'dd Do [of] MMM',
-    CALENDAR_ALREADY_RESERVED: 'You already have have one or more reservations in this class'
+    CALENDAR_ALREADY_RESERVED: 'You already have have one or more reservations in this class',
+    IN_WAITLIST: 'In waitlist'
 }

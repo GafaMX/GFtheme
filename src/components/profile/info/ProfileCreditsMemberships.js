@@ -56,7 +56,9 @@ class ProfileCreditsMemberships extends React.Component {
             credits.forEach(function (credit) {
                 let credit_name = credit.hasOwnProperty('purchase_item') &&
                 typeof credit.purchase_item === 'object' &&
-                credit.purchase_item.hasOwnProperty('item_name') ?
+                credit.purchase_item !== null &&
+                credit.purchase_item.hasOwnProperty('item_name') &&
+                credit.purchase_item.item_name !== null ?
                     credit.purchase_item.item_name : credit.credit.name;
 
                 list = list.concat(
