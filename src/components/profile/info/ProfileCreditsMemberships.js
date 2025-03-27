@@ -45,7 +45,6 @@ class ProfileCreditsMemberships extends React.Component {
     }
 
     render() {
-        console.log('aqui');
         let preC = 'GFSDK-c';
         let preE = 'GFSDK-e';
         let paginationClass = preE + '-pagination';
