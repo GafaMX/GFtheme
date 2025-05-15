@@ -124,7 +124,7 @@ body.modal-open {
 }
 
 .profile-info {
-  display: grid;
+  
   width: 100%;
   max-width: 100vw;
   height: 100vh;
@@ -404,7 +404,7 @@ body.modal-open {
       & > div {
         padding: 15px;
         background-color: white;
-        border-top: 1px solid #DCDCDC;
+        
 
         &#ProfileTabs-pane-1 {
           background-color: transparent;
