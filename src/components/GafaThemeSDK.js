@@ -273,8 +273,8 @@ class GafaThemeSDK extends React.Component {
                     'block_after_login': blockAfterLogin,
                     'visualization': visualization,
                     'show_parent': show_parent,
-                    'date_min': daaMin, 
-                    'date_max': dataMax, 
+                    'date_min': daaMin,
+                    'date_max': dataMax,
                 };
 
                 GafaThemeSDK.renderElementIntoContainer(domContainer, Calendar, props);
@@ -379,7 +379,7 @@ class GafaThemeSDK extends React.Component {
             });
         }
 
-        GafaFitSDKWrapper.getCatalogSpecialTextsGroupsWithFields(1, ['register'], function (result) {
+        GafaFitSDKWrapper.getCatalogSpecialTextsGroupsWithFields(1, {'section': 'register'}, function (result) {
             GlobalStorage.set('special_texts_register', result);
         });
     };
@@ -405,7 +405,7 @@ class GafaThemeSDK extends React.Component {
             });
         }
     }
-    
+
 }
 
 export default GafaThemeSDK;
