@@ -8,12 +8,14 @@ div.GFSDK-c-Calendar__body.month {
     height: 100%;
 }
 
+
 .GFSDK-e-meeting__header {
-    width: 100%;
+   
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 3px;
 }
 
 .calendar-wrapper {
@@ -64,6 +66,7 @@ p.no-meetings-message {
     overflow: hidden;
     white-space: nowrap; 
 }
+
 
 
 p.this-time {
@@ -125,6 +128,10 @@ p.selected-date {
 	
 	.react-calendar {
     margin-right: 20px;
+}
+
+.GFSDK-c-Calendar__body.vertical .label-bj {
+    display: none !important;
 }
 
 @media (max-width: 992px) {
