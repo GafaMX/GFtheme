@@ -126,11 +126,11 @@ class CalendarMeeting extends React.Component {
 
         if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
             return (
-                <p className={'this-staff'}>{staff.job} {coachExtraInfo ? ` / ${coachExtraInfo}` : ''}</p>
+                <p className={'this-staff'}>{staff.job} {coachExtraInfo && coachExtraInfo !== '' ? ` / ${coachExtraInfo}` : ''}</p>
             )
         } else {
             return (
-                <p className={'this-staff'}>{meeting.staff.name} {meeting.staff.lastname} {coachExtraInfo ? ` / ${coachExtraInfo}` : ''}</p>
+                <p className={'this-staff'}>{meeting.staff.name} {meeting.staff.lastname} {coachExtraInfo && coachExtraInfo !== '' ? ` / ${coachExtraInfo}` : ''}</p>
             );
         }
     }
@@ -158,7 +158,6 @@ class CalendarMeeting extends React.Component {
         e.preventDefault();
         e.stopPropagation();
         let {showTooltip} = this.state;
-        console.log(showTooltip);
 
         this.setState({
             showTooltip: !showTooltip

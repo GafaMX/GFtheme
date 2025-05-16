@@ -15,7 +15,7 @@ export default class StoreCredit extends React.Component {
     render() {
         let me = this.props.me;
 
-        if (typeof me === 'object' && me.hasOwnProperty('store_credit_total')) {
+        if (!!me && typeof me === 'object' && me.hasOwnProperty('store_credit_total')) {
             return (
                 <div className={'storeCreditsUser'}>
                     <p className={'storeCreditsUser-total-label'}>{StringStore.get('STORE_CREDIT_AVAILABLE')}</p>
