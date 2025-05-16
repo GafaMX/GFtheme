@@ -191,6 +191,7 @@ class CalendarMeeting extends React.Component {
                         :
                         <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>
                     }
+                    <p className="label-bj">{meeting.description}</p>
                 </div>
 
                 <hr></hr>
