@@ -60,7 +60,7 @@ class WaitlistItem extends React.Component {
         let preE = 'GFSDK-e';
         let buttonClass = preE + '-buttons';
         const {waitlist} = this.props;
-        const {meeting_start, staff, service, location} = waitlist;
+        const {meeting_start, staff, service, location, waitlist_number} = waitlist;
 
         let lang = StringStore.getLanguage();
         let format = StringStore.get('PROFILE_RESERVATIONS_FORMAT')
@@ -92,6 +92,8 @@ class WaitlistItem extends React.Component {
                     <p className={'reservation-item-time'}>{formattedDateTime}</p>
                     <p className={'reservation-item-staff'}><strong>{staffName}</strong></p>
                     <p className={'reservation-item-cancelled'}><strong>{StringStore.get('IN_WAITLIST')}</strong></p>
+                    {!!waitlist_number ? (
+                        <p className={'reservation-item-position'}>{StringStore.get('PROFILE_POSITION', [waitlist_number])}</p>) : null}
                 </div>
                 {cancelation}
 

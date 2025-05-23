@@ -6,7 +6,7 @@ export default class StoreCredit extends React.Component {
         super(props);
     }
 
-    get defaultProps() {
+    static defaultProps() {
         return {
             me: null
         };

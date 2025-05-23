@@ -43,7 +43,7 @@ class LoginRegister extends React.Component {
         }
     }
 
-    get defaultProps() {
+    static defaultProps() {
         return {
             initial: 'login',
         };

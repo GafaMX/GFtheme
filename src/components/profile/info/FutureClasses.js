@@ -22,7 +22,7 @@ class FutureClasses extends React.Component {
     }
 
     componentDidMount() {
-        this.getFutureClasses();
+        // this.getFutureClasses();
     }
 
     getFutureClasses() {
@@ -69,12 +69,11 @@ class FutureClasses extends React.Component {
         let ordersClass = preC + '-orders';
         let formClass = preE + '-form';
 
-
         const listItems = this.state.list.length > 0
             ? this.state.list.flatMap(item =>
                 item.reservations.map(reservation => {
                     if (reservation.is_waitlist) {
-                        return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
+                        // return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
                     } else {
                         return (<ClassItem key={`future-reservation-list--${reservation.id}`} reservation={reservation} id={reservation.id}/>)
                     }
@@ -83,22 +82,22 @@ class FutureClasses extends React.Component {
             : [];
 
 
-        const wailistItems = this.state.list.length > 0
-            ? this.state.list.flatMap(item =>
-                (item.waitlists && Array.isArray(item.waitlists))
-                    ? item.waitlists.map(waitlist =>
-                        <WaitlistItem key={waitlist.id} waitlist={waitlist}/>
-                    )
-                    : []
-            )
-            : [];
+        // const wailistItems = this.state.list.length > 0
+        //     ? this.state.list.flatMap(item =>
+        //         (item.waitlists && Array.isArray(item.waitlists))
+        //             ? item.waitlists.map(waitlist =>
+        //                 <WaitlistItem key={waitlist.id} waitlist={waitlist}/>
+        //             )
+        //             : []
+        //     )
+        //     : [];
 
 
         return (
             <div className={profileClass + '__section is-futureClass'}>
 
                 {this.state.list.length > 0
-                    ? <div className={ordersClass + '__section'}>{listItems}{wailistItems}</div>
+                    ? <div className={ordersClass + '__section'}>{listItems}{/*wailistItems*/}</div>
                     : <div className="is-empty">
                         <div className="is-notification">
                             <h3>{StringStore.get('PROFILE_NO_UPCOMING_CLASSES', [window.GFtheme.ClassName])}</h3>
@@ -107,7 +106,7 @@ class FutureClasses extends React.Component {
                     </div>
                 }
             </div>
-        )
+        );
     }
 }
 
