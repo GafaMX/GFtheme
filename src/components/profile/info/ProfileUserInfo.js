@@ -36,6 +36,7 @@ import '../../../styles/newlook/elements/GFSDK-e-buttons.scss';
 import StringStore from "../../utils/Strings/StringStore";
 import Loading from "../../common/Loading";
 import StoreCredit from "./StoreCredit";
+import FutureWaitlist from "./FutureWaitlist";
 
 class ProfileUserInfo extends React.Component {
 
@@ -125,7 +126,7 @@ class ProfileUserInfo extends React.Component {
                             GlobalStorage.set('me', user, () => {
                                 currentComponent.setState({
                                     totals_page: totals_result
-                                });
+                                }, currentComponent.getFutureClasses);
                             });
                         });
                     });
@@ -133,6 +134,21 @@ class ProfileUserInfo extends React.Component {
 
             }
         );
+    }
+
+    getFutureClasses() {
+        let brands = GlobalStorage.get('brands');
+        let futureClassesList = [];
+
+        brands.forEach(function (brand) {
+            GafaFitSDKWrapper.getUserFutureReservationsInBrand(
+                brand.slug,
+                {reducePopulation: true,},
+                function (result) {
+                    futureClassesList = futureClassesList.concat(result);
+                    GlobalStorage.set('future_classes', futureClassesList);
+                });
+        });
     }
 
     // updateConektaNotificaction(){
@@ -413,6 +429,11 @@ class ProfileUserInfo extends React.Component {
                                     <div className={profileClass + '__tab-section'}>
                                         <h4 className={'this-title'}>{StringStore.get('PROFILE_NEXT_CLASSES', [window.GFtheme.ClassName])}</h4>
                                         <FutureClasses/>
+                                    </div>
+                                    <hr></hr>
+                                    <div className={profileClass + '__tab-section'}>
+                                        <h4 className={'this-title'}>{StringStore.get('PROFILE_NEXT_WAITLIST_CLASSES')}</h4>
+                                        <FutureWaitlist/>
                                     </div>
                                     <hr></hr>
                                     <div className={profileClass + '__tab-section'}>
