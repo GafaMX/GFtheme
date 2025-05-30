@@ -158,6 +158,8 @@ class ClassItem extends React.Component {
                     {this.printStaff()}
                     {this.printSubstituteStaff()}
                     {this.printPosition()}
+                    {reservation.is_overbooking === 1 ? (
+                        <p className={'reservation-item-overbooking'}>{StringStore.get('PROFILE_IS_OVERBOOKING')}</p>) : null}
                 </div>
 
                 {cancelation}
