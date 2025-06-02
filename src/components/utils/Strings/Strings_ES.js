@@ -141,4 +141,5 @@ export default {
     CALENDAR_ALREADY_RESERVED: 'Ya tienes una o más reservas en esta clase',
     IN_WAITLIST: 'En lista de espera',
     PROFILE_WAITLIST_POSITION: 'Lista de espera: _|_',
+    PROFILE_IS_OVERBOOKING: 'Overbooking',
 }

@@ -75,7 +75,9 @@ class FutureClasses extends React.Component {
                     if (reservation.is_waitlist) {
                         // return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
                     } else {
-                        return (<ClassItem key={`future-reservation-list--${reservation.id}`} reservation={reservation} id={reservation.id}/>)
+                        let key = reservation.is_overbooking === 1 ? `future-reservation-overbooking-list--${reservation.id}` : `future-reservation-list--${reservation.id}`
+
+                        return (<ClassItem key={key} reservation={reservation} id={reservation.id}/>)
                     }
                 })
             )
