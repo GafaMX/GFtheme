@@ -14,10 +14,10 @@ export default class FutureWaitlist extends React.Component {
             list: []
         };
 
-        GlobalStorage.addSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureClasses.bind(this));
+        GlobalStorage.addSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureWaitlists.bind(this));
     }
 
-    updateFutureClasses() {
+    updateFutureWaitlists() {
         let classes = GlobalStorage.get('future_classes');
         let location = GlobalStorage.get('filter_location');
         let brand = GlobalStorage.get('filter_brand');
@@ -42,14 +42,13 @@ export default class FutureWaitlist extends React.Component {
         let preE = 'GFSDK-e';
         let profileClass = preC + '-profile';
         let ordersClass = preC + '-orders';
+        let list=this.state.list;
 
-        const wailistItems = this.state.list.length > 0
-            ? this.state.list.flatMap(item =>
-                (item.waitlists && Array.isArray(item.waitlists))
-                    ? item.waitlists.map(waitlist =>
-                        <WaitlistItem key={waitlist.id} waitlist={waitlist}/>
-                    )
-                    : []
+        let wailistItems = list.length > 0
+            ? list.flatMap(item =>
+                item.waitlists.map(reservation => {
+                        return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
+                })
             )
             : [];
 
@@ -57,7 +56,7 @@ export default class FutureWaitlist extends React.Component {
         return (
             <div className={profileClass + '__section is-futureClass'}>
 
-                {this.state.list.length > 0
+                {wailistItems.length > 0
                     ? <div className={ordersClass + '__section'}>
                         {wailistItems}
                     </div>

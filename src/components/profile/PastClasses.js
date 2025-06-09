@@ -66,8 +66,10 @@ class PastClasses extends React.Component {
         let profileClass = preC + '-profile';
         let ordersClass = preC + '-orders';
 
-        const listItems = this.state.list.map((pastreservation) =>
-            <PastClassItem key={pastreservation.id} reservation={pastreservation} id={pastreservation.id}/>
+        const listItems = this.state.list.map((pastreservation) => {
+                let key = pastreservation.is_overbooking === 1 ? `past-reservation-overbooking--${pastreservation.id}` : `past-reservation--${pastreservation.id}`;
+                return (<PastClassItem key={key} reservation={pastreservation} id={pastreservation.id}/>)
+            }
         );
 
         return (
