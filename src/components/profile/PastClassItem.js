@@ -82,9 +82,10 @@ class ClassItem extends React.Component {
 
         let lang = StringStore.getLanguage();
         let format = StringStore.get('PROFILE_RESERVATIONS_FORMAT');
+        let extra_class = this.props.reservation.is_overbooking === 1 ? 'is-overbooking' : 'is-reservation';
 
         return (
-            <div className={'futureClasses-item'}>
+            <div className={'futureClasses-item ' + extra_class}>
                 <div className={'futureClasses-item__header'}>
                     <h4>{this.props.reservation.meetings.service['name']}</h4>
                 </div>
