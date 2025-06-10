@@ -98,7 +98,7 @@ class FutureClasses extends React.Component {
         return (
             <div className={profileClass + '__section is-futureClass'}>
 
-                {this.state.list.length > 0
+                {listItems.length > 0
                     ? <div className={ordersClass + '__section'}>{listItems}{/*wailistItems*/}</div>
                     : <div className="is-empty">
                         <div className="is-notification">
