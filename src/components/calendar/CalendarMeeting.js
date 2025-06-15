@@ -181,9 +181,14 @@ class CalendarMeeting extends React.Component {
         return (
             <div key={`column-day--${day.date}--meeting--${meeting.id}`}
                  style={{pointerEvents: openFancy ? 'none' : 'auto'}}
-                 className={calendarClass + '__item ' + meetingClass + (meeting.passed ? ' has-pasted' : '') + ` ${meeting.available > 0 ? '' : 'no-availability'}` + ` ${no_availability_display !== 'default' ? no_availability_display : ''}`}
+                 className={calendarClass + '__item ' + meetingClass + (meeting.passed ? ' has-pasted' : '') + ` ${meeting.available > 0 ? '' : 'no-availability'}` + ` ${no_availability_display !== 'default' ? no_availability_display : ''}` +
+    (meeting.service && meeting.service.name
+      ? ` service-${meeting.service.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '')}`
+      : '')
+  }
                  data-id={meeting.id}
                  onClick={openFancy ? null : this.handleClick.bind(this)}>
+                    
                 <div className={meetingClass + '__header'}>
                     {time_format === '12'
                         ?
