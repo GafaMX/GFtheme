@@ -81,6 +81,12 @@ class ProfileUserInfo extends React.Component {
         // GlobalStorage.addSegmentedListener(['ConektaPaymentNotification'], this.updateConektaNotificaction.bind(this));
     }
 
+    static defaultProps() {
+        return {
+            combineWaitlist: false,
+        }
+    }
+
     componentDidMount() {
         const currentComponent = this;
         GafaFitSDKWrapper.getMe(function (result) {
@@ -292,6 +298,21 @@ class ProfileUserInfo extends React.Component {
         this.setState({serverError: error});
     }
 
+    printFutureWaitlist(profileClass) {
+        let {combineWaitlist} = this.props;
+
+        if (!combineWaitlist) {
+            return (
+                <div className={profileClass + '__tab-section'}>
+                    <h4 className={'this-title'}>{StringStore.get('PROFILE_NEXT_WAITLIST_CLASSES')}</h4>
+                    <FutureWaitlist/>
+                </div>
+            )
+        }
+
+        return null;
+    }
+
     render() {
         let preE = 'GFSDK-e';
         let preC = 'GFSDK-c';
@@ -306,6 +327,7 @@ class ProfileUserInfo extends React.Component {
         let me = GlobalStorage.get("me");
         let brands = GlobalStorage.get('brands');
         let {paymentNotification, screen, totals_page} = this.state;
+        let {combineWaitlist} = this.props;
 
         return (
             <div className="profile-info">
@@ -428,14 +450,15 @@ class ProfileUserInfo extends React.Component {
 
                                     <div className={profileClass + '__tab-section'}>
                                         <h4 className={'this-title'}>{StringStore.get('PROFILE_NEXT_CLASSES', [window.GFtheme.ClassName])}</h4>
-                                        <FutureClasses/>
+                                        <FutureClasses
+                                            combineWaitlist={combineWaitlist}
+                                        />
                                     </div>
                                     <hr></hr>
-                                    <div className={profileClass + '__tab-section'}>
-                                        <h4 className={'this-title'}>{StringStore.get('PROFILE_NEXT_WAITLIST_CLASSES')}</h4>
-                                        <FutureWaitlist/>
-                                    </div>
-                                    <hr></hr>
+                                    {this.printFutureWaitlist(profileClass)}
+                                    {!combineWaitlist ? (<div>
+                                        <hr></hr>
+                                    </div>) : null}
                                     <div className={profileClass + '__tab-section'}>
                                         <h4 className={'this-title'}>{StringStore.get('PROFILE_PAST_CLASSES', [window.GFtheme.ClassName])}</h4>
                                         <PastClasses/>

@@ -211,17 +211,17 @@ class GafaThemeSDK extends React.Component {
         let dataMax = null;
 
         if (Array.isArray(locations)) {
-        locations.forEach(location => {
-            if (!daaMin || new Date(location.since) < new Date(daaMin)) {
-                daaMin = location.since; // Encuentra la fecha mínima
-            }
-            if (!dataMax || new Date(location.until) > new Date(dataMax)) {
-                dataMax = location.until; // Encuentra la fecha máxima
-            }
-        });
-    } else {
-        console.log("No es un array o los datos no están en el formato esperado.");
-    }
+            locations.forEach(location => {
+                if (!daaMin || new Date(location.since) < new Date(daaMin)) {
+                    daaMin = location.since; // Encuentra la fecha mínima
+                }
+                if (!dataMax || new Date(location.until) > new Date(dataMax)) {
+                    dataMax = location.until; // Encuentra la fecha máxima
+                }
+            });
+        } else {
+            console.log("No es un array o los datos no están en el formato esperado.");
+        }
 
         let meetings = [];
         let partial_loading = false;
@@ -360,7 +360,10 @@ class GafaThemeSDK extends React.Component {
     static renderProfileUserInfo(selector) {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            GafaThemeSDK.renderElementIntoContainers(domContainers, ProfileUserInfo, {});
+            let combineWaitlist = domContainer.getAttribute("data-bq-combine-waitlist") ? domContainer.getAttribute("data-bq-combine-waitlist") === 'true' : false;
+            GafaThemeSDK.renderElementIntoContainers(domContainers, ProfileUserInfo, {
+                combineWaitlist: combineWaitlist
+            });
         }
     };
 
@@ -371,10 +374,12 @@ class GafaThemeSDK extends React.Component {
             domContainers.forEach(function (domContainer) {
                 let initial = domContainer.getAttribute("data-gf-initial") ? domContainer.getAttribute("data-gf-initial") : 'login';
                 let allowsPreLoading = domContainer.getAttribute("data-bq-preloading") ? domContainer.getAttribute("data-bq-preloading") === 'true' : false;
+                let combineWaitlist = domContainer.getAttribute("data-bq-combine-waitlist") ? domContainer.getAttribute("data-bq-combine-waitlist") === 'true' : false;
 
                 GafaThemeSDK.renderElementIntoContainer(domContainer, LoginRegister, {
                     initial: initial,
-                    allowsPreLoading: allowsPreLoading
+                    allowsPreLoading: allowsPreLoading,
+                    combineWaitlist: combineWaitlist,
                 });
             });
         }

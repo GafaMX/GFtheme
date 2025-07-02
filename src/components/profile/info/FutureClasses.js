@@ -25,6 +25,12 @@ class FutureClasses extends React.Component {
         // this.getFutureClasses();
     }
 
+    static defaultProps() {
+        return {
+            combineWaitlist: false,
+        }
+    }
+
     getFutureClasses() {
         const currentComponent = this;
         let brands = GlobalStorage.get('brands');
@@ -69,11 +75,17 @@ class FutureClasses extends React.Component {
         let ordersClass = preC + '-orders';
         let formClass = preE + '-form';
 
-        const listItems = this.state.list.length > 0
-            ? this.state.list.flatMap(item =>
+        let {combineWaitlist} = this.props;
+        let {list} = this.state;
+
+        let reservationsList = list.length > 0
+            ? list.flatMap(item =>
                 item.reservations.map(reservation => {
                     if (reservation.is_waitlist) {
-                        // return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
+                        // if (combineWaitlist) {
+                        //     return (
+                        //         <WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
+                        // }
                     } else {
                         let key = reservation.is_overbooking === 1 ? `future-reservation-overbooking-list--${reservation.id}` : `future-reservation-list--${reservation.id}`
 
@@ -82,6 +94,20 @@ class FutureClasses extends React.Component {
                 })
             )
             : [];
+
+        let listItems = reservationsList;
+
+        if (combineWaitlist) {
+            let wailistItems = list.length > 0
+                ? list.flatMap(item =>
+                    item.waitlists.map(reservation => {
+                        return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
+                    })
+                )
+                : [];
+
+            listItems = listItems.concat(wailistItems);
+        }
 
 
         // const wailistItems = this.state.list.length > 0
