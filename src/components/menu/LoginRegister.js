@@ -46,6 +46,7 @@ class LoginRegister extends React.Component {
     static defaultProps() {
         return {
             initial: 'login',
+            combineWaitlist: false,
         };
     }
 
@@ -246,7 +247,7 @@ class LoginRegister extends React.Component {
         let loginClass = preC + '-login';
         let buttonClass = preE + '-buttons';
         let {me, preLoading} = this.state;
-        let {initial, allowsPreLoading} = this.props;
+        let {initial, allowsPreLoading, combineWaitlist} = this.props;
 
         const combo = !window.GFtheme.combo_id ? null : window.GFtheme.combo_id;
 
@@ -352,6 +353,7 @@ class LoginRegister extends React.Component {
                                             handleClickLogout={this.handleClickLogout}
                                             successCallback={this.successProfileSaveCallback.bind(this)}
                                             userData={me}
+                                            combineWaitlist={combineWaitlist}
                                         />
                                     </Modal.Body>
                                 </div>
