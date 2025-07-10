@@ -78,36 +78,57 @@ class FutureClasses extends React.Component {
         let {combineWaitlist} = this.props;
         let {list} = this.state;
 
-        let reservationsList = list.length > 0
-            ? list.flatMap(item =>
-                item.reservations.map(reservation => {
-                    if (reservation.is_waitlist) {
-                        // if (combineWaitlist) {
-                        //     return (
-                        //         <WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
-                        // }
-                    } else {
-                        let key = reservation.is_overbooking === 1 ? `future-reservation-overbooking-list--${reservation.id}` : `future-reservation-list--${reservation.id}`
+        let flat_mapped_list = list.length > 0 ? list.flatMap((item) => {
+            let mapped_array = [];
+            if (item.reservations.length > 0) {
+                mapped_array = mapped_array.concat(item.reservations.map(reservation => {
+                    reservation.is_waitlist = false;
+                    return reservation;
+                }));
+            }
+            if (item.waitlists.length > 0) {
+                mapped_array = mapped_array.concat(item.waitlists.map(waitlist => {
+                    waitlist.is_waitlist = true;
+                    return waitlist;
+                }));
+            }
 
-                        return (<ClassItem key={key} reservation={reservation} id={reservation.id}/>)
+            return mapped_array;
+        }) : [];
+
+
+        flat_mapped_list.sort((a, b) => {
+            return a.meeting_start < b.meeting_start ? -1 : (a.meeting_start > b.meeting_start ? 1 : 0);
+        });
+
+        let listItems = flat_mapped_list.length > 0
+            ? flat_mapped_list.map(reservation => {
+                if (reservation.is_waitlist) {
+                    if (combineWaitlist) {
+                        return (
+                            <WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
                     }
-                })
-            )
+                } else {
+                    let key = reservation.is_overbooking === 1 ? `future-reservation-overbooking-list--${reservation.id}` : `future-reservation-list--${reservation.id}`
+
+                    return (<ClassItem key={key} reservation={reservation} id={reservation.id}/>)
+                }
+            })
             : [];
 
-        let listItems = reservationsList;
+        // let listItems = reservationsList;
 
-        if (combineWaitlist) {
-            let wailistItems = list.length > 0
-                ? list.flatMap(item =>
-                    item.waitlists.map(reservation => {
-                        return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
-                    })
-                )
-                : [];
-
-            listItems = listItems.concat(wailistItems);
-        }
+        // if (combineWaitlist) {
+        //     let wailistItems = list.length > 0
+        //         ? list.flatMap(item =>
+        //             item.waitlists.map(reservation => {
+        //                 return (<WaitlistItem key={`future-waitlist-list--${reservation.id}`} waitlist={reservation}/>)
+        //             })
+        //         )
+        //         : [];
+        //
+        //     listItems = listItems.concat(wailistItems);
+        // }
 
 
         // const wailistItems = this.state.list.length > 0
