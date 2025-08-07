@@ -26,7 +26,10 @@ class ProfileCreditsMemberships extends React.Component {
         };
 
         this.updatePurchase = this.updatePurchase.bind(this);
-        GlobalStorage.addSegmentedListener(['me'], this.updatePurchase.bind(this));
+        GlobalStorage.addSegmentedListener(['me'], this.updatePurchase);
+    }
+    componentWillUnmount() {
+        GlobalStorage.removeSegmentedListener(['me'], this.updatePurchase);
     }
 
     updatePurchase() {

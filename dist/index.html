@@ -110,17 +110,17 @@
         </div>
         <nav class="menu">
         </nav>
-        <div data-gf-theme="login-register" data-gf-language="es" data-bq-preloading="true" data-bq-combine-waitlist="true"></div>
+        <!-- <div data-gf-theme="login-register" data-gf-language="es" data-bq-preloading="true" data-bq-combine-waitlist="true">HEADER</div> -->
     </div>
 </header>
 <main>
-    <div class="container">
-        <br><br><br>
+    <!-- <div class="container"> -->
+        <!-- <br><br><br> -->
         <!--
            filter-bq-location="true"
            filter-bq-room="true"
         -->
-                <a
+                <!-- <a
                         data-gf-theme="purchase-button"
                         data-bq-product-id="17"
                         data-bq-reservation-id="607"
@@ -147,16 +147,36 @@
         >
             Compra Membresía
         </a>
-<!--                <a-->
-<!--                        data-gf-theme="purchase-button"-->
-<!--                        data-bq-product-id="17"-->
-<!--                        data-bq-reservation-id="607"-->
-<!--                        data-bq-location-id="1"-->
-<!--                        style="padding: 7px 25px;color:white;background-color: red;border-radius: 10px;cursor: pointer"-->
-<!--                >-->
-<!--                    Compra Producto-->
-<!--                </a>-->
-<!--        <br><br><br>-->
+               <a
+                       data-gf-theme="purchase-button"
+                       data-bq-product-id="17"
+                       data-bq-reservation-id="607"
+                       data-bq-location-id="1"
+                       style="padding: 7px 25px;color:white;background-color: red;border-radius: 10px;cursor: pointer"
+               >
+                   Compra Producto
+               </a>
+       <br><br><br>
+       <a
+       data-gf-theme="login-register-pages"
+       style="padding: 7px 25px;color:white;background-color: red;border-radius: 10px;cursor: pointer"
+>
+   Profile
+</a>
+<section data-gf-theme="login-register"></section> -->
+
+<!-- Con opciones -->
+<section 
+    data-gf-theme="login-register-pages"
+    data-gf-initial="login"
+    data-gf-base-url="/auth"
+    data-bq-preloading="true"
+    data-bq-combine-waitlist="false">
+</section>
+<br><br><br>
+<section 
+    data-gf-theme="login-register">
+</section>
 <!--        <a-->
 <!--                data-gf-theme="purchase-button"-->
 <!--                data-bq-combo-id="9"-->
@@ -274,7 +294,7 @@
         <!--        </div>-->
 
 
-        <section data-gf-theme="meetings-calendar"
+        <!-- <section data-gf-theme="meetings-calendar"
                  filter-bq-service-default="Servicios"
                  filter-bq-service="true"
                  filter-bq-staff="true"
@@ -284,7 +304,7 @@
                  data-bq-block-after-login="false"
                  data-bq-calendar-visualization="vertical"
                  data-bq-show-parent="true"
-        ></section>
+        ></section> -->
         <!--        <section class=" mt-1" data-gf-theme="staff-list"></section>-->
         <!--        <section class=" mt-1" data-gf-theme="service-list"></section>-->
         <!--        <section class=" mt-1" data-gf-theme="combo-list"></section>-->
@@ -298,29 +318,29 @@
         </section> -->
     </div>
     <!-- Fancy  / Inicia Aquí-->
-    <section data-gf-theme="fancy">
-    </section>
+    <!-- <section data-gf-theme="fancy">
+    </section> -->
     <!-- Fancy  / Termina Aquí-->
 </main>
 
-<!--<script src="https://buq.technology/sdk/dist/main.js"></script>-->
+<script src="https://buq.technology/sdk/dist/main.js"></script>
 <!--<script src="http://buq.test/sdk/dist/main.js"></script>-->
-<!--<script data-gf-options type="application/json">-->
-<!--   {-->
-<!--     "GAFA_FIT_URL": "http://buq.test/",-->
-<!--       "COMPANY_ID": 79,-->
-<!--      "API_CLIENT": 13,-->
-<!--      "API_SECRET": "t8AIGMR4Dhxi4Yj14bNp9RcHJgC34OOTL6ydy2YW",-->
-<!--       "TOKENMOVIL": null,-->
-<!--       "CAPTCHA_SECRET_KEY": "6LdGgNcZAAAAAA48wauwPMDVgE22ABP2TKfwhqGf",-->
-<!--       "CAPTCHA_PUBLIC_KEY": "6LdGgNcZAAAAACVnfh-CaZZuh25V59KkP1cbsjzr",-->
-<!--       "STAFF_NAME": "Fisios",-->
-<!--       "REMOTE_ADDR": "127.0.0.1"-->
-<!--   }-->
-<!--</script>-->
+<script data-gf-options type="application/json">
+  {
+    "GAFA_FIT_URL": "https://buq.technology/",
+      "COMPANY_ID": 127,
+     "API_CLIENT": 120,
+     "API_SECRET": "In2bVu2fJkj7gFhCR0Y3VP4lhrLdK63sMGvDHTEn",
+      "TOKENMOVIL": null,
+      "CAPTCHA_SECRET_KEY": "6LdBS-IUAAAAAIzaJAPQSFxqYIu0u8jTYLq-lV-6",
+      "CAPTCHA_PUBLIC_KEY": "6LdBS-IUAAAAAJ5FOpRIvXFfGhU8wHITYcYbWkqU",
+      "STAFF_NAME": "Fisios",
+      "REMOTE_ADDR": "127.0.0.1"
+  }
+</script>
 <script src="https://www.google.com/recaptcha/api.js?render=6LdBS-IUAAAAAJ5FOpRIvXFfGhU8wHITYcYbWkqU"></script>
 
-<script src="http://buq-dev.local/sdk/dist/main.js"></script>
+<!-- <script src="http://buq-dev.local/sdk/dist/main.js"></script>
 <script data-gf-options type="application/json">
     {
         "GAFA_FIT_URL": "http://buq-dev.local/",
@@ -333,7 +353,7 @@
         "STAFF_NAME": "Fisios",
         "REMOTE_ADDR": "127.0.0.1"
     }
-</script>
+</script> -->
 <!--<script type="text/javascript" src="https://buq.partners/sdk/dist/main.js"></script>-->
 <!--<script data-gf-options type="application/json">-->
 <!--    {-->

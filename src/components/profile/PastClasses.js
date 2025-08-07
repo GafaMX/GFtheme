@@ -16,7 +16,8 @@ class PastClasses extends React.Component {
         }
 
         this.getPastClasses = this.getPastClasses.bind(this);
-        GlobalStorage.addSegmentedListener(['past_classes', 'filter_location', 'filter_brand'], this.updatePastClasses.bind(this));
+        this.updatePastClasses = this.updatePastClasses.bind(this);
+        GlobalStorage.addSegmentedListener(['past_classes', 'filter_location', 'filter_brand'], this.updatePastClasses);
     }
 
     componentDidMount() {
@@ -60,6 +61,11 @@ class PastClasses extends React.Component {
         this.setState({list: classes});
     }
 
+
+    componentWillUnmount() {
+        // Limpiar el listener de GlobalStorage
+        GlobalStorage.removeSegmentedListener(['past_classes', 'filter_location', 'filter_brand'], this.updatePastClasses);
+    }
 
     render() {
         let preC = 'GFSDK-c';

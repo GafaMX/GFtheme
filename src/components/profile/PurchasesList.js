@@ -16,7 +16,8 @@ class PurchasesList extends React.Component {
         }
 
         this.getPurchase = this.getPurchase.bind(this);
-        GlobalStorage.addSegmentedListener(['purchase', 'filter_brand'], this.updatePurchasesList.bind(this));
+        this.updatePurchasesList = this.updatePurchasesList.bind(this);
+        GlobalStorage.addSegmentedListener(['purchase', 'filter_brand'], this.updatePurchasesList);
     }
 
     componentDidMount() {
@@ -51,6 +52,11 @@ class PurchasesList extends React.Component {
         }
 
         this.setState({list: purchase});
+    }
+
+    componentWillUnmount() {
+        // Limpiar el listener de GlobalStorage
+        GlobalStorage.removeSegmentedListener(['purchase', 'filter_brand'], this.updatePurchasesList);
     }
 
     render() {
