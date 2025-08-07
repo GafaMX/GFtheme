@@ -14,7 +14,11 @@ export default class FutureWaitlist extends React.Component {
             list: []
         };
 
-        GlobalStorage.addSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureWaitlists.bind(this));
+        this.updateFutureWaitlists = this.updateFutureWaitlists.bind(this);
+        GlobalStorage.addSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureWaitlists);
+    }
+    componentWillUnmount() {
+        GlobalStorage.removeSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureWaitlists);
     }
 
     updateFutureWaitlists() {

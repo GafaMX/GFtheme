@@ -18,7 +18,8 @@ class FutureClasses extends React.Component {
         }
 
         this.getFutureClasses = this.getFutureClasses.bind(this);
-        GlobalStorage.addSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureClasses.bind(this));
+        this.updateFutureClasses = this.updateFutureClasses.bind(this);
+        GlobalStorage.addSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureClasses);
     }
 
     componentDidMount() {
@@ -66,6 +67,10 @@ class FutureClasses extends React.Component {
         }
 
         this.setState({list: classes});
+    }
+
+    componentWillUnmount() {
+        GlobalStorage.removeSegmentedListener(['future_classes', 'filter_location', 'filter_brand'], this.updateFutureClasses);
     }
 
     render() {
