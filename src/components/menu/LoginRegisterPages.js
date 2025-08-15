@@ -19,7 +19,7 @@ class LoginRegisterPages extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            currentPage: 'menu', // 'menu', 'login', 'register', 'profile', 'password-recovery'
+            currentPage: 'login', // 'menu', 'login', 'register', 'profile', 'password-recovery'
             serverError: "",
             email: null,
             token: null,
