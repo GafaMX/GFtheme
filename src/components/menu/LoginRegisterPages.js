@@ -305,9 +305,6 @@ class LoginRegisterPages extends React.Component {
             case 'login':
                 return (
                     <div className="page-container">
-                        <div className="page-back-button" onClick={this.handleClickBack.bind(this)}>
-                            ← {StringStore.get('BACK') || 'Volver'}
-                        </div>
                         <div className="Page-login__header">
                             <h2>{StringStore.get('BUTTON_LOGIN')}</h2>
                         </div>
@@ -372,9 +369,6 @@ class LoginRegisterPages extends React.Component {
             case 'profile':
                 return (
                     <div className="page-container-profile">
-                         <div className="page-back-button" onClick={this.handleClickBack.bind(this)}>
-                            ← {StringStore.get('BACK') || 'Volver'}
-                        </div>
                         <div className="Page-profile__body">
                             <ProfileUserInfo
                                 handleClickLogout={this.handleClickLogout}
