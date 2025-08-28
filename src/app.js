@@ -23,6 +23,7 @@ GafaFitSDKWrapper.initValues(
         GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
         GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
         GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
+        GafaThemeSDK.renderLoginRegisterPages('[data-gf-theme="login-register-pages"]');
 
         // Render miembros de staff
         GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');

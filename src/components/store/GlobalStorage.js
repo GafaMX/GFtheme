@@ -164,6 +164,27 @@ const GlobalStorage = {
         this.segmentedListeners[segment].push(callback);
     },
 
+    removeSegmentedListener(segment, callback) {
+        if (segment && callback) {
+            if (segment.length) {
+                segment.forEach(function (singleSegment) {
+                    GlobalStorage.unsubscribeFromSegment(singleSegment, callback)
+                })
+            } else {
+                GlobalStorage.unsubscribeFromSegment(segment, callback)
+            }
+        }
+    },
+
+    unsubscribeFromSegment(segment, callback) {
+        if (this.segmentedListeners.hasOwnProperty(segment)) {
+            const index = this.segmentedListeners[segment].indexOf(callback);
+            if (index > -1) {
+                this.segmentedListeners[segment].splice(index, 1);
+            }
+        }
+    },
+
     TriggerChange(cb, segment) {
         //Listeners
         let listeners = this.listeners;

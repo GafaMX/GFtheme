@@ -17,6 +17,7 @@ import Calendar from "./calendar/Calendar";
 import CalendarReact from "./calendar/CalendarReact";
 import ProfileUserInfo from "./profile/info/ProfileUserInfo";
 import LoginRegister from "./menu/LoginRegister";
+import LoginRegisterPages from "./menu/LoginRegisterPages";
 
 import moment from "moment";
 
@@ -380,6 +381,30 @@ class GafaThemeSDK extends React.Component {
                     initial: initial,
                     allowsPreLoading: allowsPreLoading,
                     combineWaitlist: combineWaitlist,
+                });
+            });
+        }
+
+        GafaFitSDKWrapper.getCatalogSpecialTextsGroupsWithFields(1, {'section': 'register'}, function (result) {
+            GlobalStorage.set('special_texts_register', result);
+        });
+    };
+
+    static renderLoginRegisterPages(selector) {
+        let domContainers = document.querySelectorAll(selector);
+
+        if (domContainers.length > 0) {
+            domContainers.forEach(function (domContainer) {
+                let initial = domContainer.getAttribute("data-gf-initial") ? domContainer.getAttribute("data-gf-initial") : 'login';
+                let allowsPreLoading = domContainer.getAttribute("data-bq-preloading") ? domContainer.getAttribute("data-bq-preloading") === 'true' : false;
+                let combineWaitlist = domContainer.getAttribute("data-bq-combine-waitlist") ? domContainer.getAttribute("data-bq-combine-waitlist") === 'true' : false;
+                let baseUrl = domContainer.getAttribute("data-gf-base-url") ? domContainer.getAttribute("data-gf-base-url") : '/auth';
+
+                GafaThemeSDK.renderElementIntoContainer(domContainer, LoginRegisterPages, {
+                    initial: initial,
+                    allowsPreLoading: allowsPreLoading,
+                    combineWaitlist: combineWaitlist,
+                    baseUrl: baseUrl,
                 });
             });
         }
