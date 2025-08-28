@@ -52,6 +52,7 @@ class LoginRegisterPages extends React.Component {
     const gafafitSDKAuthorization = localStorage.getItem(
       "gafafitSDKAutorization"
     );
+	console.log("v_1.0.1");
     const query = new URLSearchParams(window.location.search);
     const token = query.get("token");
     const email = query.get("email");
