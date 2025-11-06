@@ -52,7 +52,7 @@ class LoginRegisterPages extends React.Component {
     const gafafitSDKAuthorization = localStorage.getItem(
       "gafafitSDKAutorization"
     );
-	console.log("v_1.0.1");
+	console.log("v_1.0.2");
     const query = new URLSearchParams(window.location.search);
     const token = query.get("token");
     const email = query.get("email");
@@ -352,7 +352,7 @@ class LoginRegisterPages extends React.Component {
                 </ul>
               </nav>
             </div>
-			<div style={{position: "absolute", bottom: 0, right: 0, color: "white", fontSize: "10px", fontWeight: "bold"}}>v_1.0.1</div>
+			<div style={{position: "absolute", bottom: 0, right: 0, color: "white", fontSize: "10px", fontWeight: "bold"}}>v_1.0.2</div>
           </div>
         );
 
