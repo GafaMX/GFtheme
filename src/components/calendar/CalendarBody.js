@@ -45,13 +45,13 @@ class CalendarBody extends React.Component {
             start = new Date(); // Establece una fecha por defecto
             CalendarStorage.set('start_date', start);
         }
-    
+
         let end = new Date(start.getTime());
 
 
         let daysToAdd = getDaysToAddToEndBasedOnVisualization(); //funcion para evaluar los dias
 
-        end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias        
+        end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias
 
         this.setState({
             start,
@@ -70,7 +70,6 @@ class CalendarBody extends React.Component {
             if (!!meetings && !!start) {
                 let end = new Date(start.getTime());
 
-
                 let daysToAdd = getDaysToAddToEndBasedOnVisualization(); //funcion para evaluar los dias
 
                 end.setDate(start.getDate() + daysToAdd); // aumenta la consulta de meetings del dia actual +60 dias
@@ -80,7 +79,7 @@ class CalendarBody extends React.Component {
                         title: date.toLocaleDateString(),
                         date: date.toISOString(),
                         meetings: meetings.filter(function (meeting) {
-                            let meeting_date = moment(meeting.start_date, 'YYYY-MM-DD HH:mm:ss').toDate();
+                            let meeting_date = moment(meeting.start, 'YYYY-MM-DD HH:mm:ss ZZ').toDate();
                             return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime() && meeting.passed === false;
                         })
                     };
@@ -99,7 +98,7 @@ class CalendarBody extends React.Component {
             start = new Date();
             CalendarStorage.set('start_date', start);
         }
-        
+
         let end = new Date(start.getTime());
 
 
@@ -382,9 +381,9 @@ class CalendarBody extends React.Component {
                             </button>
                         </div>
                     )}
-        
+
                     {this.printCalendarColumns()}
-        
+
                     {visualization === 'vertical' && (
                         <div className={calendarClass + '__body-weeks is-desktop'}>
                             <button className={calendarClass + '__body-weeksSection is-past'} disabled={!has_prev}
@@ -406,7 +405,7 @@ class CalendarBody extends React.Component {
                 </div>
             </div>
         );
-        
+
     }
 }
 
