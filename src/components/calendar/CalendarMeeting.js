@@ -168,7 +168,7 @@ class CalendarMeeting extends React.Component {
         let {meeting, visualization} = this.props;
         let {openFancy, showTooltip} = this.state;
         let day = this.props.day;
-        let classStart = moment(meeting.start_date).toDate();
+        let classStart = moment(meeting.start).toDate();
         let time_format = meeting.location.brand.time_format;
         let preC = 'GFSDK-c';
         let preE = 'GFSDK-e';
@@ -188,7 +188,7 @@ class CalendarMeeting extends React.Component {
   }
                  data-id={meeting.id}
                  onClick={openFancy ? null : this.handleClick.bind(this)}>
-                    
+
                 <div className={meetingClass + '__header'}>
                     {time_format === '12'
                         ?
