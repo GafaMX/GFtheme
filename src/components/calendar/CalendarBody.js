@@ -79,7 +79,7 @@ class CalendarBody extends React.Component {
                         title: date.toLocaleDateString(),
                         date: date.toISOString(),
                         meetings: meetings.filter(function (meeting) {
-                            let meeting_date = moment(meeting.start, 'YYYY-MM-DD HH:mm:ss ZZ').toDate();
+                            let meeting_date = moment(meeting.start, 'YYYY-MM-DD HH:mm:ss').toDate();
                             return new Date(date.toDateString()).getTime() === new Date(meeting_date.toDateString()).getTime() && meeting.passed === false;
                         })
                     };

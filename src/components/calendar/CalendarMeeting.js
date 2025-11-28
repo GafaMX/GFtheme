@@ -177,6 +177,8 @@ class CalendarMeeting extends React.Component {
         let no_availability_display = meeting.location.brand.no_availability_display ? meeting.location.brand.no_availability_display : 'default';
         let show_parent = CalendarStorage.get('show_parent');
         let parent_service = meeting.service.parent_service_recursive;
+        let start_time = meeting.start_time;
+
 
         return (
             <div key={`column-day--${day.date}--meeting--${meeting.id}`}
@@ -190,12 +192,13 @@ class CalendarMeeting extends React.Component {
                  onClick={openFancy ? null : this.handleClick.bind(this)}>
 
                 <div className={meetingClass + '__header'}>
-                    {time_format === '12'
-                        ?
-                        <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')} {moment(classStart).format('a')}</p>
-                        :
-                        <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>
-                    }
+                    {/*{time_format === '12'*/}
+                    {/*    ?*/}
+                    {/*    <p className={'this-time'}>{moment(classStart).format('hh')}.{moment(classStart).format('mm')} {moment(classStart).format('a')}</p>*/}
+                    {/*    :*/}
+                    {/*    <p className={'this-time'}>{moment(classStart).format('kk')}.{moment(classStart).format('mm')} </p>*/}
+                    {/*}*/}
+                    <p className={'this-time'}>{start_time} </p>
                     <p className="label-bj">{meeting.description}</p>
                 </div>
 
