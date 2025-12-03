@@ -86,7 +86,7 @@ html{
     input[type=checkbox]{
         border-color: $accent-color!important;
         &:checked{
-            background-color: $accent-color!important;
+            background-color: grey !important;
         }
     }
     
