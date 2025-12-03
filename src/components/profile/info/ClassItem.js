@@ -10,6 +10,7 @@ import Modal from "react-bootstrap/es/Modal";
 import CalendarStorage from "../../calendar/CalendarStorage";
 import CloseIcon from "../../utils/Icons/CloseIcon";
 import StringStore from "../../utils/Strings/StringStore";
+import CheckIcon from "../../utils/Icons/CheckIcon";
 
 class ClassItem extends React.Component {
     constructor(props) {
@@ -139,7 +140,7 @@ class ClassItem extends React.Component {
         //          <p className={'reservation-item-credits'}>{StringStore.get('CREDIT')}{this.props.reservation.credit['name']}</p>)
         // }
 
-        if (this.props.reservation.cancelled === true) {
+        if (reservation.cancelled === true) {
             cancelation = (
                 <p className={'reservation-item-cancelled'}>  {StringStore.get('CANCELLED')} </p>
             )
@@ -152,8 +153,22 @@ class ClassItem extends React.Component {
             );
         }
 
+        let attendance = null;
+        if (reservation.attendance === 'attended' || reservation.attendance === 'first-time') {
+            attendance = (
+                <div className={buttonClass + "__attendance"}>
+                    <span>{StringStore.get('PROFILE_ASSISTED')}</span>
+                    <CheckIcon></CheckIcon>
+                </div>
+            )
+        }
+
         let lang = StringStore.getLanguage();
         let format = StringStore.get('PROFILE_RESERVATIONS_FORMAT');
+        let time_format = reservation.hasOwnProperty('format_start_time') &&
+        reservation.format_start_time !== '' &&
+        reservation.format_start_time !== null ?
+            reservation.format_start_time : moment(this.props.reservation.meeting_start).locale(lang).format('h:mm a');
 
         return (
             <div className={'pastClass-item'}>
@@ -163,7 +178,7 @@ class ClassItem extends React.Component {
                 <div className={'pastClass-item__body'}>
                     <p className={'reservation-item-day'}>{moment(this.props.reservation.meeting_start).locale(lang).format(format)}</p>
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
-                    <p className={'reservation-item-time'}>{moment(this.props.reservation.meeting_start).locale(lang).format('h:mm a')}</p>
+                    <p className={'reservation-item-time'}>{time_format}</p>
                     {this.printStaff()}
                     {this.printSubstituteStaff()}
                     {this.printPosition()}
@@ -172,6 +187,7 @@ class ClassItem extends React.Component {
                 </div>
 
                 {cancelation}
+                {attendance}
 
                 <Modal className={'modal-cancelation'} show={this.state.showCancelation} animation={false}
                        onHide={this.handleClickBack.bind(this)}>

@@ -142,4 +142,5 @@ export default {
     IN_WAITLIST: 'En lista de espera',
     PROFILE_WAITLIST_POSITION: 'Lista de espera: _|_',
     PROFILE_IS_OVERBOOKING: 'Overbooking',
+    PROFILE_ASSISTED: 'Asistió',
 }
