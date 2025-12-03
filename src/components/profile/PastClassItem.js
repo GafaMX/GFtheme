@@ -33,7 +33,11 @@ class ClassItem extends React.Component {
 
     printStaff() {
         let {reservation} = this.props;
-        let staff = reservation.staff;
+        let staff = reservation.hasOwnProperty('meetings') && typeof reservation.meetings === 'object' &&
+        reservation.meetings.hasOwnProperty('staff') &&
+        typeof reservation.meetings.staff === 'object' ?
+            reservation.meetings.staff :
+            reservation.staff;
 
         if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
             return (
@@ -49,7 +53,12 @@ class ClassItem extends React.Component {
 
     printSubstituteStaff() {
         let {reservation} = this.props;
-        let staff = reservation.meetings.substitute_staff;
+        let staff = reservation.hasOwnProperty('meetings') &&
+        typeof reservation.meetings === 'object' &&
+        reservation.meetings.hasOwnProperty('substitute_staff') &&
+        typeof reservation.meetings.substitute_staff === 'object' ?
+            reservation.meetings.substitute_staff :
+            reservation.substitute_staff;
 
         if (staff) {
             if (staff.hasOwnProperty('job') && staff.job !== null) {
