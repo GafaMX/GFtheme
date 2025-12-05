@@ -4,6 +4,7 @@ import React from 'react';
 import moment from 'moment';
 import Strings from "../utils/Strings/Strings_ES";
 import StringStore from "../utils/Strings/StringStore";
+import CheckIcon from "../utils/Icons/CheckIcon";
 
 
 class ClassItem extends React.Component {
@@ -80,6 +81,9 @@ class ClassItem extends React.Component {
 
     render() {
         let membershipCredits = '';
+        let preE = 'GFSDK-e';
+        let buttonClass = preE + '-buttons';
+        let {reservation}=this.props;
 
         if (this.props.reservation.credit === null) {
             membershipCredits = (
@@ -92,6 +96,16 @@ class ClassItem extends React.Component {
         let lang = StringStore.getLanguage();
         let format = StringStore.get('PROFILE_RESERVATIONS_FORMAT');
         let extra_class = this.props.reservation.is_overbooking === 1 ? 'is-overbooking' : 'is-reservation';
+
+        let attendance = null;
+        if (reservation.attendance === 'attended' || reservation.attendance === 'first-time') {
+            attendance = (
+                <div className={buttonClass + "__attendance"}>
+                    <span>{StringStore.get('PROFILE_ASSISTED')}</span>
+                    <CheckIcon></CheckIcon>
+                </div>
+            )
+        }
 
         return (
             <div className={'futureClasses-item ' + extra_class}>
@@ -107,6 +121,7 @@ class ClassItem extends React.Component {
                     {this.props.reservation.is_overbooking === 1 ? (
                         <p className={'reservation-item-overbooking'}>{StringStore.get('PROFILE_IS_OVERBOOKING')}</p>) : null}
                 </div>
+                {attendance}
             </div>
         )
     }
