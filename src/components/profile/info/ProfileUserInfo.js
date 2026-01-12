@@ -242,9 +242,23 @@ class ProfileUserInfo extends React.Component {
     transformStateToForm() {
         let formData = new FormData();
         let state = this.state;
+        let {screen} = this.state;
         Object.entries(state).forEach(([key, value]) => {
-            if (key !== 'countries' && key !== 'states' && key !== 'formErrors' && key !== 'first_nameValid' && key !== 'formValid' && key !== 'serverError' && key !== 'saved' && key !== 'screen' && key !== 'totals_page')
-                formData.append(key, value === null ? '' : value);
+            if (key !== 'countries' && key !== 'states' && key !== 'formErrors' && key !== 'first_nameValid' && key !== 'formValid' && key !== 'serverError' && key !== 'saved' && key !== 'screen' && key !== 'totals_page') {
+                if (screen === 'password') {
+                    if (key === 'password' ||
+                        key === 'password_confirmation' ||
+                        key === 'email' ||
+                        key === 'first_name'
+                    ) {
+                        formData.append(key, value === null ? '' : value);
+                    }
+                } else {
+                    if (key !== 'password' && key !== 'password_confirmation') {
+                        formData.append(key, value === null ? '' : value);
+                    }
+                }
+            }
         });
 
         return formData;
