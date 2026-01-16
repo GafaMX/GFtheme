@@ -169,6 +169,10 @@ class ClassItem extends React.Component {
         reservation.format_start_time !== '' &&
         reservation.format_start_time !== null ?
             reservation.format_start_time : moment(this.props.reservation.meeting_start).locale(lang).format('h:mm a');
+        let date_format = reservation.hasOwnProperty('format_start_date') &&
+        reservation.format_start_date !== '' &&
+        reservation.format_start_date !== null ?
+            reservation.format_start_date : moment(this.props.reservation.meeting_start).locale(lang).format(format);
 
         return (
             <div className={'pastClass-item'}>
@@ -176,7 +180,7 @@ class ClassItem extends React.Component {
                     <h4>{this.props.reservation.service['name']}</h4>
                 </div>
                 <div className={'pastClass-item__body'}>
-                    <p className={'reservation-item-day'}>{moment(this.props.reservation.meeting_start).locale(lang).format(format)}</p>
+                    <p className={'reservation-item-day'}>{date_format}</p>
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
                     <p className={'reservation-item-time'}>{time_format}</p>
                     {this.printStaff()}
