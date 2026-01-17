@@ -145,15 +145,11 @@ class ProfileUserInfo extends React.Component {
     getFutureClasses() {
         let brands = GlobalStorage.get('brands');
         let futureClassesList = [];
-        let lang = StringStore.getLanguage();
 
         brands.forEach(function (brand) {
             GafaFitSDKWrapper.getUserFutureReservationsInBrand(
                 brand.slug,
-                {
-                    reducePopulation: true,
-                    locale: lang,
-                },
+                {reducePopulation: true,},
                 function (result) {
                     futureClassesList = futureClassesList.concat(result);
                     GlobalStorage.set('future_classes', futureClassesList);
