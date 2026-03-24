@@ -134,4 +134,5 @@ export default {
     IN_WAITLIST: 'In waitlist',
     PROFILE_WAITLIST_POSITION: 'Waitlist: _|_',
     PROFILE_IS_OVERBOOKING: 'Overbooking',
+    PROFILE_ASSISTED: 'Assisted',
 }

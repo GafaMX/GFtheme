@@ -53,7 +53,6 @@ export default class ImageSelect extends React.Component {
     updateChanges() {
         let {handleChangePicture} = this.props;
         let {file, remove} = this.state;
-        console.log(file,remove,handleChangePicture);
         if (typeof handleChangePicture === 'function') {
             handleChangePicture(file, remove);
         }

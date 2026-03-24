@@ -145,11 +145,15 @@ class ProfileUserInfo extends React.Component {
     getFutureClasses() {
         let brands = GlobalStorage.get('brands');
         let futureClassesList = [];
+        let lang = StringStore.getLanguage();
 
         brands.forEach(function (brand) {
             GafaFitSDKWrapper.getUserFutureReservationsInBrand(
                 brand.slug,
-                {reducePopulation: true,},
+                {
+                    reducePopulation: true,
+                    locale: lang,
+                },
                 function (result) {
                     futureClassesList = futureClassesList.concat(result);
                     GlobalStorage.set('future_classes', futureClassesList);
@@ -163,6 +167,7 @@ class ProfileUserInfo extends React.Component {
     //         paymentNotification: GlobalStorage.get('ConektaPaymentNotification'),
     //     });
     // }
+
 
     findCountryCodeById() {
         let country = this.state.countries.find(option => option.value === this.state.countries_id);
@@ -242,9 +247,23 @@ class ProfileUserInfo extends React.Component {
     transformStateToForm() {
         let formData = new FormData();
         let state = this.state;
+        let {screen} = this.state;
         Object.entries(state).forEach(([key, value]) => {
-            if (key !== 'countries' && key !== 'states' && key !== 'formErrors' && key !== 'first_nameValid' && key !== 'formValid' && key !== 'serverError' && key !== 'saved' && key !== 'screen' && key !== 'totals_page')
-                formData.append(key, value === null ? '' : value);
+            if (key !== 'countries' && key !== 'states' && key !== 'formErrors' && key !== 'first_nameValid' && key !== 'formValid' && key !== 'serverError' && key !== 'saved' && key !== 'screen' && key !== 'totals_page') {
+                if (screen === 'password') {
+                    if (key === 'password' ||
+                        key === 'password_confirmation' ||
+                        key === 'email' ||
+                        key === 'first_name'
+                    ) {
+                        formData.append(key, value === null ? '' : value);
+                    }
+                } else {
+                    if (key !== 'password' && key !== 'password_confirmation') {
+                        formData.append(key, value === null ? '' : value);
+                    }
+                }
+            }
         });
 
         return formData;

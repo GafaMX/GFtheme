@@ -32,20 +32,19 @@ class ProfileCreditsMemberships extends React.Component {
         GlobalStorage.removeSegmentedListener(['me'], this.updatePurchase);
     }
 
-    updatePurchase() {
-        let comp = this;
-        let {credits, memberships} = GlobalStorage.get('me');
-
-        if (credits && memberships) {
-            setTimeout(function () {
-                comp.setState({
-                    credits,
-                    memberships,
-                    is_mounted: true,
-                });
-            }, 1500);
-        }
-    }
+	updatePurchase() {
+		let comp = this;
+		let { credits = [], memberships = [] } = GlobalStorage.get("me");
+		if (credits && memberships) {
+		  setTimeout(function () {
+			comp.setState({
+			  credits,
+			  memberships,
+			  is_mounted: true,
+			});
+		  }, 1500);
+		}
+	  }
 
     render() {
         let preC = 'GFSDK-c';

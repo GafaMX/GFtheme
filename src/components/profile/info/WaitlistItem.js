@@ -55,6 +55,52 @@ class WaitlistItem extends React.Component {
         this.setState({show: false});
     }
 
+    printStaff() {
+        let {waitlist} = this.props;
+        let staff = waitlist.hasOwnProperty('meetings') && typeof waitlist.meetings === 'object' &&
+        waitlist.meetings.hasOwnProperty('staff') &&
+        typeof waitlist.meetings.staff === 'object' ?
+            waitlist.meetings.staff :
+            waitlist.staff;
+
+        if (staff && staff.hasOwnProperty('job') && staff.job !== null) {
+            return (
+                <p className={'reservation-item-staff'}><strong>{staff['job']}</strong></p>
+            )
+        } else {
+            return (
+                <p className={'reservation-item-staff'}>
+                    <strong>{staff['name']} {staff.hasOwnProperty('lastname') ? staff['lastname'] : ''}</strong></p>
+            );
+        }
+    }
+
+    printSubstituteStaff() {
+        let {waitlist} = this.props;
+        let staff = waitlist.hasOwnProperty('meetings') &&
+        typeof waitlist.meetings === 'object' &&
+        waitlist.meetings.hasOwnProperty('substitute_staff') &&
+        typeof waitlist.meetings.substitute_staff === 'object' ?
+            waitlist.meetings.substitute_staff :
+            waitlist.substitute_staff;
+
+        if (staff) {
+            if (staff.hasOwnProperty('job') && staff.job !== null) {
+                return (
+                    <p className={'reservation-item-staff'}>
+                        <strong>{StringStore.get('SUBSTITUTE_INDICATOR')} {staff['job']}</strong></p>
+                )
+            } else {
+                return (
+                    <p className={'reservation-item-staff'}>
+                        <strong>{StringStore.get('SUBSTITUTE_INDICATOR')} {staff['name']} {staff.hasOwnProperty('lastname') ? staff['lastname'] : ''}</strong>
+                    </p>
+                );
+            }
+        }
+
+        return null;
+    }
 
     render() {
         let preE = 'GFSDK-e';
@@ -67,7 +113,15 @@ class WaitlistItem extends React.Component {
 
         // Formatear fecha de la clase
         const formattedDateDay = meeting_start ? moment(meeting_start).locale(lang).format(format) : StringStore.get('PROFILE_RESERVATIONS_NO_DATE');
-        const formattedDateTime = meeting_start ? moment(meeting_start).locale(lang).format('h:mm a') : StringStore.get('PROFILE_RESERVATIONS_NO_TIME');
+        // const formattedDateTime = meeting_start ? moment(meeting_start).locale(lang).format('h:mm a') : StringStore.get('PROFILE_RESERVATIONS_NO_TIME');
+        let formattedDateTime = waitlist.hasOwnProperty('format_start_time') &&
+        waitlist.format_start_time !== '' &&
+        waitlist.format_start_time !== null ?
+            waitlist.format_start_time : moment(waitlist.meeting_start).locale(lang).format('h:mm a');
+        let date_format = waitlist.hasOwnProperty('format_start_date') &&
+        waitlist.format_start_date !== '' &&
+        waitlist.format_start_date !== null ?
+            waitlist.format_start_date : moment(waitlist.meeting_start).locale(lang).format(format);
 
         // Verificar datos de staff, servicio y ubicación
         const staffName = (staff && staff.name) ? staff.name : StringStore.get('PROFILE_RESERVATIONS_NO_STAFF');
@@ -87,10 +141,11 @@ class WaitlistItem extends React.Component {
                     <h4>{serviceName}</h4>
                 </div>
                 <div className={'pastClass-item__body'}>
-                    <p className={'reservation-item-day'}>{formattedDateDay}</p>
+                    <p className={'reservation-item-day'}>{date_format}</p>
                     <p className={'reservation-item-location'}>{locationName}</p>
                     <p className={'reservation-item-time'}>{formattedDateTime}</p>
-                    <p className={'reservation-item-staff'}><strong>{staffName}</strong></p>
+                    {this.printStaff()}
+                    {this.printSubstituteStaff()}
                     <p className={'reservation-item-cancelled'}><strong>{StringStore.get('IN_WAITLIST')}</strong></p>
                     {!!waitlist_number ? (
                         <p className={'reservation-item-position'}>{StringStore.get('PROFILE_WAITLIST_POSITION', [waitlist_number])}</p>) : null}

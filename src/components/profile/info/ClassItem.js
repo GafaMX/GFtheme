@@ -10,6 +10,7 @@ import Modal from "react-bootstrap/es/Modal";
 import CalendarStorage from "../../calendar/CalendarStorage";
 import CloseIcon from "../../utils/Icons/CloseIcon";
 import StringStore from "../../utils/Strings/StringStore";
+import CheckIcon from "../../utils/Icons/CheckIcon";
 
 class ClassItem extends React.Component {
   constructor(props) {
