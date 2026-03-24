@@ -142,4 +142,6 @@ export default {
     IN_WAITLIST: 'En lista de espera',
     PROFILE_WAITLIST_POSITION: 'Lista de espera: _|_',
     PROFILE_IS_OVERBOOKING: 'Overbooking',
+    PROFILE_VIEW_QR: 'Ver código QR',
+    PROFILE_QR_CLOSE: 'Cerrar',
 }
