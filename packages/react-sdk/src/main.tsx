@@ -1,4 +1,9 @@
 import { createGafaSdk } from "./sdk";
+import "./sdk/theme/theme.css";
+import "./sdk/widgets/widgets.css";
+
+document.body.style.margin = "0";
+document.body.style.background = "#f8fafc";
 
 const sdk = createGafaSdk(
   {
