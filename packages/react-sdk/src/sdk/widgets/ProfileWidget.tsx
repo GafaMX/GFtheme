@@ -16,12 +16,12 @@ export function ProfileWidget({ combineWaitlist = false }: ProfileWidgetProps) {
       <div className="gafa-sdk-profile-grid">
         <section className="gafa-sdk-panel">
           <span className="gafa-sdk-label">Datos</span>
-          <strong>Perfil editable</strong>
+          <h3>Perfil editable</h3>
           <p>Nombre, contacto, direccion y preferencias.</p>
         </section>
         <section className="gafa-sdk-panel">
           <span className="gafa-sdk-label">Actividad</span>
-          <strong>Reservas y waitlist</strong>
+          <h3>Reservas y waitlist</h3>
           <p>
             {combineWaitlist
               ? "Waitlist combinado con proximas reservas."

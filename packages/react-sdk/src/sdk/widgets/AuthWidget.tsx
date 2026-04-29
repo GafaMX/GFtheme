@@ -36,22 +36,22 @@ export function AuthWidget({ initialView = "login", baseUrl }: AuthWidgetProps) 
 
       <form className="gafa-sdk-form">
         {formView === "register" ? (
-          <label>
-            Nombre
+          <label className="gafa-sdk-field">
+            <span>Nombre</span>
             <input placeholder="Tu nombre" />
           </label>
         ) : null}
-        <label>
-          Email
+        <label className="gafa-sdk-field">
+          <span>Email</span>
           <input type="email" placeholder="tu@email.com" />
         </label>
         {formView !== "password-recovery" ? (
-          <label>
-            Password
+          <label className="gafa-sdk-field">
+            <span>Password</span>
             <input type="password" placeholder="••••••••" />
           </label>
         ) : null}
-        <button className="gafa-sdk-primary-button" type="button">
+        <button className="gafa-sdk-button" type="button">
           {formView === "register" ? "Crear cuenta" : formView === "password-recovery" ? "Enviar instrucciones" : "Entrar"}
         </button>
       </form>

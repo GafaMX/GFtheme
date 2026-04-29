@@ -1,83 +1,107 @@
-.gafa-sdk-widget {
+.gafa-widget-card {
   display: grid;
   gap: var(--gafa-space-4);
 }
 
-.gafa-sdk-widget__eyebrow {
+.gafa-widget-header {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-widget-heading {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-widget-logo {
+  border-radius: var(--gafa-radius-md);
+  height: 42px;
+  object-fit: contain;
+  width: auto;
+}
+
+.gafa-eyebrow,
+.gafa-sdk-label,
+.gafa-sdk__meta {
   color: var(--gafa-color-primary);
-  font-size: 0.78rem;
-  font-weight: 800;
+  font-size: 0.76rem;
+  font-weight: 850;
   letter-spacing: 0.08em;
+  margin: 0;
   text-transform: uppercase;
 }
 
-.gafa-sdk-widget__header {
-  display: grid;
-  gap: var(--gafa-space-2);
-}
-
-.gafa-sdk-widget__title {
+.gafa-widget-card h2,
+.gafa-widget-card h3,
+.gafa-widget-card h4 {
   color: var(--gafa-color-text);
-  font-size: clamp(1.35rem, 7vw, 2rem);
-  line-height: 1.08;
+  font-family: var(--gafa-font-heading);
+  letter-spacing: -0.035em;
   margin: 0;
 }
 
-.gafa-sdk-widget__description {
+.gafa-widget-card h2 {
+  font-size: clamp(1.65rem, 8vw, 2.35rem);
+  line-height: 1.02;
+}
+
+.gafa-widget-card h3 {
+  font-size: 1.2rem;
+}
+
+.gafa-widget-card h4 {
+  font-size: 1.08rem;
+}
+
+.gafa-muted,
+.gafa-widget-card p {
   color: var(--gafa-color-muted-text);
   font-size: 0.98rem;
   line-height: 1.55;
   margin: 0;
 }
 
-.gafa-sdk-panel {
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+.gafa-sdk-panel,
+.gafa-sdk__card {
+  background: color-mix(in srgb, var(--gafa-color-surface) 94%, white);
+  border: 1px solid color-mix(in srgb, var(--gafa-color-border) 70%, transparent);
   border-radius: var(--gafa-radius-lg);
   box-shadow: var(--gafa-shadow-card);
+  display: grid;
+  gap: var(--gafa-space-3);
   padding: var(--gafa-space-4);
 }
 
-.gafa-sdk-grid {
+.gafa-sdk-profile-grid,
+.gafa-sdk__cards {
   display: grid;
   gap: var(--gafa-space-3);
 }
 
-@media (min-width: 720px) {
-  .gafa-sdk-grid--columns {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+.gafa-sdk__card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.94)),
+    var(--gafa-color-surface);
 }
 
-.gafa-sdk-card {
-  background: var(--gafa-color-background);
-  border: 1px solid var(--gafa-color-border);
-  border-radius: var(--gafa-radius-md);
+.gafa-sdk__card > div {
   display: grid;
   gap: var(--gafa-space-2);
-  padding: var(--gafa-space-4);
-}
-
-.gafa-sdk-card strong {
-  color: var(--gafa-color-text);
-}
-
-.gafa-sdk-card span,
-.gafa-sdk-card p {
-  color: var(--gafa-color-muted-text);
-  margin: 0;
 }
 
 .gafa-sdk-actions,
 .gafa-sdk-auth-tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: var(--gafa-space-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .gafa-sdk-button,
+.gafa-sdk-primary-button,
 .gafa-sdk-auth-tabs button {
   align-items: center;
+  appearance: none;
   background: var(--gafa-color-primary);
   border: 0;
   border-radius: var(--gafa-radius-pill);
@@ -85,17 +109,25 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-weight: 800;
+  font-weight: 850;
   justify-content: center;
-  min-height: 44px;
-  padding: 0.75rem 1rem;
+  min-height: 48px;
+  padding: 0.78rem 1.1rem;
+  text-align: center;
   text-decoration: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+  width: 100%;
+}
+
+.gafa-sdk-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .gafa-sdk-button--secondary,
 .gafa-sdk-auth-tabs button[aria-pressed="false"] {
-  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
-  color: var(--gafa-color-primary);
+  background: color-mix(in srgb, var(--gafa-color-primary) 9%, var(--gafa-color-surface));
+  color: var(--gafa-color-text);
 }
 
 .gafa-sdk-form {
@@ -104,34 +136,37 @@
 }
 
 .gafa-sdk-field {
+  color: var(--gafa-color-text);
   display: grid;
+  font-size: 0.9rem;
+  font-weight: 750;
   gap: var(--gafa-space-1);
 }
 
-.gafa-sdk-field label {
-  color: var(--gafa-color-text);
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.gafa-sdk-field input {
-  background: var(--gafa-color-background);
+.gafa-sdk-field input,
+.gafa-sdk-field select {
+  appearance: none;
+  background: color-mix(in srgb, var(--gafa-color-surface) 92%, white);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-text);
   font: inherit;
-  min-height: 46px;
-  padding: 0.75rem 0.9rem;
+  font-weight: 500;
+  min-height: 50px;
+  padding: 0.78rem 0.95rem;
+  width: 100%;
 }
 
-.gafa-sdk-state {
+.gafa-sdk-state,
+.gafa-sdk__state {
   border: 1px dashed var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-muted-text);
   padding: var(--gafa-space-4);
 }
 
-.gafa-sdk-state--error {
+.gafa-sdk-state--error,
+.gafa-sdk__state--error {
   border-color: var(--gafa-color-danger);
   color: var(--gafa-color-danger);
 }
@@ -155,7 +190,14 @@
   gap: var(--gafa-space-1);
 }
 
-.gafa-calendar-filter label {
+.gafa-calendar-filter,
+.gafa-calendar-filters label {
+  display: grid;
+  gap: var(--gafa-space-1);
+}
+
+.gafa-calendar-filter label,
+.gafa-calendar-filters label {
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
   font-weight: 800;
@@ -163,7 +205,8 @@
   text-transform: uppercase;
 }
 
-.gafa-calendar-filter select {
+.gafa-calendar-filter select,
+.gafa-calendar-filters select {
   appearance: none;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -208,7 +251,8 @@
   padding: var(--gafa-space-4);
 }
 
-.gafa-meeting-card__main {
+.gafa-meeting-card__main,
+.gafa-meeting-card__body {
   display: grid;
   gap: var(--gafa-space-2);
 }
@@ -282,5 +326,10 @@
 
   .gafa-meeting-card__aside {
     min-width: 160px;
+  }
+
+  .gafa-sdk-profile-grid,
+  .gafa-sdk__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

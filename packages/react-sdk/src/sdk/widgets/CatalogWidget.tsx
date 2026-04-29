@@ -45,23 +45,24 @@ export function CatalogWidget({ client, type = "packages", title, filterByName, 
       title={title ?? getCatalogTitle(type)}
       description="Cards mobile-first listas para conectarse al checkout moderno."
     >
-      {isLoading ? <p className="gafa-sdk__state">Cargando catalogo...</p> : null}
-      {isError ? <p className="gafa-sdk__state gafa-sdk__state--error">No pudimos cargar el catalogo.</p> : null}
-      <div className="gafa-sdk__cards">
+      {isLoading ? <p className="gafa-sdk-state">Cargando catalogo...</p> : null}
+      {isError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el catalogo.</p> : null}
+      <div className="gafa-sdk-grid">
         {(data ?? []).map((item) => (
-          <article className="gafa-sdk__card" key={`${type}-${item.id}`}>
+          <article className="gafa-sdk-card gafa-catalog-card" key={`${type}-${item.id}`}>
             <div>
-              <p className="gafa-sdk__meta">{item.brandName}</p>
+              <p className="gafa-sdk-kicker">{item.brandName}</p>
               <h3>{item.name}</h3>
               {item.description ? <p>{item.description}</p> : null}
+              {item.priceLabel ? <strong className="gafa-catalog-price">{item.priceLabel}</strong> : null}
             </div>
-            <button className="gafa-sdk__button" type="button">
+            <button className="gafa-sdk-button" type="button">
               Comprar
             </button>
           </article>
         ))}
       </div>
-      {!isLoading && !isError && !data?.length ? <p className="gafa-sdk__state">No hay elementos para mostrar.</p> : null}
+      {!isLoading && !isError && !data?.length ? <p className="gafa-sdk-state">No hay elementos para mostrar.</p> : null}
     </WidgetShell>
   );
 }

@@ -136,9 +136,9 @@ export function CalendarWidget({
         staff={staffQuery.data ?? []}
       />
 
-      {isLoading ? <p className="gafa-sdk__state">Cargando calendario...</p> : null}
+      {isLoading ? <p className="gafa-sdk-state">Cargando calendario...</p> : null}
       {hasError ? (
-        <p className="gafa-sdk__state gafa-sdk__state--error">No pudimos cargar el calendario.</p>
+        <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p>
       ) : null}
       <div className="gafa-calendar" data-visualization={visualization}>
         {!isLoading && Object.entries(meetingsByDay).length === 0 ? (
@@ -153,7 +153,7 @@ export function CalendarWidget({
               <div className="gafa-meeting-list">
                 {meetings.map((meeting) => (
                   <article className="gafa-meeting-card" key={meeting.id}>
-                    <div className="gafa-meeting-card__body">
+                    <div className="gafa-meeting-card__main">
                       <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting))}</span>
                       <h4>{meeting.name}</h4>
                       <p>{meeting.service?.name ?? meeting.serviceName ?? meeting.staff?.name ?? "Servicio"}</p>
