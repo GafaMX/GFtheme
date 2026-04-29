@@ -9,6 +9,7 @@ export type Location = {
   name: string;
   slug: string;
   brandSlug?: string;
+  brand?: Brand;
 };
 
 export type Service = {
@@ -21,6 +22,7 @@ export type Service = {
 export type StaffMember = {
   id: number;
   name: string;
+  lastname?: string;
   bio?: string;
   photoUrl?: string;
 };
@@ -29,14 +31,24 @@ export type Meeting = {
   id: number;
   name: string;
   startsAt: string;
+  start?: string;
+  start_date?: string;
+  startTime?: string;
+  timeLabel?: string;
   endsAt?: string;
   durationMinutes?: number;
   description?: string;
   service?: Service;
+  serviceId?: string | number;
   serviceName?: string;
   staff?: StaffMember;
+  staffId?: string | number;
   staffName?: string;
   location?: Location;
+  available?: number;
+  capacity?: number;
+  isReserved?: boolean;
+  passed?: boolean;
   availability?:
     | "available"
     | "waitlist"

@@ -21,12 +21,26 @@ export function createMockGafaClient(): GafaClient {
         slug: "roma-norte",
         brandSlug: "demo-studio",
       },
+      {
+        id: 2,
+        name: "Condesa",
+        slug: "condesa",
+        brandSlug: "demo-studio",
+      },
     ],
     listStaff: async () => [
       {
         id: 1,
         name: "Coach Demo",
+        lastname: "Rivera",
         bio: "Entrenador principal",
+        slug: "coach-demo",
+      },
+      {
+        id: 2,
+        name: "Coach Ana",
+        lastname: "Lopez",
+        slug: "coach-ana",
       },
     ],
     listServices: async () => [
@@ -34,6 +48,11 @@ export function createMockGafaClient(): GafaClient {
         id: 1,
         name: "Functional Training",
         durationMinutes: 50,
+      },
+      {
+        id: 2,
+        name: "Yoga Flow",
+        durationMinutes: 45,
       },
     ],
     listCombos: async () => [
@@ -83,6 +102,14 @@ function demoMeetings(): Meeting[] {
       staffName: "Coach Demo",
       serviceName: "Training",
       availability: "available",
+      available: 8,
+      capacity: 18,
+      isReserved: false,
+      location: {
+        id: 1,
+        name: "Roma Norte",
+        slug: "roma-norte",
+      },
     },
     {
       id: 2,
@@ -92,6 +119,14 @@ function demoMeetings(): Meeting[] {
       staffName: "Coach Ana",
       serviceName: "Wellness",
       availability: "waitlist",
+      available: 0,
+      capacity: 14,
+      isReserved: false,
+      location: {
+        id: 2,
+        name: "Condesa",
+        slug: "condesa",
+      },
     },
   ];
 }

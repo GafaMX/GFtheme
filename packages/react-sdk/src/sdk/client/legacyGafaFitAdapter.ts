@@ -108,10 +108,12 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
       end.setDate(end.getDate() + 14);
       const endDate = filters.to ?? end.toISOString().slice(0, 10);
 
-      return callbackToPromise<Meeting[]>((cb) => {
+      const meetings = await callbackToPromise<Meeting[]>((cb) => {
         const locationId = Number(filters.locationId);
         sdk.GetMeetingsInLocation?.(locationId, startDate, endDate, cb);
       });
+
+      return meetings.map(normalizeLegacyMeeting);
     },
     async getProfile() {
       if (!sdk.GetMe) return null;
@@ -123,5 +125,19 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
     async openCheckout() {
       throw new Error("Checkout is not implemented in the legacy adapter foundation yet.");
     },
+  };
+}
+
+function normalizeLegacyMeeting(meeting: Meeting): Meeting {
+  const startsAt = meeting.startsAt ?? meeting.start ?? meeting.start_date;
+
+  return {
+    ...meeting,
+    startsAt,
+    serviceName: meeting.serviceName ?? meeting.service?.name,
+    staffName:
+      meeting.staffName ??
+      [meeting.staff?.name, meeting.staff?.lastname].filter(Boolean).join(" ") ??
+      undefined,
   };
 }

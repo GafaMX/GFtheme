@@ -12,6 +12,10 @@ Foundation for the next GFTheme SDK: a modern, embeddable React package that can
 - Initial mobile-first widgets for calendar, catalog, auth, profile, and purchase buttons.
 - Mock client for local development and a legacy `window.GafaFitSDK` adapter seam.
 
+## Calendar scope
+
+The first calendar implementation already loads brands, locations, services, staff, and meetings through the `GafaClient` contract. It supports the legacy filter attributes, groups meetings by day, displays availability, and keeps the mobile layout as the default experience.
+
 ## Programmatic usage
 
 ```ts
