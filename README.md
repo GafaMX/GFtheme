@@ -1,5 +1,9 @@
 # GFtheme (Template generation system for GAFAfit)
 
+## Modern React SDK proposal
+
+See [`docs/react-sdk-modernization.md`](docs/react-sdk-modernization.md) for the current architecture analysis and the proposed direction for a modern, mobile-first, brand-configurable React SDK.
+
 ## Requirements
 
 For development, you will only need Node.js installed on your environment.
