@@ -1,7 +1,6 @@
 .DS_STORE
 build
 node_modules
-package-lock.json
 scripts/flow/*/.flowconfig
 *~
 *.pyc
@@ -11,6 +10,7 @@ __benchmarks__
 build/
 remote-repo/
 coverage/
+packages/react-sdk/dist/
 .module-cache
 fixtures/dom/public/react-dom.js
 fixtures/dom/public/react.js

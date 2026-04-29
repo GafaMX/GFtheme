@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GFTheme React SDK</title>
+  </head>
+  <body>
+    <script type="application/json" data-gf-options>
+      {
+        "GAFA_FIT_URL": "https://example.com",
+        "COMPANY_ID": 1,
+        "API_CLIENT": "public-client",
+        "BRAND_ID": 1,
+        "THEME": {
+          "preset": "default",
+          "colors": {
+            "primary": "#111827",
+            "accent": "#f97316"
+          },
+          "logoUrl": "https://dummyimage.com/120x40/111827/ffffff&text=GAFA"
+        }
+      }
+    </script>
+
+    <main style="display: grid; gap: 24px; padding: 24px;">
+      <section data-gf-theme="meetings-calendar" filter-bq-location="true" filter-bq-service="true"></section>
+      <section data-gf-theme="combo-list" data-gf-filterbyname=""></section>
+      <section data-gf-theme="login-register" data-gf-initial="login"></section>
+      <section data-gf-theme="profile-info"></section>
+      <button
+        data-gf-theme="purchase-button"
+        data-bq-combo-id="1"
+        data-bq-location-id="1"
+        type="button"
+      >
+        Comprar paquete
+      </button>
+      <section data-gf-theme="fancy"></section>
+    </main>
+
+    <script type="module" src="/src/legacy/auto.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,137 @@
+.gafa-sdk-widget {
+  display: grid;
+  gap: var(--gafa-space-4);
+}
+
+.gafa-sdk-widget__eyebrow {
+  color: var(--gafa-color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gafa-sdk-widget__header {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-sdk-widget__title {
+  color: var(--gafa-color-text);
+  font-size: clamp(1.35rem, 7vw, 2rem);
+  line-height: 1.08;
+  margin: 0;
+}
+
+.gafa-sdk-widget__description {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.98rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.gafa-sdk-panel {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  box-shadow: var(--gafa-shadow-card);
+  padding: var(--gafa-space-4);
+}
+
+.gafa-sdk-grid {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+@media (min-width: 720px) {
+  .gafa-sdk-grid--columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.gafa-sdk-card {
+  background: var(--gafa-color-background);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-2);
+  padding: var(--gafa-space-4);
+}
+
+.gafa-sdk-card strong {
+  color: var(--gafa-color-text);
+}
+
+.gafa-sdk-card span,
+.gafa-sdk-card p {
+  color: var(--gafa-color-muted-text);
+  margin: 0;
+}
+
+.gafa-sdk-actions,
+.gafa-sdk-auth-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-sdk-button,
+.gafa-sdk-auth-tabs button {
+  align-items: center;
+  background: var(--gafa-color-primary);
+  border: 0;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-primary-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+
+.gafa-sdk-button--secondary,
+.gafa-sdk-auth-tabs button[aria-pressed="false"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-sdk-form {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-sdk-field {
+  display: grid;
+  gap: var(--gafa-space-1);
+}
+
+.gafa-sdk-field label {
+  color: var(--gafa-color-text);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.gafa-sdk-field input {
+  background: var(--gafa-color-background);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-text);
+  font: inherit;
+  min-height: 46px;
+  padding: 0.75rem 0.9rem;
+}
+
+.gafa-sdk-state {
+  border: 1px dashed var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-muted-text);
+  padding: var(--gafa-space-4);
+}
+
+.gafa-sdk-state--error {
+  border-color: var(--gafa-color-danger);
+  color: var(--gafa-color-danger);
+}
