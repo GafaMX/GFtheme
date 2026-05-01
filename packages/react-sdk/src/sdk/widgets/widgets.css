@@ -382,6 +382,112 @@
   color: var(--gafa-color-danger);
 }
 
+.gafa-reservation-overlay {
+  align-items: end;
+  background: rgba(15, 23, 42, 0.46);
+  display: grid;
+  inset: 0;
+  padding: var(--gafa-space-3);
+  position: fixed;
+  z-index: 40;
+}
+
+.gafa-reservation-sheet {
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--gafa-color-accent) 16%, transparent), transparent 36%),
+    rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: 30px 30px var(--gafa-radius-xl) var(--gafa-radius-xl);
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
+  display: grid;
+  gap: var(--gafa-space-4);
+  margin: 0 auto;
+  max-height: min(88vh, 760px);
+  max-width: 560px;
+  overflow: auto;
+  padding: var(--gafa-space-5);
+  position: relative;
+  width: 100%;
+}
+
+.gafa-reservation-close {
+  align-items: center;
+  appearance: none;
+  background: rgba(17, 24, 39, 0.08);
+  border: 0;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 900;
+  height: 38px;
+  justify-content: center;
+  position: absolute;
+  right: var(--gafa-space-4);
+  top: var(--gafa-space-4);
+  width: 38px;
+}
+
+.gafa-reservation-hero {
+  display: grid;
+  gap: var(--gafa-space-2);
+  padding-right: 44px;
+}
+
+.gafa-reservation-hero h3 {
+  color: var(--gafa-color-text);
+  font-size: clamp(1.65rem, 8vw, 2.4rem);
+  letter-spacing: -0.045em;
+  line-height: 1;
+  margin: 0;
+}
+
+.gafa-reservation-hero p {
+  color: var(--gafa-color-muted-text);
+  margin: 0;
+}
+
+.gafa-reservation-summary {
+  display: grid;
+  gap: var(--gafa-space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gafa-reservation-summary div,
+.gafa-reservation-steps li {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: var(--gafa-radius-lg);
+  display: grid;
+  gap: 0.15rem;
+  padding: var(--gafa-space-3);
+}
+
+.gafa-reservation-summary span,
+.gafa-reservation-steps span {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+}
+
+.gafa-reservation-summary strong,
+.gafa-reservation-steps strong {
+  color: var(--gafa-color-text);
+}
+
+.gafa-reservation-steps {
+  display: grid;
+  gap: var(--gafa-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gafa-reservation-actions {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
 .gafa-empty-state {
   background: rgba(255, 255, 255, 0.7);
   border: 1px dashed rgba(17, 24, 39, 0.14);
@@ -397,6 +503,14 @@
 }
 
 @media (min-width: 720px) {
+  .gafa-reservation-overlay {
+    align-items: center;
+  }
+
+  .gafa-reservation-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .gafa-calendar-filters {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }

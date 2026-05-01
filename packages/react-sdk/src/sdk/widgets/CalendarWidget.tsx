@@ -43,6 +43,7 @@ export function CalendarWidget({
 }: CalendarWidgetProps) {
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>({});
   const [reservation, setReservation] = useState<ReservationState>({});
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const range = useMemo(() => defaultMeetingRange(), []);
 
   const brandsQuery = useQuery({
@@ -141,7 +142,7 @@ export function CalendarWidget({
       });
 
       setReservation({
-        success: "Abrimos el flujo de reserva.",
+        success: "Listo. En una integracion real aqui se abre el checkout de reserva.",
       });
     } catch (error) {
       setReservation({
@@ -206,17 +207,11 @@ export function CalendarWidget({
                       <AvailabilityPill meeting={meeting} />
                       <button
                         className="gafa-sdk-button"
-                        disabled={isSoldOut(meeting) || reservation.meetingId === meeting.id}
+                        disabled={isSoldOut(meeting)}
                         type="button"
-                        onClick={() => handleReserve(meeting)}
+                        onClick={() => setSelectedMeeting(meeting)}
                       >
-                        {reservation.meetingId === meeting.id
-                          ? "Abriendo..."
-                          : meeting.isReserved
-                            ? "Reservado"
-                            : isSoldOut(meeting)
-                              ? "Sin lugares"
-                              : "Reservar"}
+                        {meeting.isReserved ? "Reservado" : isSoldOut(meeting) ? "Sin lugares" : "Reservar"}
                       </button>
                     </div>
                   </article>
@@ -226,7 +221,97 @@ export function CalendarWidget({
           ))
         )}
       </div>
+
+      {selectedMeeting ? (
+        <ReservationPreviewModal
+          isBusy={reservation.meetingId === selectedMeeting.id}
+          meeting={selectedMeeting}
+          message={reservation.meetingId === selectedMeeting.id ? undefined : reservation.success}
+          onClose={() => {
+            setSelectedMeeting(null);
+            setReservation({});
+          }}
+          onContinue={() => handleReserve(selectedMeeting)}
+        />
+      ) : null}
     </WidgetShell>
+  );
+}
+
+function ReservationPreviewModal({
+  isBusy,
+  meeting,
+  message,
+  onClose,
+  onContinue,
+}: {
+  isBusy: boolean;
+  meeting: Meeting;
+  message?: string;
+  onClose: () => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="reservation-title">
+      <div className="gafa-reservation-sheet">
+        <button className="gafa-reservation-close" type="button" aria-label="Cerrar reserva" onClick={onClose}>
+          x
+        </button>
+
+        <div className="gafa-reservation-hero">
+          <span className="gafa-eyebrow">Detalle de reserva</span>
+          <h3 id="reservation-title">{meeting.name}</h3>
+          <p>
+            {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting))}
+          </p>
+        </div>
+
+        <div className="gafa-reservation-summary">
+          <div>
+            <span>Servicio</span>
+            <strong>{meeting.service?.name ?? meeting.serviceName ?? "Servicio"}</strong>
+          </div>
+          <div>
+            <span>Coach</span>
+            <strong>{getStaffName(meeting)}</strong>
+          </div>
+          <div>
+            <span>Sede</span>
+            <strong>{meeting.location?.name ?? "Por confirmar"}</strong>
+          </div>
+          <div>
+            <span>Disponibilidad</span>
+            <strong>{getAvailabilityText(meeting)}</strong>
+          </div>
+        </div>
+
+        <ol className="gafa-reservation-steps">
+          <li>
+            <strong>1. Confirma tu clase</strong>
+            <span>Revisa sede, coach, horario y disponibilidad.</span>
+          </li>
+          <li>
+            <strong>2. Inicia sesion</strong>
+            <span>Si el cliente no esta logueado, aqui se muestra login o registro.</span>
+          </li>
+          <li>
+            <strong>3. Usa credito o compra</strong>
+            <span>Si no tiene creditos, el flujo ofrece paquete, membresia o pago.</span>
+          </li>
+        </ol>
+
+        {message ? <p className="gafa-sdk-state gafa-sdk-state--success">{message}</p> : null}
+
+        <div className="gafa-reservation-actions">
+          <button className="gafa-sdk-button" type="button" disabled={isBusy || isSoldOut(meeting)} onClick={onContinue}>
+            {isBusy ? "Abriendo checkout..." : "Continuar reserva"}
+          </button>
+          <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
+            Seguir viendo horarios
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -370,6 +455,14 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("es-MX", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(value));
+}
+
 function getMeetingStart(meeting: Meeting): string {
   return meeting.startsAt ?? meeting.start ?? meeting.startTime ?? new Date().toISOString();
 }
@@ -409,6 +502,16 @@ function isSoldOut(meeting: Meeting): boolean {
   }
 
   return false;
+}
+
+function getAvailabilityText(meeting: Meeting): string {
+  if (meeting.isReserved) return "Ya reservado";
+  if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {
+    return `${meeting.available}/${meeting.capacity} lugares`;
+  }
+  if (meeting.availability === "waitlist") return "Lista de espera";
+  if (isSoldOut(meeting)) return "Sin lugares";
+  return "Disponible";
 }
 
 function AvailabilityPill({ meeting }: { meeting: Meeting }) {
