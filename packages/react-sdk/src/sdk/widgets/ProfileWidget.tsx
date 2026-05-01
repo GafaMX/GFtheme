@@ -11,13 +11,16 @@ export function ProfileWidget({ combineWaitlist = false }: ProfileWidgetProps) {
     <WidgetShell
       eyebrow="Perfil"
       title="Tu cuenta en un solo lugar"
-      description="Datos personales, creditos, membresias, reservas futuras, historial y metodos de pago preparados para la nueva experiencia."
+      description="Perfil moderno para que cada cliente consulte reservas, creditos, membresias y metodos de pago sin salir del sitio."
     >
       <div className="gafa-sdk-profile-grid">
         <section className="gafa-sdk-panel">
           <span className="gafa-sdk-label">Datos</span>
           <h3>Perfil editable</h3>
           <p>Nombre, contacto, direccion y preferencias.</p>
+          <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button">
+            Editar perfil
+          </button>
         </section>
         <section className="gafa-sdk-panel">
           <span className="gafa-sdk-label">Actividad</span>
@@ -27,6 +30,10 @@ export function ProfileWidget({ combineWaitlist = false }: ProfileWidgetProps) {
               ? "Waitlist combinado con proximas reservas."
               : "Waitlist separado para mantener el contrato actual."}
           </p>
+          <div className="gafa-profile-stats">
+            <span>5 creditos</span>
+            <span>2 reservas</span>
+          </div>
         </section>
       </div>
     </WidgetShell>

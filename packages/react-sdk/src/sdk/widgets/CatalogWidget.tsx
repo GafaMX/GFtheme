@@ -43,7 +43,7 @@ export function CatalogWidget({ client, type = "packages", title, filterByName, 
     <WidgetShell
       eyebrow={getCatalogLabel(type)}
       title={title ?? getCatalogTitle(type)}
-      description="Cards mobile-first listas para conectarse al checkout moderno."
+      description="Elige el paquete ideal para reservar sin friccion."
     >
       {isLoading ? <p className="gafa-sdk-state">Cargando catalogo...</p> : null}
       {isError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el catalogo.</p> : null}

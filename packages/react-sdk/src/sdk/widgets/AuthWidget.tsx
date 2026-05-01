@@ -55,6 +55,7 @@ export function AuthWidget({ initialView = "login", baseUrl }: AuthWidgetProps) 
           {formView === "register" ? "Crear cuenta" : formView === "password-recovery" ? "Enviar instrucciones" : "Entrar"}
         </button>
       </form>
+      <p className="gafa-auth-note">Seguro, rapido y listo para conectarse a tu API de usuarios.</p>
       {baseUrl ? <p className="gafa-muted">Base URL configurada: {baseUrl}</p> : null}
     </WidgetShell>
   );

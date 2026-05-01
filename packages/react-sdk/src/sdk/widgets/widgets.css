@@ -1,11 +1,34 @@
 .gafa-widget-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.74)),
+    var(--gafa-color-surface);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: var(--gafa-radius-xl);
+  box-shadow: var(--gafa-shadow-card);
   display: grid;
-  gap: var(--gafa-space-4);
+  gap: var(--gafa-space-5);
+  overflow: hidden;
+  padding: var(--gafa-space-5);
+  position: relative;
+}
+
+.gafa-widget-card::before {
+  background: radial-gradient(circle, color-mix(in srgb, var(--gafa-color-accent) 18%, transparent), transparent 66%);
+  content: "";
+  height: 180px;
+  opacity: 0.85;
+  pointer-events: none;
+  position: absolute;
+  right: -82px;
+  top: -98px;
+  width: 180px;
 }
 
 .gafa-widget-header {
   display: grid;
   gap: var(--gafa-space-3);
+  position: relative;
+  z-index: 1;
 }
 
 .gafa-widget-heading {
@@ -24,7 +47,7 @@
 .gafa-eyebrow,
 .gafa-sdk-label,
 .gafa-sdk__meta {
-  color: var(--gafa-color-primary);
+  color: var(--gafa-color-accent);
   font-size: 0.76rem;
   font-weight: 850;
   letter-spacing: 0.08em;
@@ -42,7 +65,7 @@
 }
 
 .gafa-widget-card h2 {
-  font-size: clamp(1.65rem, 8vw, 2.35rem);
+  font-size: clamp(1.8rem, 8vw, 2.65rem);
   line-height: 1.02;
 }
 
@@ -63,17 +86,19 @@
 }
 
 .gafa-sdk-panel,
+.gafa-sdk-card,
 .gafa-sdk__card {
-  background: color-mix(in srgb, var(--gafa-color-surface) 94%, white);
-  border: 1px solid color-mix(in srgb, var(--gafa-color-border) 70%, transparent);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: var(--gafa-radius-lg);
-  box-shadow: var(--gafa-shadow-card);
+  box-shadow: var(--gafa-shadow-soft);
   display: grid;
   gap: var(--gafa-space-3);
   padding: var(--gafa-space-4);
 }
 
 .gafa-sdk-profile-grid,
+.gafa-sdk-grid,
 .gafa-sdk__cards {
   display: grid;
   gap: var(--gafa-space-3);
@@ -119,6 +144,12 @@
   width: 100%;
 }
 
+.gafa-sdk-button:not(:disabled):active,
+.gafa-sdk-primary-button:not(:disabled):active,
+.gafa-sdk-auth-tabs button:not(:disabled):active {
+  transform: translateY(1px) scale(0.99);
+}
+
 .gafa-sdk-button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -130,7 +161,7 @@
 
 .gafa-sdk-button--secondary,
 .gafa-sdk-auth-tabs button[aria-pressed="false"] {
-  background: color-mix(in srgb, var(--gafa-color-primary) 9%, var(--gafa-color-surface));
+  background: rgba(17, 24, 39, 0.07);
   color: var(--gafa-color-text);
 }
 
@@ -150,8 +181,8 @@
 .gafa-sdk-field input,
 .gafa-sdk-field select {
   appearance: none;
-  background: color-mix(in srgb, var(--gafa-color-surface) 92%, white);
-  border: 1px solid var(--gafa-color-border);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(17, 24, 39, 0.1);
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-text);
   font: inherit;
@@ -161,9 +192,18 @@
   width: 100%;
 }
 
+.gafa-sdk-field input:focus,
+.gafa-sdk-field select:focus,
+.gafa-calendar-filters select:focus {
+  border-color: color-mix(in srgb, var(--gafa-color-accent) 70%, var(--gafa-color-primary));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gafa-color-accent) 15%, transparent);
+  outline: none;
+}
+
 .gafa-sdk-state,
 .gafa-sdk__state {
-  border: 1px dashed var(--gafa-color-border);
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px dashed rgba(17, 24, 39, 0.14);
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-muted-text);
   padding: var(--gafa-space-4);
@@ -180,19 +220,14 @@
   color: var(--gafa-color-success);
 }
 
-.gafa-sdk-state--success {
-  border-color: var(--gafa-color-success);
-  color: var(--gafa-color-success);
-}
-
 .gafa-calendar {
   display: grid;
   gap: var(--gafa-space-4);
 }
 
 .gafa-calendar-filters {
-  background: color-mix(in srgb, var(--gafa-color-primary) 5%, var(--gafa-color-surface));
-  border: 1px solid var(--gafa-color-border);
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: var(--gafa-radius-lg);
   display: grid;
   gap: var(--gafa-space-3);
@@ -222,13 +257,16 @@
 .gafa-calendar-filter select,
 .gafa-calendar-filters select {
   appearance: none;
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--gafa-color-muted-text) 50%) right 1rem center / 7px 7px no-repeat,
+    linear-gradient(135deg, var(--gafa-color-muted-text) 50%, transparent 50%) right 0.72rem center / 7px 7px no-repeat,
+    rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(17, 24, 39, 0.1);
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-text);
   font: inherit;
-  min-height: 46px;
-  padding: 0.75rem 0.9rem;
+  min-height: 50px;
+  padding: 0.75rem 2.35rem 0.75rem 0.9rem;
 }
 
 .gafa-calendar-summary {
@@ -244,7 +282,8 @@
 
 .gafa-day-group h3 {
   color: var(--gafa-color-text);
-  font-size: 1rem;
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
   margin: 0;
   text-transform: capitalize;
 }
@@ -256,10 +295,10 @@
 
 .gafa-meeting-card {
   align-items: stretch;
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
-  border-radius: var(--gafa-radius-lg);
-  box-shadow: var(--gafa-shadow-card);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: var(--gafa-radius-xl);
+  box-shadow: var(--gafa-shadow-soft);
   display: grid;
   gap: var(--gafa-space-3);
   padding: var(--gafa-space-4);
@@ -272,7 +311,7 @@
 }
 
 .gafa-meeting-time {
-  color: var(--gafa-color-primary);
+  color: var(--gafa-color-accent);
   font-size: 0.9rem;
   font-weight: 900;
 }
@@ -315,8 +354,37 @@
   font-weight: 700;
 }
 
+.gafa-availability-pill {
+  align-items: center;
+  background: rgba(22, 163, 74, 0.1);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-success);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 850;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0.35rem 0.75rem;
+}
+
+.gafa-availability-pill--reserved {
+  background: rgba(17, 24, 39, 0.08);
+  color: var(--gafa-color-text);
+}
+
+.gafa-availability-pill--waitlist {
+  background: color-mix(in srgb, var(--gafa-color-accent) 14%, transparent);
+  color: var(--gafa-color-accent);
+}
+
+.gafa-availability-pill--sold-out {
+  background: color-mix(in srgb, var(--gafa-color-danger) 10%, transparent);
+  color: var(--gafa-color-danger);
+}
+
 .gafa-empty-state {
-  border: 1px dashed var(--gafa-color-border);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px dashed rgba(17, 24, 39, 0.14);
   border-radius: var(--gafa-radius-lg);
   color: var(--gafa-color-muted-text);
   display: grid;
@@ -343,6 +411,7 @@
   }
 
   .gafa-sdk-profile-grid,
+  .gafa-sdk-grid,
   .gafa-sdk__cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

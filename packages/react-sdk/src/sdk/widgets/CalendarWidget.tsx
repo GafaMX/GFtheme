@@ -195,10 +195,11 @@ export function CalendarWidget({
                       <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting))}</span>
                       <h4>{meeting.name}</h4>
                       <p>{meeting.service?.name ?? meeting.serviceName ?? meeting.staff?.name ?? "Servicio"}</p>
-                      <p className="gafa-meeting-meta">
-                        {getStaffName(meeting)}
-                        {meeting.location?.name ? ` · ${meeting.location.name}` : ""}
-                      </p>
+                      <div className="gafa-meeting-meta">
+                        <span className="gafa-meeting-chip">{getStaffName(meeting)}</span>
+                        {meeting.location?.name ? <span className="gafa-meeting-chip">{meeting.location.name}</span> : null}
+                        {meeting.durationMinutes ? <span className="gafa-meeting-chip">{meeting.durationMinutes} min</span> : null}
+                      </div>
                       {showDescription && meeting.description ? <p>{meeting.description}</p> : null}
                     </div>
                     <div className="gafa-meeting-card__aside">

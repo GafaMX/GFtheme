@@ -3,7 +3,7 @@ import "./sdk/theme/theme.css";
 import "./sdk/widgets/widgets.css";
 
 document.body.style.margin = "0";
-document.body.style.background = "#f8fafc";
+document.body.style.background = "#f5efe8";
 
 const sdk = createGafaSdk(
   {
@@ -12,10 +12,15 @@ const sdk = createGafaSdk(
     publicClientId: "demo-client",
     theme: {
       preset: "boutique",
-      logoUrl: "/vite.svg",
       colors: {
-        primary: "#111827",
-        accent: "#f97316",
+        primary: "#16110f",
+        primaryText: "#fffaf4",
+        accent: "#ff6b2c",
+        background: "#f5efe8",
+        surface: "#fffaf4",
+        text: "#16110f",
+        mutedText: "#766b63",
+        border: "#eadfd4",
       },
     },
   },

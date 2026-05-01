@@ -15,9 +15,16 @@
   --gafa-radius-md: 14px;
   --gafa-radius-lg: 22px;
   --gafa-radius-pill: 999px;
-  --gafa-shadow-card: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --gafa-space-1: 0.35rem;
+  --gafa-space-2: 0.65rem;
+  --gafa-space-3: 1rem;
+  --gafa-space-4: 1.35rem;
+  --gafa-space-5: 1.75rem;
+  --gafa-space-6: 2.25rem;
+  --gafa-shadow-card: 0 20px 55px rgba(19, 15, 35, 0.12);
+  --gafa-shadow-soft: 0 10px 28px rgba(19, 15, 35, 0.08);
 
-  background: var(--gafa-color-background);
+  background: transparent;
   border-radius: var(--gafa-radius-lg);
   color: var(--gafa-color-text);
   font-family: var(--gafa-font-family);
@@ -26,4 +33,10 @@
 
 .gafa-sdk * {
   box-sizing: border-box;
+}
+
+.gafa-sdk button,
+.gafa-sdk input,
+.gafa-sdk select {
+  font-family: inherit;
 }
