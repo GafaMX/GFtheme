@@ -124,6 +124,10 @@
   opacity: 0.5;
 }
 
+.gafa-sdk-button[aria-busy="true"] {
+  position: relative;
+}
+
 .gafa-sdk-button--secondary,
 .gafa-sdk-auth-tabs button[aria-pressed="false"] {
   background: color-mix(in srgb, var(--gafa-color-primary) 9%, var(--gafa-color-surface));
@@ -169,6 +173,16 @@
 .gafa-sdk__state--error {
   border-color: var(--gafa-color-danger);
   color: var(--gafa-color-danger);
+}
+
+.gafa-sdk-state--success {
+  border-color: var(--gafa-color-success);
+  color: var(--gafa-color-success);
+}
+
+.gafa-sdk-state--success {
+  border-color: var(--gafa-color-success);
+  color: var(--gafa-color-success);
 }
 
 .gafa-calendar {

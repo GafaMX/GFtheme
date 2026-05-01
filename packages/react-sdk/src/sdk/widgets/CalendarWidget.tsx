@@ -28,6 +28,12 @@ type CalendarFiltersState = {
   staffId?: number;
 };
 
+type ReservationState = {
+  meetingId?: number;
+  error?: string;
+  success?: string;
+};
+
 export function CalendarWidget({
   client,
   filters = {},
@@ -36,6 +42,7 @@ export function CalendarWidget({
   showDescription = false,
 }: CalendarWidgetProps) {
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>({});
+  const [reservation, setReservation] = useState<ReservationState>({});
   const range = useMemo(() => defaultMeetingRange(), []);
 
   const brandsQuery = useQuery({
@@ -118,6 +125,31 @@ export function CalendarWidget({
   const isLoading = brandsQuery.isLoading || locationsQuery.isLoading || meetingsQuery.isLoading;
   const hasError = brandsQuery.isError || locationsQuery.isError || servicesQuery.isError || staffQuery.isError || meetingsQuery.isError;
 
+  async function handleReserve(meeting: Meeting) {
+    if (!client || isSoldOut(meeting) || reservation.meetingId) {
+      return;
+    }
+
+    setReservation({ meetingId: meeting.id });
+
+    try {
+      await client.openReservationCheckout({
+        meetingId: meeting.id,
+        brandSlug: getMeetingBrandSlug(meeting, activeBrand),
+        locationSlug: getMeetingLocationSlug(meeting, activeLocation),
+        targetSelector: '[data-gf-theme="fancy"]',
+      });
+
+      setReservation({
+        success: "Abrimos el flujo de reserva.",
+      });
+    } catch (error) {
+      setReservation({
+        error: error instanceof Error ? error.message : "No pudimos abrir la reserva.",
+      });
+    }
+  }
+
   return (
     <WidgetShell
       eyebrow="Reservas"
@@ -139,6 +171,12 @@ export function CalendarWidget({
       {isLoading ? <p className="gafa-sdk-state">Cargando calendario...</p> : null}
       {hasError ? (
         <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p>
+      ) : null}
+      {reservation.error ? (
+        <p className="gafa-sdk-state gafa-sdk-state--error">{reservation.error}</p>
+      ) : null}
+      {reservation.success ? (
+        <p className="gafa-sdk-state gafa-sdk-state--success">{reservation.success}</p>
       ) : null}
       <div className="gafa-calendar" data-visualization={visualization}>
         {!isLoading && Object.entries(meetingsByDay).length === 0 ? (
@@ -165,8 +203,19 @@ export function CalendarWidget({
                     </div>
                     <div className="gafa-meeting-card__aside">
                       <AvailabilityPill meeting={meeting} />
-                      <button className="gafa-sdk-button" disabled={isSoldOut(meeting)} type="button">
-                        {meeting.isReserved ? "Reservado" : isSoldOut(meeting) ? "Sin lugares" : "Reservar"}
+                      <button
+                        className="gafa-sdk-button"
+                        disabled={isSoldOut(meeting) || reservation.meetingId === meeting.id}
+                        type="button"
+                        onClick={() => handleReserve(meeting)}
+                      >
+                        {reservation.meetingId === meeting.id
+                          ? "Abriendo..."
+                          : meeting.isReserved
+                            ? "Reservado"
+                            : isSoldOut(meeting)
+                              ? "Sin lugares"
+                              : "Reservar"}
                       </button>
                     </div>
                   </article>
@@ -329,6 +378,26 @@ function getStaffName(meeting: Meeting): string {
   if (!meeting.staff) return "Staff por confirmar";
 
   return [meeting.staff.name, meeting.staff.lastname].filter(Boolean).join(" ");
+}
+
+function getMeetingBrandSlug(meeting: Meeting, activeBrand?: Brand): string {
+  const brandSlug = meeting.location?.brand?.slug ?? meeting.brandSlug ?? activeBrand?.slug;
+
+  if (!brandSlug) {
+    throw new Error("No se encontro la marca para abrir la reserva.");
+  }
+
+  return brandSlug;
+}
+
+function getMeetingLocationSlug(meeting: Meeting, activeLocation?: Location): string {
+  const locationSlug = meeting.location?.slug ?? meeting.locationSlug ?? activeLocation?.slug;
+
+  if (!locationSlug) {
+    throw new Error("No se encontro la ubicacion para abrir la reserva.");
+  }
+
+  return locationSlug;
 }
 
 function isSoldOut(meeting: Meeting): boolean {

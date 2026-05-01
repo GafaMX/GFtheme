@@ -30,6 +30,7 @@ export type StaffMember = {
 export type Meeting = {
   id: number;
   name: string;
+  brandSlug?: string;
   startsAt: string;
   start?: string;
   start_date?: string;
@@ -45,6 +46,7 @@ export type Meeting = {
   staffId?: string | number;
   staffName?: string;
   location?: Location;
+  locationSlug?: string;
   available?: number;
   capacity?: number;
   isReserved?: boolean;
@@ -102,6 +104,14 @@ export type CheckoutPayload = {
   payload: Record<string, unknown>;
 };
 
+export type ReservationCheckoutPayload = {
+  meetingId: string | number;
+  brandSlug: string;
+  locationSlug: string;
+  userId?: string | number;
+  targetSelector?: string;
+};
+
 export type MeetingFilters = {
   brandId?: string | number;
   locationId?: string | number;
@@ -125,4 +135,5 @@ export type GafaClient = {
   getProfile(): Promise<UserProfile | null>;
   login(credentials: AuthCredentials): Promise<{ access_token: string }>;
   openCheckout(payload: CheckoutPayload): Promise<void>;
+  openReservationCheckout(payload: ReservationCheckoutPayload): Promise<void>;
 };

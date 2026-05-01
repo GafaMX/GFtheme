@@ -82,6 +82,7 @@ export function createMockGafaClient(): GafaClient {
     }),
     login: async () => ({ access_token: "demo-token" }),
     openCheckout: async () => undefined,
+    openReservationCheckout: async () => undefined,
   };
 }
 

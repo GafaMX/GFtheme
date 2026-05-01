@@ -28,6 +28,14 @@ type LegacyGafaFitSdk = {
     cb: LegacyCallback<Meeting[]>,
   ) => void;
   GetMe?: (cb: LegacyCallback<UserProfile | null>) => void;
+  GetCreateReservationForm?: (
+    brandSlug: string,
+    locationSlug: string | number | undefined,
+    userId: string | number | undefined,
+    targetSelector: string,
+    payload: Record<string, unknown>,
+    cb: LegacyCallback<unknown>,
+  ) => void;
 };
 
 declare global {
@@ -122,10 +130,52 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
     async login() {
       throw new Error("Login is not implemented in the legacy adapter foundation yet.");
     },
-    async openCheckout() {
-      throw new Error("Checkout is not implemented in the legacy adapter foundation yet.");
+    async openCheckout(payload) {
+      if (!sdk.GetCreateReservationForm) {
+        throw new Error("GafaFitSDK.GetCreateReservationForm is not available.");
+      }
+
+      await callbackToPromise<unknown>((cb) => {
+        sdk.GetCreateReservationForm?.(
+          payload.brandSlug,
+          payload.locationId,
+          payload.userId,
+          payload.targetSelector ?? '[data-gf-theme="fancy"]',
+          payload.payload,
+          cb,
+        );
+      });
+    },
+    async openReservationCheckout(payload) {
+      if (!sdk.GetCreateReservationForm) {
+        throw new Error("GafaFitSDK.GetCreateReservationForm is not available.");
+      }
+
+      const userId = payload.userId ?? (await getLegacyUserId(sdk));
+
+      await callbackToPromise<unknown>((cb) => {
+        sdk.GetCreateReservationForm?.(
+          payload.brandSlug,
+          payload.locationSlug,
+          userId,
+          payload.targetSelector ?? '[data-gf-theme="fancy"]',
+          {
+            meetings_id: payload.meetingId,
+          },
+          cb,
+        );
+      });
     },
   };
+}
+
+async function getLegacyUserId(sdk: LegacyGafaFitSdk): Promise<string | number | undefined> {
+  if (!sdk.GetMe) {
+    return undefined;
+  }
+
+  const user = await callbackToPromise<UserProfile | null>((cb) => sdk.GetMe?.(cb));
+  return user?.id;
 }
 
 function normalizeLegacyMeeting(meeting: Meeting): Meeting {
