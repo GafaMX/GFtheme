@@ -247,6 +247,15 @@ body.modal-open {
     }
   }
 
+  .pastClass-item__qr-open {
+    margin-top: 10px;
+    padding: 10px 16px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   &__body {
     margin-top: 15px;
 
