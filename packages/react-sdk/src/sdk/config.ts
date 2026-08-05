@@ -23,9 +23,17 @@ export const sdkConfigSchema = z
     apiBaseUrl: z.string().min(1),
     companyId: z.union([z.string(), z.number()]).transform(Number),
     publicClientId: z.union([z.string(), z.number()]).optional(),
+    // OAuth2 password-grant client secret. Se envia desde el navegador porque asi lo exige
+    // hoy la API de gafa.fit (mismo patron ya usado por el theme legacy) -- no es un cambio
+    // de postura de seguridad de este SDK, es el contrato existente.
+    clientSecret: z.string().optional(),
     brandId: z.union([z.string(), z.number()]).transform(Number).optional(),
     tokenMovil: z.string().nullable().optional(),
+    captchaProvider: z.enum(["recaptcha-v3", "turnstile"]).default("recaptcha-v3"),
     captchaPublicKey: z.string().optional(),
+    // Igual que clientSecret: gafa.fit valida el reCAPTCHA en el server usando esta secret key
+    // que el cliente le manda en cada registro (ver App\Rules\Captcha). Viene asi del backend.
+    captchaSecretKey: z.string().optional(),
     language: z.enum(["es", "en"]).default("es"),
     theme: legacyThemeSchema,
   })
@@ -40,9 +48,11 @@ const legacyOptionsSchema = z
     GAFA_FIT_URL: z.string().min(1),
     COMPANY_ID: z.union([z.string(), z.number()]),
     API_CLIENT: z.union([z.string(), z.number()]).optional(),
+    API_SECRET: z.string().optional(),
     BRAND_ID: z.union([z.string(), z.number()]).optional(),
     TOKENMOVIL: z.string().nullable().optional(),
     CAPTCHA_PUBLIC_KEY: z.string().optional(),
+    CAPTCHA_SECRET_KEY: z.string().optional(),
     THEME: legacyThemeSchema,
   })
   .passthrough();
@@ -63,9 +73,11 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     apiBaseUrl: legacyOptions.GAFA_FIT_URL,
     companyId: legacyOptions.COMPANY_ID,
     publicClientId: legacyOptions.API_CLIENT,
+    clientSecret: legacyOptions.API_SECRET,
     brandId: legacyOptions.BRAND_ID,
     tokenMovil: legacyOptions.TOKENMOVIL,
     captchaPublicKey: legacyOptions.CAPTCHA_PUBLIC_KEY,
+    captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY,
     theme: legacyOptions.THEME,
   });
 }

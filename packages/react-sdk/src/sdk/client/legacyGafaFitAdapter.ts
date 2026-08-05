@@ -143,6 +143,19 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
     async login() {
       throw new Error("Login is not implemented in the legacy adapter foundation yet.");
     },
+    logout() {
+      // El cliente HTTP (httpGafaClient) es el que maneja login/logout de verdad; este
+      // adaptador solo queda como fallback de openCheckout/openReservationCheckout.
+    },
+    async register() {
+      throw new Error("Register is not implemented in the legacy adapter foundation yet.");
+    },
+    async requestPasswordReset() {
+      throw new Error("requestPasswordReset is not implemented in the legacy adapter foundation yet.");
+    },
+    async resetPassword() {
+      throw new Error("resetPassword is not implemented in the legacy adapter foundation yet.");
+    },
     async openCheckout(payload) {
       if (!sdk.GetCreateReservationForm) {
         throw new Error("GafaFitSDK.GetCreateReservationForm is not available.");

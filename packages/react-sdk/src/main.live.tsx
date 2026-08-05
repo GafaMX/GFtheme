@@ -11,6 +11,8 @@ const sdk = createGafaSdk({
   apiBaseUrl,
   companyId,
   publicClientId: import.meta.env.VITE_GAFA_API_CLIENT as string,
+  clientSecret: import.meta.env.VITE_GAFA_API_SECRET as string,
+  captchaPublicKey: import.meta.env.VITE_GAFA_CAPTCHA_PUBLIC_KEY as string | undefined,
   theme: {
     preset: "boutique",
     colors: {
@@ -27,3 +29,4 @@ const sdk = createGafaSdk({
 });
 
 sdk.mountCalendar("#calendar-live");
+sdk.mountAuth("#auth-live", { initialView: "login" });

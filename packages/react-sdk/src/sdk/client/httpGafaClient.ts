@@ -7,12 +7,16 @@ import type {
   Location,
   Meeting,
   MeetingFilters,
+  PasswordResetPayload,
+  PasswordResetRequestPayload,
+  RegisterPayload,
   ReservationCheckoutPayload,
   Service,
   StaffMember,
   UserProfile,
 } from "./types";
 import type { GafaSdkConfig } from "../config";
+import { clearStoredToken, readStoredToken, writeStoredToken } from "./tokenStorage";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -21,6 +25,37 @@ type RawLocation = {
   name: string;
   slug: string;
 };
+
+type RawUserProfile = {
+  id: number;
+  email?: string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+  credits_label?: string;
+};
+
+type TokenResponse = {
+  access_token: string;
+  [key: string]: unknown;
+};
+
+type ApiErrorBody = {
+  message?: string;
+  errors?: Record<string, string[]>;
+};
+
+class GafaApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly fieldErrors?: Record<string, string[]>,
+  ) {
+    super(message);
+    this.name = "GafaApiError";
+  }
+}
 
 type RawMeeting = {
   id: number;
@@ -51,6 +86,23 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   // La API anida location/meetings bajo brand/{slug}; el widget solo conoce el locationId,
   // asi que recordamos la location completa (con su slug y brand) cuando se listan.
   const locationById = new Map<number, Location>();
+  let token: string | null = readStoredToken();
+
+  function authHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "GAFAFIT-COMPANY": String(config.companyId),
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+  }
+
+  async function parseErrorBody(response: Response): Promise<GafaApiError> {
+    const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined;
+    const message = firstFieldError ?? body?.message ?? `gafa.fit API ${response.status}`;
+    return new GafaApiError(message, response.status, body?.errors);
+  }
 
   async function apiGet<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
     const url = new URL(`${baseUrl}/api${path}`);
@@ -58,18 +110,42 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (value !== undefined) url.searchParams.set(key, String(value));
     });
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Accept: "application/json",
-        "GAFAFIT-COMPANY": String(config.companyId),
-      },
-    });
+    const response = await fetch(url.toString(), { headers: authHeaders() });
 
     if (!response.ok) {
-      throw new Error(`gafa.fit API ${response.status} on ${url.pathname}`);
+      throw await parseErrorBody(response);
     }
 
     return response.json();
+  }
+
+  async function apiPost<T>(path: string, body: Record<string, string | number | boolean | undefined>): Promise<T> {
+    const form = new URLSearchParams();
+    Object.entries(body).forEach(([key, value]) => {
+      if (value !== undefined) form.set(key, String(value));
+    });
+
+    const response = await fetch(`${baseUrl}${path}`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: form,
+    });
+
+    if (!response.ok) {
+      throw await parseErrorBody(response);
+    }
+
+    if (response.status === 204) return undefined as T;
+    return response.json();
+  }
+
+  function normalizeProfile(raw: RawUserProfile): UserProfile {
+    return {
+      id: raw.id,
+      email: raw.email ?? raw.username ?? "",
+      name: [raw.first_name, raw.last_name].filter(Boolean).join(" ") || raw.name || raw.email || "",
+      creditsLabel: raw.credits_label,
+    };
   }
 
   function unwrap<T>(response: PaginatedResponse<T>): T[] {
@@ -178,14 +254,71 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async getProfile(): Promise<UserProfile | null> {
-      return legacy ? legacy.getProfile() : null;
+      if (!token) return null;
+
+      try {
+        const raw = await apiGet<RawUserProfile>("/me");
+        return normalizeProfile(raw);
+      } catch (error) {
+        if (error instanceof GafaApiError && error.status === 401) return null;
+        throw error;
+      }
     },
 
     async login(credentials: AuthCredentials) {
-      if (!legacy) {
-        throw new Error("Login aun no esta implementado en el cliente HTTP nuevo.");
+      if (!config.publicClientId || !config.clientSecret) {
+        throw new Error("Falta publicClientId/clientSecret en la config del SDK para hacer login.");
       }
-      return legacy.login(credentials);
+
+      const data = await apiPost<TokenResponse>("/oauth/token", {
+        grant_type: "password",
+        client_id: config.publicClientId,
+        client_secret: config.clientSecret,
+        username: credentials.email,
+        password: credentials.password,
+        scope: "*",
+      });
+
+      token = data.access_token;
+      writeStoredToken(token);
+
+      return { access_token: data.access_token };
+    },
+
+    logout() {
+      token = null;
+      clearStoredToken();
+    },
+
+    async register(payload: RegisterPayload) {
+      return apiPost<{ url?: string }>(`/api/register`, {
+        username: payload.email,
+        password: payload.password,
+        password_confirmation: payload.passwordConfirmation,
+        first_name: payload.firstName,
+        last_name: payload.lastName,
+        birth_date: payload.birthDate,
+        gender: payload.gender,
+        "g-recaptcha-response": payload.captchaToken,
+        captcha_secret_key: config.captchaSecretKey,
+        remote_addr: "",
+      });
+    },
+
+    async requestPasswordReset(payload: PasswordResetRequestPayload) {
+      await apiPost(`/api/password/email`, {
+        email: payload.email,
+        return_url: payload.returnUrl,
+      });
+    },
+
+    async resetPassword(payload: PasswordResetPayload) {
+      await apiPost(`/api/password/reset`, {
+        email: payload.email,
+        password: payload.password,
+        password_confirmation: payload.passwordConfirmation,
+        token: payload.token,
+      });
     },
 
     async openCheckout(payload: CheckoutPayload) {

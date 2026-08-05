@@ -96,6 +96,29 @@ export type AuthCredentials = {
   password: string;
 };
 
+export type RegisterPayload = {
+  email: string;
+  password: string;
+  passwordConfirmation: string;
+  firstName: string;
+  lastName?: string;
+  birthDate?: string;
+  gender?: "male" | "female";
+  captchaToken: string;
+};
+
+export type PasswordResetRequestPayload = {
+  email: string;
+  returnUrl: string;
+};
+
+export type PasswordResetPayload = {
+  email: string;
+  password: string;
+  passwordConfirmation: string;
+  token: string;
+};
+
 export type CheckoutPayload = {
   brandSlug: string;
   locationId?: string | number;
@@ -134,6 +157,10 @@ export type GafaClient = {
   listMemberships(brandSlug: string): Promise<CatalogItem[]>;
   getProfile(): Promise<UserProfile | null>;
   login(credentials: AuthCredentials): Promise<{ access_token: string }>;
+  logout(): void;
+  register(payload: RegisterPayload): Promise<{ url?: string }>;
+  requestPasswordReset(payload: PasswordResetRequestPayload): Promise<void>;
+  resetPassword(payload: PasswordResetPayload): Promise<void>;
   openCheckout(payload: CheckoutPayload): Promise<void>;
   openReservationCheckout(payload: ReservationCheckoutPayload): Promise<void>;
 };

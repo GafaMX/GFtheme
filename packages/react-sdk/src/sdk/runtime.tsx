@@ -6,6 +6,7 @@ import { createGafaClient } from "./client/gafaClient";
 import type { GafaClient } from "./client/types";
 import { createLegacyGafaFitAdapter } from "./client/legacyGafaFitAdapter";
 import { createHttpGafaClient } from "./client/httpGafaClient";
+import { createCaptchaProvider } from "./captcha/CaptchaProvider";
 import { ThemeProvider } from "./theme/theme";
 import { AuthWidget, type AuthWidgetProps } from "./widgets/AuthWidget";
 import { CalendarWidget, type CalendarWidgetProps } from "./widgets/CalendarWidget";
@@ -40,6 +41,7 @@ type RuntimeOptions = {
 export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions = {}): GafaSdk {
   const config = parseSdkConfig(input);
   const client = options.client ?? createClient(config, options);
+  const captcha = createCaptchaProvider(config.captchaProvider, config.captchaPublicKey);
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -83,7 +85,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       return mount(target, <CalendarWidget client={client} {...props} />);
     },
     mountAuth(target, props = {}) {
-      return mount(target, <AuthWidget client={client} {...props} />);
+      return mount(target, <AuthWidget client={client} captcha={captcha} {...props} />);
     },
     mountCatalog(target, props = {}) {
       return mount(target, <CatalogWidget client={client} {...props} />);
@@ -106,9 +108,10 @@ function createClient(config: GafaSdkConfig, options: RuntimeOptions): GafaClien
     return createGafaClient(config);
   }
 
-  // El cliente HTTP nuevo cubre catalogo/calendario en directo contra la API de gafa.fit.
-  // Login y checkout todavia no se reconstruyen (tasks aparte), asi que si el script legacy
-  // window.GafaFitSDK esta presente, se usa como fallback solo para esos dos.
+  // El cliente HTTP nuevo cubre catalogo/calendario/login/registro/password en directo
+  // contra la API de gafa.fit. Solo openCheckout/openReservationCheckout (el "fancy") siguen
+  // sin reconstruir: si el script legacy window.GafaFitSDK esta presente, se usa como
+  // fallback unicamente para esos dos.
   const legacy =
     typeof window !== "undefined" && window.GafaFitSDK
       ? createLegacyGafaFitAdapter(config, window.GafaFitSDK)

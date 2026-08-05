@@ -81,6 +81,10 @@ export function createMockGafaClient(): GafaClient {
       creditsLabel: "5 creditos disponibles",
     }),
     login: async () => ({ access_token: "demo-token" }),
+    logout: () => undefined,
+    register: async () => ({ url: undefined }),
+    requestPasswordReset: async () => undefined,
+    resetPassword: async () => undefined,
     openCheckout: async () => undefined,
     openReservationCheckout: async () => undefined,
   };
