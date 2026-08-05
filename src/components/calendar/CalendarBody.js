@@ -283,82 +283,19 @@ class CalendarBody extends React.Component {
     }
 
     render() {
-        const {meetings, limit, login_initial} = this.props;
-        let {start, end, has_next, has_prev} = this.state;
+        // Nota: `meetings_to_show`/`dayList`/`beginsIn`/`settings`/`listItems` se
+        // calculaban aqui completos (recorriendo cada dia x cada meeting con
+        // moment) y luego se descartaban sin usarse: lo unico que realmente pinta
+        // los dias/meetings es `this.printCalendarColumns()` mas abajo, que vuelve
+        // a calcular exactamente lo mismo por su cuenta. Se quita el calculo
+        // duplicado; `printCalendarColumns()` sigue siendo la unica fuente.
+        let {has_next, has_prev} = this.state;
         let preC = 'GFSDK-c';
         let preE = 'GFSDK-e';
         let buttonClass = preE + '-buttons';
         let calendarClass = preC + '-Calendar';
-        let beginsIn, settings;
-        let meetings_to_show = [];
         let visualization = CalendarStorage.get('visualization');
         visualization = !!visualization ? visualization : 'horizontal';
-
-        if (start && end) {
-            meetings_to_show = this.getMeetingsToShow(this.props, start, end);
-
-            const dayList = meetings_to_show.map(function (day) {
-                return (
-                    moment(day.date).toDate()
-                );
-            });
-
-            if (meetings_to_show.length > 0) {
-                for (var i = 0; i < meetings_to_show.length; i++) {
-                    let day = meetings_to_show[i];
-                    if (day.meetings.length > 0) {
-                        beginsIn = i;
-                        break;
-                    }
-                }
-            }
-
-            settings = {
-                draggable: false,
-                infinite: false,
-                arrows: false,
-                adaptiveHeight: true,
-                initialSlide: beginsIn,
-                speed: 500,
-                slidesToScroll: 1,
-                slidesToShow: 1,
-                customPaging: function (i) {
-                    moment.locale(StringStore.getLanguage().toLowerCase());
-                    return (
-                        <a className={meetings_to_show[i].meetings.length === 0 ? 'empty-slide' : ''}>
-                            <div>
-                                <p className="this-date">{moment(dayList[i]).format('dd')}</p>
-                                <p className="this-number">{moment(dayList[i]).format('D')}</p>
-                            </div>
-                        </a>
-                    );
-                },
-                dots: true,
-                dotsClass: "slick-dots slick-thumb " + calendarClass + '__day-dots',
-                responsive: [
-                    {
-                        breakpoint: 992,
-                        settings: {
-                            slidesToShow: 1,
-                            slidesToScroll: 1,
-                        }
-                    },
-                ],
-            };
-        }
-
-        let listItems = meetings_to_show.map(
-            (day, index) => {
-                return <CalendarColumn
-                    key={`calendar-day--${index}`}
-                    index={index} day={day}
-                    limit={limit}
-                    openFancy={this.props.openFancy}
-                    closedFancy={this.props.closedFancy}
-                    login_initial={login_initial}
-                />
-            }
-        );
 
         return (
             <div className={calendarClass + '__body ' + visualization}>
