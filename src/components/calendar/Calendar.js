@@ -16,6 +16,31 @@ import '../../styles/newlook/elements/GFSDK-e-meeting.scss';
 import '../../styles/newlook/elements/GFSDK-e-navigation.scss';
 import StringStore from "../utils/Strings/StringStore";
 
+/**
+ * Debounce simple sin dependencias externas. `GafaThemeSDK.renderMeetingsCalendar`
+ * puede llamar `CalendarStorage.set('meetings', ...)` varias veces seguidas (una
+ * por cada respuesta de red: por ubicacion, y ahora tambien por cada tramo del
+ * rango de fechas). Sin esto, el recalculo pesado de `setInitialValues` (que
+ * recorre TODAS las reuniones para armar los filtros de marca/ubicacion/sala/
+ * servicio/staff) corria una vez por cada una de esas respuestas. Con el
+ * debounce, solo corre una vez, cuando las respuestas dejan de llegar por
+ * `wait` ms.
+ */
+function debounce(fn, wait) {
+    let timeoutId = null;
+
+    function debounced(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), wait);
+    }
+
+    debounced.cancel = function () {
+        clearTimeout(timeoutId);
+    };
+
+    return debounced;
+}
+
 class Calendar extends React.Component {
     constructor(props) {
         super(props);
@@ -38,13 +63,22 @@ class Calendar extends React.Component {
         };
 
         this.selectFilter = this.selectFilter.bind(this);
+        this.setInitialValues = this.setInitialValues.bind(this);
+        this.debouncedSetInitialValues = debounce(this.setInitialValues, 150);
+
         CalendarStorage.set('visualization', props.visualization);
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
         CalendarStorage.set('show_register', this.setShowRegister.bind(this));
         CalendarStorage.set('show_description', props.show_description);
         GlobalStorage.set('block_after_login', props.block_after_login);
         CalendarStorage.set('show_parent', props.show_parent);
-        CalendarStorage.addSegmentedListener(['meetings'], this.setInitialValues.bind(this));
+        CalendarStorage.addSegmentedListener(['meetings'], this.debouncedSetInitialValues);
+    }
+
+    componentWillUnmount() {
+        if (this.debouncedSetInitialValues && this.debouncedSetInitialValues.cancel) {
+            this.debouncedSetInitialValues.cancel();
+        }
     }
 
 

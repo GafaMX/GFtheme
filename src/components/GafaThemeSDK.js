@@ -323,7 +323,7 @@ class GafaThemeSDK extends React.Component {
 
                 }
             } else {
-                GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, end_string, function (result) {
+                let mergeMeetingsResult = function (result) {
                     result.forEach(function (meeting) {
                         meeting.location = location;
                         meetings.push(meeting);
@@ -331,7 +331,36 @@ class GafaThemeSDK extends React.Component {
                     CalendarStorage.set('meetings', meetings);
                     if (location_index === 0)
                         CalendarStorage.set('start_date', start_date);
-                });
+                };
+
+                // Antes se pedian TODOS los dias de location.calendar_days en una sola
+                // llamada (p.ej. 21 dias de golpe), aunque la vista inicial solo muestra
+                // 7. Eso hacia que el usuario esperara el payload completo (que puede ser
+                // de varios MB con muchas reuniones) antes de ver una sola clase.
+                //
+                // Ahora, si el rango es mayor a FIRST_CHUNK_DAYS, se piden 2 tramos EN
+                // PARALELO: la primera semana (para pintar rapido) y el resto del rango
+                // (para que "siguiente semana" siga funcionando exactamente igual que
+                // antes, sin cambiar esa logica). El resultado final acumulado en
+                // `meetings` es identico al de antes, solo que llega en 2 partes en vez
+                // de 1, y la primera parte llega mucho mas rapido.
+                const FIRST_CHUNK_DAYS = 7;
+                const totalDays = location.calendar_days || FIRST_CHUNK_DAYS;
+
+                if (totalDays > FIRST_CHUNK_DAYS) {
+                    let firstChunkEnd = new Date(start_date.getTime());
+                    firstChunkEnd.setDate(start_date.getDate() + (FIRST_CHUNK_DAYS - 1));
+                    let firstChunkEndString = `${firstChunkEnd.getFullYear()}-${firstChunkEnd.getMonth() + 1}-${firstChunkEnd.getDate()}`;
+
+                    let restStart = new Date(start_date.getTime());
+                    restStart.setDate(start_date.getDate() + FIRST_CHUNK_DAYS);
+                    let restStartString = `${restStart.getFullYear()}-${restStart.getMonth() + 1}-${restStart.getDate()}`;
+
+                    GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, firstChunkEndString, mergeMeetingsResult);
+                    GafaFitSDKWrapper.getMeetingsInLocation(location, restStartString, end_string, mergeMeetingsResult);
+                } else {
+                    GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, end_string, mergeMeetingsResult);
+                }
             }
 
         });
