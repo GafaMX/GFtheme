@@ -488,6 +488,10 @@
   gap: var(--gafa-space-2);
 }
 
+.gafa-fancy-mount:empty {
+  min-height: 120px;
+}
+
 .gafa-empty-state {
   background: rgba(255, 255, 255, 0.7);
   border: 1px dashed rgba(17, 24, 39, 0.14);

@@ -49,8 +49,8 @@ type RawMeeting = {
 export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient): GafaClient {
   const baseUrl = config.apiBaseUrl.replace(/\/$/, "");
   // La API anida location/meetings bajo brand/{slug}; el widget solo conoce el locationId,
-  // asi que recordamos a que brand pertenece cada location cuando se listan.
-  const brandByLocationId = new Map<number, string>();
+  // asi que recordamos la location completa (con su slug y brand) cuando se listan.
+  const locationById = new Map<number, Location>();
 
   async function apiGet<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
     const url = new URL(`${baseUrl}/api${path}`);
@@ -97,7 +97,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         : undefined,
       staffId: raw.staff?.id,
       staffName: raw.staff ? [raw.staff.name, raw.staff.lastname].filter(Boolean).join(" ") : undefined,
-      location: location ?? (raw.location ? { id: raw.location.id, name: raw.location.name, slug: "", brandSlug } : undefined),
+      location,
       locationSlug: location?.slug,
       available: raw.available,
       capacity: raw.capacity,
@@ -115,9 +115,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     async listLocations(brandSlug) {
       if (!brandSlug) return [];
       const response = await apiGet<PaginatedResponse<RawLocation>>(`/brand/${brandSlug}/location`);
-      const locations = unwrap(response);
-      locations.forEach((location) => brandByLocationId.set(location.id, brandSlug));
-      return locations.map((location) => ({ ...location, brandSlug }));
+      const locations = unwrap(response).map((location) => ({ ...location, brandSlug }));
+      locations.forEach((location) => locationById.set(location.id, location));
+      return locations;
     },
 
     async listStaff(brandSlug) {
@@ -150,7 +150,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (!filters.locationId) return [];
 
       const locationId = Number(filters.locationId);
-      const brandSlug = brandByLocationId.get(locationId);
+      const location = locationById.get(locationId);
+      const brandSlug = location?.brandSlug;
 
       if (!brandSlug) {
         throw new Error(
@@ -173,7 +174,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       return raw
         .filter((meeting) => (filters.serviceId ? meeting.service?.id === Number(filters.serviceId) : true))
         .filter((meeting) => (filters.staffId ? meeting.staff?.id === Number(filters.staffId) : true))
-        .map((meeting) => normalizeMeeting(meeting, brandSlug));
+        .map((meeting) => normalizeMeeting(meeting, brandSlug, location));
     },
 
     async getProfile(): Promise<UserProfile | null> {

@@ -15,6 +15,7 @@ type LegacyCallback<T> = (error: unknown, result: T) => void;
 type LegacyGafaFitSdk = {
   setUrl?: (url: string) => void;
   setCompany?: (companyId: number) => void;
+  isAuthentified?: () => boolean;
   GetBrandList?: (options: Record<string, unknown>, cb: LegacyCallback<{ data: Brand[] }>) => void;
   GetBrandLocations?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: Location[] }>) => void;
   GetBrandStaffList?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: StaffMember[] }>) => void;
@@ -41,6 +42,18 @@ type LegacyGafaFitSdk = {
 declare global {
   interface Window {
     GafaFitSDK?: LegacyGafaFitSdk;
+  }
+}
+
+/**
+ * GafaFitSDK.GetMe nunca invoca su callback cuando no hay sesion (se queda colgado en vez
+ * de fallar) -- checar isAuthentified() (sincrono) antes de tocar GetMe/GetCreateReservationForm
+ * evita ese hang y da un error reconocible para que AuthWidget lo intercepte mas adelante.
+ */
+export class NotAuthenticatedError extends Error {
+  constructor() {
+    super("Necesitas iniciar sesion para continuar.");
+    this.name = "NotAuthenticatedError";
   }
 }
 
@@ -135,6 +148,10 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
         throw new Error("GafaFitSDK.GetCreateReservationForm is not available.");
       }
 
+      if (sdk.isAuthentified && !sdk.isAuthentified()) {
+        throw new NotAuthenticatedError();
+      }
+
       await callbackToPromise<unknown>((cb) => {
         sdk.GetCreateReservationForm?.(
           payload.brandSlug,
@@ -149,6 +166,10 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
     async openReservationCheckout(payload) {
       if (!sdk.GetCreateReservationForm) {
         throw new Error("GafaFitSDK.GetCreateReservationForm is not available.");
+      }
+
+      if (sdk.isAuthentified && !sdk.isAuthentified()) {
+        throw new NotAuthenticatedError();
       }
 
       const userId = payload.userId ?? (await getLegacyUserId(sdk));

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
+import { FancyOverlay } from "./FancyOverlay";
 import type { Brand, GafaClient, Location, Meeting, Service, StaffMember } from "../client/types";
 
 export type CalendarWidgetProps = {
@@ -28,12 +29,6 @@ type CalendarFiltersState = {
   staffId?: number;
 };
 
-type ReservationState = {
-  meetingId?: number;
-  error?: string;
-  success?: string;
-};
-
 export function CalendarWidget({
   client,
   filters = {},
@@ -42,8 +37,8 @@ export function CalendarWidget({
   showDescription = false,
 }: CalendarWidgetProps) {
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>({});
-  const [reservation, setReservation] = useState<ReservationState>({});
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [fancyMeeting, setFancyMeeting] = useState<Meeting | null>(null);
   const range = useMemo(() => defaultMeetingRange(), []);
 
   const brandsQuery = useQuery({
@@ -126,29 +121,13 @@ export function CalendarWidget({
   const isLoading = brandsQuery.isLoading || locationsQuery.isLoading || meetingsQuery.isLoading;
   const hasError = brandsQuery.isError || locationsQuery.isError || servicesQuery.isError || staffQuery.isError || meetingsQuery.isError;
 
-  async function handleReserve(meeting: Meeting) {
-    if (!client || isSoldOut(meeting) || reservation.meetingId) {
+  function handleReserve(meeting: Meeting) {
+    if (!client || isSoldOut(meeting)) {
       return;
     }
 
-    setReservation({ meetingId: meeting.id });
-
-    try {
-      await client.openReservationCheckout({
-        meetingId: meeting.id,
-        brandSlug: getMeetingBrandSlug(meeting, activeBrand),
-        locationSlug: getMeetingLocationSlug(meeting, activeLocation),
-        targetSelector: '[data-gf-theme="fancy"]',
-      });
-
-      setReservation({
-        success: "Listo. En una integracion real aqui se abre el checkout de reserva.",
-      });
-    } catch (error) {
-      setReservation({
-        error: error instanceof Error ? error.message : "No pudimos abrir la reserva.",
-      });
-    }
+    setSelectedMeeting(null);
+    setFancyMeeting(meeting);
   }
 
   return (
@@ -172,12 +151,6 @@ export function CalendarWidget({
       {isLoading ? <p className="gafa-sdk-state">Cargando calendario...</p> : null}
       {hasError ? (
         <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p>
-      ) : null}
-      {reservation.error ? (
-        <p className="gafa-sdk-state gafa-sdk-state--error">{reservation.error}</p>
-      ) : null}
-      {reservation.success ? (
-        <p className="gafa-sdk-state gafa-sdk-state--success">{reservation.success}</p>
       ) : null}
       <div className="gafa-calendar" data-visualization={visualization}>
         {!isLoading && Object.entries(meetingsByDay).length === 0 ? (
@@ -224,14 +197,26 @@ export function CalendarWidget({
 
       {selectedMeeting ? (
         <ReservationPreviewModal
-          isBusy={reservation.meetingId === selectedMeeting.id}
           meeting={selectedMeeting}
-          message={reservation.meetingId === selectedMeeting.id ? undefined : reservation.success}
-          onClose={() => {
-            setSelectedMeeting(null);
-            setReservation({});
-          }}
+          onClose={() => setSelectedMeeting(null)}
           onContinue={() => handleReserve(selectedMeeting)}
+        />
+      ) : null}
+
+      {fancyMeeting && client ? (
+        <FancyOverlay
+          key={fancyMeeting.id}
+          title={fancyMeeting.name}
+          description="Termina tu reserva: inicia sesion si falta y usa un credito o compra uno nuevo."
+          run={() =>
+            client.openReservationCheckout({
+              meetingId: fancyMeeting.id,
+              brandSlug: getMeetingBrandSlug(fancyMeeting, activeBrand),
+              locationSlug: getMeetingLocationSlug(fancyMeeting, activeLocation),
+              targetSelector: '[data-gf-theme="fancy"]',
+            })
+          }
+          onClose={() => setFancyMeeting(null)}
         />
       ) : null}
     </WidgetShell>
@@ -239,15 +224,11 @@ export function CalendarWidget({
 }
 
 function ReservationPreviewModal({
-  isBusy,
   meeting,
-  message,
   onClose,
   onContinue,
 }: {
-  isBusy: boolean;
   meeting: Meeting;
-  message?: string;
   onClose: () => void;
   onContinue: () => void;
 }) {
@@ -300,11 +281,9 @@ function ReservationPreviewModal({
           </li>
         </ol>
 
-        {message ? <p className="gafa-sdk-state gafa-sdk-state--success">{message}</p> : null}
-
         <div className="gafa-reservation-actions">
-          <button className="gafa-sdk-button" type="button" disabled={isBusy || isSoldOut(meeting)} onClick={onContinue}>
-            {isBusy ? "Abriendo checkout..." : "Continuar reserva"}
+          <button className="gafa-sdk-button" type="button" disabled={isSoldOut(meeting)} onClick={onContinue}>
+            Continuar reserva
           </button>
           <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
             Seguir viendo horarios
