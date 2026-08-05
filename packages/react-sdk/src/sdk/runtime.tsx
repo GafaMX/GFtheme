@@ -5,6 +5,7 @@ import { parseSdkConfig, type GafaSdkConfigInput, type GafaSdkConfig } from "./c
 import { createGafaClient } from "./client/gafaClient";
 import type { GafaClient } from "./client/types";
 import { createLegacyGafaFitAdapter } from "./client/legacyGafaFitAdapter";
+import { createHttpGafaClient } from "./client/httpGafaClient";
 import { ThemeProvider } from "./theme/theme";
 import { AuthWidget, type AuthWidgetProps } from "./widgets/AuthWidget";
 import { CalendarWidget, type CalendarWidgetProps } from "./widgets/CalendarWidget";
@@ -105,11 +106,15 @@ function createClient(config: GafaSdkConfig, options: RuntimeOptions): GafaClien
     return createGafaClient(config);
   }
 
-  if (typeof window !== "undefined" && window.GafaFitSDK) {
-    return createLegacyGafaFitAdapter(config, window.GafaFitSDK);
-  }
+  // El cliente HTTP nuevo cubre catalogo/calendario en directo contra la API de gafa.fit.
+  // Login y checkout todavia no se reconstruyen (tasks aparte), asi que si el script legacy
+  // window.GafaFitSDK esta presente, se usa como fallback solo para esos dos.
+  const legacy =
+    typeof window !== "undefined" && window.GafaFitSDK
+      ? createLegacyGafaFitAdapter(config, window.GafaFitSDK)
+      : undefined;
 
-  return createGafaClient(config);
+  return createHttpGafaClient(config, legacy);
 }
 
 function resolveTarget(target: string | Element): Element {

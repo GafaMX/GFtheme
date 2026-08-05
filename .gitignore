@@ -26,3 +26,8 @@ chrome-user-data
 *.swo
 dist/index.html
 src/index.html
+.env
+.env.local
+.env.*.local
+packages/react-sdk/.env
+packages/react-sdk/.env.local

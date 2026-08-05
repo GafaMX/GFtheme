@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GFTheme React SDK — prueba conectada a produccion</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #f5efe8;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+      .demo-shell {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 18px 14px 36px;
+        display: grid;
+        gap: 18px;
+      }
+      .demo-banner {
+        background: #16110f;
+        color: #fffaf4;
+        border-radius: 16px;
+        padding: 14px 18px;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="demo-shell">
+      <div class="demo-banner">
+        Conectado en vivo a <code id="target-url"></code> — compania de prueba (Stripe test mode).
+      </div>
+      <section id="calendar-live"></section>
+    </main>
+    <script type="module" src="/src/main.live.tsx"></script>
+  </body>
+</html>
