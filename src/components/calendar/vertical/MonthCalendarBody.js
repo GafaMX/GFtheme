@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import moment from "moment";
 import CalendarMeeting from "../CalendarMeeting";
-import uid from "uid";
 import Slider from "react-slick";
 import Calendar from "react-calendar"; // Importar react-calendar
 import 'react-calendar/dist/Calendar.css'; // Importar estilos predeterminados
@@ -123,11 +122,14 @@ export default class VerticalCalendarBody extends React.Component {
                 activeClass = activeClass.slice(0, limit);
             }
 
+            // `meeting.id` es unico en toda la tabla (confirmado con backend), asi que
+            // sirve solo como key sin necesidad de un `uid()` aleatorio que forzaba a
+            // React a remontar cada tarjeta en cada actualizacion.
             column_days = activeClass.map((meeting) => {
                 if (meeting) {
                     return (
                         <CalendarMeeting
-                            key={`column-day--${uid()}--meeting--${meeting.id}`}
+                            key={`column-day--meeting--${meeting.id}`}
                             meeting={meeting}
                             day={day}
                             openFancy={openFancy}

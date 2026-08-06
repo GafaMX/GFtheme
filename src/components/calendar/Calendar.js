@@ -16,6 +16,31 @@ import '../../styles/newlook/elements/GFSDK-e-meeting.scss';
 import '../../styles/newlook/elements/GFSDK-e-navigation.scss';
 import StringStore from "../utils/Strings/StringStore";
 
+/**
+ * Debounce simple sin dependencias externas. `GafaThemeSDK.renderMeetingsCalendar`
+ * puede llamar `CalendarStorage.set('meetings', ...)` varias veces seguidas (una
+ * por cada respuesta de red: por ubicacion, y ahora tambien por cada tramo del
+ * rango de fechas). Sin esto, el recalculo pesado de `setInitialValues` (que
+ * recorre TODAS las reuniones para armar los filtros de marca/ubicacion/sala/
+ * servicio/staff) corria una vez por cada una de esas respuestas. Con el
+ * debounce, solo corre una vez, cuando las respuestas dejan de llegar por
+ * `wait` ms.
+ */
+function debounce(fn, wait) {
+    let timeoutId = null;
+
+    function debounced(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), wait);
+    }
+
+    debounced.cancel = function () {
+        clearTimeout(timeoutId);
+    };
+
+    return debounced;
+}
+
 class Calendar extends React.Component {
     constructor(props) {
         super(props);
@@ -38,13 +63,22 @@ class Calendar extends React.Component {
         };
 
         this.selectFilter = this.selectFilter.bind(this);
+        this.setInitialValues = this.setInitialValues.bind(this);
+        this.debouncedSetInitialValues = debounce(this.setInitialValues, 150);
+
         CalendarStorage.set('visualization', props.visualization);
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
         CalendarStorage.set('show_register', this.setShowRegister.bind(this));
         CalendarStorage.set('show_description', props.show_description);
         GlobalStorage.set('block_after_login', props.block_after_login);
         CalendarStorage.set('show_parent', props.show_parent);
-        CalendarStorage.addSegmentedListener(['meetings'], this.setInitialValues.bind(this));
+        CalendarStorage.addSegmentedListener(['meetings'], this.debouncedSetInitialValues);
+    }
+
+    componentWillUnmount() {
+        if (this.debouncedSetInitialValues && this.debouncedSetInitialValues.cancel) {
+            this.debouncedSetInitialValues.cancel();
+        }
     }
 
 
@@ -202,22 +236,26 @@ class Calendar extends React.Component {
         }
 
 
-        setTimeout(function () {
-            comp.setState({
-                locations: meetingsLocations,
-                brands: meetingsBrands,
-                rooms: meetingsRooms,
-                services: meetingsServices,
-                filter_staff: preFilterStaff,
-                filter_location: preFilterLocation,
-                filter_brand: preFilterBrand,
-                filter_service: preFilterService,
-                filter_room: preFilterRoom,
-                staff: meetingsStaff,
-                meetings: meetings,
-                is_mounted: true,
-            }, comp.initExternalButtons);
-        }, 5000);
+        // Antes había un setTimeout(..., 5000) aquí que forzaba una espera fija de
+        // 5 segundos antes de mostrar el calendario, sin importar si los datos ya
+        // estaban listos. Se quita: setState puede llamarse directo desde este
+        // callback (dispara por CalendarStorage.addSegmentedListener, no por un
+        // evento del DOM), no hay ninguna condición async pendiente que justifique
+        // el delay.
+        comp.setState({
+            locations: meetingsLocations,
+            brands: meetingsBrands,
+            rooms: meetingsRooms,
+            services: meetingsServices,
+            filter_staff: preFilterStaff,
+            filter_location: preFilterLocation,
+            filter_brand: preFilterBrand,
+            filter_service: preFilterService,
+            filter_room: preFilterRoom,
+            staff: meetingsStaff,
+            meetings: meetings,
+            is_mounted: true,
+        }, comp.initExternalButtons);
     }
 
     /**
@@ -286,6 +324,78 @@ class Calendar extends React.Component {
         }
     }
 
+    /**
+     * Aplica los 5 filtros (ubicacion/sala/servicio/marca/staff) sobre `meetings`.
+     * Antes esto se recalculaba desde cero en CADA render (incluyendo renders que
+     * no tienen nada que ver con los filtros ni con las meetings, como abrir/cerrar
+     * el modal de login). Se cachea el resultado y solo se vuelve a calcular si
+     * cambio el arreglo de meetings o alguno de los 5 valores de filtro.
+     */
+    getFilteredMeetings(meetings, filter_location, filter_room, filter_service, filter_brand, filter_staff) {
+        const cache = this._filteredMeetingsCache;
+
+        if (
+            cache &&
+            cache.meetings === meetings &&
+            cache.filter_location === filter_location &&
+            cache.filter_room === filter_room &&
+            cache.filter_service === filter_service &&
+            cache.filter_brand === filter_brand &&
+            cache.filter_staff === filter_staff
+        ) {
+            return cache.result;
+        }
+
+        let filtered = meetings;
+
+        if (filter_location && filter_location != 'Todos') {
+            filtered = filtered.filter(function (meeting) {
+                return meeting.location.name === filter_location
+            });
+        }
+
+        if (filter_room && filter_room != 'Todos') {
+            filtered = filtered.filter(function (meeting) {
+                return meeting.room.name === filter_room
+            });
+        }
+
+        if (filter_service && filter_service != 'Todos') {
+            filtered = filtered.filter(function (meeting) {
+                return meeting.service.name === filter_service ||
+                    (meeting.service.parent_id !== null && meeting.service.parent_service_recursive !== null && meeting.service.parent_service_recursive.name === filter_service);
+            });
+        }
+
+        if (filter_brand && filter_brand != 'Todos') {
+            filtered = filtered.filter(function (meeting) {
+                return meeting.location.brand.name === filter_brand
+            });
+        }
+
+        if (filter_staff && filter_staff != 'Todos') {
+            filtered = filtered.filter(function (meeting) {
+                let staff_name = meeting.staff.name + ' ' + (meeting.staff.hasOwnProperty('lastname') ? meeting.staff.lastname : '');
+                if (meeting.staff.hasOwnProperty('job') && meeting.staff.job !== null) {
+                    staff_name = meeting.staff.job;
+                }
+                return staff_name === filter_staff
+            });
+        }
+
+        this._filteredMeetingsCache = {
+            meetings,
+            filter_location,
+            filter_room,
+            filter_service,
+            filter_brand,
+            filter_staff,
+            result: filtered,
+        };
+
+        return filtered;
+    }
+
     render() {
         let {
             is_mounted,
@@ -314,40 +424,7 @@ class Calendar extends React.Component {
             width: widthDimension + 'px',
         };
 
-        if (filter_location && filter_location != 'Todos') {
-            meetings = meetings.filter(function (meeting) {
-                return meeting.location.name === filter_location
-            });
-        }
-
-        if (filter_room && filter_room != 'Todos') {
-            meetings = meetings.filter(function (meeting) {
-                return meeting.room.name === filter_room
-            });
-        }
-
-        if (filter_service && filter_service != 'Todos') {
-            meetings = meetings.filter(function (meeting) {
-                return meeting.service.name === filter_service ||
-                    (meeting.service.parent_id !== null && meeting.service.parent_service_recursive !== null && meeting.service.parent_service_recursive.name === filter_service);
-            });
-        }
-
-        if (filter_brand && filter_brand != 'Todos') {
-            meetings = meetings.filter(function (meeting) {
-                return meeting.location.brand.name === filter_brand
-            });
-        }
-
-        if (filter_staff && filter_staff != 'Todos') {
-            meetings = meetings.filter(function (meeting) {
-                let staff_name = meeting.staff.name + ' ' + (meeting.staff.hasOwnProperty('lastname') ? meeting.staff.lastname : '');
-                if (meeting.staff.hasOwnProperty('job') && meeting.staff.job !== null) {
-                    staff_name = meeting.staff.job;
-                }
-                return staff_name === filter_staff
-            });
-        }
+        meetings = this.getFilteredMeetings(meetings, filter_location, filter_room, filter_service, filter_brand, filter_staff);
 
         let head_class = '__head-' + (visualization === 'vertical' ? visualization : 'horizontal');
 
