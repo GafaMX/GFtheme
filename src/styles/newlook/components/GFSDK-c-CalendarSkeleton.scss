@@ -1,0 +1,115 @@
+@import '../base/variables.scss';
+
+@keyframes GFSDKCalendarSkeletonShimmer {
+  0% {
+    background-position: -450px 0;
+  }
+  100% {
+    background-position: 450px 0;
+  }
+}
+
+@keyframes GFSDKCalendarFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Se aplica al contenedor real del calendario (CalendarBody) la primera vez
+// que reemplaza al skeleton, para que no aparezca de golpe.
+.#{$pre}-c-Calendar__body-appear {
+  animation: GFSDKCalendarFadeIn .4s ease;
+}
+
+// Indicador chico y discreto de "cargando mas dias..." mientras llega el
+// resto del rango en segundo plano (la primera semana ya se muestra real).
+.#{$pre}-c-Calendar__loading-more {
+  display: flex;
+  align-items: center;
+  column-gap: 8px;
+  color: #8E8E93;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  letter-spacing: .3px;
+  padding: 6px 0 14px;
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #C7C7C8;
+    animation: GFSDKCalendarSkeletonShimmer 1.2s ease-in-out infinite alternate;
+  }
+}
+
+.#{$pre}-c-CalendarSkeleton {
+  display: grid;
+  row-gap: 12px;
+  padding: 15px 0;
+  width: 100%;
+  box-sizing: border-box;
+
+  &__card {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px;
+    align-items: center;
+    column-gap: 15px;
+    border: 1px solid #EEEEEE;
+    border-radius: 10px;
+    background-color: #FFFFFF;
+    padding: 15px;
+    box-sizing: border-box;
+
+    @media screen and (max-width: 991px) {
+      grid-template-columns: 56px 1fr 64px;
+      column-gap: 10px;
+    }
+  }
+
+  &__time,
+  &__pill,
+  &__line {
+    border-radius: 6px;
+    background: linear-gradient(90deg, #EFEFEF 25%, #F6F6F6 37%, #EFEFEF 63%);
+    background-size: 450px 100%;
+    animation: GFSDKCalendarSkeletonShimmer 1.4s ease-in-out infinite;
+  }
+
+  &__time {
+    height: 32px;
+    width: 100%;
+    border-radius: 8px;
+  }
+
+  &__body {
+    display: grid;
+    row-gap: 8px;
+  }
+
+  &__line {
+    height: 10px;
+
+    &--title {
+      width: 70%;
+      height: 12px;
+    }
+
+    &--subtitle {
+      width: 50%;
+    }
+
+    &--meta {
+      width: 35%;
+    }
+  }
+
+  &__pill {
+    height: 34px;
+    border-radius: 999px;
+  }
+}

@@ -65,6 +65,7 @@ export default {
   ROOM: "Salón",
   NEXT_WEEK: "Siguiente semana",
   PREVIOUS_WEEK: "Semana anterior",
+  CALENDAR_LOADING_MORE_DAYS: "Cargando más días...",
   CALENDAR: "Calendario",
   NOT_ACCOUNT_QUESTION: "¿Aún no tienes una cuenta?",
   ACCOUNT_QUESTION: "¿Ya tienes una cuenta?",
