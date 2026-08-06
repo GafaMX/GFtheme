@@ -47,28 +47,52 @@
   }
 }
 
+// Imita la forma REAL del calendario (columnas por dia en desktop, con
+// header de dia/numero real; una sola columna con tarjetas en mobile, como
+// el slider real de un dia a la vez) en vez de una lista vertical generica.
 .#{$pre}-c-CalendarSkeleton {
-  display: grid;
-  row-gap: 12px;
-  padding: 15px 0;
   width: 100%;
   box-sizing: border-box;
+  padding: 15px 0;
+
+  &__header,
+  &__columns {
+    display: none;
+  }
+
+  &__header-day-name,
+  &__header-day-number {
+    border-radius: 6px;
+    background: linear-gradient(90deg, #EFEFEF 25%, #F6F6F6 37%, #EFEFEF 63%);
+    background-size: 450px 100%;
+    animation: GFSDKCalendarSkeletonShimmer 1.4s ease-in-out infinite;
+    margin: 0 auto;
+  }
+
+  &__header-day-name {
+    width: 60%;
+    height: 9px;
+    margin-bottom: 6px;
+  }
+
+  &__header-day-number {
+    width: 40%;
+    height: 13px;
+  }
+
+  &__mobile {
+    display: grid;
+    row-gap: 12px;
+  }
 
   &__card {
     display: grid;
-    grid-template-columns: 80px 1fr 100px;
-    align-items: center;
-    column-gap: 15px;
+    row-gap: 8px;
     border: 1px solid #EEEEEE;
     border-radius: 10px;
     background-color: #FFFFFF;
     padding: 15px;
     box-sizing: border-box;
-
-    @media screen and (max-width: 991px) {
-      grid-template-columns: 56px 1fr 64px;
-      column-gap: 10px;
-    }
   }
 
   &__time,
@@ -81,35 +105,64 @@
   }
 
   &__time {
-    height: 32px;
-    width: 100%;
+    height: 16px;
+    width: 45%;
     border-radius: 8px;
   }
 
-  &__body {
-    display: grid;
-    row-gap: 8px;
-  }
-
   &__line {
-    height: 10px;
+    height: 9px;
 
     &--title {
-      width: 70%;
-      height: 12px;
+      width: 75%;
+      height: 11px;
     }
 
     &--subtitle {
-      width: 50%;
+      width: 55%;
     }
 
     &--meta {
-      width: 35%;
+      width: 40%;
     }
   }
 
   &__pill {
-    height: 34px;
+    height: 30px;
+    width: 100%;
     border-radius: 999px;
+    margin-top: 4px;
+  }
+
+  // A partir de aqui, replica el layout REAL de la vista "vertical" en
+  // desktop: GFSDK-c-Calendar__header_vertical / __week_body_vertical /
+  // __day_column_vertical usan el mismo 14% de ancho por columna (7 dias).
+  @media screen and (min-width: 992px) {
+    &__mobile {
+      display: none;
+    }
+
+    &__header,
+    &__columns {
+      display: inline-flex;
+      width: 100%;
+    }
+
+    &__header {
+      margin-bottom: 10px;
+    }
+
+    &__header-day {
+      width: 14%;
+      text-align: center;
+    }
+
+    &__column {
+      width: 14%;
+      padding: 0 5px;
+      box-sizing: border-box;
+      display: grid;
+      row-gap: 15px;
+    }
   }
 }
