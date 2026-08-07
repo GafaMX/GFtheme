@@ -116,8 +116,51 @@ class Login extends React.Component {
         this.setState({serverError: error, logged: false});
     }
 
+    /**
+     * Abre visualmente el contenedor [data-gf-theme="fancy"] (agrega las clases
+     * `active`/`show` que su CSS requiere para dejar de estar en opacity:0 y
+     * pointer-events:none) y engancha el boton de cerrar una vez que el
+     * contenido llegue. Sin esto, el fancy se rellenaba de contenido pero
+     * quedaba invisible/no interactivo: CalendarMeeting/ComboItem/MembershipItem
+     * ya hacen esto para el flujo de click directo estando logueado, pero el
+     * flujo de "comprar/reservar despues de hacer login" (mas abajo) nunca lo
+     * hacia.
+     */
+    openFancyContainerAndWireClose() {
+        const fancy = document.querySelector('[data-gf-theme="fancy"]');
+        fancy.classList.add('active');
+
+        setTimeout(function () {
+            fancy.classList.add('show');
+        }, 400);
+
+        function getFancy() {
+            if (document.querySelector('[data-gf-theme="fancy"]').firstChild) {
+                const closeFancy = document.getElementById('CreateReservationFancyTemplate--Close');
+
+                closeFancy.addEventListener('click', function (e) {
+                    var event_before = new Event('buq__reservation_fancy_before_closed');
+                    dispatchEvent(event_before);
+                    fancy.removeChild(document.querySelector('[data-gf-theme="fancy"]').firstChild);
+
+                    fancy.classList.remove('show');
+
+                    setTimeout(function () {
+                        fancy.classList.remove('active');
+                        fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+                    }, 400);
+                });
+            } else {
+                setTimeout(getFancy, 1000);
+            }
+        }
+
+        return getFancy;
+    }
+
     buyComboAfterLogin() {
         let comp = this;
+        let getFancy = this.openFancyContainerAndWireClose();
 
         GafaFitSDKWrapper.getFancyForBuyCombo(
             window.GFtheme.brand_slug,
@@ -128,11 +171,14 @@ class Login extends React.Component {
                 window.GFtheme.combo_id = null;
                 window.GFtheme.brand_slug = null;
                 window.GFtheme.location_slug = null;
+                getFancy();
             });
     }
 
     buyMembershipAfterLogin() {
         let comp = this;
+        let getFancy = this.openFancyContainerAndWireClose();
+
         GafaFitSDKWrapper.getFancyForBuyMembership(
             window.GFtheme.brand_slug,
             window.GFtheme.location_slug,
@@ -142,11 +188,14 @@ class Login extends React.Component {
                 window.GFtheme.membership_id = null;
                 window.GFtheme.brand_slug = null;
                 window.GFtheme.location_slug = null;
+                getFancy();
             });
     }
 
     reserveMeetingAfterLogin() {
         let comp = this;
+        let getFancy = this.openFancyContainerAndWireClose();
+
         GafaFitSDKWrapper.getFancyForMeetingReservation(
             window.GFtheme.brand_slug,
             window.GFtheme.location_slug,
@@ -156,6 +205,7 @@ class Login extends React.Component {
                 window.GFtheme.meetings_id = null;
                 window.GFtheme.location_slug = null;
                 window.GFtheme.brand_slug = null;
+                getFancy();
             });
     }
 
