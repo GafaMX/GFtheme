@@ -8,10 +8,11 @@ import LoginRegister from "../menu/LoginRegister";
 
 import IconSelectDownArrow from "../utils/Icons/IconSelectDownArrow";
 
-import Loading from '../common/Loading';
+import CalendarSkeleton from './CalendarSkeleton';
 // Estilos
 import '../../styles/newlook/components/GFSDK-c-Calendar.scss';
 import '../../styles/newlook/components/GFSDK-c-Filter.scss';
+import '../../styles/newlook/components/GFSDK-c-CalendarSkeleton.scss';
 import '../../styles/newlook/elements/GFSDK-e-meeting.scss';
 import '../../styles/newlook/elements/GFSDK-e-navigation.scss';
 import StringStore from "../utils/Strings/StringStore";
@@ -60,11 +61,13 @@ class Calendar extends React.Component {
             filter_location: "Todos",
             locations: [],
             is_mounted: false,
+            isLoadingMore: false,
         };
 
         this.selectFilter = this.selectFilter.bind(this);
         this.setInitialValues = this.setInitialValues.bind(this);
         this.debouncedSetInitialValues = debounce(this.setInitialValues, 150);
+        this.updateIsLoadingMore = this.updateIsLoadingMore.bind(this);
 
         CalendarStorage.set('visualization', props.visualization);
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
@@ -73,12 +76,22 @@ class Calendar extends React.Component {
         GlobalStorage.set('block_after_login', props.block_after_login);
         CalendarStorage.set('show_parent', props.show_parent);
         CalendarStorage.addSegmentedListener(['meetings'], this.debouncedSetInitialValues);
+        // La primera semana ya llega rapido y se muestra real; mientras el
+        // resto del rango sigue llegando en segundo plano, se muestra un
+        // indicador chico y discreto en vez de dejar al usuario sin ninguna
+        // senal de que todavia hay mas dias por cargar.
+        CalendarStorage.addSegmentedListener(['pendingMeetingRequests'], this.updateIsLoadingMore);
     }
 
     componentWillUnmount() {
         if (this.debouncedSetInitialValues && this.debouncedSetInitialValues.cancel) {
             this.debouncedSetInitialValues.cancel();
         }
+    }
+
+    updateIsLoadingMore() {
+        let pending = CalendarStorage.get('pendingMeetingRequests') || 0;
+        this.setState({isLoadingMore: pending > 0});
     }
 
 
@@ -399,6 +412,7 @@ class Calendar extends React.Component {
     render() {
         let {
             is_mounted,
+            isLoadingMore,
             meetings,
             locations,
             filter_location,
@@ -566,15 +580,23 @@ class Calendar extends React.Component {
                     }
                     {is_mounted
                         ?
-                        <CalendarBody
-                            meetings={meetings}
-                            limit={this.props.limit}
-                            openFancy={this.openFancy}
-                            closedFancy={this.closedFancy}
-                            login_initial={this.props.login_initial}
-                        />
+                        <div className={calendarClass + '__body-appear'}>
+                            {isLoadingMore &&
+                                <p className={calendarClass + '__loading-more'}>
+                                    <span className={calendarClass + '__loading-more__dot'}/>
+                                    {StringStore.get('CALENDAR_LOADING_MORE_DAYS') || 'Cargando más días...'}
+                                </p>
+                            }
+                            <CalendarBody
+                                meetings={meetings}
+                                limit={this.props.limit}
+                                openFancy={this.openFancy}
+                                closedFancy={this.closedFancy}
+                                login_initial={this.props.login_initial}
+                            />
+                        </div>
                         :
-                        <Loading/>
+                        <CalendarSkeleton/>
                     }
                 </div>
 
