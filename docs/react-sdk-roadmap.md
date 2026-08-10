@@ -36,7 +36,7 @@ theming por marca y templates editables.
 | `PurchaseButtonWidget.tsx` | Funcional | — |
 | `AuthWidget.tsx` | Funcional | Interceptar `NotAuthenticatedError` para mostrar login inline |
 | `CatalogWidget.tsx` | Parcial | El botón "Comprar" no hace nada: falta cablearlo a `FancyOverlay` |
-| `ProfileWidget.tsx` | Cascarón estático | Todo: datos reales, reservas, créditos, membresías |
+| `ProfileWidget.tsx` | Funcional | Validar los shapes con una cuenta de prueba real; editar datos personales |
 
 Infra ya resuelta: cliente HTTP directo a gafa.fit (`httpGafaClient.ts`), token compartido con
 el legacy y el WebView de `buq-app` (`tokenStorage.ts`), captcha abstraído
@@ -49,9 +49,10 @@ Cada punto es un PR chico e independiente, revisable y cancelable por separado.
 1. **Catalog conectado al checkout.** `CatalogWidget` ya trae paquetes, membresías, servicios y
    staff reales; solo falta que "Comprar" llame a `client.openCheckout` y abra `FancyOverlay`,
    igual que ya lo hace `PurchaseButtonWidget`.
-2. **Profile real.** Reemplazar el cascarón por datos de `client.getProfile()` (`GET /api/me`),
-   más próximas reservas, créditos y membresías. Incluye el bug de CSS conocido: los contadores
-   de créditos y reservas se pegan por falta de `gap` en `widgets.css`.
+2. **Validar el perfil con una cuenta real.** Ya está construido (reservas próximas, créditos,
+   membresías, compras, cancelar reserva y cerrar sesión) y verificado con el cliente mock y en
+   estado sin sesión contra producción. Falta una cuenta de prueba con movimientos para
+   confirmar los shapes en vivo y, después, la edición de datos personales (`POST /api/me`).
 3. **Login inline cuando falla el checkout.** `legacyGafaFitAdapter.ts` ya lanza
    `NotAuthenticatedError`; falta que `FancyOverlay` lo intercepte y muestre `AuthWidget` en vez
    de un error genérico.
