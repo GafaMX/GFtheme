@@ -4,7 +4,6 @@ import React from "react";
 import CalendarMeeting from "./CalendarMeeting";
 import moment from "moment";
 import 'moment/locale/es';
-import uid from 'uid';
 
 class CalendarColumn extends React.Component {
     constructor(props) {
@@ -42,12 +41,17 @@ class CalendarColumn extends React.Component {
       let today = new Date();
       let date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
 
+      // `meeting.id` es unico en toda la tabla (confirmado con el equipo de backend:
+      // no se repite ni entre reuniones recurrentes ni entre companies). Antes se
+      // usaba un `uid()` aleatorio ademas del id, lo que generaba una key NUEVA en
+      // cada render y forzaba a React a destruir y volver a montar cada tarjeta de
+      // clase en cada actualizacion, en vez de reutilizar el DOM existente.
       if (limit) {
          listItems = activeClass.slice(0, limit).map((meeting) => {
                if (meeting) {
                   return(  
                      <CalendarMeeting 
-                        key={`column-day--${uid()}--meeting--${meeting.id}`} 
+                        key={`column-day--meeting--${meeting.id}`} 
                         meeting={meeting} day={day} 
                         alignment={alignment}
                         openFancy = {this.props.openFancy}
@@ -62,7 +66,7 @@ class CalendarColumn extends React.Component {
             if (meeting) {
                return (
                   <CalendarMeeting 
-                     key={`column-day--${uid()}--meeting--${meeting.id}`} 
+                     key={`column-day--meeting--${meeting.id}`} 
                      meeting={meeting} 
                      day={day} 
                      alignment={alignment}

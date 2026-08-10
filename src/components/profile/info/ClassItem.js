@@ -1,8 +1,8 @@
-'use strict';
+"use strict";
 
-import React from 'react';
-import moment from 'moment';
-import 'moment/locale/es';
+import React from "react";
+import moment from "moment";
+import "moment/locale/es";
 import Strings from "../../utils/Strings/Strings_ES";
 import GafaFitSDKWrapper from "../../utils/GafaFitSDKWrapper";
 import Glyphicon from "react-bootstrap/es/Glyphicon";
@@ -18,7 +18,8 @@ class ClassItem extends React.Component {
         this.state = {
             showCancelation: false,
             errorCancelation: null,
-        }
+            showQrModal: false,
+        };
     }
 
     handleClick(event) {
@@ -30,47 +31,74 @@ class ClassItem extends React.Component {
         GafaFitSDKWrapper.postUserCancelReservation(
             reservation.brand.slug,
             reservationID,
-            '',
+            "",
             function (result) {
-                alert(StringStore.get('CANCELEDRESERVATION'));
+                alert(StringStore.get("CANCELEDRESERVATION"));
                 window.location.reload();
             },
             function (error) {
                 comp.setState({
                     errorCancelation: error.error,
-                })
-            }
-        )
+                });
+            },
+        );
     }
 
     handleShowCancelation() {
         this.setState({
-            showCancelation: true
-        })
+            showCancelation: true,
+        });
     }
 
     handleClickBack() {
         this.setState({
             showCancelation: false,
-        })
+        });
     }
 
     handleClose() {
         this.setState({show: false});
     }
 
+    handleOpenQrModal() {
+        this.setState({showQrModal: true});
+    }
+
+    handleCloseQrModal() {
+        this.setState({showQrModal: false});
+    }
+
+    getQrChartUrl(hash) {
+        let text = hash == null ? "" : String(hash);
+        return (
+            "https://quickchart.io/qr?text=" + encodeURIComponent(text) + "&size=350"
+        );
+    }
+
     printPosition() {
         let _return = null;
         let {reservation} = this.props;
-        if (reservation && typeof reservation === 'object') {
+        if (reservation && typeof reservation === "object") {
             let _object = reservation.object;
-            if (_object && typeof _object === 'object' && _object.hasOwnProperty('position_number')) {
-                let position_number = _object.position_text && !isNaN(_object.position_text) ? _object.position_text : _object.position_number;
+            if (
+                _object &&
+                typeof _object === "object" &&
+                _object.hasOwnProperty("position_number")
+            ) {
+                let position_number =
+                    _object.position_text && !isNaN(_object.position_text)
+                        ? _object.position_text
+                        : _object.position_number;
 
-                let text = _object.position_text && isNaN(_object.position_text) ? _object.position_text : `#${position_number}`;
+                let text =
+                    _object.position_text && isNaN(_object.position_text)
+                        ? _object.position_text
+                        : `#${position_number}`;
 
                 _return = (
-                    <p className={'reservation-item-position'}>{StringStore.get('PROFILE_POSITION', [text])}</p>
+                    <p className={"reservation-item-position"}>
+                        {StringStore.get("PROFILE_POSITION", [text])}
+                    </p>
                 );
             }
         }
@@ -124,14 +152,14 @@ class ClassItem extends React.Component {
     }
 
     render() {
-        let preE = 'GFSDK-e';
-        let buttonClass = preE + '-buttons';
+        let preE = "GFSDK-e";
+        let buttonClass = preE + "-buttons";
         let {reservation} = this.props;
         let {errorCancelation} = this.state;
 
-        let membershipCredits = '';
-        let cancelation = '';
-        let today = moment().format('X');
+        let membershipCredits = "";
+        let cancelation = "";
+        let today = moment().format("X");
         // if (this.props.reservation.credit === null) {
         //    membershipCredits = (
         //          <p className={'reservation-item-membership'}>{StringStore.get('MEMBERSHIP')}{this.props.reservation.user_membership.membership['name']}</p>)
@@ -140,14 +168,23 @@ class ClassItem extends React.Component {
         //          <p className={'reservation-item-credits'}>{StringStore.get('CREDIT')}{this.props.reservation.credit['name']}</p>)
         // }
 
-        if (reservation.cancelled === true) {
+        if (this.props.reservation.cancelled === true) {
             cancelation = (
-                <p className={'reservation-item-cancelled'}>  {StringStore.get('CANCELLED')} </p>
-            )
-        } else if (reservation.canBeCancelled || reservation.canBeCancelledWithoutCredit) {
+                <p className={"reservation-item-cancelled"}>
+                    {" "}
+                    {StringStore.get("CANCELLED")}{" "}
+                </p>
+            );
+        } else if (
+            reservation.canBeCancelled ||
+            reservation.canBeCancelledWithoutCredit
+        ) {
             cancelation = (
-                <button type="button" className={buttonClass + "__close"}
-                        onClick={this.handleShowCancelation.bind(this)}>
+                <button
+                    type="button"
+                    className={buttonClass + "__close"}
+                    onClick={this.handleShowCancelation.bind(this)}
+                >
                     <CloseIcon/>
                 </button>
             );
@@ -175,12 +212,13 @@ class ClassItem extends React.Component {
         reservation.format_start_date !== null ?
             reservation.format_start_date : moment(this.props.reservation.meeting_start).locale(lang).format(format);
 
+
         return (
-            <div className={'pastClass-item'}>
-                <div className={'pastClass-item__header'}>
-                    <h4>{this.props.reservation.service['name']}</h4>
+            <div className={"pastClass-item"}>
+                <div className={"pastClass-item__header"}>
+                    <h4>{this.props.reservation.service["name"]}</h4>
                 </div>
-                <div className={'pastClass-item__body'}>
+                <div className={"pastClass-item__body"}>
                     <p className={'reservation-item-day'}>{date_format}</p>
                     <p className={'reservation-item-location'}>{this.props.reservation.location.name}</p>
                     <p className={'reservation-item-time'}>{time_format}</p>
@@ -188,49 +226,101 @@ class ClassItem extends React.Component {
                     {this.printSubstituteStaff()}
                     {this.printPosition()}
                     {reservation.is_overbooking === 1 ? (
-                        <p className={'reservation-item-overbooking'}>{StringStore.get('PROFILE_IS_OVERBOOKING')}</p>) : null}
+                        <p className={"reservation-item-overbooking"}>
+                            {StringStore.get("PROFILE_IS_OVERBOOKING")}
+                        </p>
+                    ) : null}
+                    {reservation.hash_qr ? (
+                        <button
+                            type="button"
+                            className={buttonClass + " is-primary pastClass-item__qr-open"}
+                            onClick={this.handleOpenQrModal.bind(this)}
+                        >
+                            {StringStore.get("PROFILE_VIEW_QR")}
+                        </button>
+                    ) : null}
                 </div>
 
                 {cancelation}
                 {attendance}
 
-                <Modal className={'modal-cancelation'} show={this.state.showCancelation} animation={false}
-                       onHide={this.handleClickBack.bind(this)}>
+                <Modal
+                    className={"modal-qr-reservation"}
+                    show={this.state.showQrModal}
+                    animation={false}
+                    backdrop="static"
+                    keyboard={false}
+                    onHide={this.handleCloseQrModal.bind(this)}
+                >
+                    <div className="modal-qr-reservation__container">
+                        <div className="modal-qr-reservation__body">
+                            <img
+                                src={this.getQrChartUrl(reservation.hash_qr)}
+                                alt={StringStore.get("PROFILE_QR_ALT")}
+                                style={{width: "100%", height: "100%"}}
+                            />
+                        </div>
+                        <div className="modal-qr-reservation__footer">
+                            <button
+                                type="button"
+                                className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary"
+                                onClick={this.handleCloseQrModal.bind(this)}
+                            >
+                                {StringStore.get("PROFILE_QR_CLOSE")}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
 
+                <Modal
+                    className={"modal-cancelation"}
+                    show={this.state.showCancelation}
+                    animation={false}
+                    onHide={this.handleClickBack.bind(this)}
+                >
                     <div className="modal-cancelation__container">
-                        <div className="modal-login__close" onClick={this.handleClickBack.bind(this)}>
+                        <div
+                            className="modal-login__close"
+                            onClick={this.handleClickBack.bind(this)}
+                        >
                             <CloseIcon/>
                         </div>
-                        <div className={'modal-cancelation__body'}>
-                            <h3>{StringStore.get('CANCELATION')}</h3>
-                            <p>{StringStore.get('CANCELATIONMESSAGE')}</p>
+                        <div className={"modal-cancelation__body"}>
+                            <h3>{StringStore.get("CANCELATION")}</h3>
+                            <p>{StringStore.get("CANCELATIONMESSAGE")}</p>
                             {reservation.canBeCancelledWithoutCredit ? (
-                                <p className={'modal_cancelation__container--alert'}>{StringStore.get('CANCELLATION_WITHOUT_CREDIT_ALERT')}</p>
+                                <p className={"modal_cancelation__container--alert"}>
+                                    {StringStore.get("CANCELLATION_WITHOUT_CREDIT_ALERT")}
+                                </p>
                             ) : null}
                         </div>
-                        <div className={'modal-cancelation__footer'}>
+                        <div className={"modal-cancelation__footer"}>
                             <div className="GFSDK-form__section" id="cancel-class">
-                                <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary"
-                                        onClick={this.handleClick.bind(this)}>
-                                    {StringStore.get('CANCELATIONCONFIRM')}
+                                <button
+                                    type="button"
+                                    className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary"
+                                    onClick={this.handleClick.bind(this)}
+                                >
+                                    {StringStore.get("CANCELATIONCONFIRM")}
                                 </button>
                                 {/* <button type="button" className="GFSDK-e-buttons GFSDK-e-buttons--submit is-primary" onClick={this.handleClickBack.bind(this)}>
                               {StringStore.get('BUTTON_CANCEL')}
                            </button> */}
                             </div>
 
-                            <div className={"modal-cancelation__error " + (errorCancelation ? 'res_has_error' : null)}>
-                                {errorCancelation
-                                    ? errorCancelation
-                                    : null
+                            <div
+                                className={
+                                    "modal-cancelation__error " +
+                                    (errorCancelation ? "res_has_error" : null)
                                 }
+                            >
+                                {errorCancelation ? errorCancelation : null}
                             </div>
                         </div>
                     </div>
-
                 </Modal>
             </div>
-        )
+        );
     }
 }
 

@@ -1,0 +1,168 @@
+@import '../base/variables.scss';
+
+@keyframes GFSDKCalendarSkeletonShimmer {
+  0% {
+    background-position: -450px 0;
+  }
+  100% {
+    background-position: 450px 0;
+  }
+}
+
+@keyframes GFSDKCalendarFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Se aplica al contenedor real del calendario (CalendarBody) la primera vez
+// que reemplaza al skeleton, para que no aparezca de golpe.
+.#{$pre}-c-Calendar__body-appear {
+  animation: GFSDKCalendarFadeIn .4s ease;
+}
+
+// Indicador chico y discreto de "cargando mas dias..." mientras llega el
+// resto del rango en segundo plano (la primera semana ya se muestra real).
+.#{$pre}-c-Calendar__loading-more {
+  display: flex;
+  align-items: center;
+  column-gap: 8px;
+  color: #8E8E93;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  letter-spacing: .3px;
+  padding: 6px 0 14px;
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #C7C7C8;
+    animation: GFSDKCalendarSkeletonShimmer 1.2s ease-in-out infinite alternate;
+  }
+}
+
+// Imita la forma REAL del calendario (columnas por dia en desktop, con
+// header de dia/numero real; una sola columna con tarjetas en mobile, como
+// el slider real de un dia a la vez) en vez de una lista vertical generica.
+.#{$pre}-c-CalendarSkeleton {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 15px 0;
+
+  &__header,
+  &__columns {
+    display: none;
+  }
+
+  &__header-day-name,
+  &__header-day-number {
+    border-radius: 6px;
+    background: linear-gradient(90deg, #EFEFEF 25%, #F6F6F6 37%, #EFEFEF 63%);
+    background-size: 450px 100%;
+    animation: GFSDKCalendarSkeletonShimmer 1.4s ease-in-out infinite;
+    margin: 0 auto;
+  }
+
+  &__header-day-name {
+    width: 60%;
+    height: 9px;
+    margin-bottom: 6px;
+  }
+
+  &__header-day-number {
+    width: 40%;
+    height: 13px;
+  }
+
+  &__mobile {
+    display: grid;
+    row-gap: 12px;
+  }
+
+  &__card {
+    display: grid;
+    row-gap: 8px;
+    border: 1px solid #EEEEEE;
+    border-radius: 10px;
+    background-color: #FFFFFF;
+    padding: 15px;
+    box-sizing: border-box;
+  }
+
+  &__time,
+  &__pill,
+  &__line {
+    border-radius: 6px;
+    background: linear-gradient(90deg, #EFEFEF 25%, #F6F6F6 37%, #EFEFEF 63%);
+    background-size: 450px 100%;
+    animation: GFSDKCalendarSkeletonShimmer 1.4s ease-in-out infinite;
+  }
+
+  &__time {
+    height: 16px;
+    width: 45%;
+    border-radius: 8px;
+  }
+
+  &__line {
+    height: 9px;
+
+    &--title {
+      width: 75%;
+      height: 11px;
+    }
+
+    &--subtitle {
+      width: 55%;
+    }
+
+    &--meta {
+      width: 40%;
+    }
+  }
+
+  &__pill {
+    height: 30px;
+    width: 100%;
+    border-radius: 999px;
+    margin-top: 4px;
+  }
+
+  // A partir de aqui, replica el layout REAL de la vista "vertical" en
+  // desktop: GFSDK-c-Calendar__header_vertical / __week_body_vertical /
+  // __day_column_vertical usan el mismo 14% de ancho por columna (7 dias).
+  @media screen and (min-width: 992px) {
+    &__mobile {
+      display: none;
+    }
+
+    &__header,
+    &__columns {
+      display: inline-flex;
+      width: 100%;
+    }
+
+    &__header {
+      margin-bottom: 10px;
+    }
+
+    &__header-day {
+      width: 14%;
+      text-align: center;
+    }
+
+    &__column {
+      width: 14%;
+      padding: 0 5px;
+      box-sizing: border-box;
+      display: grid;
+      row-gap: 15px;
+    }
+  }
+}

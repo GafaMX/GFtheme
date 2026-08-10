@@ -51,6 +51,23 @@ class GafaThemeSDK extends React.Component {
         ReactDOM.render(React.createElement(elementToRender, props), domContainer);
     }
 
+    /**
+     * Lleva la cuenta de cuantas peticiones de reuniones siguen pendientes
+     * (una por cada tramo de fechas x ubicacion/sala que dispara
+     * renderMeetingsCalendar). El calendario usa esto para mostrar un
+     * indicador chico de "cargando mas dias..." mientras la primera semana ya
+     * se ve real pero el resto sigue en camino.
+     */
+    static incrementPendingMeetingRequests(by = 1) {
+        let current = CalendarStorage.get('pendingMeetingRequests') || 0;
+        CalendarStorage.set('pendingMeetingRequests', current + by);
+    }
+
+    static decrementPendingMeetingRequests() {
+        let current = CalendarStorage.get('pendingMeetingRequests') || 0;
+        CalendarStorage.set('pendingMeetingRequests', Math.max(0, current - 1));
+    }
+
     //  static renderStaffListWithoutPagination(selector) {
     //    let domContainers = document.querySelectorAll(selector);
     //    if (domContainers.length > 0) {
@@ -301,6 +318,7 @@ class GafaThemeSDK extends React.Component {
                 });
                 if (location_rooms.length) {
                     let index = 0;
+                    GafaThemeSDK.incrementPendingMeetingRequests();
                     let process_room_meetings = function (result) {
                         result.forEach(function (meeting) {
                             meeting.location = location;
@@ -309,11 +327,13 @@ class GafaThemeSDK extends React.Component {
                         let next_room = location_rooms[index + 1];
                         if (!!next_room) {
                             index++;
+                            GafaThemeSDK.incrementPendingMeetingRequests();
                             GafaFitSDKWrapper.getMeetingsInRoom(next_room.id, location.id, start_string, end_string, process_room_meetings);
                         } else {
                             CalendarStorage.set('meetings', meetings);
                             CalendarStorage.set('start_date', start_date);
                         }
+                        GafaThemeSDK.decrementPendingMeetingRequests();
                     };
 
                     let room = location_rooms[index];
@@ -323,7 +343,7 @@ class GafaThemeSDK extends React.Component {
 
                 }
             } else {
-                GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, end_string, function (result) {
+                let mergeMeetingsResult = function (result) {
                     result.forEach(function (meeting) {
                         meeting.location = location;
                         meetings.push(meeting);
@@ -331,7 +351,39 @@ class GafaThemeSDK extends React.Component {
                     CalendarStorage.set('meetings', meetings);
                     if (location_index === 0)
                         CalendarStorage.set('start_date', start_date);
-                });
+                    GafaThemeSDK.decrementPendingMeetingRequests();
+                };
+
+                // Antes se pedian TODOS los dias de location.calendar_days en una sola
+                // llamada (p.ej. 21 dias de golpe), aunque la vista inicial solo muestra
+                // 7. Eso hacia que el usuario esperara el payload completo (que puede ser
+                // de varios MB con muchas reuniones) antes de ver una sola clase.
+                //
+                // Ahora, si el rango es mayor a FIRST_CHUNK_DAYS, se piden 2 tramos EN
+                // PARALELO: la primera semana (para pintar rapido) y el resto del rango
+                // (para que "siguiente semana" siga funcionando exactamente igual que
+                // antes, sin cambiar esa logica). El resultado final acumulado en
+                // `meetings` es identico al de antes, solo que llega en 2 partes en vez
+                // de 1, y la primera parte llega mucho mas rapido.
+                const FIRST_CHUNK_DAYS = 7;
+                const totalDays = location.calendar_days || FIRST_CHUNK_DAYS;
+
+                if (totalDays > FIRST_CHUNK_DAYS) {
+                    let firstChunkEnd = new Date(start_date.getTime());
+                    firstChunkEnd.setDate(start_date.getDate() + (FIRST_CHUNK_DAYS - 1));
+                    let firstChunkEndString = `${firstChunkEnd.getFullYear()}-${firstChunkEnd.getMonth() + 1}-${firstChunkEnd.getDate()}`;
+
+                    let restStart = new Date(start_date.getTime());
+                    restStart.setDate(start_date.getDate() + FIRST_CHUNK_DAYS);
+                    let restStartString = `${restStart.getFullYear()}-${restStart.getMonth() + 1}-${restStart.getDate()}`;
+
+                    GafaThemeSDK.incrementPendingMeetingRequests(2);
+                    GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, firstChunkEndString, mergeMeetingsResult);
+                    GafaFitSDKWrapper.getMeetingsInLocation(location, restStartString, end_string, mergeMeetingsResult);
+                } else {
+                    GafaThemeSDK.incrementPendingMeetingRequests();
+                    GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, end_string, mergeMeetingsResult);
+                }
             }
 
         });
