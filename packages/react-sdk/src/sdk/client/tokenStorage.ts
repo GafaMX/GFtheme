@@ -26,9 +26,33 @@ export function writeStoredToken(token: string): void {
 
   const encrypted = CryptoJS.AES.encrypt(token, ENCRYPTION_KEY).toString();
   localStorage.setItem(STORAGE_KEY, encrypted);
+  notifyAuthChanged();
 }
 
 export function clearStoredToken(): void {
   if (typeof localStorage === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
+  notifyAuthChanged();
+}
+
+// Cada widget se monta en su propio React root, asi que no comparten estado por contexto:
+// el login del AuthWidget se avisa al ProfileWidget por un evento de ventana.
+const AUTH_CHANGED_EVENT = "gafa-sdk:auth-changed";
+
+function notifyAuthChanged(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
+
+export function subscribeToAuthChanges(listener: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+
+  window.addEventListener(AUTH_CHANGED_EVENT, listener);
+  // `storage` cubre el caso de otra pestana del mismo sitio.
+  window.addEventListener("storage", listener);
+
+  return () => {
+    window.removeEventListener(AUTH_CHANGED_EVENT, listener);
+    window.removeEventListener("storage", listener);
+  };
 }

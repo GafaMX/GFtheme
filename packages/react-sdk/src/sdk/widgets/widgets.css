@@ -348,6 +348,42 @@
   gap: var(--gafa-space-2);
 }
 
+.gafa-profile-list {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-profile-item {
+  align-items: center;
+  gap: var(--gafa-space-3);
+  grid-template-columns: 1fr auto;
+}
+
+.gafa-profile-item-time {
+  color: var(--gafa-color-primary);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.gafa-profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gafa-space-2);
+  margin-top: var(--gafa-space-2);
+}
+
+.gafa-profile-amount {
+  font-size: 1.35rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.gafa-profile-store-credit {
+  background: color-mix(in srgb, var(--gafa-color-accent) 12%, transparent);
+  border-radius: var(--gafa-radius-pill);
+  padding: 0.5rem 0.9rem;
+}
+
 .gafa-availability {
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
