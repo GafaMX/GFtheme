@@ -243,6 +243,9 @@ class GafaThemeSDK extends React.Component {
 
         let meetings = [];
         let partial_loading = false;
+        // Se usa fuera del forEach para priorizar la ubicacion filtrada al pedir
+        // las reuniones (ver el reparto priority/deferred mas abajo).
+        let filter_location_default = false;
 
         if (domContainers.length > 0) {
             domContainers.forEach(function (domContainer) {
@@ -255,6 +258,7 @@ class GafaThemeSDK extends React.Component {
                 let filterRoomDefault = domContainer.getAttribute("filter-bq-room-default") ? domContainer.getAttribute("filter-bq-room-default") : undefined;
                 let filterLocation = domContainer.getAttribute("filter-bq-location") ? Boolean(domContainer.getAttribute("filter-bq-location")) : false;
                 let filterLocationDefault = domContainer.getAttribute("filter-bq-location-default") ? domContainer.getAttribute("filter-bq-location-default") : false;
+                filter_location_default = filterLocationDefault;
                 let filterBrand = domContainer.getAttribute("filter-bq-brand") ? Boolean(domContainer.getAttribute("filter-bq-brand")) : false;
                 let filterBrandDefault = domContainer.getAttribute("filter-bq-brand-default") ? domContainer.getAttribute("filter-bq-brand-default") : undefined;
                 let loginInitial = domContainer.getAttribute("data-login-initial") ? domContainer.getAttribute("data-login-initial") : false;
@@ -301,8 +305,62 @@ class GafaThemeSDK extends React.Component {
 
         let rooms = GlobalStorage.get('rooms');
 
+        // El calendario se revela cuando la vista inicial ya tiene TODOS sus datos.
+        // Antes se revelaba en cuanto contestaba la primera ubicacion: en sitios con
+        // varias sedes el usuario veia el esqueleto desaparecer y quedarse un
+        // calendario casi vacio, que crecia a saltos durante 1-2 segundos (se lee
+        // como un parpadeo en blanco). El esqueleto ahora se mantiene hasta que las
+        // ubicaciones de la vista inicial terminaron su primer tramo.
+        const INITIAL_REVEAL_TIMEOUT_MS = 8000;
+        // Sitios con muchas sedes y sin filtro por defecto tendrian que esperar a la
+        // sede mas lenta. En cuanto llega la primera respuesta se abre una ventana de
+        // gracia corta: si las demas no alcanzan a llegar, se muestra lo que haya.
+        const INITIAL_REVEAL_GRACE_MS = 1500;
+        let deferredRequests = [];
+        let pendingInitialRequests = 0;
+        let initialRevealed = false;
+        let revealTimeoutId = null;
+        let graceTimeoutId = null;
 
-        locations.forEach(function (location, location_index) {
+        let revealCalendar = function () {
+            if (initialRevealed) {
+                return;
+            }
+            initialRevealed = true;
+            if (revealTimeoutId) {
+                clearTimeout(revealTimeoutId);
+                revealTimeoutId = null;
+            }
+            if (graceTimeoutId) {
+                clearTimeout(graceTimeoutId);
+                graceTimeoutId = null;
+            }
+            CalendarStorage.set('initial_meetings_ready', true);
+
+            let queued = deferredRequests;
+            deferredRequests = [];
+            queued.forEach(function (runRequest) {
+                runRequest();
+            });
+        };
+
+        let finishInitialRequest = function () {
+            pendingInitialRequests = Math.max(0, pendingInitialRequests - 1);
+            if (pendingInitialRequests === 0) {
+                revealCalendar();
+                return;
+            }
+            if (!graceTimeoutId && !initialRevealed) {
+                graceTimeoutId = setTimeout(revealCalendar, INITIAL_REVEAL_GRACE_MS);
+            }
+        };
+
+        // GafaFitSDKWrapper.getMeetingsInLocation solo invoca su callback cuando
+        // error === null: una peticion que falle nunca decrementaria el contador y
+        // dejaria el esqueleto puesto para siempre. Este timeout es la red de seguridad.
+        revealTimeoutId = setTimeout(revealCalendar, INITIAL_REVEAL_TIMEOUT_MS);
+
+        let requestMeetingsForLocation = function (location, is_first_location, is_initial) {
             let start_date = moment().toDate();
             let end_date = moment().toDate();
 
@@ -332,6 +390,11 @@ class GafaThemeSDK extends React.Component {
                         } else {
                             CalendarStorage.set('meetings', meetings);
                             CalendarStorage.set('start_date', start_date);
+                            // Aqui se pide sala por sala en cadena, no por tramos de fecha:
+                            // la ubicacion esta lista cuando termina su ultima sala.
+                            if (is_initial) {
+                                finishInitialRequest();
+                            }
                         }
                         GafaThemeSDK.decrementPendingMeetingRequests();
                     };
@@ -349,9 +412,18 @@ class GafaThemeSDK extends React.Component {
                         meetings.push(meeting);
                     });
                     CalendarStorage.set('meetings', meetings);
-                    if (location_index === 0)
+                    if (is_first_location)
                         CalendarStorage.set('start_date', start_date);
                     GafaThemeSDK.decrementPendingMeetingRequests();
+                };
+
+                // Solo el primer tramo cuenta para revelar el calendario: el resto
+                // del rango sigue llegando en segundo plano con su propio indicador.
+                let mergeFirstChunkResult = function (result) {
+                    mergeMeetingsResult(result);
+                    if (is_initial) {
+                        finishInitialRequest();
+                    }
                 };
 
                 // Antes se pedian TODOS los dias de location.calendar_days en una sola
@@ -378,15 +450,56 @@ class GafaThemeSDK extends React.Component {
                     let restStartString = `${restStart.getFullYear()}-${restStart.getMonth() + 1}-${restStart.getDate()}`;
 
                     GafaThemeSDK.incrementPendingMeetingRequests(2);
-                    GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, firstChunkEndString, mergeMeetingsResult);
+                    GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, firstChunkEndString, mergeFirstChunkResult);
                     GafaFitSDKWrapper.getMeetingsInLocation(location, restStartString, end_string, mergeMeetingsResult);
                 } else {
                     GafaThemeSDK.incrementPendingMeetingRequests();
-                    GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, end_string, mergeMeetingsResult);
+                    GafaFitSDKWrapper.getMeetingsInLocation(location, start_string, end_string, mergeFirstChunkResult);
                 }
             }
+        };
 
+        // Cuando el sitio fija una sede por defecto (atributo filter-bq-location-default,
+        // que varios clientes ponen desde la URL con un snippet), esa sede es la unica
+        // que el usuario va a ver al abrir la pagina. Se pide primero y sola; las demas
+        // se piden despues, en segundo plano, para que el selector de sede las siga
+        // ofreciendo. Antes se pedian todas de golpe: en Fitspin son 6 ubicaciones (12
+        // peticiones) para mostrar 1.
+        let priorityLocations = [];
+        let deferredLocations = [];
+
+        if (filter_location_default) {
+            locations.forEach(function (location) {
+                if (location.name === filter_location_default) {
+                    priorityLocations.push(location);
+                } else {
+                    deferredLocations.push(location);
+                }
+            });
+        }
+
+        // Sin filtro por defecto (o si el nombre no coincide con ninguna sede) se
+        // mantiene el comportamiento de siempre: todas las ubicaciones en paralelo.
+        if (!priorityLocations.length) {
+            priorityLocations = locations;
+            deferredLocations = [];
+        }
+
+        pendingInitialRequests = priorityLocations.length;
+
+        priorityLocations.forEach(function (location, location_index) {
+            requestMeetingsForLocation(location, location_index === 0, true);
         });
+
+        deferredLocations.forEach(function (location) {
+            deferredRequests.push(function () {
+                requestMeetingsForLocation(location, false, false);
+            });
+        });
+
+        if (!pendingInitialRequests) {
+            revealCalendar();
+        }
     };
 
     static renderLogin(selector) {

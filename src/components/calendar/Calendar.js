@@ -81,6 +81,10 @@ class Calendar extends React.Component {
         // indicador chico y discreto en vez de dejar al usuario sin ninguna
         // senal de que todavia hay mas dias por cargar.
         CalendarStorage.addSegmentedListener(['pendingMeetingRequests'], this.updateIsLoadingMore);
+        // El esqueleto se cambia por el calendario real solo cuando la vista inicial
+        // esta completa (ver GafaThemeSDK.renderMeetingsCalendar). Sin esto, con
+        // varias sedes el calendario aparecia casi vacio y se iba llenando a saltos.
+        CalendarStorage.addSegmentedListener(['initial_meetings_ready'], this.debouncedSetInitialValues);
     }
 
     componentWillUnmount() {
@@ -267,7 +271,9 @@ class Calendar extends React.Component {
             filter_room: preFilterRoom,
             staff: meetingsStaff,
             meetings: meetings,
-            is_mounted: true,
+            // Una vez visible, el calendario ya no vuelve al esqueleto: los tramos
+            // que sigan llegando se anuncian con el indicador de "cargando mas dias".
+            is_mounted: comp.state.is_mounted || !!CalendarStorage.get('initial_meetings_ready'),
         }, comp.initExternalButtons);
     }
 

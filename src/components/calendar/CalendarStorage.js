@@ -32,6 +32,11 @@ const CalendarStorage = {
     // la primera semana ya se ve real pero el resto sigue en camino.
     pendingMeetingRequests: 0,
 
+    // Se pone en true cuando las ubicaciones de la vista inicial ya terminaron su
+    // primer tramo de fechas. El calendario espera esta senal para cambiar el
+    // esqueleto por el contenido real y no mostrarse a medio llenar.
+    initial_meetings_ready: false,
+
     /**
      *
      * @param property
