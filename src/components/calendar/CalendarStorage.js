@@ -26,6 +26,12 @@ const CalendarStorage = {
     visualization: false,
     show_parent: false,
 
+    // Cuenta cuantas peticiones de reuniones siguen pendientes (una por cada
+    // tramo de fechas x ubicacion/sala que dispara GafaThemeSDK.renderMeetingsCalendar).
+    // Sirve para mostrar un indicador chico de "cargando mas dias..." mientras
+    // la primera semana ya se ve real pero el resto sigue en camino.
+    pendingMeetingRequests: 0,
+
     /**
      *
      * @param property
