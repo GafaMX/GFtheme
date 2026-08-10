@@ -140,6 +140,23 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
       if (!sdk.GetMe) return null;
       return callbackToPromise<UserProfile | null>((cb) => sdk.GetMe?.(cb));
     },
+    // Los datos de perfil los resuelve httpGafaClient directo contra la API; este adaptador
+    // solo sigue vivo como fallback de openCheckout/openReservationCheckout.
+    async listUserCredits() {
+      throw new Error("listUserCredits no esta implementado en el adaptador legacy.");
+    },
+    async listUserMemberships() {
+      throw new Error("listUserMemberships no esta implementado en el adaptador legacy.");
+    },
+    async listUserReservations() {
+      throw new Error("listUserReservations no esta implementado en el adaptador legacy.");
+    },
+    async listUserPurchases() {
+      throw new Error("listUserPurchases no esta implementado en el adaptador legacy.");
+    },
+    async cancelReservation() {
+      throw new Error("cancelReservation no esta implementado en el adaptador legacy.");
+    },
     async login() {
       throw new Error("Login is not implemented in the legacy adapter foundation yet.");
     },

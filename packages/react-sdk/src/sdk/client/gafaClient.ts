@@ -80,6 +80,41 @@ export function createMockGafaClient(): GafaClient {
       email: "demo@gafa.fit",
       creditsLabel: "5 creditos disponibles",
     }),
+    listUserCredits: async () => [
+      { id: 1, name: "10 clases", total: 5, expiresAt: inDays(45) },
+    ],
+    listUserMemberships: async () => [
+      { id: 2, name: "Mensual ilimitada", startedAt: inDays(-15), expiresAt: inDays(15) },
+    ],
+    listUserReservations: async () => [
+      {
+        id: 1,
+        serviceName: "Functional Training",
+        startsAt: inDays(1),
+        locationName: "Roma Norte",
+        staffName: "Coach Demo",
+        brandSlug: "demo-studio",
+        isWaitlist: false,
+        isOverbooking: false,
+        creditName: "10 clases",
+      },
+      {
+        id: 2,
+        serviceName: "Yoga Flow",
+        startsAt: inDays(3),
+        locationName: "Condesa",
+        staffName: "Coach Ana",
+        brandSlug: "demo-studio",
+        isWaitlist: true,
+        isOverbooking: false,
+        creditName: null,
+        waitlistPosition: "2",
+      },
+    ],
+    listUserPurchases: async () => [
+      { id: 1, name: "10 clases", total: 1200, currencyPrefix: "$", createdAt: inDays(-20) },
+    ],
+    cancelReservation: async () => undefined,
     login: async () => ({ access_token: "demo-token" }),
     logout: () => undefined,
     register: async () => ({ url: undefined }),
@@ -88,6 +123,12 @@ export function createMockGafaClient(): GafaClient {
     openCheckout: async () => undefined,
     openReservationCheckout: async () => undefined,
   };
+}
+
+function inDays(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
 }
 
 function demoMeetings(): Meeting[] {

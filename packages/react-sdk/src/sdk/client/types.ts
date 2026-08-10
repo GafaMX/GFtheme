@@ -80,6 +80,44 @@ export type UserProfile = {
   name: string;
   email: string;
   creditsLabel?: string;
+  photoUrl?: string;
+  storeCreditTotal?: string;
+};
+
+export type UserCredit = {
+  id: number;
+  name: string;
+  total: number;
+  expiresAt?: string;
+};
+
+export type UserMembership = {
+  id: number;
+  name: string;
+  startedAt?: string;
+  expiresAt?: string;
+};
+
+export type UserReservation = {
+  id: number;
+  serviceName: string;
+  startsAt: string;
+  locationName?: string;
+  staffName?: string;
+  brandSlug: string;
+  isWaitlist: boolean;
+  isOverbooking: boolean;
+  /** Nombre del credito usado, o null cuando la reserva se pago con membresia. */
+  creditName?: string | null;
+  waitlistPosition?: string;
+};
+
+export type UserPurchase = {
+  id: number;
+  name: string;
+  total: number;
+  currencyPrefix?: string;
+  createdAt?: string;
 };
 
 export type GafaUser = UserProfile;
@@ -156,6 +194,11 @@ export type GafaClient = {
   listCombos(brandSlug: string): Promise<CatalogItem[]>;
   listMemberships(brandSlug: string): Promise<CatalogItem[]>;
   getProfile(): Promise<UserProfile | null>;
+  listUserCredits(brandSlug: string): Promise<UserCredit[]>;
+  listUserMemberships(brandSlug: string): Promise<UserMembership[]>;
+  listUserReservations(brandSlug: string, when?: "future" | "past"): Promise<UserReservation[]>;
+  listUserPurchases(brandSlug: string): Promise<UserPurchase[]>;
+  cancelReservation(brandSlug: string, reservationId: string | number): Promise<void>;
   login(credentials: AuthCredentials): Promise<{ access_token: string }>;
   logout(): void;
   register(payload: RegisterPayload): Promise<{ url?: string }>;

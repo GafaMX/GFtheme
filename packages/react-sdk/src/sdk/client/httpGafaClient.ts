@@ -14,6 +14,7 @@ import type {
   Service,
   StaffMember,
   UserProfile,
+  UserReservation,
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { clearStoredToken, readStoredToken, writeStoredToken } from "./tokenStorage";
@@ -34,6 +35,54 @@ type RawUserProfile = {
   last_name?: string;
   name?: string;
   credits_label?: string;
+  picture_web?: string | null;
+  store_credit_total?: string;
+};
+
+type RawUserCredit = {
+  total: number;
+  expiration_date?: string;
+  credit: { id: number; name: string };
+  purchase_item?: { item_name?: string | null } | null;
+};
+
+type RawUserMembership = {
+  id: number;
+  created_at?: string;
+  expiration_date?: string;
+  membership: { name: string };
+};
+
+type RawStaff = { name?: string; lastname?: string; job?: string | null };
+
+type RawReservation = {
+  id: number;
+  meeting_start: string;
+  is_overbooking?: number;
+  credit?: { name?: string } | null;
+  location?: { name?: string };
+  staff?: RawStaff;
+  substitute_staff?: RawStaff | null;
+  meetings?: {
+    service?: { name?: string };
+    staff?: RawStaff;
+    substitute_staff?: RawStaff | null;
+  };
+  object?: { position_number?: number; position_text?: string };
+};
+
+/** `reservation-future` no devuelve una lista plana: agrupa reservas y waitlist por bloque. */
+type RawReservationGroup = {
+  reservations?: RawReservation[];
+  waitlists?: RawReservation[];
+};
+
+type RawPurchase = {
+  id: number;
+  total: number;
+  created_at?: string;
+  currency?: { prefijo?: string };
+  items?: Array<{ item_name?: string }>;
 };
 
 type TokenResponse = {
@@ -145,6 +194,34 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       email: raw.email ?? raw.username ?? "",
       name: [raw.first_name, raw.last_name].filter(Boolean).join(" ") || raw.name || raw.email || "",
       creditsLabel: raw.credits_label,
+      photoUrl: raw.picture_web ?? undefined,
+      storeCreditTotal: raw.store_credit_total,
+    };
+  }
+
+  function staffLabel(staff?: RawStaff | null): string | undefined {
+    if (!staff) return undefined;
+    if (staff.job) return staff.job;
+    const name = [staff.name, staff.lastname].filter(Boolean).join(" ");
+    return name || undefined;
+  }
+
+  function normalizeReservation(raw: RawReservation, brandSlug: string, isWaitlist: boolean): UserReservation {
+    const staff = raw.meetings?.staff ?? raw.staff;
+    const position = raw.object?.position_text ?? raw.object?.position_number;
+
+    return {
+      id: raw.id,
+      serviceName: raw.meetings?.service?.name ?? "Reserva",
+      startsAt: raw.meeting_start,
+      locationName: raw.location?.name,
+      staffName: staffLabel(staff),
+      brandSlug,
+      isWaitlist,
+      isOverbooking: raw.is_overbooking === 1,
+      // El legacy distingue membresia de credito por `credit === null`, no por un campo propio.
+      creditName: raw.credit ? (raw.credit.name ?? null) : null,
+      waitlistPosition: position !== undefined ? String(position) : undefined,
     };
   }
 
@@ -263,6 +340,60 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         if (error instanceof GafaApiError && error.status === 401) return null;
         throw error;
       }
+    },
+
+    async listUserCredits(brandSlug) {
+      if (!token || !brandSlug) return [];
+      const response = await apiGet<PaginatedResponse<RawUserCredit>>(`/me/brand/${brandSlug}/credits`);
+      return unwrap(response).map((raw) => ({
+        id: raw.credit.id,
+        name: raw.purchase_item?.item_name || raw.credit.name,
+        total: raw.total,
+        expiresAt: raw.expiration_date,
+      }));
+    },
+
+    async listUserMemberships(brandSlug) {
+      if (!token || !brandSlug) return [];
+      const response = await apiGet<PaginatedResponse<RawUserMembership>>(`/me/brand/${brandSlug}/memberships`);
+      return unwrap(response).map((raw) => ({
+        id: raw.id,
+        name: raw.membership.name,
+        startedAt: raw.created_at,
+        expiresAt: raw.expiration_date,
+      }));
+    },
+
+    async listUserReservations(brandSlug, when = "future") {
+      if (!token || !brandSlug) return [];
+
+      const path = when === "past" ? "reservation-past" : "reservation-future";
+      const response = await apiGet<PaginatedResponse<RawReservationGroup>>(`/me/brand/${brandSlug}/${path}`, {
+        reducePopulation: true,
+      });
+
+      return unwrap(response)
+        .flatMap((group) => [
+          ...(group.reservations ?? []).map((raw) => normalizeReservation(raw, brandSlug, false)),
+          ...(group.waitlists ?? []).map((raw) => normalizeReservation(raw, brandSlug, true)),
+        ])
+        .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    },
+
+    async listUserPurchases(brandSlug) {
+      if (!token || !brandSlug) return [];
+      const response = await apiGet<PaginatedResponse<RawPurchase>>(`/me/brand/${brandSlug}/purchases`);
+      return unwrap(response).map((raw) => ({
+        id: raw.id,
+        name: raw.items?.[0]?.item_name ?? "Compra",
+        total: raw.total,
+        currencyPrefix: raw.currency?.prefijo,
+        createdAt: raw.created_at,
+      }));
+    },
+
+    async cancelReservation(brandSlug, reservationId) {
+      await apiPost(`/api/me/brand/${brandSlug}/reservation-future/${reservationId}/cancel`, {});
     },
 
     async login(credentials: AuthCredentials) {
