@@ -118,6 +118,12 @@ class WaitlistItem extends React.Component {
         waitlist.format_start_time !== '' &&
         waitlist.format_start_time !== null ?
             waitlist.format_start_time : moment(waitlist.meeting_start).locale(lang).format('h:mm a');
+        let date_format = waitlist.hasOwnProperty('format_start_date') &&
+        waitlist.format_start_date !== '' &&
+        waitlist.format_start_date !== null ?
+            waitlist.format_start_date : moment(meeting_start).locale(lang).format(format);
+
+
 
         // Verificar datos de staff, servicio y ubicación
         const staffName = (staff && staff.name) ? staff.name : StringStore.get('PROFILE_RESERVATIONS_NO_STAFF');
@@ -137,7 +143,7 @@ class WaitlistItem extends React.Component {
                     <h4>{serviceName}</h4>
                 </div>
                 <div className={'pastClass-item__body'}>
-                    <p className={'reservation-item-day'}>{formattedDateDay}</p>
+                    <p className={'reservation-item-day'}>{date_format}</p>
                     <p className={'reservation-item-location'}>{locationName}</p>
                     <p className={'reservation-item-time'}>{formattedDateTime}</p>
                     {this.printStaff()}
