@@ -25,6 +25,28 @@
         padding: 14px 18px;
         font-size: 0.9rem;
       }
+      .demo-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .demo-nav a {
+        background: #fffaf4;
+        border: 1px solid #eadfd4;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #16110f;
+        text-decoration: none;
+      }
+      .demo-section-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #766b63;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
@@ -32,8 +54,26 @@
       <div class="demo-banner">
         Conectado en vivo a <code id="target-url"></code> — compania de prueba (Stripe test mode).
       </div>
+      <nav class="demo-nav">
+        <a href="#calendar-live">Calendario</a>
+        <a href="#auth-live">Login</a>
+        <a href="#profile-live">Perfil</a>
+        <a href="#packages-live">Paquetes</a>
+        <a href="#memberships-live">Membresias</a>
+      </nav>
+
+      <p class="demo-section-label">Calendario (filtro de sede y servicio activo)</p>
       <section id="calendar-live"></section>
+
+      <p class="demo-section-label">Cuenta</p>
       <section id="auth-live"></section>
+
+      <p class="demo-section-label">Perfil (requiere sesion iniciada arriba)</p>
+      <section id="profile-live"></section>
+
+      <p class="demo-section-label">Catalogo</p>
+      <section id="packages-live"></section>
+      <section id="memberships-live"></section>
     </main>
     <!-- SDK legacy externo de gafa.fit: solo lo usa hoy openCheckout/openReservationCheckout (fallback), no el cliente HTTP nuevo. -->
     <script src="https://buq.partners/sdk/dist/main.js"></script>

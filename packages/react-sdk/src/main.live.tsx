@@ -28,5 +28,8 @@ const sdk = createGafaSdk({
   },
 });
 
-sdk.mountCalendar("#calendar-live");
+sdk.mountCalendar("#calendar-live", { filters: { location: true, service: true } });
 sdk.mountAuth("#auth-live", { initialView: "login" });
+sdk.mountProfile("#profile-live");
+sdk.mountCatalog("#packages-live", { type: "packages" });
+sdk.mountCatalog("#memberships-live", { type: "memberships" });
