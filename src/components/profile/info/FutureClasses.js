@@ -36,11 +36,15 @@ class FutureClasses extends React.Component {
         const currentComponent = this;
         let brands = GlobalStorage.get('brands');
         let futureClassesList = [];
+        let lang = StringStore.getLanguage();
 
         brands.forEach(function (brand) {
             GafaFitSDKWrapper.getUserFutureReservationsInBrand(
                 brand.slug,
-                {reducePopulation: true,},
+                {
+                    reducePopulation: true,
+                    locale: lang,
+                },
                 function (result) {
                     futureClassesList = futureClassesList.concat(result);
                     GlobalStorage.set('future_classes', futureClassesList);
