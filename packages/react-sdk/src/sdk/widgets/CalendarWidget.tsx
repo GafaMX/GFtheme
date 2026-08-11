@@ -1514,17 +1514,21 @@ function ReservationPreviewModal({
           <>
             <div className="gafa-reservation-hero">
               <span className="gafa-eyebrow">Detalle de reserva</span>
-              <h3 id="reservation-title">{meeting.name}</h3>
-              <p>
-                {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting), meeting.timezone)}
-              </p>
+              <h3 id="reservation-title">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</h3>
             </div>
 
             <div className="gafa-reservation-body">
               <div className="gafa-reservation-info">
-                {/* Lista alineada label/valor; la sede vive aqui (no en el
-                    encabezado) para informar sin duplicar. */}
+                {/* TODA la info en una sola lista ordenada, nada suelto. */}
                 <div className="gafa-reservation-summary">
+                  <div>
+                    <span>Fecha</span>
+                    <strong>{formatDate(getMeetingStart(meeting))}</strong>
+                  </div>
+                  <div>
+                    <span>Horario</span>
+                    <strong>{formatTime(getMeetingStart(meeting), meeting.timezone)}</strong>
+                  </div>
                   <div>
                     <span>Coach</span>
                     <strong className="gafa-reservation-summary__coach">
@@ -1533,7 +1537,7 @@ function ReservationPreviewModal({
                     </strong>
                   </div>
                   <div>
-                    <span>Sede</span>
+                    <span>Ubicación</span>
                     <strong>{meeting.location?.name ?? "Por confirmar"}</strong>
                   </div>
                   <div>
