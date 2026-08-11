@@ -1456,11 +1456,12 @@
 /* --------------------------------------------------------------- mapa de salon */
 
 /* Con mapa, el modal crece y el contenido se divide info | mapa en desktop.
-   Tambien puede ser MAS ALTO que un modal normal: mejor crecer que scrollear;
-   solo si ni asi cabe (movil, mapas enormes) aparece scroll. */
+   Ancho y alto generosos: el mapa es el protagonista y las columnas del grid
+   son 1fr, asi que a mas ancho, lugares mas grandes. Mejor crecer que
+   scrollear; solo si ni asi cabe (movil, mapas enormes) aparece scroll. */
 .gafa-reservation-sheet[data-has-map="true"] {
   max-height: calc(100vh - 24px);
-  max-width: min(980px, 96vw);
+  max-width: min(1240px, 96vw);
 }
 
 .gafa-reservation-body {
@@ -1486,6 +1487,8 @@
   .gafa-reservation-sheet[data-has-map="true"] {
     display: flex;
     flex-direction: column;
+    /* Hasta pantalla completa: el modal crece lo que el mapa necesite y solo
+       si ni asi cabe, el mapa scrollea por dentro. */
     max-height: calc(100dvh - 12px);
     max-width: 100%;
     overflow: hidden;
@@ -1544,14 +1547,16 @@
     gap: var(--gafa-space-2);
   }
 
-  /* Lugares mas grandes en movil: el mapa es lo que importa. */
+  /* Lugares mas grandes en movil: el mapa es lo que importa. Preferimos un
+     mapa grande con scroll horizontal a uno chiquito que quepa completo.
+     (Selector con el sheet para ganarle a la regla base, que viene despues.) */
   .gafa-seatmap__grid {
     gap: 7px;
   }
 
-  .gafa-seatmap__seat {
-    min-height: 44px;
-    min-width: 44px;
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-seatmap__seat {
+    min-height: 54px;
+    min-width: 54px;
   }
 }
 
@@ -1649,6 +1654,12 @@
   border: 1.5px solid var(--gafa-color-border);
   border-radius: 50%;
   color: var(--gafa-color-text);
+  /* Crece con el ancho del modal, pero con tope: en mapas de pocas columnas
+     un lugar gigante se ve ridiculo. */
+  justify-self: center;
+  max-height: 64px;
+  max-width: 64px;
+  width: 100%;
   cursor: pointer;
   display: flex;
   font-size: 0.78rem;
