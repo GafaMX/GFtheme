@@ -50,7 +50,15 @@ export function FancyOverlay({ title, description, run, onClose }: FancyOverlayP
   }, []);
 
   return (
-    <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="fancy-title">
+    <div
+      className="gafa-reservation-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="fancy-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       {/* El sheet crece a pantalla ancha cuando el template ya cargo: el mapa
           de salon necesita espacio real, no una columna de 520px. */}
       <div className="gafa-reservation-sheet" data-fancy-ready={status === "ready" ? "true" : undefined}>

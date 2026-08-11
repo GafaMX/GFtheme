@@ -1510,7 +1510,15 @@ function ReservationPreviewModal({
         : "Comprar y reservar";
 
   return (
-    <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="reservation-title">
+    <div
+      className="gafa-reservation-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reservation-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <div className="gafa-reservation-sheet" data-step={step} data-has-map={needsSeat ? "true" : undefined}>
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar reserva" onClick={onClose}>
           x
@@ -1979,7 +1987,15 @@ function ReservationAuthGate({
   onAuthenticated: () => void;
 }) {
   return (
-    <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="reservation-auth-title">
+    <div
+      className="gafa-reservation-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reservation-auth-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <div className="gafa-reservation-sheet">
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar" onClick={onClose}>
           x
