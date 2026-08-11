@@ -4,7 +4,7 @@ import { WidgetShell } from "./WidgetShell";
 import { FancyOverlay } from "./FancyOverlay";
 import { AuthWidget } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
-import { subscribeToAuthChanges } from "../client/tokenStorage";
+import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import type {
   Brand,
   CreateReservationResult,
@@ -99,18 +99,16 @@ export function CalendarWidget({
     queryFn: async () => (client ? client.listBrands() : demoBrands()),
   });
 
-  // Sesion actual: decide si "Reservar" va directo al checkout o pasa antes por
-  // el login inline. Se refresca al iniciar/cerrar sesion en cualquier widget.
-  const sessionQuery = useQuery({
-    queryKey: ["calendar", "session"],
-    queryFn: async () => (client ? client.getProfile() : null),
-    staleTime: 60_000,
-  });
-  const isSignedIn = Boolean(sessionQuery.data);
+  // Sesion actual: decide si el clic en una clase pide login o abre el detalle.
+  // Se deriva DIRECTO del token almacenado (sincrono y compartido con el resto
+  // de widgets), actualizado por el evento de auth; una query aqui podia quedar
+  // cacheada en null despues de un login hecho en otro widget.
+  const [isSignedIn, setIsSignedIn] = useState(() => Boolean(readStoredToken()));
 
   useEffect(() => {
     return subscribeToAuthChanges(() => {
-      queryClient.invalidateQueries({ queryKey: ["calendar", "session"] });
+      setIsSignedIn(Boolean(readStoredToken()));
+      queryClient.invalidateQueries({ queryKey: ["calendar", "reservation-context"] });
       queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
     });
   }, [queryClient]);
@@ -454,27 +452,33 @@ export function CalendarWidget({
   const hasError =
     brandsQuery.isError || locationsQuery.isError || bookableLocationsQuery.isError || meetingsQuery.isError;
 
-  function handleReserve(meeting: Meeting) {
-    // Sold-out no se bloquea: el checkout ofrece lista de espera del lado del
-    // servidor. Solo salimos si no hay cliente (modo demo sin backend).
-    if (!client) return;
-    setSelectedMeeting(null);
-    // Sin sesion: login/registro dentro del flujo; con sesion: directo al fancy
-    // (que resuelve credito, mapa de salon y pago del lado del servidor).
-    if (!isSignedIn) {
+  /**
+   * Clic en una clase: sin sesion pide login AHI MISMO (nada de abrir un
+   * detalle que luego vuelve a pedir clic); con sesion abre el detalle con
+   * mapa y confirmacion en un solo paso.
+   */
+  function openMeeting(meeting: Meeting) {
+    if (!isSignedIn && client) {
       setAuthGateMeeting(meeting);
       return;
     }
+    setSelectedMeeting(meeting);
+  }
+
+  /** Camino de compra: sin creditos compatibles se va al checkout de compra. */
+  function handleBuy(meeting: Meeting) {
+    if (!client) return;
+    setSelectedMeeting(null);
     setFancyMeeting(meeting);
   }
 
-  // Al autenticarse desde el gate, continuar solo hacia el checkout del meeting
-  // que se estaba reservando.
+  // Al autenticarse desde el gate, abrir el detalle de la clase que estaba
+  // intentando reservar (ya con mapa y creditos de SU cuenta).
   useEffect(() => {
     if (isSignedIn && authGateMeeting) {
       const meeting = authGateMeeting;
       setAuthGateMeeting(null);
-      setFancyMeeting(meeting);
+      setSelectedMeeting(meeting);
     }
   }, [authGateMeeting, isSignedIn]);
 
@@ -601,7 +605,7 @@ export function CalendarWidget({
             date={anchor}
             emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
             meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
-            onSelect={setSelectedMeeting}
+            onSelect={openMeeting}
             showDescription={showDescription}
           />
         </div>
@@ -614,7 +618,7 @@ export function CalendarWidget({
               date={day}
               emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
               meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
-              onSelect={setSelectedMeeting}
+              onSelect={openMeeting}
               showDescription={showDescription}
             />
           ))}
@@ -627,7 +631,7 @@ export function CalendarWidget({
           meeting={selectedMeeting}
           isSignedIn={isSignedIn}
           onClose={() => setSelectedMeeting(null)}
-          onContinue={() => handleReserve(selectedMeeting)}
+          onContinue={() => handleBuy(selectedMeeting)}
           onReserved={() => {
             // La clase reservada cambia la disponibilidad visible y el perfil.
             queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
@@ -643,6 +647,13 @@ export function CalendarWidget({
           meeting={authGateMeeting}
           brandSlug={getMeetingBrandSlug(authGateMeeting, activeBrand)}
           onClose={() => setAuthGateMeeting(null)}
+          onAuthenticated={() => {
+            // Directo del login al detalle de la clase que estaba reservando.
+            const meeting = authGateMeeting;
+            setAuthGateMeeting(null);
+            queryClient.invalidateQueries({ queryKey: ["calendar", "session"] });
+            setSelectedMeeting(meeting);
+          }}
         />
       ) : null}
 
@@ -1430,8 +1441,10 @@ function ReservationPreviewModal({
     ? (paymentOptions.find((option) => option.id === selectedOptionId) ?? null)
     : (paymentOptions[0] ?? null);
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
-  const needsSeat = Boolean(canReserveNative && seatMap);
   const soldOut = isSoldOut(meeting);
+  // Clase llena: nada de mapa; el boton se convierte en "unirme a la lista".
+  const waitlistMode = Boolean(canReserveNative && soldOut && context?.waitlistAvailable);
+  const needsSeat = Boolean(canReserveNative && seatMap && !waitlistMode);
 
   async function confirmReservation(seat: SeatMapObject | null) {
     if (!client?.createReservation || !context) return;
@@ -1475,16 +1488,16 @@ function ReservationPreviewModal({
   const primaryLabel = !isSignedIn
     ? "Continuar reserva"
     : contextQuery.isLoading
-      ? "Revisando tus créditos…"
+      ? "Revisando tus paquetes…"
       : canReserveNative
         ? needsPaymentChoice && !activeOption
           ? "Elige cómo reservar"
-          : needsSeat
-            ? selectedSeat
-              ? `Reservar lugar ${selectedSeat.label}`
-              : "Elige tu lugar en el mapa"
-            : soldOut
-              ? "Unirme a lista de espera"
+          : waitlistMode
+            ? "Unirme a la lista de espera"
+            : needsSeat
+              ? selectedSeat
+                ? `Reservar lugar ${selectedSeat.label}`
+                : "Elige tu lugar en el mapa"
               : activeOption?.kind === "membership"
                 ? "Reservar con mi membresía"
                 : "Reservar con mi paquete"
@@ -1603,6 +1616,12 @@ function ReservationPreviewModal({
 
               {needsSeat && seatMap ? (
                 <SeatMapInline map={seatMap} selected={selectedSeat} onSelect={setSelectedSeat} />
+              ) : null}
+
+              {waitlistMode ? (
+                <p className="gafa-reservation-hint">
+                  La clase está llena. Únete a la lista de espera y te avisamos si se libera un lugar.
+                </p>
               ) : null}
             </div>
 
@@ -1761,12 +1780,14 @@ function ReservationAuthGate({
   meeting,
   brandSlug,
   onClose,
+  onAuthenticated,
 }: {
   client: GafaClient;
   captcha?: CaptchaProvider;
   meeting: Meeting;
   brandSlug: string;
   onClose: () => void;
+  onAuthenticated: () => void;
 }) {
   return (
     <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="reservation-auth-title">
@@ -1784,7 +1805,13 @@ function ReservationAuthGate({
           </p>
         </div>
 
-        <AuthWidget client={client} captcha={captcha} brandSlug={brandSlug} initialView="login" />
+        <AuthWidget
+          client={client}
+          captcha={captcha}
+          brandSlug={brandSlug}
+          initialView="login"
+          onAuthenticated={onAuthenticated}
+        />
       </div>
     </div>
   );
