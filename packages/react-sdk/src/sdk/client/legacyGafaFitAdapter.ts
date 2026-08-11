@@ -9,6 +9,7 @@ import type {
   UserProfile,
 } from "./types";
 import type { GafaSdkConfig } from "../config";
+import { readStoredToken } from "./tokenStorage";
 
 type LegacyCallback<T> = (error: unknown, result: T) => void;
 
@@ -17,7 +18,10 @@ type LegacyGafaFitSdk = {
   setCompany?: (companyId: number) => void;
   setAutorization?: (token: string) => void;
   logout?: () => void;
-  isAuthentified?: () => boolean;
+  /** OJO: el isAuthentified PUBLICO es asincrono (recibe callback y devuelve
+      undefined); no sirve como guard sincrono. La sesion se valida con nuestro
+      propio token almacenado. */
+  isAuthentified?: (cb: (isAuth: boolean) => void) => void;
   GetBrandList?: (options: Record<string, unknown>, cb: LegacyCallback<{ data: Brand[] }>) => void;
   GetBrandLocations?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: Location[] }>) => void;
   GetBrandStaffList?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: StaffMember[] }>) => void;
@@ -183,9 +187,7 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
         throw new Error("GafaFitSDK.GetCreateReservationForm is not available.");
       }
 
-      if (sdk.isAuthentified && !sdk.isAuthentified()) {
-        throw new NotAuthenticatedError();
-      }
+      ensureSessionToken(sdk);
 
       await callbackToPromise<unknown>((cb) => {
         sdk.GetCreateReservationForm?.(
@@ -203,9 +205,7 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
         throw new Error("GafaFitSDK.GetCreateReservationForm is not available.");
       }
 
-      if (sdk.isAuthentified && !sdk.isAuthentified()) {
-        throw new NotAuthenticatedError();
-      }
+      ensureSessionToken(sdk);
 
       const userId = payload.userId ?? (await getLegacyUserId(sdk));
 
@@ -223,6 +223,23 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
       });
     },
   };
+}
+
+/**
+ * Valida la sesion con NUESTRO token (el legacy no expone un check sincrono
+ * fiable) y de paso lo inyecta al cache interno del SDK legacy por si este
+ * cargo antes del login.
+ */
+function ensureSessionToken(sdk: LegacyGafaFitSdk): void {
+  const token = readStoredToken();
+  if (!token) {
+    throw new NotAuthenticatedError();
+  }
+  try {
+    sdk.setAutorization?.(token);
+  } catch {
+    // Si el legacy no puede sincronizar, que lo intente con su propio estado.
+  }
 }
 
 async function getLegacyUserId(sdk: LegacyGafaFitSdk): Promise<string | number | undefined> {
