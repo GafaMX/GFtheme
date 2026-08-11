@@ -124,8 +124,18 @@ export type UserReservation = {
   brandSlug: string;
   isWaitlist: boolean;
   isOverbooking: boolean;
-  /** Nombre del credito usado, o null cuando la reserva se pago con membresia. */
-  creditName?: string | null;
+  /**
+   * Id del TIPO de credito con el que se pago (null = se pago con membresia).
+   * Sirve para resolver contra los creditos del usuario el nombre del paquete,
+   * que es lo unico que el socio reconoce.
+   */
+  creditId?: number | null;
+  /**
+   * Nombre del TIPO de credito tal cual lo manda el API (`credit.name`, ej.
+   * "CDMXnew"). Es una etiqueta de gestion interna del estudio: NO mostrarla al
+   * socio. Ver docs/creditos-vs-paquetes.md.
+   */
+  creditTypeName?: string | null;
   waitlistPosition?: string;
   /** Lugar/spot en el mapa (ej. "14"). */
   seatLabel?: string;

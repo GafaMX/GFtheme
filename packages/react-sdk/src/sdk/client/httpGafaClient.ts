@@ -88,7 +88,7 @@ type RawReservation = {
   canBeCancelledWithoutCredit?: boolean;
   is_overbooking?: number;
   meeting_position?: number | string | null;
-  credit?: { name?: string } | null;
+  credit?: { id?: number; name?: string } | null;
   location?: { name?: string } | string | null;
   brand?: { slug?: string } | string | null;
   staff?: RawStaff;
@@ -334,7 +334,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       isWaitlist,
       isOverbooking: raw.is_overbooking === 1,
       // El legacy distingue membresia de credito por `credit === null`, no por un campo propio.
-      creditName: raw.credit ? (raw.credit.name ?? null) : null,
+      // `credit.name` es el TIPO de credito (interno del estudio), no el paquete
+      // que compro el socio: se guarda para poder resolver el paquete por id.
+      creditId: raw.credit?.id ?? null,
+      creditTypeName: raw.credit ? (raw.credit.name ?? null) : null,
       waitlistPosition: isWaitlist && seat !== undefined && seat !== null ? String(seat) : undefined,
       seatLabel: !isWaitlist && seat !== undefined && seat !== null ? String(seat) : undefined,
       qrHash: raw.hash_qr ?? undefined,

@@ -11,6 +11,7 @@ import type {
   UserReservation,
 } from "../client/types";
 import { subscribeToAuthChanges } from "../client/tokenStorage";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { WidgetShell } from "./WidgetShell";
 
 export type ProfileWidgetProps = {
@@ -79,6 +80,7 @@ export function ProfileWidget({
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>("overview");
   const [qrReservation, setQrReservation] = useState<UserReservation | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<UserReservation | null>(null);
 
   useEffect(
     () => subscribeToAuthChanges(() => queryClient.invalidateQueries({ queryKey: ["profile"] })),
@@ -165,6 +167,7 @@ export function ProfileWidget({
       queryClient.invalidateQueries({ queryKey: ["profile", "reservations"] });
       queryClient.invalidateQueries({ queryKey: ["profile", "activity"] });
       queryClient.invalidateQueries({ queryKey: ["profile", "credits"] });
+      setPendingCancel(null);
     },
   });
 
@@ -188,9 +191,19 @@ export function ProfileWidget({
     [futureQuery.data],
   );
 
-  const onCancel = (reservation: UserReservation) => {
-    const question = reservation.isWaitlist ? "¿Salir de la lista de espera?" : "¿Cancelar esta clase?";
-    if (window.confirm(question)) cancelMutation.mutate(reservation);
+  // El nombre que el socio reconoce es el del paquete que compro; la reserva
+  // solo trae el TIPO de credito (interno, ej. "CDMXnew"). Ver
+  // docs/creditos-vs-paquetes.md.
+  const packageNameByCreditId = useMemo(() => {
+    const map = new Map<number, string>();
+    (creditsQuery.data ?? []).forEach((credit) => map.set(credit.id, credit.name));
+    return map;
+  }, [creditsQuery.data]);
+
+  const paymentLabel = (reservation: UserReservation): string | null => {
+    if (reservation.isWaitlist) return null;
+    if (reservation.creditId == null && !reservation.creditTypeName) return "Membresía";
+    return (reservation.creditId != null ? packageNameByCreditId.get(reservation.creditId) : undefined) ?? "Paquete";
   };
 
   if (profileQuery.isLoading) {
@@ -265,7 +278,18 @@ export function ProfileWidget({
 
       <section className="gafa-acct__main">
         <header className="gafa-acct__head">
-          <h2>{section.title}</h2>
+          <h2>
+            {tab === "overview" ? (
+              <>
+                ¡Hola, {firstNameOf(profile)}!{" "}
+                <span className="gafa-acct__wave" aria-hidden="true">
+                  👋
+                </span>
+              </>
+            ) : (
+              section.title
+            )}
+          </h2>
           <p>{section.subtitle}</p>
         </header>
 
@@ -284,7 +308,7 @@ export function ProfileWidget({
               loadingTotals={activityQuery.isLoading}
               totalsUnsupported={!client?.getUserActivityTotals}
               cancelPendingId={cancelMutation.isPending ? cancelMutation.variables?.id : undefined}
-              onCancel={onCancel}
+              onCancel={setPendingCancel}
               onShowQr={setQrReservation}
               onGoTo={setTab}
             />
@@ -301,7 +325,8 @@ export function ProfileWidget({
               errorFuture={futureQuery.isError}
               errorPast={pastQuery.isError}
               cancelPendingId={cancelMutation.isPending ? cancelMutation.variables?.id : undefined}
-              onCancel={onCancel}
+              paymentLabel={paymentLabel}
+              onCancel={setPendingCancel}
               onShowQr={setQrReservation}
             />
           ) : null}
@@ -345,13 +370,40 @@ export function ProfileWidget({
             />
           ) : null}
 
-          {cancelMutation.isError ? (
+          {cancelMutation.isError && !pendingCancel ? (
             <p className="gafa-sdk-state gafa-sdk-state--error">{errorMessage(cancelMutation.error)}</p>
           ) : null}
         </div>
       </section>
 
       {qrReservation ? <QrModal reservation={qrReservation} onClose={() => setQrReservation(null)} /> : null}
+
+      {pendingCancel ? (
+        <ConfirmDialog
+          tone="danger"
+          title={pendingCancel.isWaitlist ? "¿Salir de la lista de espera?" : "¿Cancelar tu clase?"}
+          description={
+            <>
+              <span className="gafa-confirm__subject">
+                {pendingCancel.serviceName} · {capitalize(formatWeekday(pendingCancel.startsAt))},{" "}
+                {formatTime(pendingCancel.startsAt)}
+              </span>
+              {pendingCancel.isWaitlist
+                ? "Si vuelves a entrar, pierdes el lugar que tienes en la fila."
+                : "Se libera tu lugar y te regresamos la clase a tu paquete."}
+            </>
+          }
+          confirmLabel={pendingCancel.isWaitlist ? "Sí, salir" : "Sí, cancelar"}
+          cancelLabel="No, dejarla"
+          busy={cancelMutation.isPending}
+          error={cancelMutation.isError ? errorMessage(cancelMutation.error) : undefined}
+          onConfirm={() => cancelMutation.mutate(pendingCancel)}
+          onDismiss={() => {
+            cancelMutation.reset();
+            setPendingCancel(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -414,6 +466,7 @@ function OverviewPanel({
             <div className="gafa-acct-next__what">
               <h3>{nextClass.serviceName}</h3>
               <p>{describeReservation(nextClass)}</p>
+              <span className="gafa-acct-next__countdown">{countdownLabel(nextClass.startsAt)}</span>
             </div>
             <div className="gafa-acct-next__actions">
               {nextClass.qrHash ? (
@@ -435,8 +488,13 @@ function OverviewPanel({
           </div>
         ) : (
           <div className="gafa-acct-next__empty">
-            <p>No tienes clases reservadas.</p>
-            <span className="gafa-muted">Reserva desde el calendario y aparecerá aquí con tu código QR.</span>
+            <span className="gafa-acct-next__empty-emoji" aria-hidden="true">
+              🗓️
+            </span>
+            <div>
+              <p>Sin clases reservadas</p>
+              <span className="gafa-muted">Reserva desde el calendario y aparecerá aquí con tu código QR.</span>
+            </div>
           </div>
         )}
 
@@ -461,6 +519,9 @@ function OverviewPanel({
         ) : (
           <div className="gafa-acct-balance">
             <div className="gafa-acct-balance__card">
+              <span className="gafa-acct-balance__emoji" aria-hidden="true">
+                🎟️
+              </span>
               <span className="gafa-acct-balance__value">{creditTotal}</span>
               <span className="gafa-acct-balance__label">
                 {creditTotal === 1 ? "Clase disponible" : "Clases disponibles"}
@@ -470,6 +531,9 @@ function OverviewPanel({
               ) : null}
             </div>
             <div className="gafa-acct-balance__card">
+              <span className="gafa-acct-balance__emoji" aria-hidden="true">
+                ♾️
+              </span>
               <span className="gafa-acct-balance__value">{memberships.length}</span>
               <span className="gafa-acct-balance__label">
                 {memberships.length === 1 ? "Membresía activa" : "Membresías activas"}
@@ -477,6 +541,9 @@ function OverviewPanel({
               {memberships[0] ? <span className="gafa-acct-balance__hint">{memberships[0].name}</span> : null}
             </div>
             <div className="gafa-acct-balance__card">
+              <span className="gafa-acct-balance__emoji" aria-hidden="true">
+                💳
+              </span>
               <span className="gafa-acct-balance__value">{formatWallet(profile.storeCreditTotal)}</span>
               <span className="gafa-acct-balance__label">Crédito en tienda</span>
             </div>
@@ -496,12 +563,30 @@ function OverviewPanel({
         ) : totals ? (
           <>
             <div className="gafa-acct-stats">
-              <Stat value={totals.attendedCount} label="Clases tomadas" tone="strong" />
-              <Stat value={totals.reservedCount} label="Reservadas" />
-              <Stat value={formatMinutes(totals.attendedMinutes)} label="Tiempo entrenando" />
-              <Stat value={totals.cancelledCount} label="Canceladas" />
-              <Stat value={totals.noShowCount} label="No show" tone={totals.noShowCount > 0 ? "warn" : undefined} />
+              <Stat emoji="🔥" value={totals.attendedCount} label="Clases tomadas" tone="strong" />
+              <Stat emoji="📅" value={totals.reservedCount} label="Reservadas" />
+              <Stat emoji="⏱️" value={formatMinutes(totals.attendedMinutes)} label="Tiempo entrenando" />
+              <Stat emoji="↩️" value={totals.cancelledCount} label="Canceladas" />
+              <Stat
+                emoji="😴"
+                value={totals.noShowCount}
+                label="No show"
+                tone={totals.noShowCount > 0 ? "warn" : undefined}
+              />
             </div>
+
+            {totals.reservedCount > 0 ? (
+              <div className="gafa-acct-progress">
+                <div className="gafa-acct-progress__head">
+                  <span>Asistencia</span>
+                  <strong>{attendanceRate(totals)}%</strong>
+                </div>
+                <div className="gafa-acct-progress__track">
+                  <span className="gafa-acct-progress__fill" style={{ width: `${attendanceRate(totals)}%` }} />
+                </div>
+                <p className="gafa-acct-progress__note">{attendanceNote(totals)}</p>
+              </div>
+            ) : null}
 
             <div className="gafa-acct-faves">
               <div>
@@ -540,11 +625,24 @@ function OverviewPanel({
   );
 }
 
-function Stat({ value, label, tone }: { value: number | string; label: string; tone?: "strong" | "warn" }) {
+function Stat({
+  emoji,
+  value,
+  label,
+  tone,
+}: {
+  emoji: string;
+  value: number | string;
+  label: string;
+  tone?: "strong" | "warn";
+}) {
   return (
     <div className="gafa-acct-stat" data-tone={tone}>
+      <span className="gafa-acct-stat__emoji" aria-hidden="true">
+        {emoji}
+      </span>
       <strong>{value}</strong>
-      <span>{label}</span>
+      <span className="gafa-acct-stat__label">{label}</span>
     </div>
   );
 }
@@ -561,6 +659,7 @@ function ClassesPanel({
   errorFuture,
   errorPast,
   cancelPendingId,
+  paymentLabel,
   onCancel,
   onShowQr,
 }: {
@@ -573,6 +672,7 @@ function ClassesPanel({
   errorFuture: boolean;
   errorPast: boolean;
   cancelPendingId?: number;
+  paymentLabel(reservation: UserReservation): string | null;
   onCancel(reservation: UserReservation): void;
   onShowQr(reservation: UserReservation): void;
 }) {
@@ -602,6 +702,7 @@ function ClassesPanel({
               <ReservationCard
                 key={`up-${reservation.id}`}
                 reservation={reservation}
+                paymentLabel={paymentLabel(reservation)}
                 cancelPending={cancelPendingId === reservation.id}
                 onCancel={onCancel}
                 onShowQr={onShowQr}
@@ -609,23 +710,34 @@ function ClassesPanel({
             ))}
           </ClassGroup>
 
-          {waitlist.length > 0 ? (
-            <ClassGroup title="Lista de espera" empty="" count={waitlist.length}>
-              {waitlist.map((reservation) => (
-                <ReservationCard
-                  key={`wl-${reservation.id}`}
-                  reservation={reservation}
-                  cancelPending={cancelPendingId === reservation.id}
-                  onCancel={onCancel}
-                />
-              ))}
-            </ClassGroup>
-          ) : null}
+          {/* Se muestra siempre, aunque este vacia: si no, no hay forma de saber
+              que la lista de espera vive aqui. */}
+          <ClassGroup
+            title="Lista de espera"
+            loading={loadingFuture}
+            error={errorFuture}
+            empty="No estás en ninguna lista de espera."
+            count={waitlist.length}
+          >
+            {waitlist.map((reservation) => (
+              <ReservationCard
+                key={`wl-${reservation.id}`}
+                reservation={reservation}
+                paymentLabel={paymentLabel(reservation)}
+                cancelPending={cancelPendingId === reservation.id}
+                onCancel={onCancel}
+              />
+            ))}
+          </ClassGroup>
 
           {cancelled.length > 0 ? (
             <ClassGroup title="Canceladas" empty="" count={cancelled.length}>
               {cancelled.map((reservation) => (
-                <ReservationCard key={`cx-${reservation.id}`} reservation={reservation} />
+                <ReservationCard
+                  key={`cx-${reservation.id}`}
+                  reservation={reservation}
+                  paymentLabel={paymentLabel(reservation)}
+                />
               ))}
             </ClassGroup>
           ) : null}
@@ -639,7 +751,12 @@ function ClassesPanel({
           count={history.length}
         >
           {history.map((reservation) => (
-            <ReservationCard key={`past-${reservation.id}`} reservation={reservation} historic />
+            <ReservationCard
+              key={`past-${reservation.id}`}
+              reservation={reservation}
+              paymentLabel={paymentLabel(reservation)}
+              historic
+            />
           ))}
         </ClassGroup>
       )}
@@ -678,12 +795,15 @@ function ClassGroup({
 
 function ReservationCard({
   reservation,
+  paymentLabel,
   historic = false,
   cancelPending,
   onCancel,
   onShowQr,
 }: {
   reservation: UserReservation;
+  /** Paquete o membresia con la que se pago; nunca el tipo interno de credito. */
+  paymentLabel?: string | null;
   historic?: boolean;
   cancelPending?: boolean;
   onCancel?(reservation: UserReservation): void;
@@ -716,7 +836,7 @@ function ReservationCard({
           ) : null}
           {reservation.isOverbooking ? <span className="gafa-meeting-chip">Sobrecupo</span> : null}
           {reservation.cancelled ? <span className="gafa-meeting-chip">Cancelada</span> : null}
-          {reservation.creditName ? <span className="gafa-meeting-chip">{reservation.creditName}</span> : null}
+          {paymentLabel ? <span className="gafa-meeting-chip">{paymentLabel}</span> : null}
         </div>
       </div>
 
@@ -1247,6 +1367,40 @@ function toDate(value: string): Date | null {
 function displayName(profile: UserProfile): string {
   const full = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
   return full || profile.name || profile.email;
+}
+
+function firstNameOf(profile: UserProfile): string {
+  return profile.firstName || displayName(profile).split(/\s+/)[0] || "hola";
+}
+
+function attendanceRate(totals: UserActivityTotals): number {
+  if (!totals.reservedCount) return 0;
+  return Math.min(100, Math.round((totals.attendedCount / totals.reservedCount) * 100));
+}
+
+function attendanceNote(totals: UserActivityTotals): string {
+  const rate = attendanceRate(totals);
+  if (rate >= 90) return "Impecable: casi no fallas a una clase.";
+  if (rate >= 70) return "Vas bien, sigue así.";
+  if (rate >= 40) return "Hay margen para no perderte tus reservas.";
+  return "Reserva solo lo que vas a tomar y este número sube solo.";
+}
+
+/** "Faltan 3 días" / "En 2 h" / "¡Es en un rato!" para la proxima clase. */
+function countdownLabel(value: string): string {
+  const date = toDate(value);
+  if (!date) return "";
+  const diffMs = date.getTime() - Date.now();
+  if (diffMs <= 0) return "¡Está por empezar!";
+
+  const minutes = Math.round(diffMs / 60_000);
+  if (minutes < 60) return `Faltan ${minutes} min`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return hours === 1 ? "Falta 1 hora" : `Faltan ${hours} horas`;
+
+  const days = Math.round(hours / 24);
+  return days === 1 ? "Falta 1 día" : `Faltan ${days} días`;
 }
 
 function initials(profile: UserProfile): string {

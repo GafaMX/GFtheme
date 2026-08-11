@@ -144,6 +144,7 @@ No hay `.github/workflows/`. Deploy presumiblemente: push a `master` → build �
 
 ## Reglas especiales para la IA
 - **Nunca** hardcodear `API_CLIENT/API_SECRET`, keys de reCAPTCHA ni de Conekta: vienen de `data-gf-options` en el host (legacy) o de config inyectada (SDK nuevo).
+- **Nunca** mostrarle al socio el *tipo* de crédito (`credit.name`, ej. `CDMXnew`): es gestión interna del estudio. Lo que se enseña es el **paquete** comprado o la **membresía** — ver `docs/creditos-vs-paquetes.md`.
 - Legacy: preferir el sistema **`newlook/`**; `default/` es legacy del legacy (no ampliar salvo mantenimiento). El SDK nuevo (`packages/react-sdk/`) no usa SCSS con prefijo GFSDK — usa CSS variables por theme tokens (ver sección "Rewrite en curso").
 - Cualquier campo/endpoint nuevo que se consuma debe existir en la API de gafa.fit (coordinar con ese repo).
 - **`master` es producción** — todo el trabajo del rewrite va en `feature/react-sdk-v2` (o ramas hijas), PR + review humano antes de mergear.

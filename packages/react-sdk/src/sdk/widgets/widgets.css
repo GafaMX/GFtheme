@@ -1945,6 +1945,14 @@
   height: 18px;
 }
 
+/* La cuenta tiene que ocupar todo el alto del popup: si no, "Cerrar sesión"
+   (anclado al fondo de la barra lateral) se queda flotando a media altura en
+   las secciones cortas. */
+.gafa-account-modal > .gafa-acct {
+  flex: 1;
+  min-height: 0;
+}
+
 /* Dentro del popup el AuthWidget ya no necesita su propia tarjeta: el marco lo
    pone el modal. */
 .gafa-account-modal__auth {
@@ -1979,6 +1987,7 @@
 @media (min-width: 768px) {
   .gafa-acct {
     grid-template-columns: 248px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     min-height: 520px;
   }
 }
@@ -2216,18 +2225,69 @@
 
 /* ----- resumen / actividad */
 
+.gafa-acct__wave {
+  display: inline-block;
+  transform-origin: 70% 80%;
+  animation: gafa-wave 2.6s ease-in-out 0.4s 3;
+}
+
+@keyframes gafa-wave {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+  10%,
+  30% {
+    transform: rotate(14deg);
+  }
+  20%,
+  40% {
+    transform: rotate(-8deg);
+  }
+}
+
 .gafa-acct-overview {
   display: grid;
   gap: var(--gafa-space-4);
 }
 
+/* Entrada escalonada: el panel se siente vivo al abrir sin depender de una
+   libreria de animacion. */
+.gafa-acct-overview > * {
+  animation: gafa-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gafa-acct-overview > *:nth-child(2) {
+  animation-delay: 0.07s;
+}
+
+.gafa-acct-overview > *:nth-child(3) {
+  animation-delay: 0.14s;
+}
+
+@keyframes gafa-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .gafa-acct-next {
-  background: var(--gafa-color-surface-raised);
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--gafa-color-accent) 16%, transparent) 0%, transparent 55%),
+    var(--gafa-color-surface-raised);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-lg);
   display: grid;
   gap: var(--gafa-space-3);
+  overflow: hidden;
   padding: var(--gafa-space-4);
+  position: relative;
 }
 
 .gafa-acct-next__label {
@@ -2242,11 +2302,22 @@
 }
 
 .gafa-acct-dot {
+  animation: gafa-pulse 2s ease-in-out infinite;
   background: var(--gafa-color-accent);
   border-radius: 50%;
   display: inline-block;
   height: 8px;
   width: 8px;
+}
+
+@keyframes gafa-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--gafa-color-accent) 60%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
 }
 
 .gafa-acct-next__body {
@@ -2311,6 +2382,28 @@
 .gafa-acct-next__actions .gafa-sdk-button {
   flex: 1;
   white-space: nowrap;
+}
+
+.gafa-acct-next__countdown {
+  background: color-mix(in srgb, var(--gafa-color-accent) 16%, transparent);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  display: inline-block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  margin-top: 0.45rem;
+  padding: 0.2rem 0.6rem;
+}
+
+.gafa-acct-next__empty {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-acct-next__empty-emoji {
+  font-size: 1.9rem;
+  line-height: 1;
 }
 
 .gafa-acct-next__empty p {
@@ -2390,6 +2483,18 @@
   display: grid;
   gap: 2px;
   padding: var(--gafa-space-3);
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.gafa-acct-balance__card:hover {
+  border-color: var(--gafa-color-primary);
+  transform: translateY(-2px);
+}
+
+.gafa-acct-balance__emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+  margin-bottom: 0.15rem;
 }
 
 .gafa-acct-balance__value {
@@ -2425,6 +2530,28 @@
   gap: 2px;
   padding: var(--gafa-space-3) var(--gafa-space-2);
   text-align: center;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.gafa-acct-stat:hover {
+  border-color: var(--gafa-color-primary);
+  transform: translateY(-2px);
+}
+
+.gafa-acct-stat__emoji {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.gafa-acct-stat:hover .gafa-acct-stat__emoji {
+  animation: gafa-bounce 0.5s ease;
+  display: inline-block;
+}
+
+@keyframes gafa-bounce {
+  50% {
+    transform: translateY(-4px) scale(1.12);
+  }
 }
 
 .gafa-acct-stat strong {
@@ -2433,7 +2560,7 @@
   line-height: 1.1;
 }
 
-.gafa-acct-stat span {
+.gafa-acct-stat__label {
   color: var(--gafa-color-muted-text);
   font-size: 0.76rem;
   font-weight: 600;
@@ -2445,8 +2572,59 @@
 }
 
 .gafa-acct-stat[data-tone="strong"] strong,
-.gafa-acct-stat[data-tone="strong"] span {
+.gafa-acct-stat[data-tone="strong"] .gafa-acct-stat__label {
   color: var(--gafa-color-primary-text);
+}
+
+.gafa-acct-progress {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: 0.4rem;
+  padding: var(--gafa-space-3);
+}
+
+.gafa-acct-progress__head {
+  align-items: baseline;
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 600;
+  justify-content: space-between;
+}
+
+.gafa-acct-progress__head strong {
+  color: var(--gafa-color-text);
+  font-size: 1rem;
+}
+
+.gafa-acct-progress__track {
+  background: var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  height: 8px;
+  overflow: hidden;
+}
+
+.gafa-acct-progress__fill {
+  animation: gafa-fill 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--gafa-color-primary);
+  border-radius: var(--gafa-radius-pill);
+  display: block;
+  height: 100%;
+}
+
+@keyframes gafa-fill {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+}
+
+.gafa-acct-progress__note {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.8rem;
+  margin: 0;
 }
 
 .gafa-acct-stat[data-tone="warn"] strong {
@@ -2848,6 +3026,121 @@
 
 .gafa-acct-qr .gafa-sdk-button {
   width: 100%;
+}
+
+/* ----- confirmacion */
+
+.gafa-confirm-overlay {
+  align-items: center;
+  animation: gafa-fade 0.18s ease both;
+  background: var(--gafa-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--gafa-space-4);
+  position: fixed;
+  z-index: 2147483002;
+}
+
+@keyframes gafa-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.gafa-confirm {
+  animation: gafa-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  box-shadow: var(--gafa-shadow-pop);
+  display: grid;
+  gap: var(--gafa-space-2);
+  justify-items: center;
+  max-width: 420px;
+  padding: var(--gafa-space-5);
+  text-align: center;
+  width: 100%;
+}
+
+@keyframes gafa-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+
+.gafa-confirm__mark {
+  align-items: center;
+  background: var(--gafa-color-surface-raised);
+  border-radius: 50%;
+  color: var(--gafa-color-text);
+  display: inline-flex;
+  font-size: 1.3rem;
+  font-weight: 800;
+  height: 46px;
+  justify-content: center;
+  width: 46px;
+}
+
+.gafa-confirm[data-tone="danger"] .gafa-confirm__mark {
+  background: var(--gafa-color-danger-soft, var(--gafa-color-surface-raised));
+  color: var(--gafa-color-danger, #dc2626);
+}
+
+.gafa-confirm__title {
+  font-size: 1.15rem;
+  margin: 0.2rem 0 0;
+}
+
+.gafa-confirm__text {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.gafa-confirm__subject {
+  color: var(--gafa-color-text);
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.gafa-confirm__actions {
+  display: grid;
+  gap: var(--gafa-space-2);
+  grid-template-columns: 1fr 1fr;
+  margin-top: var(--gafa-space-2);
+  width: 100%;
+}
+
+.gafa-confirm__actions .gafa-sdk-button {
+  width: 100%;
+}
+
+/* El rojo del tema es claro en modo oscuro y oscuro en modo claro: el texto
+   tiene que ir al color del fondo de la pagina, no siempre a blanco. */
+.gafa-confirm[data-tone="danger"] .gafa-confirm__confirm {
+  background: var(--gafa-color-danger, #dc2626);
+  border-color: transparent;
+  color: var(--gafa-color-background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gafa-acct__wave,
+  .gafa-acct-dot,
+  .gafa-acct-overview > *,
+  .gafa-acct-progress__fill,
+  .gafa-confirm,
+  .gafa-confirm-overlay,
+  .gafa-acct-stat:hover .gafa-acct-stat__emoji {
+    animation: none;
+  }
+
+  .gafa-acct-stat,
+  .gafa-acct-balance__card {
+    transition: none;
+  }
 }
 
 /* ------------------------------------------------------------------- catalogo */
