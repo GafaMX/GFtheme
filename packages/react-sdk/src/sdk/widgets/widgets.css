@@ -1455,8 +1455,11 @@
 
 /* --------------------------------------------------------------- mapa de salon */
 
-/* Con mapa, el modal crece y el contenido se divide info | mapa en desktop. */
+/* Con mapa, el modal crece y el contenido se divide info | mapa en desktop.
+   Tambien puede ser MAS ALTO que un modal normal: mejor crecer que scrollear;
+   solo si ni asi cabe (movil, mapas enormes) aparece scroll. */
 .gafa-reservation-sheet[data-has-map="true"] {
+  max-height: calc(100vh - 24px);
   max-width: min(980px, 96vw);
 }
 
@@ -1618,13 +1621,17 @@
 }
 
 /* Scroll controlado SOLO del mapa: mapas grandes se desplazan aqui adentro,
-   nunca mueven el resto del modal. */
+   nunca mueven el resto del modal. El padding es el colchon para lo que
+   sobresale de los lugares (badges numericos a -2px y el scale() del hover):
+   sin el, SIEMPRE aparecia un mini scroll vertical/horizontal aunque el mapa
+   cupiera completo. */
 .gafa-seatmap__scroll {
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
+  padding: 6px;
 }
 
 .gafa-seatmap__grid {
