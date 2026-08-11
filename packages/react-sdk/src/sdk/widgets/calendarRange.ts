@@ -2,20 +2,16 @@ export type CalendarView = "day" | "week";
 
 export type DateRange = { from: string; to: string };
 
-/** Franjas para filtrar sin pedir nada extra a la API (el rango es por dias). */
-export type TimeOfDay = "all" | "morning" | "afternoon" | "evening";
+/**
+ * Franjas para filtrar sin pedir nada extra a la API (el rango es por dias).
+ * AM/PM y no "Mañana/Tarde/Noche": "Mañana" se leia como el dia de mañana.
+ */
+export type TimeOfDay = "all" | "am" | "pm";
 
 export const TIME_OF_DAY_LABELS: Record<TimeOfDay, string> = {
-  all: "Todo el día",
-  morning: "Mañana",
-  afternoon: "Tarde",
-  evening: "Noche",
-};
-
-const TIME_OF_DAY_BOUNDS: Record<Exclude<TimeOfDay, "all">, [number, number]> = {
-  morning: [0, 12],
-  afternoon: [12, 18],
-  evening: [18, 24],
+  all: "Todos",
+  am: "AM",
+  pm: "PM",
 };
 
 export function toIsoDate(date: Date): string {
@@ -91,9 +87,8 @@ export function timeOfDayFor(startsAt: string, timeZone?: string): Exclude<TimeO
   if (Number.isNaN(date.getTime())) return null;
 
   const hour = hourIn(date, timeZone);
-  if (hour >= 0 && hour < 12) return "morning";
-  if (hour >= 12 && hour < 18) return "afternoon";
-  if (hour >= 18 && hour < 24) return "evening";
+  if (hour >= 0 && hour < 12) return "am";
+  if (hour >= 12 && hour < 24) return "pm";
   return null;
 }
 

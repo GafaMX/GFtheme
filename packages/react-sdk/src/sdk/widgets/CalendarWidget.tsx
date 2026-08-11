@@ -842,7 +842,7 @@ function StandaloneDaySections({
 }
 
 function groupByTimeOfDay(meetings: Meeting[]): Array<[Exclude<TimeOfDay, "all">, Meeting[]]> {
-  const slots: Array<Exclude<TimeOfDay, "all">> = ["morning", "afternoon", "evening"];
+  const slots: Array<Exclude<TimeOfDay, "all">> = ["am", "pm"];
 
   return slots
     .map((slot): [Exclude<TimeOfDay, "all">, Meeting[]] => [
@@ -1000,9 +1000,7 @@ function CalendarFilterBar({
   const showTimeOfDay = timeOfDayOptions.size > 1 || timeOfDay !== "all";
   const hasPanelFilters = showService || showStaff || showBrand || showTimeOfDay || activeCount > 0;
 
-  const timeChips: TimeOfDay[] = ["all", ...(["morning", "afternoon", "evening"] as const).filter((slot) =>
-    timeOfDayOptions.has(slot),
-  )];
+  const timeChips: TimeOfDay[] = ["all", ...(["am", "pm"] as const).filter((slot) => timeOfDayOptions.has(slot))];
 
   return (
     <div className="gafa-filterbar" ref={panelRef}>
