@@ -1523,17 +1523,10 @@ function ReservationPreviewModal({
 
             <div className="gafa-reservation-body">
               <div className="gafa-reservation-info">
+                {/* Sin repetir servicio/sede: ya viven en el encabezado. */}
                 <CoachInfo meeting={meeting} />
 
                 <div className="gafa-reservation-summary">
-                  <div>
-                    <span>Servicio</span>
-                    <strong>{meeting.service?.name ?? meeting.serviceName ?? "Servicio"}</strong>
-                  </div>
-                  <div>
-                    <span>Sede</span>
-                    <strong>{meeting.location?.name ?? "Por confirmar"}</strong>
-                  </div>
                   <div>
                     <span>Disponibilidad</span>
                     <strong>{getAvailabilityText(meeting)}</strong>
@@ -1573,13 +1566,13 @@ function ReservationPreviewModal({
                     <p className="gafa-reservation-hint gafa-reservation-hint--ok">
                       {activeOption.kind === "membership" ? (
                         <>
-                          Reservas con tu membresía: <strong>{activeOption.name}</strong>
+                          Membresía: <strong>{activeOption.name}</strong>
                         </>
                       ) : (
                         <>
-                          Reservas con tu paquete: <strong>{activeOption.name}</strong>
+                          Paquete: <strong>{activeOption.name}</strong>
                           {typeof activeOption.remaining === "number"
-                            ? ` (${activeOption.remaining} ${activeOption.remaining === 1 ? "crédito" : "créditos"})`
+                            ? ` · ${activeOption.remaining} ${activeOption.remaining === 1 ? "disponible" : "disponibles"}`
                             : ""}
                         </>
                       )}
