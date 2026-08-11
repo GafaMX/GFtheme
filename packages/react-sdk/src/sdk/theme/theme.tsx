@@ -105,6 +105,8 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
     "--gafa-color-border": palette.border,
     "--gafa-color-success": palette.success,
     "--gafa-color-success-soft": palette.successSoft,
+    "--gafa-color-warning": palette.warning,
+    "--gafa-color-warning-soft": palette.warningSoft,
     "--gafa-color-danger": palette.danger,
     "--gafa-color-danger-soft": palette.dangerSoft,
     "--gafa-color-overlay": palette.overlay,

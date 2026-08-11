@@ -900,6 +900,7 @@ function MeetingCard({
       data-sold-out={soldOut ? "true" : undefined}
       data-passed={passed ? "true" : undefined}
       data-compact={compact ? "true" : undefined}
+      data-has-photo={staffPhoto ? "true" : undefined}
       type="button"
       disabled={passed}
       onClick={() => onSelect(meeting)}
@@ -907,7 +908,7 @@ function MeetingCard({
       {staffPhoto ? (
         <img className="gafa-meeting-staff-photo" src={staffPhoto} alt="" aria-hidden="true" loading="lazy" />
       ) : null}
-      <span className="gafa-meeting-card__top" data-has-photo={staffPhoto ? "true" : undefined}>
+      <span className="gafa-meeting-card__top">
         <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
         {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
       </span>
@@ -926,7 +927,11 @@ function MeetingCard({
       ) : null}
       {showDescription && meeting.description ? <span className="gafa-meeting-desc">{meeting.description}</span> : null}
 
-      {passed ? <span className="gafa-availability-pill gafa-availability-pill--passed">Finalizada</span> : <AvailabilityPill meeting={meeting} />}
+      {passed ? (
+        <span className="gafa-availability-pill gafa-availability-pill--passed">Finalizada</span>
+      ) : (
+        <AvailabilityPill meeting={meeting} compact={compact} />
+      )}
     </button>
   );
 }
@@ -1647,15 +1652,25 @@ function getAvailabilityText(meeting: Meeting): string {
   return "Disponible";
 }
 
-function AvailabilityPill({ meeting }: { meeting: Meeting }) {
+/** Semaforo: verde 70%+ libre, amarillo 30–69%, rojo menos del 30%. */
+function availabilityLevel(available: number, capacity: number): "green" | "yellow" | "red" {
+  if (capacity <= 0) return "red";
+  const freeRatio = available / capacity;
+  if (freeRatio >= 0.7) return "green";
+  if (freeRatio >= 0.3) return "yellow";
+  return "red";
+}
+
+function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; compact?: boolean }) {
   if (meeting.isReserved) {
     return <span className="gafa-availability-pill gafa-availability-pill--reserved">Reservado</span>;
   }
 
   if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {
     return (
-      <span className="gafa-availability-pill">
-        {meeting.available}/{meeting.capacity} lugares
+      <span className="gafa-availability-pill" data-level={availabilityLevel(meeting.available, meeting.capacity)}>
+        {meeting.available}/{meeting.capacity}
+        {compact ? "" : " lugares"}
       </span>
     );
   }

@@ -16,6 +16,8 @@ export type BrandBaseColors = {
   accent?: string;
   /** Color de exito (disponibilidad, confirmaciones). */
   success?: string;
+  /** Color de advertencia (capacidad media, avisos). */
+  warning?: string;
   /** Color de error. */
   danger?: string;
   /** Tono del gris: por defecto se saca del color de marca para que "combine". */
@@ -35,6 +37,8 @@ export type ResolvedPalette = {
   border: string;
   success: string;
   successSoft: string;
+  warning: string;
+  warningSoft: string;
   danger: string;
   dangerSoft: string;
   overlay: string;
@@ -107,6 +111,7 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
   const brandHsl = hexToHsl(base.brand);
   const accentHsl = base.accent ? hexToHsl(base.accent) : brandHsl;
   const successHsl = hexToHsl(base.success ?? "#16a34a");
+  const warningHsl = hexToHsl(base.warning ?? "#d97706");
   const dangerHsl = hexToHsl(base.danger ?? "#dc2626");
 
   // Los grises llevan una pizca del tono de la marca: es lo que hace que un tema
@@ -145,6 +150,8 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
       border: hsl({ h: neutralHue, s: neutralSat, l: 22 }),
       success: hsl({ h: successHsl.h, s: 55, l: 60 }),
       successSoft: hsl({ h: successHsl.h, s: 40, l: 18 }),
+      warning: hsl({ h: warningHsl.h, s: 70, l: 62 }),
+      warningSoft: hsl({ h: warningHsl.h, s: 45, l: 18 }),
       danger: hsl({ h: dangerHsl.h, s: 70, l: 65 }),
       dangerSoft: hsl({ h: dangerHsl.h, s: 45, l: 20 }),
       overlay: "hsl(0 0% 0% / 0.72)",
@@ -167,6 +174,8 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
     border: hsl({ h: neutralHue, s: neutralSat, l: 89 }),
     success: hsl({ h: successHsl.h, s: successHsl.s, l: 34 }),
     successSoft: hsl({ h: successHsl.h, s: 60, l: 94 }),
+    warning: hsl({ h: warningHsl.h, s: warningHsl.s, l: 38 }),
+    warningSoft: hsl({ h: warningHsl.h, s: 80, l: 93 }),
     danger: hsl({ h: dangerHsl.h, s: dangerHsl.s, l: 46 }),
     dangerSoft: hsl({ h: dangerHsl.h, s: 75, l: 96 }),
     overlay: "hsl(0 0% 8% / 0.55)",
