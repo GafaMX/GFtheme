@@ -223,6 +223,8 @@
 .gafa-float > span:first-of-type,
 .gafa-float input + span {
   color: var(--gafa-color-muted-text);
+  /* Chico desde el reposo: el salto de tamano al flotar era lo que se veia raro. */
+  font-size: 0.84rem;
   left: 1.05rem;
   /* En una sola linea SIEMPRE: partido en dos hacia un efecto horrible. */
   max-width: calc(100% - 1.8rem);
@@ -240,9 +242,9 @@
 .gafa-float input:focus + span,
 .gafa-float input:not(:placeholder-shown) + span,
 .gafa-float--select > span:first-of-type {
-  font-size: 0.66rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   top: 0.55rem;
   transform: none;
