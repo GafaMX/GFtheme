@@ -448,6 +448,15 @@ export function CalendarWidget({
   ]);
 
   const days = useMemo(() => daysInRange(range), [range]);
+
+  // Vista semana: al pintar una semana nueva, el scroll horizontal arranca en
+  // el primer dia con disponibilidad (hoy, normalmente) en vez de en lunes,
+  // para ver lo reservable sin scrollear. Solo una vez por semana visible:
+  // si el usuario ya scrolleo a mano, no se lo peleamos en cada refetch.
+  const weekGridRef = useRef<HTMLDivElement>(null);
+  const weekScrolledKeyRef = useRef<string | undefined>(undefined);
+  // "Hoy" fuerza el re-encuadre aunque la semana visible no cambie.
+  const [todayTick, setTodayTick] = useState(0);
   const meetingsByIsoDay = useMemo(() => {
     const groups = new Map<string, Meeting[]>();
     visibleMeetings.forEach((meeting) => {
@@ -456,6 +465,26 @@ export function CalendarWidget({
     });
     return groups;
   }, [visibleMeetings]);
+
+  useEffect(() => {
+    if (view !== "week") return;
+    const grid = weekGridRef.current;
+    if (!grid || visibleMeetings.length === 0) return;
+
+    const key = `${range.from}:${range.to}`;
+    if (weekScrolledKeyRef.current === key) return;
+
+    const targetIso = days
+      .map((day) => toIsoDate(day))
+      .find((iso) => iso >= todayIso && (meetingsByIsoDay.get(iso) ?? []).some((meeting) => !meeting.passed));
+    if (!targetIso) return;
+
+    const column = grid.querySelector<HTMLElement>(`[data-iso="${targetIso}"]`);
+    if (!column) return;
+
+    weekScrolledKeyRef.current = key;
+    grid.scrollLeft = column.getBoundingClientRect().left - grid.getBoundingClientRect().left + grid.scrollLeft;
+  }, [days, meetingsByIsoDay, range.from, range.to, todayIso, todayTick, view, visibleMeetings.length]);
 
   // En v5 un query deshabilitado no marca isLoading: hay que esperar a que el
   // probe de sedes bookable termine (o falle) antes de pintar el calendario.
@@ -573,6 +602,10 @@ export function CalendarWidget({
         onNext={goNext}
         onToday={() => {
           allowAutoSkipRef.current = true;
+          // En semana, "Hoy" tambien re-encuadra el scroll al dia disponible
+          // aunque ya estemos en la misma semana.
+          weekScrolledKeyRef.current = undefined;
+          setTodayTick((tick) => tick + 1);
           // Hoy sin cupo → el primer dia con disponibilidad (no un dia vacio).
           setAnchorIso(firstBookableDayIso && firstBookableDayIso !== todayIso ? firstBookableDayIso : todayIso);
         }}
@@ -631,7 +664,7 @@ export function CalendarWidget({
           />
         </div>
       ) : (
-        <div className="gafa-week-grid">
+        <div className="gafa-week-grid" ref={weekGridRef}>
           {days.map((day) => (
             <DayColumn
               key={toIsoDate(day)}
@@ -973,9 +1006,17 @@ function DayColumn({
 }) {
   const weekday = new Intl.DateTimeFormat("es-MX", { weekday: compact ? "short" : "long" }).format(date);
 
+  // Igual que en la vista de dia: lo reservable ARRIBA y lo finalizado al
+  // fondo, para ver la primera clase disponible sin scrollear entre lo que
+  // ya paso (solo afecta al dia de hoy; los demas dias no mezclan estados).
+  const orderedMeetings = compact
+    ? [...meetings.filter((meeting) => !meeting.passed), ...meetings.filter((meeting) => meeting.passed)]
+    : meetings;
+
   return (
     <section
       className="gafa-day-column"
+      data-iso={toIsoDate(date)}
       data-today={isToday(date) ? "true" : undefined}
       data-standalone={compact ? undefined : "true"}
     >
@@ -990,7 +1031,7 @@ function DayColumn({
         <p className="gafa-day-column__empty">{emptyLabel}</p>
       ) : compact ? (
         <div className="gafa-day-column__list">
-          {meetings.map((meeting) => (
+          {orderedMeetings.map((meeting) => (
             <MeetingCard
               key={meeting.id}
               compact={compact}
