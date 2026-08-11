@@ -936,9 +936,15 @@ function CalendarFilterBar({
       ) : null}
 
       {hasPanelFilters ? (
-        <button className="gafa-filterbar-toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <button
+          className="gafa-filterbar-toggle"
+          type="button"
+          aria-expanded={open}
+          aria-label="Filtros"
+          onClick={() => setOpen(!open)}
+        >
           <FilterIcon />
-          Filtros
+          <span className="gafa-filterbar-toggle__label">Filtros</span>
           {activeCount > 0 ? <span className="gafa-filterbar-count">{activeCount}</span> : null}
         </button>
       ) : null}

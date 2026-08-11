@@ -296,9 +296,11 @@
 .gafa-calendar-toolbar__row {
   align-items: center;
   display: flex;
-  flex-wrap: nowrap;
+  /* wrap: si no cabe, baja de linea; nunca se encima. */
+  flex-wrap: wrap;
   gap: var(--gafa-space-2);
   min-width: 0;
+  row-gap: var(--gafa-space-2);
 }
 
 .gafa-calendar-toolbar__row--nav {
@@ -356,8 +358,9 @@
 }
 
 .gafa-segmented--compact button {
-  font-size: 0.8rem;
-  padding: 0.38rem 0.75rem;
+  font-size: 0.78rem;
+  padding: 0.34rem 0.62rem;
+  white-space: nowrap;
 }
 
 .gafa-widget-card[data-header="false"] {
@@ -385,9 +388,10 @@
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
+  flex-shrink: 1;
   gap: 6px;
   height: 36px;
-  max-width: 42vw;
+  max-width: 38vw;
   min-width: 0;
   padding: 0 0.45rem 0 0.7rem;
 }
@@ -440,6 +444,21 @@
   min-width: 18px;
   padding: 4px 5px;
   text-align: center;
+}
+
+/* En pantallas angostas el boton de filtros queda solo con el icono. */
+@media (max-width: 430px) {
+  .gafa-filterbar-toggle__label {
+    display: none;
+  }
+
+  .gafa-filterbar-toggle {
+    padding: 0 0.6rem;
+  }
+
+  .gafa-filterbar-location {
+    max-width: 34vw;
+  }
 }
 
 .gafa-filterbar-panel {
