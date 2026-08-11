@@ -99,25 +99,73 @@ export function CalendarWidget({
     },
   });
 
-  const activeLocation = useMemo(
-    () => findActiveLocation(locationsQuery.data ?? [], selectedFilters.locationId, filters.locationId),
-    [filters.locationId, locationsQuery.data, selectedFilters.locationId],
-  );
+  // Una compania con varias marcas (Fitspin: fitspin + fitspin-cancun) puede
+  // tener dos sedes con el mismo nombre (mismo texto, distinto id). En el
+  // selector se muestra una sola; al elegirla se piden los horarios de TODAS.
+  const locationsByName = useMemo(() => {
+    const map = new Map<string, Location[]>();
+    for (const location of locationsQuery.data ?? []) {
+      const key = locationNameKey(location.name);
+      map.set(key, [...(map.get(key) ?? []), location]);
+    }
+    return map;
+  }, [locationsQuery.data]);
 
-  const locationId = activeLocation?.id;
+  const locations = useMemo(() => {
+    const seen = new Set<string>();
+    const unique: Location[] = [];
+    for (const location of locationsQuery.data ?? []) {
+      const key = locationNameKey(location.name);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(location);
+    }
+    return unique;
+  }, [locationsQuery.data]);
+
+  const activeLocation = useMemo(() => {
+    const selectedId = selectedFilters.locationId ?? filters.locationId;
+    const all = locationsQuery.data ?? [];
+    if (typeof selectedId === "number") {
+      const match = all.find((location) => location.id === selectedId);
+      if (match) {
+        // El <select> solo tiene el representante (primer id) de cada nombre.
+        return locations.find((location) => locationNameKey(location.name) === locationNameKey(match.name)) ?? match;
+      }
+    }
+    return locations[0];
+  }, [filters.locationId, locations, locationsQuery.data, selectedFilters.locationId]);
+
+  const activeLocationGroup = useMemo(() => {
+    if (!activeLocation) return [];
+    return locationsByName.get(locationNameKey(activeLocation.name)) ?? [activeLocation];
+  }, [activeLocation, locationsByName]);
+
+  const locationGroupIds = activeLocationGroup.map((location) => location.id).join(",");
 
   function meetingsQueryOptions(target: DateRange) {
     const fetchRange = fetchRangeFor(target);
     return {
-      queryKey: ["calendar", "meetings", locationId, fetchRange.from, fetchRange.to],
-      queryFn: async () =>
-        client ? client.listMeetings({ locationId, from: fetchRange.from, to: fetchRange.to }) : demoMeetings(target),
+      queryKey: ["calendar", "meetings", locationGroupIds, fetchRange.from, fetchRange.to],
+      queryFn: async () => {
+        if (!client) return demoMeetings(target);
+        const batches = await Promise.all(
+          activeLocationGroup.map((location) =>
+            client.listMeetings({ locationId: location.id, from: fetchRange.from, to: fetchRange.to }),
+          ),
+        );
+        const byId = new Map<string | number, Meeting>();
+        for (const batch of batches) {
+          for (const meeting of batch) byId.set(meeting.id, meeting);
+        }
+        return [...byId.values()].sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
+      },
     };
   }
 
   const meetingsQuery = useQuery({
     ...meetingsQueryOptions(range),
-    enabled: Boolean(locationId) || !client,
+    enabled: activeLocationGroup.length > 0 || !client,
     // Los horarios de una semana ya vista no cambian de un minuto a otro; mantenerlos
     // en cache es lo que hace que ir y volver entre semanas sea instantaneo.
     staleTime: 2 * 60 * 1000,
@@ -127,16 +175,19 @@ export function CalendarWidget({
   // La ventana siguiente se trae en segundo plano: cuando el usuario pulsa
   // "siguiente" casi siempre ya esta en cache y el cambio se siente inmediato.
   useEffect(() => {
-    if (!client || !locationId) return;
+    if (!client || !locationGroupIds) return;
 
     const next = rangeForView(shiftAnchor(anchor, view, 1), view);
     const previous = rangeForView(shiftAnchor(anchor, view, -1), view);
+    const today = toIsoDate(new Date());
 
-    [next, previous].forEach((target) => {
-      queryClient.prefetchQuery({ ...meetingsQueryOptions(target), staleTime: 2 * 60 * 1000 });
-    });
+    [next, previous]
+      .filter((target) => target.to >= today)
+      .forEach((target) => {
+        queryClient.prefetchQuery({ ...meetingsQueryOptions(target), staleTime: 2 * 60 * 1000 });
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchor, view, locationId, client, queryClient]);
+  }, [anchor, view, locationGroupIds, client, queryClient, activeLocationGroup]);
 
   const visibleMeetings = useMemo(() => {
     const meetings = applyLocalMeetingFilters(meetingsQuery.data ?? [], {
@@ -186,6 +237,18 @@ export function CalendarWidget({
     setTimeOfDay("all");
   }
 
+  // Limites de navegacion: hacia atras no tiene sentido ir antes de hoy (solo
+  // habria clases finalizadas) y hacia adelante la sede solo publica horarios
+  // hasta su horizonte (calendar_days). Fuera de eso, la flecha se deshabilita
+  // en vez de llevar a una semana vacia.
+  const todayIso = toIsoDate(new Date());
+  const horizonIso = useMemo(
+    () => toIsoDate(addDays(new Date(), Math.max(1, activeLocation?.calendarDays ?? 30) - 1)),
+    [activeLocation?.calendarDays],
+  );
+  const canGoPrev = rangeForView(shiftAnchor(anchor, view, -1), view).to >= todayIso;
+  const canGoNext = rangeForView(shiftAnchor(anchor, view, 1), view).from <= horizonIso;
+
   const days = useMemo(() => daysInRange(range), [range]);
   const meetingsByIsoDay = useMemo(() => {
     const groups = new Map<string, Meeting[]>();
@@ -232,13 +295,15 @@ export function CalendarWidget({
         onNext={() => setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)))}
         onToday={() => setAnchorIso(toIsoDate(new Date()))}
         isRefreshing={isRefreshing}
+        canGoPrev={canGoPrev}
+        canGoNext={canGoNext}
         filterBar={
           <CalendarFilterBar
             activeBrandSlug={activeBrand?.slug}
             activeLocationId={activeLocation?.id}
             brands={brandsQuery.data ?? []}
             filters={filters}
-            locations={locationsQuery.data ?? []}
+            locations={locations}
             onChange={setSelectedFilters}
             selected={selectedFilters}
             serviceOptions={serviceOptions}
@@ -328,6 +393,8 @@ function CalendarToolbar({
   onNext,
   onToday,
   isRefreshing,
+  canGoPrev,
+  canGoNext,
   filterBar,
 }: {
   anchor: Date;
@@ -337,6 +404,8 @@ function CalendarToolbar({
   onNext(): void;
   onToday(): void;
   isRefreshing: boolean;
+  canGoPrev: boolean;
+  canGoNext: boolean;
   filterBar: React.ReactNode;
 }) {
   const label =
@@ -347,10 +416,23 @@ function CalendarToolbar({
   return (
     <div className="gafa-calendar-toolbar">
       <div className="gafa-calendar-toolbar__nav">
-        <button className="gafa-icon-button" type="button" onClick={onPrev} aria-label={view === "day" ? "Día anterior" : "Semana anterior"}>
+        <button
+          className="gafa-icon-button"
+          type="button"
+          disabled={!canGoPrev}
+          onClick={onPrev}
+          aria-label={view === "day" ? "Día anterior" : "Semana anterior"}
+        >
           <ChevronIcon direction="left" />
         </button>
-        <button className="gafa-icon-button" type="button" onClick={onNext} aria-label={view === "day" ? "Día siguiente" : "Semana siguiente"}>
+        <button
+          className="gafa-icon-button"
+          type="button"
+          disabled={!canGoNext}
+          onClick={onNext}
+          aria-label={view === "day" ? "Día siguiente" : "Semana siguiente"}
+          title={canGoNext ? undefined : "La sede aún no publica horarios más adelante"}
+        >
           <ChevronIcon direction="right" />
         </button>
         <button className="gafa-sdk-button gafa-sdk-button--secondary gafa-calendar-today" type="button" onClick={onToday}>
@@ -425,26 +507,63 @@ function DayColumn({
           ))}
         </div>
       ) : (
-        // En la vista de un solo dia, la franja funciona como subtitulo de
-        // seccion: le da aire a la lista y se escanea mucho mas rapido.
-        groupByTimeOfDay(meetings).map(([slot, slotMeetings]) => (
-          <section className="gafa-day-slot" key={slot}>
-            <h3 className="gafa-day-slot__title">{TIME_OF_DAY_LABELS[slot]}</h3>
-            <div className="gafa-day-column__list">
-              {slotMeetings.map((meeting) => (
-                <MeetingCard
-                  key={meeting.id}
-                  compact={compact}
-                  meeting={meeting}
-                  onSelect={onSelect}
-                  showDescription={showDescription}
-                />
-              ))}
-            </div>
-          </section>
-        ))
+        <StandaloneDaySections meetings={meetings} onSelect={onSelect} showDescription={showDescription} />
       )}
     </section>
+  );
+}
+
+/**
+ * Vista de un solo dia, agrupada por franja como subtitulos.
+ *
+ * Cuando el dia es HOY y ya pasaron clases, lo reservable va ARRIBA (empezando
+ * por la franja en la que estas) y lo finalizado se manda al fondo bajo su
+ * propio subtitulo: abrir el calendario a las 7pm y tener que scrollear entre
+ * todo lo que ya paso para encontrar que puedes reservar era lo primero que se
+ * sentia mal.
+ */
+function StandaloneDaySections({
+  meetings,
+  onSelect,
+  showDescription,
+}: {
+  meetings: Meeting[];
+  onSelect(meeting: Meeting): void;
+  showDescription: boolean;
+}) {
+  const upcoming = meetings.filter((meeting) => !meeting.passed);
+  const finished = meetings.filter((meeting) => meeting.passed);
+  const splitDay = upcoming.length > 0 && finished.length > 0;
+
+  const sections = groupByTimeOfDay(splitDay ? upcoming : meetings).map(([slot, slotMeetings]) => ({
+    key: slot as string,
+    title: TIME_OF_DAY_LABELS[slot],
+    meetings: slotMeetings,
+  }));
+
+  if (splitDay) {
+    sections.push({ key: "finished", title: "Ya finalizadas", meetings: finished });
+  }
+
+  return (
+    <>
+      {sections.map((section) => (
+        <section className="gafa-day-slot" key={section.key}>
+          <h3 className="gafa-day-slot__title">{section.title}</h3>
+          <div className="gafa-day-column__list">
+            {section.meetings.map((meeting) => (
+              <MeetingCard
+                key={meeting.id}
+                compact={false}
+                meeting={meeting}
+                onSelect={onSelect}
+                showDescription={showDescription}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </>
   );
 }
 
@@ -980,16 +1099,13 @@ function findActiveBrand(brands: Brand[], selectedSlug?: string, defaultId?: num
   return brands[0];
 }
 
-function findActiveLocation(locations: Location[], selectedId?: number, defaultId?: number): Location | undefined {
-  if (selectedId) {
-    return locations.find((location) => location.id === selectedId);
-  }
-
-  if (defaultId) {
-    return locations.find((location) => location.id === defaultId);
-  }
-
-  return locations[0];
+/** Clave estable para agrupar sedes homónimas entre marcas (Cancún / Cancun). */
+function locationNameKey(name: string): string {
+  return name
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function toOptionalNumber(value: string): number | undefined {

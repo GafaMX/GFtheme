@@ -25,6 +25,7 @@ type RawLocation = {
   id: number;
   name: string;
   slug: string;
+  calendar_days?: number;
 };
 
 type RawUserProfile = {
@@ -288,7 +289,13 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const response = await apiGet<PaginatedResponse<RawLocation>>(`/brand/${brandSlug}/location`, {
         only_actives: true,
       });
-      const locations = unwrap(response).map((location) => ({ ...location, brandSlug }));
+      const locations = unwrap(response).map((location) => ({
+        id: location.id,
+        name: location.name,
+        slug: location.slug,
+        calendarDays: location.calendar_days,
+        brandSlug,
+      }));
       locations.forEach((location) => locationById.set(location.id, location));
       return locations;
     },

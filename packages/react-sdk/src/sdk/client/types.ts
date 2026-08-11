@@ -10,6 +10,8 @@ export type Location = {
   slug: string;
   brandSlug?: string;
   brand?: Brand;
+  /** Cuantos dias hacia adelante publica horarios esta sede (calendar_days). */
+  calendarDays?: number;
 };
 
 export type Service = {
