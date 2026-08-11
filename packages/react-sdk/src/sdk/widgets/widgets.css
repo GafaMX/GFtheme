@@ -1245,29 +1245,20 @@
   gap: var(--gafa-space-3);
 }
 
-/* Coach con foto dentro del detalle. */
-.gafa-reservation-coach {
+/* Coach dentro de la lista: nombre + foto redonda alineados a la derecha. */
+.gafa-reservation-summary__coach {
   align-items: center;
-  display: flex;
-  gap: var(--gafa-space-2);
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
-.gafa-reservation-coach img {
+.gafa-reservation-summary__coach img {
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
-  height: 52px;
+  height: 34px;
   object-fit: cover;
-  width: 52px;
-}
-
-.gafa-reservation-coach span {
-  color: var(--gafa-color-muted-text);
-  display: block;
-  font-size: 0.78rem;
-}
-
-.gafa-reservation-coach strong {
-  color: var(--gafa-color-text);
+  width: 34px;
 }
 
 .gafa-seatmap {

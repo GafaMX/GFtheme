@@ -1516,17 +1516,26 @@ function ReservationPreviewModal({
               <span className="gafa-eyebrow">Detalle de reserva</span>
               <h3 id="reservation-title">{meeting.name}</h3>
               <p>
-                {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting), meeting.timezone)} ·{" "}
-                {meeting.location?.name ?? ""}
+                {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting), meeting.timezone)}
               </p>
             </div>
 
             <div className="gafa-reservation-body">
               <div className="gafa-reservation-info">
-                {/* Sin repetir servicio/sede: ya viven en el encabezado. */}
-                <CoachInfo meeting={meeting} />
-
+                {/* Lista alineada label/valor; la sede vive aqui (no en el
+                    encabezado) para informar sin duplicar. */}
                 <div className="gafa-reservation-summary">
+                  <div>
+                    <span>Coach</span>
+                    <strong className="gafa-reservation-summary__coach">
+                      <CoachAvatar meeting={meeting} />
+                      {getStaffName(meeting)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Sede</span>
+                    <strong>{meeting.location?.name ?? "Por confirmar"}</strong>
+                  </div>
                   <div>
                     <span>Disponibilidad</span>
                     <strong>{getAvailabilityText(meeting)}</strong>
@@ -1829,22 +1838,12 @@ function DownloadIcon() {
   );
 }
 
-/** Coach con foto; si no hay foto (o no carga), solo el nombre, sin circulo roto. */
-function CoachInfo({ meeting }: { meeting: Meeting }) {
+/** Foto del coach; si no hay (o no carga) no pinta nada, sin circulo roto. */
+function CoachAvatar({ meeting }: { meeting: Meeting }) {
   const [photoBroken, setPhotoBroken] = useState(false);
   const photo = meeting.staff?.photoUrl;
-
-  return (
-    <div className="gafa-reservation-coach">
-      {photo && !photoBroken ? (
-        <img src={photo} alt="" aria-hidden="true" onError={() => setPhotoBroken(true)} />
-      ) : null}
-      <div>
-        <span>Coach</span>
-        <strong>{getStaffName(meeting)}</strong>
-      </div>
-    </div>
-  );
+  if (!photo || photoBroken) return null;
+  return <img src={photo} alt="" aria-hidden="true" onError={() => setPhotoBroken(true)} />;
 }
 
 /**
