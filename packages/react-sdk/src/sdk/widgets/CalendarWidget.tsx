@@ -1913,7 +1913,7 @@ function SeatMapInline({
           className="gafa-seatmap__grid"
           role="listbox"
           aria-label="Lugares del salón"
-          style={{ gridTemplateColumns: `repeat(${map.columns}, minmax(40px, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${map.columns}, minmax(44px, 1fr))` }}
         >
         {map.objects.map((seat) => {
           const style: React.CSSProperties = {
