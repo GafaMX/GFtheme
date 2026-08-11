@@ -213,20 +213,14 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit}>
-      <label className="gafa-sdk-field">
-        <span>Email</span>
-        <input type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </label>
-      <label className="gafa-sdk-field">
-        <span>Password</span>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </label>
+      <FloatField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <FloatField
+        label="Contraseña"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+      />
 
       {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
       {status === "success" ? <p className="gafa-sdk-state gafa-sdk-state--success">Sesion iniciada.</p> : null}
@@ -235,6 +229,22 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
         {status === "submitting" ? "Entrando..." : "Entrar"}
       </button>
     </form>
+  );
+}
+
+/**
+ * Campo con label flotante: la etiqueta vive dentro del campo y al enfocar o
+ * tener valor sube a la esquina. Puro CSS (placeholder=" " + :placeholder-shown).
+ */
+function FloatField({
+  label,
+  ...inputProps
+}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <label className="gafa-float">
+      <input placeholder=" " {...inputProps} />
+      <span>{label}</span>
+    </label>
   );
 }
 
@@ -329,54 +339,40 @@ function RegisterForm({
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit}>
-      <label className="gafa-sdk-field">
-        <span>Nombre</span>
-        <input placeholder="Tu nombre" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-      </label>
-      <label className="gafa-sdk-field">
-        <span>Apellido</span>
-        <input placeholder="Tu apellido" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-      </label>
-      <label className="gafa-sdk-field">
-        <span>Email</span>
-        <input type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </label>
-      <label className="gafa-sdk-field">
-        <span>Password</span>
-        <input
+      <div className="gafa-field-row">
+        <FloatField label="Nombre" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+        <FloatField label="Apellido" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+      </div>
+      <FloatField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <div className="gafa-field-row">
+        <FloatField
+          label="Contraseña"
           type="password"
-          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={5}
         />
-      </label>
-      <label className="gafa-sdk-field">
-        <span>Confirma tu password</span>
-        <input
+        <FloatField
+          label="Confirmar contraseña"
           type="password"
-          placeholder="••••••••"
           value={passwordConfirmation}
           onChange={(e) => setPasswordConfirmation(e.target.value)}
           required
         />
-      </label>
+      </div>
 
-      {groups.map((group) => (
-        <fieldset className="gafa-sdk-fieldset" key={group.id}>
-          <legend>{group.name}</legend>
-          {group.description ? <p className="gafa-sdk-field-help">{group.description}</p> : null}
-          {group.fields.map((field) => (
-            <CustomFieldInput
-              key={field.id}
-              field={field}
-              value={customValues[group.id]?.[field.id] ?? field.defaultValue ?? ""}
-              onChange={(value) => setCustomValue(group.id, field.id, value)}
-            />
-          ))}
-        </fieldset>
-      ))}
+      {/* Campos extra de la marca, integrados como un campo mas (sin marco). */}
+      {groups.map((group) =>
+        group.fields.map((field) => (
+          <CustomFieldInput
+            key={field.id}
+            field={field}
+            value={customValues[group.id]?.[field.id] ?? field.defaultValue ?? ""}
+            onChange={(value) => setCustomValue(group.id, field.id, value)}
+          />
+        )),
+      )}
 
       {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
 
@@ -396,17 +392,13 @@ function CustomFieldInput({
   value: string;
   onChange(value: string): void;
 }) {
-  const label = (
-    <span>
-      {field.name}
-      {field.required ? " *" : ""}
-    </span>
-  );
+  const labelText = `${field.name}${field.required ? " *" : ""}`;
 
   if (field.options.length > 0) {
+    // Un select siempre "tiene valor": el label queda flotado fijo.
     return (
-      <label className="gafa-sdk-field">
-        {label}
+      <label className="gafa-float gafa-float--select">
+        <span>{labelText}</span>
         <select value={value} onChange={(event) => onChange(event.target.value)} required={field.required}>
           <option value="">Selecciona una opción</option>
           {field.options.map((option) => (
@@ -421,14 +413,15 @@ function CustomFieldInput({
   }
 
   return (
-    <label className="gafa-sdk-field">
-      {label}
+    <label className="gafa-float">
       <input
+        placeholder=" "
         type={inputTypeFor(field.type)}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={field.required}
       />
+      <span>{labelText}</span>
       {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
     </label>
   );
@@ -488,27 +481,21 @@ function PasswordResetForm({
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit}>
-      <label className="gafa-sdk-field">
-        <span>Nueva contraseña</span>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={5}
-        />
-      </label>
-      <label className="gafa-sdk-field">
-        <span>Confirma tu contraseña</span>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={passwordConfirmation}
-          onChange={(e) => setPasswordConfirmation(e.target.value)}
-          required
-        />
-      </label>
+      <FloatField
+        label="Nueva contraseña"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        minLength={5}
+      />
+      <FloatField
+        label="Confirmar contraseña"
+        type="password"
+        value={passwordConfirmation}
+        onChange={(e) => setPasswordConfirmation(e.target.value)}
+        required
+      />
 
       {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
 
@@ -546,10 +533,7 @@ function PasswordRecoveryForm({ client }: { client?: GafaClient }) {
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit}>
-      <label className="gafa-sdk-field">
-        <span>Email</span>
-        <input type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </label>
+      <FloatField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
 
       {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
 

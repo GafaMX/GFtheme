@@ -194,6 +194,73 @@
   flex: 1;
 }
 
+/* ---------------------------------------------------- campos con label flotante */
+
+.gafa-float {
+  display: grid;
+  position: relative;
+}
+
+.gafa-float input,
+.gafa-float select {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-text);
+  font: inherit;
+  min-height: 50px;
+  padding: 1.15rem 0.85rem 0.3rem;
+  width: 100%;
+}
+
+.gafa-float input:focus,
+.gafa-float select:focus {
+  border-color: var(--gafa-color-primary);
+  outline: none;
+}
+
+/* El label vive dentro del campo... */
+.gafa-float > span:first-of-type,
+.gafa-float input + span {
+  color: var(--gafa-color-muted-text);
+  left: 0.9rem;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: top 0.14s ease, transform 0.14s ease, font-size 0.14s ease;
+}
+
+/* ...y al enfocar o tener valor flota a la esquina. */
+.gafa-float input:focus + span,
+.gafa-float input:not(:placeholder-shown) + span,
+.gafa-float--select > span:first-of-type {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  top: 0.55rem;
+  transform: none;
+}
+
+.gafa-float .gafa-sdk-field-help {
+  position: static;
+  transform: none;
+}
+
+/* Dos campos por fila (nombre+apellido, contrasenas). */
+.gafa-field-row {
+  display: grid;
+  gap: var(--gafa-space-2);
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 380px) {
+  .gafa-field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Login social (por ahora solo posicion/diseno). */
 .gafa-social {
   display: grid;
@@ -325,7 +392,7 @@
 
 .gafa-sdk-form {
   display: grid;
-  gap: var(--gafa-space-3);
+  gap: 10px;
 }
 
 .gafa-sdk-field {
