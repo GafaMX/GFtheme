@@ -558,16 +558,41 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             credits_id: number;
             total: number;
             expiration_date?: string;
+            purchase_items_id?: number;
             credit?: { id: number; name: string };
             purchase_item?: { item_name?: string | null; buyed?: { name?: string | null } | null } | null;
           }>;
-          for (const c of Array.isArray(parsed) ? parsed : []) {
-            if (typeof c.total === "number" && c.total <= 0) continue;
+          const entries = Array.isArray(parsed) ? parsed.filter((c) => typeof c.total !== "number" || c.total > 0) : [];
+
+          // El template NO trae el nombre del paquete comprado, solo el tipo de
+          // credito interno ("CDMXnew"). El nombre real ("5 Clases") vive en
+          // /me/credits; se cruza por purchase_items_id.
+          const packageNameByPurchaseItem = new Map<number, string>();
+          if (entries.some((c) => !c.purchase_item?.item_name && c.purchase_items_id)) {
+            try {
+              const response = await apiGet<PaginatedResponse<RawUserCredit>>(
+                `/me/brand/${payload.brandSlug}/credits`,
+              );
+              for (const raw of unwrap(response)) {
+                const itemId = (raw as { purchase_items_id?: number }).purchase_items_id;
+                const itemName = raw.purchase_item?.item_name;
+                if (itemId && itemName) packageNameByPurchaseItem.set(itemId, itemName);
+              }
+            } catch {
+              // sin nombres de paquete; se cae al nombre del credito
+            }
+          }
+
+          for (const c of entries) {
             const expiration = (c.expiration_date ?? "").slice(0, 10);
             // Lo que el usuario compro (paquete) por delante; el tipo de credito
             // interno solo como respaldo.
             const packageName =
-              c.purchase_item?.buyed?.name || c.purchase_item?.item_name || c.credit?.name || "Paquete";
+              c.purchase_item?.buyed?.name ||
+              c.purchase_item?.item_name ||
+              (c.purchase_items_id ? packageNameByPurchaseItem.get(c.purchase_items_id) : undefined) ||
+              c.credit?.name ||
+              "Paquete";
             paymentOptions.push({
               id: `credits--${c.credits_id}--${expiration}`,
               kind: "credit",

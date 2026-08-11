@@ -1523,19 +1523,7 @@ function ReservationPreviewModal({
 
             <div className="gafa-reservation-body">
               <div className="gafa-reservation-info">
-                <div className="gafa-reservation-coach">
-                  {meeting.staff?.photoUrl ? (
-                    <img src={meeting.staff.photoUrl} alt="" aria-hidden="true" />
-                  ) : (
-                    <span className="gafa-reservation-coach__placeholder" aria-hidden="true">
-                      <PersonIcon />
-                    </span>
-                  )}
-                  <div>
-                    <span>Coach</span>
-                    <strong>{getStaffName(meeting)}</strong>
-                  </div>
-                </div>
+                <CoachInfo meeting={meeting} />
 
                 <div className="gafa-reservation-summary">
                   <div>
@@ -1789,6 +1777,24 @@ function AddToCalendarRow({ meeting, seatLabel }: { meeting: Meeting; seatLabel?
   );
 }
 
+/** Coach con foto; si no hay foto (o no carga), solo el nombre, sin circulo roto. */
+function CoachInfo({ meeting }: { meeting: Meeting }) {
+  const [photoBroken, setPhotoBroken] = useState(false);
+  const photo = meeting.staff?.photoUrl;
+
+  return (
+    <div className="gafa-reservation-coach">
+      {photo && !photoBroken ? (
+        <img src={photo} alt="" aria-hidden="true" onError={() => setPhotoBroken(true)} />
+      ) : null}
+      <div>
+        <span>Coach</span>
+        <strong>{getStaffName(meeting)}</strong>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Mapa de salon inline (mismo paso que el detalle). Usa las imagenes de spot
  * que la marca sube en gafa.fit: vacio / ocupado / elegido. Sin imagen, cae a
@@ -1803,17 +1809,31 @@ function SeatMapInline({
   selected: SeatMapObject | null;
   onSelect(seat: SeatMapObject | null): void;
 }) {
+  // La leyenda usa las MISMAS imagenes de la marca que el mapa: nuestros
+  // circulos genericos mentian (en Fitspin el gris es disponible, no ocupado).
+  const sample = map.objects.find((seat) => seat.type === "public" && seat.image);
+
   return (
     <div className="gafa-seatmap">
       <div className="gafa-seatmap__legend">
         <span>
-          <i className="gafa-seatmap__dot" /> Disponible
+          {sample?.image ? <img src={sample.image} alt="" /> : <i className="gafa-seatmap__dot" />} Disponible
         </span>
         <span>
-          <i className="gafa-seatmap__dot gafa-seatmap__dot--taken" /> Ocupado
+          {sample?.imageDisabled ? (
+            <img src={sample.imageDisabled} alt="" />
+          ) : (
+            <i className="gafa-seatmap__dot gafa-seatmap__dot--taken" />
+          )}{" "}
+          Ocupado
         </span>
         <span>
-          <i className="gafa-seatmap__dot gafa-seatmap__dot--selected" /> Tu lugar
+          {sample?.imageSelected ? (
+            <img src={sample.imageSelected} alt="" />
+          ) : (
+            <i className="gafa-seatmap__dot gafa-seatmap__dot--selected" />
+          )}{" "}
+          Tu lugar
         </span>
       </div>
 
