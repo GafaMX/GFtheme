@@ -331,19 +331,29 @@
 }
 
 @media (min-width: 900px) {
+  /* Grid de 3 columnas 1fr|auto|1fr: el centro esta anclado MATEMATICAMENTE,
+     da igual cuanto midan la vista o los filtros (o sus skeletons): la
+     columna central no se mueve ni un pixel cuando cargan. */
   .gafa-calendar-toolbar {
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .gafa-calendar-toolbar__view {
+    justify-self: start;
+    order: 1;
   }
 
   .gafa-calendar-toolbar__nav-group {
     flex: 0 1 auto;
     justify-content: center;
-    /* Centrada entre la vista (izquierda) y los filtros (derecha). */
-    margin-inline: auto;
+    justify-self: center;
+    margin-inline: 0;
     order: 2;
   }
 
   .gafa-calendar-toolbar__filters {
+    justify-self: end;
     margin-left: 0;
     order: 3;
   }
