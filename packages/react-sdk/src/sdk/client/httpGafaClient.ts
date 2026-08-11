@@ -485,8 +485,15 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         });
       });
 
+      // gafa.fit trata /api/register como un OAuth2 password-grant: exige
+      // grant_type + client_id + client_secret + scope en el cuerpo (no solo en
+      // headers) y el token de reCAPTCHA en AMBOS nombres. Sin esto responde 500.
       return apiPost<{ url?: string }>(`/api/register`, {
         ...customFields,
+        grant_type: "password",
+        client_id: config.publicClientId,
+        client_secret: config.clientSecret,
+        scope: "*",
         username: payload.email,
         password: payload.password,
         password_confirmation: payload.passwordConfirmation,
@@ -494,6 +501,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         last_name: payload.lastName,
         birth_date: payload.birthDate,
         gender: payload.gender,
+        tokenmovil: config.tokenMovil ?? "",
+        g_recaptcha_response: payload.captchaToken,
         "g-recaptcha-response": payload.captchaToken,
         captcha_secret_key: config.captchaSecretKey,
         remote_addr: "",

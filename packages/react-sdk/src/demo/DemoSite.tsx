@@ -180,7 +180,8 @@ function createDemoClient(companyId: number) {
     companyId,
     publicClientId: import.meta.env.VITE_GAFA_API_CLIENT as string,
     clientSecret: import.meta.env.VITE_GAFA_API_SECRET as string,
-    captchaPublicKey: import.meta.env.VITE_GAFA_CAPTCHA_PUBLIC_KEY as string | undefined,
+    // Sin captchaPublicKey/SecretKey: el SDK usa el par compartido de Buq por
+    // default. Asi el registro funciona sin configurar captcha en cada sitio.
   });
 
   const legacy =

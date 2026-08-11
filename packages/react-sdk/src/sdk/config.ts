@@ -1,6 +1,16 @@
 import { z } from "zod";
 import type { GafaBrandTheme } from "./theme/theme";
 
+/**
+ * Par de llaves reCAPTCHA v3 COMPARTIDO de Buq/gafa.fit. El backend valida el
+ * captcha con la secret key que el cliente le manda (App\Rules\Captcha), y todo
+ * el ecosistema legacy usa este mismo par. Se ponen como default para que el
+ * captcha "funcione solo" en cualquier integracion: nadie tiene que configurarlo
+ * salvo que un socio quiera su propio par.
+ */
+export const DEFAULT_CAPTCHA_PUBLIC_KEY = "6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8";
+export const DEFAULT_CAPTCHA_SECRET_KEY = "6LcGcsEUAAAAAOQCOt68hLjGsYHuELQZFheZtgbn";
+
 const legacyThemeSchema = z
   .object({
     preset: z.string().optional(),
@@ -30,10 +40,12 @@ export const sdkConfigSchema = z
     brandId: z.union([z.string(), z.number()]).transform(Number).optional(),
     tokenMovil: z.string().nullable().optional(),
     captchaProvider: z.enum(["recaptcha-v3", "turnstile"]).default("recaptcha-v3"),
-    captchaPublicKey: z.string().optional(),
+    // Default al par compartido de Buq: el captcha queda operativo sin que la
+    // integracion configure nada. Un socio puede sobreescribirlo con su propio par.
+    captchaPublicKey: z.string().default(DEFAULT_CAPTCHA_PUBLIC_KEY),
     // Igual que clientSecret: gafa.fit valida el reCAPTCHA en el server usando esta secret key
     // que el cliente le manda en cada registro (ver App\Rules\Captcha). Viene asi del backend.
-    captchaSecretKey: z.string().optional(),
+    captchaSecretKey: z.string().default(DEFAULT_CAPTCHA_SECRET_KEY),
     language: z.enum(["es", "en"]).default("es"),
     theme: legacyThemeSchema,
   })
