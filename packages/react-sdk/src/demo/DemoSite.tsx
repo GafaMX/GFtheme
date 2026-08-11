@@ -197,7 +197,9 @@ function useDemoClient(brand: BrandConfig) {
 
 function createDemoClient(brand: BrandConfig) {
   const config = parseSdkConfig({
-    apiBaseUrl: import.meta.env.VITE_GAFA_FIT_URL as string,
+    // Fallback a producción Buq: sin VITE_GAFA_FIT_URL el build queda en blanco
+    // (Zod rechaza undefined y React no monta #app).
+    apiBaseUrl: (import.meta.env.VITE_GAFA_FIT_URL as string) || "https://buq.partners/",
     companyId: brand.companyId,
     publicClientId: brand.apiClient,
     clientSecret: brand.apiSecret,
