@@ -12,6 +12,7 @@ import {
   parseIsoDate,
   rangeForView,
   shiftAnchor,
+  timeOfDayFor,
   toIsoDate,
   TIME_OF_DAY_LABELS,
   type CalendarView,
@@ -99,33 +100,75 @@ export function CalendarWidget({
     },
   });
 
-  // Una compania con varias marcas (Fitspin: fitspin + fitspin-cancun) puede
-  // tener dos sedes con el mismo nombre (mismo texto, distinto id). En el
-  // selector se muestra una sola; al elegirla se piden los horarios de TODAS.
+  // Igual que el calendar legacy: el selector NO lista el catalogo de sedes,
+  // solo las que realmente publican meetings en su horizonte (calendar_days).
+  // En Fitspin eso deja fuera Polanco/Bosques (0 clases) y el Cancún fantasma
+  // de la marca CDMX (id 123); quedan Lomas, Reforma y Cancún con horarios.
+  const bookableLocationsQuery = useQuery({
+    enabled: (locationsQuery.data?.length ?? 0) > 0 || !client,
+    queryKey: [
+      "calendar",
+      "bookable-locations",
+      brandSlugs,
+      filters.brandId ?? null,
+      selectedFilters.brandSlug ?? null,
+      (locationsQuery.data ?? []).map((location) => location.id).join(","),
+    ],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const all = locationsQuery.data ?? [];
+      if (!client) return all;
+
+      const today = new Date();
+      const from = toIsoDate(today);
+      const checks = await Promise.all(
+        all.map(async (location) => {
+          const horizonDays = Math.max(1, location.calendarDays ?? 30);
+          // end exclusivo: today + N cubre N dias de horarios publicados.
+          const to = toIsoDate(addDays(today, horizonDays));
+          const meetings = await client.listMeetings({ locationId: location.id, from, to });
+          return meetings.length > 0 ? location : null;
+        }),
+      );
+      return checks.filter((location): location is Location => location != null);
+    },
+  });
+
+  // Homónimas entre marcas (mismo nombre, distinto id): una sola opción; al
+  // elegirla se piden meetings de todos los ids bookable con ese nombre.
   const locationsByName = useMemo(() => {
     const map = new Map<string, Location[]>();
-    for (const location of locationsQuery.data ?? []) {
+    for (const location of bookableLocationsQuery.data ?? []) {
       const key = locationNameKey(location.name);
       map.set(key, [...(map.get(key) ?? []), location]);
     }
     return map;
-  }, [locationsQuery.data]);
+  }, [bookableLocationsQuery.data]);
 
   const locations = useMemo(() => {
     const seen = new Set<string>();
     const unique: Location[] = [];
-    for (const location of locationsQuery.data ?? []) {
+    for (const location of bookableLocationsQuery.data ?? []) {
       const key = locationNameKey(location.name);
       if (seen.has(key)) continue;
       seen.add(key);
       unique.push(location);
     }
     return unique;
-  }, [locationsQuery.data]);
+  }, [bookableLocationsQuery.data]);
+
+  // Marcas que aparecen en sedes con clases: no ofrecer un filtro muerto.
+  const bookableBrands = useMemo(() => {
+    const slugs = new Set(
+      (bookableLocationsQuery.data ?? []).map((location) => location.brandSlug).filter(Boolean) as string[],
+    );
+    if (slugs.size === 0) return brandsQuery.data ?? [];
+    return (brandsQuery.data ?? []).filter((brand) => slugs.has(brand.slug));
+  }, [bookableLocationsQuery.data, brandsQuery.data]);
 
   const activeLocation = useMemo(() => {
     const selectedId = selectedFilters.locationId ?? filters.locationId;
-    const all = locationsQuery.data ?? [];
+    const all = bookableLocationsQuery.data ?? [];
     if (typeof selectedId === "number") {
       const match = all.find((location) => location.id === selectedId);
       if (match) {
@@ -134,12 +177,24 @@ export function CalendarWidget({
       }
     }
     return locations[0];
-  }, [filters.locationId, locations, locationsQuery.data, selectedFilters.locationId]);
+  }, [bookableLocationsQuery.data, filters.locationId, locations, selectedFilters.locationId]);
 
   const activeLocationGroup = useMemo(() => {
     if (!activeLocation) return [];
     return locationsByName.get(locationNameKey(activeLocation.name)) ?? [activeLocation];
   }, [activeLocation, locationsByName]);
+
+  // Si la sede elegida deja de ser bookable (o venia de un id fantasma), volver
+  // al representante por defecto para no quedarse en un select invalido.
+  useEffect(() => {
+    if (!bookableLocationsQuery.isSuccess) return;
+    const selectedId = selectedFilters.locationId;
+    if (selectedId == null) return;
+    const stillThere = (bookableLocationsQuery.data ?? []).some((location) => location.id === selectedId);
+    if (!stillThere) {
+      setSelectedFilters((current) => ({ ...current, locationId: undefined }));
+    }
+  }, [bookableLocationsQuery.data, bookableLocationsQuery.isSuccess, selectedFilters.locationId]);
 
   const locationGroupIds = activeLocationGroup.map((location) => location.id).join(",");
 
@@ -230,6 +285,21 @@ export function CalendarWidget({
     return [...names.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [meetingsQuery.data]);
 
+  // Franjas con clases en la ventana cargada: no mostrar "Noche" si no hay ninguna.
+  const timeOfDayOptions = useMemo(() => {
+    const present = new Set<Exclude<TimeOfDay, "all">>();
+    (meetingsQuery.data ?? []).forEach((meeting) => {
+      const slot = timeOfDayFor(getMeetingStart(meeting), meeting.timezone);
+      if (slot) present.add(slot);
+    });
+    return present;
+  }, [meetingsQuery.data]);
+
+  useEffect(() => {
+    if (timeOfDay === "all") return;
+    if (!timeOfDayOptions.has(timeOfDay)) setTimeOfDay("all");
+  }, [timeOfDay, timeOfDayOptions]);
+
   const hasActiveFilters = Boolean(selectedFilters.serviceId) || Boolean(selectedFilters.staffId) || timeOfDay !== "all";
 
   function clearFilters() {
@@ -259,9 +329,16 @@ export function CalendarWidget({
     return groups;
   }, [visibleMeetings]);
 
-  const isLoading = meetingsQuery.isLoading || locationsQuery.isLoading;
+  // En v5 un query deshabilitado no marca isLoading: hay que esperar a que el
+  // probe de sedes bookable termine (o falle) antes de pintar el calendario.
+  const discoveringLocations =
+    locationsQuery.isLoading ||
+    bookableLocationsQuery.isLoading ||
+    (Boolean(client) && locationsQuery.isSuccess && !bookableLocationsQuery.isFetched);
+  const isLoading = discoveringLocations || (locations.length > 0 && meetingsQuery.isLoading);
   const isRefreshing = meetingsQuery.isFetching && !meetingsQuery.isLoading;
-  const hasError = brandsQuery.isError || locationsQuery.isError || meetingsQuery.isError;
+  const hasError =
+    brandsQuery.isError || locationsQuery.isError || bookableLocationsQuery.isError || meetingsQuery.isError;
 
   function handleReserve(meeting: Meeting) {
     if (!client || isSoldOut(meeting)) return;
@@ -301,7 +378,7 @@ export function CalendarWidget({
           <CalendarFilterBar
             activeBrandSlug={activeBrand?.slug}
             activeLocationId={activeLocation?.id}
-            brands={brandsQuery.data ?? []}
+            brands={bookableBrands}
             filters={filters}
             locations={locations}
             onChange={setSelectedFilters}
@@ -309,6 +386,7 @@ export function CalendarWidget({
             serviceOptions={serviceOptions}
             staffOptions={staffOptions}
             timeOfDay={timeOfDay}
+            timeOfDayOptions={timeOfDayOptions}
             onTimeOfDayChange={setTimeOfDay}
             activeLocationName={activeLocation?.name}
           />
@@ -686,6 +764,7 @@ function CalendarFilterBar({
   serviceOptions,
   staffOptions,
   timeOfDay,
+  timeOfDayOptions,
   onTimeOfDayChange,
 }: {
   activeBrandSlug?: string;
@@ -699,6 +778,7 @@ function CalendarFilterBar({
   serviceOptions: Array<{ id: number; name: string }>;
   staffOptions: Array<{ id: number; name: string }>;
   timeOfDay: TimeOfDay;
+  timeOfDayOptions: Set<Exclude<TimeOfDay, "all">>;
   onTimeOfDayChange(value: TimeOfDay): void;
 }) {
   const [open, setOpen] = useState(false);
@@ -724,7 +804,12 @@ function CalendarFilterBar({
   // muestra siempre, para poder limpiarlos.
   const showService = Boolean(filters.service) && serviceOptions.length > 1;
   const showStaff = Boolean(filters.staff) && staffOptions.length > 1;
-  const hasPanelFilters = showService || showStaff || showBrand || activeCount > 0;
+  const showTimeOfDay = timeOfDayOptions.size > 1 || timeOfDay !== "all";
+  const hasPanelFilters = showService || showStaff || showBrand || showTimeOfDay || activeCount > 0;
+
+  const timeChips: TimeOfDay[] = ["all", ...(["morning", "afternoon", "evening"] as const).filter((slot) =>
+    timeOfDayOptions.has(slot),
+  )];
 
   return (
     <div className="gafa-filterbar" ref={panelRef}>
@@ -818,22 +903,24 @@ function CalendarFilterBar({
             </label>
           ) : null}
 
-          <div className="gafa-calendar-filter">
-            <span>Horario</span>
-            <div className="gafa-chip-row" role="group" aria-label="Franja horaria">
-              {(Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[]).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className="gafa-chip"
-                  aria-pressed={timeOfDay === value}
-                  onClick={() => onTimeOfDayChange(value)}
-                >
-                  {TIME_OF_DAY_LABELS[value]}
-                </button>
-              ))}
+          {showTimeOfDay ? (
+            <div className="gafa-calendar-filter">
+              <span>Horario</span>
+              <div className="gafa-chip-row" role="group" aria-label="Franja horaria">
+                {timeChips.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="gafa-chip"
+                    aria-pressed={timeOfDay === value}
+                    onClick={() => onTimeOfDayChange(value)}
+                  >
+                    {TIME_OF_DAY_LABELS[value]}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {activeCount > 0 ? (
             <button

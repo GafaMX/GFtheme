@@ -86,15 +86,20 @@ export function daysInRange(range: DateRange): Date[] {
   return days;
 }
 
+export function timeOfDayFor(startsAt: string, timeZone?: string): Exclude<TimeOfDay, "all"> | null {
+  const date = new Date(startsAt.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return null;
+
+  const hour = hourIn(date, timeZone);
+  if (hour >= 0 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 18) return "afternoon";
+  if (hour >= 18 && hour < 24) return "evening";
+  return null;
+}
+
 export function matchesTimeOfDay(startsAt: string, timeOfDay: TimeOfDay, timeZone?: string): boolean {
   if (timeOfDay === "all") return true;
-
-  const date = new Date(startsAt.replace(" ", "T"));
-  if (Number.isNaN(date.getTime())) return true;
-
-  const [from, to] = TIME_OF_DAY_BOUNDS[timeOfDay];
-  const hour = hourIn(date, timeZone);
-  return hour >= from && hour < to;
+  return timeOfDayFor(startsAt, timeZone) === timeOfDay;
 }
 
 /**
