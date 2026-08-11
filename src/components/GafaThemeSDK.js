@@ -52,6 +52,29 @@ class GafaThemeSDK extends React.Component {
     }
 
     /**
+     * Devuelve los contenedores que todavia no tienen un componente montado, y los
+     * marca.
+     *
+     * Algunos sitios host reinyectan el bundle en cada render de su ruta (Bunker lo
+     * agrega con un ?t=<timestamp> distinto cada vez): el navegador lo ejecuta de
+     * nuevo, app.js repite todo el arranque y se duplican los montajes y las
+     * peticiones. Cada ejecucion tiene su propio registro de modulos, asi que el DOM
+     * es lo unico que comparten y por eso la marca vive ahi. Un contenedor nuevo,
+     * remontado por el sitio, no trae la marca y se renderiza normal.
+     */
+    static takePendingContainers(domContainers) {
+        let pending = Array.prototype.filter.call(domContainers, function (domContainer) {
+            return domContainer.getAttribute('data-gf-mounted') !== 'true';
+        });
+
+        pending.forEach(function (domContainer) {
+            domContainer.setAttribute('data-gf-mounted', 'true');
+        });
+
+        return pending;
+    }
+
+    /**
      * Lleva la cuenta de cuantas peticiones de reuniones siguen pendientes
      * (una por cada tramo de fechas x ubicacion/sala que dispara
      * renderMeetingsCalendar). El calendario usa esto para mostrar un
@@ -107,17 +130,20 @@ class GafaThemeSDK extends React.Component {
     //  }
 
     static renderStaffList(selector) {
-        let domContainers = document.querySelectorAll(selector);
+        // Sin contenedor no hay nada que mostrar: antes se pedia la lista igual, en
+        // paginas que ni siquiera la usan.
+        let domContainers = GafaThemeSDK.takePendingContainers(document.querySelectorAll(selector));
+        if (!domContainers.length) {
+            return;
+        }
+
         let brands = GlobalStorage.get('brands');
         let staff = [];
         let props = {};
 
-
-        if (domContainers.length > 0) {
-            domContainers.forEach(function (domContainer) {
-                GafaThemeSDK.renderElementIntoContainer(domContainer, StaffList, props);
-            });
-        }
+        domContainers.forEach(function (domContainer) {
+            GafaThemeSDK.renderElementIntoContainer(domContainer, StaffList, props);
+        });
 
         brands.forEach(function (brand) {
             GafaFitSDKWrapper.getStaffList(
@@ -134,17 +160,19 @@ class GafaThemeSDK extends React.Component {
     };
 
     static renderServiceList(selector) {
-        let domContainers = document.querySelectorAll(selector);
+        let domContainers = GafaThemeSDK.takePendingContainers(document.querySelectorAll(selector));
+        if (!domContainers.length) {
+            return;
+        }
+
         let brands = GlobalStorage.get('brands');
 
         let services = [];
         let props = {};
 
-        if (domContainers.length > 0) {
-            domContainers.forEach(function (domContainer) {
-                GafaThemeSDK.renderElementIntoContainer(domContainer, ServiceList, props);
-            });
-        }
+        domContainers.forEach(function (domContainer) {
+            GafaThemeSDK.renderElementIntoContainer(domContainer, ServiceList, props);
+        });
 
         brands.forEach(function (brand) {
             GafaFitSDKWrapper.getServiceList(
@@ -161,23 +189,25 @@ class GafaThemeSDK extends React.Component {
     };
 
     static renderComboList(selector) {
-        let domContainers = document.querySelectorAll(selector);
+        let domContainers = GafaThemeSDK.takePendingContainers(document.querySelectorAll(selector));
+        if (!domContainers.length) {
+            return;
+        }
+
         let brands = GlobalStorage.get('brands');
         let combos = [];
         let props = {};
 
-        if (domContainers.length > 0) {
-            domContainers.forEach(function (domContainer) {
-                let byName = domContainer.getAttribute("data-gf-filterbyname");
-                let byBrand = domContainer.getAttribute("data-buq-brand");
-                let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
-                props.filterByName = byName;
-                props.filterByBrand = byBrand;
-                props.block_after_login = blockAfterLogin;
+        domContainers.forEach(function (domContainer) {
+            let byName = domContainer.getAttribute("data-gf-filterbyname");
+            let byBrand = domContainer.getAttribute("data-buq-brand");
+            let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
+            props.filterByName = byName;
+            props.filterByBrand = byBrand;
+            props.block_after_login = blockAfterLogin;
 
-                GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
-            });
-        }
+            GafaThemeSDK.renderElementIntoContainer(domContainer, ComboList, props);
+        });
 
         brands.forEach(function (brand) {
             GafaFitSDKWrapper.getComboList(brand.slug,
@@ -191,21 +221,24 @@ class GafaThemeSDK extends React.Component {
     };
 
     static renderMembershipList(selector) {
-        let domContainers = document.querySelectorAll(selector);
+        let domContainers = GafaThemeSDK.takePendingContainers(document.querySelectorAll(selector));
+        if (!domContainers.length) {
+            return;
+        }
+
         let brands = GlobalStorage.get('brands');
         let memberships = [];
         let props = {};
-        if (domContainers.length > 0) {
-            domContainers.forEach(function (domContainer) {
-                let byName = domContainer.getAttribute("data-gf-filterbyname");
-                let byBrand = domContainer.getAttribute("data-buq-brand");
-                let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
-                props.filterByName = byName;
-                props.filterByBrand = byBrand;
-                props.block_after_login = blockAfterLogin;
-                GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
-            });
-        }
+
+        domContainers.forEach(function (domContainer) {
+            let byName = domContainer.getAttribute("data-gf-filterbyname");
+            let byBrand = domContainer.getAttribute("data-buq-brand");
+            let blockAfterLogin = domContainer.getAttribute("data-bq-block-after-login") ? domContainer.getAttribute("data-bq-block-after-login") === 'true' : false;
+            props.filterByName = byName;
+            props.filterByBrand = byBrand;
+            props.block_after_login = blockAfterLogin;
+            GafaThemeSDK.renderElementIntoContainer(domContainer, MembershipList, props);
+        });
 
         brands.forEach(function (brand) {
             GafaFitSDKWrapper.getMembershipList(
@@ -224,6 +257,15 @@ class GafaThemeSDK extends React.Component {
 
     static renderMeetingsCalendar(selector) {
         let domContainers = document.querySelectorAll(selector);
+
+        // Si ya hay un calendario montado en el contenedor, sigue vivo y con sus datos:
+        // ni se remonta ni se vuelven a pedir los horarios (que son las llamadas mas
+        // caras de toda la pagina).
+        domContainers = GafaThemeSDK.takePendingContainers(domContainers);
+        if (!domContainers.length) {
+            return;
+        }
+
         let locations = GlobalStorage.get('locations');
         let daaMin = null;
         let dataMax = null;

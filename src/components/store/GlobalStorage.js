@@ -134,6 +134,25 @@ const GlobalStorage = {
                     if (loop === brandList.length) {
                         GlobalStorage.locations = locations;
                         GlobalStorage.rooms = rooms;
+                        // La cache vive en window y no en este modulo a proposito: si el
+                        // sitio host reinyecta el bundle (ver GafaFitSDKWrapper.getInitialValues),
+                        // cada ejecucion tiene su propio registro de modulos y su propio
+                        // GlobalStorage, asi que window es el unico estado que comparten.
+                        let pending = window.__GFthemeInitialValues;
+                        let values = {
+                            brands: brandList,
+                            currentBrand: currentBrand,
+                            locations: locations,
+                            rooms: rooms,
+                        };
+                        window.__GFthemeInitialValues = values;
+
+                        if (pending && pending.waiting) {
+                            pending.waiting.forEach(function (resume) {
+                                resume(values);
+                            });
+                        }
+
                         if (cb) {
                             cb();
                         }
@@ -141,6 +160,17 @@ const GlobalStorage = {
                 });
             });
         });
+    },
+
+    /**
+     * Rellena este GlobalStorage con los valores que ya trajo una ejecucion previa
+     * del bundle, para no repetir las llamadas de marcas/ubicaciones/salas.
+     */
+    restoreInitialValues(cached) {
+        this.brands = cached.brands;
+        this.currentBrand = cached.currentBrand;
+        this.locations = cached.locations;
+        this.rooms = cached.rooms;
     },
 
     addSegmentedListener(segment, callback) {

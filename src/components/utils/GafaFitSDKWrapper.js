@@ -44,6 +44,33 @@ class GafaFitSDKWrapper extends React.Component {
 
     static getInitialValues(cb) {
         let component = this;
+
+        // Algunos sitios host reinyectan el bundle en cada render de su ruta (p.ej.
+        // Bunker, que lo agrega con un ?t=<timestamp> distinto cada vez): el navegador
+        // lo ejecuta de nuevo y app.js repite TODO el arranque. No se puede evitar
+        // desde aqui, pero si evitar que se repitan las llamadas: marcas, ubicaciones
+        // y salas no cambian entre esas ejecuciones, asi que se reutilizan.
+        let shared = window.__GFthemeInitialValues;
+
+        if (shared && shared.locations && shared.locations.length) {
+            GlobalStorage.restoreInitialValues(shared);
+            cb();
+            return;
+        }
+
+        // Las reinyecciones ocurren casi al mismo tiempo, asi que casi siempre se
+        // encuentran con el arranque anterior todavia en vuelo y no con el resultado
+        // ya guardado: hay que esperarlo, no volver a pedirlo.
+        if (shared && shared.loading) {
+            shared.waiting.push(function (values) {
+                GlobalStorage.restoreInitialValues(values);
+                cb();
+            });
+            return;
+        }
+
+        window.__GFthemeInitialValues = {loading: true, waiting: []};
+
         GafaFitSDKWrapper.getBrandList({}, function (result) {
             GlobalStorage.initialValues(result.data, function () {
                 cb();
