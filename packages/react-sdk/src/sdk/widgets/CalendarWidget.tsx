@@ -166,26 +166,28 @@ export function CalendarWidget({
     return (brandsQuery.data ?? []).filter((brand) => slugs.has(brand.slug));
   }, [bookableLocationsQuery.data, brandsQuery.data]);
 
+  // undefined = "Todos" (como el calendar legacy). Solo se fija una sede si el
+  // sitio manda filters.locationId o el usuario elige una en el select.
+  const selectedLocationId = selectedFilters.locationId ?? filters.locationId;
+  const showAllLocations = selectedLocationId == null;
+
   const activeLocation = useMemo(() => {
-    const selectedId = selectedFilters.locationId ?? filters.locationId;
+    if (showAllLocations) return undefined;
     const all = bookableLocationsQuery.data ?? [];
-    if (typeof selectedId === "number") {
-      const match = all.find((location) => location.id === selectedId);
-      if (match) {
-        // El <select> solo tiene el representante (primer id) de cada nombre.
-        return locations.find((location) => locationNameKey(location.name) === locationNameKey(match.name)) ?? match;
-      }
-    }
-    return locations[0];
-  }, [bookableLocationsQuery.data, filters.locationId, locations, selectedFilters.locationId]);
+    const match = all.find((location) => location.id === selectedLocationId);
+    if (!match) return undefined;
+    // El <select> solo tiene el representante (primer id) de cada nombre.
+    return locations.find((location) => locationNameKey(location.name) === locationNameKey(match.name)) ?? match;
+  }, [bookableLocationsQuery.data, locations, selectedLocationId, showAllLocations]);
 
   const activeLocationGroup = useMemo(() => {
+    if (showAllLocations) return bookableLocationsQuery.data ?? [];
     if (!activeLocation) return [];
     return locationsByName.get(locationNameKey(activeLocation.name)) ?? [activeLocation];
-  }, [activeLocation, locationsByName]);
+  }, [activeLocation, bookableLocationsQuery.data, locationsByName, showAllLocations]);
 
   // Si la sede elegida deja de ser bookable (o venia de un id fantasma), volver
-  // al representante por defecto para no quedarse en un select invalido.
+  // a "Todos" para no quedarse en un select invalido.
   useEffect(() => {
     if (!bookableLocationsQuery.isSuccess) return;
     const selectedId = selectedFilters.locationId;
@@ -312,9 +314,16 @@ export function CalendarWidget({
   // hasta su horizonte (calendar_days). Fuera de eso, la flecha se deshabilita
   // en vez de llevar a una semana vacia.
   const todayIso = toIsoDate(new Date());
+  const horizonDays = useMemo(() => {
+    if (activeLocation?.calendarDays != null) return Math.max(1, activeLocation.calendarDays);
+    const fromBookable = (bookableLocationsQuery.data ?? [])
+      .map((location) => location.calendarDays)
+      .filter((value): value is number => typeof value === "number" && value > 0);
+    return Math.max(1, ...(fromBookable.length ? fromBookable : [30]));
+  }, [activeLocation?.calendarDays, bookableLocationsQuery.data]);
   const horizonIso = useMemo(
-    () => toIsoDate(addDays(new Date(), Math.max(1, activeLocation?.calendarDays ?? 30) - 1)),
-    [activeLocation?.calendarDays],
+    () => toIsoDate(addDays(new Date(), horizonDays - 1)),
+    [horizonDays],
   );
   const canGoPrev = rangeForView(shiftAnchor(anchor, view, -1), view).to >= todayIso;
   const canGoNext = rangeForView(shiftAnchor(anchor, view, 1), view).from <= horizonIso;
@@ -335,8 +344,12 @@ export function CalendarWidget({
     locationsQuery.isLoading ||
     bookableLocationsQuery.isLoading ||
     (Boolean(client) && locationsQuery.isSuccess && !bookableLocationsQuery.isFetched);
-  const isLoading = discoveringLocations || (locations.length > 0 && meetingsQuery.isLoading);
+  const isLoading = discoveringLocations || (activeLocationGroup.length > 0 && meetingsQuery.isLoading);
   const isRefreshing = meetingsQuery.isFetching && !meetingsQuery.isLoading;
+  // Al cambiar de semana el placeholder es la ventana anterior: los dias nuevos
+  // salen vacios y parecia "Sin clases" mientras aun cargaba.
+  const isUpdating =
+    isRefreshing || (meetingsQuery.isFetching && Boolean(meetingsQuery.isPlaceholderData));
   const hasError =
     brandsQuery.isError || locationsQuery.isError || bookableLocationsQuery.isError || meetingsQuery.isError;
 
@@ -371,13 +384,12 @@ export function CalendarWidget({
         onPrev={() => setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)))}
         onNext={() => setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)))}
         onToday={() => setAnchorIso(toIsoDate(new Date()))}
-        isRefreshing={isRefreshing}
+        isRefreshing={isUpdating}
         canGoPrev={canGoPrev}
         canGoNext={canGoNext}
         filterBar={
           <CalendarFilterBar
             activeBrandSlug={activeBrand?.slug}
-            activeLocationId={activeLocation?.id}
             brands={bookableBrands}
             filters={filters}
             locations={locations}
@@ -388,20 +400,19 @@ export function CalendarWidget({
             timeOfDay={timeOfDay}
             timeOfDayOptions={timeOfDayOptions}
             onTimeOfDayChange={setTimeOfDay}
-            activeLocationName={activeLocation?.name}
           />
         }
       />
 
       {hasError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p> : null}
 
-      {isLoading ? (
+      {isLoading || (visibleMeetings.length === 0 && isUpdating) ? (
         <CalendarSkeleton view={view} />
       ) : visibleMeetings.length === 0 ? (
         // Un solo estado vacio con el mismo alto que el calendario: siete columnas
-        // diciendo "sin clases" no aportan nada y el brinco de alto se nota feo.
+        // vacias no aportan nada y el brinco de alto se nota feo.
         <div className="gafa-empty-state gafa-empty-state--calendar">
-          <strong>{hasActiveFilters ? "No hay clases con estos filtros" : "No hay clases en estas fechas"}</strong>
+          <strong>{hasActiveFilters ? "Sin horarios con estos filtros" : "Sin horarios en estas fechas"}</strong>
           <span>
             {hasActiveFilters
               ? "Prueba quitando algun filtro o cambiando de fecha."
@@ -416,6 +427,7 @@ export function CalendarWidget({
       ) : view === "day" ? (
         <DayColumn
           date={anchor}
+          emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
           meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
           onSelect={setSelectedMeeting}
           showDescription={showDescription}
@@ -427,6 +439,7 @@ export function CalendarWidget({
               key={toIsoDate(day)}
               compact
               date={day}
+              emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
               meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
               onSelect={setSelectedMeeting}
               showDescription={showDescription}
@@ -548,12 +561,14 @@ function DayColumn({
   onSelect,
   compact = false,
   showDescription = false,
+  emptyLabel = "Sin horarios",
 }: {
   date: Date;
   meetings: Meeting[];
   onSelect(meeting: Meeting): void;
   compact?: boolean;
   showDescription?: boolean;
+  emptyLabel?: string;
 }) {
   const weekday = new Intl.DateTimeFormat("es-MX", { weekday: compact ? "short" : "long" }).format(date);
 
@@ -571,7 +586,7 @@ function DayColumn({
       ) : null}
 
       {meetings.length === 0 ? (
-        <p className="gafa-day-column__empty">Sin clases</p>
+        <p className="gafa-day-column__empty">{emptyLabel}</p>
       ) : compact ? (
         <div className="gafa-day-column__list">
           {meetings.map((meeting) => (
@@ -694,7 +709,7 @@ function MeetingCard({
         <PersonIcon />
         {getStaffName(meeting)}
       </span>
-      {!compact && meeting.location?.name ? (
+      {meeting.location?.name ? (
         <span className="gafa-meeting-detail">
           <LocationIcon />
           {meeting.location.name}
@@ -754,8 +769,6 @@ function CalendarSkeleton({ view }: { view: CalendarView }) {
 
 function CalendarFilterBar({
   activeBrandSlug,
-  activeLocationId,
-  activeLocationName,
   brands,
   filters,
   locations,
@@ -768,8 +781,6 @@ function CalendarFilterBar({
   onTimeOfDayChange,
 }: {
   activeBrandSlug?: string;
-  activeLocationId?: number;
-  activeLocationName?: string;
   brands: Brand[];
   filters: NonNullable<CalendarWidgetProps["filters"]>;
   locations: Location[];
@@ -797,6 +808,7 @@ function CalendarFilterBar({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
+  // Con una sola sede el select no aporta; con varias, "Todos" es el default.
   const showLocation = Boolean(filters.location) && locations.length > 1;
   const showBrand = Boolean(filters.brand) && brands.length > 1;
   // El boton solo aparece cuando hay algo real que filtrar: con un unico
@@ -819,9 +831,10 @@ function CalendarFilterBar({
           <LocationIcon />
           <select
             aria-label="Ubicación"
-            value={selected.locationId ?? activeLocationId ?? ""}
+            value={selected.locationId ?? ""}
             onChange={(event) => onChange((current) => ({ ...current, locationId: toOptionalNumber(event.target.value) }))}
           >
+            <option value="">Todos</option>
             {locations.map((location) => (
               <option key={location.id} value={location.id}>
                 {location.name}
@@ -875,7 +888,7 @@ function CalendarFilterBar({
                   </option>
                 ))}
                 {selected.serviceId && !serviceOptions.some((option) => option.id === selected.serviceId) ? (
-                  <option value={selected.serviceId}>Sin clases en estas fechas</option>
+                  <option value={selected.serviceId}>Sin horarios en estas fechas</option>
                 ) : null}
               </select>
             </label>
@@ -897,7 +910,7 @@ function CalendarFilterBar({
                   </option>
                 ))}
                 {selected.staffId && !staffOptions.some((option) => option.id === selected.staffId) ? (
-                  <option value={selected.staffId}>Sin clases en estas fechas</option>
+                  <option value={selected.staffId}>Sin horarios en estas fechas</option>
                 ) : null}
               </select>
             </label>
