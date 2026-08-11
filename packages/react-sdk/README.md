@@ -84,12 +84,17 @@ createGafaSdk({
 
 ### Setup en Cloudflare (una sola vez, por zona)
 
-1. Dashboard de Cloudflare → **Images > Transformations** → seleccionar la zona (`buq.partners`)
-   y activar las transformaciones.
-2. En **Sources**, agregar `*.blob.core.windows.net` como origen permitido: las imágenes viven
-   en el storage de Azure, no en la zona, y Cloudflare rechaza los orígenes que no estén en la
-   lista.
+Ya está hecho en `buq.partners` desde el 2026-08-11. Para una zona nueva:
+
+1. Dashboard de Cloudflare → **Images > Transformations** → seleccionar la zona y activar las
+   transformaciones.
+2. En **Fuentes**, elegir "Orígenes especificados" y agregar `buqstorage.blob.core.windows.net`:
+   las imágenes viven en el storage de Azure, no en la zona, y Cloudflare rechaza con `403` los
+   orígenes que no estén en la lista.
 3. Listo. Las URLs quedan `https://buq.partners/cdn-cgi/image/<params>/<url original>`.
+
+Para diagnosticar: `404` en esa URL significa que las transformaciones no están activadas en la
+zona, y `403` que el origen no está en la lista de Fuentes.
 
 Costo: las primeras 5,000 transformaciones **únicas** al mes son gratis y después son $0.50 por
 cada 1,000. Una transformación única es la combinación de imagen + parámetros, y se cuenta una
