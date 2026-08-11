@@ -102,8 +102,8 @@ export function CalendarWidget({
 
   // Igual que el calendar legacy: el selector NO lista el catalogo de sedes,
   // solo las que realmente publican meetings en su horizonte (calendar_days).
-  // En Fitspin eso deja fuera Polanco/Bosques (0 clases) y el Cancún fantasma
-  // de la marca CDMX (id 123); quedan Lomas, Reforma y Cancún con horarios.
+  // Guardamos tambien esos meetings: sirven para saltar al primer dia con
+  // cupo cuando "hoy" ya no tiene disponibilidad.
   const bookableLocationsQuery = useQuery({
     enabled: (locationsQuery.data?.length ?? 0) > 0 || !client,
     queryKey: [
@@ -115,9 +115,11 @@ export function CalendarWidget({
       (locationsQuery.data ?? []).map((location) => location.id).join(","),
     ],
     staleTime: 5 * 60 * 1000,
-    queryFn: async () => {
+    queryFn: async (): Promise<BookableLocationsResult> => {
       const all = locationsQuery.data ?? [];
-      if (!client) return all;
+      if (!client) {
+        return { locations: all, horizonMeetings: demoMeetings({ from: toIsoDate(new Date()), to: toIsoDate(new Date()) }) };
+      }
 
       const today = new Date();
       const from = toIsoDate(today);
@@ -127,44 +129,53 @@ export function CalendarWidget({
           // end exclusivo: today + N cubre N dias de horarios publicados.
           const to = toIsoDate(addDays(today, horizonDays));
           const meetings = await client.listMeetings({ locationId: location.id, from, to });
-          return meetings.length > 0 ? location : null;
+          return { location, meetings };
         }),
       );
-      return checks.filter((location): location is Location => location != null);
+      const withMeetings = checks.filter((entry) => entry.meetings.length > 0);
+      const byId = new Map<string | number, Meeting>();
+      for (const entry of withMeetings) {
+        for (const meeting of entry.meetings) byId.set(meeting.id, meeting);
+      }
+      return {
+        locations: withMeetings.map((entry) => entry.location),
+        horizonMeetings: [...byId.values()],
+      };
     },
   });
+
+  const bookableLocations = bookableLocationsQuery.data?.locations ?? [];
+  const horizonMeetings = bookableLocationsQuery.data?.horizonMeetings ?? [];
 
   // Homónimas entre marcas (mismo nombre, distinto id): una sola opción; al
   // elegirla se piden meetings de todos los ids bookable con ese nombre.
   const locationsByName = useMemo(() => {
     const map = new Map<string, Location[]>();
-    for (const location of bookableLocationsQuery.data ?? []) {
+    for (const location of bookableLocations) {
       const key = locationNameKey(location.name);
       map.set(key, [...(map.get(key) ?? []), location]);
     }
     return map;
-  }, [bookableLocationsQuery.data]);
+  }, [bookableLocations]);
 
   const locations = useMemo(() => {
     const seen = new Set<string>();
     const unique: Location[] = [];
-    for (const location of bookableLocationsQuery.data ?? []) {
+    for (const location of bookableLocations) {
       const key = locationNameKey(location.name);
       if (seen.has(key)) continue;
       seen.add(key);
       unique.push(location);
     }
     return unique;
-  }, [bookableLocationsQuery.data]);
+  }, [bookableLocations]);
 
   // Marcas que aparecen en sedes con clases: no ofrecer un filtro muerto.
   const bookableBrands = useMemo(() => {
-    const slugs = new Set(
-      (bookableLocationsQuery.data ?? []).map((location) => location.brandSlug).filter(Boolean) as string[],
-    );
+    const slugs = new Set(bookableLocations.map((location) => location.brandSlug).filter(Boolean) as string[]);
     if (slugs.size === 0) return brandsQuery.data ?? [];
     return (brandsQuery.data ?? []).filter((brand) => slugs.has(brand.slug));
-  }, [bookableLocationsQuery.data, brandsQuery.data]);
+  }, [bookableLocations, brandsQuery.data]);
 
   // undefined = "Todos" (como el calendar legacy). Solo se fija una sede si el
   // sitio manda filters.locationId o el usuario elige una en el select.
@@ -173,18 +184,17 @@ export function CalendarWidget({
 
   const activeLocation = useMemo(() => {
     if (showAllLocations) return undefined;
-    const all = bookableLocationsQuery.data ?? [];
-    const match = all.find((location) => location.id === selectedLocationId);
+    const match = bookableLocations.find((location) => location.id === selectedLocationId);
     if (!match) return undefined;
     // El <select> solo tiene el representante (primer id) de cada nombre.
     return locations.find((location) => locationNameKey(location.name) === locationNameKey(match.name)) ?? match;
-  }, [bookableLocationsQuery.data, locations, selectedLocationId, showAllLocations]);
+  }, [bookableLocations, locations, selectedLocationId, showAllLocations]);
 
   const activeLocationGroup = useMemo(() => {
-    if (showAllLocations) return bookableLocationsQuery.data ?? [];
+    if (showAllLocations) return bookableLocations;
     if (!activeLocation) return [];
     return locationsByName.get(locationNameKey(activeLocation.name)) ?? [activeLocation];
-  }, [activeLocation, bookableLocationsQuery.data, locationsByName, showAllLocations]);
+  }, [activeLocation, bookableLocations, locationsByName, showAllLocations]);
 
   // Si la sede elegida deja de ser bookable (o venia de un id fantasma), volver
   // a "Todos" para no quedarse en un select invalido.
@@ -192,11 +202,11 @@ export function CalendarWidget({
     if (!bookableLocationsQuery.isSuccess) return;
     const selectedId = selectedFilters.locationId;
     if (selectedId == null) return;
-    const stillThere = (bookableLocationsQuery.data ?? []).some((location) => location.id === selectedId);
+    const stillThere = bookableLocations.some((location) => location.id === selectedId);
     if (!stillThere) {
       setSelectedFilters((current) => ({ ...current, locationId: undefined }));
     }
-  }, [bookableLocationsQuery.data, bookableLocationsQuery.isSuccess, selectedFilters.locationId]);
+  }, [bookableLocations, bookableLocationsQuery.isSuccess, selectedFilters.locationId]);
 
   const locationGroupIds = activeLocationGroup.map((location) => location.id).join(",");
 
@@ -316,17 +326,64 @@ export function CalendarWidget({
   const todayIso = toIsoDate(new Date());
   const horizonDays = useMemo(() => {
     if (activeLocation?.calendarDays != null) return Math.max(1, activeLocation.calendarDays);
-    const fromBookable = (bookableLocationsQuery.data ?? [])
+    const fromBookable = bookableLocations
       .map((location) => location.calendarDays)
       .filter((value): value is number => typeof value === "number" && value > 0);
     return Math.max(1, ...(fromBookable.length ? fromBookable : [30]));
-  }, [activeLocation?.calendarDays, bookableLocationsQuery.data]);
+  }, [activeLocation?.calendarDays, bookableLocations]);
   const horizonIso = useMemo(
     () => toIsoDate(addDays(new Date(), horizonDays - 1)),
     [horizonDays],
   );
   const canGoPrev = rangeForView(shiftAnchor(anchor, view, -1), view).to >= todayIso;
   const canGoNext = rangeForView(shiftAnchor(anchor, view, 1), view).from <= horizonIso;
+
+  const activeLocationIdSet = useMemo(
+    () => new Set(activeLocationGroup.map((location) => location.id)),
+    [activeLocationGroup],
+  );
+
+  const firstBookableDayIso = useMemo(() => {
+    const days = new Set<string>();
+    for (const meeting of horizonMeetings) {
+      if (meeting.passed) continue;
+      if (activeLocationIdSet.size > 0) {
+        const locationId = meeting.location?.id;
+        if (locationId == null || !activeLocationIdSet.has(locationId)) continue;
+      }
+      const day = meetingDayIso(meeting);
+      if (day && day >= todayIso) days.add(day);
+    }
+    return [...days].sort()[0] ?? null;
+  }, [activeLocationIdSet, horizonMeetings, todayIso]);
+
+  // Si el dia anclado no tiene cupo (hoy ya finalizado, o sede sin horarios
+  // ese dia), salta al primer dia con disponibilidad. Las flechas desactivan
+  // este auto-salto para no pelearse con la navegacion manual.
+  const allowAutoSkipRef = useRef(true);
+  useEffect(() => {
+    if (view !== "day") return;
+    if (!bookableLocationsQuery.isSuccess) return;
+    if (!allowAutoSkipRef.current) return;
+    if (!firstBookableDayIso) return;
+
+    if (dayHasBookableMeetings(horizonMeetings, activeLocationIdSet, anchorIso)) {
+      allowAutoSkipRef.current = false;
+      return;
+    }
+
+    if (firstBookableDayIso !== anchorIso) {
+      setAnchorIso(firstBookableDayIso);
+    }
+    allowAutoSkipRef.current = false;
+  }, [
+    activeLocationIdSet,
+    anchorIso,
+    bookableLocationsQuery.isSuccess,
+    firstBookableDayIso,
+    horizonMeetings,
+    view,
+  ]);
 
   const days = useMemo(() => daysInRange(range), [range]);
   const meetingsByIsoDay = useMemo(() => {
@@ -367,7 +424,14 @@ export function CalendarWidget({
       actions={
         allowViewChange ? (
           <div className="gafa-segmented" role="group" aria-label="Vista del calendario">
-            <button type="button" aria-pressed={view === "day"} onClick={() => setView("day")}>
+            <button
+              type="button"
+              aria-pressed={view === "day"}
+              onClick={() => {
+                allowAutoSkipRef.current = true;
+                setView("day");
+              }}
+            >
               Día
             </button>
             <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>
@@ -381,9 +445,19 @@ export function CalendarWidget({
         anchor={anchor}
         range={range}
         view={view}
-        onPrev={() => setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)))}
-        onNext={() => setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)))}
-        onToday={() => setAnchorIso(toIsoDate(new Date()))}
+        onPrev={() => {
+          allowAutoSkipRef.current = false;
+          setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)));
+        }}
+        onNext={() => {
+          allowAutoSkipRef.current = false;
+          setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)));
+        }}
+        onToday={() => {
+          allowAutoSkipRef.current = true;
+          // Hoy sin cupo → el primer dia con disponibilidad (no un dia vacio).
+          setAnchorIso(firstBookableDayIso && firstBookableDayIso !== todayIso ? firstBookableDayIso : todayIso);
+        }}
         isRefreshing={isUpdating}
         canGoPrev={canGoPrev}
         canGoNext={canGoNext}
@@ -393,7 +467,10 @@ export function CalendarWidget({
             brands={bookableBrands}
             filters={filters}
             locations={locations}
-            onChange={setSelectedFilters}
+            onChange={(updater) => {
+              allowAutoSkipRef.current = true;
+              setSelectedFilters(updater);
+            }}
             selected={selectedFilters}
             serviceOptions={serviceOptions}
             staffOptions={staffOptions}
@@ -1199,6 +1276,11 @@ function findActiveBrand(brands: Brand[], selectedSlug?: string, defaultId?: num
   return brands[0];
 }
 
+type BookableLocationsResult = {
+  locations: Location[];
+  horizonMeetings: Meeting[];
+};
+
 /** Clave estable para agrupar sedes homónimas entre marcas (Cancún / Cancun). */
 function locationNameKey(name: string): string {
   return name
@@ -1206,6 +1288,32 @@ function locationNameKey(name: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function meetingDayIso(meeting: Meeting): string | null {
+  const raw = getMeetingStart(meeting);
+  if (!raw) return null;
+  const date = new Date(raw.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) {
+    const fallback = raw.slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(fallback) ? fallback : null;
+  }
+  return toIsoDate(date);
+}
+
+function dayHasBookableMeetings(
+  meetings: Meeting[],
+  locationIds: Set<number>,
+  dayIso: string,
+): boolean {
+  return meetings.some((meeting) => {
+    if (meeting.passed) return false;
+    if (locationIds.size > 0) {
+      const locationId = meeting.location?.id;
+      if (locationId == null || !locationIds.has(locationId)) return false;
+    }
+    return meetingDayIso(meeting) === dayIso;
+  });
 }
 
 function toOptionalNumber(value: string): number | undefined {
