@@ -82,7 +82,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     config,
     client,
     mountCalendar(target, props = {}) {
-      return mount(target, <CalendarWidget client={client} {...props} />);
+      return mount(target, <CalendarWidget client={client} captcha={captcha} {...props} />);
     },
     mountAuth(target, props = {}) {
       return mount(target, <AuthWidget client={client} captcha={captcha} {...props} />);

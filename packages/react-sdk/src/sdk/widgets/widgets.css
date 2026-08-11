@@ -890,6 +890,29 @@
   gap: var(--gafa-space-2);
 }
 
+.gafa-reservation-hint {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.gafa-reservation-hint strong {
+  color: var(--gafa-color-text);
+}
+
+.gafa-reservation-hint--ok {
+  background: var(--gafa-color-success-soft);
+  border-color: transparent;
+  color: var(--gafa-color-success);
+}
+
+.gafa-reservation-hint--ok strong {
+  color: var(--gafa-color-success);
+}
+
 /* --------------------------------------------------------------------- perfil */
 
 .gafa-profile-list {

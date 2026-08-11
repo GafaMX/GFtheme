@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
 import { FancyOverlay } from "./FancyOverlay";
-import type { Brand, GafaClient, Location, Meeting, Service, StaffMember } from "../client/types";
+import { AuthWidget } from "./AuthWidget";
+import type { CaptchaProvider } from "../captcha/CaptchaProvider";
+import { subscribeToAuthChanges } from "../client/tokenStorage";
+import type { Brand, GafaClient, Location, Meeting, Service, StaffMember, UserCredit } from "../client/types";
 import {
   addDays,
   daysInRange,
@@ -22,6 +25,8 @@ import {
 
 export type CalendarWidgetProps = {
   client?: GafaClient;
+  /** Necesario solo para permitir registro dentro del flujo de reserva. */
+  captcha?: CaptchaProvider;
   limit?: number;
   filters?: {
     brand?: boolean | string;
@@ -51,6 +56,7 @@ type CalendarFiltersState = {
 
 export function CalendarWidget({
   client,
+  captcha,
   filters = {},
   limit,
   view: initialView = "day",
@@ -66,6 +72,10 @@ export function CalendarWidget({
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>({});
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [fancyMeeting, setFancyMeeting] = useState<Meeting | null>(null);
+  // Meeting que el usuario quiere reservar pero aun no tiene sesion: dispara el
+  // login/registro DENTRO del flujo, sin sacarlo del calendario. Al autenticar
+  // se continua solo hacia el checkout.
+  const [authGateMeeting, setAuthGateMeeting] = useState<Meeting | null>(null);
   const [view, setView] = useState<CalendarView>(initialView);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("all");
   const [anchorIso, setAnchorIso] = useState(() => toIsoDate(new Date()));
@@ -77,6 +87,22 @@ export function CalendarWidget({
     queryKey: ["calendar", "brands"],
     queryFn: async () => (client ? client.listBrands() : demoBrands()),
   });
+
+  // Sesion actual: decide si "Reservar" va directo al checkout o pasa antes por
+  // el login inline. Se refresca al iniciar/cerrar sesion en cualquier widget.
+  const sessionQuery = useQuery({
+    queryKey: ["calendar", "session"],
+    queryFn: async () => (client ? client.getProfile() : null),
+    staleTime: 60_000,
+  });
+  const isSignedIn = Boolean(sessionQuery.data);
+
+  useEffect(() => {
+    return subscribeToAuthChanges(() => {
+      queryClient.invalidateQueries({ queryKey: ["calendar", "session"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
+    });
+  }, [queryClient]);
 
   const activeBrand = useMemo(
     () => findActiveBrand(brandsQuery.data ?? [], selectedFilters.brandSlug, filters.brandId),
@@ -414,10 +440,28 @@ export function CalendarWidget({
     brandsQuery.isError || locationsQuery.isError || bookableLocationsQuery.isError || meetingsQuery.isError;
 
   function handleReserve(meeting: Meeting) {
-    if (!client || isSoldOut(meeting)) return;
+    // Sold-out no se bloquea: el checkout ofrece lista de espera del lado del
+    // servidor. Solo salimos si no hay cliente (modo demo sin backend).
+    if (!client) return;
     setSelectedMeeting(null);
+    // Sin sesion: login/registro dentro del flujo; con sesion: directo al fancy
+    // (que resuelve credito, mapa de salon y pago del lado del servidor).
+    if (!isSignedIn) {
+      setAuthGateMeeting(meeting);
+      return;
+    }
     setFancyMeeting(meeting);
   }
+
+  // Al autenticarse desde el gate, continuar solo hacia el checkout del meeting
+  // que se estaba reservando.
+  useEffect(() => {
+    if (isSignedIn && authGateMeeting) {
+      const meeting = authGateMeeting;
+      setAuthGateMeeting(null);
+      setFancyMeeting(meeting);
+    }
+  }, [authGateMeeting, isSignedIn]);
 
   function goPrev() {
     allowAutoSkipRef.current = false;
@@ -557,9 +601,21 @@ export function CalendarWidget({
 
       {selectedMeeting ? (
         <ReservationPreviewModal
+          client={client}
           meeting={selectedMeeting}
+          isSignedIn={isSignedIn}
           onClose={() => setSelectedMeeting(null)}
           onContinue={() => handleReserve(selectedMeeting)}
+        />
+      ) : null}
+
+      {authGateMeeting && client ? (
+        <ReservationAuthGate
+          client={client}
+          captcha={captcha}
+          meeting={authGateMeeting}
+          brandSlug={getMeetingBrandSlug(authGateMeeting, activeBrand)}
+          onClose={() => setAuthGateMeeting(null)}
         />
       ) : null}
 
@@ -567,7 +623,7 @@ export function CalendarWidget({
         <FancyOverlay
           key={fancyMeeting.id}
           title={fancyMeeting.name}
-          description="Termina tu reserva: inicia sesion si falta y usa un credito o compra uno nuevo."
+          description="Termina tu reserva: elige tu lugar en el salón y confirma con crédito o compra."
           run={() =>
             client.openReservationCheckout({
               meetingId: fancyMeeting.id,
@@ -1119,14 +1175,34 @@ function formatRangeLabel(range: DateRange): string {
 }
 
 function ReservationPreviewModal({
+  client,
   meeting,
+  isSignedIn,
   onClose,
   onContinue,
 }: {
+  client?: GafaClient;
   meeting: Meeting;
+  isSignedIn: boolean;
   onClose: () => void;
   onContinue: () => void;
 }) {
+  const brandSlug = meeting.location?.brand?.slug ?? meeting.brandSlug;
+
+  // Creditos aplicables de la marca: sirven para decirle al usuario, ANTES de
+  // entrar al checkout, si va a reservar con un credito que ya tiene o si le
+  // tocara comprar. No crea la reserva (eso es el fancy), solo informa.
+  const creditsQuery = useQuery({
+    queryKey: ["calendar", "user-credits", brandSlug],
+    queryFn: () => client!.listUserCredits(brandSlug!),
+    enabled: Boolean(client && brandSlug && isSignedIn),
+    staleTime: 60_000,
+  });
+
+  const usableCredit = pickUsableCredit(creditsQuery.data, meeting);
+  const soldOut = isSoldOut(meeting);
+  const waitlist = soldOut && !usableCredit;
+
   return (
     <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="reservation-title">
       <div className="gafa-reservation-sheet">
@@ -1161,24 +1237,27 @@ function ReservationPreviewModal({
           </div>
         </div>
 
-        <ol className="gafa-reservation-steps">
-          <li>
-            <strong>1. Confirma tu clase</strong>
-            <span>Revisa sede, coach, horario y disponibilidad.</span>
-          </li>
-          <li>
-            <strong>2. Inicia sesion</strong>
-            <span>Si el cliente no esta logueado, aqui se muestra login o registro.</span>
-          </li>
-          <li>
-            <strong>3. Usa credito o compra</strong>
-            <span>Si no tiene creditos, el flujo ofrece paquete, membresia o pago.</span>
-          </li>
-        </ol>
+        {/* Estado de pago claro antes de entrar al checkout. */}
+        {isSignedIn ? (
+          creditsQuery.isLoading ? (
+            <p className="gafa-reservation-hint">Revisando tus créditos…</p>
+          ) : usableCredit ? (
+            <p className="gafa-reservation-hint gafa-reservation-hint--ok">
+              Reservas con tu crédito: <strong>{usableCredit.name}</strong>
+              {typeof usableCredit.total === "number" ? ` (${usableCredit.total} disponibles)` : ""}
+            </p>
+          ) : (
+            <p className="gafa-reservation-hint">
+              No tienes créditos para esta clase: en el siguiente paso puedes comprar uno.
+            </p>
+          )
+        ) : (
+          <p className="gafa-reservation-hint">Inicia sesión para reservar; te lo pedimos en el siguiente paso.</p>
+        )}
 
         <div className="gafa-reservation-actions">
-          <button className="gafa-sdk-button" type="button" disabled={isSoldOut(meeting)} onClick={onContinue}>
-            Continuar reserva
+          <button className="gafa-sdk-button" type="button" onClick={onContinue}>
+            {waitlist ? "Unirme a lista de espera" : usableCredit ? "Reservar con mi crédito" : "Continuar reserva"}
           </button>
           <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
             Seguir viendo horarios
@@ -1187,6 +1266,57 @@ function ReservationPreviewModal({
       </div>
     </div>
   );
+}
+
+/**
+ * Login/registro DENTRO del flujo de reserva: aparece sobre el calendario, y al
+ * autenticarse el componente padre continua solo hacia el checkout. Asi el
+ * usuario nunca "sale" de la clase que estaba reservando.
+ */
+function ReservationAuthGate({
+  client,
+  captcha,
+  meeting,
+  brandSlug,
+  onClose,
+}: {
+  client: GafaClient;
+  captcha?: CaptchaProvider;
+  meeting: Meeting;
+  brandSlug: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="reservation-auth-title">
+      <div className="gafa-reservation-sheet">
+        <button className="gafa-reservation-close" type="button" aria-label="Cerrar" onClick={onClose}>
+          x
+        </button>
+
+        <div className="gafa-reservation-hero">
+          <span className="gafa-eyebrow">Casi listo</span>
+          <h3 id="reservation-auth-title">Inicia sesión para reservar</h3>
+          <p>
+            {meeting.name} · {formatDate(getMeetingStart(meeting))} ·{" "}
+            {formatTime(getMeetingStart(meeting), meeting.timezone)}
+          </p>
+        </div>
+
+        <AuthWidget client={client} captcha={captcha} brandSlug={brandSlug} initialView="login" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Un credito aplica si no tiene marca de servicio o si incluye el servicio del
+ * meeting. La API no expone el match exacto aqui, asi que somos conservadores:
+ * con creditos disponibles asumimos que al menos uno sirve, y el fancy hace la
+ * validacion final.
+ */
+function pickUsableCredit(credits: UserCredit[] | undefined, _meeting: Meeting): UserCredit | undefined {
+  if (!credits || credits.length === 0) return undefined;
+  return credits.find((credit) => typeof credit.total !== "number" || credit.total > 0) ?? undefined;
 }
 
 function groupMeetingsByDay(meetings: Meeting[]) {

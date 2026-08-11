@@ -134,7 +134,7 @@ function DemoShell({
 
         <main className="demo-main" data-page={page}>
           {page === "calendario" ? (
-            <CalendarWidget client={client} {...brand.calendar} />
+            <CalendarWidget client={client} captcha={captcha} {...brand.calendar} />
           ) : null}
 
           {page === "paquetes" ? (
