@@ -290,15 +290,27 @@
 .gafa-calendar-toolbar {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: var(--gafa-space-2);
+}
+
+.gafa-calendar-toolbar__nav {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-1);
+}
+
+.gafa-calendar-toolbar__filters {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .gafa-calendar-toolbar__label {
   align-items: baseline;
   display: flex;
-  flex: 1;
   gap: var(--gafa-space-2);
-  justify-content: center;
+  padding-left: var(--gafa-space-2);
 }
 
 .gafa-calendar-toolbar__label strong {
@@ -313,15 +325,84 @@
   font-size: 0.78rem;
 }
 
-.gafa-calendar-filters {
-  display: grid;
-  gap: var(--gafa-space-3);
+/* Barra compacta: la sede a la vista, el resto detras del boton "Filtros". */
+.gafa-filterbar {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-2);
+  position: relative;
 }
 
-.gafa-calendar-filters__selects {
+.gafa-filterbar-location {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  gap: 6px;
+  height: 40px;
+  padding: 0 0.5rem 0 0.8rem;
+}
+
+.gafa-filterbar-location select {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--gafa-color-text);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  outline: none;
+  padding-right: 0.4rem;
+}
+
+.gafa-filterbar-toggle {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.88rem;
+  font-weight: 600;
+  gap: 6px;
+  height: 40px;
+  padding: 0 0.9rem;
+}
+
+.gafa-filterbar-toggle:hover,
+.gafa-filterbar-toggle[aria-expanded="true"] {
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-filterbar-count {
+  background: var(--gafa-color-primary);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-primary-text);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 18px;
+  padding: 4px 5px;
+  text-align: center;
+}
+
+.gafa-filterbar-panel {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  box-shadow: var(--gafa-shadow-pop);
   display: grid;
   gap: var(--gafa-space-3);
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  min-width: 270px;
+  padding: var(--gafa-space-3);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 30;
 }
 
 .gafa-calendar-filter {
@@ -352,6 +433,10 @@
   display: grid;
   gap: var(--gafa-space-2);
   padding: var(--gafa-space-2);
+  /* Sin esto, cuando una columna es mas baja que sus hermanas el alto sobrante
+     se reparte entre las filas y las tarjetas "flotan" a media columna. Los
+     meetings siempre empiezan arriba, sin importar la hora del primero. */
+  align-content: start;
 }
 
 .gafa-day-column[data-today="true"] {
@@ -387,6 +472,19 @@
 .gafa-day-column__list {
   display: grid;
   gap: var(--gafa-space-2);
+}
+
+/* En la vista de un solo dia las tarjetas fluyen en columnas: una lista de una
+   sola columna a ancho completo desperdicia toda la pantalla. */
+.gafa-day-column[data-standalone="true"] {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.gafa-day-column[data-standalone="true"] .gafa-day-column__list {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--gafa-space-3);
 }
 
 .gafa-day-column__empty {
@@ -425,10 +523,36 @@
   font-size: 0.86rem;
 }
 
+.gafa-meeting-card__top {
+  align-items: baseline;
+  display: flex;
+  gap: var(--gafa-space-2);
+  justify-content: space-between;
+}
+
 .gafa-meeting-time {
   color: var(--gafa-color-primary);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 800;
+}
+
+.gafa-meeting-duration {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.gafa-meeting-detail {
+  align-items: center;
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  font-size: 0.78rem;
+  gap: 5px;
+}
+
+.gafa-meeting-detail svg {
+  flex-shrink: 0;
+  opacity: 0.75;
 }
 
 .gafa-meeting-name {

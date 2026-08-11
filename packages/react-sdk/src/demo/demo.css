@@ -128,6 +128,13 @@ body[data-scheme="dark"] {
   width: 100%;
 }
 
+/* El calendario aprovecha toda la pantalla; el resto se queda legible. */
+.demo-main[data-page="calendario"] {
+  max-width: none;
+  padding-left: clamp(1rem, 2.5vw, 2.5rem);
+  padding-right: clamp(1rem, 2.5vw, 2.5rem);
+}
+
 .demo-stack {
   display: grid;
   gap: var(--gafa-space-4);

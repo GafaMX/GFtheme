@@ -120,7 +120,7 @@ function DemoShell({
           </div>
         </header>
 
-        <main className="demo-main">
+        <main className="demo-main" data-page={page}>
           {page === "calendario" ? (
             <CalendarWidget
               client={client}

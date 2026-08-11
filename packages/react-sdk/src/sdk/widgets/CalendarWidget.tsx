@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
 import { FancyOverlay } from "./FancyOverlay";
@@ -52,7 +52,7 @@ export function CalendarWidget({
   client,
   filters = {},
   limit,
-  view: initialView = "week",
+  view: initialView = "day",
   allowViewChange = true,
   showDescription = false,
   title = "Reserva tu lugar",
@@ -200,20 +200,22 @@ export function CalendarWidget({
         onNext={() => setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)))}
         onToday={() => setAnchorIso(toIsoDate(new Date()))}
         isRefreshing={isRefreshing}
-      />
-
-      <CalendarFilterBar
-        activeBrandSlug={activeBrand?.slug}
-        activeLocationId={activeLocation?.id}
-        brands={brandsQuery.data ?? []}
-        filters={filters}
-        locations={locationsQuery.data ?? []}
-        onChange={setSelectedFilters}
-        selected={selectedFilters}
-        services={servicesQuery.data ?? []}
-        staff={staffQuery.data ?? []}
-        timeOfDay={timeOfDay}
-        onTimeOfDayChange={setTimeOfDay}
+        filterBar={
+          <CalendarFilterBar
+            activeBrandSlug={activeBrand?.slug}
+            activeLocationId={activeLocation?.id}
+            brands={brandsQuery.data ?? []}
+            filters={filters}
+            locations={locationsQuery.data ?? []}
+            onChange={setSelectedFilters}
+            selected={selectedFilters}
+            services={servicesQuery.data ?? []}
+            staff={staffQuery.data ?? []}
+            timeOfDay={timeOfDay}
+            onTimeOfDayChange={setTimeOfDay}
+            activeLocationName={activeLocation?.name}
+          />
+        }
       />
 
       {hasError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p> : null}
@@ -278,6 +280,7 @@ function CalendarToolbar({
   onNext,
   onToday,
   isRefreshing,
+  filterBar,
 }: {
   anchor: Date;
   range: DateRange;
@@ -286,6 +289,7 @@ function CalendarToolbar({
   onNext(): void;
   onToday(): void;
   isRefreshing: boolean;
+  filterBar: React.ReactNode;
 }) {
   const label =
     view === "day"
@@ -294,20 +298,39 @@ function CalendarToolbar({
 
   return (
     <div className="gafa-calendar-toolbar">
-      <button className="gafa-icon-button" type="button" onClick={onPrev} aria-label="Anterior">
-        ‹
-      </button>
-      <div className="gafa-calendar-toolbar__label">
+      <div className="gafa-calendar-toolbar__nav">
+        <button className="gafa-icon-button" type="button" onClick={onPrev} aria-label={view === "day" ? "Día anterior" : "Semana anterior"}>
+          <ChevronIcon direction="left" />
+        </button>
+        <button className="gafa-icon-button" type="button" onClick={onNext} aria-label={view === "day" ? "Día siguiente" : "Semana siguiente"}>
+          <ChevronIcon direction="right" />
+        </button>
+        <button className="gafa-sdk-button gafa-sdk-button--secondary gafa-calendar-today" type="button" onClick={onToday}>
+          Hoy
+        </button>
+      </div>
+
+      <div className="gafa-calendar-toolbar__label" aria-live="polite">
         <strong>{label}</strong>
         {isRefreshing ? <span className="gafa-calendar-toolbar__hint">actualizando…</span> : null}
       </div>
-      <button className="gafa-icon-button" type="button" onClick={onNext} aria-label="Siguiente">
-        ›
-      </button>
-      <button className="gafa-sdk-button gafa-sdk-button--secondary gafa-calendar-today" type="button" onClick={onToday}>
-        Hoy
-      </button>
+
+      <div className="gafa-calendar-toolbar__filters">{filterBar}</div>
     </div>
+  );
+}
+
+function ChevronIcon({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d={direction === "left" ? "M14.5 5.5 8 12l6.5 6.5" : "M9.5 5.5 16 12l-6.5 6.5"}
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -327,11 +350,17 @@ function DayColumn({
   const weekday = new Intl.DateTimeFormat("es-MX", { weekday: compact ? "short" : "long" }).format(date);
 
   return (
-    <section className="gafa-day-column" data-today={isToday(date) ? "true" : undefined}>
-      <header className="gafa-day-column__header">
-        <span className="gafa-day-column__weekday">{weekday}</span>
-        <span className="gafa-day-column__number">{date.getDate()}</span>
-      </header>
+    <section
+      className="gafa-day-column"
+      data-today={isToday(date) ? "true" : undefined}
+      data-standalone={compact ? undefined : "true"}
+    >
+      {compact ? (
+        <header className="gafa-day-column__header">
+          <span className="gafa-day-column__weekday">{weekday}</span>
+          <span className="gafa-day-column__number">{date.getDate()}</span>
+        </header>
+      ) : null}
 
       {meetings.length === 0 ? (
         <p className="gafa-day-column__empty">Sin clases</p>
@@ -364,6 +393,7 @@ function MeetingCard({
   showDescription: boolean;
 }) {
   const soldOut = isSoldOut(meeting);
+  const duration = getDurationMinutes(meeting);
 
   return (
     <button
@@ -373,13 +403,52 @@ function MeetingCard({
       type="button"
       onClick={() => onSelect(meeting)}
     >
-      <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
+      <span className="gafa-meeting-card__top">
+        <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
+        {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
+      </span>
+
       <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
-      <span className="gafa-meeting-staff">{getStaffName(meeting)}</span>
+
+      <span className="gafa-meeting-detail">
+        <PersonIcon />
+        {getStaffName(meeting)}
+      </span>
+      {!compact && meeting.location?.name ? (
+        <span className="gafa-meeting-detail">
+          <LocationIcon />
+          {meeting.location.name}
+        </span>
+      ) : null}
       {showDescription && meeting.description ? <span className="gafa-meeting-desc">{meeting.description}</span> : null}
+
       <AvailabilityPill meeting={meeting} />
     </button>
   );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.4" stroke="currentColor" strokeWidth="2" />
+      <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/**
+ * La duracion no viene como campo propio: se calcula del inicio y el fin,
+ * que es lo mismo que muestra el theme legacy.
+ */
+function getDurationMinutes(meeting: Meeting): number | null {
+  if (meeting.durationMinutes) return meeting.durationMinutes;
+  if (!meeting.endsAt) return null;
+
+  const start = new Date(getMeetingStart(meeting)).getTime();
+  const end = new Date(meeting.endsAt).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+
+  return Math.round((end - start) / 60000);
 }
 
 function CalendarSkeleton({ view }: { view: CalendarView }) {
@@ -406,6 +475,7 @@ function CalendarSkeleton({ view }: { view: CalendarView }) {
 function CalendarFilterBar({
   activeBrandSlug,
   activeLocationId,
+  activeLocationName,
   brands,
   filters,
   locations,
@@ -418,6 +488,7 @@ function CalendarFilterBar({
 }: {
   activeBrandSlug?: string;
   activeLocationId?: number;
+  activeLocationName?: string;
   brands: Brand[];
   filters: NonNullable<CalendarWidgetProps["filters"]>;
   locations: Location[];
@@ -428,13 +499,57 @@ function CalendarFilterBar({
   timeOfDay: TimeOfDay;
   onTimeOfDayChange(value: TimeOfDay): void;
 }) {
-  const showFilters = filters.brand || filters.location || filters.service || filters.staff;
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const activeCount =
+    Number(Boolean(selected.serviceId)) + Number(Boolean(selected.staffId)) + Number(timeOfDay !== "all");
+
+  // Cerrar al hacer click fuera: el panel flota encima del calendario.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  const showLocation = Boolean(filters.location) && locations.length > 1;
+  const showBrand = Boolean(filters.brand) && brands.length > 1;
+  const hasPanelFilters = Boolean(filters.service) || Boolean(filters.staff) || showBrand;
 
   return (
-    <div className="gafa-calendar-filters">
-      {showFilters ? (
-        <div className="gafa-calendar-filters__selects" aria-label="Filtros de calendario">
-          {filters.brand && brands.length > 1 ? (
+    <div className="gafa-filterbar" ref={panelRef}>
+      {/* La sede es EL filtro que todo el mundo usa: se queda a la vista. */}
+      {showLocation ? (
+        <label className="gafa-filterbar-location">
+          <LocationIcon />
+          <select
+            aria-label="Ubicación"
+            value={selected.locationId ?? activeLocationId ?? ""}
+            onChange={(event) => onChange((current) => ({ ...current, locationId: toOptionalNumber(event.target.value) }))}
+          >
+            {locations.map((location) => (
+              <option key={location.id} value={location.id}>
+                {location.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
+      {hasPanelFilters ? (
+        <button className="gafa-filterbar-toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <FilterIcon />
+          Filtros
+          {activeCount > 0 ? <span className="gafa-filterbar-count">{activeCount}</span> : null}
+        </button>
+      ) : null}
+
+      {open ? (
+        <div className="gafa-filterbar-panel" role="group" aria-label="Filtros de calendario">
+          {showBrand ? (
             <label className="gafa-calendar-filter">
               <span>Marca</span>
               <select
@@ -446,24 +561,6 @@ function CalendarFilterBar({
                 {brands.map((brand) => (
                   <option key={brand.id} value={brand.slug}>
                     {brand.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {filters.location && locations.length > 1 ? (
-            <label className="gafa-calendar-filter">
-              <span>Ubicación</span>
-              <select
-                value={selected.locationId ?? activeLocationId ?? ""}
-                onChange={(event) =>
-                  onChange((current) => ({ ...current, locationId: toOptionalNumber(event.target.value) }))
-                }
-              >
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
                   </option>
                 ))}
               </select>
@@ -507,23 +604,60 @@ function CalendarFilterBar({
               </select>
             </label>
           ) : null}
+
+          <div className="gafa-calendar-filter">
+            <span>Horario</span>
+            <div className="gafa-chip-row" role="group" aria-label="Franja horaria">
+              {(Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[]).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="gafa-chip"
+                  aria-pressed={timeOfDay === value}
+                  onClick={() => onTimeOfDayChange(value)}
+                >
+                  {TIME_OF_DAY_LABELS[value]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {activeCount > 0 ? (
+            <button
+              className="gafa-sdk-button gafa-sdk-button--secondary"
+              type="button"
+              onClick={() => {
+                onChange((current) => ({ ...current, serviceId: undefined, staffId: undefined }));
+                onTimeOfDayChange("all");
+              }}
+            >
+              Limpiar filtros
+            </button>
+          ) : null}
         </div>
       ) : null}
-
-      <div className="gafa-chip-row" role="group" aria-label="Franja horaria">
-        {(Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[]).map((value) => (
-          <button
-            key={value}
-            type="button"
-            className="gafa-chip"
-            aria-pressed={timeOfDay === value}
-            onClick={() => onTimeOfDayChange(value)}
-          >
-            {TIME_OF_DAY_LABELS[value]}
-          </button>
-        ))}
-      </div>
     </div>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 6h16M7 12h10m-7 6h4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LocationIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 21s-6.5-5.3-6.5-10.2a6.5 6.5 0 1 1 13 0C18.5 15.7 12 21 12 21Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle cx="12" cy="10.5" r="2.3" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
   );
 }
 
