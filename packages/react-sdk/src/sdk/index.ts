@@ -1,5 +1,7 @@
 export { createGafaSdk } from "./runtime";
-export type { GafaSdk, MountedWidget } from "./runtime";
+export type { AccountModalOptions, GafaSdk, MountedWidget } from "./runtime";
+export { AccountModal } from "./widgets/AccountModal";
+export type { AccountModalProps } from "./widgets/AccountModal";
 export { legacyOptionsToConfig, parseSdkConfig, readLegacyOptionsFromDom } from "./config";
 export type { GafaSdkConfig, GafaSdkConfigInput } from "./config";
 export { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";

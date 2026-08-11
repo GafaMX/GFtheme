@@ -8,13 +8,12 @@ import { subscribeToAuthChanges } from "../sdk/client/tokenStorage";
 import { ColorSchemeToggle, ThemeProvider, useGafaTheme, type GafaBrandTheme } from "../sdk/theme/theme";
 import { CalendarWidget } from "../sdk/widgets/CalendarWidget";
 import { CatalogWidget } from "../sdk/widgets/CatalogWidget";
-import { AuthWidget } from "../sdk/widgets/AuthWidget";
-import { ProfileWidget } from "../sdk/widgets/ProfileWidget";
+import { AccountModal } from "../sdk/widgets/AccountModal";
 import "../sdk/theme/theme.css";
 import "../sdk/widgets/widgets.css";
 import "./demo.css";
 
-type Page = "calendario" | "paquetes" | "cuenta";
+type Page = "calendario" | "paquetes";
 
 /**
  * Sitio de prueba de la v2. No es parte del SDK: existe para poder probar los
@@ -74,11 +73,12 @@ function DemoShell({
   onBrandChange(key: keyof typeof BRANDS): void;
 }) {
   const brand = BRANDS[brandKey];
+  const [page, setPage] = useState<Page>("calendario");
   // El link del correo de restablecer contraseña llega con ?token=&email=:
-  // hay que aterrizar en Cuenta, no en el calendario.
-  const [page, setPage] = useState<Page>(() => {
+  // hay que abrir la cuenta de una vez, no dejar al socio en el calendario.
+  const [accountOpen, setAccountOpen] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get("token") && params.get("email") ? "cuenta" : "calendario";
+    return Boolean(params.get("token") && params.get("email"));
   });
   const [signedIn, setSignedIn] = useState(false);
   const { scheme } = useGafaTheme();
@@ -140,8 +140,8 @@ function DemoShell({
               <button
                 className="demo-account"
                 type="button"
-                aria-current={page === "cuenta"}
-                onClick={() => setPage("cuenta")}
+                aria-expanded={accountOpen}
+                onClick={() => setAccountOpen(true)}
                 title={signedIn ? "Tu cuenta" : "Iniciar sesión"}
               >
                 <AccountIcon />
@@ -163,14 +163,17 @@ function DemoShell({
               <CatalogWidget client={client} type="memberships" />
             </div>
           ) : null}
-
-          {page === "cuenta" ? (
-            <div className="demo-stack">
-              {!signedIn ? <AuthWidget client={client} captcha={captcha} initialView="login" /> : null}
-              <ProfileWidget client={client} />
-            </div>
-          ) : null}
         </main>
+
+        {/* La cuenta no es una pagina: se abre encima de lo que el socio estaba
+            viendo, igual que el checkout. */}
+        <AccountModal
+          client={client}
+          captcha={captcha}
+          open={accountOpen}
+          onClose={() => setAccountOpen(false)}
+          title={brand.label}
+        />
 
         <footer className="demo-footer">
           Sitio de prueba del SDK v2 · datos reales de {brand.label} · tema {scheme === "dark" ? "oscuro" : "claro"}

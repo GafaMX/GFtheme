@@ -13,6 +13,7 @@ import { AuthWidget, type AuthWidgetProps } from "./widgets/AuthWidget";
 import { CalendarWidget, type CalendarWidgetProps } from "./widgets/CalendarWidget";
 import { CatalogWidget, type CatalogWidgetProps } from "./widgets/CatalogWidget";
 import { ProfileWidget, type ProfileWidgetProps } from "./widgets/ProfileWidget";
+import { AccountModal, type AccountModalProps } from "./widgets/AccountModal";
 import { PurchaseButtonWidget, type PurchaseButtonWidgetProps } from "./widgets/PurchaseButtonWidget";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
@@ -25,8 +26,12 @@ export type GafaSdk = {
   mountCatalog(target: string | Element, props?: CatalogWidgetProps): MountedWidget;
   mountProfile(target: string | Element, props?: ProfileWidgetProps): MountedWidget;
   mountPurchaseButton(target: Element, props?: PurchaseButtonWidgetProps): MountedWidget;
+  /** Abre la cuenta (login o perfil) en un popup sobre la pagina actual. */
+  openAccount(props?: AccountModalOptions): { close(): void };
   unmountAll(): void;
 };
+
+export type AccountModalOptions = Omit<AccountModalProps, "client" | "captcha" | "open" | "onClose">;
 
 export type MountedWidget = {
   root: Root;
@@ -99,6 +104,26 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     },
     mountPurchaseButton(target, props = {}) {
       return mount(target, <PurchaseButtonWidget client={client} hostElement={target} {...props} />);
+    },
+    openAccount(props = {}) {
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+
+      const close = () => {
+        // El cierre viene de un handler de React: desmontar la raiz en el mismo
+        // tick tira "synchronously unmount a root while React was rendering".
+        queueMicrotask(() => {
+          mounted.unmount();
+          host.remove();
+        });
+      };
+
+      const mounted = mount(
+        host,
+        <AccountModal client={client} captcha={captcha} open onClose={close} {...props} />,
+      );
+
+      return { close };
     },
     unmountAll() {
       Array.from(mounts).forEach((mounted) => mounted.unmount());
