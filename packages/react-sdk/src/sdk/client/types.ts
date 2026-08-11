@@ -246,6 +246,23 @@ export type SeatMap = {
 };
 
 /**
+ * Una forma de pagar la reserva que el usuario YA tiene: un paquete con
+ * creditos o una membresia. `id` es el valor exacto que el backend espera en
+ * `selected_credit` (formato del fancy legacy).
+ */
+export type ReservationPaymentOption = {
+  id: string;
+  kind: "credit" | "membership";
+  /** Nombre del paquete comprado o de la membresia (lo que le importa al usuario). */
+  name: string;
+  /** Tipo de credito interno (ej. "CDMXnew"), informativo. */
+  creditName?: string;
+  /** Creditos restantes ANTES de esta reserva (solo kind=credit). */
+  remaining?: number;
+  expiresAt?: string;
+};
+
+/**
  * Todo lo necesario para reservar un meeting de forma nativa. Sale del
  * create-form-template del servidor (el mismo que alimenta al fancy legacy),
  * parseado a datos: mapa del salon con ocupados, creditos validos y perfil.
@@ -257,8 +274,8 @@ export type ReservationContext = {
   userProfileId: number;
   /** null cuando la clase no usa mapa (p.ej. Bunker). */
   seatMap: SeatMap | null;
-  /** Creditos del usuario que aplican a ESTE meeting segun el servidor. */
-  validCredits: UserCredit[];
+  /** Paquetes con credito y membresias que aplican a ESTE meeting. */
+  paymentOptions: ReservationPaymentOption[];
   /** true si el meeting esta lleno y el servidor ofrece lista de espera. */
   waitlistAvailable: boolean;
 };
@@ -270,6 +287,8 @@ export type CreateReservationPayload = {
   userProfileId: number;
   /** maps_objects_id del lugar elegido; omitir cuando no hay mapa. */
   seatObjectId?: number;
+  /** Con que pagar cuando hay varias opciones (ReservationPaymentOption.id). */
+  selectedCredit?: string;
 };
 
 export type CreateReservationResult = {

@@ -1161,6 +1161,57 @@
   color: var(--gafa-color-success);
 }
 
+/* Seleccion de paquete/membresia cuando hay varias opciones. */
+.gafa-payment-choice {
+  display: grid;
+  gap: var(--gafa-space-1);
+}
+
+.gafa-payment-choice__title {
+  color: var(--gafa-color-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.gafa-payment-option {
+  align-items: center;
+  border: 1.5px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  cursor: pointer;
+  display: flex;
+  gap: var(--gafa-space-2);
+  padding: 0.55rem 0.75rem;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.gafa-payment-option:hover {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-payment-option[data-selected="true"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, transparent);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-payment-option input {
+  accent-color: var(--gafa-color-primary);
+}
+
+.gafa-payment-option__body {
+  display: grid;
+}
+
+.gafa-payment-option__body strong {
+  color: var(--gafa-color-text);
+  font-size: 0.9rem;
+}
+
+.gafa-payment-option__body span {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+}
+
 /* --------------------------------------------------------------- mapa de salon */
 
 /* Con mapa, el modal crece y el contenido se divide info | mapa en desktop. */

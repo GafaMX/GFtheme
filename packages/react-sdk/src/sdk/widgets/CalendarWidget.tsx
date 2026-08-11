@@ -1422,8 +1422,14 @@ function ReservationPreviewModal({
 
   const context = contextQuery.data;
   const seatMap = context?.seatMap ?? null;
-  const usableCredit = context?.validCredits.find((c) => typeof c.total !== "number" || c.total > 0);
-  const canReserveNative = Boolean(client?.createReservation && context && usableCredit);
+  const paymentOptions = context?.paymentOptions ?? [];
+  // Con UNA sola opcion no se pregunta nada; con varias el usuario decide.
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const needsPaymentChoice = paymentOptions.length > 1;
+  const activeOption = needsPaymentChoice
+    ? (paymentOptions.find((option) => option.id === selectedOptionId) ?? null)
+    : (paymentOptions[0] ?? null);
+  const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const needsSeat = Boolean(canReserveNative && seatMap);
   const soldOut = isSoldOut(meeting);
 
@@ -1438,6 +1444,9 @@ function ReservationPreviewModal({
         meetingId: context.meetingId,
         userProfileId: context.userProfileId,
         seatObjectId: seat?.id,
+        // Solo se manda cuando el usuario eligio entre varias; con una sola
+        // el servidor la resuelve igual que siempre.
+        selectedCredit: needsPaymentChoice ? (activeOption?.id ?? undefined) : undefined,
       });
       setResult(created);
       setStep("done");
@@ -1458,20 +1467,27 @@ function ReservationPreviewModal({
   }
 
   const primaryDisabled =
-    step === "processing" || (isSignedIn && contextQuery.isLoading) || (needsSeat && !selectedSeat);
+    step === "processing" ||
+    (isSignedIn && contextQuery.isLoading) ||
+    (needsSeat && !selectedSeat) ||
+    (needsPaymentChoice && !activeOption);
 
   const primaryLabel = !isSignedIn
     ? "Continuar reserva"
     : contextQuery.isLoading
       ? "Revisando tus créditos…"
       : canReserveNative
-        ? needsSeat
-          ? selectedSeat
-            ? `Reservar lugar ${selectedSeat.label}`
-            : "Elige tu lugar en el mapa"
-          : soldOut
-            ? "Unirme a lista de espera"
-            : "Reservar con mi crédito"
+        ? needsPaymentChoice && !activeOption
+          ? "Elige cómo reservar"
+          : needsSeat
+            ? selectedSeat
+              ? `Reservar lugar ${selectedSeat.label}`
+              : "Elige tu lugar en el mapa"
+            : soldOut
+              ? "Unirme a lista de espera"
+              : activeOption?.kind === "membership"
+                ? "Reservar con mi membresía"
+                : "Reservar con mi paquete"
         : "Comprar y reservar";
 
   return (
@@ -1525,21 +1541,57 @@ function ReservationPreviewModal({
 
                 {isSignedIn ? (
                   contextQuery.isLoading ? (
-                    <p className="gafa-reservation-hint">Revisando tus créditos…</p>
-                  ) : usableCredit ? (
+                    <p className="gafa-reservation-hint">Revisando tus paquetes…</p>
+                  ) : needsPaymentChoice ? (
+                    <div className="gafa-payment-choice" role="radiogroup" aria-label="¿Con qué quieres reservar?">
+                      <span className="gafa-payment-choice__title">¿Con qué quieres reservar?</span>
+                      {paymentOptions.map((option) => (
+                        <label className="gafa-payment-option" key={option.id} data-selected={option.id === selectedOptionId ? "true" : undefined}>
+                          <input
+                            type="radio"
+                            name="gafa-payment-option"
+                            checked={option.id === selectedOptionId}
+                            onChange={() => setSelectedOptionId(option.id)}
+                          />
+                          <span className="gafa-payment-option__body">
+                            <strong>
+                              {option.kind === "membership" ? "Membresía: " : ""}
+                              {option.name}
+                            </strong>
+                            <span>
+                              {option.kind === "credit" && typeof option.remaining === "number"
+                                ? `${option.remaining} ${option.remaining === 1 ? "crédito" : "créditos"}`
+                                : "Ilimitada"}
+                              {option.expiresAt ? ` · vence ${formatShortDate(option.expiresAt)}` : ""}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : activeOption ? (
                     <p className="gafa-reservation-hint gafa-reservation-hint--ok">
-                      Reservas con tu crédito: <strong>{usableCredit.name}</strong>
-                      {typeof usableCredit.total === "number" ? ` (${usableCredit.total} disponibles)` : ""}
+                      {activeOption.kind === "membership" ? (
+                        <>
+                          Reservas con tu membresía: <strong>{activeOption.name}</strong>
+                        </>
+                      ) : (
+                        <>
+                          Reservas con tu paquete: <strong>{activeOption.name}</strong>
+                          {typeof activeOption.remaining === "number"
+                            ? ` (${activeOption.remaining} ${activeOption.remaining === 1 ? "crédito" : "créditos"})`
+                            : ""}
+                        </>
+                      )}
                     </p>
                   ) : contextQuery.isError ? (
                     <p className="gafa-reservation-hint">
                       {contextQuery.error instanceof Error
                         ? contextQuery.error.message
-                        : "No pudimos revisar tus créditos."}
+                        : "No pudimos revisar tus paquetes."}
                     </p>
                   ) : (
                     <p className="gafa-reservation-hint">
-                      No tienes créditos para esta clase: en el siguiente paso puedes comprar uno.
+                      No tienes paquetes para esta clase: en el siguiente paso puedes comprar uno.
                     </p>
                   )
                 ) : (
@@ -1582,9 +1634,24 @@ function ReservationPreviewModal({
                 Tu lugar: <strong>{selectedSeat.label}</strong>
               </p>
             ) : null}
-            {usableCredit ? (
+            {activeOption ? (
               <p className="gafa-muted">
-                Usaste 1 crédito de <strong>{usableCredit.name}</strong>.
+                {activeOption.kind === "membership" ? (
+                  <>
+                    Reservaste con tu membresía <strong>{activeOption.name}</strong>.
+                  </>
+                ) : typeof activeOption.remaining === "number" ? (
+                  <>
+                    Usaste tu paquete <strong>{activeOption.name}</strong>: te{" "}
+                    {activeOption.remaining - 1 === 1 ? "queda" : "quedan"}{" "}
+                    <strong>{activeOption.remaining - 1}</strong>{" "}
+                    {activeOption.remaining - 1 === 1 ? "crédito" : "créditos"}.
+                  </>
+                ) : (
+                  <>
+                    Reservaste con tu paquete <strong>{activeOption.name}</strong>.
+                  </>
+                )}
               </p>
             ) : null}
             <div className="gafa-reservation-actions">
@@ -1757,6 +1824,12 @@ function formatDate(value: string) {
     month: "long",
     day: "numeric",
   }).format(new Date(value));
+}
+
+function formatShortDate(value: string) {
+  const date = new Date(value.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  return new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", year: "numeric" }).format(date);
 }
 
 function getMeetingStart(meeting: Meeting): string {

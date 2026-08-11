@@ -14,6 +14,7 @@ import type {
   RegisterPayload,
   ReservationCheckoutPayload,
   ReservationContext,
+  ReservationPaymentOption,
   SeatMap,
   SeatMapObject,
   Service,
@@ -545,7 +546,11 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         };
       }
 
-      let validCredits: UserCredit[] = [];
+      // Paquetes con credito + membresias que aplican a este meeting. El id de
+      // cada opcion replica el formato que el fancy manda en selected_credit:
+      // credits--{id}--{exp} / memberships--{id}--{exp}.
+      const paymentOptions: ReservationPaymentOption[] = [];
+
       const creditsRaw = readBlock("user_ValidCredits");
       if (creditsRaw) {
         try {
@@ -554,17 +559,53 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             total: number;
             expiration_date?: string;
             credit?: { id: number; name: string };
+            purchase_item?: { item_name?: string | null; buyed?: { name?: string | null } | null } | null;
           }>;
-          validCredits = (Array.isArray(parsed) ? parsed : []).map((c) => ({
-            id: c.credits_id ?? c.credit?.id ?? 0,
-            name: c.credit?.name ?? "Crédito",
-            total: c.total,
-            expiresAt: c.expiration_date,
-          }));
+          for (const c of Array.isArray(parsed) ? parsed : []) {
+            if (typeof c.total === "number" && c.total <= 0) continue;
+            const expiration = (c.expiration_date ?? "").slice(0, 10);
+            // Lo que el usuario compro (paquete) por delante; el tipo de credito
+            // interno solo como respaldo.
+            const packageName =
+              c.purchase_item?.buyed?.name || c.purchase_item?.item_name || c.credit?.name || "Paquete";
+            paymentOptions.push({
+              id: `credits--${c.credits_id}--${expiration}`,
+              kind: "credit",
+              name: packageName,
+              creditName: c.credit?.name,
+              remaining: c.total,
+              expiresAt: c.expiration_date,
+            });
+          }
         } catch {
-          validCredits = [];
+          // sin opciones de credito
         }
       }
+
+      const membershipsRaw = readBlock("user_ValidMembership");
+      if (membershipsRaw) {
+        try {
+          const parsed = JSON.parse(membershipsRaw) as Array<{
+            id: number;
+            expiration_date?: string;
+            membership?: { name?: string };
+          }>;
+          for (const m of Array.isArray(parsed) ? parsed : []) {
+            const expiration = (m.expiration_date ?? "").slice(0, 10);
+            paymentOptions.push({
+              id: `memberships--${m.id}--${expiration}`,
+              kind: "membership",
+              name: m.membership?.name ?? "Membresía",
+              expiresAt: m.expiration_date,
+            });
+          }
+        } catch {
+          // sin membresias
+        }
+      }
+
+      // Igual que el fancy: lo que expira antes, primero.
+      paymentOptions.sort((a, b) => (a.expiresAt ?? "").localeCompare(b.expiresAt ?? ""));
 
       return {
         meetingId: meetingData.id,
@@ -572,7 +613,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         locationSlug: payload.locationSlug,
         userProfileId,
         seatMap,
-        validCredits,
+        paymentOptions,
         waitlistAvailable: Boolean(meetingData.is_valid_for_waitlist),
       };
     },
@@ -591,6 +632,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       };
       if (payload.seatObjectId != null) {
         body["map_objectsSelected[0][id]"] = payload.seatObjectId;
+      }
+      if (payload.selectedCredit) {
+        body.selected_credit = payload.selectedCredit;
       }
 
       const result = await apiPost<{
