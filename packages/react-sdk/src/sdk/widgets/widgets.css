@@ -187,8 +187,16 @@
 
 .gafa-chip-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--gafa-space-2);
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+/* Dentro del panel de filtros los chips caben SIEMPRE en una fila. */
+.gafa-filterbar-panel .gafa-chip {
+  flex-shrink: 1;
+  font-size: 0.78rem;
+  padding: 0.34rem 0.6rem;
+  white-space: nowrap;
 }
 
 .gafa-chip {
