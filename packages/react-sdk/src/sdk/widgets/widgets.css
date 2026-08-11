@@ -412,6 +412,14 @@
 
 /* La rejilla de semana scrollea en horizontal en movil: 7 columnas no caben en
    una pantalla de telefono sin volverlas ilegibles. */
+/* El cuerpo del calendario mantiene un alto minimo constante entre cargas,
+   vistas y estados vacios: sin esto la pagina "brinca" con cada navegacion. */
+.gafa-week-grid,
+.gafa-day-column[data-standalone="true"],
+.gafa-empty-state--calendar {
+  min-height: 420px;
+}
+
 .gafa-week-grid {
   display: grid;
   gap: var(--gafa-space-2);
@@ -606,6 +614,15 @@
   gap: var(--gafa-space-1);
   padding: var(--gafa-space-5);
   text-align: center;
+}
+
+.gafa-empty-state--calendar {
+  align-content: center;
+  justify-items: center;
+}
+
+.gafa-empty-state--calendar .gafa-sdk-button {
+  margin-top: var(--gafa-space-3);
 }
 
 .gafa-empty-state strong {

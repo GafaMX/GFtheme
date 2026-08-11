@@ -90,18 +90,6 @@ export function CalendarWidget({
     [filters.locationId, locationsQuery.data, selectedFilters.locationId],
   );
 
-  const servicesQuery = useQuery({
-    enabled: Boolean(activeBrand) || !client,
-    queryKey: ["calendar", "services", activeBrand?.slug],
-    queryFn: async () => (client ? client.listServices(activeBrand?.slug) : demoServices()),
-  });
-
-  const staffQuery = useQuery({
-    enabled: Boolean(activeBrand) || !client,
-    queryKey: ["calendar", "staff", activeBrand?.slug],
-    queryFn: async () => (client ? client.listStaff(activeBrand?.slug) : demoStaff()),
-  });
-
   const locationId = activeLocation?.id;
 
   function meetingsQueryOptions(target: DateRange) {
@@ -153,6 +141,36 @@ export function CalendarWidget({
     selectedFilters.staffId,
     timeOfDay,
   ]);
+
+  // Las opciones de los filtros salen de las clases ya cargadas, no del catalogo
+  // completo de la marca: asi nunca se ofrece un servicio o un coach que no tiene
+  // clases en la ventana visible (elegirlo solo podia dar "sin resultados"), y de
+  // paso sobran dos llamadas a la API.
+  const serviceOptions = useMemo(() => {
+    const names = new Map<number, string>();
+    (meetingsQuery.data ?? []).forEach((meeting) => {
+      const id = meeting.service?.id ?? meeting.serviceId;
+      const name = meeting.service?.name ?? meeting.serviceName;
+      if (id && name) names.set(Number(id), name);
+    });
+    return [...names.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [meetingsQuery.data]);
+
+  const staffOptions = useMemo(() => {
+    const names = new Map<number, string>();
+    (meetingsQuery.data ?? []).forEach((meeting) => {
+      const id = meeting.staff?.id ?? meeting.staffId;
+      if (id) names.set(Number(id), getStaffName(meeting));
+    });
+    return [...names.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [meetingsQuery.data]);
+
+  const hasActiveFilters = Boolean(selectedFilters.serviceId) || Boolean(selectedFilters.staffId) || timeOfDay !== "all";
+
+  function clearFilters() {
+    setSelectedFilters((current) => ({ ...current, serviceId: undefined, staffId: undefined }));
+    setTimeOfDay("all");
+  }
 
   const days = useMemo(() => daysInRange(range), [range]);
   const meetingsByIsoDay = useMemo(() => {
@@ -209,8 +227,8 @@ export function CalendarWidget({
             locations={locationsQuery.data ?? []}
             onChange={setSelectedFilters}
             selected={selectedFilters}
-            services={servicesQuery.data ?? []}
-            staff={staffQuery.data ?? []}
+            serviceOptions={serviceOptions}
+            staffOptions={staffOptions}
             timeOfDay={timeOfDay}
             onTimeOfDayChange={setTimeOfDay}
             activeLocationName={activeLocation?.name}
@@ -222,6 +240,22 @@ export function CalendarWidget({
 
       {isLoading ? (
         <CalendarSkeleton view={view} />
+      ) : visibleMeetings.length === 0 ? (
+        // Un solo estado vacio con el mismo alto que el calendario: siete columnas
+        // diciendo "sin clases" no aportan nada y el brinco de alto se nota feo.
+        <div className="gafa-empty-state gafa-empty-state--calendar">
+          <strong>{hasActiveFilters ? "No hay clases con estos filtros" : "No hay clases en estas fechas"}</strong>
+          <span>
+            {hasActiveFilters
+              ? "Prueba quitando algun filtro o cambiando de fecha."
+              : "Prueba con otra fecha u otra ubicacion."}
+          </span>
+          {hasActiveFilters ? (
+            <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={clearFilters}>
+              Limpiar filtros
+            </button>
+          ) : null}
+        </div>
       ) : view === "day" ? (
         <DayColumn
           date={anchor}
@@ -481,8 +515,8 @@ function CalendarFilterBar({
   locations,
   onChange,
   selected,
-  services,
-  staff,
+  serviceOptions,
+  staffOptions,
   timeOfDay,
   onTimeOfDayChange,
 }: {
@@ -494,8 +528,8 @@ function CalendarFilterBar({
   locations: Location[];
   onChange: React.Dispatch<React.SetStateAction<CalendarFiltersState>>;
   selected: CalendarFiltersState;
-  services: Service[];
-  staff: StaffMember[];
+  serviceOptions: Array<{ id: number; name: string }>;
+  staffOptions: Array<{ id: number; name: string }>;
   timeOfDay: TimeOfDay;
   onTimeOfDayChange(value: TimeOfDay): void;
 }) {
@@ -517,7 +551,12 @@ function CalendarFilterBar({
 
   const showLocation = Boolean(filters.location) && locations.length > 1;
   const showBrand = Boolean(filters.brand) && brands.length > 1;
-  const hasPanelFilters = Boolean(filters.service) || Boolean(filters.staff) || showBrand;
+  // El boton solo aparece cuando hay algo real que filtrar: con un unico
+  // servicio y sin coaches distintos no aporta nada. Si hay filtros activos se
+  // muestra siempre, para poder limpiarlos.
+  const showService = Boolean(filters.service) && serviceOptions.length > 1;
+  const showStaff = Boolean(filters.staff) && staffOptions.length > 1;
+  const hasPanelFilters = showService || showStaff || showBrand || activeCount > 0;
 
   return (
     <div className="gafa-filterbar" ref={panelRef}>
@@ -567,7 +606,7 @@ function CalendarFilterBar({
             </label>
           ) : null}
 
-          {filters.service && services.length > 0 ? (
+          {showService || selected.serviceId ? (
             <label className="gafa-calendar-filter">
               <span>Servicio</span>
               <select
@@ -577,16 +616,19 @@ function CalendarFilterBar({
                 }
               >
                 <option value="">Todos</option>
-                {services.map((service) => (
-                  <option key={service.id} value={service.id}>
-                    {service.name}
+                {serviceOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
                   </option>
                 ))}
+                {selected.serviceId && !serviceOptions.some((option) => option.id === selected.serviceId) ? (
+                  <option value={selected.serviceId}>Sin clases en estas fechas</option>
+                ) : null}
               </select>
             </label>
           ) : null}
 
-          {filters.staff && staff.length > 0 ? (
+          {showStaff || selected.staffId ? (
             <label className="gafa-calendar-filter">
               <span>Staff</span>
               <select
@@ -596,11 +638,14 @@ function CalendarFilterBar({
                 }
               >
                 <option value="">Todos</option>
-                {staff.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {[member.name, member.lastname].filter(Boolean).join(" ")}
+                {staffOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
                   </option>
                 ))}
+                {selected.staffId && !staffOptions.some((option) => option.id === selected.staffId) ? (
+                  <option value={selected.staffId}>Sin clases en estas fechas</option>
+                ) : null}
               </select>
             </label>
           ) : null}
