@@ -746,15 +746,13 @@
   text-align: center;
 }
 
-/* Dentro de un contenedor con scroll (el popup de la cuenta) un popover
-   absoluto se corta: ahi el calendario se abre en linea, debajo del campo. */
-.gafa-datepicker--inline {
-  box-shadow: none;
-  left: auto;
-  margin-top: 6px;
-  position: static;
-  transform: none;
-  width: 100%;
+/* El popup de la cuenta recorta su overflow (esquinas redondeadas) y tiene
+   scroll interno: un position:absolute normal quedaria cortado o desalineado.
+   Este va por portal a document.body con position:fixed calculado en JS
+   (BirthDateField), como un tooltip flotante de verdad. */
+.gafa-datepicker--floating {
+  position: fixed;
+  z-index: 2147483003;
 }
 
 .gafa-datepicker__selects {
@@ -2047,11 +2045,11 @@
   border-bottom: 1px solid var(--gafa-color-border);
   display: flex;
   flex-direction: column;
-  gap: var(--gafa-space-3);
+  gap: var(--gafa-space-4);
   /* Sin esto, en movil la fila de secciones (que se scrollea sola) estira la
      columna a su ancho completo y todo el popup se desborda. */
   min-width: 0;
-  padding: var(--gafa-space-4) var(--gafa-space-4) var(--gafa-space-3);
+  padding: var(--gafa-space-4) var(--gafa-space-4) var(--gafa-space-4);
 }
 
 @media (min-width: 768px) {
@@ -2117,11 +2115,11 @@
 
 .gafa-acct__nav {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   margin: 0 calc(var(--gafa-space-4) * -1);
   min-width: 0;
   overflow-x: auto;
-  padding: 0 var(--gafa-space-4);
+  padding: 2px var(--gafa-space-4);
   scrollbar-width: none;
 }
 
@@ -2149,8 +2147,8 @@
   flex: 0 0 auto;
   font-size: 0.88rem;
   font-weight: 600;
-  gap: 0.55rem;
-  padding: 0.6rem 0.9rem;
+  gap: 0.6rem;
+  padding: 0.68rem 0.95rem;
   text-align: left;
   transition: background 0.15s ease, color 0.15s ease;
   white-space: nowrap;
@@ -2433,7 +2431,20 @@
 .gafa-acct-next__empty {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: var(--gafa-space-3);
+}
+
+.gafa-acct-next__empty-cta {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+@media (max-width: 560px) {
+  .gafa-acct-next__empty-cta {
+    margin-left: 0;
+    width: 100%;
+  }
 }
 
 .gafa-acct-next__empty-emoji {
@@ -2754,6 +2765,44 @@
   margin: 0;
   padding: var(--gafa-space-4);
   text-align: center;
+}
+
+/* Estado vacio "con vida": el mismo emoji+titulo+CTA en Mis clases, Creditos
+   y Compras, para que el socio sepa a donde ir en vez de solo leer que no
+   tiene nada. */
+.gafa-acct-empty2 {
+  background:
+    radial-gradient(120% 160% at 50% 0%, color-mix(in srgb, var(--gafa-color-accent) 10%, transparent) 0%, transparent 60%),
+    var(--gafa-color-surface-raised);
+  border: 1px dashed var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  padding: var(--gafa-space-5) var(--gafa-space-4);
+  text-align: center;
+}
+
+.gafa-acct-empty2__emoji {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.gafa-acct-empty2 strong {
+  font-size: 1rem;
+}
+
+.gafa-acct-empty2 p {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.86rem;
+  margin: 0;
+  max-width: 320px;
+}
+
+.gafa-acct-empty2__cta {
+  margin-top: var(--gafa-space-2);
+  min-width: 180px;
 }
 
 .gafa-acct-class {

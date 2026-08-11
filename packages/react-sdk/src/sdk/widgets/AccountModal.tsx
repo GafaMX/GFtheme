@@ -15,6 +15,9 @@ export type AccountModalProps = {
   /** Nombre de la marca para el encabezado del popup. */
   title?: string;
   combineWaitlist?: boolean;
+  /** CTA de los estados vacios de la cuenta: cierran el popup y llevan al calendario/paquetes del sitio. */
+  onExploreClasses?(): void;
+  onExplorePackages?(): void;
 };
 
 /**
@@ -30,6 +33,8 @@ export function AccountModal({
   onClose,
   title = "Tu cuenta",
   combineWaitlist = false,
+  onExploreClasses,
+  onExplorePackages,
 }: AccountModalProps) {
   const queryClient = useQueryClient();
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -115,6 +120,22 @@ export function AccountModal({
             combineWaitlist={combineWaitlist}
             variant="modal"
             onRequestClose={onClose}
+            onExploreClasses={
+              onExploreClasses
+                ? () => {
+                    onClose();
+                    onExploreClasses();
+                  }
+                : undefined
+            }
+            onExplorePackages={
+              onExplorePackages
+                ? () => {
+                    onClose();
+                    onExplorePackages();
+                  }
+                : undefined
+            }
           />
         ) : (
           <div className="gafa-account-modal__auth">

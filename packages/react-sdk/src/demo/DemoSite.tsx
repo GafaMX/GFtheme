@@ -173,6 +173,8 @@ function DemoShell({
           open={accountOpen}
           onClose={() => setAccountOpen(false)}
           title={brand.label}
+          onExploreClasses={() => setPage("calendario")}
+          onExplorePackages={() => setPage("paquetes")}
         />
 
         <footer className="demo-footer">

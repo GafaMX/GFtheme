@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CustomFieldGroup,
@@ -26,6 +27,9 @@ export type ProfileWidgetProps = {
   /** En `modal` el contenedor pone el marco y el boton de cerrar. */
   variant?: "page" | "modal";
   onRequestClose?(): void;
+  /** CTA de los estados vacios ("aun no tienes clases/compras..."): llevan al calendario o a paquetes del sitio anfitrion. Sin estos, el CTA no se pinta. */
+  onExploreClasses?(): void;
+  onExplorePackages?(): void;
 };
 
 type ProfileTab = "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
@@ -81,6 +85,8 @@ export function ProfileWidget({
   combineWaitlist = false,
   variant = "page",
   onRequestClose,
+  onExploreClasses,
+  onExplorePackages,
 }: ProfileWidgetProps) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>("overview");
@@ -325,6 +331,7 @@ export function ProfileWidget({
               onCancel={setPendingCancel}
               onShowQr={setQrReservation}
               onGoTo={setTab}
+              onExploreClasses={onExploreClasses}
             />
           ) : null}
 
@@ -342,6 +349,7 @@ export function ProfileWidget({
               paymentLabel={paymentLabel}
               onCancel={setPendingCancel}
               onShowQr={setQrReservation}
+              onExploreClasses={onExploreClasses}
             />
           ) : null}
 
@@ -352,6 +360,7 @@ export function ProfileWidget({
               storeCredit={profile.storeCreditTotal}
               loading={creditsQuery.isLoading || membershipsQuery.isLoading}
               error={creditsQuery.isError || membershipsQuery.isError}
+              onExplorePackages={onExplorePackages}
             />
           ) : null}
 
@@ -360,6 +369,7 @@ export function ProfileWidget({
               purchases={purchasesQuery.data ?? []}
               loading={purchasesQuery.isLoading}
               error={purchasesQuery.isError}
+              onExplorePackages={onExplorePackages}
             />
           ) : null}
 
@@ -442,6 +452,7 @@ function OverviewPanel({
   onCancel,
   onShowQr,
   onGoTo,
+  onExploreClasses,
 }: {
   profile: UserProfile;
   nextClass?: UserReservation;
@@ -458,6 +469,7 @@ function OverviewPanel({
   onCancel(reservation: UserReservation): void;
   onShowQr(reservation: UserReservation): void;
   onGoTo(tab: ProfileTab): void;
+  onExploreClasses?(): void;
 }) {
   const creditTotal = credits.reduce((sum, credit) => sum + (Number(credit.total) || 0), 0);
 
@@ -511,6 +523,11 @@ function OverviewPanel({
               <p>Sin clases reservadas</p>
               <span className="gafa-muted">Reserva desde el calendario y aparecerá aquí con tu código QR.</span>
             </div>
+            {onExploreClasses ? (
+              <button className="gafa-sdk-button gafa-acct-next__empty-cta" type="button" onClick={onExploreClasses}>
+                Ver calendario
+              </button>
+            ) : null}
           </div>
         )}
 
@@ -678,6 +695,7 @@ function ClassesPanel({
   paymentLabel,
   onCancel,
   onShowQr,
+  onExploreClasses,
 }: {
   upcoming: UserReservation[];
   waitlist: UserReservation[];
@@ -691,6 +709,7 @@ function ClassesPanel({
   paymentLabel(reservation: UserReservation): string | null;
   onCancel(reservation: UserReservation): void;
   onShowQr(reservation: UserReservation): void;
+  onExploreClasses?(): void;
 }) {
   const [scope, setScope] = useState<"upcoming" | "history">("upcoming");
 
@@ -711,7 +730,15 @@ function ClassesPanel({
             title="Reservadas"
             loading={loadingFuture}
             error={errorFuture}
-            empty="No tienes clases reservadas."
+            empty={
+              <EmptyState
+                emoji="🗓️"
+                title="No tienes clases reservadas"
+                description="Explora el calendario y reserva tu próxima clase."
+                actionLabel={onExploreClasses ? "Ver calendario" : undefined}
+                onAction={onExploreClasses}
+              />
+            }
             count={upcoming.length}
           >
             {upcoming.map((reservation) => (
@@ -791,7 +818,7 @@ function ClassGroup({
   title: string;
   loading?: boolean;
   error?: boolean;
-  empty: string;
+  empty: ReactNode;
   count: number;
   children: ReactNode;
 }) {
@@ -803,9 +830,43 @@ function ClassGroup({
       </h3>
       {loading ? <span className="gafa-skeleton gafa-acct__boot-bar" /> : null}
       {error ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar esta sección.</p> : null}
-      {!loading && !error && count === 0 && empty ? <p className="gafa-acct-empty">{empty}</p> : null}
+      {!loading && !error && count === 0 && empty ? empty : null}
       {!loading && !error && count > 0 ? <div className="gafa-acct-cards">{children}</div> : null}
     </section>
+  );
+}
+
+/**
+ * Estado vacio compartido: emoji + titulo + explicacion + un CTA opcional que
+ * saca de la cuenta y manda a reservar/comprar. Sin `onAction` (el sitio
+ * anfitrion no conecto la navegacion) se queda sin boton, no rompe nada.
+ */
+function EmptyState({
+  emoji,
+  title,
+  description,
+  actionLabel,
+  onAction,
+}: {
+  emoji: string;
+  title: string;
+  description?: string;
+  actionLabel?: string;
+  onAction?(): void;
+}) {
+  return (
+    <div className="gafa-acct-empty2">
+      <span className="gafa-acct-empty2__emoji" aria-hidden="true">
+        {emoji}
+      </span>
+      <strong>{title}</strong>
+      {description ? <p>{description}</p> : null}
+      {actionLabel && onAction ? (
+        <button className="gafa-sdk-button gafa-acct-empty2__cta" type="button" onClick={onAction}>
+          {actionLabel}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -887,15 +948,29 @@ function BalancePanel({
   storeCredit,
   loading,
   error,
+  onExplorePackages,
 }: {
   credits: UserCredit[];
   memberships: UserMembership[];
   storeCredit?: string;
   loading: boolean;
   error: boolean;
+  onExplorePackages?(): void;
 }) {
   if (loading) return <span className="gafa-skeleton gafa-acct__boot-bar" />;
   if (error) return <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar esta sección.</p>;
+
+  if (!credits.length && !memberships.length) {
+    return (
+      <EmptyState
+        emoji="🎟️"
+        title="No tienes paquetes ni membresías activos"
+        description="Compra un paquete de clases o una membresía para empezar a reservar."
+        actionLabel={onExplorePackages ? "Ver paquetes" : undefined}
+        onAction={onExplorePackages}
+      />
+    );
+  }
 
   return (
     <div className="gafa-acct-cards">
@@ -935,10 +1010,6 @@ function BalancePanel({
         </div>
         <strong className="gafa-acct-row__value">{formatWallet(storeCredit)}</strong>
       </article>
-
-      {!credits.length && !memberships.length ? (
-        <p className="gafa-acct-empty">No tienes paquetes ni membresías activos.</p>
-      ) : null}
     </div>
   );
 }
@@ -947,14 +1018,26 @@ function PurchasesPanel({
   purchases,
   loading,
   error,
+  onExplorePackages,
 }: {
   purchases: UserPurchase[];
   loading: boolean;
   error: boolean;
+  onExplorePackages?(): void;
 }) {
   if (loading) return <span className="gafa-skeleton gafa-acct__boot-bar" />;
   if (error) return <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar esta sección.</p>;
-  if (!purchases.length) return <p className="gafa-acct-empty">Todavía no tienes compras.</p>;
+  if (!purchases.length) {
+    return (
+      <EmptyState
+        emoji="🧾"
+        title="Todavía no tienes compras"
+        description="Cuando compres un paquete o una membresía, aparecerá aquí."
+        actionLabel={onExplorePackages ? "Ver paquetes" : undefined}
+        onAction={onExplorePackages}
+      />
+    );
+  }
 
   return (
     <div className="gafa-acct-cards">
@@ -1177,12 +1260,70 @@ function ProfileForm({
  */
 function BirthDateField({ value, onChange }: { value: string; onChange(value: string): void }) {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const [rect, setRect] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
+  // Los colores del popover vienen de variables CSS que ThemeProvider pone en
+  // .gafa-sdk (no en :root): portalear a document.body se saldria de ese
+  // scope y el calendario quedaria sin fondo/bordes/sombra.
+  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const maxIso = toIsoDate(new Date());
   const minIso = `${new Date().getFullYear() - 100}-01-01`;
+
+  // El popup de la cuenta recorta su overflow (para las esquinas redondeadas) y
+  // ademas tiene scroll interno: un popover con position:absolute quedaria
+  // cortado o desalineado. Se posiciona con position:fixed via portal, como un
+  // tooltip flotante de verdad, y se recalcula al abrir/hacer scroll/resize.
+  useLayoutEffect(() => {
+    if (!open) return;
+    setPortalTarget(buttonRef.current?.closest(".gafa-sdk") ?? document.body);
+
+    const reposition = () => {
+      const anchor = buttonRef.current?.getBoundingClientRect();
+      if (!anchor) return;
+      const width = Math.max(anchor.width, 300);
+      const left = Math.min(Math.max(anchor.left, 12), window.innerWidth - width - 12);
+      const spaceBelow = window.innerHeight - anchor.bottom;
+      const openUpward = spaceBelow < 360 && anchor.top > spaceBelow;
+      setRect({
+        top: openUpward ? undefined : anchor.bottom + 6,
+        bottom: openUpward ? window.innerHeight - anchor.top + 6 : undefined,
+        left,
+        width,
+      });
+    };
+
+    reposition();
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   return (
     <div className="gafa-acct-datefield">
       <button
+        ref={buttonRef}
         className="gafa-acct-datefield__button"
         type="button"
         aria-expanded={open}
@@ -1194,36 +1335,43 @@ function BirthDateField({ value, onChange }: { value: string; onChange(value: st
         <CalendarIcon />
       </button>
 
-      {open ? (
-        <div className="gafa-datepicker gafa-datepicker--inline">
-          <MonthCalendar
-            selectedIso={value || undefined}
-            initialMonth={value ? undefined : new Date(new Date().getFullYear() - 25, 0, 1)}
-            minIso={minIso}
-            maxIso={maxIso}
-            navigation="select"
-            onPick={(iso) => {
-              onChange(iso);
-              setOpen(false);
-            }}
-          />
-          <div className="gafa-datepicker__footer">
-            <button
-              type="button"
-              className="gafa-acct-link"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
+      {open && rect && portalTarget
+        ? createPortal(
+            <div
+              ref={popoverRef}
+              className="gafa-datepicker gafa-datepicker--floating"
+              style={{ top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width }}
             >
-              Limpiar
-            </button>
-            <button type="button" className="gafa-acct-link" onClick={() => setOpen(false)}>
-              Cerrar
-            </button>
-          </div>
-        </div>
-      ) : null}
+              <MonthCalendar
+                selectedIso={value || undefined}
+                initialMonth={value ? undefined : new Date(new Date().getFullYear() - 25, 0, 1)}
+                minIso={minIso}
+                maxIso={maxIso}
+                navigation="select"
+                onPick={(iso) => {
+                  onChange(iso);
+                  setOpen(false);
+                }}
+              />
+              <div className="gafa-datepicker__footer">
+                <button
+                  type="button"
+                  className="gafa-acct-link"
+                  onClick={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                >
+                  Limpiar
+                </button>
+                <button type="button" className="gafa-acct-link" onClick={() => setOpen(false)}>
+                  Cerrar
+                </button>
+              </div>
+            </div>,
+            portalTarget,
+          )
+        : null}
     </div>
   );
 }
