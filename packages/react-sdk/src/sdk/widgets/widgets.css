@@ -469,6 +469,16 @@
   font-size: 0.78rem;
 }
 
+/* Blindaje de iconos contra el CSS del sitio anfitrion: templates con reglas
+   tipo `svg { fill: #000 }` rellenaban de negro nuestros iconos de trazo
+   (el pin de ubicacion se veia negro en tema oscuro). Los iconos de trazo
+   NUNCA llevan relleno y siempre heredan el color del texto; los rellenos
+   (Apple/Google) declaran su propio fill y no entran aqui. */
+.gafa-widget-card svg [stroke]:not([fill]) {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
 .gafa-sdk-state {
   color: var(--gafa-color-muted-text);
   font-size: 0.92rem;
