@@ -24,6 +24,10 @@ type Page = "calendario" | "paquetes" | "cuenta";
 type BrandConfig = {
   label: string;
   companyId: number;
+  /** Cada compañía tiene su propio OAuth client en gafa.fit: con el de otra,
+      el login devuelve "La información del cliente es incorrecta". */
+  apiClient: string;
+  apiSecret: string;
   theme: GafaBrandTheme;
   /** La misma config que un socio pondria en su pagina: vista inicial, filtros, etc. */
   calendar: React.ComponentProps<typeof CalendarWidget>;
@@ -33,12 +37,17 @@ const BRANDS: Record<string, BrandConfig> = {
   bunker: {
     label: "Bunker Indoor Golf",
     companyId: 190,
+    apiClient: (import.meta.env.VITE_GAFA_API_CLIENT as string) ?? "345",
+    apiSecret: import.meta.env.VITE_GAFA_API_SECRET as string,
     theme: { colors: { brand: "#111111", accent: "#c8ff2e" }, colorScheme: "dark" },
     calendar: { view: "day", filters: { location: true, service: true, staff: true } },
   },
   fitspin: {
     label: "Fitspin",
     companyId: 80,
+    // Mismas credenciales publicas que fitspin.mx expone en GFThemeOptions.
+    apiClient: "74",
+    apiSecret: "hI8M3iAEVlWIIfxBLesaxhtEIVpEEPwRyHyxw523",
     theme: { colors: { brand: "#f2b705", accent: "#111827" }, colorScheme: "light" },
     // Fitspin abre en semana a proposito: demuestra que la vista inicial es
     // configuracion por socio, no un comportamiento fijo del SDK.
@@ -65,11 +74,16 @@ function DemoShell({
   onBrandChange(key: keyof typeof BRANDS): void;
 }) {
   const brand = BRANDS[brandKey];
-  const [page, setPage] = useState<Page>("calendario");
+  // El link del correo de restablecer contraseña llega con ?token=&email=:
+  // hay que aterrizar en Cuenta, no en el calendario.
+  const [page, setPage] = useState<Page>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("token") && params.get("email") ? "cuenta" : "calendario";
+  });
   const [signedIn, setSignedIn] = useState(false);
   const { scheme } = useGafaTheme();
 
-  const { client, captcha, queryClient } = useDemoClient(brand.companyId);
+  const { client, captcha, queryClient } = useDemoClient(brand);
 
   useEffect(() => {
     const sync = () => client.getProfile().then((profile) => setSignedIn(Boolean(profile)));
@@ -163,23 +177,23 @@ function DemoShell({
   );
 }
 
-function useDemoClient(companyId: number) {
-  const [state] = useState(() => createDemoClient(companyId));
+function useDemoClient(brand: BrandConfig) {
+  const [state] = useState(() => createDemoClient(brand));
   const [current, setCurrent] = useState(state);
 
   useEffect(() => {
-    setCurrent(createDemoClient(companyId));
-  }, [companyId]);
+    setCurrent(createDemoClient(brand));
+  }, [brand]);
 
   return current;
 }
 
-function createDemoClient(companyId: number) {
+function createDemoClient(brand: BrandConfig) {
   const config = parseSdkConfig({
     apiBaseUrl: import.meta.env.VITE_GAFA_FIT_URL as string,
-    companyId,
-    publicClientId: import.meta.env.VITE_GAFA_API_CLIENT as string,
-    clientSecret: import.meta.env.VITE_GAFA_API_SECRET as string,
+    companyId: brand.companyId,
+    publicClientId: brand.apiClient,
+    clientSecret: brand.apiSecret,
     // Sin captchaPublicKey/SecretKey: el SDK usa el par compartido de Buq por
     // default. Asi el registro funciona sin configurar captcha en cada sitio.
   });

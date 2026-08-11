@@ -18,9 +18,48 @@ export type AuthWidgetProps = {
 
 type FormStatus = "idle" | "submitting" | "success" | "error";
 
+/**
+ * Si la URL trae `token` + `email` es el link del correo de "olvidé mi
+ * contraseña" (return_url + params que agrega gafa.fit): hay que aterrizar
+ * directo en el formulario de nueva contraseña.
+ */
+function readPasswordResetLink(): { token: string; email: string } | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  const email = params.get("email");
+  return token && email ? { token, email } : null;
+}
+
+function clearPasswordResetLink() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("token");
+  url.searchParams.delete("email");
+  window.history.replaceState(null, "", url.toString());
+}
+
 export function AuthWidget({ client, captcha, initialView = "login", brandSlug, onAuthenticated }: AuthWidgetProps) {
+  const [resetLink, setResetLink] = useState(readPasswordResetLink);
   const [view, setView] = useState(initialView);
   const formView = view === "profile" ? "login" : view;
+
+  if (resetLink) {
+    return (
+      <WidgetShell eyebrow="Cuenta" title="Elige tu nueva contraseña" description={resetLink.email}>
+        <PasswordResetForm
+          client={client}
+          token={resetLink.token}
+          email={resetLink.email}
+          onDone={() => {
+            clearPasswordResetLink();
+            setResetLink(null);
+            onAuthenticated?.();
+          }}
+        />
+      </WidgetShell>
+    );
+  }
 
   return (
     <WidgetShell
@@ -312,6 +351,75 @@ function inputTypeFor(type: string): string {
     default:
       return "text";
   }
+}
+
+/** Paso final del "olvidé mi contraseña": setea la nueva y deja sesión iniciada. */
+function PasswordResetForm({
+  client,
+  token,
+  email,
+  onDone,
+}: {
+  client?: GafaClient;
+  token: string;
+  email: string;
+  onDone(): void;
+}) {
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [status, setStatus] = useState<FormStatus>("idle");
+  const [error, setError] = useState<string>();
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!client) return;
+
+    setStatus("submitting");
+    setError(undefined);
+
+    try {
+      await client.resetPassword({ email, password, passwordConfirmation, token });
+      // Autologin con la contraseña nueva: no tiene sentido pedirla de nuevo.
+      await client.login({ email, password });
+      setStatus("success");
+      onDone();
+    } catch (err) {
+      setStatus("error");
+      setError(err instanceof Error ? err.message : "No pudimos cambiar tu contraseña.");
+    }
+  }
+
+  return (
+    <form className="gafa-sdk-form" onSubmit={handleSubmit}>
+      <label className="gafa-sdk-field">
+        <span>Nueva contraseña</span>
+        <input
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={5}
+        />
+      </label>
+      <label className="gafa-sdk-field">
+        <span>Confirma tu contraseña</span>
+        <input
+          type="password"
+          placeholder="••••••••"
+          value={passwordConfirmation}
+          onChange={(e) => setPasswordConfirmation(e.target.value)}
+          required
+        />
+      </label>
+
+      {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
+
+      <button className="gafa-sdk-button" type="submit" disabled={!client || status === "submitting"}>
+        {status === "submitting" ? "Guardando..." : "Cambiar contraseña y entrar"}
+      </button>
+    </form>
+  );
 }
 
 function PasswordRecoveryForm({ client }: { client?: GafaClient }) {
