@@ -1906,12 +1906,15 @@ function SeatMapInline({
         </span>
       </div>
 
-      <div
-        className="gafa-seatmap__grid"
-        role="listbox"
-        aria-label="Lugares del salón"
-        style={{ gridTemplateColumns: `repeat(${map.columns}, 1fr)` }}
-      >
+      {/* El mapa puede ser mas grande que la pantalla: scroll controlado SOLO
+          aqui, con lugares de tamano tocable (nunca se encogen). */}
+      <div className="gafa-seatmap__scroll">
+        <div
+          className="gafa-seatmap__grid"
+          role="listbox"
+          aria-label="Lugares del salón"
+          style={{ gridTemplateColumns: `repeat(${map.columns}, minmax(40px, 1fr))` }}
+        >
         {map.objects.map((seat) => {
           const style: React.CSSProperties = {
             gridColumn: `${seat.column + 1} / span ${seat.width}`,
@@ -1957,6 +1960,7 @@ function SeatMapInline({
             </button>
           );
         })}
+        </div>
       </div>
     </div>
   );

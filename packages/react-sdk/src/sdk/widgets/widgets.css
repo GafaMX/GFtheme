@@ -1246,6 +1246,7 @@
 .gafa-reservation-body {
   display: grid;
   gap: var(--gafa-space-3);
+  min-height: 0;
 }
 
 .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-body {
@@ -1254,9 +1255,81 @@
   grid-template-columns: minmax(230px, 300px) 1fr;
 }
 
+/* Movil: el modal ocupa la pantalla util SIN scroll general; el unico scroll
+   vive dentro del mapa. Info compacta y botones siempre a la vista. */
 @media (max-width: 720px) {
+  .gafa-reservation-sheet[data-has-map="true"] {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 24px);
+    overflow: hidden;
+    padding: var(--gafa-space-3);
+  }
+
   .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-body {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--gafa-space-2);
+    grid-template-columns: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-info {
+    flex-shrink: 0;
+    gap: var(--gafa-space-2);
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-seatmap {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-seatmap__scroll {
+    flex: 1;
+  }
+
+  /* Lista mas densa en pantallas chicas. */
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-summary {
+    gap: 6px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-summary div {
+    padding-bottom: 6px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-summary span:first-child,
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-summary strong {
+    font-size: 0.82rem;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-summary__coach img {
+    height: 26px;
+    width: 26px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-hint,
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-payment-choice {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions {
+    flex-shrink: 0;
+  }
+
+  .gafa-seatmap__legend {
+    flex-shrink: 0;
+    font-size: 0.74rem;
+    gap: var(--gafa-space-2);
+  }
+
+  .gafa-seatmap__legend img {
+    height: 15px;
+    width: 15px;
   }
 }
 
@@ -1325,10 +1398,22 @@
   border-color: var(--gafa-color-primary);
 }
 
+/* Scroll controlado SOLO del mapa: mapas grandes se desplazan aqui adentro,
+   nunca mueven el resto del modal. */
+.gafa-seatmap__scroll {
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 .gafa-seatmap__grid {
   display: grid;
   gap: 6px;
   justify-items: stretch;
+  min-width: 100%;
+  width: max-content;
 }
 
 .gafa-seatmap__seat {
