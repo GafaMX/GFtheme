@@ -1914,6 +1914,15 @@
   width: 100%;
 }
 
+/* Alto fijo con la sesion iniciada, en TODOS los tamaños: sin esto, saltar de
+   "Mis clases" (largo) a "Compras" o "Contraseña" (cortos) encogia el popup
+   entero y, como en movil esta anclado abajo (align-items: flex-end), se veia
+   como si saltara/se moviera solo. El sobrante corto queda en blanco al
+   fondo del panel, que es mucho menos raro que el salto. */
+.gafa-account-modal[data-state="account"] {
+  height: min(620px, 88dvh);
+}
+
 .gafa-account-modal:focus {
   outline: none;
 }
@@ -2113,10 +2122,49 @@
   white-space: nowrap;
 }
 
+.gafa-acct__nav-shell {
+  margin: 0 calc(var(--gafa-space-4) * -1);
+  position: relative;
+}
+
+/* Degradado en los dos bordes: la unica pista de que la fila de secciones
+   sigue para los lados. Sin esto se ve como una lista completa y "Mis datos"
+   /"Contraseña" quedan escondidos sin ningun aviso. */
+.gafa-acct__nav-shell::before,
+.gafa-acct__nav-shell::after {
+  bottom: 0;
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 28px;
+  z-index: 1;
+}
+
+.gafa-acct__nav-shell::before {
+  background: linear-gradient(to right, var(--gafa-color-surface-raised), transparent);
+  left: 0;
+}
+
+.gafa-acct__nav-shell::after {
+  background: linear-gradient(to left, var(--gafa-color-surface-raised), transparent);
+  right: 0;
+}
+
+@media (min-width: 768px) {
+  .gafa-acct__nav-shell {
+    margin: 0;
+  }
+
+  .gafa-acct__nav-shell::before,
+  .gafa-acct__nav-shell::after {
+    display: none;
+  }
+}
+
 .gafa-acct__nav {
   display: flex;
   gap: 6px;
-  margin: 0 calc(var(--gafa-space-4) * -1);
   min-width: 0;
   overflow-x: auto;
   padding: 2px var(--gafa-space-4);
@@ -2130,7 +2178,6 @@
 @media (min-width: 768px) {
   .gafa-acct__nav {
     flex-direction: column;
-    margin: 0;
     overflow: visible;
     padding: 0;
   }
@@ -2222,7 +2269,9 @@
 
 .gafa-acct__head {
   border-bottom: 1px solid var(--gafa-color-border);
-  padding: var(--gafa-space-4) var(--gafa-space-4) var(--gafa-space-3);
+  /* padding-right reserva espacio para la X, que es absoluta y flota encima:
+     sin esto un titulo largo (el saludo con el nombre) se le mete debajo. */
+  padding: var(--gafa-space-4) 52px var(--gafa-space-3) var(--gafa-space-4);
 }
 
 @media (min-width: 768px) {
@@ -2609,32 +2658,33 @@
   transform: rotate(180deg);
 }
 
-.gafa-acct-balance__dots {
-  display: flex;
-  gap: 4px;
-}
-
-.gafa-acct-balance__dots button {
-  background: var(--gafa-color-border);
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  height: 6px;
-  padding: 0;
-  transition: background 0.15s ease, width 0.15s ease;
-  width: 6px;
-}
-
-.gafa-acct-balance__dots button[aria-current="true"] {
-  background: var(--gafa-color-primary);
-  width: 14px;
-  border-radius: 3px;
+.gafa-acct-balance__count {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: center;
 }
 
 .gafa-acct-stats {
   display: grid;
   gap: var(--gafa-space-2);
   grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+}
+
+/* A los anchos de un popup en movil, minmax(108px) da 2 columnas: con 5
+   tarjetas la ultima quedaba sola y estirada al doble de ancho que sus
+   hermanas, muy raro. Fijar 2 columnas y que la sobrante (si el total es
+   impar) ocupe todo el ancho en vez de estirarse una sola tarjeta al azar. */
+@media (max-width: 640px) {
+  .gafa-acct-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .gafa-acct-stats > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 .gafa-acct-stat {
@@ -2943,6 +2993,9 @@
   font-size: 0.84rem;
   font-weight: 700;
   margin: 0.1rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gafa-acct-class__meta {

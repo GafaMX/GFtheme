@@ -266,20 +266,29 @@ export function ProfileWidget({
           </div>
         </div>
 
-        <nav className="gafa-acct__nav" aria-label="Secciones de tu cuenta">
-          {TABS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="gafa-acct__nav-item"
-              aria-current={tab === item.id ? "page" : undefined}
-              onClick={() => setTab(item.id)}
-            >
-              <span className="gafa-acct__nav-icon">{item.icon}</span>
-              <span className="gafa-acct__nav-label">{item.label}</span>
-            </button>
-          ))}
-        </nav>
+        {/* El degradado de los bordes (CSS, .gafa-acct__nav-shell) es lo que le
+            avisa al socio en movil que la fila de secciones sigue para los
+            lados: sin el, parecia una lista completa y quedaba "Contraseña"
+            escondida fuera de la pantalla sin ninguna pista. */}
+        <div className="gafa-acct__nav-shell">
+          <nav className="gafa-acct__nav" aria-label="Secciones de tu cuenta">
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="gafa-acct__nav-item"
+                aria-current={tab === item.id ? "page" : undefined}
+                onClick={(event) => {
+                  setTab(item.id);
+                  event.currentTarget.scrollIntoView({ block: "nearest", inline: "center" });
+                }}
+              >
+                <span className="gafa-acct__nav-icon">{item.icon}</span>
+                <span className="gafa-acct__nav-label">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
 
         <div className="gafa-acct__side-foot">
           <button
@@ -750,17 +759,11 @@ function BalanceCard({ emoji, slides }: { emoji: string; slides: BalanceSlide[] 
           >
             <ChevronIcon />
           </button>
-          <div className="gafa-acct-balance__dots">
-            {slides.map((slide, i) => (
-              <button
-                key={slide.title ?? i}
-                type="button"
-                aria-label={slide.title ? `Ver ${slide.title}` : `Paquete ${i + 1}`}
-                aria-current={i === index ? "true" : undefined}
-                onClick={() => setIndex(i)}
-              />
-            ))}
-          </div>
+          {/* Puntos = "hay mas cosas" pero no dicen cuantas ni cual ves: un
+              contador "1 / 2" se entiende sin explicarlo. */}
+          <span className="gafa-acct-balance__count">
+            {index + 1} / {slides.length}
+          </span>
           <button
             type="button"
             aria-label="Paquete siguiente"
@@ -995,8 +998,11 @@ function ReservationCard({
 
       <div className="gafa-acct-class__info">
         <h4>{reservation.serviceName}</h4>
+        {/* Dia y mes ya estan en el bloque de fecha de la izquierda: repetirlos
+            aqui + la hora no cabe en una linea en movil y el a.m./p.m. se
+            partia solo. Aqui solo va el nombre del dia. */}
         <p className="gafa-acct-class__when">
-          {capitalize(formatWeekday(reservation.startsAt))} · {formatTime(reservation.startsAt)}
+          {capitalize(formatWeekdayShort(reservation.startsAt))} · {formatTime(reservation.startsAt)}
         </p>
         <p className="gafa-acct-class__meta">{describeReservation(reservation)}</p>
         <div className="gafa-acct-class__tags">
@@ -1777,6 +1783,12 @@ function formatTime(value: string): string {
   const date = toDate(value);
   if (!date) return value;
   return date.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
+}
+
+function formatWeekdayShort(value: string): string {
+  const date = toDate(value);
+  if (!date) return value;
+  return date.toLocaleDateString("es-MX", { weekday: "long" });
 }
 
 function formatWeekday(value: string): string {
