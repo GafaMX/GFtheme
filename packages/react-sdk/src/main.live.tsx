@@ -13,6 +13,9 @@ const sdk = createGafaSdk({
   publicClientId: import.meta.env.VITE_GAFA_API_CLIENT as string,
   clientSecret: import.meta.env.VITE_GAFA_API_SECRET as string,
   captchaPublicKey: import.meta.env.VITE_GAFA_CAPTCHA_PUBLIC_KEY as string | undefined,
+  // Zona que sirve las miniaturas. Sin esta variable se usa el host de la API,
+  // que es lo que pasa en produccion; se puede apuntar a otro lado para probar.
+  images: { transformBaseUrl: import.meta.env.VITE_GAFA_IMAGES_ZONE as string | undefined },
   theme: {
     preset: "boutique",
     colors: {

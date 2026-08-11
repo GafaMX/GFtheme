@@ -4,5 +4,8 @@ export { legacyOptionsToConfig, parseSdkConfig, readLegacyOptionsFromDom } from 
 export type { GafaSdkConfig, GafaSdkConfigInput } from "./config";
 export { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 export type { LegacyBootstrapResult } from "./bootstrap/legacyBootstrap";
+export { buildThumbnailUrl, resolveImagesConfig } from "./images/imageProxy";
+export type { ImagesConfig, ThumbnailOptions } from "./images/imageProxy";
+export { RemoteImage } from "./images/ImagesProvider";
 export type { GafaBrandTheme } from "./theme/theme";
 export type { GafaClient } from "./client/types";

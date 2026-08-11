@@ -11,6 +11,19 @@ import type { GafaBrandTheme } from "./theme/theme";
 export const DEFAULT_CAPTCHA_PUBLIC_KEY = "6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8";
 export const DEFAULT_CAPTCHA_SECRET_KEY = "6LcGcsEUAAAAAOQCOt68hLjGsYHuELQZFheZtgbn";
 
+/**
+ * Miniaturas de las imagenes que suben las marcas. Por default se piden a la
+ * misma zona de Cloudflare donde vive la API (ver `images/imageProxy.ts`); si la
+ * zona no tiene Transformations activado, el SDK lo detecta solo y sigue
+ * funcionando sin miniaturas.
+ */
+const imagesSchema = z
+  .object({
+    provider: z.enum(["cloudflare", "none"]).optional(),
+    transformBaseUrl: z.string().optional(),
+  })
+  .optional();
+
 const legacyThemeSchema = z
   .object({
     preset: z.string().optional(),
@@ -47,6 +60,7 @@ export const sdkConfigSchema = z
     // que el cliente le manda en cada registro (ver App\Rules\Captcha). Viene asi del backend.
     captchaSecretKey: z.string().default(DEFAULT_CAPTCHA_SECRET_KEY),
     language: z.enum(["es", "en"]).default("es"),
+    images: imagesSchema,
     theme: legacyThemeSchema,
   })
   .passthrough();
@@ -65,6 +79,7 @@ const legacyOptionsSchema = z
     TOKENMOVIL: z.string().nullable().optional(),
     CAPTCHA_PUBLIC_KEY: z.string().optional(),
     CAPTCHA_SECRET_KEY: z.string().optional(),
+    IMAGES: imagesSchema,
     THEME: legacyThemeSchema,
   })
   .passthrough();
@@ -90,6 +105,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     tokenMovil: legacyOptions.TOKENMOVIL,
     captchaPublicKey: legacyOptions.CAPTCHA_PUBLIC_KEY,
     captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY,
+    images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
   });
 }

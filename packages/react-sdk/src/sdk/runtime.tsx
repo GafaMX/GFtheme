@@ -8,6 +8,7 @@ import { createLegacyGafaFitAdapter } from "./client/legacyGafaFitAdapter";
 import { createHttpGafaClient } from "./client/httpGafaClient";
 import { createCaptchaProvider } from "./captcha/CaptchaProvider";
 import { subscribeToAuthChanges } from "./client/tokenStorage";
+import { ImagesProvider } from "./images/ImagesProvider";
 import { ThemeProvider } from "./theme/theme";
 import { AuthWidget, type AuthWidgetProps } from "./widgets/AuthWidget";
 import { CalendarWidget, type CalendarWidgetProps } from "./widgets/CalendarWidget";
@@ -71,9 +72,11 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     root.render(
       <React.StrictMode>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider theme={config.theme}>
-            {node}
-          </ThemeProvider>
+          <ImagesProvider images={config.images} apiBaseUrl={config.apiBaseUrl}>
+            <ThemeProvider theme={config.theme}>
+              {node}
+            </ThemeProvider>
+          </ImagesProvider>
         </QueryClientProvider>
       </React.StrictMode>
     );
