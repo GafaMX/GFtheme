@@ -383,7 +383,9 @@ export function CalendarWidget({
     [activeLocationGroup],
   );
 
-  const firstBookableDayIso = useMemo(() => {
+  // Dias del horizonte que SI tienen clases reservables para la seleccion
+  // actual de sede: alimenta el salto automatico y el date-picker.
+  const bookableDays = useMemo(() => {
     const days = new Set<string>();
     for (const meeting of horizonMeetings) {
       if (meeting.passed) continue;
@@ -394,8 +396,10 @@ export function CalendarWidget({
       const day = meetingDayIso(meeting);
       if (day && day >= todayIso) days.add(day);
     }
-    return [...days].sort()[0] ?? null;
+    return days;
   }, [activeLocationIdSet, horizonMeetings, todayIso]);
+
+  const firstBookableDayIso = useMemo(() => [...bookableDays].sort()[0] ?? null, [bookableDays]);
 
   // Si el dia anclado no tiene cupo (hoy ya finalizado, o sede sin horarios
   // ese dia), salta al primer dia con disponibilidad. Las flechas desactivan
@@ -534,6 +538,13 @@ export function CalendarWidget({
         range={range}
         view={view}
         viewToggle={viewToggle}
+        bookableDays={bookableDays}
+        minIso={todayIso}
+        maxIso={horizonIso}
+        onPickDate={(iso) => {
+          allowAutoSkipRef.current = false;
+          setAnchorIso(iso);
+        }}
         onPrev={goPrev}
         onNext={goNext}
         onToday={() => {
@@ -660,6 +671,10 @@ function CalendarToolbar({
   range,
   view,
   viewToggle,
+  bookableDays,
+  minIso,
+  maxIso,
+  onPickDate,
   onPrev,
   onNext,
   onToday,
@@ -672,6 +687,10 @@ function CalendarToolbar({
   range: DateRange;
   view: CalendarView;
   viewToggle: React.ReactNode;
+  bookableDays: Set<string>;
+  minIso: string;
+  maxIso: string;
+  onPickDate(iso: string): void;
   onPrev(): void;
   onNext(): void;
   onToday(): void;
@@ -680,6 +699,18 @@ function CalendarToolbar({
   canGoNext: boolean;
   filterBar: React.ReactNode;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) setPickerOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [pickerOpen]);
+
   // Corto a proposito: en movil "Martes, 11 de agosto" se comia toda una fila.
   const label =
     view === "day"
@@ -729,18 +760,153 @@ function CalendarToolbar({
           </button>
         </div>
 
-        <div className="gafa-calendar-toolbar__label" aria-live="polite">
-          <strong>{label}</strong>
+        <div className="gafa-calendar-toolbar__label" ref={pickerRef}>
+          <button
+            className="gafa-calendar-date-button"
+            type="button"
+            aria-expanded={pickerOpen}
+            aria-haspopup="dialog"
+            title="Elegir fecha"
+            onClick={() => setPickerOpen((open) => !open)}
+          >
+            <CalendarIcon />
+            <strong aria-live="polite">{label}</strong>
+          </button>
           {/* Spinner de ancho fijo: el texto "actualizando..." hacia brincar
               la fila a tres lineas mientras cargaba. */}
           {isRefreshing ? (
             <span className="gafa-toolbar-spinner" role="status" aria-label="Actualizando" />
+          ) : null}
+
+          {pickerOpen ? (
+            <DatePickerPopover
+              anchor={anchor}
+              bookableDays={bookableDays}
+              minIso={minIso}
+              maxIso={maxIso}
+              onPick={(iso) => {
+                setPickerOpen(false);
+                onPickDate(iso);
+              }}
+            />
           ) : null}
         </div>
       </div>
 
       <div className="gafa-calendar-toolbar__filters">{filterBar}</div>
     </div>
+  );
+}
+
+const WEEKDAY_HEADERS = ["L", "M", "M", "J", "V", "S", "D"];
+
+/**
+ * Mini calendario para saltar a una fecha: dias con clases activos, el resto
+ * deshabilitado. Acotado a hoy → horizonte publicado (calendar_days).
+ */
+function DatePickerPopover({
+  anchor,
+  bookableDays,
+  minIso,
+  maxIso,
+  onPick,
+}: {
+  anchor: Date;
+  bookableDays: Set<string>;
+  minIso: string;
+  maxIso: string;
+  onPick(iso: string): void;
+}) {
+  const [monthCursor, setMonthCursor] = useState(() => new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+
+  const monthLabel = new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" }).format(monthCursor);
+  const anchorIso = toIsoDate(anchor);
+  const todayIso = toIsoDate(new Date());
+
+  const prevMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1);
+  const nextMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1);
+  const lastOfPrev = toIsoDate(new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 0));
+  const firstOfNext = toIsoDate(nextMonth);
+  const canPrevMonth = lastOfPrev >= minIso;
+  const canNextMonth = firstOfNext <= maxIso;
+
+  // Celdas del mes alineadas a semana de lunes.
+  const cells: Array<Date | null> = [];
+  const firstDay = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1);
+  const leading = (firstDay.getDay() + 6) % 7;
+  for (let i = 0; i < leading; i++) cells.push(null);
+  const daysInMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(new Date(monthCursor.getFullYear(), monthCursor.getMonth(), day));
+  }
+
+  return (
+    <div className="gafa-datepicker" role="dialog" aria-label="Elegir fecha">
+      <div className="gafa-datepicker__header">
+        <button
+          className="gafa-icon-button"
+          type="button"
+          disabled={!canPrevMonth}
+          onClick={() => setMonthCursor(prevMonth)}
+          aria-label="Mes anterior"
+        >
+          <ChevronIcon direction="left" />
+        </button>
+        <strong>{monthLabel}</strong>
+        <button
+          className="gafa-icon-button"
+          type="button"
+          disabled={!canNextMonth}
+          onClick={() => setMonthCursor(nextMonth)}
+          aria-label="Mes siguiente"
+        >
+          <ChevronIcon direction="right" />
+        </button>
+      </div>
+
+      <div className="gafa-datepicker__weekdays" aria-hidden="true">
+        {WEEKDAY_HEADERS.map((day, index) => (
+          <span key={index}>{day}</span>
+        ))}
+      </div>
+
+      <div className="gafa-datepicker__grid">
+        {cells.map((date, index) => {
+          if (!date) return <span key={`empty-${index}`} />;
+          const iso = toIsoDate(date);
+          const inRange = iso >= minIso && iso <= maxIso;
+          const hasClasses = bookableDays.has(iso);
+          const enabled = inRange && hasClasses;
+
+          return (
+            <button
+              key={iso}
+              type="button"
+              className="gafa-datepicker__day"
+              disabled={!enabled}
+              data-selected={iso === anchorIso ? "true" : undefined}
+              data-today={iso === todayIso ? "true" : undefined}
+              data-has-classes={hasClasses ? "true" : undefined}
+              onClick={() => onPick(iso)}
+            >
+              {date.getDate()}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="gafa-datepicker__hint">Solo los días con clases se pueden elegir.</p>
+    </div>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3.5 9.5h17" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
 

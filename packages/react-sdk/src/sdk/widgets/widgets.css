@@ -362,7 +362,7 @@
   flex: 0 1 auto;
   gap: var(--gafa-space-2);
   min-width: 0;
-  overflow: hidden;
+  /* overflow visible: el date-picker se ancla aqui y no debe recortarse. */
 }
 
 @media (min-width: 900px) {
@@ -371,7 +371,34 @@
   }
 }
 
-.gafa-calendar-toolbar__label strong {
+.gafa-calendar-toolbar__label {
+  position: relative;
+}
+
+/* La fecha ES un boton: abre el mini calendario para saltar a otro dia. */
+.gafa-calendar-date-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 7px;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 0.65rem;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.gafa-calendar-date-button:hover,
+.gafa-calendar-date-button[aria-expanded="true"] {
+  background: var(--gafa-color-surface);
+  border-color: var(--gafa-color-border);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-calendar-date-button strong {
   color: var(--gafa-color-text);
   font-size: 0.92rem;
   font-weight: 700;
@@ -379,6 +406,113 @@
   text-overflow: ellipsis;
   text-transform: capitalize;
   white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- date picker */
+
+.gafa-datepicker {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  box-shadow: var(--gafa-shadow-pop);
+  display: grid;
+  gap: var(--gafa-space-2);
+  left: 50%;
+  min-width: 286px;
+  padding: var(--gafa-space-3);
+  position: absolute;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  z-index: 40;
+}
+
+@media (max-width: 480px) {
+  .gafa-datepicker {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+}
+
+.gafa-datepicker__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.gafa-datepicker__header strong {
+  color: var(--gafa-color-text);
+  font-size: 0.92rem;
+  text-transform: capitalize;
+}
+
+.gafa-datepicker__header .gafa-icon-button {
+  height: 32px;
+  width: 32px;
+}
+
+.gafa-datepicker__weekdays {
+  color: var(--gafa-color-muted-text);
+  display: grid;
+  font-size: 0.7rem;
+  font-weight: 700;
+  grid-template-columns: repeat(7, 1fr);
+  justify-items: center;
+  letter-spacing: 0.04em;
+}
+
+.gafa-datepicker__grid {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.gafa-datepicker__day {
+  align-items: center;
+  aspect-ratio: 1;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.85rem;
+  font-weight: 600;
+  justify-content: center;
+  min-height: 34px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+/* Con clases: se nota que es elegible. */
+.gafa-datepicker__day[data-has-classes="true"]:not(:disabled) {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, transparent);
+}
+
+.gafa-datepicker__day:not(:disabled):hover {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-datepicker__day:disabled {
+  color: var(--gafa-color-muted-text);
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.gafa-datepicker__day[data-today="true"] {
+  border-color: var(--gafa-color-border);
+}
+
+.gafa-datepicker__day[data-selected="true"] {
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-datepicker__hint {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  margin: 0;
+  text-align: center;
 }
 
 .gafa-calendar-toolbar__hint {
