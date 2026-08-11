@@ -296,11 +296,11 @@
 .gafa-calendar-toolbar__row {
   align-items: center;
   display: flex;
-  /* wrap: si no cabe, baja de linea; nunca se encima. */
-  flex-wrap: wrap;
+  /* Una sola linea SIEMPRE: lo flexible (pill de sede) se trunca con
+     ellipsis; el toggle y Filtros no se encogen. */
+  flex-wrap: nowrap;
   gap: var(--gafa-space-2);
   min-width: 0;
-  row-gap: var(--gafa-space-2);
 }
 
 .gafa-calendar-toolbar__row--nav {
@@ -399,6 +399,7 @@
   align-items: center;
   display: flex;
   gap: var(--gafa-space-2);
+  min-width: 0;
   position: relative;
 }
 
@@ -409,12 +410,16 @@
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
-  flex-shrink: 1;
+  flex: 0 1 auto;
   gap: 6px;
   height: 36px;
-  max-width: 38vw;
-  min-width: 0;
+  min-width: 68px;
+  overflow: hidden;
   padding: 0 0.45rem 0 0.7rem;
+}
+
+.gafa-filterbar-location svg {
+  flex-shrink: 0;
 }
 
 .gafa-filterbar-location select {
@@ -468,17 +473,13 @@
 }
 
 /* En pantallas angostas el boton de filtros queda solo con el icono. */
-@media (max-width: 430px) {
+@media (max-width: 480px) {
   .gafa-filterbar-toggle__label {
     display: none;
   }
 
   .gafa-filterbar-toggle {
     padding: 0 0.6rem;
-  }
-
-  .gafa-filterbar-location {
-    max-width: 34vw;
   }
 }
 
