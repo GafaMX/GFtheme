@@ -258,21 +258,22 @@
   transform: none;
 }
 
-/* Error inline por campo, en español y con el color del tema. */
+/* Error inline: el mensaje sustituye al label DENTRO del campo (flotado y en
+   rojo), sin cambiar la altura de nada. */
 .gafa-float[data-invalid="true"] input,
 .gafa-float[data-invalid="true"] select {
   border-color: var(--gafa-color-danger);
 }
 
-.gafa-field-error {
+.gafa-float[data-invalid="true"] > span:first-of-type,
+.gafa-float[data-invalid="true"] input + span {
   color: var(--gafa-color-danger);
-  font-size: 0.72rem;
-  font-weight: 600;
-  margin-top: 4px;
-  padding-left: 2px;
-  position: static;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  top: 0.55rem;
   transform: none;
-  white-space: normal;
 }
 
 /* Dos campos por fila SOLO cuando hay ancho real (desktop). En movil se
