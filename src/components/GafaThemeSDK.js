@@ -483,8 +483,12 @@ class GafaThemeSDK extends React.Component {
                 const totalDays = location.calendar_days || FIRST_CHUNK_DAYS;
 
                 if (totalDays > FIRST_CHUNK_DAYS) {
+                    // El `end` de la API es EXCLUSIVO (start=11&end=11 devuelve cero
+                    // reuniones, verificado contra produccion). El corte del primer
+                    // tramo tiene que caer en el mismo dia donde empieza el segundo,
+                    // o ese dia no lo pide nadie y desaparece del calendario.
                     let firstChunkEnd = new Date(start_date.getTime());
-                    firstChunkEnd.setDate(start_date.getDate() + (FIRST_CHUNK_DAYS - 1));
+                    firstChunkEnd.setDate(start_date.getDate() + FIRST_CHUNK_DAYS);
                     let firstChunkEndString = `${firstChunkEnd.getFullYear()}-${firstChunkEnd.getMonth() + 1}-${firstChunkEnd.getDate()}`;
 
                     let restStart = new Date(start_date.getTime());
