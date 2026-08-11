@@ -419,6 +419,40 @@ export function CalendarWidget({
     setFancyMeeting(meeting);
   }
 
+  function goPrev() {
+    allowAutoSkipRef.current = false;
+    setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)));
+  }
+
+  function goNext() {
+    allowAutoSkipRef.current = false;
+    setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)));
+  }
+
+  // Swipe horizontal en la vista dia (movil): deslizar cambia de dia, igual
+  // que las flechas. Solo se dispara con gestos claramente horizontales para
+  // no pelearse con el scroll vertical de la lista.
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  function handleTouchStart(event: React.TouchEvent) {
+    const touch = event.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleTouchEnd(event: React.TouchEvent) {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return;
+
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+
+    if (dx < 0 && canGoNext) goNext();
+    else if (dx > 0 && canGoPrev) goPrev();
+  }
+
   const viewToggle =
     allowViewChange ? (
       <div className="gafa-segmented gafa-segmented--compact" role="group" aria-label="Vista del calendario">
@@ -445,14 +479,8 @@ export function CalendarWidget({
         range={range}
         view={view}
         viewToggle={viewToggle}
-        onPrev={() => {
-          allowAutoSkipRef.current = false;
-          setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)));
-        }}
-        onNext={() => {
-          allowAutoSkipRef.current = false;
-          setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)));
-        }}
+        onPrev={goPrev}
+        onNext={goNext}
         onToday={() => {
           allowAutoSkipRef.current = true;
           // Hoy sin cupo → el primer dia con disponibilidad (no un dia vacio).
@@ -502,13 +530,15 @@ export function CalendarWidget({
           ) : null}
         </div>
       ) : view === "day" ? (
-        <DayColumn
-          date={anchor}
-          emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
-          meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
-          onSelect={setSelectedMeeting}
-          showDescription={showDescription}
-        />
+        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+          <DayColumn
+            date={anchor}
+            emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
+            meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
+            onSelect={setSelectedMeeting}
+            showDescription={showDescription}
+          />
+        </div>
       ) : (
         <div className="gafa-week-grid">
           {days.map((day) => (
