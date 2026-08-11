@@ -129,6 +129,26 @@ class GafaApiError extends Error {
   }
 }
 
+/** El API responde en ingles (o en español muy largo); al usuario se le
+    muestran mensajes cortos en español que caben en una linea en movil. */
+const API_MESSAGE_TRANSLATIONS: Record<string, string> = {
+  "The user credentials were incorrect.": "Correo o contraseña incorrectos.",
+  "Estas credenciales no coinciden con nuestros registros.": "Correo o contraseña incorrectos.",
+  "El email no concuerda con nuestros registros.": "Este correo no está registrado.",
+  "El password no concuerda con nuestros registros.": "La contraseña es incorrecta.",
+  "The given data was invalid.": "Revisa los datos ingresados.",
+  "The email has already been taken.": "Ese correo ya está registrado.",
+  "The email must be a valid email address.": "Escribe un correo válido.",
+  "The password confirmation does not match.": "Las contraseñas no coinciden.",
+  "Too Many Attempts.": "Demasiados intentos, espera un poco.",
+  "Unauthenticated.": "Tu sesión expiró, entra de nuevo.",
+  "Server Error": "Error del servidor, inténtalo de nuevo.",
+};
+
+function translateApiMessage(message: string): string {
+  return API_MESSAGE_TRANSLATIONS[message.trim()] ?? message;
+}
+
 type RawMeeting = {
   id: number;
   start?: string;
@@ -174,7 +194,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
     const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined;
     const message = firstFieldError ?? body?.message ?? `gafa.fit API ${response.status}`;
-    return new GafaApiError(message, response.status, body?.errors);
+    return new GafaApiError(translateApiMessage(message), response.status, body?.errors);
   }
 
   async function apiGet<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {

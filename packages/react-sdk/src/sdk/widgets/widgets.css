@@ -476,29 +476,21 @@
 }
 
 .gafa-sdk-state--error {
-  align-items: center;
   background: var(--gafa-color-danger-soft);
   border-left: 3px solid var(--gafa-color-danger);
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-danger);
-  display: flex;
+  font-size: 0.8rem;
   font-weight: 600;
-  gap: 8px;
-  padding: 0.7rem 0.9rem;
+  padding: 0.55rem 0.8rem;
 }
 
-.gafa-sdk-state--error::before {
-  content: "!";
-  background: var(--gafa-color-danger);
-  border-radius: 50%;
-  color: var(--gafa-color-danger-soft);
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 800;
-  height: 17px;
-  line-height: 17px;
-  text-align: center;
-  width: 17px;
+/* En movil aun mas chico para que el mensaje quepa en UNA linea. */
+@media (max-width: 480px) {
+  .gafa-sdk-state--error {
+    font-size: 0.72rem;
+    padding: 0.5rem 0.7rem;
+  }
 }
 
 .gafa-sdk-state--success {
