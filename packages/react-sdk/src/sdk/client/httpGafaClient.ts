@@ -77,6 +77,21 @@ type RawReservationGroup = {
   waitlists?: RawReservation[];
 };
 
+type RawCustomFieldGroup = {
+  id: number;
+  name: string;
+  description?: string | null;
+  active_fields?: Array<{
+    id: number;
+    name: string;
+    type: string;
+    validation?: string | null;
+    help_text?: string | null;
+    default_value?: string | null;
+    catalog_field_options?: Array<{ id: number; name: string }>;
+  }>;
+};
+
 type RawPurchase = {
   id: number;
   total: number;
@@ -110,6 +125,7 @@ type RawMeeting = {
   id: number;
   start?: string;
   start_date?: string;
+  timezone?: string;
   end?: string;
   end_date?: string;
   type?: string;
@@ -234,6 +250,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       id: raw.id,
       name: raw.service?.name ?? raw.type ?? "Clase",
       startsAt: raw.start ?? raw.start_date ?? "",
+      timezone: raw.timezone,
       endsAt: raw.end ?? raw.end_date,
       brandSlug,
       service: raw.service,
@@ -342,6 +359,31 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       }
     },
 
+    async listRegistrationFields(brandSlug) {
+      if (!brandSlug) return [];
+
+      // El "1" es el catalogo de textos especiales; el legacy lo tiene igual de
+      // hardcodeado (GafaThemeSDK.renderLoginRegister).
+      const raw = await apiGet<RawCustomFieldGroup[]>(`/special-text/form/1/${brandSlug}`, {
+        section: "register",
+      });
+
+      return (Array.isArray(raw) ? raw : []).map((group) => ({
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        fields: (group.active_fields ?? []).map((field) => ({
+          id: field.id,
+          name: field.name,
+          type: field.type,
+          required: Boolean(field.validation && field.validation.includes("required")),
+          helpText: field.help_text,
+          defaultValue: field.default_value,
+          options: (field.catalog_field_options ?? []).map((option) => ({ id: option.id, name: option.name })),
+        })),
+      }));
+    },
+
     async listUserCredits(brandSlug) {
       if (!token || !brandSlug) return [];
       const response = await apiGet<PaginatedResponse<RawUserCredit>>(`/me/brand/${brandSlug}/credits`);
@@ -422,7 +464,19 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async register(payload: RegisterPayload) {
+      // gafa.fit espera los campos especiales anidados por grupo y por campo, con
+      // un indice de repeticion en medio (siempre 0 mientras no se usen grupos
+      // repetibles). Se manda en notacion de corchetes porque el cuerpo es
+      // form-urlencoded, no JSON.
+      const customFields: Record<string, string> = {};
+      Object.entries(payload.customFields ?? {}).forEach(([groupId, fields]) => {
+        Object.entries(fields).forEach(([fieldId, value]) => {
+          customFields[`custom_fields[${groupId}][0][${fieldId}][0]`] = value;
+        });
+      });
+
       return apiPost<{ url?: string }>(`/api/register`, {
+        ...customFields,
         username: payload.email,
         password: payload.password,
         password_confirmation: payload.passwordConfirmation,

@@ -1,0 +1,106 @@
+export type CalendarView = "day" | "week";
+
+export type DateRange = { from: string; to: string };
+
+/** Franjas para filtrar sin pedir nada extra a la API (el rango es por dias). */
+export type TimeOfDay = "all" | "morning" | "afternoon" | "evening";
+
+export const TIME_OF_DAY_LABELS: Record<TimeOfDay, string> = {
+  all: "Todo el día",
+  morning: "Mañana",
+  afternoon: "Tarde",
+  evening: "Noche",
+};
+
+const TIME_OF_DAY_BOUNDS: Record<Exclude<TimeOfDay, "all">, [number, number]> = {
+  morning: [0, 12],
+  afternoon: [12, 18],
+  evening: [18, 24],
+};
+
+export function toIsoDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function parseIsoDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
+export function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+/** Lunes como primer dia: es lo que usan los calendarios de los socios. */
+export function startOfWeek(date: Date): Date {
+  const start = new Date(date);
+  const weekday = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - weekday);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+/**
+ * Rango que hay que pedir para la ventana visible, y solo para esa. Antes se
+ * pedia `calendar_days` entero (21 dias en Bunker) aunque en pantalla solo
+ * cupieran unos pocos.
+ */
+export function rangeForView(anchor: Date, view: CalendarView): DateRange {
+  if (view === "day") {
+    const day = toIsoDate(anchor);
+    return { from: day, to: day };
+  }
+
+  const start = startOfWeek(anchor);
+  return { from: toIsoDate(start), to: toIsoDate(addDays(start, 6)) };
+}
+
+/**
+ * El `end` de la API de gafa.fit es EXCLUSIVO: pedir start=11 y end=11 devuelve
+ * cero reuniones, y start=10&end=16 devuelve solo hasta el 15. Verificado contra
+ * produccion. Por eso el rango que se pide no es el mismo que el que se muestra:
+ * hay que sumarle un dia al final o se pierde siempre el ultimo dia visible.
+ */
+export function fetchRangeFor(range: DateRange): DateRange {
+  return { from: range.from, to: toIsoDate(addDays(parseIsoDate(range.to), 1)) };
+}
+
+export function shiftAnchor(anchor: Date, view: CalendarView, direction: 1 | -1): Date {
+  return addDays(anchor, view === "day" ? direction : direction * 7);
+}
+
+export function daysInRange(range: DateRange): Date[] {
+  const days: Date[] = [];
+  const start = parseIsoDate(range.from);
+  const end = parseIsoDate(range.to);
+
+  for (let date = start; date <= end; date = addDays(date, 1)) {
+    days.push(new Date(date));
+  }
+
+  return days;
+}
+
+export function matchesTimeOfDay(startsAt: string, timeOfDay: TimeOfDay): boolean {
+  if (timeOfDay === "all") return true;
+
+  const date = new Date(startsAt.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return true;
+
+  const [from, to] = TIME_OF_DAY_BOUNDS[timeOfDay];
+  const hour = date.getHours();
+  return hour >= from && hour < to;
+}
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return toIsoDate(a) === toIsoDate(b);
+}
+
+export function isToday(date: Date): boolean {
+  return isSameDay(date, new Date());
+}

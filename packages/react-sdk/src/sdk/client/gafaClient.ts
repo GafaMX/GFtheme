@@ -80,6 +80,25 @@ export function createMockGafaClient(): GafaClient {
       email: "demo@gafa.fit",
       creditsLabel: "5 creditos disponibles",
     }),
+    listRegistrationFields: async () => [
+      {
+        id: 1,
+        name: "Informacion adicional",
+        fields: [
+          { id: 10, name: "Telefono", type: "number", required: true, options: [] },
+          {
+            id: 11,
+            name: "Como nos conociste",
+            type: "select",
+            required: false,
+            options: [
+              { id: 1, name: "Redes sociales" },
+              { id: 2, name: "Un amigo" },
+            ],
+          },
+        ],
+      },
+    ],
     listUserCredits: async () => [
       { id: 1, name: "10 clases", total: 5, expiresAt: inDays(45) },
     ],

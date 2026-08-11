@@ -1,8 +1,23 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
 import { FancyOverlay } from "./FancyOverlay";
 import type { Brand, GafaClient, Location, Meeting, Service, StaffMember } from "../client/types";
+import {
+  addDays,
+  daysInRange,
+  fetchRangeFor,
+  isToday,
+  matchesTimeOfDay,
+  parseIsoDate,
+  rangeForView,
+  shiftAnchor,
+  toIsoDate,
+  TIME_OF_DAY_LABELS,
+  type CalendarView,
+  type DateRange,
+  type TimeOfDay,
+} from "./calendarRange";
 
 export type CalendarWidgetProps = {
   client?: GafaClient;
@@ -18,8 +33,12 @@ export type CalendarWidgetProps = {
     serviceId?: number;
     staffId?: number;
   };
-  visualization?: string;
+  /** Vista inicial. El usuario puede cambiarla si `allowViewChange` esta activo. */
+  view?: CalendarView;
+  allowViewChange?: boolean;
   showDescription?: boolean;
+  title?: string;
+  description?: string;
 };
 
 type CalendarFiltersState = {
@@ -33,20 +52,26 @@ export function CalendarWidget({
   client,
   filters = {},
   limit,
-  visualization = "agenda",
+  view: initialView = "week",
+  allowViewChange = true,
   showDescription = false,
+  title = "Reserva tu lugar",
+  description,
 }: CalendarWidgetProps) {
+  const queryClient = useQueryClient();
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>({});
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [fancyMeeting, setFancyMeeting] = useState<Meeting | null>(null);
-  const range = useMemo(() => defaultMeetingRange(), []);
+  const [view, setView] = useState<CalendarView>(initialView);
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("all");
+  const [anchorIso, setAnchorIso] = useState(() => toIsoDate(new Date()));
+
+  const anchor = useMemo(() => parseIsoDate(anchorIso), [anchorIso]);
+  const range = useMemo(() => rangeForView(anchor, view), [anchor, view]);
 
   const brandsQuery = useQuery({
     queryKey: ["calendar", "brands"],
-    queryFn: async () => {
-      if (!client) return demoBrands();
-      return client.listBrands();
-    },
+    queryFn: async () => (client ? client.listBrands() : demoBrands()),
   });
 
   const activeBrand = useMemo(
@@ -57,10 +82,7 @@ export function CalendarWidget({
   const locationsQuery = useQuery({
     enabled: Boolean(activeBrand) || !client,
     queryKey: ["calendar", "locations", activeBrand?.slug],
-    queryFn: async () => {
-      if (!client) return demoLocations();
-      return client.listLocations(activeBrand?.slug);
-    },
+    queryFn: async () => (client ? client.listLocations(activeBrand?.slug) : demoLocations()),
   });
 
   const activeLocation = useMemo(
@@ -71,61 +93,83 @@ export function CalendarWidget({
   const servicesQuery = useQuery({
     enabled: Boolean(activeBrand) || !client,
     queryKey: ["calendar", "services", activeBrand?.slug],
-    queryFn: async () => {
-      if (!client) return demoServices();
-      return client.listServices(activeBrand?.slug);
-    },
+    queryFn: async () => (client ? client.listServices(activeBrand?.slug) : demoServices()),
   });
 
   const staffQuery = useQuery({
     enabled: Boolean(activeBrand) || !client,
     queryKey: ["calendar", "staff", activeBrand?.slug],
-    queryFn: async () => {
-      if (!client) return demoStaff();
-      return client.listStaff(activeBrand?.slug);
-    },
+    queryFn: async () => (client ? client.listStaff(activeBrand?.slug) : demoStaff()),
   });
+
+  const locationId = activeLocation?.id;
+
+  function meetingsQueryOptions(target: DateRange) {
+    const fetchRange = fetchRangeFor(target);
+    return {
+      queryKey: ["calendar", "meetings", locationId, fetchRange.from, fetchRange.to],
+      queryFn: async () =>
+        client ? client.listMeetings({ locationId, from: fetchRange.from, to: fetchRange.to }) : demoMeetings(target),
+    };
+  }
 
   const meetingsQuery = useQuery({
-    enabled: Boolean(activeLocation) || !client,
-    queryKey: [
-      "calendar",
-      "meetings",
-      activeLocation?.id,
-      selectedFilters.serviceId,
-      selectedFilters.staffId,
-      range.from,
-      range.to,
-    ],
-    queryFn: async () => {
-      if (!client) return demoMeetings();
-      return client.listMeetings({
-        locationId: activeLocation?.id,
-        serviceId: selectedFilters.serviceId ?? filters.serviceId,
-        staffId: selectedFilters.staffId ?? filters.staffId,
-        ...range,
-      });
-    },
+    ...meetingsQueryOptions(range),
+    enabled: Boolean(locationId) || !client,
+    // Los horarios de una semana ya vista no cambian de un minuto a otro; mantenerlos
+    // en cache es lo que hace que ir y volver entre semanas sea instantaneo.
+    staleTime: 2 * 60 * 1000,
+    placeholderData: (previous) => previous,
   });
 
-  const filteredMeetings = useMemo(
-    () =>
-      applyLocalMeetingFilters(meetingsQuery.data ?? [], {
-        serviceId: selectedFilters.serviceId ?? filters.serviceId,
-        staffId: selectedFilters.staffId ?? filters.staffId,
-      }).slice(0, limit),
-    [filters.serviceId, filters.staffId, limit, meetingsQuery.data, selectedFilters.serviceId, selectedFilters.staffId],
-  );
+  // La ventana siguiente se trae en segundo plano: cuando el usuario pulsa
+  // "siguiente" casi siempre ya esta en cache y el cambio se siente inmediato.
+  useEffect(() => {
+    if (!client || !locationId) return;
 
-  const meetingsByDay = useMemo(() => groupMeetingsByDay(filteredMeetings), [filteredMeetings]);
-  const isLoading = brandsQuery.isLoading || locationsQuery.isLoading || meetingsQuery.isLoading;
-  const hasError = brandsQuery.isError || locationsQuery.isError || servicesQuery.isError || staffQuery.isError || meetingsQuery.isError;
+    const next = rangeForView(shiftAnchor(anchor, view, 1), view);
+    const previous = rangeForView(shiftAnchor(anchor, view, -1), view);
+
+    [next, previous].forEach((target) => {
+      queryClient.prefetchQuery({ ...meetingsQueryOptions(target), staleTime: 2 * 60 * 1000 });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchor, view, locationId, client, queryClient]);
+
+  const visibleMeetings = useMemo(() => {
+    const meetings = applyLocalMeetingFilters(meetingsQuery.data ?? [], {
+      serviceId: selectedFilters.serviceId ?? filters.serviceId,
+      staffId: selectedFilters.staffId ?? filters.staffId,
+    }).filter((meeting) => matchesTimeOfDay(getMeetingStart(meeting), timeOfDay));
+
+    const sorted = [...meetings].sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
+    return limit ? sorted.slice(0, limit) : sorted;
+  }, [
+    filters.serviceId,
+    filters.staffId,
+    limit,
+    meetingsQuery.data,
+    selectedFilters.serviceId,
+    selectedFilters.staffId,
+    timeOfDay,
+  ]);
+
+  const days = useMemo(() => daysInRange(range), [range]);
+  const meetingsByIsoDay = useMemo(() => {
+    const groups = new Map<string, Meeting[]>();
+    visibleMeetings.forEach((meeting) => {
+      const key = toIsoDate(new Date(getMeetingStart(meeting).replace(" ", "T")));
+      groups.set(key, [...(groups.get(key) ?? []), meeting]);
+    });
+    return groups;
+  }, [visibleMeetings]);
+
+  const isLoading = meetingsQuery.isLoading || locationsQuery.isLoading;
+  const isRefreshing = meetingsQuery.isFetching && !meetingsQuery.isLoading;
+  const hasError = brandsQuery.isError || locationsQuery.isError || meetingsQuery.isError;
 
   function handleReserve(meeting: Meeting) {
-    if (!client || isSoldOut(meeting)) {
-      return;
-    }
-
+    if (!client || isSoldOut(meeting)) return;
     setSelectedMeeting(null);
     setFancyMeeting(meeting);
   }
@@ -133,9 +177,31 @@ export function CalendarWidget({
   return (
     <WidgetShell
       eyebrow="Reservas"
-      title="Calendario de servicios"
-      description="Una agenda mobile-first para encontrar clases, servicios y horarios disponibles."
+      title={title}
+      description={description}
+      actions={
+        allowViewChange ? (
+          <div className="gafa-segmented" role="group" aria-label="Vista del calendario">
+            <button type="button" aria-pressed={view === "day"} onClick={() => setView("day")}>
+              Día
+            </button>
+            <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>
+              Semana
+            </button>
+          </div>
+        ) : null
+      }
     >
+      <CalendarToolbar
+        anchor={anchor}
+        range={range}
+        view={view}
+        onPrev={() => setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)))}
+        onNext={() => setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)))}
+        onToday={() => setAnchorIso(toIsoDate(new Date()))}
+        isRefreshing={isRefreshing}
+      />
+
       <CalendarFilterBar
         activeBrandSlug={activeBrand?.slug}
         activeLocationId={activeLocation?.id}
@@ -146,54 +212,35 @@ export function CalendarWidget({
         selected={selectedFilters}
         services={servicesQuery.data ?? []}
         staff={staffQuery.data ?? []}
+        timeOfDay={timeOfDay}
+        onTimeOfDayChange={setTimeOfDay}
       />
 
-      {isLoading ? <p className="gafa-sdk-state">Cargando calendario...</p> : null}
-      {hasError ? (
-        <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p>
-      ) : null}
-      <div className="gafa-calendar" data-visualization={visualization}>
-        {!isLoading && Object.entries(meetingsByDay).length === 0 ? (
-          <div className="gafa-empty-state">
-            <strong>No hay horarios disponibles</strong>
-            <span>Prueba cambiando los filtros o seleccionando otra ubicacion.</span>
-          </div>
-        ) : (
-          Object.entries(meetingsByDay).map(([day, meetings]) => (
-            <section className="gafa-day-group" key={day}>
-              <h3>{day}</h3>
-              <div className="gafa-meeting-list">
-                {meetings.map((meeting) => (
-                  <article className="gafa-meeting-card" key={meeting.id}>
-                    <div className="gafa-meeting-card__main">
-                      <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting))}</span>
-                      <h4>{meeting.name}</h4>
-                      <p>{meeting.service?.name ?? meeting.serviceName ?? meeting.staff?.name ?? "Servicio"}</p>
-                      <div className="gafa-meeting-meta">
-                        <span className="gafa-meeting-chip">{getStaffName(meeting)}</span>
-                        {meeting.location?.name ? <span className="gafa-meeting-chip">{meeting.location.name}</span> : null}
-                        {meeting.durationMinutes ? <span className="gafa-meeting-chip">{meeting.durationMinutes} min</span> : null}
-                      </div>
-                      {showDescription && meeting.description ? <p>{meeting.description}</p> : null}
-                    </div>
-                    <div className="gafa-meeting-card__aside">
-                      <AvailabilityPill meeting={meeting} />
-                      <button
-                        className="gafa-sdk-button"
-                        disabled={isSoldOut(meeting)}
-                        type="button"
-                        onClick={() => setSelectedMeeting(meeting)}
-                      >
-                        {meeting.isReserved ? "Reservado" : isSoldOut(meeting) ? "Sin lugares" : "Reservar"}
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ))
-        )}
-      </div>
+      {hasError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p> : null}
+
+      {isLoading ? (
+        <CalendarSkeleton view={view} />
+      ) : view === "day" ? (
+        <DayColumn
+          date={anchor}
+          meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
+          onSelect={setSelectedMeeting}
+          showDescription={showDescription}
+        />
+      ) : (
+        <div className="gafa-week-grid">
+          {days.map((day) => (
+            <DayColumn
+              key={toIsoDate(day)}
+              compact
+              date={day}
+              meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
+              onSelect={setSelectedMeeting}
+              showDescription={showDescription}
+            />
+          ))}
+        </div>
+      )}
 
       {selectedMeeting ? (
         <ReservationPreviewModal
@@ -223,6 +270,278 @@ export function CalendarWidget({
   );
 }
 
+function CalendarToolbar({
+  anchor,
+  range,
+  view,
+  onPrev,
+  onNext,
+  onToday,
+  isRefreshing,
+}: {
+  anchor: Date;
+  range: DateRange;
+  view: CalendarView;
+  onPrev(): void;
+  onNext(): void;
+  onToday(): void;
+  isRefreshing: boolean;
+}) {
+  const label =
+    view === "day"
+      ? new Intl.DateTimeFormat("es-MX", { weekday: "long", day: "numeric", month: "long" }).format(anchor)
+      : formatRangeLabel(range);
+
+  return (
+    <div className="gafa-calendar-toolbar">
+      <button className="gafa-icon-button" type="button" onClick={onPrev} aria-label="Anterior">
+        ‹
+      </button>
+      <div className="gafa-calendar-toolbar__label">
+        <strong>{label}</strong>
+        {isRefreshing ? <span className="gafa-calendar-toolbar__hint">actualizando…</span> : null}
+      </div>
+      <button className="gafa-icon-button" type="button" onClick={onNext} aria-label="Siguiente">
+        ›
+      </button>
+      <button className="gafa-sdk-button gafa-sdk-button--secondary gafa-calendar-today" type="button" onClick={onToday}>
+        Hoy
+      </button>
+    </div>
+  );
+}
+
+function DayColumn({
+  date,
+  meetings,
+  onSelect,
+  compact = false,
+  showDescription = false,
+}: {
+  date: Date;
+  meetings: Meeting[];
+  onSelect(meeting: Meeting): void;
+  compact?: boolean;
+  showDescription?: boolean;
+}) {
+  const weekday = new Intl.DateTimeFormat("es-MX", { weekday: compact ? "short" : "long" }).format(date);
+
+  return (
+    <section className="gafa-day-column" data-today={isToday(date) ? "true" : undefined}>
+      <header className="gafa-day-column__header">
+        <span className="gafa-day-column__weekday">{weekday}</span>
+        <span className="gafa-day-column__number">{date.getDate()}</span>
+      </header>
+
+      {meetings.length === 0 ? (
+        <p className="gafa-day-column__empty">Sin clases</p>
+      ) : (
+        <div className="gafa-day-column__list">
+          {meetings.map((meeting) => (
+            <MeetingCard
+              key={meeting.id}
+              compact={compact}
+              meeting={meeting}
+              onSelect={onSelect}
+              showDescription={showDescription}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MeetingCard({
+  meeting,
+  onSelect,
+  compact,
+  showDescription,
+}: {
+  meeting: Meeting;
+  onSelect(meeting: Meeting): void;
+  compact: boolean;
+  showDescription: boolean;
+}) {
+  const soldOut = isSoldOut(meeting);
+
+  return (
+    <button
+      className="gafa-meeting-card"
+      data-sold-out={soldOut ? "true" : undefined}
+      data-compact={compact ? "true" : undefined}
+      type="button"
+      onClick={() => onSelect(meeting)}
+    >
+      <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
+      <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
+      <span className="gafa-meeting-staff">{getStaffName(meeting)}</span>
+      {showDescription && meeting.description ? <span className="gafa-meeting-desc">{meeting.description}</span> : null}
+      <AvailabilityPill meeting={meeting} />
+    </button>
+  );
+}
+
+function CalendarSkeleton({ view }: { view: CalendarView }) {
+  const columns = view === "week" ? 7 : 1;
+
+  return (
+    <div className={view === "week" ? "gafa-week-grid" : ""} aria-hidden="true">
+      {Array.from({ length: columns }).map((_, columnIndex) => (
+        <section className="gafa-day-column" key={columnIndex}>
+          <header className="gafa-day-column__header">
+            <span className="gafa-skeleton gafa-skeleton--line" style={{ width: "60%" }} />
+          </header>
+          <div className="gafa-day-column__list">
+            {Array.from({ length: view === "week" ? 3 : 6 }).map((__, cardIndex) => (
+              <span className="gafa-skeleton gafa-skeleton--card" key={cardIndex} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function CalendarFilterBar({
+  activeBrandSlug,
+  activeLocationId,
+  brands,
+  filters,
+  locations,
+  onChange,
+  selected,
+  services,
+  staff,
+  timeOfDay,
+  onTimeOfDayChange,
+}: {
+  activeBrandSlug?: string;
+  activeLocationId?: number;
+  brands: Brand[];
+  filters: NonNullable<CalendarWidgetProps["filters"]>;
+  locations: Location[];
+  onChange: React.Dispatch<React.SetStateAction<CalendarFiltersState>>;
+  selected: CalendarFiltersState;
+  services: Service[];
+  staff: StaffMember[];
+  timeOfDay: TimeOfDay;
+  onTimeOfDayChange(value: TimeOfDay): void;
+}) {
+  const showFilters = filters.brand || filters.location || filters.service || filters.staff;
+
+  return (
+    <div className="gafa-calendar-filters">
+      {showFilters ? (
+        <div className="gafa-calendar-filters__selects" aria-label="Filtros de calendario">
+          {filters.brand && brands.length > 1 ? (
+            <label className="gafa-calendar-filter">
+              <span>Marca</span>
+              <select
+                value={selected.brandSlug ?? activeBrandSlug ?? ""}
+                onChange={(event) =>
+                  onChange((current) => ({ ...current, brandSlug: event.target.value, locationId: undefined }))
+                }
+              >
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.slug}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {filters.location && locations.length > 1 ? (
+            <label className="gafa-calendar-filter">
+              <span>Ubicación</span>
+              <select
+                value={selected.locationId ?? activeLocationId ?? ""}
+                onChange={(event) =>
+                  onChange((current) => ({ ...current, locationId: toOptionalNumber(event.target.value) }))
+                }
+              >
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {filters.service && services.length > 0 ? (
+            <label className="gafa-calendar-filter">
+              <span>Servicio</span>
+              <select
+                value={selected.serviceId ?? ""}
+                onChange={(event) =>
+                  onChange((current) => ({ ...current, serviceId: toOptionalNumber(event.target.value) }))
+                }
+              >
+                <option value="">Todos</option>
+                {services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {filters.staff && staff.length > 0 ? (
+            <label className="gafa-calendar-filter">
+              <span>Staff</span>
+              <select
+                value={selected.staffId ?? ""}
+                onChange={(event) =>
+                  onChange((current) => ({ ...current, staffId: toOptionalNumber(event.target.value) }))
+                }
+              >
+                <option value="">Todos</option>
+                {staff.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {[member.name, member.lastname].filter(Boolean).join(" ")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="gafa-chip-row" role="group" aria-label="Franja horaria">
+        {(Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[]).map((value) => (
+          <button
+            key={value}
+            type="button"
+            className="gafa-chip"
+            aria-pressed={timeOfDay === value}
+            onClick={() => onTimeOfDayChange(value)}
+          >
+            {TIME_OF_DAY_LABELS[value]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatRangeLabel(range: DateRange): string {
+  const from = parseIsoDate(range.from);
+  const to = parseIsoDate(range.to);
+  const sameMonth = from.getMonth() === to.getMonth();
+
+  const dayMonth = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short" });
+  const monthYear = new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" });
+
+  if (sameMonth) {
+    return `${from.getDate()} – ${to.getDate()} ${monthYear.format(from)}`;
+  }
+
+  return `${dayMonth.format(from)} – ${dayMonth.format(to)}`;
+}
+
 function ReservationPreviewModal({
   meeting,
   onClose,
@@ -243,7 +562,7 @@ function ReservationPreviewModal({
           <span className="gafa-eyebrow">Detalle de reserva</span>
           <h3 id="reservation-title">{meeting.name}</h3>
           <p>
-            {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting))}
+            {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting), meeting.timezone)}
           </p>
         </div>
 
@@ -294,125 +613,6 @@ function ReservationPreviewModal({
   );
 }
 
-function CalendarFilterBar({
-  activeBrandSlug,
-  activeLocationId,
-  brands,
-  filters,
-  locations,
-  onChange,
-  selected,
-  services,
-  staff,
-}: {
-  activeBrandSlug?: string;
-  activeLocationId?: number;
-  brands: Brand[];
-  filters: NonNullable<CalendarWidgetProps["filters"]>;
-  locations: Location[];
-  onChange: React.Dispatch<React.SetStateAction<CalendarFiltersState>>;
-  selected: CalendarFiltersState;
-  services: Service[];
-  staff: StaffMember[];
-}) {
-  const shouldShowFilters = filters.brand || filters.location || filters.service || filters.staff;
-
-  if (!shouldShowFilters) {
-    return null;
-  }
-
-  return (
-    <div className="gafa-calendar-filters" aria-label="Filtros de calendario">
-      {filters.brand ? (
-        <label>
-          Marca
-          <select
-            value={selected.brandSlug ?? activeBrandSlug ?? ""}
-            onChange={(event) =>
-              onChange((current) => ({
-                ...current,
-                brandSlug: event.target.value || undefined,
-                locationId: undefined,
-              }))
-            }
-          >
-            {brands.map((brand) => (
-              <option key={brand.slug} value={brand.slug}>
-                {brand.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-
-      {filters.location ? (
-        <label>
-          Ubicacion
-          <select
-            value={selected.locationId ?? activeLocationId ?? ""}
-            onChange={(event) =>
-              onChange((current) => ({
-                ...current,
-                locationId: toOptionalNumber(event.target.value),
-              }))
-            }
-          >
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-
-      {filters.service ? (
-        <label>
-          Servicio
-          <select
-            value={selected.serviceId ?? ""}
-            onChange={(event) =>
-              onChange((current) => ({
-                ...current,
-                serviceId: toOptionalNumber(event.target.value),
-              }))
-            }
-          >
-            <option value="">Todos</option>
-            {services.map((service) => (
-              <option key={service.id} value={service.id}>
-                {service.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-
-      {filters.staff ? (
-        <label>
-          Staff
-          <select
-            value={selected.staffId ?? ""}
-            onChange={(event) =>
-              onChange((current) => ({
-                ...current,
-                staffId: toOptionalNumber(event.target.value),
-              }))
-            }
-          >
-            <option value="">Todos</option>
-            {staff.map((staffMember) => (
-              <option key={staffMember.id} value={staffMember.id}>
-                {staffMember.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-    </div>
-  );
-}
-
 function groupMeetingsByDay(meetings: Meeting[]) {
   return meetings.reduce<Record<string, Meeting[]>>((groups, meeting) => {
     const day = new Intl.DateTimeFormat("es-MX", {
@@ -427,10 +627,16 @@ function groupMeetingsByDay(meetings: Meeting[]) {
   }, {});
 }
 
-function formatTime(value: string) {
+/**
+ * La hora se muestra en la zona de la SEDE, no en la del visitante: alguien que
+ * reserva desde otro pais tiene que ver "8:00 am" igual que en la recepcion.
+ * La API manda la zona por reunion; si falta, se cae a la del navegador.
+ */
+function formatTime(value: string, timeZone?: string) {
   return new Intl.DateTimeFormat("es-MX", {
     hour: "2-digit",
     minute: "2-digit",
+    ...(timeZone ? { timeZone } : {}),
   }).format(new Date(value));
 }
 
@@ -564,23 +770,11 @@ function toOptionalNumber(value: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-function defaultMeetingRange() {
-  const start = new Date();
-  const end = new Date();
-  end.setDate(start.getDate() + 14);
-
-  return {
-    from: start.toISOString().slice(0, 10),
-    to: end.toISOString().slice(0, 10),
-  };
-}
-
-function demoMeetings(): Meeting[] {
-  const first = new Date();
+function demoMeetings(range: DateRange): Meeting[] {
+  const first = parseIsoDate(range.from);
   first.setHours(8, 0, 0, 0);
 
-  const second = new Date();
-  second.setDate(second.getDate() + 1);
+  const second = addDays(parseIsoDate(range.from), 1);
   second.setHours(18, 30, 0, 0);
 
   return [

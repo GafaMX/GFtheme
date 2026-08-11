@@ -32,6 +32,8 @@ export type Meeting = {
   name: string;
   brandSlug?: string;
   startsAt: string;
+  /** Zona horaria de la sede. La API la manda por reunion. */
+  timezone?: string;
   start?: string;
   start_date?: string;
   startTime?: string;
@@ -143,7 +145,34 @@ export type RegisterPayload = {
   birthDate?: string;
   gender?: "male" | "female";
   captchaToken: string;
+  /** Valores de los campos especiales, indexados por id de grupo y de campo. */
+  customFields?: CustomFieldValues;
 };
+
+/**
+ * Campos extra que cada marca configura desde gafa.fit (telefono, como nos
+ * conociste, etc.). El registro no se puede completar sin los que son
+ * obligatorios, asi que el SDK tiene que pintarlos aunque no los conozca de
+ * antemano.
+ */
+export type CustomFieldGroup = {
+  id: number;
+  name: string;
+  description?: string | null;
+  fields: CustomField[];
+};
+
+export type CustomField = {
+  id: number;
+  name: string;
+  type: string;
+  required: boolean;
+  helpText?: string | null;
+  defaultValue?: string | null;
+  options: Array<{ id: number; name: string }>;
+};
+
+export type CustomFieldValues = Record<string, Record<string, string>>;
 
 export type PasswordResetRequestPayload = {
   email: string;
@@ -194,6 +223,7 @@ export type GafaClient = {
   listCombos(brandSlug: string): Promise<CatalogItem[]>;
   listMemberships(brandSlug: string): Promise<CatalogItem[]>;
   getProfile(): Promise<UserProfile | null>;
+  listRegistrationFields(brandSlug: string): Promise<CustomFieldGroup[]>;
   listUserCredits(brandSlug: string): Promise<UserCredit[]>;
   listUserMemberships(brandSlug: string): Promise<UserMembership[]>;
   listUserReservations(brandSlug: string, when?: "future" | "past"): Promise<UserReservation[]>;

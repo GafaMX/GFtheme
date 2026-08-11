@@ -1,34 +1,40 @@
+/*
+ * Los colores NO se declaran aqui: los inyecta ThemeProvider como variables en
+ * linea, derivados de los pocos colores base del socio y del esquema activo
+ * (ver theme/palette.ts). Aqui solo quedan los valores que no dependen de la
+ * marca: espaciado, sombras y tipografia base.
+ */
 .gafa-sdk {
-  --gafa-color-primary: #111827;
-  --gafa-color-primary-text: #ffffff;
-  --gafa-color-accent: #f97316;
-  --gafa-color-background: #f8fafc;
-  --gafa-color-surface: #ffffff;
-  --gafa-color-text: #111827;
-  --gafa-color-muted-text: #64748b;
-  --gafa-color-border: #e2e8f0;
-  --gafa-color-success: #16a34a;
-  --gafa-color-danger: #dc2626;
-  --gafa-font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --gafa-heading-font-family: var(--gafa-font-family);
-  --gafa-radius-sm: 8px;
-  --gafa-radius-md: 14px;
-  --gafa-radius-lg: 22px;
-  --gafa-radius-pill: 999px;
   --gafa-space-1: 0.35rem;
   --gafa-space-2: 0.65rem;
   --gafa-space-3: 1rem;
   --gafa-space-4: 1.35rem;
   --gafa-space-5: 1.75rem;
   --gafa-space-6: 2.25rem;
-  --gafa-shadow-card: 0 20px 55px rgba(19, 15, 35, 0.12);
-  --gafa-shadow-soft: 0 10px 28px rgba(19, 15, 35, 0.08);
 
+  --gafa-font-family: var(--gafa-font-body);
+  --gafa-heading-font-family: var(--gafa-font-heading);
+
+  color-scheme: light;
   background: transparent;
-  border-radius: var(--gafa-radius-lg);
   color: var(--gafa-color-text);
-  font-family: var(--gafa-font-family);
+  font-family: var(--gafa-font-body);
   line-height: 1.5;
+}
+
+/* Las sombras tienen que cambiar con el esquema: una sombra negra sobre fondo
+   oscuro no se ve, ahi lo que separa las capas es el borde y el nivel de gris. */
+.gafa-sdk[data-color-scheme="light"] {
+  --gafa-shadow-card: 0 18px 44px -20px rgb(15 23 42 / 0.28);
+  --gafa-shadow-soft: 0 6px 18px -10px rgb(15 23 42 / 0.22);
+  --gafa-shadow-pop: 0 24px 60px -24px rgb(15 23 42 / 0.35);
+}
+
+.gafa-sdk[data-color-scheme="dark"] {
+  color-scheme: dark;
+  --gafa-shadow-card: 0 18px 44px -22px rgb(0 0 0 / 0.75);
+  --gafa-shadow-soft: 0 6px 18px -12px rgb(0 0 0 / 0.6);
+  --gafa-shadow-pop: 0 24px 60px -24px rgb(0 0 0 / 0.8);
 }
 
 .gafa-sdk * {
@@ -37,6 +43,33 @@
 
 .gafa-sdk button,
 .gafa-sdk input,
-.gafa-sdk select {
+.gafa-sdk select,
+.gafa-sdk textarea {
   font-family: inherit;
+}
+
+.gafa-sdk :focus-visible {
+  outline: 2px solid var(--gafa-color-accent);
+  outline-offset: 2px;
+}
+
+.gafa-scheme-toggle {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1rem;
+  height: 38px;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  width: 38px;
+}
+
+.gafa-scheme-toggle:hover {
+  background: var(--gafa-color-surface-raised);
+  border-color: var(--gafa-color-primary);
 }

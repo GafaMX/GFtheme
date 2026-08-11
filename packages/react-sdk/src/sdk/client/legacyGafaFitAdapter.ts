@@ -142,6 +142,9 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
     },
     // Los datos de perfil los resuelve httpGafaClient directo contra la API; este adaptador
     // solo sigue vivo como fallback de openCheckout/openReservationCheckout.
+    async listRegistrationFields() {
+      throw new Error("listRegistrationFields no esta implementado en el adaptador legacy.");
+    },
     async listUserCredits() {
       throw new Error("listUserCredits no esta implementado en el adaptador legacy.");
     },

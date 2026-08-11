@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import type { GafaClient } from "../client/types";
+import { useQuery } from "@tanstack/react-query";
+import type { CustomField, CustomFieldValues, GafaClient } from "../client/types";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { WidgetShell } from "./WidgetShell";
 
@@ -9,13 +10,15 @@ export type AuthWidgetProps = {
   client?: GafaClient;
   captcha?: CaptchaProvider;
   initialView?: AuthView;
+  /** Marca cuyos campos especiales de registro hay que pedir. */
+  brandSlug?: string;
   baseUrl?: string;
   onAuthenticated?: () => void;
 };
 
 type FormStatus = "idle" | "submitting" | "success" | "error";
 
-export function AuthWidget({ client, captcha, initialView = "login", onAuthenticated }: AuthWidgetProps) {
+export function AuthWidget({ client, captcha, initialView = "login", brandSlug, onAuthenticated }: AuthWidgetProps) {
   const [view, setView] = useState(initialView);
   const formView = view === "profile" ? "login" : view;
 
@@ -40,7 +43,7 @@ export function AuthWidget({ client, captcha, initialView = "login", onAuthentic
       </div>
 
       {formView === "login" ? <LoginForm client={client} onAuthenticated={onAuthenticated} /> : null}
-      {formView === "register" ? <RegisterForm client={client} captcha={captcha} /> : null}
+      {formView === "register" ? <RegisterForm client={client} captcha={captcha} brandSlug={brandSlug} /> : null}
       {formView === "password-recovery" ? <PasswordRecoveryForm client={client} /> : null}
     </WidgetShell>
   );
@@ -96,14 +99,48 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
   );
 }
 
-function RegisterForm({ client, captcha }: { client?: GafaClient; captcha?: CaptchaProvider }) {
+function RegisterForm({
+  client,
+  captcha,
+  brandSlug,
+}: {
+  client?: GafaClient;
+  captcha?: CaptchaProvider;
+  brandSlug?: string;
+}) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [customValues, setCustomValues] = useState<CustomFieldValues>({});
   const [status, setStatus] = useState<FormStatus>("idle");
   const [error, setError] = useState<string>();
+
+  const brandsQuery = useQuery({
+    queryKey: ["auth", "brands"],
+    queryFn: () => client!.listBrands(),
+    enabled: Boolean(client) && !brandSlug,
+  });
+
+  const activeBrandSlug = brandSlug ?? brandsQuery.data?.[0]?.slug;
+
+  // Cada marca configura sus propios campos extra desde gafa.fit; sin ellos el
+  // registro falla cuando alguno es obligatorio.
+  const fieldsQuery = useQuery({
+    queryKey: ["auth", "registration-fields", activeBrandSlug],
+    queryFn: () => client!.listRegistrationFields(activeBrandSlug!),
+    enabled: Boolean(client) && Boolean(activeBrandSlug),
+  });
+
+  const groups = fieldsQuery.data ?? [];
+
+  function setCustomValue(groupId: number, fieldId: number, value: string) {
+    setCustomValues((current) => ({
+      ...current,
+      [groupId]: { ...(current[groupId] ?? {}), [fieldId]: value },
+    }));
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -126,6 +163,7 @@ function RegisterForm({ client, captcha }: { client?: GafaClient; captcha?: Capt
         firstName,
         lastName: lastName || undefined,
         captchaToken,
+        customFields: customValues,
       });
 
       setStatus("success");
@@ -179,6 +217,21 @@ function RegisterForm({ client, captcha }: { client?: GafaClient; captcha?: Capt
         />
       </label>
 
+      {groups.map((group) => (
+        <fieldset className="gafa-sdk-fieldset" key={group.id}>
+          <legend>{group.name}</legend>
+          {group.description ? <p className="gafa-sdk-field-help">{group.description}</p> : null}
+          {group.fields.map((field) => (
+            <CustomFieldInput
+              key={field.id}
+              field={field}
+              value={customValues[group.id]?.[field.id] ?? field.defaultValue ?? ""}
+              onChange={(value) => setCustomValue(group.id, field.id, value)}
+            />
+          ))}
+        </fieldset>
+      ))}
+
       {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
 
       <button className="gafa-sdk-button" type="submit" disabled={!client || status === "submitting"}>
@@ -187,6 +240,69 @@ function RegisterForm({ client, captcha }: { client?: GafaClient; captcha?: Capt
       <p className="gafa-auth-note">Protegido con reCAPTCHA.</p>
     </form>
   );
+}
+
+function CustomFieldInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: CustomField;
+  value: string;
+  onChange(value: string): void;
+}) {
+  const label = (
+    <span>
+      {field.name}
+      {field.required ? " *" : ""}
+    </span>
+  );
+
+  if (field.options.length > 0) {
+    return (
+      <label className="gafa-sdk-field">
+        {label}
+        <select value={value} onChange={(event) => onChange(event.target.value)} required={field.required}>
+          <option value="">Selecciona una opción</option>
+          {field.options.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}
+            </option>
+          ))}
+        </select>
+        {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
+      </label>
+    );
+  }
+
+  return (
+    <label className="gafa-sdk-field">
+      {label}
+      <input
+        type={inputTypeFor(field.type)}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={field.required}
+      />
+      {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
+    </label>
+  );
+}
+
+/** Los tipos vienen del catalogo de gafa.fit, no de HTML. */
+function inputTypeFor(type: string): string {
+  switch (type) {
+    case "number":
+      return "number";
+    case "date":
+      return "date";
+    case "email":
+      return "email";
+    case "phone":
+      return "tel";
+    default:
+      return "text";
+  }
 }
 
 function PasswordRecoveryForm({ client }: { client?: GafaClient }) {

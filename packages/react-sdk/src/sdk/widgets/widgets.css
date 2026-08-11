@@ -1,34 +1,31 @@
+/*
+ * Estilos de los widgets. Regla dura: NINGUN color literal aqui.
+ * Todo sale de las variables que inyecta ThemeProvider, para que el mismo CSS
+ * funcione con cualquier marca y en claro u oscuro. Antes habia blancos y grises
+ * escritos a mano (rgba(255,255,255,...)), que era justo lo que impedia tener
+ * tema oscuro y lo que obligaba a tocar CSS por cada socio.
+ */
+
+/* ---------------------------------------------------------------- superficie */
+
 .gafa-widget-card {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.74)),
-    var(--gafa-color-surface);
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: var(--gafa-radius-xl);
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
   box-shadow: var(--gafa-shadow-card);
   display: grid;
-  gap: var(--gafa-space-5);
+  gap: var(--gafa-space-4);
   overflow: hidden;
   padding: var(--gafa-space-5);
   position: relative;
 }
 
-.gafa-widget-card::before {
-  background: radial-gradient(circle, color-mix(in srgb, var(--gafa-color-accent) 18%, transparent), transparent 66%);
-  content: "";
-  height: 180px;
-  opacity: 0.85;
-  pointer-events: none;
-  position: absolute;
-  right: -82px;
-  top: -98px;
-  width: 180px;
-}
-
 .gafa-widget-header {
-  display: grid;
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--gafa-space-3);
-  position: relative;
-  z-index: 1;
+  justify-content: space-between;
 }
 
 .gafa-widget-heading {
@@ -38,20 +35,25 @@
 }
 
 .gafa-widget-logo {
-  border-radius: var(--gafa-radius-md);
-  height: 42px;
-  object-fit: contain;
-  width: auto;
+  border-radius: var(--gafa-radius-pill);
+  height: 44px;
+  object-fit: cover;
+  width: 44px;
+}
+
+.gafa-widget-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-2);
 }
 
 .gafa-eyebrow,
-.gafa-sdk-label,
-.gafa-sdk__meta {
-  color: var(--gafa-color-accent);
-  font-size: 0.76rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  margin: 0;
+.gafa-sdk-label {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0 0 2px;
   text-transform: uppercase;
 }
 
@@ -60,110 +62,154 @@
 .gafa-widget-card h4 {
   color: var(--gafa-color-text);
   font-family: var(--gafa-font-heading);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 .gafa-widget-card h2 {
-  font-size: clamp(1.8rem, 8vw, 2.65rem);
-  line-height: 1.02;
+  font-size: clamp(1.35rem, 1.1rem + 1vw, 1.75rem);
+  font-weight: 800;
 }
 
 .gafa-widget-card h3 {
-  font-size: 1.2rem;
-}
-
-.gafa-widget-card h4 {
-  font-size: 1.08rem;
+  font-size: 1.02rem;
+  font-weight: 700;
 }
 
 .gafa-muted,
 .gafa-widget-card p {
   color: var(--gafa-color-muted-text);
-  font-size: 0.98rem;
-  line-height: 1.55;
   margin: 0;
 }
 
-.gafa-sdk-panel,
-.gafa-sdk-card,
-.gafa-sdk__card {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: var(--gafa-radius-lg);
-  box-shadow: var(--gafa-shadow-soft);
+.gafa-sdk-panel {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
   display: grid;
-  gap: var(--gafa-space-3);
+  gap: var(--gafa-space-2);
   padding: var(--gafa-space-4);
 }
 
-.gafa-sdk-profile-grid,
 .gafa-sdk-grid,
-.gafa-sdk__cards {
+.gafa-sdk-profile-grid {
   display: grid;
   gap: var(--gafa-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 }
 
-.gafa-sdk__card {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.94)),
-    var(--gafa-color-surface);
-}
+/* ----------------------------------------------------------------- controles */
 
-.gafa-sdk__card > div {
-  display: grid;
-  gap: var(--gafa-space-2);
-}
-
-.gafa-sdk-actions,
-.gafa-sdk-auth-tabs {
-  display: grid;
-  gap: var(--gafa-space-2);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.gafa-sdk-button,
-.gafa-sdk-primary-button,
-.gafa-sdk-auth-tabs button {
-  align-items: center;
-  appearance: none;
+.gafa-sdk-button {
   background: var(--gafa-color-primary);
-  border: 0;
+  border: 1px solid transparent;
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-primary-text);
   cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-weight: 850;
-  justify-content: center;
-  min-height: 48px;
-  padding: 0.78rem 1.1rem;
-  text-align: center;
-  text-decoration: none;
-  transition: opacity 160ms ease, transform 160ms ease;
-  width: 100%;
+  font-size: 0.95rem;
+  font-weight: 700;
+  min-height: 46px;
+  padding: 0.7rem 1.4rem;
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 
-.gafa-sdk-button:not(:disabled):active,
-.gafa-sdk-primary-button:not(:disabled):active,
-.gafa-sdk-auth-tabs button:not(:disabled):active {
-  transform: translateY(1px) scale(0.99);
+.gafa-sdk-button:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.gafa-sdk-button:not(:disabled):active {
+  transform: translateY(1px);
 }
 
 .gafa-sdk-button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
-.gafa-sdk-button[aria-busy="true"] {
-  position: relative;
-}
-
-.gafa-sdk-button--secondary,
-.gafa-sdk-auth-tabs button[aria-pressed="false"] {
-  background: rgba(17, 24, 39, 0.07);
+.gafa-sdk-button--secondary {
+  background: transparent;
+  border-color: var(--gafa-color-border);
   color: var(--gafa-color-text);
 }
+
+.gafa-sdk-button--secondary:not(:disabled):hover {
+  background: var(--gafa-color-surface-raised);
+  border-color: var(--gafa-color-primary);
+  filter: none;
+}
+
+.gafa-icon-button {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font-size: 1.3rem;
+  height: 40px;
+  line-height: 1;
+  width: 40px;
+}
+
+.gafa-icon-button:hover {
+  background: var(--gafa-color-surface-raised);
+  border-color: var(--gafa-color-primary);
+}
+
+/* Grupo de botones tipo pestaña, usado por la vista dia/semana y por auth. */
+.gafa-segmented,
+.gafa-sdk-auth-tabs {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+}
+
+.gafa-segmented button,
+.gafa-sdk-auth-tabs button {
+  background: transparent;
+  border: none;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gafa-segmented button[aria-pressed="true"],
+.gafa-sdk-auth-tabs button[aria-pressed="true"] {
+  background: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-chip {
+  background: transparent;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.38rem 0.85rem;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.gafa-chip[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+/* ----------------------------------------------------------------- formularios */
 
 .gafa-sdk-form {
   display: grid;
@@ -171,67 +217,111 @@
 }
 
 .gafa-sdk-field {
-  color: var(--gafa-color-text);
   display: grid;
-  font-size: 0.9rem;
-  font-weight: 750;
   gap: var(--gafa-space-1);
 }
 
+.gafa-sdk-field > span,
+.gafa-calendar-filter > span {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .gafa-sdk-field input,
-.gafa-sdk-field select {
-  appearance: none;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(17, 24, 39, 0.1);
+.gafa-sdk-field select,
+.gafa-sdk-field textarea,
+.gafa-calendar-filter select {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-text);
   font: inherit;
-  font-weight: 500;
-  min-height: 50px;
-  padding: 0.78rem 0.95rem;
+  min-height: 46px;
+  padding: 0.65rem 0.85rem;
   width: 100%;
+}
+
+.gafa-sdk-field input::placeholder,
+.gafa-sdk-field textarea::placeholder {
+  color: var(--gafa-color-muted-text);
+  opacity: 0.7;
 }
 
 .gafa-sdk-field input:focus,
 .gafa-sdk-field select:focus,
-.gafa-calendar-filters select:focus {
-  border-color: color-mix(in srgb, var(--gafa-color-accent) 70%, var(--gafa-color-primary));
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gafa-color-accent) 15%, transparent);
+.gafa-calendar-filter select:focus {
+  border-color: var(--gafa-color-primary);
   outline: none;
 }
 
-.gafa-sdk-state,
-.gafa-sdk__state {
-  background: rgba(255, 255, 255, 0.66);
-  border: 1px dashed rgba(17, 24, 39, 0.14);
-  border-radius: var(--gafa-radius-md);
-  color: var(--gafa-color-muted-text);
-  padding: var(--gafa-space-4);
+.gafa-sdk-field--invalid input {
+  border-color: var(--gafa-color-danger);
 }
 
-.gafa-sdk-state--error,
-.gafa-sdk__state--error {
-  border-color: var(--gafa-color-danger);
+.gafa-sdk-field-help {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+}
+
+.gafa-sdk-state {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.gafa-sdk-state--error {
+  background: var(--gafa-color-danger-soft);
+  border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-danger);
+  padding: 0.7rem 0.9rem;
 }
 
 .gafa-sdk-state--success {
-  border-color: var(--gafa-color-success);
+  background: var(--gafa-color-success-soft);
+  border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-success);
+  padding: 0.7rem 0.9rem;
 }
 
-.gafa-calendar {
-  display: grid;
-  gap: var(--gafa-space-4);
+/* ------------------------------------------------------------------ calendario */
+
+.gafa-calendar-toolbar {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-calendar-toolbar__label {
+  align-items: baseline;
+  display: flex;
+  flex: 1;
+  gap: var(--gafa-space-2);
+  justify-content: center;
+}
+
+.gafa-calendar-toolbar__label strong {
+  color: var(--gafa-color-text);
+  font-size: 1.02rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.gafa-calendar-toolbar__hint {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
 }
 
 .gafa-calendar-filters {
-  background: rgba(255, 255, 255, 0.64);
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: var(--gafa-radius-lg);
   display: grid;
   gap: var(--gafa-space-3);
-  padding: var(--gafa-space-3);
+}
+
+.gafa-calendar-filters__selects {
+  display: grid;
+  gap: var(--gafa-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 .gafa-calendar-filter {
@@ -239,114 +329,326 @@
   gap: var(--gafa-space-1);
 }
 
-.gafa-calendar-filter,
-.gafa-calendar-filters label {
+/* La rejilla de semana scrollea en horizontal en movil: 7 columnas no caben en
+   una pantalla de telefono sin volverlas ilegibles. */
+.gafa-week-grid {
   display: grid;
-  gap: var(--gafa-space-1);
+  gap: var(--gafa-space-2);
+  grid-auto-columns: minmax(150px, 1fr);
+  grid-auto-flow: column;
+  overflow-x: auto;
+  padding-bottom: var(--gafa-space-2);
+  scroll-snap-type: x mandatory;
 }
 
-.gafa-calendar-filter label,
-.gafa-calendar-filters label {
+.gafa-week-grid > * {
+  scroll-snap-align: start;
+}
+
+.gafa-day-column {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-2);
+  padding: var(--gafa-space-2);
+}
+
+.gafa-day-column[data-today="true"] {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-day-column__header {
+  align-items: baseline;
+  border-bottom: 1px solid var(--gafa-color-border);
+  display: flex;
+  gap: var(--gafa-space-2);
+  padding-bottom: var(--gafa-space-2);
+}
+
+.gafa-day-column__weekday {
   color: var(--gafa-color-muted-text);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.gafa-calendar-filter select,
-.gafa-calendar-filters select {
-  appearance: none;
-  background:
-    linear-gradient(45deg, transparent 50%, var(--gafa-color-muted-text) 50%) right 1rem center / 7px 7px no-repeat,
-    linear-gradient(135deg, var(--gafa-color-muted-text) 50%, transparent 50%) right 0.72rem center / 7px 7px no-repeat,
-    rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(17, 24, 39, 0.1);
-  border-radius: var(--gafa-radius-md);
+.gafa-day-column__number {
   color: var(--gafa-color-text);
-  font: inherit;
-  min-height: 50px;
-  padding: 0.75rem 2.35rem 0.75rem 0.9rem;
+  font-size: 1.1rem;
+  font-weight: 800;
 }
 
-.gafa-calendar-summary {
-  color: var(--gafa-color-muted-text);
-  font-size: 0.92rem;
-  margin: 0;
+.gafa-day-column[data-today="true"] .gafa-day-column__number {
+  color: var(--gafa-color-primary);
 }
 
-.gafa-day-group {
+.gafa-day-column__list {
   display: grid;
   gap: var(--gafa-space-2);
 }
 
-.gafa-day-group h3 {
-  color: var(--gafa-color-text);
-  font-size: 0.98rem;
-  letter-spacing: -0.02em;
-  margin: 0;
-  text-transform: capitalize;
-}
-
-.gafa-meeting-list {
-  display: grid;
-  gap: var(--gafa-space-3);
+.gafa-day-column__empty {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  padding: var(--gafa-space-3) 0;
+  text-align: center;
 }
 
 .gafa-meeting-card {
-  align-items: stretch;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: var(--gafa-radius-xl);
-  box-shadow: var(--gafa-shadow-soft);
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-sm);
+  cursor: pointer;
   display: grid;
-  gap: var(--gafa-space-3);
-  padding: var(--gafa-space-4);
+  gap: 3px;
+  padding: var(--gafa-space-2);
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+  width: 100%;
 }
 
-.gafa-meeting-card__main,
-.gafa-meeting-card__body {
-  display: grid;
-  gap: var(--gafa-space-2);
+.gafa-meeting-card:hover {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-meeting-card:active {
+  transform: translateY(1px);
+}
+
+.gafa-meeting-card[data-sold-out="true"] {
+  opacity: 0.55;
+}
+
+.gafa-meeting-card[data-compact="true"] .gafa-meeting-name {
+  font-size: 0.86rem;
 }
 
 .gafa-meeting-time {
-  color: var(--gafa-color-accent);
-  font-size: 0.9rem;
-  font-weight: 900;
+  color: var(--gafa-color-primary);
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
-.gafa-meeting-card h4 {
+.gafa-meeting-name {
   color: var(--gafa-color-text);
-  font-size: 1.08rem;
-  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
-.gafa-meeting-card p {
+.gafa-meeting-staff,
+.gafa-meeting-desc {
   color: var(--gafa-color-muted-text);
-  margin: 0;
-}
-
-.gafa-meeting-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gafa-space-2);
+  font-size: 0.78rem;
 }
 
 .gafa-meeting-chip {
-  background: color-mix(in srgb, var(--gafa-color-primary) 9%, transparent);
+  background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-primary);
-  font-size: 0.78rem;
-  font-weight: 800;
-  padding: 0.3rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.22rem 0.55rem;
 }
 
-.gafa-meeting-card__aside {
-  align-items: stretch;
+.gafa-availability-pill {
+  background: var(--gafa-color-success-soft);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-success);
+  font-size: 0.74rem;
+  font-weight: 700;
+  justify-self: start;
+  margin-top: 2px;
+  padding: 0.2rem 0.5rem;
+}
+
+.gafa-availability-pill--sold-out,
+.gafa-availability-pill--waitlist {
+  background: var(--gafa-color-danger-soft);
+  color: var(--gafa-color-danger);
+}
+
+.gafa-availability-pill--reserved {
+  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-empty-state {
+  border: 1px dashed var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-1);
+  padding: var(--gafa-space-5);
+  text-align: center;
+}
+
+.gafa-empty-state strong {
+  color: var(--gafa-color-text);
+}
+
+.gafa-empty-state span {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------ skeletons */
+
+.gafa-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--gafa-color-border) 25%,
+    var(--gafa-color-surface-raised) 50%,
+    var(--gafa-color-border) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--gafa-radius-sm);
+  display: block;
+  animation: gafa-shimmer 1.4s ease-in-out infinite;
+}
+
+.gafa-skeleton--line {
+  height: 14px;
+}
+
+.gafa-skeleton--card {
+  height: 64px;
+}
+
+@keyframes gafa-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gafa-skeleton {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------- modales */
+
+.gafa-reservation-overlay,
+.gafa-fancy-overlay {
+  align-items: flex-end;
+  background: var(--gafa-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--gafa-space-3);
+  position: fixed;
+  z-index: 2147483000;
+}
+
+@media (min-width: 640px) {
+  .gafa-reservation-overlay,
+  .gafa-fancy-overlay {
+    align-items: center;
+  }
+}
+
+.gafa-reservation-sheet,
+.gafa-fancy-sheet {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  box-shadow: var(--gafa-shadow-pop);
+  display: grid;
+  gap: var(--gafa-space-3);
+  max-height: 90vh;
+  max-width: 520px;
+  overflow-y: auto;
+  padding: var(--gafa-space-5);
+  position: relative;
+  width: 100%;
+}
+
+.gafa-reservation-close,
+.gafa-fancy-close {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font-size: 1.1rem;
+  height: 34px;
+  line-height: 1;
+  position: absolute;
+  right: var(--gafa-space-3);
+  top: var(--gafa-space-3);
+  width: 34px;
+}
+
+.gafa-reservation-hero {
+  display: grid;
+  gap: var(--gafa-space-1);
+  padding-right: 44px;
+}
+
+.gafa-reservation-summary {
   display: grid;
   gap: var(--gafa-space-2);
 }
+
+.gafa-reservation-summary div {
+  border-bottom: 1px solid var(--gafa-color-border);
+  display: flex;
+  gap: var(--gafa-space-3);
+  justify-content: space-between;
+  padding-bottom: var(--gafa-space-2);
+}
+
+.gafa-reservation-summary dt,
+.gafa-reservation-summary span:first-child {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.85rem;
+}
+
+.gafa-reservation-summary dd,
+.gafa-reservation-summary span:last-child {
+  color: var(--gafa-color-text);
+  font-weight: 600;
+  margin: 0;
+  text-align: right;
+}
+
+.gafa-reservation-steps {
+  display: grid;
+  gap: var(--gafa-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gafa-reservation-steps li {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  padding-left: var(--gafa-space-4);
+  position: relative;
+}
+
+.gafa-reservation-steps li::before {
+  background: var(--gafa-color-primary);
+  border-radius: var(--gafa-radius-pill);
+  content: "";
+  height: 7px;
+  left: 0;
+  position: absolute;
+  top: 0.5em;
+  width: 7px;
+}
+
+.gafa-reservation-actions {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+/* --------------------------------------------------------------------- perfil */
 
 .gafa-profile-list {
   display: grid;
@@ -373,200 +675,63 @@
 }
 
 .gafa-profile-amount {
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .gafa-profile-store-credit {
-  background: color-mix(in srgb, var(--gafa-color-accent) 12%, transparent);
-  border-radius: var(--gafa-radius-pill);
-  padding: 0.5rem 0.9rem;
-}
-
-.gafa-availability {
-  color: var(--gafa-color-muted-text);
-  font-size: 0.88rem;
-  font-weight: 700;
-}
-
-.gafa-availability-pill {
-  align-items: center;
-  background: rgba(22, 163, 74, 0.1);
-  border-radius: var(--gafa-radius-pill);
-  color: var(--gafa-color-success);
-  display: inline-flex;
-  font-size: 0.82rem;
-  font-weight: 850;
-  justify-content: center;
-  min-height: 34px;
-  padding: 0.35rem 0.75rem;
-}
-
-.gafa-availability-pill--reserved {
-  background: rgba(17, 24, 39, 0.08);
-  color: var(--gafa-color-text);
-}
-
-.gafa-availability-pill--waitlist {
   background: color-mix(in srgb, var(--gafa-color-accent) 14%, transparent);
-  color: var(--gafa-color-accent);
-}
-
-.gafa-availability-pill--sold-out {
-  background: color-mix(in srgb, var(--gafa-color-danger) 10%, transparent);
-  color: var(--gafa-color-danger);
-}
-
-.gafa-reservation-overlay {
-  align-items: end;
-  background: rgba(15, 23, 42, 0.46);
-  display: grid;
-  inset: 0;
-  padding: var(--gafa-space-3);
-  position: fixed;
-  z-index: 40;
-}
-
-.gafa-reservation-sheet {
-  background:
-    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--gafa-color-accent) 16%, transparent), transparent 36%),
-    rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.84);
-  border-radius: 30px 30px var(--gafa-radius-xl) var(--gafa-radius-xl);
-  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
-  display: grid;
-  gap: var(--gafa-space-4);
-  margin: 0 auto;
-  max-height: min(88vh, 760px);
-  max-width: 560px;
-  overflow: auto;
-  padding: var(--gafa-space-5);
-  position: relative;
-  width: 100%;
-}
-
-.gafa-reservation-close {
-  align-items: center;
-  appearance: none;
-  background: rgba(17, 24, 39, 0.08);
-  border: 0;
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-text);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-weight: 900;
-  height: 38px;
-  justify-content: center;
-  position: absolute;
-  right: var(--gafa-space-4);
-  top: var(--gafa-space-4);
-  width: 38px;
+  justify-self: start;
+  padding: 0.45rem 0.9rem;
 }
 
-.gafa-reservation-hero {
+/* ------------------------------------------------------------------- catalogo */
+
+.gafa-catalog-card {
   display: grid;
-  gap: var(--gafa-space-2);
-  padding-right: 44px;
+  gap: var(--gafa-space-3);
+  grid-template-rows: 1fr auto;
 }
 
-.gafa-reservation-hero h3 {
+.gafa-catalog-price {
   color: var(--gafa-color-text);
-  font-size: clamp(1.65rem, 8vw, 2.4rem);
-  letter-spacing: -0.045em;
-  line-height: 1;
-  margin: 0;
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-top: var(--gafa-space-2);
 }
 
-.gafa-reservation-hero p {
+.gafa-sdk-kicker {
   color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gafa-sdk-fieldset {
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-3);
   margin: 0;
-}
-
-.gafa-reservation-summary {
-  display: grid;
-  gap: var(--gafa-space-2);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.gafa-reservation-summary div,
-.gafa-reservation-steps li {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(17, 24, 39, 0.08);
-  border-radius: var(--gafa-radius-lg);
-  display: grid;
-  gap: 0.15rem;
   padding: var(--gafa-space-3);
 }
 
-.gafa-reservation-summary span,
-.gafa-reservation-steps span {
+.gafa-sdk-fieldset legend {
   color: var(--gafa-color-muted-text);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0 var(--gafa-space-1);
+  text-transform: uppercase;
 }
 
-.gafa-reservation-summary strong,
-.gafa-reservation-steps strong {
-  color: var(--gafa-color-text);
-}
-
-.gafa-reservation-steps {
-  display: grid;
-  gap: var(--gafa-space-2);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.gafa-reservation-actions {
-  display: grid;
-  gap: var(--gafa-space-2);
-}
-
-.gafa-fancy-mount:empty {
-  min-height: 120px;
-}
-
-.gafa-empty-state {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px dashed rgba(17, 24, 39, 0.14);
-  border-radius: var(--gafa-radius-lg);
+.gafa-auth-note {
   color: var(--gafa-color-muted-text);
-  display: grid;
-  gap: var(--gafa-space-1);
-  padding: var(--gafa-space-4);
-}
-
-.gafa-empty-state strong {
-  color: var(--gafa-color-text);
-}
-
-@media (min-width: 720px) {
-  .gafa-reservation-overlay {
-    align-items: center;
-  }
-
-  .gafa-reservation-actions {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .gafa-calendar-filters {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .gafa-meeting-card {
-    align-items: center;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .gafa-meeting-card__aside {
-    min-width: 160px;
-  }
-
-  .gafa-sdk-profile-grid,
-  .gafa-sdk-grid,
-  .gafa-sdk__cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  font-size: 0.78rem;
+  text-align: center;
 }

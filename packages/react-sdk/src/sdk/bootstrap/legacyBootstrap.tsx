@@ -1,4 +1,5 @@
 import type { GafaSdk } from "../runtime";
+import type { CalendarView } from "../widgets/calendarRange";
 
 type LegacyWidgetName =
   | "login"
@@ -53,7 +54,7 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
     case "meetings-calendar":
       runtime.mountCalendar(element, {
         limit: toNumber(element.getAttribute("data-gf-limit")),
-        visualization: readVisualization(element),
+        view: readVisualization(element),
         showDescription: element.getAttribute("data-bq-show-description") === "true",
         filters: {
           brand: element.hasAttribute("filter-bq-brand"),
@@ -156,12 +157,15 @@ function toNumber(value: string | null): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-function readVisualization(element: HTMLElement) {
+/**
+ * El legacy tiene `horizontal` (rejilla de dias) y `vertical` (lista de un dia),
+ * que es exactamente la distincion entre las vistas de semana y de dia nuevas.
+ */
+function readVisualization(element: HTMLElement): CalendarView | undefined {
   const visualization = element.getAttribute("data-bq-calendar-visualization");
 
-  if (visualization === "horizontal" || visualization === "vertical" || visualization === "agenda") {
-    return visualization;
-  }
+  if (visualization === "vertical") return "day";
+  if (visualization === "horizontal") return "week";
 
   return undefined;
 }
