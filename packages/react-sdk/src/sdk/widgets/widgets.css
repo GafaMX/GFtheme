@@ -185,6 +185,51 @@
   color: var(--gafa-color-primary-text);
 }
 
+/* Las dos pestanas de cuenta reparten el ancho a partes iguales. */
+.gafa-sdk-auth-tabs {
+  width: 100%;
+}
+
+.gafa-sdk-auth-tabs button {
+  flex: 1;
+}
+
+/* Links discretos bajo los formularios de cuenta. */
+.gafa-auth-links {
+  align-items: center;
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+  gap: var(--gafa-space-2);
+  justify-content: space-between;
+  margin: 0;
+}
+
+.gafa-auth-links:has(> :only-child) {
+  justify-content: center;
+}
+
+.gafa-auth-link {
+  background: none;
+  border: none;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.gafa-auth-link:hover {
+  color: var(--gafa-color-primary);
+}
+
+.gafa-auth-link--strong {
+  color: var(--gafa-color-primary);
+  font-weight: 700;
+}
+
 .gafa-chip-row {
   display: flex;
   flex-wrap: nowrap;

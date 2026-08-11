@@ -61,31 +61,59 @@ export function AuthWidget({ client, captcha, initialView = "login", brandSlug, 
     );
   }
 
+  if (formView === "password-recovery") {
+    return (
+      <WidgetShell eyebrow="Cuenta" title="Recupera tu contraseña">
+        <PasswordRecoveryForm client={client} />
+        <p className="gafa-auth-links">
+          <button className="gafa-auth-link" type="button" onClick={() => setView("login")}>
+            ← Volver a iniciar sesión
+          </button>
+        </p>
+      </WidgetShell>
+    );
+  }
+
   return (
-    <WidgetShell
-      eyebrow="Cuenta"
-      title={
-        formView === "register" ? "Crea tu cuenta" : formView === "password-recovery" ? "Recupera tu acceso" : "Bienvenido"
-      }
-      description="Login, registro y recuperacion de password conectados a tu cuenta real."
-    >
-      <div className="gafa-sdk-auth-tabs" role="tablist" aria-label="Opciones de cuenta">
+    <WidgetShell eyebrow="Cuenta" title={formView === "register" ? "Crea tu cuenta" : "Inicia sesión"}>
+      {/* Dos opciones claras; la activa se pinta con el color de marca. */}
+      <div className="gafa-sdk-auth-tabs" role="tablist" aria-label="Iniciar sesión o crear cuenta">
         <button type="button" aria-pressed={formView === "login"} onClick={() => setView("login")}>
-          Login
+          Iniciar sesión
         </button>
         <button type="button" aria-pressed={formView === "register"} onClick={() => setView("register")}>
-          Registro
-        </button>
-        <button type="button" aria-pressed={formView === "password-recovery"} onClick={() => setView("password-recovery")}>
-          Password
+          Crear cuenta
         </button>
       </div>
 
-      {formView === "login" ? <LoginForm client={client} onAuthenticated={onAuthenticated} /> : null}
-      {formView === "register" ? (
-        <RegisterForm client={client} captcha={captcha} brandSlug={brandSlug} onAuthenticated={onAuthenticated} />
-      ) : null}
-      {formView === "password-recovery" ? <PasswordRecoveryForm client={client} /> : null}
+      {formView === "login" ? (
+        <>
+          <LoginForm client={client} onAuthenticated={onAuthenticated} />
+          <p className="gafa-auth-links">
+            <button className="gafa-auth-link" type="button" onClick={() => setView("password-recovery")}>
+              ¿Olvidaste tu contraseña?
+            </button>
+            <span>
+              ¿No tienes cuenta?{" "}
+              <button className="gafa-auth-link gafa-auth-link--strong" type="button" onClick={() => setView("register")}>
+                Regístrate
+              </button>
+            </span>
+          </p>
+        </>
+      ) : (
+        <>
+          <RegisterForm client={client} captcha={captcha} brandSlug={brandSlug} onAuthenticated={onAuthenticated} />
+          <p className="gafa-auth-links">
+            <span>
+              ¿Ya tienes cuenta?{" "}
+              <button className="gafa-auth-link gafa-auth-link--strong" type="button" onClick={() => setView("login")}>
+                Inicia sesión
+              </button>
+            </span>
+          </p>
+        </>
+      )}
     </WidgetShell>
   );
 }
