@@ -1018,6 +1018,136 @@
   color: var(--gafa-color-success);
 }
 
+/* --------------------------------------------------------------- mapa de salon */
+
+.gafa-reservation-sheet[data-step="seat"] {
+  max-width: min(760px, 96vw);
+}
+
+.gafa-seatmap {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-seatmap__legend {
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-seatmap__legend span {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.gafa-seatmap__dot {
+  background: var(--gafa-color-surface);
+  border: 1.5px solid var(--gafa-color-border);
+  border-radius: 50%;
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+}
+
+.gafa-seatmap__dot--taken {
+  background: var(--gafa-color-border);
+}
+
+.gafa-seatmap__dot--selected {
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-seatmap__grid {
+  display: grid;
+  gap: 6px;
+  justify-items: stretch;
+}
+
+.gafa-seatmap__seat {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--gafa-color-surface);
+  border: 1.5px solid var(--gafa-color-border);
+  border-radius: 50%;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 30px;
+  min-width: 30px;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+}
+
+.gafa-seatmap__seat:not(:disabled):hover {
+  border-color: var(--gafa-color-primary);
+  transform: scale(1.08);
+}
+
+.gafa-seatmap__seat[data-taken="true"] {
+  background: var(--gafa-color-border);
+  color: var(--gafa-color-muted-text);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gafa-seatmap__seat[data-selected="true"] {
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-seatmap__fixture {
+  align-items: center;
+  background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
+  border: 1px dashed var(--gafa-color-border);
+  border-radius: var(--gafa-radius-sm);
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.66rem;
+  font-weight: 800;
+  justify-content: center;
+  letter-spacing: 0.08em;
+}
+
+/* ------------------------------------------------------------ reserva exitosa */
+
+.gafa-reservation-success {
+  display: grid;
+  gap: var(--gafa-space-2);
+  justify-items: center;
+  padding: var(--gafa-space-4) 0;
+  text-align: center;
+}
+
+.gafa-reservation-success__icon {
+  align-items: center;
+  background: var(--gafa-color-success-soft);
+  border-radius: 50%;
+  color: var(--gafa-color-success);
+  display: flex;
+  font-size: 1.6rem;
+  font-weight: 800;
+  height: 56px;
+  justify-content: center;
+  width: 56px;
+}
+
+.gafa-reservation-success__seat {
+  font-size: 1.05rem;
+}
+
+.gafa-reservation-success .gafa-reservation-actions {
+  justify-items: stretch;
+  margin-top: var(--gafa-space-2);
+  width: 100%;
+}
+
 /* --------------------------------------------------------------------- perfil */
 
 .gafa-profile-list {

@@ -216,6 +216,64 @@ export type MeetingFilters = {
   endDate?: string;
 };
 
+/** Un objeto del mapa de salon (bici, tapete, coach, etc.). */
+export type SeatMapObject = {
+  /** maps_objects_id: es lo que se manda al reservar. */
+  id: number;
+  row: number;
+  column: number;
+  width: number;
+  height: number;
+  /** Numero visible del lugar ("1", "37"). Vacio para objetos decorativos. */
+  label: string;
+  /** "public" = reservable; "coach" y otros son decorativos. */
+  type: string;
+  isBlocked: boolean;
+  isOccupied: boolean;
+};
+
+export type SeatMap = {
+  id: number;
+  name: string;
+  rows: number;
+  columns: number;
+  capacity: number;
+  objects: SeatMapObject[];
+};
+
+/**
+ * Todo lo necesario para reservar un meeting de forma nativa. Sale del
+ * create-form-template del servidor (el mismo que alimenta al fancy legacy),
+ * parseado a datos: mapa del salon con ocupados, creditos validos y perfil.
+ */
+export type ReservationContext = {
+  meetingId: number;
+  brandSlug: string;
+  locationSlug: string;
+  userProfileId: number;
+  /** null cuando la clase no usa mapa (p.ej. Bunker). */
+  seatMap: SeatMap | null;
+  /** Creditos del usuario que aplican a ESTE meeting segun el servidor. */
+  validCredits: UserCredit[];
+  /** true si el meeting esta lleno y el servidor ofrece lista de espera. */
+  waitlistAvailable: boolean;
+};
+
+export type CreateReservationPayload = {
+  brandSlug: string;
+  locationSlug: string;
+  meetingId: string | number;
+  userProfileId: number;
+  /** maps_objects_id del lugar elegido; omitir cuando no hay mapa. */
+  seatObjectId?: number;
+};
+
+export type CreateReservationResult = {
+  reservationId: number;
+  isWaitlist: boolean;
+  seatLabel?: string;
+};
+
 export type GafaClient = {
   listBrands(): Promise<Brand[]>;
   listLocations(brandSlug?: string): Promise<Location[]>;
@@ -231,6 +289,10 @@ export type GafaClient = {
   listUserReservations(brandSlug: string, when?: "future" | "past"): Promise<UserReservation[]>;
   listUserPurchases(brandSlug: string): Promise<UserPurchase[]>;
   cancelReservation(brandSlug: string, reservationId: string | number): Promise<void>;
+  /** Datos para el flujo de reserva nativo (mapa de salon, creditos validos). */
+  getReservationContext?(payload: ReservationCheckoutPayload): Promise<ReservationContext>;
+  /** Crea la reserva directamente (usa credito valido; asigna lugar si se manda). */
+  createReservation?(payload: CreateReservationPayload): Promise<CreateReservationResult>;
   login(credentials: AuthCredentials): Promise<{ access_token: string }>;
   logout(): void;
   register(payload: RegisterPayload): Promise<{ url?: string }>;

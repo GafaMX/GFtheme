@@ -3,6 +3,8 @@ import type {
   Brand,
   CatalogItem,
   CheckoutPayload,
+  CreateReservationPayload,
+  CreateReservationResult,
   GafaClient,
   Location,
   Meeting,
@@ -11,8 +13,12 @@ import type {
   PasswordResetRequestPayload,
   RegisterPayload,
   ReservationCheckoutPayload,
+  ReservationContext,
+  SeatMap,
+  SeatMapObject,
   Service,
   StaffMember,
+  UserCredit,
   UserProfile,
   UserReservation,
 } from "./types";
@@ -446,6 +452,153 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async cancelReservation(brandSlug, reservationId) {
       await apiPost(`/api/me/brand/${brandSlug}/reservation-future/${reservationId}/cancel`, {});
+    },
+
+    /**
+     * El backend no expone el mapa de salon como JSON: vive dentro del HTML del
+     * create-form-template (el mismo que alimenta al fancy legacy). Aqui se pide
+     * ese HTML y se parsean sus bloques ocultos (meeting con mapa+ocupados,
+     * creditos validos, perfil) para poder pintar un flujo 100% nativo.
+     */
+    async getReservationContext(payload: ReservationCheckoutPayload): Promise<ReservationContext> {
+      if (!token) throw new Error("Necesitas iniciar sesion para reservar.");
+
+      const me = await apiGet<{ id: number }>("/me");
+      const userProfileId = me.id;
+
+      const url = new URL(
+        `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/create-form-template`,
+      );
+      url.searchParams.set("meetings_id", String(payload.meetingId));
+      url.searchParams.set("users_id", String(userProfileId));
+
+      const response = await fetch(url.toString(), { headers: authHeaders() });
+      if (!response.ok) {
+        throw new Error(`No se pudo cargar la informacion de la reserva (${response.status}).`);
+      }
+      const htmlText = await response.text();
+
+      const doc = new DOMParser().parseFromString(htmlText, "text/html");
+      const readBlock = (name: string): string | null =>
+        doc.querySelector(`.CreateReservationFancy--${name}`)?.textContent?.trim() || null;
+
+      const errorList = doc.querySelector("#CreateReservationFancyTemplate--errors ul");
+      const meetingRaw = readBlock("meeting");
+      if (!meetingRaw) {
+        const serverError = errorList?.textContent?.trim();
+        throw new Error(serverError || "El servidor no devolvio la informacion de la reserva.");
+      }
+
+      const meetingData = JSON.parse(meetingRaw) as {
+        id: number;
+        map?: {
+          id: number;
+          name: string;
+          rows: number;
+          columns: number;
+          capacity: number;
+          objects?: Array<{
+            id: number;
+            position_row: number;
+            position_column: number;
+            width: number;
+            height: number;
+            position_text?: string | null;
+            is_blocked?: boolean;
+            positions?: { type?: string };
+          }>;
+        } | null;
+        reservation?: Array<{ maps_objects_id: number }>;
+        is_valid_for_waitlist?: boolean;
+      };
+
+      const occupied = new Set((meetingData.reservation ?? []).map((r) => r.maps_objects_id));
+
+      let seatMap: SeatMap | null = null;
+      if (meetingData.map && Array.isArray(meetingData.map.objects) && meetingData.map.objects.length > 0) {
+        const objects: SeatMapObject[] = meetingData.map.objects.map((obj) => ({
+          id: obj.id,
+          row: obj.position_row,
+          column: obj.position_column,
+          width: obj.width || 1,
+          height: obj.height || 1,
+          label: obj.position_text ?? "",
+          type: obj.positions?.type ?? "public",
+          isBlocked: Boolean(obj.is_blocked),
+          isOccupied: occupied.has(obj.id),
+        }));
+        seatMap = {
+          id: meetingData.map.id,
+          name: meetingData.map.name,
+          rows: meetingData.map.rows,
+          columns: meetingData.map.columns,
+          capacity: meetingData.map.capacity,
+          objects,
+        };
+      }
+
+      let validCredits: UserCredit[] = [];
+      const creditsRaw = readBlock("user_ValidCredits");
+      if (creditsRaw) {
+        try {
+          const parsed = JSON.parse(creditsRaw) as Array<{
+            credits_id: number;
+            total: number;
+            expiration_date?: string;
+            credit?: { id: number; name: string };
+          }>;
+          validCredits = (Array.isArray(parsed) ? parsed : []).map((c) => ({
+            id: c.credits_id ?? c.credit?.id ?? 0,
+            name: c.credit?.name ?? "Crédito",
+            total: c.total,
+            expiresAt: c.expiration_date,
+          }));
+        } catch {
+          validCredits = [];
+        }
+      }
+
+      return {
+        meetingId: meetingData.id,
+        brandSlug: payload.brandSlug,
+        locationSlug: payload.locationSlug,
+        userProfileId,
+        seatMap,
+        validCredits,
+        waitlistAvailable: Boolean(meetingData.is_valid_for_waitlist),
+      };
+    },
+
+    /**
+     * POST reservate: el mismo endpoint que usa el fancy, con el payload minimo
+     * verificado contra produccion. El servidor elige el credito valido solo.
+     */
+    async createReservation(payload: CreateReservationPayload): Promise<CreateReservationResult> {
+      const body: Record<string, string | number | boolean | undefined> = {
+        users_id: payload.userProfileId,
+        meetings_id: payload.meetingId,
+        subscribe: false,
+        set_payment: false,
+        test: false,
+      };
+      if (payload.seatObjectId != null) {
+        body["map_objectsSelected[0][id]"] = payload.seatObjectId;
+      }
+
+      const result = await apiPost<{
+        reservation?: Array<{ id: number; is_waitlist?: boolean; meeting_position?: number }>;
+      }>(`/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/reservate`, body);
+
+      const first = result.reservation?.[0];
+      if (!first) {
+        throw new Error("El servidor no confirmo la reserva.");
+      }
+
+      return {
+        reservationId: first.id,
+        isWaitlist: Boolean(first.is_waitlist),
+        seatLabel: first.meeting_position != null ? String(first.meeting_position) : undefined,
+      };
     },
 
     async login(credentials: AuthCredentials) {
