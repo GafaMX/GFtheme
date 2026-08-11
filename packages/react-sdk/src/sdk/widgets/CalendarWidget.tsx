@@ -670,16 +670,16 @@ function CalendarToolbar({
       ? new Intl.DateTimeFormat("es-MX", { weekday: "short", day: "numeric", month: "short" }).format(anchor)
       : formatRangeLabel(range);
 
-  return (
-    <div className="gafa-calendar-toolbar">
-      {/* Fila 1: vista + sede/filtros */}
-      <div className="gafa-calendar-toolbar__row">
-        {viewToggle}
-        <div className="gafa-calendar-toolbar__filters">{filterBar}</div>
-      </div>
+  const todayIso = toIsoDate(new Date());
+  const viewingToday = view === "day" ? toIsoDate(anchor) === todayIso : range.from <= todayIso && todayIso <= range.to;
 
-      {/* Fila 2: flechas + Hoy + fecha compacta */}
-      <div className="gafa-calendar-toolbar__row gafa-calendar-toolbar__row--nav">
+  return (
+    // Movil: dos filas (vista+filtros / navegacion). Desktop: una sola fila con
+    // la navegacion y la fecha AL CENTRO. Mismo DOM, lo acomoda el CSS.
+    <div className="gafa-calendar-toolbar">
+      <div className="gafa-calendar-toolbar__view">{viewToggle}</div>
+
+      <div className="gafa-calendar-toolbar__nav-group">
         <div className="gafa-calendar-toolbar__nav">
           <button
             className="gafa-icon-button"
@@ -701,9 +701,11 @@ function CalendarToolbar({
             <ChevronIcon direction="right" />
           </button>
           <button
-            className="gafa-sdk-button gafa-sdk-button--secondary gafa-calendar-today"
+            className="gafa-calendar-today"
             type="button"
+            aria-pressed={viewingToday}
             onClick={onToday}
+            title={viewingToday ? "Estás viendo hoy" : "Volver a hoy"}
           >
             Hoy
           </button>
@@ -718,6 +720,8 @@ function CalendarToolbar({
           ) : null}
         </div>
       </div>
+
+      <div className="gafa-calendar-toolbar__filters">{filterBar}</div>
     </div>
   );
 }

@@ -295,24 +295,56 @@
 
 /* ------------------------------------------------------------------ calendario */
 
-/* Chrome del calendario: exactamente dos filas (vista+filtros / nav+fecha). */
+/* Chrome del calendario.
+   Movil (default): dos filas — [vista ... filtros] / [flechas Hoy fecha].
+   Desktop: una fila — vista | navegacion centrada | filtros. */
 .gafa-calendar-toolbar {
-  display: grid;
-  gap: var(--gafa-space-2);
-}
-
-.gafa-calendar-toolbar__row {
   align-items: center;
   display: flex;
-  /* Una sola linea SIEMPRE: lo flexible (pill de sede) se trunca con
-     ellipsis; el toggle y Filtros no se encogen. */
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: var(--gafa-space-2);
   min-width: 0;
 }
 
-.gafa-calendar-toolbar__row--nav {
+.gafa-calendar-toolbar__view {
+  flex-shrink: 0;
+  order: 1;
+}
+
+.gafa-calendar-toolbar__filters {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: auto;
+  min-width: 0;
+  order: 2;
+}
+
+.gafa-calendar-toolbar__nav-group {
+  align-items: center;
+  display: flex;
+  flex: 1 1 100%;
   gap: var(--gafa-space-2);
+  min-width: 0;
+  order: 3;
+}
+
+@media (min-width: 900px) {
+  .gafa-calendar-toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .gafa-calendar-toolbar__nav-group {
+    flex: 0 1 auto;
+    justify-content: center;
+    /* Centrada entre la vista (izquierda) y los filtros (derecha). */
+    margin-inline: auto;
+    order: 2;
+  }
+
+  .gafa-calendar-toolbar__filters {
+    margin-left: 0;
+    order: 3;
+  }
 }
 
 .gafa-calendar-toolbar__nav {
@@ -322,13 +354,6 @@
   gap: 4px;
 }
 
-.gafa-calendar-toolbar__filters {
-  display: flex;
-  justify-content: flex-end;
-  margin-left: auto;
-  min-width: 0;
-}
-
 .gafa-calendar-toolbar__label {
   align-items: center;
   display: flex;
@@ -336,6 +361,12 @@
   gap: var(--gafa-space-2);
   min-width: 0;
   overflow: hidden;
+}
+
+@media (min-width: 900px) {
+  .gafa-calendar-toolbar__label {
+    flex: 0 1 auto;
+  }
 }
 
 .gafa-calendar-toolbar__label strong {
@@ -375,11 +406,35 @@
   flex-wrap: nowrap;
 }
 
+/* "Hoy": botón propio con estado. Seleccionado = estás viendo hoy;
+   si no, hover/active invitan a volver. */
 .gafa-calendar-today {
-  font-size: 0.82rem !important;
-  font-weight: 700 !important;
-  min-height: 36px !important;
-  padding: 0 0.85rem !important;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  min-height: 36px;
+  padding: 0 0.85rem;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.gafa-calendar-today[aria-pressed="false"]:hover {
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-calendar-today[aria-pressed="false"]:active {
+  background: color-mix(in srgb, var(--gafa-color-primary) 14%, transparent);
+}
+
+.gafa-calendar-today[aria-pressed="true"] {
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+  cursor: default;
 }
 
 .gafa-segmented--compact {
