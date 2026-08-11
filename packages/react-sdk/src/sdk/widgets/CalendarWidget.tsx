@@ -1760,20 +1760,79 @@ function AddToCalendarRow({ meeting, seatLabel }: { meeting: Meeting; seatLabel?
       <span className="gafa-addtocal__title">Agrégala a tu calendario</span>
       <div className="gafa-addtocal__row">
         <a className="gafa-addtocal__button" href={googleUrl} target="_blank" rel="noreferrer">
+          <GoogleCalIcon />
           Google
         </a>
         {/* Apple abre el .ics directo en Calendario (iOS/macOS). */}
         <button className="gafa-addtocal__button" type="button" onClick={downloadIcs}>
+          <AppleIcon />
           Apple
         </button>
         <a className="gafa-addtocal__button" href={outlookUrl} target="_blank" rel="noreferrer">
+          <OutlookIcon />
           Outlook
         </a>
         <button className="gafa-addtocal__button" type="button" onClick={downloadIcs}>
-          Descargar .ics
+          <DownloadIcon />
+          .ics
         </button>
       </div>
     </div>
+  );
+}
+
+function GoogleCalIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M21.6 12.23c0-.68-.06-1.36-.18-2.02H12v3.83h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.89-1.74 2.98-4.3 2.98-7.33Z"
+        fill="currentColor"
+        opacity="0.9"
+      />
+      <path
+        d="M12 21.6c2.7 0 4.96-.9 6.62-2.42l-3.24-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.06v2.6A9.99 9.99 0 0 0 12 21.6Z"
+        fill="currentColor"
+        opacity="0.65"
+      />
+      <path
+        d="M6.41 13.5a6 6 0 0 1 0-3.83V7.06H3.06a10 10 0 0 0 0 8.97l3.35-2.53Z"
+        fill="currentColor"
+        opacity="0.45"
+      />
+      <path
+        d="M12 6.55c1.47 0 2.78.5 3.82 1.5l2.86-2.87A9.6 9.6 0 0 0 12 2.4a9.99 9.99 0 0 0-8.94 5.53l3.35 2.6C7.2 8.31 9.4 6.55 12 6.55Z"
+        fill="currentColor"
+        opacity="0.8"
+      />
+    </svg>
+  );
+}
+
+function AppleIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16.37 12.9c-.03-2.66 2.17-3.94 2.27-4-1.24-1.81-3.16-2.06-3.84-2.09-1.63-.17-3.19.96-4.02.96-.83 0-2.11-.94-3.47-.91-1.78.03-3.43 1.04-4.35 2.64-1.86 3.22-.48 7.98 1.33 10.59.88 1.28 1.93 2.71 3.31 2.66 1.33-.05 1.83-.86 3.44-.86s2.06.86 3.47.83c1.43-.02 2.34-1.3 3.21-2.58 1.01-1.48 1.43-2.92 1.45-2.99-.03-.01-2.78-1.07-2.8-4.25ZM13.72 5.06c.73-.89 1.23-2.13 1.09-3.36-1.06.04-2.34.7-3.1 1.59-.68.79-1.28 2.05-1.12 3.26 1.18.09 2.4-.6 3.13-1.49Z" />
+    </svg>
+  );
+}
+
+function OutlookIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2.5" y="5.5" width="12" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <ellipse cx="8.5" cy="12" rx="2.6" ry="3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M15 9h5.5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H15" stroke="currentColor" strokeWidth="1.8" />
+      <path d="m15.5 10 3 2.4a1 1 0 0 0 1.2 0l1.8-1.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3.5v11m0 0 4.2-4.2M12 14.5 7.8 10.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 19.5h15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }
 
