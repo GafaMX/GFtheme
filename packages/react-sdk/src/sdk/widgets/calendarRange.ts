@@ -4,13 +4,15 @@ export type DateRange = { from: string; to: string };
 
 /**
  * Franjas para filtrar sin pedir nada extra a la API (el rango es por dias).
- * AM/PM y no "Mañana/Tarde/Noche": "Mañana" se leia como el dia de mañana.
+ * "AM" y no "Mañana" porque "Mañana" se leia como el dia de mañana.
+ * Cortes: AM hasta 11:59, Tarde de 12:00 a 16:59, PM de 17:00 en adelante.
  */
-export type TimeOfDay = "all" | "am" | "pm";
+export type TimeOfDay = "all" | "am" | "tarde" | "pm";
 
 export const TIME_OF_DAY_LABELS: Record<TimeOfDay, string> = {
   all: "Todos",
   am: "AM",
+  tarde: "Tarde",
   pm: "PM",
 };
 
@@ -88,7 +90,8 @@ export function timeOfDayFor(startsAt: string, timeZone?: string): Exclude<TimeO
 
   const hour = hourIn(date, timeZone);
   if (hour >= 0 && hour < 12) return "am";
-  if (hour >= 12 && hour < 24) return "pm";
+  if (hour >= 12 && hour < 17) return "tarde";
+  if (hour >= 17 && hour < 24) return "pm";
   return null;
 }
 
