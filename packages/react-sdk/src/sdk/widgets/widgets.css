@@ -258,8 +258,8 @@
   transform: none;
 }
 
-/* Error inline: el mensaje sustituye al label DENTRO del campo (flotado y en
-   rojo), sin cambiar la altura de nada. */
+/* Error inline SIN cambiar tamanos: el label se queda (flota en rojo, para
+   saber que campo es) y el mensaje vive a la derecha dentro del campo. */
 .gafa-float[data-invalid="true"] input,
 .gafa-float[data-invalid="true"] select {
   border-color: var(--gafa-color-danger);
@@ -274,6 +274,22 @@
   text-transform: uppercase;
   top: 0.55rem;
   transform: none;
+}
+
+.gafa-float__error {
+  color: var(--gafa-color-danger);
+  font-size: 0.72rem;
+  font-weight: 600;
+  max-width: 60%;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  right: 0.9rem;
+  text-align: right;
+  text-overflow: ellipsis;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
 }
 
 /* Dos campos por fila SOLO cuando hay ancho real (desktop). En movil se

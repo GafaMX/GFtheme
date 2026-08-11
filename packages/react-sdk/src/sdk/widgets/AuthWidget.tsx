@@ -256,9 +256,15 @@ function FloatField({
   return (
     <label className="gafa-float" data-invalid={error ? "true" : undefined}>
       <input placeholder=" " aria-invalid={error ? true : undefined} {...inputProps} />
-      {/* Con error, el mensaje TOMA EL LUGAR del label (flotado, en rojo):
-          asi el campo nunca cambia de tamano ni empuja a los vecinos. */}
-      <span role={error ? "alert" : undefined}>{error ?? label}</span>
+      {/* El label SIEMPRE visible (con error flota en rojo, para saber que
+          campo es); el mensaje va a la derecha DENTRO del campo. Nada cambia
+          de tamano. */}
+      <span>{label}</span>
+      {error ? (
+        <span className="gafa-float__error" role="alert">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -484,7 +490,12 @@ function CustomFieldInput({
     // Un select siempre "tiene valor": el label queda flotado fijo.
     return (
       <label className="gafa-float gafa-float--select" data-invalid={error ? "true" : undefined}>
-        <span role={error ? "alert" : undefined}>{error ?? labelText}</span>
+        <span>{labelText}</span>
+        {error ? (
+          <span className="gafa-float__error" role="alert">
+            {error}
+          </span>
+        ) : null}
         <select
           name={name}
           value={value}
@@ -515,7 +526,12 @@ function CustomFieldInput({
         required={field.required}
         aria-invalid={error ? true : undefined}
       />
-      <span role={error ? "alert" : undefined}>{error ?? labelText}</span>
+      <span>{labelText}</span>
+      {error ? (
+        <span className="gafa-float__error" role="alert">
+          {error}
+        </span>
+      ) : null}
       {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
     </label>
   );
