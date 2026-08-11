@@ -383,7 +383,6 @@ function RegisterForm({
       <button className="gafa-sdk-button" type="submit" disabled={!client || status === "submitting"}>
         {status === "submitting" ? "Creando cuenta..." : "Crear cuenta"}
       </button>
-      <p className="gafa-auth-note">Protegido con reCAPTCHA.</p>
     </form>
   );
 }
