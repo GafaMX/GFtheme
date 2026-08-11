@@ -4,6 +4,7 @@ import { WidgetShell } from "./WidgetShell";
 import { FancyOverlay } from "./FancyOverlay";
 import { AuthWidget } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
+import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { clearStoredToken, readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import type {
   Brand,
@@ -1130,8 +1131,11 @@ function MeetingCard({
   // visibles pero apagadas, para que el dia se entienda completo.
   const passed = Boolean(meeting.passed);
   // Foto del coach SOLO si la marca la tiene cargada (Fitspin sí, Bunker no):
-  // sin foto la tarjeta se queda exactamente igual que antes.
+  // sin foto la tarjeta se queda exactamente igual que antes. Y solo si hay
+  // miniatura: el original que devuelve la API llega a pesar 15 MB para un
+  // circulo de 36 px, asi que sin transformaciones no se pinta.
   const staffPhoto = meeting.staff?.photoUrl;
+  const showsPhoto = useRemoteImageEnabled(staffPhoto);
 
   return (
     <button
@@ -1139,14 +1143,19 @@ function MeetingCard({
       data-sold-out={soldOut ? "true" : undefined}
       data-passed={passed ? "true" : undefined}
       data-compact={compact ? "true" : undefined}
-      data-has-photo={staffPhoto ? "true" : undefined}
+      data-has-photo={showsPhoto ? "true" : undefined}
       type="button"
       disabled={passed}
       onClick={() => onSelect(meeting)}
     >
-      {staffPhoto ? (
-        <img className="gafa-meeting-staff-photo" src={staffPhoto} alt="" aria-hidden="true" loading="lazy" />
-      ) : null}
+      <RemoteImage
+        className="gafa-meeting-staff-photo"
+        src={staffPhoto}
+        size={36}
+        gravity="face"
+        alt=""
+        aria-hidden="true"
+      />
       <span className="gafa-meeting-card__top">
         <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
         {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
@@ -1917,12 +1926,39 @@ function DownloadIcon() {
   );
 }
 
+/**
+ * Imagen de un lugar/objeto del mapa. Se pide en miniatura igual que los
+ * avatares, pero si la zona todavia no transforma se usa el original: sin esa
+ * imagen el mapa deja de significar algo, a diferencia de la foto del coach que
+ * es decorativa.
+ */
+function SeatImage({
+  src,
+  width,
+  className,
+  style,
+}: {
+  src: string;
+  width: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <RemoteImage
+      src={src}
+      width={width}
+      fit="scale-down"
+      whenUnavailable="original"
+      className={className}
+      style={style}
+      alt=""
+    />
+  );
+}
+
 /** Foto del coach; si no hay (o no carga) no pinta nada, sin circulo roto. */
 function CoachAvatar({ meeting }: { meeting: Meeting }) {
-  const [photoBroken, setPhotoBroken] = useState(false);
-  const photo = meeting.staff?.photoUrl;
-  if (!photo || photoBroken) return null;
-  return <img src={photo} alt="" aria-hidden="true" onError={() => setPhotoBroken(true)} />;
+  return <RemoteImage src={meeting.staff?.photoUrl} size={34} gravity="face" alt="" aria-hidden="true" />;
 }
 
 /**
@@ -1947,11 +1983,11 @@ function SeatMapInline({
     <div className="gafa-seatmap">
       <div className="gafa-seatmap__legend">
         <span>
-          {sample?.image ? <img src={sample.image} alt="" /> : <i className="gafa-seatmap__dot" />} Disponible
+          {sample?.image ? <SeatImage src={sample.image} width={18} /> : <i className="gafa-seatmap__dot" />} Disponible
         </span>
         <span>
           {sample?.imageDisabled ? (
-            <img src={sample.imageDisabled} alt="" />
+            <SeatImage src={sample.imageDisabled} width={18} />
           ) : (
             <i className="gafa-seatmap__dot gafa-seatmap__dot--taken" />
           )}{" "}
@@ -1959,7 +1995,7 @@ function SeatMapInline({
         </span>
         <span>
           {sample?.imageSelected ? (
-            <img src={sample.imageSelected} alt="" />
+            <SeatImage src={sample.imageSelected} width={18} />
           ) : (
             <i className="gafa-seatmap__dot gafa-seatmap__dot--selected" />
           )}{" "}
@@ -1985,7 +2021,7 @@ function SeatMapInline({
           if (seat.type !== "public") {
             // Objetos decorativos (coach, bocinas...): con su imagen si existe.
             return seat.image ? (
-              <img className="gafa-seatmap__fixture-img" key={seat.id} src={seat.image} alt="" style={style} />
+              <SeatImage className="gafa-seatmap__fixture-img" key={seat.id} src={seat.image} width={240} style={style} />
             ) : (
               <div className="gafa-seatmap__fixture" key={seat.id} style={style} title={seat.type}>
                 {seat.type === "coach" ? "COACH" : ""}
@@ -2016,7 +2052,7 @@ function SeatMapInline({
               disabled={disabled}
               onClick={() => onSelect(isSelected ? null : seat)}
             >
-              {stateImage ? <img src={stateImage} alt="" loading="lazy" /> : null}
+              {stateImage ? <SeatImage src={stateImage} width={48} /> : null}
               <span className="gafa-seatmap__seat-label">{seat.label}</span>
             </button>
           );
