@@ -43,7 +43,9 @@ export function AuthWidget({ client, captcha, initialView = "login", brandSlug, 
       </div>
 
       {formView === "login" ? <LoginForm client={client} onAuthenticated={onAuthenticated} /> : null}
-      {formView === "register" ? <RegisterForm client={client} captcha={captcha} brandSlug={brandSlug} /> : null}
+      {formView === "register" ? (
+        <RegisterForm client={client} captcha={captcha} brandSlug={brandSlug} onAuthenticated={onAuthenticated} />
+      ) : null}
       {formView === "password-recovery" ? <PasswordRecoveryForm client={client} /> : null}
     </WidgetShell>
   );
@@ -103,10 +105,12 @@ function RegisterForm({
   client,
   captcha,
   brandSlug,
+  onAuthenticated,
 }: {
   client?: GafaClient;
   captcha?: CaptchaProvider;
   brandSlug?: string;
+  onAuthenticated?: () => void;
 }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -166,7 +170,12 @@ function RegisterForm({
         customFields: customValues,
       });
 
+      // Autologin inmediato, igual que el theme legacy: la cuenta ya queda
+      // activa en el sistema, no hay que esperar verificacion de correo.
+      await client.login({ email, password });
+
       setStatus("success");
+      onAuthenticated?.();
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "No pudimos crear tu cuenta.");
@@ -176,7 +185,7 @@ function RegisterForm({
   if (status === "success") {
     return (
       <p className="gafa-sdk-state gafa-sdk-state--success">
-        Cuenta creada. Revisa tu correo para verificar tu cuenta antes de entrar.
+        Cuenta creada, ya tienes sesión iniciada.
       </p>
     );
   }
