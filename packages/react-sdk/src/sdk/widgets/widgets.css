@@ -208,8 +208,8 @@
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-text);
   font: inherit;
-  min-height: 50px;
-  padding: 1.15rem 0.85rem 0.3rem;
+  min-height: 56px;
+  padding: 1.35rem 1rem 0.4rem;
   width: 100%;
 }
 
@@ -223,7 +223,7 @@
 .gafa-float > span:first-of-type,
 .gafa-float input + span {
   color: var(--gafa-color-muted-text);
-  left: 0.9rem;
+  left: 1.05rem;
   pointer-events: none;
   position: absolute;
   top: 50%;
@@ -251,7 +251,7 @@
 /* Dos campos por fila (nombre+apellido, contrasenas). */
 .gafa-field-row {
   display: grid;
-  gap: var(--gafa-space-2);
+  gap: 12px;
   grid-template-columns: 1fr 1fr;
 }
 
@@ -392,7 +392,7 @@
 
 .gafa-sdk-form {
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .gafa-sdk-field {
