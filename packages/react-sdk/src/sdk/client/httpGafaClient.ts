@@ -20,8 +20,12 @@ import type {
   Service,
   StaffMember,
   UserCredit,
+  UserMembership,
   UserProfile,
+  UserPurchase,
   UserReservation,
+  UserActivityTotals,
+  UpdateProfilePayload,
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { clearStoredToken, readStoredToken, writeStoredToken } from "./tokenStorage";
@@ -42,9 +46,21 @@ type RawUserProfile = {
   first_name?: string;
   last_name?: string;
   name?: string;
+  birth_date?: string | null;
+  gender?: string | null;
+  phone?: string | null;
+  cel_phone?: string | null;
+  address?: string | null;
+  external_number?: string | null;
+  internal_number?: string | null;
+  postal_code?: string | null;
+  municipality?: string | null;
+  city?: string | null;
   credits_label?: string;
   picture_web?: string | null;
-  store_credit_total?: string;
+  picture?: string | null;
+  store_credit_total?: string | number | null;
+  created_at?: string;
 };
 
 type RawUserCredit = {
@@ -66,11 +82,18 @@ type RawStaff = { name?: string; lastname?: string; job?: string | null };
 type RawReservation = {
   id: number;
   meeting_start: string;
+  hash_qr?: string | null;
+  cancelled?: boolean;
+  canBeCancelled?: boolean;
+  canBeCancelledWithoutCredit?: boolean;
   is_overbooking?: number;
+  meeting_position?: number | string | null;
   credit?: { name?: string } | null;
-  location?: { name?: string };
+  location?: { name?: string } | string | null;
+  brand?: { slug?: string } | string | null;
   staff?: RawStaff;
   substitute_staff?: RawStaff | null;
+  service?: { name?: string } | null;
   meetings?: {
     service?: { name?: string };
     staff?: RawStaff;
@@ -79,10 +102,33 @@ type RawReservation = {
   object?: { position_number?: number; position_text?: string };
 };
 
-/** `reservation-future` no devuelve una lista plana: agrupa reservas y waitlist por bloque. */
+/** `reservation-future` a veces viene como un solo grupo `{reservations,waitlists}`
+ *  y a veces como array de grupos / paginado. */
 type RawReservationGroup = {
   reservations?: RawReservation[];
   waitlists?: RawReservation[];
+};
+
+type RawPurchase = {
+  id: number;
+  total: number;
+  created_at?: string;
+  currency?: { prefijo?: string };
+  items?: Array<{ item_name?: string }>;
+  location?: { name?: string } | string | null;
+  status?: string | { name?: string } | null;
+  payment_type?: string | null;
+  paymentType?: string | null;
+};
+
+type RawUserTotals = {
+  reservations_without_cancelled_count?: number;
+  attended_count?: number;
+  no_show_count?: number;
+  cancelled_count?: number;
+  attended_minutes?: number;
+  favorite_staff?: Array<string | { name?: string; job?: string }>;
+  favorite_schedules?: Array<string | { name?: string; label?: string }>;
 };
 
 type RawCustomFieldGroup = {
@@ -98,14 +144,6 @@ type RawCustomFieldGroup = {
     default_value?: string | null;
     catalog_field_options?: Array<{ id: number; name: string }>;
   }>;
-};
-
-type RawPurchase = {
-  id: number;
-  total: number;
-  created_at?: string;
-  currency?: { prefijo?: string };
-  items?: Array<{ item_name?: string }>;
 };
 
 type TokenResponse = {
@@ -233,13 +271,30 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   }
 
   function normalizeProfile(raw: RawUserProfile): UserProfile {
+    const store =
+      raw.store_credit_total == null || raw.store_credit_total === ""
+        ? undefined
+        : String(raw.store_credit_total);
+
     return {
       id: raw.id,
       email: raw.email ?? raw.username ?? "",
+      firstName: raw.first_name,
+      lastName: raw.last_name,
       name: [raw.first_name, raw.last_name].filter(Boolean).join(" ") || raw.name || raw.email || "",
+      birthDate: raw.birth_date,
+      gender: raw.gender,
+      phone: raw.phone ?? raw.cel_phone,
+      address: raw.address,
+      externalNumber: raw.external_number,
+      internalNumber: raw.internal_number,
+      postalCode: raw.postal_code,
+      municipality: raw.municipality,
+      city: raw.city,
       creditsLabel: raw.credits_label,
-      photoUrl: raw.picture_web ?? undefined,
-      storeCreditTotal: raw.store_credit_total,
+      photoUrl: raw.picture_web ?? raw.picture ?? undefined,
+      storeCreditTotal: store,
+      memberSince: raw.created_at,
     };
   }
 
@@ -250,27 +305,57 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return name || undefined;
   }
 
+  function locationLabel(location?: { name?: string } | string | null): string | undefined {
+    if (!location) return undefined;
+    return typeof location === "string" ? location : location.name;
+  }
+
+  function brandSlugFrom(raw: RawReservation, fallback: string): string {
+    if (typeof raw.brand === "string" && raw.brand) return raw.brand;
+    if (raw.brand && typeof raw.brand === "object" && raw.brand.slug) return raw.brand.slug;
+    return fallback;
+  }
+
   function normalizeReservation(raw: RawReservation, brandSlug: string, isWaitlist: boolean): UserReservation {
     const staff = raw.meetings?.staff ?? raw.staff;
-    const position = raw.object?.position_text ?? raw.object?.position_number;
+    const seat =
+      raw.object?.position_text ??
+      raw.object?.position_number ??
+      raw.meeting_position ??
+      undefined;
 
     return {
       id: raw.id,
-      serviceName: raw.meetings?.service?.name ?? "Reserva",
+      serviceName: raw.meetings?.service?.name ?? raw.service?.name ?? "Reserva",
       startsAt: raw.meeting_start,
-      locationName: raw.location?.name,
+      locationName: locationLabel(raw.location),
       staffName: staffLabel(staff),
-      brandSlug,
+      brandSlug: brandSlugFrom(raw, brandSlug),
       isWaitlist,
       isOverbooking: raw.is_overbooking === 1,
       // El legacy distingue membresia de credito por `credit === null`, no por un campo propio.
       creditName: raw.credit ? (raw.credit.name ?? null) : null,
-      waitlistPosition: position !== undefined ? String(position) : undefined,
+      waitlistPosition: isWaitlist && seat !== undefined && seat !== null ? String(seat) : undefined,
+      seatLabel: !isWaitlist && seat !== undefined && seat !== null ? String(seat) : undefined,
+      qrHash: raw.hash_qr ?? undefined,
+      cancelled: Boolean(raw.cancelled),
+      canCancel: Boolean(raw.canBeCancelled || raw.canBeCancelledWithoutCredit),
     };
   }
 
   function unwrap<T>(response: PaginatedResponse<T>): T[] {
     return Array.isArray(response) ? response : response.data;
+  }
+
+  /** reservation-future/past: objeto unico, array de grupos, o paginado. */
+  function unwrapReservationGroups(response: unknown): RawReservationGroup[] {
+    if (Array.isArray(response)) return response as RawReservationGroup[];
+    if (response && typeof response === "object") {
+      const obj = response as Record<string, unknown>;
+      if (Array.isArray(obj.data)) return obj.data as RawReservationGroup[];
+      if ("reservations" in obj || "waitlists" in obj) return [obj as RawReservationGroup];
+    }
+    return [];
   }
 
   function normalizeMeeting(raw: RawMeeting, brandSlug: string, location?: Location): Meeting {
@@ -389,7 +474,23 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
       try {
         const raw = await apiGet<RawUserProfile>("/me");
-        return normalizeProfile(raw);
+        const profile = normalizeProfile(raw);
+
+        // El wallet a veces no viene en /me; el legacy lo pide aparte.
+        if (profile.storeCreditTotal == null) {
+          try {
+            const store = await apiGet<{ store_credit?: string | number } | string | number>("/me/store-credit");
+            const value =
+              typeof store === "object" && store && "store_credit" in store
+                ? store.store_credit
+                : store;
+            if (value != null && value !== "") profile.storeCreditTotal = String(value);
+          } catch {
+            // sin wallet; no es critico
+          }
+        }
+
+        return profile;
       } catch (error) {
         if (error instanceof GafaApiError && error.status === 401) return null;
         throw error;
@@ -447,11 +548,11 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (!token || !brandSlug) return [];
 
       const path = when === "past" ? "reservation-past" : "reservation-future";
-      const response = await apiGet<PaginatedResponse<RawReservationGroup>>(`/me/brand/${brandSlug}/${path}`, {
+      const response = await apiGet<unknown>(`/me/brand/${brandSlug}/${path}`, {
         reducePopulation: true,
       });
 
-      return unwrap(response)
+      return unwrapReservationGroups(response)
         .flatMap((group) => [
           ...(group.reservations ?? []).map((raw) => normalizeReservation(raw, brandSlug, false)),
           ...(group.waitlists ?? []).map((raw) => normalizeReservation(raw, brandSlug, true)),
@@ -461,18 +562,96 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async listUserPurchases(brandSlug) {
       if (!token || !brandSlug) return [];
-      const response = await apiGet<PaginatedResponse<RawPurchase>>(`/me/brand/${brandSlug}/purchases`);
-      return unwrap(response).map((raw) => ({
-        id: raw.id,
-        name: raw.items?.[0]?.item_name ?? "Compra",
-        total: raw.total,
-        currencyPrefix: raw.currency?.prefijo,
-        createdAt: raw.created_at,
-      }));
+      const response = await apiGet<PaginatedResponse<RawPurchase>>(`/me/brand/${brandSlug}/purchases`, {
+        reducePopulation: true,
+      });
+      return unwrap(response).map((raw) => {
+        const status =
+          typeof raw.status === "string"
+            ? raw.status
+            : raw.status && typeof raw.status === "object"
+              ? raw.status.name
+              : undefined;
+        return {
+          id: raw.id,
+          name: raw.items?.[0]?.item_name ?? "Compra",
+          total: raw.total,
+          currencyPrefix: raw.currency?.prefijo,
+          createdAt: raw.created_at,
+          locationName: locationLabel(raw.location),
+          status,
+          paymentType: raw.payment_type ?? raw.paymentType ?? undefined,
+        };
+      });
     },
 
     async cancelReservation(brandSlug, reservationId) {
       await apiPost(`/api/me/brand/${brandSlug}/reservation-future/${reservationId}/cancel`, {});
+    },
+
+    async cancelWaitlist(brandSlug, waitlistId) {
+      await apiPost(`/api/me/brand/${brandSlug}/waitlist/remove/${waitlistId}`, {});
+    },
+
+    async getUserActivityTotals(): Promise<UserActivityTotals> {
+      if (!token) {
+        return {
+          reservedCount: 0,
+          attendedCount: 0,
+          noShowCount: 0,
+          cancelledCount: 0,
+          attendedMinutes: 0,
+          favoriteStaff: [],
+          favoriteSchedules: [],
+        };
+      }
+
+      const raw = await apiGet<RawUserTotals>("/me/totals", { only_totals: true });
+      const staff = (raw.favorite_staff ?? []).map((item) =>
+        typeof item === "string" ? item : item.job || item.name || "",
+      );
+      const schedules = (raw.favorite_schedules ?? []).map((item) =>
+        typeof item === "string" ? item : item.label || item.name || "",
+      );
+
+      return {
+        reservedCount: raw.reservations_without_cancelled_count ?? 0,
+        attendedCount: raw.attended_count ?? 0,
+        noShowCount: raw.no_show_count ?? 0,
+        cancelledCount: raw.cancelled_count ?? 0,
+        attendedMinutes: raw.attended_minutes ?? 0,
+        favoriteStaff: staff.filter(Boolean),
+        favoriteSchedules: schedules.filter(Boolean),
+      };
+    },
+
+    async updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
+      const body: Record<string, string> = {};
+      if (payload.firstName != null) body.first_name = payload.firstName;
+      if (payload.lastName != null) body.last_name = payload.lastName;
+      if (payload.email != null) body.email = payload.email;
+      if (payload.birthDate != null) body.birth_date = payload.birthDate;
+      if (payload.gender != null) body.gender = payload.gender;
+      if (payload.phone != null) body.phone = payload.phone;
+      if (payload.address != null) body.address = payload.address;
+      if (payload.externalNumber != null) body.external_number = payload.externalNumber;
+      if (payload.internalNumber != null) body.internal_number = payload.internalNumber;
+      if (payload.postalCode != null) body.postal_code = payload.postalCode;
+      if (payload.municipality != null) body.municipality = payload.municipality;
+      if (payload.city != null) body.city = payload.city;
+      if (payload.password) {
+        body.password = payload.password;
+        body.password_confirmation = payload.passwordConfirmation ?? payload.password;
+      }
+
+      const raw = await apiPost<RawUserProfile>("/api/me", body);
+      // Algunos backends no regresan el perfil completo en PutMe: reconsultamos.
+      try {
+        const fresh = await apiGet<RawUserProfile>("/me");
+        return normalizeProfile({ ...raw, ...fresh });
+      } catch {
+        return normalizeProfile(raw);
+      }
     },
 
     /**

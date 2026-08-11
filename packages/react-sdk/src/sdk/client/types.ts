@@ -83,9 +83,22 @@ export type UserProfile = {
   id: number;
   name: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
+  birthDate?: string | null;
+  gender?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  externalNumber?: string | null;
+  internalNumber?: string | null;
+  postalCode?: string | null;
+  municipality?: string | null;
+  city?: string | null;
   creditsLabel?: string;
   photoUrl?: string;
+  /** Credito en tienda (wallet), formateado como lo manda el API. */
   storeCreditTotal?: string;
+  memberSince?: string;
 };
 
 export type UserCredit = {
@@ -114,6 +127,12 @@ export type UserReservation = {
   /** Nombre del credito usado, o null cuando la reserva se pago con membresia. */
   creditName?: string | null;
   waitlistPosition?: string;
+  /** Lugar/spot en el mapa (ej. "14"). */
+  seatLabel?: string;
+  /** Hash para generar el QR de acceso a la clase. */
+  qrHash?: string;
+  cancelled?: boolean;
+  canCancel?: boolean;
 };
 
 export type UserPurchase = {
@@ -122,6 +141,37 @@ export type UserPurchase = {
   total: number;
   currencyPrefix?: string;
   createdAt?: string;
+  locationName?: string;
+  status?: string;
+  paymentType?: string;
+};
+
+/** KPIs de actividad del usuario (`GET /api/me/totals`). */
+export type UserActivityTotals = {
+  reservedCount: number;
+  attendedCount: number;
+  noShowCount: number;
+  cancelledCount: number;
+  attendedMinutes: number;
+  favoriteStaff: string[];
+  favoriteSchedules: string[];
+};
+
+export type UpdateProfilePayload = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  birthDate?: string;
+  gender?: string;
+  phone?: string;
+  address?: string;
+  externalNumber?: string;
+  internalNumber?: string;
+  postalCode?: string;
+  municipality?: string;
+  city?: string;
+  password?: string;
+  passwordConfirmation?: string;
 };
 
 export type GafaUser = UserProfile;
@@ -312,6 +362,9 @@ export type GafaClient = {
   listUserReservations(brandSlug: string, when?: "future" | "past"): Promise<UserReservation[]>;
   listUserPurchases(brandSlug: string): Promise<UserPurchase[]>;
   cancelReservation(brandSlug: string, reservationId: string | number): Promise<void>;
+  cancelWaitlist?(brandSlug: string, waitlistId: string | number): Promise<void>;
+  getUserActivityTotals?(): Promise<UserActivityTotals>;
+  updateProfile?(payload: UpdateProfilePayload): Promise<UserProfile>;
   /** Datos para el flujo de reserva nativo (mapa de salon, creditos validos). */
   getReservationContext?(payload: ReservationCheckoutPayload): Promise<ReservationContext>;
   /** Crea la reserva directamente (usa credito valido; asigna lugar si se manda). */

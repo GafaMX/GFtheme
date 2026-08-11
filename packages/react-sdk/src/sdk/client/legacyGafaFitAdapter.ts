@@ -166,6 +166,15 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
     async cancelReservation() {
       throw new Error("cancelReservation no esta implementado en el adaptador legacy.");
     },
+    async cancelWaitlist() {
+      throw new Error("cancelWaitlist no esta implementado en el adaptador legacy.");
+    },
+    async getUserActivityTotals() {
+      throw new Error("getUserActivityTotals no esta implementado en el adaptador legacy.");
+    },
+    async updateProfile() {
+      throw new Error("updateProfile no esta implementado en el adaptador legacy.");
+    },
     async login() {
       throw new Error("Login is not implemented in the legacy adapter foundation yet.");
     },
