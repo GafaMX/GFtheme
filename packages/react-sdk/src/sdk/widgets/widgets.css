@@ -663,6 +663,26 @@
   color: var(--gafa-color-primary);
 }
 
+/* Placeholders con las MISMAS medidas de los filtros reales. */
+.gafa-filterbar-skeleton {
+  border-radius: var(--gafa-radius-pill);
+  height: 36px;
+}
+
+.gafa-filterbar-skeleton--location {
+  width: 108px;
+}
+
+.gafa-filterbar-skeleton--toggle {
+  width: 92px;
+}
+
+@media (max-width: 480px) {
+  .gafa-filterbar-skeleton--toggle {
+    width: 42px;
+  }
+}
+
 .gafa-filterbar-count {
   background: var(--gafa-color-primary);
   border-radius: var(--gafa-radius-pill);

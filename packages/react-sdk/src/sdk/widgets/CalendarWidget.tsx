@@ -564,6 +564,7 @@ export function CalendarWidget({
             activeBrandSlug={activeBrand?.slug}
             brands={bookableBrands}
             filters={filters}
+            loading={discoveringLocations}
             locations={locations}
             onChange={(updater) => {
               allowAutoSkipRef.current = true;
@@ -1162,6 +1163,7 @@ function CalendarFilterBar({
   activeBrandSlug,
   brands,
   filters,
+  loading = false,
   locations,
   onChange,
   selected,
@@ -1174,6 +1176,7 @@ function CalendarFilterBar({
   activeBrandSlug?: string;
   brands: Brand[];
   filters: NonNullable<CalendarWidgetProps["filters"]>;
+  loading?: boolean;
   locations: Location[];
   onChange: React.Dispatch<React.SetStateAction<CalendarFiltersState>>;
   selected: CalendarFiltersState;
@@ -1214,6 +1217,17 @@ function CalendarFilterBar({
     "all",
     ...(["am", "tarde", "pm"] as const).filter((slot) => timeOfDayOptions.has(slot)),
   ];
+
+  // Mientras cargan las sedes se reserva el MISMO espacio con placeholders:
+  // sin esto los filtros aparecian tarde y empujaban todo el header.
+  if (loading) {
+    return (
+      <div className="gafa-filterbar" aria-hidden="true">
+        <span className="gafa-skeleton gafa-filterbar-skeleton gafa-filterbar-skeleton--location" />
+        <span className="gafa-skeleton gafa-filterbar-skeleton gafa-filterbar-skeleton--toggle" />
+      </div>
+    );
+  }
 
   return (
     <div className="gafa-filterbar" ref={panelRef}>
