@@ -224,11 +224,16 @@
 .gafa-float input + span {
   color: var(--gafa-color-muted-text);
   left: 1.05rem;
+  /* En una sola linea SIEMPRE: partido en dos hacia un efecto horrible. */
+  max-width: calc(100% - 1.8rem);
+  overflow: hidden;
   pointer-events: none;
   position: absolute;
+  text-overflow: ellipsis;
   top: 50%;
   transform: translateY(-50%);
   transition: top 0.14s ease, transform 0.14s ease, font-size 0.14s ease;
+  white-space: nowrap;
 }
 
 /* ...y al enfocar o tener valor flota a la esquina. */
@@ -248,16 +253,18 @@
   transform: none;
 }
 
-/* Dos campos por fila (nombre+apellido, contrasenas). */
+/* Dos campos por fila SOLO cuando hay ancho real (desktop). En movil se
+   apilan: dos columnas apretadas se veian horribles. */
 .gafa-field-row {
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr 1fr;
 }
 
-@media (max-width: 380px) {
+@media (max-width: 560px) {
   .gafa-field-row {
     grid-template-columns: 1fr;
+    gap: 14px;
   }
 }
 
