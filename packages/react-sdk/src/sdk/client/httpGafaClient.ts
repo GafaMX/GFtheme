@@ -505,7 +505,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             height: number;
             position_text?: string | null;
             is_blocked?: boolean;
-            positions?: { type?: string };
+            positions?: {
+              type?: string;
+              image?: string | null;
+              image_disabled?: string | null;
+              image_selected?: string | null;
+            };
           }>;
         } | null;
         reservation?: Array<{ maps_objects_id: number }>;
@@ -526,6 +531,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
           type: obj.positions?.type ?? "public",
           isBlocked: Boolean(obj.is_blocked),
           isOccupied: occupied.has(obj.id),
+          image: obj.positions?.image ?? null,
+          imageDisabled: obj.positions?.image_disabled ?? null,
+          imageSelected: obj.positions?.image_selected ?? null,
         }));
         seatMap = {
           id: meetingData.map.id,

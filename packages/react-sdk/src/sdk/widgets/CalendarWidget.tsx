@@ -1374,12 +1374,12 @@ function formatRangeLabel(range: DateRange): string {
   return `${from.getDate()} ${monthShort.format(from)} – ${to.getDate()} ${monthShort.format(to)}`;
 }
 
-type ReservationStep = "detail" | "seat" | "processing" | "done";
+type ReservationStep = "detail" | "processing" | "done";
 
 /**
- * Flujo de reserva NATIVO en un solo modal: detalle → mapa de salon (si la
- * clase lo usa) → confirmacion → exito. Solo cae al fancy legacy cuando el
- * usuario no tiene creditos y hay que comprar.
+ * Flujo de reserva NATIVO en UN SOLO PASO: el detalle y el mapa de salon (si la
+ * clase lo usa) viven en el mismo modal; eliges lugar y confirmas ahi mismo.
+ * Solo cae al fancy legacy cuando hay que comprar (sin creditos).
  */
 function ReservationPreviewModal({
   client,
@@ -1421,8 +1421,10 @@ function ReservationPreviewModal({
   });
 
   const context = contextQuery.data;
+  const seatMap = context?.seatMap ?? null;
   const usableCredit = context?.validCredits.find((c) => typeof c.total !== "number" || c.total > 0);
   const canReserveNative = Boolean(client?.createReservation && context && usableCredit);
+  const needsSeat = Boolean(canReserveNative && seatMap);
   const soldOut = isSoldOut(meeting);
 
   async function confirmReservation(seat: SeatMapObject | null) {
@@ -1442,7 +1444,7 @@ function ReservationPreviewModal({
       onReserved?.();
     } catch (err) {
       setFlowError(err instanceof Error ? err.message : "No pudimos completar la reserva.");
-      setStep(context.seatMap ? "seat" : "detail");
+      setStep("detail");
     }
   }
 
@@ -1452,20 +1454,21 @@ function ReservationPreviewModal({
       onContinue();
       return;
     }
-    if (context?.seatMap) {
-      setStep("seat");
-      return;
-    }
-    void confirmReservation(null);
+    void confirmReservation(needsSeat ? selectedSeat : null);
   }
+
+  const primaryDisabled =
+    step === "processing" || (isSignedIn && contextQuery.isLoading) || (needsSeat && !selectedSeat);
 
   const primaryLabel = !isSignedIn
     ? "Continuar reserva"
     : contextQuery.isLoading
       ? "Revisando tus créditos…"
       : canReserveNative
-        ? context?.seatMap
-          ? "Elegir mi lugar"
+        ? needsSeat
+          ? selectedSeat
+            ? `Reservar lugar ${selectedSeat.label}`
+            : "Elige tu lugar en el mapa"
           : soldOut
             ? "Unirme a lista de espera"
             : "Reservar con mi crédito"
@@ -1473,72 +1476,88 @@ function ReservationPreviewModal({
 
   return (
     <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="reservation-title">
-      <div className="gafa-reservation-sheet" data-step={step}>
+      <div className="gafa-reservation-sheet" data-step={step} data-has-map={needsSeat ? "true" : undefined}>
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar reserva" onClick={onClose}>
           x
         </button>
 
-        {step === "detail" || step === "processing" ? (
+        {step !== "done" ? (
           <>
             <div className="gafa-reservation-hero">
               <span className="gafa-eyebrow">Detalle de reserva</span>
               <h3 id="reservation-title">{meeting.name}</h3>
               <p>
-                {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting), meeting.timezone)}
+                {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting), meeting.timezone)} ·{" "}
+                {meeting.location?.name ?? ""}
               </p>
             </div>
 
-            <div className="gafa-reservation-summary">
-              <div>
-                <span>Servicio</span>
-                <strong>{meeting.service?.name ?? meeting.serviceName ?? "Servicio"}</strong>
-              </div>
-              <div>
-                <span>Coach</span>
-                <strong>{getStaffName(meeting)}</strong>
-              </div>
-              <div>
-                <span>Sede</span>
-                <strong>{meeting.location?.name ?? "Por confirmar"}</strong>
-              </div>
-              <div>
-                <span>Disponibilidad</span>
-                <strong>{getAvailabilityText(meeting)}</strong>
-              </div>
-            </div>
+            <div className="gafa-reservation-body">
+              <div className="gafa-reservation-info">
+                <div className="gafa-reservation-coach">
+                  {meeting.staff?.photoUrl ? (
+                    <img src={meeting.staff.photoUrl} alt="" aria-hidden="true" />
+                  ) : (
+                    <span className="gafa-reservation-coach__placeholder" aria-hidden="true">
+                      <PersonIcon />
+                    </span>
+                  )}
+                  <div>
+                    <span>Coach</span>
+                    <strong>{getStaffName(meeting)}</strong>
+                  </div>
+                </div>
 
-            {isSignedIn ? (
-              contextQuery.isLoading ? (
-                <p className="gafa-reservation-hint">Revisando tus créditos…</p>
-              ) : usableCredit ? (
-                <p className="gafa-reservation-hint gafa-reservation-hint--ok">
-                  Reservas con tu crédito: <strong>{usableCredit.name}</strong>
-                  {typeof usableCredit.total === "number" ? ` (${usableCredit.total} disponibles)` : ""}
-                </p>
-              ) : contextQuery.isError ? (
-                <p className="gafa-reservation-hint">
-                  {contextQuery.error instanceof Error
-                    ? contextQuery.error.message
-                    : "No pudimos revisar tus créditos."}
-                </p>
-              ) : (
-                <p className="gafa-reservation-hint">
-                  No tienes créditos para esta clase: en el siguiente paso puedes comprar uno.
-                </p>
-              )
-            ) : (
-              <p className="gafa-reservation-hint">Inicia sesión para reservar; te lo pedimos en el siguiente paso.</p>
-            )}
+                <div className="gafa-reservation-summary">
+                  <div>
+                    <span>Servicio</span>
+                    <strong>{meeting.service?.name ?? meeting.serviceName ?? "Servicio"}</strong>
+                  </div>
+                  <div>
+                    <span>Sede</span>
+                    <strong>{meeting.location?.name ?? "Por confirmar"}</strong>
+                  </div>
+                  <div>
+                    <span>Disponibilidad</span>
+                    <strong>{getAvailabilityText(meeting)}</strong>
+                  </div>
+                </div>
+
+                {isSignedIn ? (
+                  contextQuery.isLoading ? (
+                    <p className="gafa-reservation-hint">Revisando tus créditos…</p>
+                  ) : usableCredit ? (
+                    <p className="gafa-reservation-hint gafa-reservation-hint--ok">
+                      Reservas con tu crédito: <strong>{usableCredit.name}</strong>
+                      {typeof usableCredit.total === "number" ? ` (${usableCredit.total} disponibles)` : ""}
+                    </p>
+                  ) : contextQuery.isError ? (
+                    <p className="gafa-reservation-hint">
+                      {contextQuery.error instanceof Error
+                        ? contextQuery.error.message
+                        : "No pudimos revisar tus créditos."}
+                    </p>
+                  ) : (
+                    <p className="gafa-reservation-hint">
+                      No tienes créditos para esta clase: en el siguiente paso puedes comprar uno.
+                    </p>
+                  )
+                ) : (
+                  <p className="gafa-reservation-hint">
+                    Inicia sesión para reservar; te lo pedimos en el siguiente paso.
+                  </p>
+                )}
+              </div>
+
+              {needsSeat && seatMap ? (
+                <SeatMapInline map={seatMap} selected={selectedSeat} onSelect={setSelectedSeat} />
+              ) : null}
+            </div>
 
             {flowError ? <p className="gafa-sdk-state gafa-sdk-state--error">{flowError}</p> : null}
 
             <div className="gafa-reservation-actions">
-              <button
-                className="gafa-sdk-button"
-                type="button"
-                disabled={step === "processing" || (isSignedIn && contextQuery.isLoading)}
-                onClick={handlePrimary}
-              >
+              <button className="gafa-sdk-button" type="button" disabled={primaryDisabled} onClick={handlePrimary}>
                 {step === "processing" ? "Reservando…" : primaryLabel}
               </button>
               <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
@@ -1546,21 +1565,6 @@ function ReservationPreviewModal({
               </button>
             </div>
           </>
-        ) : null}
-
-        {step === "seat" && context?.seatMap ? (
-          <SeatMapStep
-            map={context.seatMap}
-            meeting={meeting}
-            selected={selectedSeat}
-            onSelect={setSelectedSeat}
-            error={flowError}
-            onBack={() => {
-              setFlowError(undefined);
-              setStep("detail");
-            }}
-            onConfirm={() => void confirmReservation(selectedSeat)}
-          />
         ) : null}
 
         {step === "done" && result ? (
@@ -1595,34 +1599,22 @@ function ReservationPreviewModal({
   );
 }
 
-/** Mapa de salon nativo: grid del salon con lugares numerados. */
-function SeatMapStep({
+/**
+ * Mapa de salon inline (mismo paso que el detalle). Usa las imagenes de spot
+ * que la marca sube en gafa.fit: vacio / ocupado / elegido. Sin imagen, cae a
+ * los circulos con estilo del tema.
+ */
+function SeatMapInline({
   map,
-  meeting,
   selected,
   onSelect,
-  onBack,
-  onConfirm,
-  error,
 }: {
   map: SeatMap;
-  meeting: Meeting;
   selected: SeatMapObject | null;
   onSelect(seat: SeatMapObject | null): void;
-  onBack(): void;
-  onConfirm(): void;
-  error?: string;
 }) {
   return (
     <div className="gafa-seatmap">
-      <div className="gafa-reservation-hero">
-        <span className="gafa-eyebrow">Elige tu lugar</span>
-        <h3>{meeting.name}</h3>
-        <p>
-          {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting), meeting.timezone)}
-        </p>
-      </div>
-
       <div className="gafa-seatmap__legend">
         <span>
           <i className="gafa-seatmap__dot" /> Disponible
@@ -1648,7 +1640,10 @@ function SeatMapStep({
           };
 
           if (seat.type !== "public") {
-            return (
+            // Objetos decorativos (coach, bocinas...): con su imagen si existe.
+            return seat.image ? (
+              <img className="gafa-seatmap__fixture-img" key={seat.id} src={seat.image} alt="" style={style} />
+            ) : (
               <div className="gafa-seatmap__fixture" key={seat.id} style={style} title={seat.type}>
                 {seat.type === "coach" ? "COACH" : ""}
               </div>
@@ -1657,6 +1652,11 @@ function SeatMapStep({
 
           const disabled = seat.isBlocked || seat.isOccupied;
           const isSelected = selected?.id === seat.id;
+          const stateImage = disabled
+            ? seat.imageDisabled || seat.image
+            : isSelected
+              ? seat.imageSelected || seat.image
+              : seat.image;
 
           return (
             <button
@@ -1666,26 +1666,18 @@ function SeatMapStep({
               style={style}
               role="option"
               aria-selected={isSelected}
+              aria-label={`Lugar ${seat.label}`}
               data-taken={disabled ? "true" : undefined}
               data-selected={isSelected ? "true" : undefined}
+              data-has-image={stateImage ? "true" : undefined}
               disabled={disabled}
               onClick={() => onSelect(isSelected ? null : seat)}
             >
-              {seat.label}
+              {stateImage ? <img src={stateImage} alt="" loading="lazy" /> : null}
+              <span className="gafa-seatmap__seat-label">{seat.label}</span>
             </button>
           );
         })}
-      </div>
-
-      {error ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
-
-      <div className="gafa-reservation-actions">
-        <button className="gafa-sdk-button" type="button" disabled={!selected} onClick={onConfirm}>
-          {selected ? `Confirmar lugar ${selected.label}` : "Elige un lugar"}
-        </button>
-        <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onBack}>
-          Regresar
-        </button>
       </div>
     </div>
   );

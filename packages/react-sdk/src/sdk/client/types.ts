@@ -230,6 +230,10 @@ export type SeatMapObject = {
   type: string;
   isBlocked: boolean;
   isOccupied: boolean;
+  /** Imagenes que la marca sube por tipo de spot: vacio / ocupado / elegido. */
+  image?: string | null;
+  imageDisabled?: string | null;
+  imageSelected?: string | null;
 };
 
 export type SeatMap = {
