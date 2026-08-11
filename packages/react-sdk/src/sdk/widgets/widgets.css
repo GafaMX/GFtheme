@@ -501,6 +501,14 @@
   scroll-snap-type: x mandatory;
 }
 
+/* En movil: exactamente DOS dias visibles, cada uno mas ancho, y el resto
+   por scroll horizontal con snap. */
+@media (max-width: 640px) {
+  .gafa-week-grid {
+    grid-auto-columns: calc(50% - var(--gafa-space-2) / 2);
+  }
+}
+
 .gafa-week-grid > * {
   scroll-snap-align: start;
 }
