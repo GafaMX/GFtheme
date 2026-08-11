@@ -1673,6 +1673,8 @@ function ReservationPreviewModal({
                 )}
               </p>
             ) : null}
+            <AddToCalendarRow meeting={meeting} seatLabel={selectedSeat?.label} />
+
             <div className="gafa-reservation-actions">
               <button className="gafa-sdk-button" type="button" onClick={onClose}>
                 Listo
@@ -1680,6 +1682,108 @@ function ReservationPreviewModal({
             </div>
           </div>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------- agregar a calendario */
+
+function calendarEventFor(meeting: Meeting, seatLabel?: string) {
+  const start = new Date(getMeetingStart(meeting).replace(" ", "T"));
+  const durationMinutes = getDurationMinutes(meeting) ?? 60;
+  const end = meeting.endsAt ? new Date(meeting.endsAt.replace(" ", "T")) : new Date(start.getTime() + durationMinutes * 60_000);
+
+  const title = `${meeting.service?.name ?? meeting.serviceName ?? meeting.name}${
+    meeting.location?.name ? ` · ${meeting.location.name}` : ""
+  }`;
+  const detailParts = [
+    `Coach: ${getStaffName(meeting)}`,
+    seatLabel ? `Tu lugar: ${seatLabel}` : null,
+    meeting.location?.name ? `Sede: ${meeting.location.name}` : null,
+  ].filter(Boolean);
+
+  return {
+    start,
+    end,
+    title,
+    description: detailParts.join("\n"),
+    location: meeting.location?.name ?? "",
+  };
+}
+
+/** UTC compacto (20260814T120000Z), el formato que Google y el .ics esperan. */
+function toCalendarUtc(date: Date): string {
+  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+function escapeIcsText(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+
+function AddToCalendarRow({ meeting, seatLabel }: { meeting: Meeting; seatLabel?: string }) {
+  const event = calendarEventFor(meeting, seatLabel);
+
+  const googleUrl =
+    "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+    `&text=${encodeURIComponent(event.title)}` +
+    `&dates=${toCalendarUtc(event.start)}/${toCalendarUtc(event.end)}` +
+    `&details=${encodeURIComponent(event.description)}` +
+    `&location=${encodeURIComponent(event.location)}`;
+
+  const outlookUrl =
+    "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
+    `&subject=${encodeURIComponent(event.title)}` +
+    `&startdt=${encodeURIComponent(event.start.toISOString())}` +
+    `&enddt=${encodeURIComponent(event.end.toISOString())}` +
+    `&body=${encodeURIComponent(event.description)}` +
+    `&location=${encodeURIComponent(event.location)}`;
+
+  function downloadIcs() {
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Buq//SDK v2//ES",
+      "BEGIN:VEVENT",
+      `UID:buq-reserva-${meeting.id}@buq.mx`,
+      `DTSTAMP:${toCalendarUtc(new Date())}`,
+      `DTSTART:${toCalendarUtc(event.start)}`,
+      `DTEND:${toCalendarUtc(event.end)}`,
+      `SUMMARY:${escapeIcsText(event.title)}`,
+      `DESCRIPTION:${escapeIcsText(event.description)}`,
+      `LOCATION:${escapeIcsText(event.location)}`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "reserva.ics";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="gafa-addtocal">
+      <span className="gafa-addtocal__title">Agrégala a tu calendario</span>
+      <div className="gafa-addtocal__row">
+        <a className="gafa-addtocal__button" href={googleUrl} target="_blank" rel="noreferrer">
+          Google
+        </a>
+        {/* Apple abre el .ics directo en Calendario (iOS/macOS). */}
+        <button className="gafa-addtocal__button" type="button" onClick={downloadIcs}>
+          Apple
+        </button>
+        <a className="gafa-addtocal__button" href={outlookUrl} target="_blank" rel="noreferrer">
+          Outlook
+        </a>
+        <button className="gafa-addtocal__button" type="button" onClick={downloadIcs}>
+          Descargar .ics
+        </button>
       </div>
     </div>
   );
