@@ -597,19 +597,155 @@ class GafaFitSDKWrapper extends React.Component {
         });
     }
 
+    /**
+     * El fancy legacy (buq.partners/js/buildTemplate.js) marca asientos ocupados con:
+     *   reservation.forEach(r => setCell(r.object, "disabled"))
+     * y luego el Cell hace getObject().positions.width/image.
+     *
+     * Si el API manda reservation[] solo con maps_objects_id, o un object parcial
+     * sin `positions`, parseMap/render tiran y el modal queda en blanco (solo se
+     * ve la X). Aqui reescribimos el JSON embebido para que cada reserva apunte
+     * al objeto completo de meeting.map.objects (misma estrategia que el React SDK v2).
+     */
+    static sanitizeFancyMeetingMapHtml(html) {
+        if (!html || typeof html !== 'string') {
+            return html;
+        }
+
+        return html.replace(
+            /(<[^>]*class=["'][^"']*CreateReservationFancy--meeting[^"']*["'][^>]*>)([\s\S]*?)(<\/[^>]+>)/i,
+            function (match, open, body, close) {
+                try {
+                    var raw = String(body || '').trim();
+                    if (!raw) {
+                        return match;
+                    }
+
+                    var meeting = JSON.parse(raw);
+                    if (!meeting || !meeting.map || !Array.isArray(meeting.map.objects)) {
+                        return match;
+                    }
+                    if (!Array.isArray(meeting.reservation) || meeting.reservation.length === 0) {
+                        return match;
+                    }
+
+                    var byId = {};
+                    meeting.map.objects.forEach(function (obj) {
+                        if (obj && obj.id != null) {
+                            byId[String(obj.id)] = obj;
+                        }
+                    });
+
+                    meeting.reservation = meeting.reservation.map(function (res) {
+                        if (!res) {
+                            return null;
+                        }
+
+                        var objectId = (res.object && res.object.id != null)
+                            ? res.object.id
+                            : res.maps_objects_id;
+                        var full = objectId != null ? byId[String(objectId)] : null;
+
+                        if (!full && res.object &&
+                            res.object.position_row != null &&
+                            res.object.position_column != null) {
+                            full = meeting.map.objects.find(function (obj) {
+                                return obj &&
+                                    obj.position_row === res.object.position_row &&
+                                    obj.position_column === res.object.position_column;
+                            }) || null;
+                        }
+
+                        // object completo con positions: el Cell puede renderizar
+                        if (full && full.positions) {
+                            return Object.assign({}, res, {
+                                object: full,
+                                maps_objects_id: res.maps_objects_id != null ? res.maps_objects_id : full.id,
+                            });
+                        }
+
+                        // object ya usable
+                        if (res.object && res.object.positions) {
+                            return res;
+                        }
+
+                        // Mejor omitir el asiento ocupado que tumbar todo el mapa
+                        return null;
+                    }).filter(Boolean);
+
+                    return open + JSON.stringify(meeting) + close;
+                } catch (e) {
+                    if (typeof console !== 'undefined' && console.error) {
+                        console.error('GFtheme: failed to sanitize fancy meeting map', e);
+                    }
+                    return match;
+                }
+            }
+        );
+    }
+
     static getFancyForMeetingReservation(brand, location, meetings_id, callback) {
         GafaFitSDKWrapper.getMe(function (me) {
+            // Pedimos el HTML sin inyectarlo (selector que no existe). Asi podemos
+            // sanear meeting.reservation antes de que buildTemplate.js haga parseMap.
             GafaFitSDK.GetCreateReservationForm(
                 brand,
                 location,
                 me.id,
-                '[data-gf-theme="fancy"]',
+                '.__gf-fancy-sanitize-no-match__',
                 {
                     'meetings_id': meetings_id,
                 }, function (error, result) {
-                    if (error === null) {
-                        callback(result);
+                    if (error !== null) {
+                        return;
                     }
+
+                    var html = typeof result === 'string'
+                        ? GafaFitSDKWrapper.sanitizeFancyMeetingMapHtml(result)
+                        : null;
+                    var fancy = document.querySelector('[data-gf-theme="fancy"]');
+
+                    if (html && fancy) {
+                        if (window.jQuery) {
+                            window.jQuery(fancy).html(html);
+                        } else {
+                            fancy.innerHTML = html;
+                        }
+                        if (typeof callback === 'function') {
+                            callback(true);
+                        }
+                        return;
+                    }
+
+                    // Fallback: el contenedor fancy no estaba listo. Reintentamos
+                    // con el selector real, pero sanitizando via interceptor de
+                    // jQuery.html para no inyectar reservation[] rota.
+                    var jq = window.jQuery;
+                    var originalHtml = jq && jq.fn && jq.fn.html;
+                    if (jq && originalHtml) {
+                        jq.fn.html = function (value) {
+                            if (typeof value === 'string' && this.is('[data-gf-theme="fancy"]')) {
+                                value = GafaFitSDKWrapper.sanitizeFancyMeetingMapHtml(value);
+                            }
+                            return originalHtml.call(this, value);
+                        };
+                    }
+                    GafaFitSDK.GetCreateReservationForm(
+                        brand,
+                        location,
+                        me.id,
+                        '[data-gf-theme="fancy"]',
+                        {
+                            'meetings_id': meetings_id,
+                        }, function (fallbackError, fallbackResult) {
+                            if (jq && originalHtml) {
+                                jq.fn.html = originalHtml;
+                            }
+                            if (fallbackError === null && typeof callback === 'function') {
+                                callback(fallbackResult);
+                            }
+                        }
+                    );
                 }
             );
         });
