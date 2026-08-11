@@ -287,42 +287,87 @@
 
 /* ------------------------------------------------------------------ calendario */
 
+/* Chrome del calendario: exactamente dos filas (vista+filtros / nav+fecha). */
 .gafa-calendar-toolbar {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-calendar-toolbar__row {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  gap: var(--gafa-space-2);
+  min-width: 0;
+}
+
+.gafa-calendar-toolbar__row--nav {
   gap: var(--gafa-space-2);
 }
 
 .gafa-calendar-toolbar__nav {
   align-items: center;
   display: flex;
-  gap: var(--gafa-space-1);
+  flex-shrink: 0;
+  gap: 4px;
 }
 
 .gafa-calendar-toolbar__filters {
   display: flex;
   justify-content: flex-end;
   margin-left: auto;
+  min-width: 0;
 }
 
 .gafa-calendar-toolbar__label {
-  align-items: baseline;
+  align-items: center;
   display: flex;
+  flex: 1 1 auto;
   gap: var(--gafa-space-2);
-  padding-left: var(--gafa-space-2);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .gafa-calendar-toolbar__label strong {
   color: var(--gafa-color-text);
-  font-size: 1.02rem;
+  font-size: 0.92rem;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .gafa-calendar-toolbar__hint {
   color: var(--gafa-color-muted-text);
-  font-size: 0.78rem;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+}
+
+.gafa-calendar-today {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  min-height: 36px !important;
+  padding: 0 0.85rem !important;
+}
+
+.gafa-segmented--compact {
+  flex-shrink: 0;
+}
+
+.gafa-segmented--compact button {
+  font-size: 0.8rem;
+  padding: 0.38rem 0.75rem;
+}
+
+.gafa-widget-card[data-header="false"] {
+  /* Sin titulo: menos padding arriba para ganar viewport en movil. */
+  padding-top: var(--gafa-space-3);
+}
+
+.gafa-calendar-toolbar .gafa-icon-button {
+  height: 36px;
+  width: 36px;
 }
 
 /* Barra compacta: la sede a la vista, el resto detras del boton "Filtros". */
@@ -341,8 +386,10 @@
   color: var(--gafa-color-muted-text);
   display: inline-flex;
   gap: 6px;
-  height: 40px;
-  padding: 0 0.5rem 0 0.8rem;
+  height: 36px;
+  max-width: 42vw;
+  min-width: 0;
+  padding: 0 0.45rem 0 0.7rem;
 }
 
 .gafa-filterbar-location select {
@@ -351,10 +398,14 @@
   border: none;
   color: var(--gafa-color-text);
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  max-width: 100%;
+  min-width: 0;
   outline: none;
-  padding-right: 0.4rem;
+  overflow: hidden;
+  padding-right: 0.3rem;
+  text-overflow: ellipsis;
 }
 
 .gafa-filterbar-toggle {
@@ -365,11 +416,12 @@
   color: var(--gafa-color-text);
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.88rem;
+  flex-shrink: 0;
+  font-size: 0.82rem;
   font-weight: 600;
   gap: 6px;
-  height: 40px;
-  padding: 0 0.9rem;
+  height: 36px;
+  padding: 0 0.75rem;
 }
 
 .gafa-filterbar-toggle:hover,

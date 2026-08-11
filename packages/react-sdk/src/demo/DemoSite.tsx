@@ -134,12 +134,7 @@ function DemoShell({
 
         <main className="demo-main" data-page={page}>
           {page === "calendario" ? (
-            <CalendarWidget
-              client={client}
-              title="Reserva tu lugar"
-              description="Elige el día que te acomode. Solo se cargan los horarios que estás viendo."
-              {...brand.calendar}
-            />
+            <CalendarWidget client={client} {...brand.calendar} />
           ) : null}
 
           {page === "paquetes" ? (

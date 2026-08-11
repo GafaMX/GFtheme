@@ -56,8 +56,11 @@ export function CalendarWidget({
   view: initialView = "day",
   allowViewChange = true,
   showDescription = false,
-  title = "Reserva tu lugar",
-  description,
+  // El calendario embebido ya vive dentro del sitio del socio: no repetimos
+  // "Reservas / Reserva tu lugar / ..." arriba. title/description se ignoran
+  // a proposito para dejar el chrome en dos lineas compactas.
+  title: _title,
+  description: _description,
 }: CalendarWidgetProps) {
   const queryClient = useQueryClient();
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>({});
@@ -416,35 +419,32 @@ export function CalendarWidget({
     setFancyMeeting(meeting);
   }
 
+  const viewToggle =
+    allowViewChange ? (
+      <div className="gafa-segmented gafa-segmented--compact" role="group" aria-label="Vista del calendario">
+        <button
+          type="button"
+          aria-pressed={view === "day"}
+          onClick={() => {
+            allowAutoSkipRef.current = true;
+            setView("day");
+          }}
+        >
+          Día
+        </button>
+        <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>
+          Semana
+        </button>
+      </div>
+    ) : null;
+
   return (
-    <WidgetShell
-      eyebrow="Reservas"
-      title={title}
-      description={description}
-      actions={
-        allowViewChange ? (
-          <div className="gafa-segmented" role="group" aria-label="Vista del calendario">
-            <button
-              type="button"
-              aria-pressed={view === "day"}
-              onClick={() => {
-                allowAutoSkipRef.current = true;
-                setView("day");
-              }}
-            >
-              Día
-            </button>
-            <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>
-              Semana
-            </button>
-          </div>
-        ) : null
-      }
-    >
+    <WidgetShell>
       <CalendarToolbar
         anchor={anchor}
         range={range}
         view={view}
+        viewToggle={viewToggle}
         onPrev={() => {
           allowAutoSkipRef.current = false;
           setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)));
@@ -557,6 +557,7 @@ function CalendarToolbar({
   anchor,
   range,
   view,
+  viewToggle,
   onPrev,
   onNext,
   onToday,
@@ -568,6 +569,7 @@ function CalendarToolbar({
   anchor: Date;
   range: DateRange;
   view: CalendarView;
+  viewToggle: React.ReactNode;
   onPrev(): void;
   onNext(): void;
   onToday(): void;
@@ -576,44 +578,56 @@ function CalendarToolbar({
   canGoNext: boolean;
   filterBar: React.ReactNode;
 }) {
+  // Corto a proposito: en movil "Martes, 11 de agosto" se comia toda una fila.
   const label =
     view === "day"
-      ? new Intl.DateTimeFormat("es-MX", { weekday: "long", day: "numeric", month: "long" }).format(anchor)
+      ? new Intl.DateTimeFormat("es-MX", { weekday: "short", day: "numeric", month: "short" }).format(anchor)
       : formatRangeLabel(range);
 
   return (
     <div className="gafa-calendar-toolbar">
-      <div className="gafa-calendar-toolbar__nav">
-        <button
-          className="gafa-icon-button"
-          type="button"
-          disabled={!canGoPrev}
-          onClick={onPrev}
-          aria-label={view === "day" ? "Día anterior" : "Semana anterior"}
-        >
-          <ChevronIcon direction="left" />
-        </button>
-        <button
-          className="gafa-icon-button"
-          type="button"
-          disabled={!canGoNext}
-          onClick={onNext}
-          aria-label={view === "day" ? "Día siguiente" : "Semana siguiente"}
-          title={canGoNext ? undefined : "La sede aún no publica horarios más adelante"}
-        >
-          <ChevronIcon direction="right" />
-        </button>
-        <button className="gafa-sdk-button gafa-sdk-button--secondary gafa-calendar-today" type="button" onClick={onToday}>
-          Hoy
-        </button>
+      {/* Fila 1: vista + sede/filtros */}
+      <div className="gafa-calendar-toolbar__row">
+        {viewToggle}
+        <div className="gafa-calendar-toolbar__filters">{filterBar}</div>
       </div>
 
-      <div className="gafa-calendar-toolbar__label" aria-live="polite">
-        <strong>{label}</strong>
-        {isRefreshing ? <span className="gafa-calendar-toolbar__hint">actualizando…</span> : null}
-      </div>
+      {/* Fila 2: flechas + Hoy + fecha compacta */}
+      <div className="gafa-calendar-toolbar__row gafa-calendar-toolbar__row--nav">
+        <div className="gafa-calendar-toolbar__nav">
+          <button
+            className="gafa-icon-button"
+            type="button"
+            disabled={!canGoPrev}
+            onClick={onPrev}
+            aria-label={view === "day" ? "Día anterior" : "Semana anterior"}
+          >
+            <ChevronIcon direction="left" />
+          </button>
+          <button
+            className="gafa-icon-button"
+            type="button"
+            disabled={!canGoNext}
+            onClick={onNext}
+            aria-label={view === "day" ? "Día siguiente" : "Semana siguiente"}
+            title={canGoNext ? undefined : "La sede aún no publica horarios más adelante"}
+          >
+            <ChevronIcon direction="right" />
+          </button>
+          <button
+            className="gafa-sdk-button gafa-sdk-button--secondary gafa-calendar-today"
+            type="button"
+            onClick={onToday}
+          >
+            Hoy
+          </button>
+        </div>
 
-      <div className="gafa-calendar-toolbar__filters">{filterBar}</div>
+        <div className="gafa-calendar-toolbar__label" aria-live="polite">
+          <strong>{label}</strong>
+          {isRefreshing ? <span className="gafa-calendar-toolbar__hint">actualizando…</span> : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1055,15 +1069,13 @@ function formatRangeLabel(range: DateRange): string {
   const from = parseIsoDate(range.from);
   const to = parseIsoDate(range.to);
   const sameMonth = from.getMonth() === to.getMonth();
-
-  const dayMonth = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short" });
-  const monthYear = new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" });
+  const monthShort = new Intl.DateTimeFormat("es-MX", { month: "short" });
 
   if (sameMonth) {
-    return `${from.getDate()} – ${to.getDate()} ${monthYear.format(from)}`;
+    return `${from.getDate()}–${to.getDate()} ${monthShort.format(from)}`;
   }
 
-  return `${dayMonth.format(from)} – ${dayMonth.format(to)}`;
+  return `${from.getDate()} ${monthShort.format(from)} – ${to.getDate()} ${monthShort.format(to)}`;
 }
 
 function ReservationPreviewModal({
