@@ -255,6 +255,23 @@
   transform: none;
 }
 
+/* Error inline por campo, en español y con el color del tema. */
+.gafa-float[data-invalid="true"] input,
+.gafa-float[data-invalid="true"] select {
+  border-color: var(--gafa-color-danger);
+}
+
+.gafa-field-error {
+  color: var(--gafa-color-danger);
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-top: 4px;
+  padding-left: 2px;
+  position: static;
+  transform: none;
+  white-space: normal;
+}
+
 /* Dos campos por fila SOLO cuando hay ancho real (desktop). En movil se
    apilan: dos columnas apretadas se veian horribles. */
 .gafa-field-row {
@@ -460,10 +477,29 @@
 }
 
 .gafa-sdk-state--error {
+  align-items: center;
   background: var(--gafa-color-danger-soft);
+  border-left: 3px solid var(--gafa-color-danger);
   border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-danger);
+  display: flex;
+  font-weight: 600;
+  gap: 8px;
   padding: 0.7rem 0.9rem;
+}
+
+.gafa-sdk-state--error::before {
+  content: "!";
+  background: var(--gafa-color-danger);
+  border-radius: 50%;
+  color: var(--gafa-color-danger-soft);
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  height: 17px;
+  line-height: 17px;
+  text-align: center;
+  width: 17px;
 }
 
 .gafa-sdk-state--success {

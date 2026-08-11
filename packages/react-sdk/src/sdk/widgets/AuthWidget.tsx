@@ -193,9 +193,11 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<FormStatus>("idle");
   const [error, setError] = useState<string>();
+  const { fieldErrors, formProps } = useSpanishValidation();
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!event.currentTarget.checkValidity()) return;
     if (!client) return;
 
     setStatus("submitting");
@@ -212,18 +214,28 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
   }
 
   return (
-    <form className="gafa-sdk-form" onSubmit={handleSubmit}>
-      <FloatField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+    <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
+      <FloatField
+        label="Email"
+        name="email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        error={fieldErrors.email}
+      />
       <FloatField
         label="Contraseña"
+        name="password"
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
+        error={fieldErrors.password}
       />
 
       {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
-      {status === "success" ? <p className="gafa-sdk-state gafa-sdk-state--success">Sesion iniciada.</p> : null}
+      {status === "success" ? <p className="gafa-sdk-state gafa-sdk-state--success">Sesión iniciada.</p> : null}
 
       <button className="gafa-sdk-button" type="submit" disabled={!client || status === "submitting"}>
         {status === "submitting" ? "Entrando..." : "Entrar"}
@@ -238,14 +250,60 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
  */
 function FloatField({
   label,
+  error,
   ...inputProps
-}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { label: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="gafa-float">
-      <input placeholder=" " {...inputProps} />
+    <label className="gafa-float" data-invalid={error ? "true" : undefined}>
+      <input placeholder=" " aria-invalid={error ? true : undefined} {...inputProps} />
       <span>{label}</span>
+      {error ? (
+        <span className="gafa-field-error" role="alert">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
+}
+
+/**
+ * Validacion con mensajes propios EN ESPAÑOL: los formularios usan noValidate
+ * y checkValidity() dispara eventos invalid que aqui se traducen a errores
+ * inline por campo (nada de globos del navegador en ingles).
+ */
+function spanishValidationMessage(control: HTMLInputElement | HTMLSelectElement): string {
+  const validity = control.validity;
+  if (validity.valueMissing) return "Este campo es obligatorio.";
+  if (validity.typeMismatch && control.type === "email") return "Escribe un correo válido.";
+  if (validity.tooShort) return `Mínimo ${(control as HTMLInputElement).minLength} caracteres.`;
+  return "Revisa este campo.";
+}
+
+function useSpanishValidation() {
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const formProps = {
+    noValidate: true,
+    onInvalidCapture: (event: React.FormEvent) => {
+      event.preventDefault();
+      const control = event.target as HTMLInputElement;
+      if (!control.name) return;
+      const message = spanishValidationMessage(control);
+      setFieldErrors((previous) => ({ ...previous, [control.name]: message }));
+    },
+    onChangeCapture: (event: React.FormEvent) => {
+      const control = event.target as HTMLInputElement;
+      if (!control.name) return;
+      setFieldErrors((previous) => {
+        if (!(control.name in previous)) return previous;
+        const next = { ...previous };
+        delete next[control.name];
+        return next;
+      });
+    },
+  };
+
+  return { fieldErrors, setFieldErrors, formProps };
 }
 
 function RegisterForm({
@@ -267,6 +325,7 @@ function RegisterForm({
   const [customValues, setCustomValues] = useState<CustomFieldValues>({});
   const [status, setStatus] = useState<FormStatus>("idle");
   const [error, setError] = useState<string>();
+  const { fieldErrors, setFieldErrors, formProps } = useSpanishValidation();
 
   const brandsQuery = useQuery({
     queryKey: ["auth", "brands"],
@@ -293,8 +352,13 @@ function RegisterForm({
     }));
   }
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!event.currentTarget.checkValidity()) return;
+    if (password !== passwordConfirmation) {
+      setFieldErrors((previous) => ({ ...previous, passwordConfirmation: "Las contraseñas no coinciden." }));
+      return;
+    }
     if (!client) return;
 
     setStatus("submitting");
@@ -338,27 +402,46 @@ function RegisterForm({
   }
 
   return (
-    <form className="gafa-sdk-form" onSubmit={handleSubmit}>
+    <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
       <div className="gafa-field-row">
-        <FloatField label="Nombre" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-        <FloatField label="Apellido" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+        <FloatField
+          label="Nombre"
+          name="firstName"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          required
+          error={fieldErrors.firstName}
+        />
+        <FloatField label="Apellido" name="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
       </div>
-      <FloatField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <FloatField
+        label="Email"
+        name="email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        error={fieldErrors.email}
+      />
       <div className="gafa-field-row">
         <FloatField
           label="Contraseña"
+          name="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={5}
+          error={fieldErrors.password}
         />
         <FloatField
           label="Confirmar contraseña"
+          name="passwordConfirmation"
           type="password"
           value={passwordConfirmation}
           onChange={(e) => setPasswordConfirmation(e.target.value)}
           required
+          error={fieldErrors.passwordConfirmation}
         />
       </div>
 
@@ -368,8 +451,10 @@ function RegisterForm({
           <CustomFieldInput
             key={field.id}
             field={field}
+            name={`cf-${group.id}-${field.id}`}
             value={customValues[group.id]?.[field.id] ?? field.defaultValue ?? ""}
             onChange={(value) => setCustomValue(group.id, field.id, value)}
+            error={fieldErrors[`cf-${group.id}-${field.id}`]}
           />
         )),
       )}
@@ -385,21 +470,31 @@ function RegisterForm({
 
 function CustomFieldInput({
   field,
+  name,
   value,
   onChange,
+  error,
 }: {
   field: CustomField;
+  name: string;
   value: string;
   onChange(value: string): void;
+  error?: string;
 }) {
   const labelText = `${field.name}${field.required ? " *" : ""}`;
 
   if (field.options.length > 0) {
     // Un select siempre "tiene valor": el label queda flotado fijo.
     return (
-      <label className="gafa-float gafa-float--select">
+      <label className="gafa-float gafa-float--select" data-invalid={error ? "true" : undefined}>
         <span>{labelText}</span>
-        <select value={value} onChange={(event) => onChange(event.target.value)} required={field.required}>
+        <select
+          name={name}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          required={field.required}
+          aria-invalid={error ? true : undefined}
+        >
           <option value="">Selecciona una opción</option>
           {field.options.map((option) => (
             <option key={option.id} value={option.id}>
@@ -407,21 +502,33 @@ function CustomFieldInput({
             </option>
           ))}
         </select>
+        {error ? (
+          <span className="gafa-field-error" role="alert">
+            {error}
+          </span>
+        ) : null}
         {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
       </label>
     );
   }
 
   return (
-    <label className="gafa-float">
+    <label className="gafa-float" data-invalid={error ? "true" : undefined}>
       <input
         placeholder=" "
+        name={name}
         type={inputTypeFor(field.type)}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={field.required}
+        aria-invalid={error ? true : undefined}
       />
       <span>{labelText}</span>
+      {error ? (
+        <span className="gafa-field-error" role="alert">
+          {error}
+        </span>
+      ) : null}
       {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
     </label>
   );
@@ -459,9 +566,15 @@ function PasswordResetForm({
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [status, setStatus] = useState<FormStatus>("idle");
   const [error, setError] = useState<string>();
+  const { fieldErrors, setFieldErrors, formProps } = useSpanishValidation();
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!event.currentTarget.checkValidity()) return;
+    if (password !== passwordConfirmation) {
+      setFieldErrors((previous) => ({ ...previous, passwordConfirmation: "Las contraseñas no coinciden." }));
+      return;
+    }
     if (!client) return;
 
     setStatus("submitting");
@@ -480,21 +593,25 @@ function PasswordResetForm({
   }
 
   return (
-    <form className="gafa-sdk-form" onSubmit={handleSubmit}>
+    <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
       <FloatField
         label="Nueva contraseña"
+        name="password"
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
         minLength={5}
+        error={fieldErrors.password}
       />
       <FloatField
         label="Confirmar contraseña"
+        name="passwordConfirmation"
         type="password"
         value={passwordConfirmation}
         onChange={(e) => setPasswordConfirmation(e.target.value)}
         required
+        error={fieldErrors.passwordConfirmation}
       />
 
       {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
@@ -510,9 +627,11 @@ function PasswordRecoveryForm({ client }: { client?: GafaClient }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<FormStatus>("idle");
   const [error, setError] = useState<string>();
+  const { fieldErrors, formProps } = useSpanishValidation();
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!event.currentTarget.checkValidity()) return;
     if (!client) return;
 
     setStatus("submitting");
@@ -532,8 +651,16 @@ function PasswordRecoveryForm({ client }: { client?: GafaClient }) {
   }
 
   return (
-    <form className="gafa-sdk-form" onSubmit={handleSubmit}>
-      <FloatField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+    <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
+      <FloatField
+        label="Email"
+        name="email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        error={fieldErrors.email}
+      />
 
       {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
 
