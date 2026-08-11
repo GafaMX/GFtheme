@@ -15,6 +15,8 @@ type LegacyCallback<T> = (error: unknown, result: T) => void;
 type LegacyGafaFitSdk = {
   setUrl?: (url: string) => void;
   setCompany?: (companyId: number) => void;
+  setAutorization?: (token: string) => void;
+  logout?: () => void;
   isAuthentified?: () => boolean;
   GetBrandList?: (options: Record<string, unknown>, cb: LegacyCallback<{ data: Brand[] }>) => void;
   GetBrandLocations?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: Location[] }>) => void;

@@ -88,8 +88,14 @@ function DemoShell({
   useEffect(() => {
     const sync = () => client.getProfile().then((profile) => setSignedIn(Boolean(profile)));
     sync();
-    return subscribeToAuthChanges(sync);
-  }, [client]);
+    return subscribeToAuthChanges(() => {
+      sync();
+      // Toda la cache depende de la sesion (perfil, creditos, reservas...):
+      // si el login pasa en un widget con el resto desmontado, sus queries
+      // cacheadas quedarian con el "null" de antes del login.
+      queryClient.invalidateQueries();
+    });
+  }, [client, queryClient]);
 
   // El fondo de la pagina lo pone el demo, no el SDK: en un sitio real es el
   // propio sitio el que lo define.

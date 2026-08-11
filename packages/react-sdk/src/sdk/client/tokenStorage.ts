@@ -26,13 +26,36 @@ export function writeStoredToken(token: string): void {
 
   const encrypted = CryptoJS.AES.encrypt(token, ENCRYPTION_KEY).toString();
   localStorage.setItem(STORAGE_KEY, encrypted);
+  syncLegacySdkToken(token);
   notifyAuthChanged();
 }
 
 export function clearStoredToken(): void {
   if (typeof localStorage === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
+  syncLegacySdkToken(null);
   notifyAuthChanged();
+}
+
+/**
+ * El SDK legacy (window.GafaFitSDK) lee el token de localStorage UNA sola vez al
+ * cargar y lo cachea en memoria: si el login pasa despues (nuestro caso), su
+ * isAuthentified() sigue en false y el checkout dice "necesitas iniciar sesion".
+ * setAutorization()/logout() actualizan ese cache interno.
+ */
+function syncLegacySdkToken(token: string | null): void {
+  if (typeof window === "undefined") return;
+  const legacy = window.GafaFitSDK as
+    | { setAutorization?: (token: string) => void; logout?: () => void }
+    | undefined;
+  if (!legacy) return;
+
+  try {
+    if (token) legacy.setAutorization?.(token);
+    else legacy.logout?.();
+  } catch {
+    // El fallo del SDK legacy no debe romper el flujo propio.
+  }
 }
 
 // Cada widget se monta en su propio React root, asi que no comparten estado por contexto:

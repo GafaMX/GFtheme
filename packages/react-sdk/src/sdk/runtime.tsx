@@ -7,6 +7,7 @@ import type { GafaClient } from "./client/types";
 import { createLegacyGafaFitAdapter } from "./client/legacyGafaFitAdapter";
 import { createHttpGafaClient } from "./client/httpGafaClient";
 import { createCaptchaProvider } from "./captcha/CaptchaProvider";
+import { subscribeToAuthChanges } from "./client/tokenStorage";
 import { ThemeProvider } from "./theme/theme";
 import { AuthWidget, type AuthWidgetProps } from "./widgets/AuthWidget";
 import { CalendarWidget, type CalendarWidgetProps } from "./widgets/CalendarWidget";
@@ -50,6 +51,9 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       }
     }
   });
+  // Login/logout invalidan toda la cache: perfil, creditos y reservas cambian
+  // con la sesion, y pueden haberse cacheado antes de autenticar.
+  subscribeToAuthChanges(() => queryClient.invalidateQueries());
   const mounts = new Set<MountedWidget>();
 
   function mount(target: string | Element, node: ReactNode): MountedWidget {
