@@ -258,38 +258,17 @@
   transform: none;
 }
 
-/* Error inline SIN cambiar tamanos: el label se queda (flota en rojo, para
-   saber que campo es) y el mensaje vive a la derecha dentro del campo. */
+/* Campo invalido: SOLO se marca en rojo (borde + label). El mensaje sale una
+   sola vez arriba del formulario; nada de textos por campo ni cambios de tamano. */
 .gafa-float[data-invalid="true"] input,
 .gafa-float[data-invalid="true"] select {
   border-color: var(--gafa-color-danger);
+  box-shadow: 0 0 0 1px var(--gafa-color-danger);
 }
 
 .gafa-float[data-invalid="true"] > span:first-of-type,
 .gafa-float[data-invalid="true"] input + span {
   color: var(--gafa-color-danger);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  top: 0.55rem;
-  transform: none;
-}
-
-.gafa-float__error {
-  color: var(--gafa-color-danger);
-  font-size: 0.72rem;
-  font-weight: 600;
-  max-width: 60%;
-  overflow: hidden;
-  pointer-events: none;
-  position: absolute;
-  right: 0.9rem;
-  text-align: right;
-  text-overflow: ellipsis;
-  top: 50%;
-  transform: translateY(-50%);
-  white-space: nowrap;
 }
 
 /* Dos campos por fila SOLO cuando hay ancho real (desktop). En movil se

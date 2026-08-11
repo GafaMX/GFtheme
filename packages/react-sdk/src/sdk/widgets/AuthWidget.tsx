@@ -215,6 +215,7 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
+      <FormAlert fieldErrors={fieldErrors} status={status} error={error} />
       <FloatField
         label="Email"
         name="email"
@@ -234,7 +235,6 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
         error={fieldErrors.password}
       />
 
-      {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
       {status === "success" ? <p className="gafa-sdk-state gafa-sdk-state--success">Sesión iniciada.</p> : null}
 
       <button className="gafa-sdk-button" type="submit" disabled={!client || status === "submitting"}>
@@ -256,16 +256,37 @@ function FloatField({
   return (
     <label className="gafa-float" data-invalid={error ? "true" : undefined}>
       <input placeholder=" " aria-invalid={error ? true : undefined} {...inputProps} />
-      {/* El label SIEMPRE visible (con error flota en rojo, para saber que
-          campo es); el mensaje va a la derecha DENTRO del campo. Nada cambia
-          de tamano. */}
+      {/* Solo se MARCA en rojo (borde + label); el mensaje va una sola vez
+          arriba del formulario. */}
       <span>{label}</span>
-      {error ? (
-        <span className="gafa-float__error" role="alert">
-          {error}
-        </span>
-      ) : null}
     </label>
+  );
+}
+
+/** Un solo resumen arriba del form; los campos solo se marcan en rojo. */
+function validationSummary(fieldErrors: Record<string, string>): string | null {
+  const messages = Object.values(fieldErrors);
+  if (messages.length === 0) return null;
+  const unique = Array.from(new Set(messages));
+  if (unique.length === 1 && unique[0] !== "Este campo es obligatorio.") return unique[0];
+  return messages.length === 1 ? "Completa el campo marcado en rojo." : "Completa los campos marcados en rojo.";
+}
+
+function FormAlert({
+  fieldErrors,
+  status,
+  error,
+}: {
+  fieldErrors: Record<string, string>;
+  status: FormStatus;
+  error?: string;
+}) {
+  const summary = validationSummary(fieldErrors) ?? (status === "error" ? error : null);
+  if (!summary) return null;
+  return (
+    <p className="gafa-sdk-state gafa-sdk-state--error" role="alert">
+      {summary}
+    </p>
   );
 }
 
@@ -359,7 +380,11 @@ function RegisterForm({
     event.preventDefault();
     if (!event.currentTarget.checkValidity()) return;
     if (password !== passwordConfirmation) {
-      setFieldErrors((previous) => ({ ...previous, passwordConfirmation: "Las contraseñas no coinciden." }));
+      setFieldErrors((previous) => ({
+        ...previous,
+        password: "Las contraseñas no coinciden.",
+        passwordConfirmation: "Las contraseñas no coinciden.",
+      }));
       return;
     }
     if (!client) return;
@@ -406,6 +431,7 @@ function RegisterForm({
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
+      <FormAlert fieldErrors={fieldErrors} status={status} error={error} />
       <div className="gafa-field-row">
         <FloatField
           label="Nombre"
@@ -462,8 +488,6 @@ function RegisterForm({
         )),
       )}
 
-      {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
-
       <button className="gafa-sdk-button" type="submit" disabled={!client || status === "submitting"}>
         {status === "submitting" ? "Creando cuenta..." : "Crear cuenta"}
       </button>
@@ -491,11 +515,6 @@ function CustomFieldInput({
     return (
       <label className="gafa-float gafa-float--select" data-invalid={error ? "true" : undefined}>
         <span>{labelText}</span>
-        {error ? (
-          <span className="gafa-float__error" role="alert">
-            {error}
-          </span>
-        ) : null}
         <select
           name={name}
           value={value}
@@ -527,11 +546,6 @@ function CustomFieldInput({
         aria-invalid={error ? true : undefined}
       />
       <span>{labelText}</span>
-      {error ? (
-        <span className="gafa-float__error" role="alert">
-          {error}
-        </span>
-      ) : null}
       {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
     </label>
   );
@@ -575,7 +589,11 @@ function PasswordResetForm({
     event.preventDefault();
     if (!event.currentTarget.checkValidity()) return;
     if (password !== passwordConfirmation) {
-      setFieldErrors((previous) => ({ ...previous, passwordConfirmation: "Las contraseñas no coinciden." }));
+      setFieldErrors((previous) => ({
+        ...previous,
+        password: "Las contraseñas no coinciden.",
+        passwordConfirmation: "Las contraseñas no coinciden.",
+      }));
       return;
     }
     if (!client) return;
@@ -597,6 +615,7 @@ function PasswordResetForm({
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
+      <FormAlert fieldErrors={fieldErrors} status={status} error={error} />
       <FloatField
         label="Nueva contraseña"
         name="password"
@@ -616,8 +635,6 @@ function PasswordResetForm({
         required
         error={fieldErrors.passwordConfirmation}
       />
-
-      {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
 
       <button className="gafa-sdk-button" type="submit" disabled={!client || status === "submitting"}>
         {status === "submitting" ? "Guardando..." : "Cambiar contraseña y entrar"}
@@ -655,6 +672,7 @@ function PasswordRecoveryForm({ client }: { client?: GafaClient }) {
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
+      <FormAlert fieldErrors={fieldErrors} status={status} error={error} />
       <FloatField
         label="Email"
         name="email"
@@ -664,8 +682,6 @@ function PasswordRecoveryForm({ client }: { client?: GafaClient }) {
         required
         error={fieldErrors.email}
       />
-
-      {status === "error" ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
 
       <button className="gafa-sdk-button" type="submit" disabled={!client || status === "submitting"}>
         {status === "submitting" ? "Enviando..." : "Enviar instrucciones"}
