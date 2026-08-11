@@ -499,10 +499,14 @@
 }
 
 .gafa-datepicker__day[data-today="true"] {
-  border-color: var(--gafa-color-border);
+  border-color: var(--gafa-color-muted-text);
 }
 
-.gafa-datepicker__day[data-selected="true"] {
+/* El dia que estas viendo SIEMPRE relleno con el color de marca. Con :not(:disabled)
+   para ganarle a la regla de "dias con clases" (que tiene mas especificidad). */
+.gafa-datepicker__day[data-selected="true"],
+.gafa-datepicker__day[data-selected="true"]:not(:disabled),
+.gafa-datepicker__day[data-selected="true"]:not(:disabled):hover {
   background: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
