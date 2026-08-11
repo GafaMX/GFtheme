@@ -51,16 +51,20 @@ export function FancyOverlay({ title, description, run, onClose }: FancyOverlayP
 
   return (
     <div className="gafa-reservation-overlay" role="dialog" aria-modal="true" aria-labelledby="fancy-title">
-      <div className="gafa-reservation-sheet">
+      {/* El sheet crece a pantalla ancha cuando el template ya cargo: el mapa
+          de salon necesita espacio real, no una columna de 520px. */}
+      <div className="gafa-reservation-sheet" data-fancy-ready={status === "ready" ? "true" : undefined}>
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar checkout" onClick={onClose}>
           x
         </button>
 
-        <div className="gafa-reservation-hero">
-          <span className="gafa-eyebrow">Checkout</span>
-          <h3 id="fancy-title">{title}</h3>
-          {description ? <p>{description}</p> : null}
-        </div>
+        {status !== "ready" ? (
+          <div className="gafa-reservation-hero">
+            <span className="gafa-eyebrow">Checkout</span>
+            <h3 id="fancy-title">{title}</h3>
+            {description ? <p>{description}</p> : null}
+          </div>
+        ) : null}
 
         {status === "opening" ? <p className="gafa-sdk-state">Abriendo checkout...</p> : null}
 

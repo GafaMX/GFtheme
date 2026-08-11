@@ -176,8 +176,9 @@ function DemoShell({
           Sitio de prueba del SDK v2 · datos reales de {brand.label} · tema {scheme === "dark" ? "oscuro" : "claro"}
         </footer>
 
-        {/* Contenedor que el checkout externo necesita para inyectarse. */}
-        <section data-gf-theme="fancy" />
+        {/* OJO: sin contenedor fancy global. FancyOverlay crea el suyo, y el
+            inyector legacy exige EXACTAMENTE UN [data-gf-theme="fancy"] en el
+            DOM: con dos, no inyecta nada y el checkout "no responde". */}
       </div>
     </QueryClientProvider>
   );

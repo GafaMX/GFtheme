@@ -13,6 +13,9 @@
   </head>
   <body>
     <div id="app"></div>
+    <!-- jQuery global: los scripts inline del template del checkout (mapa de
+         salón, cerrar, pagar) usan $; en los sitios WordPress ya existe. -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- SDK legacy externo: solo se usa para el checkout (openReservationCheckout). -->
     <script src="https://buq.partners/sdk/dist/main.js"></script>
     <script type="module" src="/src/main.demo.tsx"></script>

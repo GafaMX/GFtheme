@@ -875,6 +875,13 @@
   width: 100%;
 }
 
+/* Con el template del checkout cargado (mapa de salon incluido) el sheet
+   crece a casi toda la pantalla: el mapa no cabe en 520px. */
+.gafa-reservation-sheet[data-fancy-ready="true"] {
+  max-width: min(1100px, 96vw);
+  padding: var(--gafa-space-3);
+}
+
 .gafa-reservation-close,
 .gafa-fancy-close {
   background: var(--gafa-color-surface-raised);
