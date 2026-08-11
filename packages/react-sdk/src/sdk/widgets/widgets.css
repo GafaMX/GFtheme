@@ -197,6 +197,9 @@
 /* ---------------------------------------------------- campos con label flotante */
 
 .gafa-float {
+  /* start: cuando el campo vecino de la fila muestra error y la fila crece,
+     el sobrante NO debe estirar este input (se deformaba a 77px). */
+  align-content: start;
   display: grid;
   position: relative;
 }
