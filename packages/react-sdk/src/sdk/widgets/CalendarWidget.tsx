@@ -4,7 +4,7 @@ import { WidgetShell } from "./WidgetShell";
 import { FancyOverlay } from "./FancyOverlay";
 import { AuthWidget } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
-import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
+import { clearStoredToken, readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import type {
   Brand,
   CreateReservationResult,
@@ -99,19 +99,39 @@ export function CalendarWidget({
     queryFn: async () => (client ? client.listBrands() : demoBrands()),
   });
 
-  // Sesion actual: decide si el clic en una clase pide login o abre el detalle.
-  // Se deriva DIRECTO del token almacenado (sincrono y compartido con el resto
-  // de widgets), actualizado por el evento de auth; una query aqui podia quedar
-  // cacheada en null despues de un login hecho en otro widget.
-  const [isSignedIn, setIsSignedIn] = useState(() => Boolean(readStoredToken()));
+  // Sesion actual: token almacenado (sincrono, compartido entre widgets) +
+  // verificacion contra la API. Un token viejo/revocado hacia creer que habia
+  // sesion y el clic abria el detalle en vez del login.
+  const [hasToken, setHasToken] = useState(() => Boolean(readStoredToken()));
 
   useEffect(() => {
     return subscribeToAuthChanges(() => {
-      setIsSignedIn(Boolean(readStoredToken()));
+      setHasToken(Boolean(readStoredToken()));
+      queryClient.invalidateQueries({ queryKey: ["calendar", "session"] });
       queryClient.invalidateQueries({ queryKey: ["calendar", "reservation-context"] });
       queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
     });
   }, [queryClient]);
+
+  const sessionQuery = useQuery({
+    queryKey: ["calendar", "session"],
+    queryFn: () => client!.getProfile(),
+    enabled: Boolean(client) && hasToken,
+    staleTime: 60_000,
+    retry: 0,
+  });
+
+  // Token muerto (perfil no carga): se limpia para que TODO el sitio quede
+  // des-logueado coherente y el siguiente clic pida login.
+  useEffect(() => {
+    if (hasToken && sessionQuery.isSuccess && !sessionQuery.data) {
+      clearStoredToken();
+    }
+  }, [hasToken, sessionQuery.isSuccess, sessionQuery.data]);
+
+  // Optimista mientras el perfil carga: con token valido no queremos mandar al
+  // login por un parpadeo; si resulta invalido, el efecto de arriba lo limpia.
+  const isSignedIn = hasToken && (Boolean(sessionQuery.data) || sessionQuery.isLoading);
 
   const activeBrand = useMemo(
     () => findActiveBrand(brandsQuery.data ?? [], selectedFilters.brandSlug, filters.brandId),
