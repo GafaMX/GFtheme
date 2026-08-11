@@ -54,7 +54,10 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
     case "meetings-calendar":
       runtime.mountCalendar(element, {
         limit: toNumber(element.getAttribute("data-gf-limit")),
-        view: readVisualization(element),
+        // data-bq-calendar-view es el nombre nuevo; data-bq-calendar-visualization
+        // se respeta por compatibilidad con los sitios ya integrados.
+        view: readCalendarView(element) ?? readVisualization(element),
+        allowViewChange: element.getAttribute("data-bq-allow-view-change") !== "false",
         showDescription: element.getAttribute("data-bq-show-description") === "true",
         filters: {
           brand: element.hasAttribute("filter-bq-brand"),
@@ -155,6 +158,11 @@ function toNumber(value: string | null): number | undefined {
 
   const parsed = Number(value);
   return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function readCalendarView(element: HTMLElement): CalendarView | undefined {
+  const view = element.getAttribute("data-bq-calendar-view");
+  return view === "day" || view === "week" ? view : undefined;
 }
 
 /**

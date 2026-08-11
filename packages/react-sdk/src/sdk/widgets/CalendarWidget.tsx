@@ -79,10 +79,24 @@ export function CalendarWidget({
     [brandsQuery.data, filters.brandId, selectedFilters.brandSlug],
   );
 
+  const brandSlugs = (brandsQuery.data ?? []).map((brand) => brand.slug).join(",");
+
+  // Una compania puede tener varias marcas (Fitspin tiene fitspin y
+  // fitspin-cancun): las sedes se juntan de TODAS, como hace el theme legacy.
+  // Si el sitio fija filters.brandId, solo esa marca.
   const locationsQuery = useQuery({
-    enabled: Boolean(activeBrand) || !client,
-    queryKey: ["calendar", "locations", activeBrand?.slug],
-    queryFn: async () => (client ? client.listLocations(activeBrand?.slug) : demoLocations()),
+    enabled: (brandsQuery.data ?? []).length > 0 || !client,
+    queryKey: ["calendar", "locations", brandSlugs, filters.brandId ?? null, selectedFilters.brandSlug ?? null],
+    queryFn: async () => {
+      if (!client) return demoLocations();
+
+      let brands = brandsQuery.data ?? [];
+      if (selectedFilters.brandSlug) brands = brands.filter((brand) => brand.slug === selectedFilters.brandSlug);
+      else if (filters.brandId) brands = brands.filter((brand) => brand.id === filters.brandId);
+
+      const perBrand = await Promise.all(brands.map((brand) => client.listLocations(brand.slug)));
+      return perBrand.flat();
+    },
   });
 
   const activeLocation = useMemo(
@@ -128,7 +142,7 @@ export function CalendarWidget({
     const meetings = applyLocalMeetingFilters(meetingsQuery.data ?? [], {
       serviceId: selectedFilters.serviceId ?? filters.serviceId,
       staffId: selectedFilters.staffId ?? filters.staffId,
-    }).filter((meeting) => matchesTimeOfDay(getMeetingStart(meeting), timeOfDay));
+    }).filter((meeting) => matchesTimeOfDay(getMeetingStart(meeting), timeOfDay, meeting.timezone));
 
     const sorted = [...meetings].sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
     return limit ? sorted.slice(0, limit) : sorted;
@@ -398,7 +412,7 @@ function DayColumn({
 
       {meetings.length === 0 ? (
         <p className="gafa-day-column__empty">Sin clases</p>
-      ) : (
+      ) : compact ? (
         <div className="gafa-day-column__list">
           {meetings.map((meeting) => (
             <MeetingCard
@@ -410,9 +424,39 @@ function DayColumn({
             />
           ))}
         </div>
+      ) : (
+        // En la vista de un solo dia, la franja funciona como subtitulo de
+        // seccion: le da aire a la lista y se escanea mucho mas rapido.
+        groupByTimeOfDay(meetings).map(([slot, slotMeetings]) => (
+          <section className="gafa-day-slot" key={slot}>
+            <h3 className="gafa-day-slot__title">{TIME_OF_DAY_LABELS[slot]}</h3>
+            <div className="gafa-day-column__list">
+              {slotMeetings.map((meeting) => (
+                <MeetingCard
+                  key={meeting.id}
+                  compact={compact}
+                  meeting={meeting}
+                  onSelect={onSelect}
+                  showDescription={showDescription}
+                />
+              ))}
+            </div>
+          </section>
+        ))
       )}
     </section>
   );
+}
+
+function groupByTimeOfDay(meetings: Meeting[]): Array<[Exclude<TimeOfDay, "all">, Meeting[]]> {
+  const slots: Array<Exclude<TimeOfDay, "all">> = ["morning", "afternoon", "evening"];
+
+  return slots
+    .map((slot): [Exclude<TimeOfDay, "all">, Meeting[]] => [
+      slot,
+      meetings.filter((meeting) => matchesTimeOfDay(getMeetingStart(meeting), slot, meeting.timezone)),
+    ])
+    .filter(([, slotMeetings]) => slotMeetings.length > 0);
 }
 
 function MeetingCard({
@@ -428,13 +472,18 @@ function MeetingCard({
 }) {
   const soldOut = isSoldOut(meeting);
   const duration = getDurationMinutes(meeting);
+  // El legacy directamente oculta las clases que ya pasaron; aqui se dejan
+  // visibles pero apagadas, para que el dia se entienda completo.
+  const passed = Boolean(meeting.passed);
 
   return (
     <button
       className="gafa-meeting-card"
       data-sold-out={soldOut ? "true" : undefined}
+      data-passed={passed ? "true" : undefined}
       data-compact={compact ? "true" : undefined}
       type="button"
+      disabled={passed}
       onClick={() => onSelect(meeting)}
     >
       <span className="gafa-meeting-card__top">
@@ -456,7 +505,7 @@ function MeetingCard({
       ) : null}
       {showDescription && meeting.description ? <span className="gafa-meeting-desc">{meeting.description}</span> : null}
 
-      <AvailabilityPill meeting={meeting} />
+      {passed ? <span className="gafa-availability-pill gafa-availability-pill--passed">Finalizada</span> : <AvailabilityPill meeting={meeting} />}
     </button>
   );
 }

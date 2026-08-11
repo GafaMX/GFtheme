@@ -876,3 +876,39 @@
   font-size: 0.78rem;
   text-align: center;
 }
+
+/* Clases que ya pasaron: visibles pero apagadas, sin accion. */
+.gafa-meeting-card[data-passed="true"] {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.gafa-meeting-card[data-passed="true"]:hover {
+  border-color: var(--gafa-color-border);
+}
+
+.gafa-availability-pill--passed {
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 14%, transparent);
+  color: var(--gafa-color-muted-text);
+}
+
+/* Subtitulos de franja en la vista de dia. */
+.gafa-day-slot {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-day-slot + .gafa-day-slot {
+  margin-top: var(--gafa-space-4);
+}
+
+.gafa-day-slot__title {
+  border-bottom: 1px solid var(--gafa-color-border);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  padding-bottom: var(--gafa-space-1);
+  text-transform: uppercase;
+}

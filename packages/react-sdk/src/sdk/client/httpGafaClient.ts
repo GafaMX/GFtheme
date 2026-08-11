@@ -284,7 +284,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async listLocations(brandSlug) {
       if (!brandSlug) return [];
-      const response = await apiGet<PaginatedResponse<RawLocation>>(`/brand/${brandSlug}/location`);
+      // Igual que el theme legacy: sin only_actives salen sedes de prueba e inactivas.
+      const response = await apiGet<PaginatedResponse<RawLocation>>(`/brand/${brandSlug}/location`, {
+        only_actives: true,
+      });
       const locations = unwrap(response).map((location) => ({ ...location, brandSlug }));
       locations.forEach((location) => locationById.set(location.id, location));
       return locations;

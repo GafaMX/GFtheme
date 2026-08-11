@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createHttpGafaClient } from "../sdk/client/httpGafaClient";
 import { createLegacyGafaFitAdapter } from "../sdk/client/legacyGafaFitAdapter";
@@ -21,16 +21,28 @@ type Page = "calendario" | "paquetes" | "cuenta";
  * widgets como los va a ver un socio (varias paginas, cuenta en el header,
  * cambio de tema) en vez de todos apilados en una sola pagina.
  */
-const BRANDS: Record<string, { label: string; companyId: number; theme: GafaBrandTheme }> = {
+type BrandConfig = {
+  label: string;
+  companyId: number;
+  theme: GafaBrandTheme;
+  /** La misma config que un socio pondria en su pagina: vista inicial, filtros, etc. */
+  calendar: React.ComponentProps<typeof CalendarWidget>;
+};
+
+const BRANDS: Record<string, BrandConfig> = {
   bunker: {
     label: "Bunker Indoor Golf",
     companyId: 190,
     theme: { colors: { brand: "#111111", accent: "#c8ff2e" }, colorScheme: "dark" },
+    calendar: { view: "day", filters: { location: true, service: true, staff: true } },
   },
   fitspin: {
     label: "Fitspin",
     companyId: 80,
     theme: { colors: { brand: "#f2b705", accent: "#111827" }, colorScheme: "light" },
+    // Fitspin abre en semana a proposito: demuestra que la vista inicial es
+    // configuracion por socio, no un comportamiento fijo del SDK.
+    calendar: { view: "week", filters: { location: true, service: true, staff: true } },
   },
 };
 
@@ -125,8 +137,8 @@ function DemoShell({
             <CalendarWidget
               client={client}
               title="Reserva tu lugar"
-              description="Elige el día que te acomode. Solo se cargan los horarios de la semana que estás viendo."
-              filters={{ location: true, service: true, staff: true }}
+              description="Elige el día que te acomode. Solo se cargan los horarios que estás viendo."
+              {...brand.calendar}
             />
           ) : null}
 

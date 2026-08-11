@@ -86,15 +86,33 @@ export function daysInRange(range: DateRange): Date[] {
   return days;
 }
 
-export function matchesTimeOfDay(startsAt: string, timeOfDay: TimeOfDay): boolean {
+export function matchesTimeOfDay(startsAt: string, timeOfDay: TimeOfDay, timeZone?: string): boolean {
   if (timeOfDay === "all") return true;
 
   const date = new Date(startsAt.replace(" ", "T"));
   if (Number.isNaN(date.getTime())) return true;
 
   const [from, to] = TIME_OF_DAY_BOUNDS[timeOfDay];
-  const hour = date.getHours();
+  const hour = hourIn(date, timeZone);
   return hour >= from && hour < to;
+}
+
+/**
+ * La franja se decide con la hora de la SEDE, igual que la hora que se pinta en
+ * la tarjeta: una clase de las 8am de Ciudad de Mexico es "mañana" aunque quien
+ * mira este en otra zona horaria.
+ */
+function hourIn(date: Date, timeZone?: string): number {
+  if (!timeZone) return date.getHours();
+
+  try {
+    const label = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone }).format(date);
+    const hour = Number(label);
+    // Algunos motores devuelven "24" para medianoche.
+    return Number.isNaN(hour) ? date.getHours() : hour % 24;
+  } catch {
+    return date.getHours();
+  }
 }
 
 export function isSameDay(a: Date, b: Date): boolean {
