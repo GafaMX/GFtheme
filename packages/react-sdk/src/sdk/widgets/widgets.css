@@ -2562,6 +2562,75 @@
   white-space: nowrap;
 }
 
+/* Nombre del paquete/membresia activa (solo aparece con mas de uno: con uno
+   solo el numero grande ya lo dice todo). */
+.gafa-acct-balance__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-acct-balance__card[data-carousel="true"] {
+  padding-bottom: 0.5rem;
+}
+
+/* Mini slider para moverse entre paquetes/membresias sin salir de "Mi
+   actividad": el detalle completo sigue viviendo en la pestaña Creditos. */
+.gafa-acct-balance__nav {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+  margin-top: 0.4rem;
+}
+
+.gafa-acct-balance__nav button:first-child,
+.gafa-acct-balance__nav button:last-child {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.gafa-acct-balance__nav button:first-child:hover,
+.gafa-acct-balance__nav button:last-child:hover {
+  color: var(--gafa-color-text);
+}
+
+.gafa-acct-balance__nav button:first-child svg {
+  transform: rotate(180deg);
+}
+
+.gafa-acct-balance__dots {
+  display: flex;
+  gap: 4px;
+}
+
+.gafa-acct-balance__dots button {
+  background: var(--gafa-color-border);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  height: 6px;
+  padding: 0;
+  transition: background 0.15s ease, width 0.15s ease;
+  width: 6px;
+}
+
+.gafa-acct-balance__dots button[aria-current="true"] {
+  background: var(--gafa-color-primary);
+  width: 14px;
+  border-radius: 3px;
+}
+
 .gafa-acct-stats {
   display: grid;
   gap: var(--gafa-space-2);

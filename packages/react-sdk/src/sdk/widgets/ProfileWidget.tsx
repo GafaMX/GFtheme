@@ -473,6 +473,29 @@ function OverviewPanel({
 }) {
   const creditTotal = credits.reduce((sum, credit) => sum + (Number(credit.total) || 0), 0);
 
+  // Con un solo paquete, el numero grande ya es todo el saldo: no hace falta
+  // nombrarlo. Con mas de uno, la suma escondia cual vence primero, asi que
+  // cada paquete se ve por separado y se navega con el mini slider.
+  const creditSlides: BalanceSlide[] =
+    credits.length > 1
+      ? credits.map((credit) => ({
+          value: credit.total,
+          label: credit.total === 1 ? "Clase disponible" : "Clases disponibles",
+          title: credit.name,
+          hint: expirationLabel(credit.expiresAt),
+        }))
+      : [];
+
+  const membershipSlides: BalanceSlide[] =
+    memberships.length > 1
+      ? memberships.map((membership) => ({
+          value: "∞",
+          label: "Membresía activa",
+          title: membership.name,
+          hint: expirationLabel(membership.expiresAt),
+        }))
+      : [];
+
   return (
     <div className="gafa-acct-overview">
       <section className="gafa-acct-next" aria-label="Tu próxima clase">
@@ -551,28 +574,38 @@ function OverviewPanel({
           <span className="gafa-skeleton gafa-acct__boot-bar" />
         ) : (
           <div className="gafa-acct-balance">
-            <div className="gafa-acct-balance__card">
-              <span className="gafa-acct-balance__emoji" aria-hidden="true">
-                🎟️
-              </span>
-              <span className="gafa-acct-balance__value">{creditTotal}</span>
-              <span className="gafa-acct-balance__label">
-                {creditTotal === 1 ? "Clase disponible" : "Clases disponibles"}
-              </span>
-              {credits[0]?.expiresAt ? (
-                <span className="gafa-acct-balance__hint">{expirationLabel(credits[0].expiresAt)}</span>
-              ) : null}
-            </div>
-            <div className="gafa-acct-balance__card">
-              <span className="gafa-acct-balance__emoji" aria-hidden="true">
-                ♾️
-              </span>
-              <span className="gafa-acct-balance__value">{memberships.length}</span>
-              <span className="gafa-acct-balance__label">
-                {memberships.length === 1 ? "Membresía activa" : "Membresías activas"}
-              </span>
-              {memberships[0] ? <span className="gafa-acct-balance__hint">{memberships[0].name}</span> : null}
-            </div>
+            {creditSlides.length > 0 ? (
+              <BalanceCard emoji="🎟️" slides={creditSlides} />
+            ) : (
+              <div className="gafa-acct-balance__card">
+                <span className="gafa-acct-balance__emoji" aria-hidden="true">
+                  🎟️
+                </span>
+                <span className="gafa-acct-balance__value">{creditTotal}</span>
+                <span className="gafa-acct-balance__label">
+                  {creditTotal === 1 ? "Clase disponible" : "Clases disponibles"}
+                </span>
+                {credits[0]?.expiresAt ? (
+                  <span className="gafa-acct-balance__hint">{expirationLabel(credits[0].expiresAt)}</span>
+                ) : null}
+              </div>
+            )}
+
+            {membershipSlides.length > 0 ? (
+              <BalanceCard emoji="♾️" slides={membershipSlides} />
+            ) : (
+              <div className="gafa-acct-balance__card">
+                <span className="gafa-acct-balance__emoji" aria-hidden="true">
+                  ♾️
+                </span>
+                <span className="gafa-acct-balance__value">{memberships.length}</span>
+                <span className="gafa-acct-balance__label">
+                  {memberships.length === 1 ? "Membresía activa" : "Membresías activas"}
+                </span>
+                {memberships[0] ? <span className="gafa-acct-balance__hint">{memberships[0].name}</span> : null}
+              </div>
+            )}
+
             <div className="gafa-acct-balance__card">
               <span className="gafa-acct-balance__emoji" aria-hidden="true">
                 💳
@@ -676,6 +709,67 @@ function Stat({
       </span>
       <strong>{value}</strong>
       <span className="gafa-acct-stat__label">{label}</span>
+    </div>
+  );
+}
+
+type BalanceSlide = {
+  value: ReactNode;
+  label: string;
+  title?: string;
+  hint?: string;
+};
+
+/**
+ * La tarjeta de saldo de "Tu saldo" cuando hay mas de un paquete/membresia
+ * activo: un mini slider (flechas + puntos) en vez de sumar todo en un solo
+ * numero, que escondia cual paquete vence primero. El detalle completo, sin
+ * navegar, sigue viviendo en la pestaña "Creditos".
+ */
+function BalanceCard({ emoji, slides }: { emoji: string; slides: BalanceSlide[] }) {
+  const [index, setIndex] = useState(0);
+  const current = slides[Math.min(index, slides.length - 1)];
+  const multiple = slides.length > 1;
+
+  return (
+    <div className="gafa-acct-balance__card" data-carousel={multiple ? "true" : undefined}>
+      <span className="gafa-acct-balance__emoji" aria-hidden="true">
+        {emoji}
+      </span>
+      <span className="gafa-acct-balance__value">{current.value}</span>
+      <span className="gafa-acct-balance__label">{current.label}</span>
+      {current.title ? <span className="gafa-acct-balance__title">{current.title}</span> : null}
+      {current.hint ? <span className="gafa-acct-balance__hint">{current.hint}</span> : null}
+
+      {multiple ? (
+        <div className="gafa-acct-balance__nav" aria-label="Elegir paquete">
+          <button
+            type="button"
+            aria-label="Paquete anterior"
+            onClick={() => setIndex((i) => (i - 1 + slides.length) % slides.length)}
+          >
+            <ChevronIcon />
+          </button>
+          <div className="gafa-acct-balance__dots">
+            {slides.map((slide, i) => (
+              <button
+                key={slide.title ?? i}
+                type="button"
+                aria-label={slide.title ? `Ver ${slide.title}` : `Paquete ${i + 1}`}
+                aria-current={i === index ? "true" : undefined}
+                onClick={() => setIndex(i)}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-label="Paquete siguiente"
+            onClick={() => setIndex((i) => (i + 1) % slides.length)}
+          >
+            <ChevronIcon />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
