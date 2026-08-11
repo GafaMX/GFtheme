@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
+import { MonthCalendar } from "./MonthCalendar";
 import { FancyOverlay } from "./FancyOverlay";
 import { AuthWidget } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
@@ -863,8 +864,6 @@ function CalendarToolbar({
   );
 }
 
-const WEEKDAY_HEADERS = ["L", "M", "M", "J", "V", "S", "D"];
-
 /**
  * Mini calendario para saltar a una fecha: dias con clases activos, el resto
  * deshabilitado. Acotado a hoy → horizonte publicado (calendar_days).
@@ -882,84 +881,16 @@ function DatePickerPopover({
   maxIso: string;
   onPick(iso: string): void;
 }) {
-  const [monthCursor, setMonthCursor] = useState(() => new Date(anchor.getFullYear(), anchor.getMonth(), 1));
-
-  const monthLabel = new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" }).format(monthCursor);
-  const anchorIso = toIsoDate(anchor);
-  const todayIso = toIsoDate(new Date());
-
-  const prevMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1);
-  const nextMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1);
-  const lastOfPrev = toIsoDate(new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 0));
-  const firstOfNext = toIsoDate(nextMonth);
-  const canPrevMonth = lastOfPrev >= minIso;
-  const canNextMonth = firstOfNext <= maxIso;
-
-  // Celdas del mes alineadas a semana de lunes.
-  const cells: Array<Date | null> = [];
-  const firstDay = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1);
-  const leading = (firstDay.getDay() + 6) % 7;
-  for (let i = 0; i < leading; i++) cells.push(null);
-  const daysInMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0).getDate();
-  for (let day = 1; day <= daysInMonth; day++) {
-    cells.push(new Date(monthCursor.getFullYear(), monthCursor.getMonth(), day));
-  }
-
   return (
     <div className="gafa-datepicker" role="dialog" aria-label="Elegir fecha">
-      <div className="gafa-datepicker__header">
-        <button
-          className="gafa-icon-button"
-          type="button"
-          disabled={!canPrevMonth}
-          onClick={() => setMonthCursor(prevMonth)}
-          aria-label="Mes anterior"
-        >
-          <ChevronIcon direction="left" />
-        </button>
-        <strong>{monthLabel}</strong>
-        <button
-          className="gafa-icon-button"
-          type="button"
-          disabled={!canNextMonth}
-          onClick={() => setMonthCursor(nextMonth)}
-          aria-label="Mes siguiente"
-        >
-          <ChevronIcon direction="right" />
-        </button>
-      </div>
-
-      <div className="gafa-datepicker__weekdays" aria-hidden="true">
-        {WEEKDAY_HEADERS.map((day, index) => (
-          <span key={index}>{day}</span>
-        ))}
-      </div>
-
-      <div className="gafa-datepicker__grid">
-        {cells.map((date, index) => {
-          if (!date) return <span key={`empty-${index}`} />;
-          const iso = toIsoDate(date);
-          const inRange = iso >= minIso && iso <= maxIso;
-          const hasClasses = bookableDays.has(iso);
-          const enabled = inRange && hasClasses;
-
-          return (
-            <button
-              key={iso}
-              type="button"
-              className="gafa-datepicker__day"
-              disabled={!enabled}
-              data-selected={iso === anchorIso ? "true" : undefined}
-              data-today={iso === todayIso ? "true" : undefined}
-              data-has-classes={hasClasses ? "true" : undefined}
-              onClick={() => onPick(iso)}
-            >
-              {date.getDate()}
-            </button>
-          );
-        })}
-      </div>
-
+      <MonthCalendar
+        selectedIso={toIsoDate(anchor)}
+        minIso={minIso}
+        maxIso={maxIso}
+        isDayEnabled={(iso) => bookableDays.has(iso)}
+        isDayMarked={(iso) => bookableDays.has(iso)}
+        onPick={onPick}
+      />
       <p className="gafa-datepicker__hint">Solo los días con clases se pueden elegir.</p>
     </div>
   );

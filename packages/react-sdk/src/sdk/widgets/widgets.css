@@ -746,6 +746,41 @@
   text-align: center;
 }
 
+/* Dentro de un contenedor con scroll (el popup de la cuenta) un popover
+   absoluto se corta: ahi el calendario se abre en linea, debajo del campo. */
+.gafa-datepicker--inline {
+  box-shadow: none;
+  left: auto;
+  margin-top: 6px;
+  position: static;
+  transform: none;
+  width: 100%;
+}
+
+.gafa-datepicker__selects {
+  display: flex;
+  gap: 6px;
+}
+
+.gafa-datepicker__select {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-sm);
+  color: var(--gafa-color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 0.4rem;
+  text-transform: capitalize;
+}
+
+.gafa-datepicker__footer {
+  border-top: 1px solid var(--gafa-color-border);
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--gafa-space-2);
+}
+
 .gafa-calendar-toolbar__hint {
   color: var(--gafa-color-muted-text);
   flex-shrink: 0;
@@ -2919,6 +2954,55 @@
   letter-spacing: 0.08em;
   padding: 0 0.4rem;
   text-transform: uppercase;
+}
+
+.gafa-acct-datefield {
+  align-content: start;
+  display: grid;
+  position: relative;
+}
+
+.gafa-acct-datefield__button {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: flex;
+  gap: var(--gafa-space-2);
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 1.35rem 1rem 0.4rem;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.gafa-acct-datefield__button:hover,
+.gafa-acct-datefield__button[aria-expanded="true"] {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-acct-datefield__label {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.6rem;
+  font-weight: 700;
+  left: 1.05rem;
+  letter-spacing: 0.03em;
+  position: absolute;
+  text-transform: uppercase;
+  top: 0.55rem;
+}
+
+.gafa-acct-datefield__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-acct-datefield__button[data-filled="true"] .gafa-acct-datefield__value {
+  color: var(--gafa-color-text);
 }
 
 .gafa-acct-choice {

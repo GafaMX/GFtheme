@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+  CustomFieldGroup,
+  CustomFieldValues,
   GafaClient,
   UpdateProfilePayload,
   UserActivityTotals,
@@ -12,6 +14,9 @@ import type {
 } from "../client/types";
 import { subscribeToAuthChanges } from "../client/tokenStorage";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { CustomFieldInput } from "./CustomFieldInput";
+import { MonthCalendar } from "./MonthCalendar";
+import { toIsoDate } from "./calendarRange";
 import { WidgetShell } from "./WidgetShell";
 
 export type ProfileWidgetProps = {
@@ -150,6 +155,15 @@ export function ProfileWidget({
       return batches.flat().sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
     },
     enabled: canQueryBrandData && tab === "purchases",
+  });
+
+  // gafa.fit solo expone los campos especiales del formulario de registro
+  // (`section=register`); no hay una seccion propia de perfil, asi que en la
+  // cuenta se muestran esos mismos.
+  const customFieldsQuery = useQuery({
+    queryKey: ["profile", "custom-fields", brandSlugs[0]],
+    queryFn: () => client!.listRegistrationFields(brandSlugs[0]),
+    enabled: canQueryBrandData && tab === "profile",
   });
 
   const activityQuery = useQuery({
@@ -352,6 +366,8 @@ export function ProfileWidget({
           {tab === "profile" ? (
             <ProfileForm
               profile={profile}
+              customFieldGroups={customFieldsQuery.data ?? []}
+              loadingCustomFields={customFieldsQuery.isLoading}
               saving={saveProfileMutation.isPending}
               error={saveProfileMutation.isError ? errorMessage(saveProfileMutation.error) : undefined}
               success={saveProfileMutation.isSuccess}
@@ -968,6 +984,8 @@ function PurchasesPanel({
 
 function ProfileForm({
   profile,
+  customFieldGroups,
+  loadingCustomFields,
   saving,
   error,
   success,
@@ -975,6 +993,8 @@ function ProfileForm({
   onSave,
 }: {
   profile: UserProfile;
+  customFieldGroups: CustomFieldGroup[];
+  loadingCustomFields: boolean;
   saving: boolean;
   error?: string;
   success: boolean;
@@ -993,8 +1013,20 @@ function ProfileForm({
   const [postalCode, setPostalCode] = useState(profile.postalCode ?? "");
   const [municipality, setMunicipality] = useState(profile.municipality ?? "");
   const [city, setCity] = useState(profile.city ?? "");
+  // Solo lo que el socio edita: si el API no devuelve los valores guardados de
+  // los campos especiales, mandar todo en blanco los borraria.
+  const [customEdits, setCustomEdits] = useState<CustomFieldValues>({});
 
   if (unsupported) return <p className="gafa-acct-empty">Editar tus datos no está disponible en este sitio.</p>;
+
+  const customValueFor = (groupId: number, fieldId: number) =>
+    customEdits[groupId]?.[fieldId] ?? profile.customFields?.[groupId]?.[fieldId] ?? "";
+
+  const setCustomValue = (groupId: number, fieldId: number, value: string) =>
+    setCustomEdits((current) => ({
+      ...current,
+      [groupId]: { ...(current[groupId] ?? {}), [fieldId]: value },
+    }));
 
   return (
     <form
@@ -1014,6 +1046,7 @@ function ProfileForm({
           postalCode,
           municipality,
           city,
+          customFields: Object.keys(customEdits).length ? customEdits : undefined,
         });
       }}
     >
@@ -1046,10 +1079,7 @@ function ProfileForm({
         </div>
 
         <div className="gafa-field-row">
-          <label className="gafa-float">
-            <input placeholder=" " type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
-            <span>Fecha de nacimiento</span>
-          </label>
+          <BirthDateField value={birthDate} onChange={setBirthDate} />
           <div className="gafa-acct-choice">
             <span className="gafa-acct-choice__legend">Género</span>
             <div className="gafa-acct-choice__options">
@@ -1107,6 +1137,27 @@ function ProfileForm({
         </label>
       </fieldset>
 
+      {/* Campos especiales: los que la marca configura en gafa.fit (los mismos
+          que pide su registro). Si no tiene ninguno, no se pinta el bloque. */}
+      {loadingCustomFields ? <span className="gafa-skeleton gafa-acct__boot-bar" /> : null}
+      {customFieldGroups.map((group) =>
+        group.fields.length ? (
+          <fieldset className="gafa-acct-fieldset" key={group.id}>
+            <legend>{group.name}</legend>
+            {group.description ? <p className="gafa-acct-form__since">{group.description}</p> : null}
+            {group.fields.map((field) => (
+              <CustomFieldInput
+                key={field.id}
+                field={{ ...field, required: false }}
+                name={`profile-cf-${group.id}-${field.id}`}
+                value={customValueFor(group.id, field.id)}
+                onChange={(value) => setCustomValue(group.id, field.id, value)}
+              />
+            ))}
+          </fieldset>
+        ) : null,
+      )}
+
       {error ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
       {success ? <p className="gafa-sdk-state gafa-sdk-state--success">Listo, guardamos tus datos.</p> : null}
 
@@ -1116,6 +1167,64 @@ function ProfileForm({
         </button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Fecha de nacimiento con el calendario del SDK en vez del `input[type=date]`
+ * del navegador: ese cambia de pinta en cada sistema operativo, no respeta el
+ * tema del socio y obliga a teclear el formato en el orden que le toque.
+ */
+function BirthDateField({ value, onChange }: { value: string; onChange(value: string): void }) {
+  const [open, setOpen] = useState(false);
+  const maxIso = toIsoDate(new Date());
+  const minIso = `${new Date().getFullYear() - 100}-01-01`;
+
+  return (
+    <div className="gafa-acct-datefield">
+      <button
+        className="gafa-acct-datefield__button"
+        type="button"
+        aria-expanded={open}
+        data-filled={value ? "true" : undefined}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="gafa-acct-datefield__label">Fecha de nacimiento</span>
+        <span className="gafa-acct-datefield__value">{value ? formatDate(value) : "Elegir fecha"}</span>
+        <CalendarIcon />
+      </button>
+
+      {open ? (
+        <div className="gafa-datepicker gafa-datepicker--inline">
+          <MonthCalendar
+            selectedIso={value || undefined}
+            initialMonth={value ? undefined : new Date(new Date().getFullYear() - 25, 0, 1)}
+            minIso={minIso}
+            maxIso={maxIso}
+            navigation="select"
+            onPick={(iso) => {
+              onChange(iso);
+              setOpen(false);
+            }}
+          />
+          <div className="gafa-datepicker__footer">
+            <button
+              type="button"
+              className="gafa-acct-link"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+            >
+              Limpiar
+            </button>
+            <button type="button" className="gafa-acct-link" onClick={() => setOpen(false)}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

@@ -99,6 +99,11 @@ export type UserProfile = {
   /** Credito en tienda (wallet), formateado como lo manda el API. */
   storeCreditTotal?: string;
   memberSince?: string;
+  /**
+   * Valores guardados de los campos especiales de la marca, indexados por
+   * grupo y campo. Vacio si el API no los devuelve en `/me`.
+   */
+  customFields?: CustomFieldValues;
 };
 
 export type UserCredit = {
@@ -182,6 +187,8 @@ export type UpdateProfilePayload = {
   city?: string;
   password?: string;
   passwordConfirmation?: string;
+  /** Campos especiales de la marca, indexados por grupo y campo. */
+  customFields?: CustomFieldValues;
 };
 
 export type GafaUser = UserProfile;

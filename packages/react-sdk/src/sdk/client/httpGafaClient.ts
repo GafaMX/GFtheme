@@ -4,6 +4,7 @@ import type {
   CatalogItem,
   CheckoutPayload,
   CreateReservationPayload,
+  CustomFieldValues,
   CreateReservationResult,
   GafaClient,
   Location,
@@ -61,6 +62,13 @@ type RawUserProfile = {
   picture?: string | null;
   store_credit_total?: string | number | null;
   created_at?: string;
+  /**
+   * Valores de campos especiales. gafa.fit no los documenta ni los devuelve de
+   * forma estable en `/me` (a hoy no llegan): se leen defensivamente en las dos
+   * formas plausibles y, si no vienen, los campos se pintan vacios.
+   */
+  custom_fields?: unknown;
+  catalog_values?: unknown;
 };
 
 type RawUserCredit = {
@@ -295,7 +303,70 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       photoUrl: raw.picture_web ?? raw.picture ?? undefined,
       storeCreditTotal: store,
       memberSince: raw.created_at,
+      customFields: readCustomFieldValues(raw),
     };
+  }
+
+  /**
+   * Los valores de campos especiales pueden llegar como mapa anidado
+   * (`{grupo: {campo: valor}}`) o como lista de filas de la tabla de catalogos.
+   * Cualquier otra forma se ignora en silencio: es preferible pintar el campo
+   * vacio que inventar un valor.
+   */
+  function readCustomFieldValues(raw: RawUserProfile): CustomFieldValues | undefined {
+    const source = raw.custom_fields ?? raw.catalog_values;
+    if (!source || typeof source !== "object") return undefined;
+
+    const values: CustomFieldValues = {};
+
+    const put = (groupId: unknown, fieldId: unknown, value: unknown) => {
+      if (groupId == null || fieldId == null || value == null) return;
+      const group = String(groupId);
+      values[group] = { ...(values[group] ?? {}), [String(fieldId)]: String(value) };
+    };
+
+    if (Array.isArray(source)) {
+      source.forEach((row) => {
+        if (!row || typeof row !== "object") return;
+        const entry = row as Record<string, unknown>;
+        put(
+          entry.catalogs_groups_id ?? entry.group_id ?? entry.groups_id,
+          entry.catalogs_fields_id ?? entry.fields_id ?? entry.field_id,
+          entry.value ?? entry.text ?? entry.name,
+        );
+      });
+    } else {
+      Object.entries(source as Record<string, unknown>).forEach(([groupId, fields]) => {
+        if (!fields || typeof fields !== "object") return;
+        Object.entries(fields as Record<string, unknown>).forEach(([fieldId, value]: [string, unknown]) => {
+          // `custom_fields[grupo][0][campo][0]` en la ida; en la vuelta puede
+          // traer el mismo anidado con indices intermedios.
+          if (value && typeof value === "object" && !Array.isArray(value)) {
+            Object.entries(value as Record<string, unknown>).forEach(([innerId, innerValue]) =>
+              put(groupId, innerId, unwrapFirst(innerValue)),
+            );
+            return;
+          }
+          put(groupId, fieldId, unwrapFirst(value));
+        });
+      });
+    }
+
+    return Object.keys(values).length ? values : undefined;
+  }
+
+  function unwrapFirst(value: unknown): unknown {
+    return Array.isArray(value) ? value[0] : value;
+  }
+
+  function encodeCustomFields(customFields?: CustomFieldValues): Record<string, string> {
+    const encoded: Record<string, string> = {};
+    Object.entries(customFields ?? {}).forEach(([groupId, fields]) => {
+      Object.entries(fields).forEach(([fieldId, value]) => {
+        encoded[`custom_fields[${groupId}][0][${fieldId}][0]`] = value;
+      });
+    });
+    return encoded;
   }
 
   function staffLabel(staff?: RawStaff | null): string | undefined {
@@ -646,6 +717,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         body.password = payload.password;
         body.password_confirmation = payload.passwordConfirmation ?? payload.password;
       }
+      // Mismo encoding que el registro (`custom_fields[grupo][0][campo][0]`):
+      // solo se mandan los que el socio toco, para no borrar lo que ya tenia.
+      Object.assign(body, encodeCustomFields(payload.customFields));
 
       const raw = await apiPost<RawUserProfile>("/api/me", body);
       // Algunos backends no regresan el perfil completo en PutMe: reconsultamos.
@@ -910,12 +984,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       // un indice de repeticion en medio (siempre 0 mientras no se usen grupos
       // repetibles). Se manda en notacion de corchetes porque el cuerpo es
       // form-urlencoded, no JSON.
-      const customFields: Record<string, string> = {};
-      Object.entries(payload.customFields ?? {}).forEach(([groupId, fields]) => {
-        Object.entries(fields).forEach(([fieldId, value]) => {
-          customFields[`custom_fields[${groupId}][0][${fieldId}][0]`] = value;
-        });
-      });
+      const customFields = encodeCustomFields(payload.customFields);
 
       // gafa.fit trata /api/register como un OAuth2 password-grant: exige
       // grant_type + client_id + client_secret + scope en el cuerpo (no solo en

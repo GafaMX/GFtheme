@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { CustomField, CustomFieldValues, GafaClient } from "../client/types";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { WidgetShell } from "./WidgetShell";
+import { CustomFieldInput } from "./CustomFieldInput";
 
 export type AuthView = "login" | "register" | "password-recovery" | "profile";
 
@@ -493,78 +494,6 @@ function RegisterForm({
       </button>
     </form>
   );
-}
-
-function CustomFieldInput({
-  field,
-  name,
-  value,
-  onChange,
-  error,
-}: {
-  field: CustomField;
-  name: string;
-  value: string;
-  onChange(value: string): void;
-  error?: string;
-}) {
-  const labelText = `${field.name}${field.required ? " *" : ""}`;
-
-  if (field.options.length > 0) {
-    // Un select siempre "tiene valor": el label queda flotado fijo.
-    return (
-      <label className="gafa-float gafa-float--select" data-invalid={error ? "true" : undefined}>
-        <span>{labelText}</span>
-        <select
-          name={name}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          required={field.required}
-          aria-invalid={error ? true : undefined}
-        >
-          <option value="">Selecciona una opción</option>
-          {field.options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-        {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
-      </label>
-    );
-  }
-
-  return (
-    <label className="gafa-float" data-invalid={error ? "true" : undefined}>
-      <input
-        placeholder=" "
-        name={name}
-        type={inputTypeFor(field.type)}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={field.required}
-        aria-invalid={error ? true : undefined}
-      />
-      <span>{labelText}</span>
-      {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
-    </label>
-  );
-}
-
-/** Los tipos vienen del catalogo de gafa.fit, no de HTML. */
-function inputTypeFor(type: string): string {
-  switch (type) {
-    case "number":
-      return "number";
-    case "date":
-      return "date";
-    case "email":
-      return "email";
-    case "phone":
-      return "tel";
-    default:
-      return "text";
-  }
 }
 
 /** Paso final del "olvidé mi contraseña": setea la nueva y deja sesión iniciada. */
