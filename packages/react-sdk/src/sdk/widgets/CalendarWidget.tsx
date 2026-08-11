@@ -874,6 +874,9 @@ function MeetingCard({
   // El legacy directamente oculta las clases que ya pasaron; aqui se dejan
   // visibles pero apagadas, para que el dia se entienda completo.
   const passed = Boolean(meeting.passed);
+  // Foto del coach SOLO si la marca la tiene cargada (Fitspin sí, Bunker no):
+  // sin foto la tarjeta se queda exactamente igual que antes.
+  const staffPhoto = meeting.staff?.photoUrl;
 
   return (
     <button
@@ -885,7 +888,10 @@ function MeetingCard({
       disabled={passed}
       onClick={() => onSelect(meeting)}
     >
-      <span className="gafa-meeting-card__top">
+      {staffPhoto ? (
+        <img className="gafa-meeting-staff-photo" src={staffPhoto} alt="" aria-hidden="true" loading="lazy" />
+      ) : null}
+      <span className="gafa-meeting-card__top" data-has-photo={staffPhoto ? "true" : undefined}>
         <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
         {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
       </span>

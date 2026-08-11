@@ -676,6 +676,8 @@
   display: grid;
   gap: 3px;
   padding: var(--gafa-space-2);
+  /* Ancla de la foto del coach (absolute, arriba a la derecha). */
+  position: relative;
   text-align: left;
   transition: border-color 0.15s ease, transform 0.1s ease;
   width: 100%;
@@ -695,6 +697,37 @@
 
 .gafa-meeting-card[data-compact="true"] .gafa-meeting-name {
   font-size: 0.86rem;
+}
+
+/* Foto del coach: arriba a la derecha, solo cuando la marca la trae. */
+.gafa-meeting-staff-photo {
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  height: 34px;
+  object-fit: cover;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 34px;
+}
+
+.gafa-meeting-card[data-passed="true"] .gafa-meeting-staff-photo {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+/* Que la hora/duración no se meta debajo de la foto. */
+.gafa-meeting-card__top[data-has-photo="true"] {
+  padding-right: 44px;
+}
+
+.gafa-meeting-card[data-compact="true"] .gafa-meeting-staff-photo {
+  height: 28px;
+  width: 28px;
+}
+
+.gafa-meeting-card[data-compact="true"] .gafa-meeting-card__top[data-has-photo="true"] {
+  padding-right: 34px;
 }
 
 .gafa-meeting-card__top {
