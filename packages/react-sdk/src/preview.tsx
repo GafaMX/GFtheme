@@ -17,6 +17,93 @@ const inDays = (days: number, hour = 7) => {
 
 const isEmptyMode = new URLSearchParams(window.location.search).get("empty") === "1";
 
+// Mutables a proposito: cancelar/salir de lista de espera modifica estos
+// arrays de verdad, para que el preview se comporte como el SDK real en vez
+// de re-leer siempre el mismo fixture congelado.
+const futureReservations = [
+  {
+    id: 1,
+    serviceName: "Bici PM",
+    startsAt: inDays(0, 20),
+    locationName: "Lomas",
+    staffName: "ISA",
+    brandSlug: "fitspin",
+    isWaitlist: false,
+    isOverbooking: false,
+    creditId: 1,
+    creditTypeName: "CDMXnew",
+    seatLabel: "21",
+    qrHash: "demo-hash-1",
+    canCancel: true,
+    cancelled: false,
+  },
+  {
+    id: 2,
+    serviceName: "Fuerza",
+    startsAt: inDays(3, 6),
+    locationName: "Cancún",
+    staffName: "RAD REGINA ALBOR",
+    brandSlug: "fitspin",
+    isWaitlist: false,
+    isOverbooking: true,
+    creditId: null,
+    creditTypeName: null,
+    seatLabel: "22",
+    qrHash: "demo-hash-2",
+    canCancel: true,
+    cancelled: false,
+  },
+  {
+    id: 3,
+    serviceName: "Sculpt",
+    startsAt: inDays(5, 8),
+    locationName: "Lomas",
+    staffName: "NAT",
+    brandSlug: "fitspin",
+    isWaitlist: true,
+    isOverbooking: false,
+    waitlistPosition: "2",
+    canCancel: true,
+    cancelled: false,
+  },
+  {
+    id: 4,
+    serviceName: "Bici AM",
+    startsAt: inDays(6, 6),
+    locationName: "Lomas",
+    staffName: "Pollo",
+    brandSlug: "fitspin",
+    isWaitlist: false,
+    isOverbooking: false,
+    cancelled: true,
+  },
+];
+
+const pastReservations = [
+  {
+    id: 11,
+    serviceName: "Bici AM",
+    startsAt: inDays(-2, 6),
+    locationName: "Lomas",
+    staffName: "Pau J",
+    brandSlug: "fitspin",
+    isWaitlist: false,
+    isOverbooking: false,
+    creditId: 2,
+    creditTypeName: "CDMXnew",
+  },
+  {
+    id: 12,
+    serviceName: "Fuerza",
+    startsAt: inDays(-6, 7),
+    locationName: "Lomas",
+    staffName: "ISA",
+    brandSlug: "fitspin",
+    isWaitlist: false,
+    isOverbooking: false,
+  },
+];
+
 const client = {
   getProfile: async () => ({
     id: 1,
@@ -60,88 +147,16 @@ const client = {
           { id: 2, name: "Clase suelta", total: 1, expiresAt: inDays(12) },
         ],
   listUserMemberships: async () => (isEmptyMode ? [] : [{ id: 9, name: "Ilimitada mensual", expiresAt: inDays(18) }]),
+  // Mutable de verdad (no un fixture que se re-lee igual siempre): cancelar
+  // en el preview debe verse, si no parece que el boton "no hace nada" aunque
+  // el diálogo si haya cerrado.
   listUserReservations: async (_slug: string, scope: string) => {
     if (isEmptyMode) return [];
-    return scope === "future"
-      ? [
-          {
-            id: 1,
-            serviceName: "Bici PM",
-            startsAt: inDays(0, 20),
-            locationName: "Lomas",
-            staffName: "ISA",
-            brandSlug: "fitspin",
-            isWaitlist: false,
-            isOverbooking: false,
-            creditId: 1,
-            creditTypeName: "CDMXnew",
-            seatLabel: "21",
-            qrHash: "demo-hash-1",
-            canCancel: true,
-          },
-          {
-            id: 2,
-            serviceName: "Fuerza",
-            startsAt: inDays(3, 6),
-            locationName: "Cancún",
-            staffName: "RAD REGINA ALBOR",
-            brandSlug: "fitspin",
-            isWaitlist: false,
-            isOverbooking: true,
-            creditId: null,
-            creditTypeName: null,
-            seatLabel: "22",
-            qrHash: "demo-hash-2",
-            canCancel: true,
-          },
-          {
-            id: 3,
-            serviceName: "Sculpt",
-            startsAt: inDays(5, 8),
-            locationName: "Lomas",
-            staffName: "NAT",
-            brandSlug: "fitspin",
-            isWaitlist: true,
-            isOverbooking: false,
-            waitlistPosition: "2",
-            canCancel: true,
-          },
-          {
-            id: 4,
-            serviceName: "Bici AM",
-            startsAt: inDays(6, 6),
-            locationName: "Lomas",
-            staffName: "Pollo",
-            brandSlug: "fitspin",
-            isWaitlist: false,
-            isOverbooking: false,
-            cancelled: true,
-          },
-        ]
-      : [
-          {
-            id: 11,
-            serviceName: "Bici AM",
-            startsAt: inDays(-2, 6),
-            locationName: "Lomas",
-            staffName: "Pau J",
-            brandSlug: "fitspin",
-            isWaitlist: false,
-            isOverbooking: false,
-            creditId: 2,
-            creditTypeName: "CDMXnew",
-          },
-          {
-            id: 12,
-            serviceName: "Fuerza",
-            startsAt: inDays(-6, 7),
-            locationName: "Lomas",
-            staffName: "ISA",
-            brandSlug: "fitspin",
-            isWaitlist: false,
-            isOverbooking: false,
-          },
-        ];
+    // Copia nueva en cada llamada: si se devuelve la MISMA referencia del
+    // array mutado, React Query no la distingue de la anterior y los
+    // useMemo de "proximas"/"canceladas" en ProfileWidget quedan
+    // obsoletos aunque el objeto ya cambio por dentro.
+    return scope === "future" ? futureReservations.map((r) => ({ ...r })) : pastReservations.map((r) => ({ ...r }));
   },
   listUserPurchases: async () =>
     isEmptyMode
@@ -187,8 +202,14 @@ const client = {
           favoriteStaff: ["ISA", "Pau J"],
           favoriteSchedules: ["6:00 a.m.", "8:15 p.m."],
         },
-  cancelReservation: async () => undefined,
-  cancelWaitlist: async () => undefined,
+  cancelReservation: async (_brandSlug: string, id: number) => {
+    const reservation = futureReservations.find((r) => r.id === id);
+    if (reservation) reservation.cancelled = true;
+  },
+  cancelWaitlist: async (_brandSlug: string, id: number) => {
+    const index = futureReservations.findIndex((r) => r.id === id);
+    if (index !== -1) futureReservations.splice(index, 1);
+  },
   updateProfile: async () => ({ id: 1, name: "Gabriel Arrechea", email: "gabriel+fitspin@buq.mx" }),
   logout: async () => undefined,
 } as unknown as GafaClient;
