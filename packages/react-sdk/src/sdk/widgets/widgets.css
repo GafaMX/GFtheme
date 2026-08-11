@@ -324,6 +324,8 @@
   display: flex;
   flex: 1 1 100%;
   gap: var(--gafa-space-2);
+  /* Movil: flechas+Hoy pegados a la izquierda, fecha pegada a la derecha. */
+  justify-content: space-between;
   min-width: 0;
   order: 3;
 }
@@ -357,15 +359,15 @@
 .gafa-calendar-toolbar__label {
   align-items: center;
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   gap: var(--gafa-space-2);
   min-width: 0;
   overflow: hidden;
 }
 
 @media (min-width: 900px) {
-  .gafa-calendar-toolbar__label {
-    flex: 0 1 auto;
+  .gafa-calendar-toolbar__nav-group {
+    justify-content: center;
   }
 }
 

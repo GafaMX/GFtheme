@@ -670,8 +670,10 @@ function CalendarToolbar({
       ? new Intl.DateTimeFormat("es-MX", { weekday: "short", day: "numeric", month: "short" }).format(anchor)
       : formatRangeLabel(range);
 
+  // El estado "seleccionado" de Hoy solo aplica en vista dia: en semana el
+  // boton es solo un atajo para volver, no un estado.
   const todayIso = toIsoDate(new Date());
-  const viewingToday = view === "day" ? toIsoDate(anchor) === todayIso : range.from <= todayIso && todayIso <= range.to;
+  const viewingToday = view === "day" && toIsoDate(anchor) === todayIso;
 
   return (
     // Movil: dos filas (vista+filtros / navegacion). Desktop: una sola fila con
