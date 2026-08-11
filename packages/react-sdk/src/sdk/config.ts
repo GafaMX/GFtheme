@@ -21,6 +21,7 @@ const imagesSchema = z
   .object({
     provider: z.enum(["cloudflare", "none"]).optional(),
     transformBaseUrl: z.string().optional(),
+    allowUnoptimizedOriginals: z.boolean().optional(),
   })
   .optional();
 

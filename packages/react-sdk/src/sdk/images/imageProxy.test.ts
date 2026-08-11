@@ -9,6 +9,7 @@ describe("resolveImagesConfig", () => {
     expect(resolveImagesConfig(undefined, "https://buq.partners")).toEqual({
       provider: "cloudflare",
       transformBaseUrl: "https://buq.partners",
+      allowUnoptimizedOriginals: false,
     });
   });
 
@@ -22,6 +23,7 @@ describe("resolveImagesConfig", () => {
     expect(resolveImagesConfig({ transformBaseUrl: "https://img.buq.partners/" }, "https://buq.partners")).toEqual({
       provider: "cloudflare",
       transformBaseUrl: "https://img.buq.partners",
+      allowUnoptimizedOriginals: false,
     });
   });
 

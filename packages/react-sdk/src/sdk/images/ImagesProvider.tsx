@@ -8,7 +8,13 @@ import {
   type ThumbnailOptions,
 } from "./imageProxy";
 
-const ImagesContext = createContext<ResolvedImagesConfig>({ provider: "none", transformBaseUrl: "" });
+const ImagesContext = createContext<ResolvedImagesConfig>({
+  provider: "none",
+  transformBaseUrl: "",
+  // Sin provider, un widget montado fuera del SDK se comporta como antes de
+  // esta capa en vez de quedarse sin imagenes.
+  allowUnoptimizedOriginals: true,
+});
 
 export function ImagesProvider({
   children,
@@ -100,7 +106,7 @@ export function useRemoteImageEnabled(
   const transformSupport = useTransformSupport();
 
   if (!src) return false;
-  if (whenUnavailable === "original") return true;
+  if (whenUnavailable === "original" || config.allowUnoptimizedOriginals) return true;
 
   return transformSupport !== "unsupported" && canBuildThumbnail(src, config);
 }
@@ -164,7 +170,8 @@ export function RemoteImage({
           config,
         );
 
-  const finalSrc = thumbnailUrl ?? (whenUnavailable === "original" ? src : null);
+  const usesOriginalAsFallback = whenUnavailable === "original" || config.allowUnoptimizedOriginals;
+  const finalSrc = thumbnailUrl ?? (usesOriginalAsFallback ? src : null);
 
   const handleError = useCallback(
     (event: React.SyntheticEvent<HTMLImageElement>) => {

@@ -76,6 +76,16 @@ describe("RemoteImage", () => {
     expect(screen.queryByAltText("coach")).toBeNull();
   });
 
+  it("con la escotilla de salida vuelve a pintar el original tal cual", () => {
+    render(
+      <ImagesProvider apiBaseUrl="https://buq.partners" images={{ provider: "none", allowUnoptimizedOriginals: true }}>
+        <RemoteImage src={COACH_PHOTO} size={36} alt="coach" />
+      </ImagesProvider>,
+    );
+
+    expect(screen.getByAltText("coach").getAttribute("src")).toBe(COACH_PHOTO);
+  });
+
   it("sin proveedor no toca la URL de las imagenes que si deben verse", () => {
     render(
       <ImagesProvider apiBaseUrl="https://buq.partners" images={{ provider: "none" }}>

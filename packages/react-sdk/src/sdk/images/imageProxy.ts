@@ -32,11 +32,19 @@ export type ImagesConfig = {
    * origen de `apiBaseUrl`, que es justo la zona que ya esta en Cloudflare.
    */
   transformBaseUrl?: string;
+  /**
+   * Escotilla de salida: pinta la imagen original cuando no hay miniatura, en
+   * vez de esconderla. Es el comportamiento anterior a esta capa, util para una
+   * marca que sepa que sus fotos son chicas. Ojo: es justo lo que hace que el
+   * calendario descargue 15 MB por coach en marcas como Fitspin.
+   */
+  allowUnoptimizedOriginals?: boolean;
 };
 
 export type ResolvedImagesConfig = {
   provider: ImageTransformProvider;
   transformBaseUrl: string;
+  allowUnoptimizedOriginals: boolean;
 };
 
 export type ThumbnailOptions = {
@@ -59,6 +67,7 @@ export function resolveImagesConfig(images: ImagesConfig | undefined, apiBaseUrl
   return {
     provider: transformBaseUrl ? provider : "none",
     transformBaseUrl,
+    allowUnoptimizedOriginals: images?.allowUnoptimizedOriginals ?? false,
   };
 }
 
