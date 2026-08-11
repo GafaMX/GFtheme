@@ -655,7 +655,11 @@ function CalendarToolbar({
 
         <div className="gafa-calendar-toolbar__label" aria-live="polite">
           <strong>{label}</strong>
-          {isRefreshing ? <span className="gafa-calendar-toolbar__hint">actualizando…</span> : null}
+          {/* Spinner de ancho fijo: el texto "actualizando..." hacia brincar
+              la fila a tres lineas mientras cargaba. */}
+          {isRefreshing ? (
+            <span className="gafa-toolbar-spinner" role="status" aria-label="Actualizando" />
+          ) : null}
         </div>
       </div>
     </div>

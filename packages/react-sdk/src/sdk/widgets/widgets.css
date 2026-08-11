@@ -346,6 +346,27 @@
   font-size: 0.72rem;
 }
 
+.gafa-toolbar-spinner {
+  animation: gafa-spin 0.8s linear infinite;
+  border: 2px solid var(--gafa-color-border);
+  border-radius: 50%;
+  border-top-color: var(--gafa-color-primary);
+  flex-shrink: 0;
+  height: 14px;
+  width: 14px;
+}
+
+@keyframes gafa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* La fila de navegacion nunca se parte: flechas+Hoy+fecha caben siempre. */
+.gafa-calendar-toolbar__row--nav {
+  flex-wrap: nowrap;
+}
+
 .gafa-calendar-today {
   font-size: 0.82rem !important;
   font-weight: 700 !important;
