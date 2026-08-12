@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type {
+  CartLineType,
   CatalogItem,
   CheckoutConfig,
   GafaClient,
@@ -13,6 +14,8 @@ import {
   type CartLine,
   type CartReservationContext,
 } from "../cart/cartStore";
+import { AuthWidget } from "./AuthWidget";
+import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import {
   getGafaPayComponent,
   loadGafaPayFront,
@@ -24,19 +27,23 @@ import {
 
 export type CheckoutModalProps = {
   client: GafaClient;
-  brandSlug: string;
-  locationSlug: string;
+  captcha?: CaptchaProvider;
+  /** Sin marca/sede (compra suelta desde un boton HTML) se resuelve la primera. */
+  brandSlug?: string;
+  locationSlug?: string;
   locationName?: string;
   /** Si viene del calendario: pre-carga contexto de reserva. */
   meeting?: Meeting | null;
   seatObjectId?: number;
   seatLabel?: string;
+  /** Producto que dispara la compra (boton HTML): se agrega solo al abrir. */
+  preselect?: { type: CartLineType; id: number } | null;
   gafaPayFrontUrl?: string;
   onClose: () => void;
   onCompleted?: (result: { purchaseId?: number | null; reservationId?: number }) => void;
 };
 
-type CheckoutStep = "shop" | "pay" | "thanks";
+type CheckoutStep = "shop" | "auth" | "pay" | "thanks";
 type CatalogTab = "packages" | "memberships";
 
 /**
@@ -46,12 +53,14 @@ type CatalogTab = "packages" | "memberships";
  */
 export function CheckoutModal({
   client,
-  brandSlug,
-  locationSlug,
+  captcha,
+  brandSlug: brandSlugProp,
+  locationSlug: locationSlugProp,
   locationName,
   meeting,
   seatObjectId,
   seatLabel,
+  preselect,
   gafaPayFrontUrl,
   onClose,
   onCompleted,
@@ -87,9 +96,28 @@ export function CheckoutModal({
     linesSnapshot: CartLine[];
   } | null>(null);
 
+  // Compra suelta (boton HTML): sin marca/sede explicitas se toma la primera
+  // de la compañia, que es lo que un sitio de un solo estudio espera.
+  const brandsQuery = useQuery({
+    queryKey: ["checkout", "brands"],
+    queryFn: () => client.listBrands(),
+    enabled: !brandSlugProp,
+    staleTime: 300_000,
+  });
+  const brandSlug = brandSlugProp ?? brandsQuery.data?.[0]?.slug;
+
+  const locationsQuery = useQuery({
+    queryKey: ["checkout", "locations", brandSlug],
+    queryFn: () => client.listLocations(brandSlug),
+    enabled: Boolean(brandSlug) && !locationSlugProp,
+    staleTime: 300_000,
+  });
+  const locationSlug = locationSlugProp ?? locationsQuery.data?.[0]?.slug;
+  const resolvedLocationName = locationName ?? (locationSlugProp ? undefined : locationsQuery.data?.[0]?.name);
+
   // Al abrir desde una clase: anclar el contexto de reserva al carrito.
   useEffect(() => {
-    if (!meeting) return;
+    if (!meeting || !brandSlug || !locationSlug) return;
     setReservation({
       meetingId: Number(meeting.id),
       meetingName: meeting.name,
@@ -113,29 +141,57 @@ export function CheckoutModal({
     };
   }, []);
 
-  const configQuery = useQuery({
-    queryKey: ["checkout", "config", brandSlug, locationSlug, meeting?.id],
-    queryFn: () =>
-      client.getCheckoutConfig!({
-        brandSlug,
-        locationSlug,
-        meetingId: meeting?.id,
-      }),
-    enabled: Boolean(client.getCheckoutConfig),
-    staleTime: 60_000,
-    retry: 1,
-  });
-
+  // El catalogo se puede ver SIN sesion: el login se pide al ir a pagar, no
+  // al abrir. Comprar desde un boton de la pagina no deberia empezar con un
+  // muro de login ni con un error de catalogo.
   const profileQuery = useQuery({
     queryKey: ["checkout", "profile"],
     queryFn: () => client.getProfile(),
     staleTime: 60_000,
+  });
+  const isSignedIn = Boolean(profileQuery.data);
+
+  const configQuery = useQuery({
+    queryKey: ["checkout", "config", brandSlug, locationSlug, meeting?.id],
+    queryFn: () =>
+      client.getCheckoutConfig!({
+        brandSlug: brandSlug!,
+        locationSlug: locationSlug!,
+        meetingId: meeting?.id,
+      }),
+    enabled: Boolean(client.getCheckoutConfig && brandSlug && locationSlug && isSignedIn),
+    staleTime: 60_000,
+    retry: 1,
   });
 
   const config = configQuery.data;
   const currency = config?.currency ?? { prefix: "$", suffix: "MXN", code: "MXN" };
   const paymentMethods = config?.paymentMethods ?? [];
   const hasTerms = Boolean(config?.termsConditionsLink);
+
+  // Compra suelta: si el template no acota el catalogo (no hay clase que
+  // limite que aplica), se cae al catalogo completo de la marca.
+  const needsCatalogFallback =
+    !meeting &&
+    (!isSignedIn || (configQuery.isSuccess && !config?.combos?.length && !config?.memberships?.length));
+
+  const catalogQuery = useQuery({
+    queryKey: ["checkout", "catalog", brandSlug],
+    queryFn: async () => {
+      const [combos, memberships] = await Promise.all([
+        client.listCombos(brandSlug!),
+        client.listMemberships(brandSlug!),
+      ]);
+      return { combos, memberships };
+    },
+    enabled: Boolean(brandSlug) && needsCatalogFallback,
+    staleTime: 60_000,
+  });
+
+  const combos = config?.combos?.length ? config.combos : (catalogQuery.data?.combos ?? []);
+  const memberships = config?.memberships?.length
+    ? config.memberships
+    : (catalogQuery.data?.memberships ?? []);
 
   useEffect(() => {
     if (selectedMethodId != null) return;
@@ -145,12 +201,11 @@ export function CheckoutModal({
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
 
   const catalogItems = useMemo(() => {
-    const source = tab === "packages" ? config?.combos : config?.memberships;
-    const list = source ?? [];
+    const list = tab === "packages" ? combos : memberships;
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter((item) => item.name.toLowerCase().includes(q));
-  }, [tab, config?.combos, config?.memberships, query]);
+  }, [tab, combos, memberships, query]);
 
   const relevantLines = lines.filter((line) => line.brandSlug === brandSlug);
   const subtotal = cartSubtotal(relevantLines);
@@ -163,7 +218,7 @@ export function CheckoutModal({
     !paying;
 
   async function applyDiscount() {
-    if (!client.checkDiscountCode || !discountCode.trim()) return;
+    if (!client.checkDiscountCode || !discountCode.trim() || !brandSlug || !locationSlug) return;
     setDiscountStatus("checking");
     try {
       const result = await client.checkDiscountCode({
@@ -189,7 +244,7 @@ export function CheckoutModal({
   }
 
   async function applyGift() {
-    if (!client.checkGiftCode || !giftCode.trim()) return;
+    if (!client.checkGiftCode || !giftCode.trim() || !brandSlug || !locationSlug) return;
     setGiftStatus("checking");
     try {
       const result = await client.checkGiftCode({ brandSlug, locationSlug, code: giftCode.trim() });
@@ -211,6 +266,7 @@ export function CheckoutModal({
   }
 
   function handleAdd(item: CatalogItem) {
+    if (!brandSlug) return;
     const type = item.type === "membership" ? "membership" : "combo";
     const price = item.priceFinal ?? item.price ?? 0;
     addItem({
@@ -225,10 +281,24 @@ export function CheckoutModal({
     });
   }
 
+  // Boton HTML de compra: el ID llega solo, el precio/nombre salen del catalogo
+  // ya cargado. Se agrega UNA vez por apertura del modal.
+  const preselectDone = useRef(false);
+  useEffect(() => {
+    if (!preselect || preselectDone.current || !brandSlug) return;
+    const pool = preselect.type === "membership" ? memberships : combos;
+    const item = pool.find((candidate) => candidate.id === preselect.id);
+    if (!item) return;
+    preselectDone.current = true;
+    handleAdd(item);
+    // handleAdd es estable en la practica (depende de brandSlug/currency).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselect, combos, memberships, brandSlug]);
+
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
   async function completePurchase(paymentData: Record<string, unknown>) {
     const profile = profileQuery.data;
-    if (!profile || !client.initialPurchase || !selectedMethod) return;
+    if (!profile || !client.initialPurchase || !selectedMethod || !brandSlug || !locationSlug) return;
 
     const reservationSnapshot = reservation;
     const linesSnapshot = relevantLines;
@@ -337,18 +407,40 @@ export function CheckoutModal({
 
               <header className="gafa-checkout__hero">
                 <h2 id="gafa-checkout-title">
-                  {step === "shop" ? (reservation ? "Compra para reservar" : "Elige tu plan") : "Pago"}
+                  {step === "auth"
+                    ? "Inicia sesión para pagar"
+                    : step === "shop"
+                      ? reservation
+                        ? "Compra para reservar"
+                        : "Elige tu plan"
+                      : "Pago"}
                 </h2>
                 <p>
-                  {step === "shop"
-                    ? reservation
-                      ? "Estos son los planes que aplican para esta clase."
-                      : "Agrega paquetes o membresías."
-                    : "Revisa tu pedido y paga de forma segura."}
+                  {step === "auth"
+                    ? "Tu carrito te espera; solo necesitamos tu cuenta para cobrar."
+                    : step === "shop"
+                      ? reservation
+                        ? "Estos son los planes que aplican para esta clase."
+                        : "Agrega paquetes o membresías."
+                      : "Revisa tu pedido y paga de forma segura."}
                 </p>
               </header>
 
-              {step === "shop" ? (
+              {step === "auth" ? (
+                <div className="gafa-checkout-auth">
+                  <AuthWidget
+                    client={client}
+                    captcha={captcha}
+                    brandSlug={brandSlug}
+                    initialView="login"
+                    onAuthenticated={() => {
+                      // Con sesion ya se puede pedir la config de pago real.
+                      void profileQuery.refetch();
+                      setStep("pay");
+                    }}
+                  />
+                </div>
+              ) : step === "shop" ? (
                 <>
                   <div className="gafa-checkout__toolbar">
                     <div className="gafa-checkout-tabs" role="tablist" aria-label="Tipo de producto">
@@ -360,7 +452,7 @@ export function CheckoutModal({
                         onClick={() => setTab("packages")}
                       >
                         Paquetes
-                        {config?.combos?.length ? <em>{config.combos.length}</em> : null}
+                        {combos.length ? <em>{combos.length}</em> : null}
                       </button>
                       <button
                         type="button"
@@ -370,7 +462,7 @@ export function CheckoutModal({
                         onClick={() => setTab("memberships")}
                       >
                         Membresías
-                        {config?.memberships?.length ? <em>{config.memberships.length}</em> : null}
+                        {memberships.length ? <em>{memberships.length}</em> : null}
                       </button>
                     </div>
 
@@ -388,8 +480,10 @@ export function CheckoutModal({
                     </label>
                   </div>
 
-                  {configQuery.isLoading ? <p className="gafa-sdk-state">Cargando catálogo…</p> : null}
-                  {configQuery.isError ? (
+                  {configQuery.isLoading || catalogQuery.isLoading ? (
+                    <p className="gafa-sdk-state">Cargando catálogo…</p>
+                  ) : null}
+                  {(configQuery.isError && !combos.length && !memberships.length) || catalogQuery.isError ? (
                     <p className="gafa-sdk-state gafa-sdk-state--error">
                       No pudimos cargar el catálogo de esta sede.
                     </p>
@@ -412,7 +506,7 @@ export function CheckoutModal({
                     ))}
                   </div>
 
-                  {!configQuery.isLoading && !configQuery.isError && catalogItems.length === 0 ? (
+                  {!configQuery.isLoading && !catalogQuery.isLoading && catalogItems.length === 0 ? (
                     <p className="gafa-sdk-state">
                       {query
                         ? "Nada coincide con tu búsqueda."
@@ -452,7 +546,7 @@ export function CheckoutModal({
 
             <aside className="gafa-checkout__cart" aria-label="Tu pedido">
               <div className="gafa-checkout__cart-head">
-                <h3>{locationName ?? "Tu pedido"}</h3>
+                <h3>{resolvedLocationName ?? "Tu pedido"}</h3>
                 {relevantLines.length ? (
                   <span>
                     {relevantLines.reduce((n, l) => n + l.amount, 0)}{" "}
@@ -614,12 +708,12 @@ export function CheckoutModal({
 
               {payError ? <p className="gafa-checkout__error">{payError}</p> : null}
 
-              {step === "shop" ? (
+              {step === "shop" || step === "auth" ? (
                 <button
                   className="gafa-sdk-button gafa-checkout__cta"
                   type="button"
-                  disabled={!relevantLines.length}
-                  onClick={() => setStep("pay")}
+                  disabled={!relevantLines.length || step === "auth"}
+                  onClick={() => setStep(isSignedIn ? "pay" : "auth")}
                 >
                   Ir a pagar
                 </button>
@@ -636,7 +730,7 @@ export function CheckoutModal({
                 </button>
               )}
 
-              {step === "pay" ? (
+              {step === "pay" || step === "auth" ? (
                 <button className="gafa-checkout__backlink" type="button" onClick={() => setStep("shop")}>
                   ← Agregar otro paquete o membresía
                 </button>

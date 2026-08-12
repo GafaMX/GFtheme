@@ -9,6 +9,9 @@ import { ColorSchemeToggle, ThemeProvider, useGafaTheme, type GafaBrandTheme } f
 import { CalendarWidget } from "../sdk/widgets/CalendarWidget";
 import { CatalogWidget } from "../sdk/widgets/CatalogWidget";
 import { AccountModal } from "../sdk/widgets/AccountModal";
+import { CheckoutModal } from "../sdk/widgets/CheckoutModal";
+import { useCartStore } from "../sdk/cart/cartStore";
+import type { CartLineType } from "../sdk/client/types";
 import "../sdk/theme/theme.css";
 import "../sdk/widgets/widgets.css";
 import "./demo.css";
@@ -88,6 +91,10 @@ function DemoShell({
     return Boolean(params.get("token") && params.get("email"));
   });
   const [signedIn, setSignedIn] = useState(false);
+  // Compra suelta (sin reserva): el catalogo abre el checkout con el item ya
+  // puesto, y el boton del header lo reabre con lo que quedo guardado.
+  const [checkout, setCheckout] = useState<{ preselect?: { type: CartLineType; id: number } } | null>(null);
+  const cartCount = useCartStore((s) => s.lines.reduce((sum, line) => sum + line.amount, 0));
   const { scheme } = useGafaTheme();
 
   const { client, captcha, queryClient } = useDemoClient(brand);
@@ -156,6 +163,18 @@ function DemoShell({
 
               <ColorSchemeToggle />
 
+              {cartCount > 0 ? (
+                <button
+                  className="demo-cart"
+                  type="button"
+                  title="Tu carrito"
+                  onClick={() => setCheckout({})}
+                >
+                  <CartIcon />
+                  <span className="demo-cart__count">{cartCount}</span>
+                </button>
+              ) : null}
+
               <button
                 className="demo-account"
                 type="button"
@@ -178,8 +197,16 @@ function DemoShell({
 
           {page === "paquetes" ? (
             <div className="demo-stack">
-              <CatalogWidget client={client} type="packages" />
-              <CatalogWidget client={client} type="memberships" />
+              <CatalogWidget
+                client={client}
+                type="packages"
+                onBuy={(item) => setCheckout({ preselect: { type: "combo", id: item.id } })}
+              />
+              <CatalogWidget
+                client={client}
+                type="memberships"
+                onBuy={(item) => setCheckout({ preselect: { type: "membership", id: item.id } })}
+              />
             </div>
           ) : null}
         </main>
@@ -195,6 +222,14 @@ function DemoShell({
           onExploreClasses={() => setPage("calendario")}
           onExplorePackages={() => setPage("paquetes")}
         />
+
+        {checkout ? (
+          <CheckoutModal
+            client={client}
+            preselect={checkout.preselect ?? null}
+            onClose={() => setCheckout(null)}
+          />
+        ) : null}
 
         <footer className="demo-footer">
           Sitio de prueba del SDK v2 · datos reales de {brand.label} · tema {scheme === "dark" ? "oscuro" : "claro"}
@@ -247,6 +282,22 @@ function createDemoClient(brand: BrandConfig) {
     captcha: createCaptchaProvider(config.captchaProvider, config.captchaPublicKey),
     queryClient: new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 60_000 } } }),
   };
+}
+
+function CartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3.5 5h2l2.1 9.6a1.5 1.5 0 0 0 1.47 1.18h7.1a1.5 1.5 0 0 0 1.47-1.17L19.5 8.2H7"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="9.6" cy="19" r="1.3" fill="currentColor" />
+      <circle cx="16" cy="19" r="1.3" fill="currentColor" />
+    </svg>
+  );
 }
 
 function AccountIcon() {

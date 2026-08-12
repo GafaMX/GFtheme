@@ -4546,3 +4546,12 @@
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
 }
+
+/* Login dentro del checkout (compra suelta sin sesion). */
+.gafa-checkout-auth {
+  max-width: 26rem;
+}
+
+.gafa-checkout-auth .gafa-sdk-form {
+  gap: 0.7rem;
+}

@@ -14,7 +14,9 @@ import { CalendarWidget, type CalendarWidgetProps } from "./widgets/CalendarWidg
 import { CatalogWidget, type CatalogWidgetProps } from "./widgets/CatalogWidget";
 import { ProfileWidget, type ProfileWidgetProps } from "./widgets/ProfileWidget";
 import { AccountModal, type AccountModalProps } from "./widgets/AccountModal";
+import { CheckoutModal, type CheckoutModalProps } from "./widgets/CheckoutModal";
 import { PurchaseButtonWidget, type PurchaseButtonWidgetProps } from "./widgets/PurchaseButtonWidget";
+import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
 
@@ -28,10 +30,18 @@ export type GafaSdk = {
   mountPurchaseButton(target: Element, props?: PurchaseButtonWidgetProps): MountedWidget;
   /** Abre la cuenta (login o perfil) en un popup sobre la pagina actual. */
   openAccount(props?: AccountModalOptions): { close(): void };
+  /** Abre el checkout (carrito + pago) sobre la pagina actual. */
+  openCheckout(props?: CheckoutOptions): { close(): void };
+  /**
+   * Activa los botones de compra en HTML plano ([data-gf-buy] con
+   * data-gf-combo-id / data-gf-membership-id / data-gf-product-id).
+   */
+  enablePurchaseButtons(root?: Document | Element): () => void;
   unmountAll(): void;
 };
 
 export type AccountModalOptions = Omit<AccountModalProps, "client" | "captcha" | "open" | "onClose">;
+export type CheckoutOptions = Omit<CheckoutModalProps, "client" | "onClose">;
 
 export type MountedWidget = {
   root: Root;
@@ -87,7 +97,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     return mounted;
   }
 
-  return {
+  const sdk: GafaSdk = {
     config,
     client,
     mountCalendar(target, props = {}) {
@@ -125,11 +135,49 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
 
       return { close };
     },
+    openCheckout(props = {}) {
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+
+      const close = () => {
+        // Igual que openAccount: desmontar en el mismo tick del handler de
+        // React revienta con "synchronously unmount a root while rendering".
+        queueMicrotask(() => {
+          mounted.unmount();
+          host.remove();
+        });
+      };
+
+      const mounted = mount(host, <CheckoutModal client={client} onClose={close} {...props} />);
+
+      return { close };
+    },
+    enablePurchaseButtons(root) {
+      let current: { close(): void } | null = null;
+
+      const open = (props: CheckoutOptions) => {
+        current?.close();
+        current = sdk.openCheckout(props);
+      };
+
+      return bootstrapPurchaseButtons({
+        root,
+        onPurchase: (intent) =>
+          open({
+            brandSlug: intent.brandSlug,
+            locationSlug: intent.locationSlug,
+            preselect: { type: intent.type, id: intent.id },
+          }),
+        onOpenCart: () => open({}),
+      });
+    },
     unmountAll() {
       Array.from(mounts).forEach((mounted) => mounted.unmount());
       queryClient.clear();
     }
   };
+
+  return sdk;
 }
 
 function createClient(config: GafaSdkConfig, options: RuntimeOptions): GafaClient {

@@ -10,9 +10,18 @@ export type CatalogWidgetProps = {
   title?: string;
   filterByName?: string | null;
   filterByBrand?: string | null;
+  /** Compra suelta: el host abre el checkout con este item preseleccionado. */
+  onBuy?: (item: CatalogItem & { brandSlug?: string }) => void;
 };
 
-export function CatalogWidget({ client, type = "packages", title, filterByName, filterByBrand }: CatalogWidgetProps) {
+export function CatalogWidget({
+  client,
+  type = "packages",
+  title,
+  filterByName,
+  filterByBrand,
+  onBuy,
+}: CatalogWidgetProps) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["catalog", type, filterByName, filterByBrand],
     queryFn: async () => {
@@ -28,7 +37,7 @@ export function CatalogWidget({ client, type = "packages", title, filterByName, 
       const results = await Promise.all(
         visibleBrands.map(async (brand) => {
           const items = await getItemsForType(client, type, brand.slug);
-          return items.map((item) => ({ ...item, brandName: brand.name }));
+          return items.map((item) => ({ ...item, brandName: brand.name, brandSlug: brand.slug }));
         }),
       );
 
@@ -56,8 +65,13 @@ export function CatalogWidget({ client, type = "packages", title, filterByName, 
               {item.description ? <p>{item.description}</p> : null}
               {item.priceLabel ? <strong className="gafa-catalog-price">{item.priceLabel}</strong> : null}
             </div>
-            <button className="gafa-sdk-button" type="button">
-              Comprar
+            <button
+              className="gafa-sdk-button"
+              type="button"
+              disabled={!onBuy}
+              onClick={() => onBuy?.(item)}
+            >
+              {item.type === "membership" ? "Suscribirme" : "Comprar"}
             </button>
           </article>
         ))}
