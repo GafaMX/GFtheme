@@ -132,18 +132,21 @@ function SocialAuthButtons() {
       <div className="gafa-social__divider" aria-hidden="true">
         <span>o continúa con</span>
       </div>
+      {/* El nombre va en un span aparte: en movil se oculta y el boton queda
+          como circulo de icono, para que los tres quepan en UNA fila. El
+          aria-label mantiene el nombre para lectores de pantalla. */}
       <div className="gafa-social__row">
-        <button className="gafa-social__button" type="button" title="Próximamente" aria-disabled="true">
+        <button className="gafa-social__button" type="button" title="Próximamente" aria-label="Google" aria-disabled="true">
           <GoogleGIcon />
-          Google
+          <span>Google</span>
         </button>
-        <button className="gafa-social__button" type="button" title="Próximamente" aria-disabled="true">
+        <button className="gafa-social__button" type="button" title="Próximamente" aria-label="Apple" aria-disabled="true">
           <AppleLogoIcon />
-          Apple
+          <span>Apple</span>
         </button>
-        <button className="gafa-social__button" type="button" title="Próximamente" aria-disabled="true">
+        <button className="gafa-social__button" type="button" title="Próximamente" aria-label="Facebook" aria-disabled="true">
           <FacebookIcon />
-          Facebook
+          <span>Facebook</span>
         </button>
       </div>
     </div>

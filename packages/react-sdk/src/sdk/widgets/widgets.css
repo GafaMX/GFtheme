@@ -341,9 +341,38 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 420px) {
+/* Movil: los tres proveedores en UNA sola fila, como circulos de icono.
+   Antes se apilaban en tres renglones y comian toda la pantalla del login. */
+@media (max-width: 520px) {
   .gafa-social__row {
-    flex-direction: column;
+    gap: var(--gafa-space-3);
+    justify-content: center;
+  }
+
+  .gafa-social__button {
+    border-radius: 999px;
+    flex: 0 0 auto;
+    height: 44px;
+    min-height: 0;
+    padding: 0;
+    width: 44px;
+  }
+
+  .gafa-social__button > span {
+    /* Solo para lectores de pantalla: el icono ya identifica al proveedor. */
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
+  .gafa-social__button svg {
+    height: 19px;
+    width: 19px;
   }
 }
 
