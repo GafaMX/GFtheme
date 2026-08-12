@@ -365,12 +365,16 @@ class GafaThemeSDK extends React.Component {
                 // antes, sin cambiar esa logica). El resultado final acumulado en
                 // `meetings` es identico al de antes, solo que llega en 2 partes en vez
                 // de 1, y la primera parte llega mucho mas rapido.
+                //
+                // GetlocationMeetingList trata `end` como exclusivo. El primer tramo
+                // tiene que pedir start + FIRST_CHUNK_DAYS (no - 1); si no, el ultimo
+                // dia visible de la semana queda fuera de ambos requests.
                 const FIRST_CHUNK_DAYS = 7;
                 const totalDays = location.calendar_days || FIRST_CHUNK_DAYS;
 
                 if (totalDays > FIRST_CHUNK_DAYS) {
                     let firstChunkEnd = new Date(start_date.getTime());
-                    firstChunkEnd.setDate(start_date.getDate() + (FIRST_CHUNK_DAYS - 1));
+                    firstChunkEnd.setDate(start_date.getDate() + FIRST_CHUNK_DAYS);
                     let firstChunkEndString = `${firstChunkEnd.getFullYear()}-${firstChunkEnd.getMonth() + 1}-${firstChunkEnd.getDate()}`;
 
                     let restStart = new Date(start_date.getTime());
