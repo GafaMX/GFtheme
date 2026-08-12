@@ -1,12 +1,20 @@
 import type {
   AuthCredentials,
   Brand,
+  CartLineType,
   CatalogItem,
+  CheckoutConfig,
   CheckoutPayload,
   CreateReservationPayload,
   CustomFieldValues,
   CreateReservationResult,
+  DiscountCodeResult,
+  FrontPaymentMethod,
   GafaClient,
+  GiftCodeResult,
+  InitialPurchasePayload,
+  InitialPurchaseResult,
+  InitialPurchaseStatus,
   Location,
   Meeting,
   MeetingFilters,
@@ -43,6 +51,30 @@ type RawLocation = {
   name: string;
   slug: string;
   calendar_days?: number;
+};
+
+type RawBrand = {
+  id: number;
+  name: string;
+  slug: string;
+  terms_conditions_link?: string | null;
+  gafapay_brand_id?: number | null;
+  gafapay_client_id?: string | number | null;
+};
+
+type RawCatalogItem = {
+  id: number;
+  name: string;
+  description?: string | null;
+  short_description?: string | null;
+  price?: number | string | null;
+  price_final?: number | string | null;
+  has_discount?: boolean;
+  expiration_days?: number | null;
+  credits?: number | null;
+  subscribable?: boolean | number | null;
+  hide_in_front?: boolean | number | null;
+  currency?: string;
 };
 
 type RawUserProfile = {
@@ -485,10 +517,111 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     };
   }
 
+  function normalizeBrand(raw: RawBrand): Brand {
+    return {
+      id: raw.id,
+      name: raw.name,
+      slug: raw.slug,
+      termsConditionsLink: raw.terms_conditions_link ?? null,
+      gafapayBrandId: raw.gafapay_brand_id ?? null,
+      gafapayClientId: raw.gafapay_client_id != null ? String(raw.gafapay_client_id) : null,
+    };
+  }
+
+  function moneyNumber(value: number | string | null | undefined): number | undefined {
+    if (value == null || value === "") return undefined;
+    const n = typeof value === "number" ? value : Number(String(value).replace(/,/g, ""));
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  function formatCatalogPrice(amount: number | undefined, currency = "MXN"): string | undefined {
+    if (amount == null) return undefined;
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    }).format(amount);
+  }
+
+  function normalizeCatalogItem(raw: RawCatalogItem, type: "combo" | "membership"): CatalogItem | null {
+    // hide_in_front: productos solo para uso interno / backoffice.
+    if (raw.hide_in_front) return null;
+    const price = moneyNumber(raw.price);
+    const priceFinal = moneyNumber(raw.price_final) ?? price;
+    const currency = raw.currency ?? "MXN";
+    return {
+      id: raw.id,
+      name: raw.name,
+      description: raw.short_description || raw.description || undefined,
+      price,
+      priceFinal,
+      priceLabel: formatCatalogPrice(priceFinal, currency),
+      compareAtPriceLabel:
+        raw.has_discount && price != null && priceFinal != null && price > priceFinal
+          ? formatCatalogPrice(price, currency)
+          : undefined,
+      currency,
+      type,
+      expirationDays: raw.expiration_days ?? undefined,
+      hasDiscount: Boolean(raw.has_discount),
+      credits: raw.credits ?? undefined,
+      subscribable: Boolean(raw.subscribable),
+      ctaLabel: "Agregar",
+    };
+  }
+
+  function readFancyBlock(doc: Document, name: string): string | null {
+    return doc.querySelector(`.CreateReservationFancy--${name}`)?.textContent?.trim() || null;
+  }
+
+  function parseJsonBlock<T>(raw: string | null): T | null {
+    if (!raw) return null;
+    const candidates = [raw, raw.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&#039;/g, "'")];
+    for (const candidate of candidates) {
+      try {
+        return JSON.parse(candidate) as T;
+      } catch {
+        // siguiente candidato
+      }
+    }
+    return null;
+  }
+
+  async function apiGetUrl<T>(absoluteOrPath: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
+    const url = absoluteOrPath.startsWith("http")
+      ? new URL(absoluteOrPath)
+      : new URL(`${baseUrl}/api${absoluteOrPath}`);
+    Object.entries(params ?? {}).forEach(([key, value]) => {
+      if (value !== undefined) url.searchParams.set(key, String(value));
+    });
+    const response = await fetch(url.toString(), { headers: authHeaders() });
+    if (!response.ok) throw await parseErrorBody(response);
+    return response.json();
+  }
+
+  async function apiPostFormUrl<T>(
+    absoluteOrPath: string,
+    body: Record<string, string | number | boolean | undefined | null>,
+  ): Promise<T> {
+    const url = absoluteOrPath.startsWith("http") ? absoluteOrPath : `${baseUrl}${absoluteOrPath}`;
+    const form = new URLSearchParams();
+    Object.entries(body).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) form.set(key, String(value));
+    });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/x-www-form-urlencoded" },
+      body: form,
+    });
+    if (!response.ok) throw await parseErrorBody(response);
+    if (response.status === 204) return undefined as T;
+    return response.json();
+  }
+
   const httpClient: GafaClient = {
     async listBrands() {
-      const response = await apiGet<PaginatedResponse<Brand>>("/brand");
-      return unwrap(response);
+      const response = await apiGet<PaginatedResponse<RawBrand>>("/brand");
+      return unwrap(response).map(normalizeBrand);
     },
 
     async listLocations(brandSlug) {
@@ -521,17 +654,21 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async listCombos(brandSlug) {
-      const response = await apiGet<PaginatedResponse<CatalogItem>>(`/brand/${brandSlug}/combos`, {
+      const response = await apiGet<PaginatedResponse<RawCatalogItem>>(`/brand/${brandSlug}/combos`, {
         only_actives: true,
       });
-      return unwrap(response).map((item) => ({ ...item, type: "combo" as const }));
+      return unwrap(response)
+        .map((item) => normalizeCatalogItem(item, "combo"))
+        .filter((item): item is CatalogItem => Boolean(item));
     },
 
     async listMemberships(brandSlug) {
-      const response = await apiGet<PaginatedResponse<CatalogItem>>(`/brand/${brandSlug}/membership`, {
+      const response = await apiGet<PaginatedResponse<RawCatalogItem>>(`/brand/${brandSlug}/membership`, {
         only_actives: true,
       });
-      return unwrap(response).map((item) => ({ ...item, type: "membership" as const }));
+      return unwrap(response)
+        .map((item) => normalizeCatalogItem(item, "membership"))
+        .filter((item): item is CatalogItem => Boolean(item));
     },
 
     async listMeetings(filters: MeetingFilters = {}) {
@@ -1057,6 +1194,205 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         password_confirmation: payload.passwordConfirmation,
         token: payload.token,
       });
+    },
+
+    async getCheckoutConfig(payload) {
+      const brands = await httpClient.listBrands();
+      const brand = brands.find((item) => item.slug === payload.brandSlug);
+      const profile = await httpClient.getProfile();
+      if (!profile) throw new Error("Inicia sesión para continuar con la compra.");
+
+      const url = new URL(
+        `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/create-form-template`,
+      );
+      url.searchParams.set("users_id", String(profile.id));
+      if (payload.meetingId != null) url.searchParams.set("meetings_id", String(payload.meetingId));
+
+      const response = await fetch(url.toString(), { headers: authHeaders() });
+      if (!response.ok) {
+        throw new Error(`No se pudo cargar la configuración de pago (${response.status}).`);
+      }
+      const markup = await response.text();
+      const doc = new DOMParser().parseFromString(markup, "text/html");
+
+      type RawPaymentType = {
+        id: number;
+        name: string;
+        slug: string;
+        gafapay_id?: number | null;
+        order?: number;
+        pivot?: { front?: number | boolean | null; back?: number | boolean | null };
+      };
+      type RawCurrency = { prefijo?: string; sufijo?: string; code3?: string };
+
+      const paymentRaw = parseJsonBlock<RawPaymentType[]>(readFancyBlock(doc, "payment_types")) ?? [];
+      const currencyRaw = parseJsonBlock<RawCurrency>(readFancyBlock(doc, "currency"));
+      const paymentMethods: FrontPaymentMethod[] = paymentRaw
+        .filter((method) => method.pivot?.front === 1 || method.pivot?.front === true)
+        .map((method) => ({
+          id: method.id,
+          name: method.name === "company.Paypal" ? "PayPal" : method.name,
+          slug: method.slug,
+          gafapayId: method.gafapay_id ?? null,
+          order: method.order,
+        }))
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+      const urlInitialPurchase = readFancyBlock(doc, "urlInitialPurchase");
+      const urlInitialPurchaseStatus = readFancyBlock(doc, "urlInitialPurchaseStatus");
+      const urlCheckDiscountCode = readFancyBlock(doc, "urlCheckDiscountCode");
+      const urlCheckGiftCode = readFancyBlock(doc, "urlCheckGiftCode");
+      const urlGenerateGiftCode = readFancyBlock(doc, "urlGenerateCode");
+      const canRedeem = readFancyBlock(doc, "canRedeemStoreCredit");
+
+      if (!urlInitialPurchase || !urlInitialPurchaseStatus) {
+        throw new Error("No encontramos la configuración de pago para esta sede.");
+      }
+
+      const config: CheckoutConfig = {
+        brandSlug: payload.brandSlug,
+        locationSlug: payload.locationSlug,
+        meetingId: payload.meetingId != null ? Number(payload.meetingId) : undefined,
+        currency: {
+          prefix: currencyRaw?.prefijo ?? "$",
+          suffix: currencyRaw?.sufijo ?? currencyRaw?.code3 ?? "MXN",
+          code: currencyRaw?.code3 ?? "MXN",
+        },
+        paymentMethods,
+        termsConditionsLink: brand?.termsConditionsLink ?? null,
+        giftCardsEnabled: Boolean(urlCheckGiftCode),
+        discountCodesEnabled: Boolean(urlCheckDiscountCode),
+        canRedeemStoreCredit: canRedeem === "1" || canRedeem === "true",
+        urls: {
+          initialPurchase: urlInitialPurchase,
+          initialPurchaseStatus: urlInitialPurchaseStatus,
+          checkDiscountCode: urlCheckDiscountCode ?? undefined,
+          checkGiftCode: urlCheckGiftCode ?? undefined,
+          generateGiftCode: urlGenerateGiftCode ?? undefined,
+        },
+      };
+      return config;
+    },
+
+    async checkDiscountCode(payload) {
+      const meetingPart = payload.meetingId != null ? String(payload.meetingId) : "";
+      const url = new URL(
+        `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/check-discount-code/${encodeURIComponent(payload.code)}/${meetingPart}`,
+      );
+      payload.lines
+        .filter((line) => line.type === "combo")
+        .forEach((line) => url.searchParams.append("combo[]", String(line.id)));
+      payload.lines
+        .filter((line) => line.type === "membership")
+        .forEach((line) => url.searchParams.append("membership[]", String(line.id)));
+      payload.lines
+        .filter((line) => line.type === "product")
+        .forEach((line) => url.searchParams.append("product[]", String(line.id)));
+
+      const response = await fetch(url.toString(), { headers: authHeaders() });
+      if (!response.ok) {
+        return { valid: false, code: payload.code };
+      }
+      const data = (await response.json()) as Record<string, unknown>;
+      const discountAmount =
+        typeof data.discount === "number"
+          ? data.discount
+          : typeof data.amount === "number"
+            ? data.amount
+            : undefined;
+      return {
+        valid: true,
+        code: payload.code,
+        label: typeof data.name === "string" ? data.name : typeof data.label === "string" ? data.label : undefined,
+        discountAmount,
+        raw: data,
+      } satisfies DiscountCodeResult;
+    },
+
+    async checkGiftCode(payload) {
+      const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/check-gift-code/${encodeURIComponent(payload.code)}`;
+      const response = await fetch(url, { headers: authHeaders() });
+      if (!response.ok) {
+        return { valid: false, code: payload.code } satisfies GiftCodeResult;
+      }
+      const data = (await response.json()) as Record<string, unknown>;
+      return {
+        valid: true,
+        code: payload.code,
+        label: typeof data.name === "string" ? data.name : undefined,
+        balance: typeof data.balance === "number" ? data.balance : typeof data.amount === "number" ? data.amount : undefined,
+        raw: data,
+      } satisfies GiftCodeResult;
+    },
+
+    async initialPurchase(payload: InitialPurchasePayload) {
+      const combos = payload.lines.filter((line) => line.type === "combo");
+      const memberships = payload.lines.filter((line) => line.type === "membership");
+      const products = payload.lines.filter((line) => line.type === "product");
+
+      const body: Record<string, string | number | boolean | undefined | null> = {
+        users_id: payload.userId,
+        meetings_id: payload.meetingId,
+        payment_types_id: payload.paymentTypeId,
+        discountCode: payload.discountCode ?? undefined,
+        giftCode: payload.giftCode ?? undefined,
+        checkout_token: payload.checkoutToken ?? undefined,
+        selected_credit: payload.selectedCredit,
+        subscribe: payload.subscribe ? 1 : 0,
+        set_payment: payload.setPayment ? 1 : 0,
+      };
+
+      // Arrays al estilo PHP que espera gafa.fit
+      combos.forEach((line, index) => {
+        body[`combos_id[${index}]`] = line.id;
+        body[`combos_amounts[${index}]`] = line.amount;
+      });
+      memberships.forEach((line, index) => {
+        body[`memberships_id[${index}]`] = line.id;
+        body[`memberships_amounts[${index}]`] = line.amount;
+      });
+      products.forEach((line, index) => {
+        body[`products_id[${index}]`] = line.id;
+        body[`products_amounts[${index}]`] = line.amount;
+      });
+
+      if (payload.seatObjectId != null) {
+        body["map_objectsSelected[0][id]"] = payload.seatObjectId;
+      }
+
+      if (payload.paymentData) {
+        Object.entries(payload.paymentData).forEach(([key, value]) => {
+          if (value == null) return;
+          if (typeof value === "object") {
+            body[`payment_data[${key}]`] = JSON.stringify(value);
+          } else {
+            body[`payment_data[${key}]`] = value as string | number | boolean;
+          }
+        });
+      }
+
+      const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase`;
+      const data = await apiPostFormUrl<{ purchase_id?: number; checkout_token?: string }>(url, body);
+      return {
+        purchaseId: data?.purchase_id ?? null,
+        checkoutToken: data?.checkout_token ?? payload.checkoutToken ?? null,
+        raw: data,
+      } satisfies InitialPurchaseResult;
+    },
+
+    async pollInitialPurchaseStatus(payload) {
+      const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase-status`;
+      const data = await apiGetUrl<{ code?: number; message?: string; reservation_id?: number }>(url, {
+        checkout_token: payload.checkoutToken,
+        pending_purchase_id: payload.pendingPurchaseId,
+        _: Date.now(),
+      });
+      return {
+        code: typeof data.code === "number" ? data.code : 0,
+        message: data.message,
+        reservationId: data.reservation_id,
+        raw: data,
+      } satisfies InitialPurchaseStatus;
     },
 
     async openCheckout(payload: CheckoutPayload) {

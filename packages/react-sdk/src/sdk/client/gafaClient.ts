@@ -165,6 +165,29 @@ export function createMockGafaClient(): GafaClient {
     resetPassword: async () => undefined,
     openCheckout: async () => undefined,
     openReservationCheckout: async () => undefined,
+    getCheckoutConfig: async () => ({
+      brandSlug: "demo",
+      locationSlug: "roma-norte",
+      currency: { prefix: "$", suffix: "MXN", code: "MXN" },
+      paymentMethods: [
+        { id: 6, name: "Stripe", slug: "stripe", gafapayId: 4, order: 0 },
+        { id: 3, name: "PayPal", slug: "paypal", gafapayId: 2, order: 1 },
+      ],
+      termsConditionsLink: "https://example.com/terminos",
+      giftCardsEnabled: true,
+      discountCodesEnabled: true,
+      canRedeemStoreCredit: false,
+      urls: {
+        initialPurchase: "/demo/initial-purchase",
+        initialPurchaseStatus: "/demo/initial-purchase-status",
+        checkDiscountCode: "/demo/check-discount",
+        checkGiftCode: "/demo/check-gift",
+      },
+    }),
+    checkDiscountCode: async ({ code }) => ({ valid: code.length > 2, code, discountAmount: 50, label: "Promo demo" }),
+    checkGiftCode: async ({ code }) => ({ valid: code.length > 2, code, balance: 200, label: "Gift demo" }),
+    initialPurchase: async () => ({ purchaseId: 1, checkoutToken: "demo" }),
+    pollInitialPurchaseStatus: async () => ({ code: 1, reservationId: 99 }),
   };
 }
 

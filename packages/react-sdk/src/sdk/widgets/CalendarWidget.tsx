@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
 import { MonthCalendar } from "./MonthCalendar";
-import { FancyOverlay } from "./FancyOverlay";
+import { CheckoutModal } from "./CheckoutModal";
 import { AuthWidget } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
@@ -83,7 +83,7 @@ export function CalendarWidget({
   const queryClient = useQueryClient();
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>({});
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-  const [fancyMeeting, setFancyMeeting] = useState<Meeting | null>(null);
+  const [checkoutMeeting, setCheckoutMeeting] = useState<Meeting | null>(null);
   // Meeting que el usuario quiere reservar pero aun no tiene sesion: dispara el
   // login/registro DENTRO del flujo, sin sacarlo del calendario. Al autenticar
   // se continua solo hacia el checkout.
@@ -536,11 +536,11 @@ export function CalendarWidget({
     setSelectedMeeting(meeting);
   }
 
-  /** Camino de compra: sin creditos compatibles se va al checkout de compra. */
+  /** Camino de compra: sin creditos compatibles se va al checkout nativo. */
   function handleBuy(meeting: Meeting) {
     if (!client) return;
     setSelectedMeeting(null);
-    setFancyMeeting(meeting);
+    setCheckoutMeeting(meeting);
   }
 
   // Al autenticarse desde el gate, abrir el detalle de la clase que estaba
@@ -733,20 +733,20 @@ export function CalendarWidget({
         />
       ) : null}
 
-      {fancyMeeting && client ? (
-        <FancyOverlay
-          key={fancyMeeting.id}
-          title={fancyMeeting.name}
-          description="Termina tu reserva: elige tu lugar en el salón y confirma con crédito o compra."
-          run={() =>
-            client.openReservationCheckout({
-              meetingId: fancyMeeting.id,
-              brandSlug: getMeetingBrandSlug(fancyMeeting, activeBrand),
-              locationSlug: getMeetingLocationSlug(fancyMeeting, activeLocation),
-              targetSelector: '[data-gf-theme="fancy"]',
-            })
-          }
-          onClose={() => setFancyMeeting(null)}
+      {checkoutMeeting && client ? (
+        <CheckoutModal
+          key={checkoutMeeting.id}
+          client={client}
+          brandSlug={getMeetingBrandSlug(checkoutMeeting, activeBrand)}
+          locationSlug={getMeetingLocationSlug(checkoutMeeting, activeLocation)}
+          locationName={checkoutMeeting.location?.name ?? activeLocation?.name}
+          meeting={checkoutMeeting}
+          onClose={() => setCheckoutMeeting(null)}
+          onCompleted={() => {
+            queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
+            queryClient.invalidateQueries({ queryKey: ["profile"] });
+            queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
+          }}
         />
       ) : null}
     </WidgetShell>

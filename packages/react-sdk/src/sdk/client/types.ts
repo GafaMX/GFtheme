@@ -2,6 +2,10 @@ export type Brand = {
   id: number;
   name: string;
   slug: string;
+  /** Link a terminos y condiciones (admin de la marca). */
+  termsConditionsLink?: string | null;
+  gafapayBrandId?: number | null;
+  gafapayClientId?: string | null;
 };
 
 export type Location = {
@@ -73,10 +77,18 @@ export type CatalogItem = {
   name: string;
   description?: string;
   price?: number;
+  /** Precio final tras descuento de catalogo (si aplica). */
+  priceFinal?: number;
   priceLabel?: string;
+  compareAtPriceLabel?: string;
   currency?: string;
   ctaLabel?: string;
   type?: "combo" | "membership" | "product" | "service" | "staff";
+  expirationDays?: number;
+  hasDiscount?: boolean;
+  credits?: number;
+  /** Membresia / paquete suscribible (pago recurrente). */
+  subscribable?: boolean;
 };
 
 export type UserProfile = {
@@ -271,6 +283,95 @@ export type ReservationCheckoutPayload = {
   targetSelector?: string;
 };
 
+/** Metodo de pago activo en front (pivot.front === 1) para la marca/sede. */
+export type FrontPaymentMethod = {
+  id: number;
+  name: string;
+  slug: string;
+  gafapayId?: number | null;
+  order?: number;
+};
+
+export type CheckoutCurrency = {
+  prefix: string;
+  suffix: string;
+  code: string;
+};
+
+/**
+ * Config de checkout nativo sacada del create-form-template + brand:
+ * metodos front, URLs de compra/descuento/gift y terminos.
+ */
+export type CheckoutConfig = {
+  brandSlug: string;
+  locationSlug: string;
+  meetingId?: number;
+  currency: CheckoutCurrency;
+  paymentMethods: FrontPaymentMethod[];
+  termsConditionsLink?: string | null;
+  giftCardsEnabled: boolean;
+  discountCodesEnabled: boolean;
+  canRedeemStoreCredit: boolean;
+  urls: {
+    initialPurchase: string;
+    initialPurchaseStatus: string;
+    checkDiscountCode?: string;
+    checkGiftCode?: string;
+    generateGiftCode?: string;
+  };
+};
+
+export type DiscountCodeResult = {
+  valid: boolean;
+  code: string;
+  label?: string;
+  /** Monto a restar del total (si el API lo manda). */
+  discountAmount?: number;
+  raw?: unknown;
+};
+
+export type GiftCodeResult = {
+  valid: boolean;
+  code: string;
+  label?: string;
+  balance?: number;
+  raw?: unknown;
+};
+
+export type CartLineType = "combo" | "membership" | "product";
+
+export type InitialPurchasePayload = {
+  brandSlug: string;
+  locationSlug: string;
+  userId: number;
+  meetingId?: number;
+  /** Lineas del carrito (combos / membresias / productos). */
+  lines: Array<{ id: number; type: CartLineType; amount: number }>;
+  paymentTypeId: number;
+  paymentData?: Record<string, unknown>;
+  discountCode?: string | null;
+  giftCode?: string | null;
+  checkoutToken?: string | null;
+  selectedCredit?: string;
+  seatObjectId?: number;
+  subscribe?: boolean;
+  setPayment?: boolean;
+};
+
+export type InitialPurchaseResult = {
+  purchaseId?: number | null;
+  checkoutToken?: string | null;
+  raw?: unknown;
+};
+
+export type InitialPurchaseStatus = {
+  /** 1 = ok, 0 = pending, -1 = error (contrato fancy). */
+  code: number;
+  message?: string;
+  reservationId?: number;
+  raw?: unknown;
+};
+
 export type MeetingFilters = {
   brandId?: string | number;
   locationId?: string | number;
@@ -386,6 +487,31 @@ export type GafaClient = {
   getReservationContext?(payload: ReservationCheckoutPayload): Promise<ReservationContext>;
   /** Crea la reserva directamente (usa credito valido; asigna lugar si se manda). */
   createReservation?(payload: CreateReservationPayload): Promise<CreateReservationResult>;
+  /** Config de checkout nativo (metodos front, terminos, URLs descuento/gift). */
+  getCheckoutConfig?(payload: {
+    brandSlug: string;
+    locationSlug: string;
+    meetingId?: string | number;
+  }): Promise<CheckoutConfig>;
+  checkDiscountCode?(payload: {
+    brandSlug: string;
+    locationSlug: string;
+    code: string;
+    meetingId?: string | number;
+    lines: Array<{ id: number; type: CartLineType }>;
+  }): Promise<DiscountCodeResult>;
+  checkGiftCode?(payload: {
+    brandSlug: string;
+    locationSlug: string;
+    code: string;
+  }): Promise<GiftCodeResult>;
+  initialPurchase?(payload: InitialPurchasePayload): Promise<InitialPurchaseResult>;
+  pollInitialPurchaseStatus?(payload: {
+    brandSlug: string;
+    locationSlug: string;
+    checkoutToken: string;
+    pendingPurchaseId: number;
+  }): Promise<InitialPurchaseStatus>;
   login(credentials: AuthCredentials): Promise<{ access_token: string }>;
   logout(): void;
   register(payload: RegisterPayload): Promise<{ url?: string }>;
