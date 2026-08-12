@@ -4645,3 +4645,50 @@
 .gafa-checkout-auth .gafa-sdk-form {
   gap: 0.7rem;
 }
+
+/* Isla de GafaPayFront: el markup lo pinta su React 16, aqui solo se integra
+   visualmente con el tema del socio. */
+.gafa-checkout-paymount[data-state="error"] .gafa-checkout-paymount__island {
+  display: none;
+}
+
+/* Mientras carga se mantiene montado pero fuera de vista: desmontarlo
+   reiniciaria el iframe de Stripe en cada render. */
+.gafa-checkout-paymount[data-state="loading"] .gafa-checkout-paymount__island,
+.gafa-checkout-paymount[data-state="idle"] .gafa-checkout-paymount__island {
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.gafa-checkout-paymount .gafapay-elements__container {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.gafa-checkout-paymount .gafapay-form__group {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0.7rem 0.9rem;
+}
+
+.gafa-checkout-paymount input,
+.gafa-checkout-paymount select {
+  background: transparent;
+  border: 0;
+  color: var(--gafa-color-text);
+  font: inherit;
+  outline: none;
+  width: 100%;
+}
+
+.gafa-checkout-paymount label {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+}
+
+.gafa-checkout-paymount .card-list:empty {
+  display: none;
+}

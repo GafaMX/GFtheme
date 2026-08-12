@@ -60,6 +60,7 @@ type RawBrand = {
   terms_conditions_link?: string | null;
   gafapay_brand_id?: number | null;
   gafapay_client_id?: string | number | null;
+  gafapay_client_secret?: string | null;
 };
 
 type RawCatalogItem = {
@@ -525,6 +526,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       termsConditionsLink: raw.terms_conditions_link ?? null,
       gafapayBrandId: raw.gafapay_brand_id ?? null,
       gafapayClientId: raw.gafapay_client_id != null ? String(raw.gafapay_client_id) : null,
+      gafapayClientSecret: raw.gafapay_client_secret ?? null,
     };
   }
 
@@ -1280,6 +1282,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         },
         paymentMethods,
         termsConditionsLink: brand?.termsConditionsLink ?? null,
+        gafapayClientId: brand?.gafapayClientId ?? null,
+        gafapayClientSecret: brand?.gafapayClientSecret ?? null,
         giftCardsEnabled: Boolean(urlCheckGiftCode),
         discountCodesEnabled: Boolean(urlCheckDiscountCode),
         canRedeemStoreCredit: canRedeem === "1" || canRedeem === "true",

@@ -17,12 +17,14 @@ import {
 import { AuthWidget } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import {
-  getGafaPayComponent,
-  loadGafaPayFront,
+  loadGafaPay,
+  mountGafaPayWidget,
   triggerGafaPayConfirm,
-  type GafaPayElementsGlobal,
+  waitForWidgetContent,
+  type GafaPayIsland,
   type GafaPayLineItem,
   type GafaPaySuccess,
+  type GafaPayWidgetProps,
 } from "../payments/gafaPay";
 
 export type CheckoutModalProps = {
@@ -90,6 +92,9 @@ export function CheckoutModal({
   const [giftLabel, setGiftLabel] = useState<string>();
   const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
   const [payError, setPayError] = useState<string>();
+  // El formulario del proveedor vive fuera de React: sin el listo, "Pagar" no
+  // puede hacer nada, asi que no debe quedar habilitado.
+  const [paymentReady, setPaymentReady] = useState(false);
   const [paying, setPaying] = useState(false);
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
@@ -217,6 +222,7 @@ export function CheckoutModal({
   const canPay =
     relevantLines.length > 0 &&
     Boolean(selectedMethod) &&
+    paymentReady &&
     (!hasTerms || termsAccepted) &&
     !paying;
 
@@ -365,6 +371,7 @@ export function CheckoutModal({
     if (!canPay) {
       if (!relevantLines.length) setPayError("Agrega un paquete o membresía para continuar.");
       else if (hasTerms && !termsAccepted) setPayError("Acepta los términos y condiciones para pagar.");
+      else if (!paymentReady) setPayError("El formulario de pago todavía no está listo.");
       return;
     }
     setPaying(true);
@@ -539,6 +546,7 @@ export function CheckoutModal({
                     phone: profileQuery.data?.phone ?? undefined,
                   }}
                   onSuccess={handleGafaPaySuccess}
+                  onReadyChange={setPaymentReady}
                   onError={(message) => {
                     setPaying(false);
                     setPayError(message);
@@ -815,29 +823,6 @@ function ProductCard({
   );
 }
 
-/** Error boundary: si el widget externo de GafaPay truena, no tira el modal. */
-class GafaPayBoundary extends React.Component<
-  { onError: (message: string) => void; children: React.ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-
-  componentDidCatch(error: Error) {
-    this.props.onError(error.message || "El procesador de pago falló al cargar.");
-  }
-
-  render() {
-    if (this.state.failed) {
-      return <p className="gafa-sdk-state gafa-sdk-state--error">No se pudo mostrar el formulario de pago.</p>;
-    }
-    return this.props.children;
-  }
-}
-
 function PayPanel({
   methods,
   selectedMethodId,
@@ -849,6 +834,7 @@ function PayPanel({
   discountAmount,
   customer,
   onSuccess,
+  onReadyChange,
   onError,
 }: {
   methods: CheckoutConfig["paymentMethods"];
@@ -861,28 +847,22 @@ function PayPanel({
   discountAmount: number;
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
+  onReadyChange: (ready: boolean) => void;
   onError: (message: string) => void;
 }) {
-  const [elements, setElements] = useState<GafaPayElementsGlobal | null>(null);
-  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [loadError, setLoadError] = useState<string>();
   const selected = methods.find((method) => method.id === selectedMethodId) ?? null;
+  const mountRef = useRef<HTMLDivElement | null>(null);
+  const islandRef = useRef<GafaPayIsland | null>(null);
+  // Los callbacks cambian en cada render; el widget vive fuera de React y no
+  // debe re-montarse por eso.
+  const handlersRef = useRef({ onSuccess, onError });
+  handlersRef.current = { onSuccess, onError };
 
   useEffect(() => {
-    let cancelled = false;
-    loadGafaPayFront(gafaPayFrontUrl)
-      .then((loaded) => {
-        if (cancelled) return;
-        setElements(loaded);
-        setLoadState("ready");
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setLoadState("error");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [gafaPayFrontUrl]);
+    onReadyChange(loadState === "ready");
+  }, [loadState, onReadyChange]);
 
   // lineItems con el descuento repartido, igual que el fancy v1.
   const lineItems = useMemo<GafaPayLineItem[]>(() => {
@@ -909,9 +889,72 @@ function PayPanel({
     });
   }, [lines, discountAmount]);
 
-  const cartSignature = lineItems.map((item) => `${item.product_id}x${item.quantity}@${item.unitPrice}`).join("|");
+  const widgetProps: GafaPayWidgetProps = useMemo(
+    () => ({
+      order: {
+        customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim(),
+        customerEmail: customer.email,
+        customerPhone: customer.phone,
+        lineItems,
+      },
+      generalData: {
+        companiesId: config?.companiesId,
+        locationsId: config?.locationId,
+        adminProfilesId: null,
+        usersProfilesId: config?.userProfileId,
+        usersId: config?.usersId,
+      },
+      termsAndConditions: config?.termsConditionsLink ?? null,
+      hasRecurringPayment: false,
+      onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
+      onGafaPayErrAction: ({ message }) =>
+        handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
+    }),
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.termsConditionsLink, customer.email, customer.firstName, customer.lastName, customer.phone],
+  );
 
-  const PaymentComponent = elements && selected ? getGafaPayComponent(elements, selected.slug) : null;
+  // Cambios de carrito/cliente actualizan props sin re-montar: tirar el iframe
+  // de Stripe borraria la tarjeta que el usuario ya escribio.
+  const propsRef = useRef(widgetProps);
+  propsRef.current = widgetProps;
+
+  const clientId = config?.gafapayClientId;
+  const clientSecret = config?.gafapayClientSecret;
+  const slug = selected?.slug;
+
+  // Monta la isla: se re-monta solo si cambia el proveedor o las credenciales.
+  useEffect(() => {
+    if (!slug || !clientId || !clientSecret) return;
+    let cancelled = false;
+    setLoadState("loading");
+    setLoadError(undefined);
+
+    loadGafaPay({ clientId, clientSecret, scriptUrl: gafaPayFrontUrl })
+      .then(async (runtime) => {
+        if (cancelled || !mountRef.current) return;
+        const container = mountRef.current;
+        islandRef.current?.unmount();
+        islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
+        await waitForWidgetContent(container);
+        if (cancelled) return;
+        setLoadState("ready");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadState("error");
+        setLoadError(error instanceof Error ? error.message : undefined);
+      });
+
+    return () => {
+      cancelled = true;
+      islandRef.current?.unmount();
+      islandRef.current = null;
+    };
+  }, [slug, clientId, clientSecret, gafaPayFrontUrl]);
+
+  useEffect(() => {
+    if (loadState === "ready") islandRef.current?.update(widgetProps);
+  }, [widgetProps, loadState]);
 
   return (
     <div className="gafa-checkout-pay">
@@ -939,42 +982,22 @@ function PayPanel({
         <p className="gafa-sdk-state">Esta sede no tiene métodos de pago en línea activos.</p>
       ) : null}
 
-      <div className="gafa-checkout-paymount" data-loading={loadState === "loading" ? "true" : undefined}>
-        {loadState === "loading" ? <p className="gafa-sdk-state">Conectando con el procesador de pago…</p> : null}
+      {/* GafaPayFront trae su propio React 16: este div es suyo, nuestro React
+          nunca toca lo que hay dentro (ver payments/gafaPay.ts). */}
+      <div className="gafa-checkout-paymount" data-state={loadState}>
+        <div className="gafa-checkout-paymount__island" ref={mountRef} />
+
+        {loadState === "loading" ? (
+          <p className="gafa-sdk-state">Conectando con el procesador de pago…</p>
+        ) : null}
         {loadState === "error" ? (
           <p className="gafa-sdk-state gafa-sdk-state--error">
-            No se pudo conectar con GafaPay. Revisa tu conexión e intenta de nuevo.
+            {loadError ?? "No se pudo conectar con GafaPay. Revisa tu conexión e intenta de nuevo."}
           </p>
         ) : null}
-        {loadState === "ready" && PaymentComponent && selected ? (
-          <GafaPayBoundary onError={onError}>
-            <PaymentComponent
-              key={`${selected.slug}-${cartSignature}`}
-              order={{
-                customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim(),
-                customerEmail: customer.email,
-                customerPhone: customer.phone,
-                lineItems,
-              }}
-              generalData={{
-                companiesId: config?.companiesId,
-                locationsId: config?.locationId,
-                adminProfilesId: null,
-                usersProfilesId: config?.userProfileId,
-                usersId: config?.usersId,
-              }}
-              termsAndConditions={config?.termsConditionsLink ?? null}
-              hasRecurringPayment={false}
-              onGafaPaySuccessAction={onSuccess}
-              onGafaPayErrAction={({ message }) =>
-                onError(message ?? "Ocurrió un error durante el pago.")
-              }
-            />
-          </GafaPayBoundary>
-        ) : null}
-        {loadState === "ready" && selected && !PaymentComponent ? (
+        {selected && (!clientId || !clientSecret) && !configLoading ? (
           <p className="gafa-sdk-state gafa-sdk-state--error">
-            GafaPay no soporta el método “{selected.name}” en esta versión.
+            Esta marca no tiene configurado GafaPay (falta client id/secret).
           </p>
         ) : null}
       </div>

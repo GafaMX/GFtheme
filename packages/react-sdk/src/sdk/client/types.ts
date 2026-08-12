@@ -6,6 +6,8 @@ export type Brand = {
   termsConditionsLink?: string | null;
   gafapayBrandId?: number | null;
   gafapayClientId?: string | null;
+  /** La API lo expone en el payload publico de marca; el fancy v1 lo usa igual. */
+  gafapayClientSecret?: string | null;
 };
 
 export type Location = {
@@ -316,6 +318,9 @@ export type CheckoutConfig = {
   /** Solo lo que la clase acepta; en checkout sin clase, el catalogo completo. */
   combos: CatalogItem[];
   memberships: CatalogItem[];
+  /** Credenciales del script de GafaPayFront (data-gafapay-config). */
+  gafapayClientId?: string | null;
+  gafapayClientSecret?: string | null;
   /** Datos que GafaPayFront necesita en generalData. */
   companiesId?: number;
   locationId?: number;

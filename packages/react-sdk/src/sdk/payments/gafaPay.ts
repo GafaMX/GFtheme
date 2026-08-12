@@ -1,23 +1,21 @@
-import React from "react";
-
 /**
  * Bridge hacia GafaPayFront (frontpay.buq.partners/main.js).
  *
- * Ese script expone `window.GafaPayElements` con COMPONENTES React
- * (StripePayment, PaypalPayment, ...) que montan el procesador real
- * (Stripe Elements, botón PayPal). El contrato viene del fancy v1
- * (buildTemplate.js):
+ * GafaPayFront trae su PROPIO React 16.8.6 dentro del bundle. Sus componentes
+ * (StripePayment, PaypalPayment...) devuelven elementos creados por ese React,
+ * y React 19 los rechaza en duro: "A React Element from an older version of
+ * React was rendered" (error #525). Por eso NO se pueden renderizar dentro de
+ * nuestro arbol: se montan como isla, con un ReactDOM 16 aparte, en un div que
+ * nuestro React reserva pero no toca.
  *
- *   <StripePayment
- *     order={{ customerName, customerEmail, customerPhone, lineItems }}
- *     generalData={{ companiesId, locationsId, usersProfilesId, usersId, adminProfilesId }}
- *     onStartPayAction={...}
- *     onGafaPaySuccessAction={({ message, subscriptionId, recurringPayment }) => ...}
- *     onGafaPayErrAction={({ message }) => ...}
- *   />
+ * El bundle tambien exige su configuracion en el DOM ANTES de evaluarse:
  *
- * El `message` del success ES el `payment_data` que espera initial-purchase.
- * Stripe confirma con window._handleStripePayment(); PayPal usa su propio botón.
+ *   <script data-gafapay-config type="application/json">
+ *     { "CLIENT_ID": 282, "CLIENT_SECRET": "..." }
+ *   </script>
+ *
+ * Esas credenciales son `gafapay_client_id` / `gafapay_client_secret` de la
+ * marca (mismo contrato que usa el fancy v1).
  */
 
 export type GafaPayLineItem = {
@@ -54,7 +52,7 @@ export type GafaPaySuccess = {
   recurringPayment?: boolean;
 };
 
-type GafaPayComponentProps = {
+export type GafaPayWidgetProps = {
   order: GafaPayOrder;
   generalData: GafaPayGeneralData;
   onStartPayAction?: () => void;
@@ -66,90 +64,237 @@ type GafaPayComponentProps = {
   changePaymentSystemProperties?: (props: { recurringPayment?: boolean; saveCard?: boolean }) => void;
 };
 
-type GafaPayElementsGlobal = {
-  StripePayment?: React.ComponentType<GafaPayComponentProps>;
-  PaypalPayment?: React.ComponentType<GafaPayComponentProps>;
-  ConektaPayment?: React.ComponentType<GafaPayComponentProps>;
-  GenericPayment?: React.ComponentType<GafaPayComponentProps>;
+type ReactLike = {
+  version?: string;
+  createElement: (type: unknown, props?: unknown) => unknown;
 };
+
+type ReactDomLike = {
+  render: (element: unknown, container: Element) => void;
+  unmountComponentAtNode: (container: Element) => boolean;
+};
+
+type GafaPayElementsGlobal = Record<string, unknown>;
 
 declare global {
   interface Window {
     GafaPayElements?: GafaPayElementsGlobal;
+    GAFAPAY_SDK_URL?: string;
+    React?: ReactLike;
+    ReactDOM?: ReactDomLike;
     _handleStripePayment?: () => void;
     _handleConektaPayment?: () => void;
-    _handleTwoCheckoutPayment?: () => void;
   }
 }
 
 export const DEFAULT_GAFAPAY_FRONT_URL = "https://frontpay.buq.partners/main.js";
+const REACT16_URL = "https://unpkg.com/react@16.8.6/umd/react.production.min.js";
+const REACT_DOM16_URL = "https://unpkg.com/react-dom@16.8.6/umd/react-dom.production.min.js";
 
-let loadPromise: Promise<GafaPayElementsGlobal> | null = null;
+export type GafaPayCredentials = {
+  clientId: string | number;
+  clientSecret: string;
+  scriptUrl?: string;
+};
+
+type Runtime = {
+  React: ReactLike;
+  ReactDOM: ReactDomLike;
+  elements: GafaPayElementsGlobal;
+};
+
+let runtimePromise: Promise<Runtime> | null = null;
+
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(`script[data-gafa-pay="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === "true") return resolve();
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error(`No se pudo cargar ${src}`)));
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = false; // el orden importa: config -> react -> frontpay
+    script.dataset.gafaPay = src;
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "true";
+      resolve();
+    });
+    script.addEventListener("error", () => reject(new Error(`No se pudo cargar ${src}`)));
+    document.head.appendChild(script);
+  });
+}
+
+function ensureConfigElement(credentials: GafaPayCredentials): void {
+  const existing = document.querySelector("[data-gafapay-config]");
+  if (existing) return;
+
+  const script = document.createElement("script");
+  script.type = "application/json";
+  script.setAttribute("data-gafapay-config", "");
+  // El bundle lee CLIENT_ID/CLIENT_SECRET al evaluarse; si falta, se queda sin
+  // token y los metodos de pago nunca llegan ("debe completar las configuraciones").
+  script.textContent = JSON.stringify({
+    CLIENT_ID: Number(credentials.clientId) || credentials.clientId,
+    CLIENT_SECRET: credentials.clientSecret,
+  });
+  document.head.appendChild(script);
+}
+
+function isReact16(candidate?: ReactLike): boolean {
+  return Boolean(candidate?.version && candidate.version.startsWith("16"));
+}
+
+/**
+ * Carga (una sola vez) config + React 16 + GafaPayFront y devuelve el runtime.
+ * Si la pagina del socio ya tiene React 16 global (theme legacy), se reutiliza.
+ */
+export function loadGafaPay(credentials: GafaPayCredentials): Promise<Runtime> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("GafaPay solo funciona en navegador."));
+  }
+  if (runtimePromise) return runtimePromise;
+
+  runtimePromise = (async () => {
+    // La pagina del socio puede traer GafaPay ya cargado (theme legacy):
+    // cargarlo otra vez duplicaria el script y su estado.
+    const alreadyLoaded = Boolean(window.GafaPayElements);
+    if (!alreadyLoaded) ensureConfigElement(credentials);
+
+    const hostReact = window.React;
+    const hostReactDom = window.ReactDOM;
+    const reuseHostReact = isReact16(hostReact) && Boolean(hostReactDom?.render);
+
+    if (!reuseHostReact) {
+      await loadScript(REACT16_URL);
+      await loadScript(REACT_DOM16_URL);
+    }
+
+    const react = window.React;
+    const reactDom = window.ReactDOM;
+    if (!react || !reactDom?.render) {
+      throw new Error("No se pudo preparar el runtime de pago.");
+    }
+
+    // Devolver los globales como estaban: el sitio del socio puede tener su
+    // propio React y no queremos pisarselo por haber cargado el nuestro.
+    if (!reuseHostReact) {
+      const globals = window as unknown as Record<string, unknown>;
+      if (hostReact) globals.React = hostReact;
+      else delete globals.React;
+      if (hostReactDom) globals.ReactDOM = hostReactDom;
+      else delete globals.ReactDOM;
+    }
+
+    if (!alreadyLoaded) {
+      await loadScript(credentials.scriptUrl ?? window.GAFAPAY_SDK_URL ?? DEFAULT_GAFAPAY_FRONT_URL);
+    }
+
+    const elements = window.GafaPayElements;
+    if (!elements) {
+      throw new Error("GafaPay cargó pero no expuso sus formularios de pago.");
+    }
+
+    return { React: react, ReactDOM: reactDom, elements };
+  })().catch((error: unknown) => {
+    // Sin reset, un fallo de red dejaba el checkout muerto hasta recargar.
+    runtimePromise = null;
+    throw error;
+  });
+
+  return runtimePromise;
+}
+
+function componentFor(elements: GafaPayElementsGlobal, slug: string): unknown {
+  switch (slug) {
+    case "stripe":
+      return elements.StripePayment;
+    case "paypal":
+      return elements.PaypalPayment;
+    case "conekta":
+      return elements.ConektaPayment;
+    case "srpago":
+      return elements.SrpagoPayment;
+    case "recurrente":
+      return elements.RecurrentePayment;
+    default:
+      return elements.GenericPayment;
+  }
+}
+
+export type GafaPayIsland = {
+  update: (props: GafaPayWidgetProps) => void;
+  unmount: () => void;
+};
+
+/**
+ * El bundle de GafaPay se traga sus errores (si la marca tiene mal el
+ * client_id/secret, la promesa de auth revienta por dentro y el contenedor se
+ * queda vacio para siempre). Como no expone estado, se observa el DOM: si en
+ * unos segundos no aparecio el formulario del proveedor, es que no arranco.
+ */
+export function waitForWidgetContent(container: Element, timeoutMs = 9000): Promise<void> {
+  const isReady = () => Boolean(container.querySelector("iframe, form, input, button"));
+  if (isReady()) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      observer.disconnect();
+      reject(
+        new Error(
+          "El formulario de pago no cargó. Revisa que la marca tenga bien configurado GafaPay.",
+        ),
+      );
+    }, timeoutMs);
+
+    const observer = new MutationObserver(() => {
+      if (!isReady()) return;
+      clearTimeout(timeout);
+      observer.disconnect();
+      resolve();
+    });
+
+    observer.observe(container, { childList: true, subtree: true });
+  });
+}
+
+/** Monta el formulario del proveedor dentro de `container` (isla React 16). */
+export function mountGafaPayWidget(
+  runtime: Runtime,
+  container: Element,
+  slug: string,
+  props: GafaPayWidgetProps,
+): GafaPayIsland {
+  const Component = componentFor(runtime.elements, slug);
+  if (typeof Component !== "function") {
+    throw new Error(`GafaPay no soporta el método de pago "${slug}".`);
+  }
+
+  const render = (next: GafaPayWidgetProps) => {
+    runtime.ReactDOM.render(runtime.React.createElement(Component, next), container);
+  };
+
+  render(props);
+
+  return {
+    update: render,
+    unmount: () => {
+      runtime.ReactDOM.unmountComponentAtNode(container);
+    },
+  };
+}
 
 export function hasGafaPayRuntime(): boolean {
   return typeof window !== "undefined" && Boolean(window.GafaPayElements);
 }
 
-/** Carga frontpay/main.js una sola vez y resuelve con window.GafaPayElements. */
-export function loadGafaPayFront(scriptUrl = DEFAULT_GAFAPAY_FRONT_URL): Promise<GafaPayElementsGlobal> {
-  if (typeof window === "undefined") {
-    return Promise.reject(new Error("GafaPayFront solo funciona en navegador."));
-  }
-  if (window.GafaPayElements) return Promise.resolve(window.GafaPayElements);
-  if (loadPromise) return loadPromise;
-
-  loadPromise = new Promise<GafaPayElementsGlobal>((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[src^="${scriptUrl}"]`);
-    const script = existing ?? document.createElement("script");
-
-    const done = () => {
-      if (window.GafaPayElements) resolve(window.GafaPayElements);
-      else reject(new Error("GafaPayFront cargó pero no expuso GafaPayElements."));
-    };
-
-    if (!existing) {
-      script.src = scriptUrl;
-      script.async = true;
-      script.addEventListener("load", done);
-      script.addEventListener("error", () => {
-        loadPromise = null;
-        reject(new Error("No se pudo cargar el script de GafaPayFront."));
-      });
-      document.head.appendChild(script);
-    } else if (window.GafaPayElements) {
-      done();
-    } else {
-      existing.addEventListener("load", done);
-      existing.addEventListener("error", () => {
-        loadPromise = null;
-        reject(new Error("No se pudo cargar el script de GafaPayFront."));
-      });
-    }
-  });
-
-  return loadPromise;
-}
-
-export function getGafaPayComponent(
-  elements: GafaPayElementsGlobal,
-  slug: string,
-): React.ComponentType<GafaPayComponentProps> | null {
-  switch (slug) {
-    case "stripe":
-      return elements.StripePayment ?? null;
-    case "paypal":
-      return elements.PaypalPayment ?? null;
-    case "conekta":
-      return elements.ConektaPayment ?? null;
-    default:
-      return elements.GenericPayment ?? null;
-  }
-}
-
 /**
- * Dispara la confirmación del método activo (contrato del fancy v1: cada
- * componente registra su handler global al montarse). PayPal no aplica:
- * su botón propio maneja el submit.
+ * Dispara la confirmacion del metodo activo. Cada formulario registra su
+ * handler global al montarse (mismo contrato que el fancy v1). PayPal no
+ * aplica: su propio boton maneja el submit.
  */
 export function triggerGafaPayConfirm(slug: string): boolean {
   if (typeof window === "undefined") return false;
@@ -163,5 +308,3 @@ export function triggerGafaPayConfirm(slug: string): boolean {
   }
   return false;
 }
-
-export type { GafaPayComponentProps, GafaPayElementsGlobal };
