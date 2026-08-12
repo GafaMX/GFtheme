@@ -1227,6 +1227,26 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
       const paymentRaw = parseJsonBlock<RawPaymentType[]>(readFancyBlock(doc, "payment_types")) ?? [];
       const currencyRaw = parseJsonBlock<RawCurrency>(readFancyBlock(doc, "currency"));
+
+      // combosSelection / membershipSelection: SOLO lo que aplica a esta clase
+      // (o el catalogo de la sede si no hay meeting). Es la misma fuente que
+      // usa el fancy v1, asi que la compra siempre corresponde a la reserva.
+      const combosRaw = parseJsonBlock<RawCatalogItem[]>(readFancyBlock(doc, "combosSelection")) ?? [];
+      const membershipsRaw =
+        parseJsonBlock<RawCatalogItem[]>(readFancyBlock(doc, "membershipSelection")) ?? [];
+      const validCombos = combosRaw
+        .map((item) => normalizeCatalogItem(item, "combo"))
+        .filter((item): item is CatalogItem => Boolean(item));
+      const validMemberships = membershipsRaw
+        .map((item) => normalizeCatalogItem(item, "membership"))
+        .filter((item): item is CatalogItem => Boolean(item));
+
+      const userBlock = parseJsonBlock<{ id?: number; users_id?: number; companies_id?: number }>(
+        readFancyBlock(doc, "user"),
+      );
+      const locationBlock = parseJsonBlock<{ id?: number; companies_id?: number }>(
+        readFancyBlock(doc, "location"),
+      );
       const paymentMethods: FrontPaymentMethod[] = paymentRaw
         .filter((method) => method.pivot?.front === 1 || method.pivot?.front === true)
         .map((method) => ({
@@ -1263,6 +1283,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         giftCardsEnabled: Boolean(urlCheckGiftCode),
         discountCodesEnabled: Boolean(urlCheckDiscountCode),
         canRedeemStoreCredit: canRedeem === "1" || canRedeem === "true",
+        combos: validCombos,
+        memberships: validMemberships,
+        companiesId: locationBlock?.companies_id ?? userBlock?.companies_id,
+        locationId: locationBlock?.id,
+        userProfileId: userBlock?.id ?? profile.id,
+        usersId: userBlock?.users_id,
         urls: {
           initialPurchase: urlInitialPurchase,
           initialPurchaseStatus: urlInitialPurchaseStatus,

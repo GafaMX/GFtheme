@@ -1,200 +1,167 @@
+import React from "react";
+
 /**
- * Bridge hacia GafaPay / GafaPayFront.
+ * Bridge hacia GafaPayFront (frontpay.buq.partners/main.js).
  *
- * El procesador real (Stripe Elements, PayPal Buttons, etc.) lo monta
- * `window.GafaPayElements` o el nuevo `window.GafaPayFront` cuando el socio
- * carga el script de GafaPay en su pagina. Este modulo NO reimplementa Stripe:
- * solo detecta, monta y reporta el token/`payment_data` listo para
- * `initial-purchase`.
+ * Ese script expone `window.GafaPayElements` con COMPONENTES React
+ * (StripePayment, PaypalPayment, ...) que montan el procesador real
+ * (Stripe Elements, botón PayPal). El contrato viene del fancy v1
+ * (buildTemplate.js):
+ *
+ *   <StripePayment
+ *     order={{ customerName, customerEmail, customerPhone, lineItems }}
+ *     generalData={{ companiesId, locationsId, usersProfilesId, usersId, adminProfilesId }}
+ *     onStartPayAction={...}
+ *     onGafaPaySuccessAction={({ message, subscriptionId, recurringPayment }) => ...}
+ *     onGafaPayErrAction={({ message }) => ...}
+ *   />
+ *
+ * El `message` del success ES el `payment_data` que espera initial-purchase.
+ * Stripe confirma con window._handleStripePayment(); PayPal usa su propio botón.
  */
 
-export type GafaPayMethodSlug = "stripe" | "paypal" | "conekta" | string;
-
-export type GafaPayMountOptions = {
-  method: GafaPayMethodSlug;
-  container: HTMLElement;
-  customer: {
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-  };
-  amount: number;
-  currencyCode: string;
-  /** gafapay_brand_id / client de la marca (si el script lo pide). */
-  gafapayBrandId?: number | null;
-  gafapayClientId?: string | null;
-  onReady?: () => void;
-  onError?: (message: string) => void;
+export type GafaPayLineItem = {
+  name: string;
+  unitPrice: number;
+  quantity: number;
+  product_type: string;
+  product_id: number;
+  height: number;
+  length: number;
+  weight: number;
+  width: number;
 };
 
-export type GafaPayHandle = {
-  /** Recolecta payment_data / token del widget montado. */
-  collectPaymentData: () => Promise<Record<string, unknown>>;
-  destroy: () => void;
-  /** true si se monto el procesador real; false = UI de espera del script. */
-  isLive: boolean;
+export type GafaPayOrder = {
+  customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  lineItems: GafaPayLineItem[];
+};
+
+export type GafaPayGeneralData = {
+  companiesId?: number;
+  locationsId?: number;
+  adminProfilesId?: number | null;
+  usersProfilesId?: number;
+  usersId?: number;
+};
+
+export type GafaPaySuccess = {
+  /** payment_data para initial-purchase. */
+  message: unknown;
+  subscriptionId?: string | number | null;
+  recurringPayment?: boolean;
+};
+
+type GafaPayComponentProps = {
+  order: GafaPayOrder;
+  generalData: GafaPayGeneralData;
+  onStartPayAction?: () => void;
+  onGafaPaySuccessAction: (result: GafaPaySuccess) => void;
+  onGafaPayErrAction: (error: { err?: unknown; message?: string }) => void;
+  termsAndConditions?: string | null;
+  hasRecurringPayment?: boolean;
+  paymentFrequency?: string | null;
+  changePaymentSystemProperties?: (props: { recurringPayment?: boolean; saveCard?: boolean }) => void;
 };
 
 type GafaPayElementsGlobal = {
-  StripePayment?: new (opts: Record<string, unknown>) => GafaPayWidget;
-  PaypalPayment?: new (opts: Record<string, unknown>) => GafaPayWidget;
-  ConektaPayment?: new (opts: Record<string, unknown>) => GafaPayWidget;
-  GenericPayment?: new (opts: Record<string, unknown>) => GafaPayWidget;
-};
-
-type GafaPayFrontGlobal = {
-  mount?: (opts: Record<string, unknown>) => GafaPayWidget | Promise<GafaPayWidget>;
-  Stripe?: new (opts: Record<string, unknown>) => GafaPayWidget;
-  PayPal?: new (opts: Record<string, unknown>) => GafaPayWidget;
-};
-
-type GafaPayWidget = {
-  mount?: (el: HTMLElement) => void | Promise<void>;
-  render?: (el: HTMLElement) => void | Promise<void>;
-  getPaymentData?: () => Record<string, unknown> | Promise<Record<string, unknown>>;
-  getToken?: () => string | Promise<string>;
-  destroy?: () => void;
-  unmount?: () => void;
+  StripePayment?: React.ComponentType<GafaPayComponentProps>;
+  PaypalPayment?: React.ComponentType<GafaPayComponentProps>;
+  ConektaPayment?: React.ComponentType<GafaPayComponentProps>;
+  GenericPayment?: React.ComponentType<GafaPayComponentProps>;
 };
 
 declare global {
   interface Window {
     GafaPayElements?: GafaPayElementsGlobal;
-    GafaPayFront?: GafaPayFrontGlobal;
+    _handleStripePayment?: () => void;
+    _handleConektaPayment?: () => void;
+    _handleTwoCheckoutPayment?: () => void;
   }
 }
+
+export const DEFAULT_GAFAPAY_FRONT_URL = "https://frontpay.buq.partners/main.js";
+
+let loadPromise: Promise<GafaPayElementsGlobal> | null = null;
 
 export function hasGafaPayRuntime(): boolean {
-  if (typeof window === "undefined") return false;
-  return Boolean(window.GafaPayFront || window.GafaPayElements);
+  return typeof window !== "undefined" && Boolean(window.GafaPayElements);
 }
 
-export function mountGafaPay(options: GafaPayMountOptions): GafaPayHandle {
-  const { container, method, customer, amount, currencyCode } = options;
-  container.innerHTML = "";
+/** Carga frontpay/main.js una sola vez y resuelve con window.GafaPayElements. */
+export function loadGafaPayFront(scriptUrl = DEFAULT_GAFAPAY_FRONT_URL): Promise<GafaPayElementsGlobal> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("GafaPayFront solo funciona en navegador."));
+  }
+  if (window.GafaPayElements) return Promise.resolve(window.GafaPayElements);
+  if (loadPromise) return loadPromise;
 
-  const front = typeof window !== "undefined" ? window.GafaPayFront : undefined;
-  const elements = typeof window !== "undefined" ? window.GafaPayElements : undefined;
+  loadPromise = new Promise<GafaPayElementsGlobal>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(`script[src^="${scriptUrl}"]`);
+    const script = existing ?? document.createElement("script");
 
-  // 1) GafaPayFront (nuevo): preferido si existe.
-  if (front?.mount) {
-    let widget: GafaPayWidget | null = null;
-    void Promise.resolve(
-      front.mount({
-        method,
-        el: container,
-        container,
-        amount,
-        currency: currencyCode,
-        customer,
-        brandId: options.gafapayBrandId,
-        clientId: options.gafapayClientId,
-      }),
-    )
-      .then((instance) => {
-        widget = instance;
-        options.onReady?.();
-      })
-      .catch((err: unknown) => {
-        options.onError?.(err instanceof Error ? err.message : "No se pudo montar GafaPayFront.");
+    const done = () => {
+      if (window.GafaPayElements) resolve(window.GafaPayElements);
+      else reject(new Error("GafaPayFront cargó pero no expuso GafaPayElements."));
+    };
+
+    if (!existing) {
+      script.src = scriptUrl;
+      script.async = true;
+      script.addEventListener("load", done);
+      script.addEventListener("error", () => {
+        loadPromise = null;
+        reject(new Error("No se pudo cargar el script de GafaPayFront."));
       });
-
-    return {
-      isLive: true,
-      async collectPaymentData() {
-        if (!widget) throw new Error("El procesador de pago aún no está listo.");
-        if (widget.getPaymentData) return widget.getPaymentData();
-        if (widget.getToken) return { token: await widget.getToken() };
-        return {};
-      },
-      destroy() {
-        widget?.destroy?.();
-        widget?.unmount?.();
-        container.innerHTML = "";
-      },
-    };
-  }
-
-  // 2) GafaPayElements (legacy fancy): StripePayment / PaypalPayment.
-  const Ctor =
-    method === "stripe"
-      ? elements?.StripePayment ?? front?.Stripe
-      : method === "paypal"
-        ? elements?.PaypalPayment ?? front?.PayPal
-        : elements?.GenericPayment;
-
-  if (Ctor) {
-    const widget = new Ctor({
-      order: {
-        customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim(),
-        customerEmail: customer.email,
-        customerPhone: customer.phone,
-        amount,
-        currency: currencyCode,
-      },
-      amount,
-      currency: currencyCode,
-      brandId: options.gafapayBrandId,
-      clientId: options.gafapayClientId,
-    });
-
-    const mountTarget = widget.mount ?? widget.render;
-    if (mountTarget) {
-      void Promise.resolve(mountTarget.call(widget, container))
-        .then(() => options.onReady?.())
-        .catch((err: unknown) => {
-          options.onError?.(err instanceof Error ? err.message : "No se pudo montar el pago.");
-        });
+      document.head.appendChild(script);
+    } else if (window.GafaPayElements) {
+      done();
     } else {
-      // Algunos builds pintan solos al construirse; dejamos el contenedor listo.
-      options.onReady?.();
+      existing.addEventListener("load", done);
+      existing.addEventListener("error", () => {
+        loadPromise = null;
+        reject(new Error("No se pudo cargar el script de GafaPayFront."));
+      });
     }
+  });
 
-    return {
-      isLive: true,
-      async collectPaymentData() {
-        if (widget.getPaymentData) return widget.getPaymentData();
-        if (widget.getToken) return { token: await widget.getToken() };
-        return {};
-      },
-      destroy() {
-        widget.destroy?.();
-        widget.unmount?.();
-        container.innerHTML = "";
-      },
-    };
-  }
-
-  // 3) Sin script: placeholder para que el diseño se vea completo en el demo.
-  container.innerHTML = `
-    <div class="gafa-pay-placeholder" data-method="${method}">
-      <p class="gafa-pay-placeholder__title">${method === "paypal" ? "PayPal" : "Tarjeta (Stripe)"}</p>
-      <p class="gafa-pay-placeholder__hint">
-        Carga <code>GafaPayFront</code> o <code>GafaPayElements</code> en la página
-        para activar el procesador real. El diseño y el flujo ya están listos.
-      </p>
-      ${
-        method === "stripe"
-          ? `<div class="gafa-pay-placeholder__card" aria-hidden="true">
-              <span>Número de tarjeta</span>
-              <span>•••• •••• •••• ••••</span>
-            </div>`
-          : `<div class="gafa-pay-placeholder__paypal" aria-hidden="true">PayPal Checkout</div>`
-      }
-    </div>
-  `;
-  options.onReady?.();
-
-  return {
-    isLive: false,
-    async collectPaymentData() {
-      throw new Error(
-        "Falta el script de GafaPay (GafaPayFront / GafaPayElements) para cobrar en este sitio.",
-      );
-    },
-    destroy() {
-      container.innerHTML = "";
-    },
-  };
+  return loadPromise;
 }
+
+export function getGafaPayComponent(
+  elements: GafaPayElementsGlobal,
+  slug: string,
+): React.ComponentType<GafaPayComponentProps> | null {
+  switch (slug) {
+    case "stripe":
+      return elements.StripePayment ?? null;
+    case "paypal":
+      return elements.PaypalPayment ?? null;
+    case "conekta":
+      return elements.ConektaPayment ?? null;
+    default:
+      return elements.GenericPayment ?? null;
+  }
+}
+
+/**
+ * Dispara la confirmación del método activo (contrato del fancy v1: cada
+ * componente registra su handler global al montarse). PayPal no aplica:
+ * su botón propio maneja el submit.
+ */
+export function triggerGafaPayConfirm(slug: string): boolean {
+  if (typeof window === "undefined") return false;
+  if (slug === "stripe" && window._handleStripePayment) {
+    window._handleStripePayment();
+    return true;
+  }
+  if (slug === "conekta" && window._handleConektaPayment) {
+    window._handleConektaPayment();
+    return true;
+  }
+  return false;
+}
+
+export type { GafaPayComponentProps, GafaPayElementsGlobal };

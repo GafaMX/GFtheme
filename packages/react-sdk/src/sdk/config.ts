@@ -47,6 +47,8 @@ export const sdkConfigSchema = z
     // que el cliente le manda en cada registro (ver App\Rules\Captcha). Viene asi del backend.
     captchaSecretKey: z.string().default(DEFAULT_CAPTCHA_SECRET_KEY),
     language: z.enum(["es", "en"]).default("es"),
+    /** Script de GafaPayFront (Stripe/PayPal). Default: frontpay del mismo host de la API. */
+    gafaPayFrontUrl: z.string().optional(),
     theme: legacyThemeSchema,
   })
   .passthrough();

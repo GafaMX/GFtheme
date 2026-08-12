@@ -300,7 +300,8 @@ export type CheckoutCurrency = {
 
 /**
  * Config de checkout nativo sacada del create-form-template + brand:
- * metodos front, URLs de compra/descuento/gift y terminos.
+ * metodos front, URLs de compra/descuento/gift, terminos y los productos
+ * VALIDOS para la clase (combosSelection / membershipSelection).
  */
 export type CheckoutConfig = {
   brandSlug: string;
@@ -312,6 +313,14 @@ export type CheckoutConfig = {
   giftCardsEnabled: boolean;
   discountCodesEnabled: boolean;
   canRedeemStoreCredit: boolean;
+  /** Solo lo que la clase acepta; en checkout sin clase, el catalogo completo. */
+  combos: CatalogItem[];
+  memberships: CatalogItem[];
+  /** Datos que GafaPayFront necesita en generalData. */
+  companiesId?: number;
+  locationId?: number;
+  userProfileId?: number;
+  usersId?: number;
   urls: {
     initialPurchase: string;
     initialPurchaseStatus: string;
