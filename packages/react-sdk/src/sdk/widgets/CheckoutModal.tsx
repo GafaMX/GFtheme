@@ -74,6 +74,8 @@ export function CheckoutModal({
   const resetAfterPurchase = useCartStore((s) => s.resetAfterPurchase);
 
   const [step, setStep] = useState<CheckoutStep>("shop");
+  // Solo aplica en movil (en desktop el carrito siempre esta desplegado).
+  const [cartOpen, setCartOpen] = useState(false);
   const [tab, setTab] = useState<CatalogTab>("packages");
   const [query, setQuery] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -210,6 +212,7 @@ export function CheckoutModal({
   const relevantLines = lines.filter((line) => line.brandSlug === brandSlug);
   const subtotal = cartSubtotal(relevantLines);
   const total = Math.max(0, subtotal - discountAmount);
+  const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
   const canPay =
     relevantLines.length > 0 &&
@@ -544,13 +547,36 @@ export function CheckoutModal({
               )}
             </section>
 
-            <aside className="gafa-checkout__cart" aria-label="Tu pedido">
+            <aside
+              className="gafa-checkout__cart"
+              aria-label="Tu pedido"
+              data-open={cartOpen ? "true" : undefined}
+            >
+              {/* Solo movil: el carrito vive como barra fija abajo. Sin esto el
+                  total y "Ir a pagar" quedaban debajo de todo el catalogo y
+                  habia que scrollear a ciegas para pagar. */}
+              <button
+                className="gafa-checkout__cart-toggle"
+                type="button"
+                aria-expanded={cartOpen}
+                onClick={() => setCartOpen((value) => !value)}
+              >
+                <span>
+                  {cartCount === 0
+                    ? "Carrito vacío"
+                    : `${cartCount} ${cartCount === 1 ? "artículo" : "artículos"}`}
+                </span>
+                <strong>{formatMoney(total, currency.prefix, "")}</strong>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M2 9L7 4l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
               <div className="gafa-checkout__cart-head">
                 <h3>{resolvedLocationName ?? "Tu pedido"}</h3>
-                {relevantLines.length ? (
+                {cartCount ? (
                   <span>
-                    {relevantLines.reduce((n, l) => n + l.amount, 0)}{" "}
-                    {relevantLines.reduce((n, l) => n + l.amount, 0) === 1 ? "artículo" : "artículos"}
+                    {cartCount} {cartCount === 1 ? "artículo" : "artículos"}
                   </span>
                 ) : null}
               </div>
@@ -708,11 +734,13 @@ export function CheckoutModal({
 
               {payError ? <p className="gafa-checkout__error">{payError}</p> : null}
 
-              {step === "shop" || step === "auth" ? (
+              {/* En el paso de login la accion es "Entrar" del propio formulario:
+                  dejar aqui un "Ir a pagar" deshabilitado era un boton muerto. */}
+              {step === "auth" ? null : step === "shop" ? (
                 <button
                   className="gafa-sdk-button gafa-checkout__cta"
                   type="button"
-                  disabled={!relevantLines.length || step === "auth"}
+                  disabled={!relevantLines.length}
                   onClick={() => setStep(isSignedIn ? "pay" : "auth")}
                 >
                   Ir a pagar

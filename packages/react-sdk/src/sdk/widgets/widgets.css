@@ -3926,7 +3926,40 @@
   padding: 1.4rem 1.15rem 1.15rem;
 }
 
+/* Resumen plegable del carrito: solo existe en movil. */
+.gafa-checkout__cart-toggle {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: none;
+  font: inherit;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  width: 100%;
+}
+
+.gafa-checkout__cart-toggle span {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.gafa-checkout__cart-toggle strong {
+  font-family: var(--gafa-heading-font-family);
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-left: auto;
+}
+
+.gafa-checkout__cart-toggle svg {
+  color: var(--gafa-color-muted-text);
+  transition: transform 0.18s ease;
+}
+
 /* Todo lo que no es la lista se queda fijo arriba/abajo. */
+.gafa-checkout__cart-toggle,
 .gafa-checkout__cart-head,
 .gafa-checkout__reserve-chip,
 .gafa-checkout__extras,
@@ -4448,31 +4481,79 @@
   .gafa-checkout {
     border-radius: 18px 18px 0 0;
     margin: auto 0 0;
-    max-height: calc(100vh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
     min-height: 0;
   }
 
-  /* En movil scrollea el modal completo (bottom sheet), no cada columna. */
+  /* El catalogo scrollea; el carrito es una barra anclada abajo. Antes el
+     carrito se apilaba debajo del catalogo y el total con "Ir a pagar"
+     quedaban fuera de la pantalla. */
   .gafa-checkout__layout {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
     min-height: 0;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .gafa-checkout__main {
-    overflow: visible;
-    padding: 1.2rem 1rem 0.75rem;
+    overflow-y: auto;
+    padding: 1.2rem 1rem 1rem;
   }
 
   .gafa-checkout__cart {
     border-left: 0;
     border-top: 1px solid var(--gafa-color-border);
-    overflow: visible;
-    padding: 1rem;
+    box-shadow: 0 -12px 28px -22px rgb(0 0 0 / 0.8);
+    gap: 0.6rem;
+    max-height: 62dvh;
+    padding: 0.75rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* El resumen plegable solo tiene sentido mientras eliges: en el paso de pago
+     el carrito ya esta a la vista y repetir el total 3 veces era ruido. */
+  .gafa-checkout[data-step="shop"] .gafa-checkout__cart-toggle {
+    display: flex;
+  }
+
+  /* En movil la cabecera del carrito y el chip de la clase repetian lo que ya
+     dicen la barra de resumen y la linea de contexto de arriba. */
+  .gafa-checkout__cart-head,
+  .gafa-checkout__reserve-chip {
+    display: none;
+  }
+
+  /* En pago el carrito comparte espacio con promos, terminos y el boton. */
+  .gafa-checkout[data-step="pay"] .gafa-checkout__lines,
+  .gafa-checkout[data-step="auth"] .gafa-checkout__lines {
+    max-height: 22dvh;
+  }
+
+  .gafa-checkout-paymount {
+    min-height: 96px;
+    padding: 0.75rem;
+  }
+
+  /* Paso de catalogo: el carrito arranca colapsado y solo se ve el resumen. */
+  .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__lines,
+  .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__empty,
+  .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__total {
+    display: none;
+  }
+
+  .gafa-checkout__cart[data-open="true"] .gafa-checkout__cart-toggle svg {
+    transform: rotate(180deg);
   }
 
   .gafa-checkout__lines {
-    overflow: visible;
+    max-height: 34dvh;
+  }
+
+  .gafa-checkout__empty {
+    padding: 0.75rem 0;
+  }
+
+  .gafa-checkout__empty svg {
+    display: none;
   }
 
   .gafa-checkout-grid {
@@ -4481,6 +4562,15 @@
 
   .gafa-checkout-search input {
     width: 90px;
+  }
+
+  /* El titulo compite con el catalogo por el alto util. */
+  .gafa-checkout__hero h2 {
+    font-size: 1.3rem;
+  }
+
+  .gafa-checkout__hero p {
+    font-size: 0.84rem;
   }
 }
 
