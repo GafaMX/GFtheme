@@ -1684,6 +1684,12 @@
     min-height: 54px;
     min-width: 54px;
   }
+
+  /* En movil el tope es menor: con pocas columnas los lugares llenan el ancho
+     igual, pero sin comerse toda la pantalla. */
+  .gafa-seatmap__grid {
+    --gafa-seat-max: 78px;
+  }
 }
 
 .gafa-reservation-info {
@@ -1766,14 +1772,24 @@
 }
 
 .gafa-seatmap__grid {
+  --gafa-seat-gap: 6px;
+  /* Tope por lugar: sin esto un salon de 4 sillas pintaria circulos enormes.
+     No provoca scroll, porque el ancho del grid ya esta limitado al contenedor
+     y las columnas solo desbordan cuando no caben ni en su minimo tocable. */
+  --gafa-seat-max: 112px;
+
   display: grid;
-  gap: 6px;
+  gap: var(--gafa-seat-gap);
   justify-items: stretch;
-  /* Centrado (no min-width:100%): un mapa mas angosto que su columna ya no
-     se queda pegado a la izquierda con un vacio raro del lado derecho. Si es
-     mas ancho que el contenedor, .gafa-seatmap__scroll sigue scrolleando. */
   margin-inline: auto;
-  width: max-content;
+  /* Ocupa el ancho disponible (con tope segun cuantas columnas hay) en vez de
+     quedarse en el minimo: los salones chicos aprovechan el espacio y los
+     grandes siguen scrolleando dentro de .gafa-seatmap__scroll. */
+  width: 100%;
+  max-width: calc(
+    var(--gafa-seat-cols, 1) * var(--gafa-seat-max) +
+      (var(--gafa-seat-cols, 1) - 1) * var(--gafa-seat-gap)
+  );
 }
 
 .gafa-seatmap__seat {
@@ -1783,11 +1799,12 @@
   border: 1.5px solid var(--gafa-color-border);
   border-radius: 50%;
   color: var(--gafa-color-text);
-  /* Crece con el ancho del modal, pero con tope: en mapas de pocas columnas
-     un lugar gigante se ve ridiculo. */
+  /* Crece con el ancho disponible hasta el tope del mapa (--gafa-seat-max):
+     un salon de 5 sillas ya no se pinta en miniatura dentro de un modal
+     enorme, y uno de 40 sigue acotado. */
   justify-self: center;
-  max-height: 64px;
-  max-width: 64px;
+  max-height: var(--gafa-seat-max, 92px);
+  max-width: var(--gafa-seat-max, 92px);
   width: 100%;
   cursor: pointer;
   display: flex;

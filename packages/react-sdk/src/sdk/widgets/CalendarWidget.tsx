@@ -1963,7 +1963,16 @@ function SeatMapInline({
           className="gafa-seatmap__grid"
           role="listbox"
           aria-label="Lugares del salón"
-          style={{ gridTemplateColumns: `repeat(${map.columns}, minmax(44px, 1fr))` }}
+          style={
+            {
+              // minmax(44px, 1fr): los lugares crecen para llenar el ancho
+              // disponible (salones chicos ya no se ven diminutos) pero nunca
+              // bajan del tamano tocable; si no caben, scrollea el contenedor.
+              gridTemplateColumns: `repeat(${map.columns}, minmax(44px, 1fr))`,
+              "--gafa-seat-cols": map.columns,
+              "--gafa-seat-rows": map.rows,
+            } as React.CSSProperties
+          }
         >
         {map.objects.map((seat) => {
           const style: React.CSSProperties = {
