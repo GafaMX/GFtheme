@@ -29,7 +29,12 @@ import type {
   UpdateProfilePayload,
 } from "./types";
 import type { GafaSdkConfig } from "../config";
-import { clearStoredToken, readStoredToken, writeStoredToken } from "./tokenStorage";
+import {
+  clearStoredToken,
+  readStoredToken,
+  subscribeToAuthChanges,
+  writeStoredToken,
+} from "./tokenStorage";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -225,9 +230,26 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   // La API anida location/meetings bajo brand/{slug}; el widget solo conoce el locationId,
   // asi que recordamos la location completa (con su slug y brand) cuando se listan.
   const locationById = new Map<number, Location>();
+  // Cache en memoria para no desencriptar en cada request, pero SIEMPRE se
+  // resincroniza con localStorage: el login puede ocurrir en otra instancia del
+  // cliente (otro mount / otro widget root) y dejar esta copia vieja en null.
+  // Si eso pasa, getProfile() devolvia null, el calendario borraba el token
+  // recien escrito y el siguiente clic pedia login otra vez con "Mi cuenta" en verde.
   let token: string | null = readStoredToken();
 
+  function syncTokenFromStorage(): string | null {
+    token = readStoredToken();
+    return token;
+  }
+
+  if (typeof window !== "undefined") {
+    subscribeToAuthChanges(() => {
+      syncTokenFromStorage();
+    });
+  }
+
   function authHeaders(): Record<string, string> {
+    syncTokenFromStorage();
     const headers: Record<string, string> = {
       Accept: "application/json",
       "GAFAFIT-COMPANY": String(config.companyId),
@@ -544,7 +566,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async getProfile(): Promise<UserProfile | null> {
-      if (!token) return null;
+      // Captura el Bearer con el que ESTE request va a hablarle a /me. Si mientras
+      // tanto hay un login nuevo, un 401 viejo en vuelo NO debe borrar el token
+      // recien guardado (era exactamente el bug de "mapa ok → siguiente clic
+      // pide login otra vez").
+      const usedToken = syncTokenFromStorage();
+      if (!usedToken) return null;
 
       try {
         const raw = await apiGet<RawUserProfile>("/me");
@@ -566,7 +593,13 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
         return profile;
       } catch (error) {
-        if (error instanceof GafaApiError && error.status === 401) return null;
+        if (error instanceof GafaApiError && error.status === 401) {
+          if (readStoredToken() === usedToken) {
+            token = null;
+            clearStoredToken();
+          }
+          return null;
+        }
         throw error;
       }
     },

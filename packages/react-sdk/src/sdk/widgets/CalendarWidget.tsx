@@ -5,7 +5,7 @@ import { MonthCalendar } from "./MonthCalendar";
 import { FancyOverlay } from "./FancyOverlay";
 import { AuthWidget } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
-import { clearStoredToken, readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
+import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import type {
   Brand,
   CreateReservationResult,
@@ -107,8 +107,13 @@ export function CalendarWidget({
 
   useEffect(() => {
     return subscribeToAuthChanges(() => {
-      setHasToken(Boolean(readStoredToken()));
-      queryClient.invalidateQueries({ queryKey: ["calendar", "session"] });
+      const next = Boolean(readStoredToken());
+      setHasToken(next);
+      // Importante REMOVE y no solo invalidate: un getProfile() previo que
+      // devolvio `null` (sin token / 401) queda cacheado como success+null.
+      // Tras un login fresco, ese null cacheado disparaba "sesion muerta" y
+      // borraba el token recien guardado antes de que el refetch terminara.
+      queryClient.removeQueries({ queryKey: ["calendar", "session"] });
       queryClient.invalidateQueries({ queryKey: ["calendar", "reservation-context"] });
       queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
     });
@@ -128,17 +133,16 @@ export function CalendarWidget({
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
 
-  // Token muerto (perfil no carga TRAS reintentar): se limpia para que TODO
-  // el sitio quede des-logueado coherente y el siguiente clic pida login.
-  useEffect(() => {
-    if (hasToken && sessionQuery.isSuccess && !sessionQuery.data) {
-      clearStoredToken();
-    }
-  }, [hasToken, sessionQuery.isSuccess, sessionQuery.data]);
+  // El 401 real limpia token en httpGafaClient.getProfile (memoria + storage).
+  // Aqui YA NO se borra el token cuando data===null: un null cacheado de antes
+  // del login (o un /me viejo en vuelo) estaba borrando el Bearer recien
+  // escrito y el siguiente clic volvia a pedir login con "Mi cuenta" en verde.
 
-  // Optimista mientras el perfil carga: con token valido no queremos mandar al
-  // login por un parpadeo; si resulta invalido, el efecto de arriba lo limpia.
-  const isSignedIn = hasToken && (Boolean(sessionQuery.data) || sessionQuery.isLoading);
+  // Optimista mientras el perfil carga o refresca: con token no mandamos al
+  // login por un parpadeo. Incluye isFetching (refetch con cache).
+  const isSignedIn =
+    hasToken &&
+    (Boolean(sessionQuery.data) || sessionQuery.isLoading || sessionQuery.isFetching);
 
   const activeBrand = useMemo(
     () => findActiveBrand(brandsQuery.data ?? [], selectedFilters.brandSlug, filters.brandId),
@@ -520,7 +524,11 @@ export function CalendarWidget({
    * esa ventana volvia a mandar al login aunque ya estuvieras adentro.
    */
   function openMeeting(meeting: Meeting) {
-    const signedInNow = Boolean(readStoredToken());
+    // Token en storage O perfil ya resuelto en este arbol: evita el falso
+    // "necesitas login" cuando localStorage se limpio por un race pero la
+    // sesion sigue viva en memoria / query cache (o al reves).
+    const signedInNow =
+      Boolean(readStoredToken()) || Boolean(sessionQuery.data) || (hasToken && sessionQuery.isFetching);
     if (!signedInNow && client) {
       setAuthGateMeeting(meeting);
       return;

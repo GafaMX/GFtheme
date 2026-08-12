@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createHttpGafaClient } from "../sdk/client/httpGafaClient";
 import { createLegacyGafaFitAdapter } from "../sdk/client/legacyGafaFitAdapter";
@@ -102,9 +102,9 @@ function DemoShell({
     sync();
     return subscribeToAuthChanges(() => {
       sync();
-      // Toda la cache depende de la sesion (perfil, creditos, reservas...):
-      // si el login pasa en un widget con el resto desmontado, sus queries
-      // cacheadas quedarian con el "null" de antes del login.
+      // Toda la cache depende de la sesion (perfil, creditos, reservas...).
+      // removeQueries del session evita reutilizar un success+null pre-login.
+      queryClient.removeQueries({ queryKey: ["calendar", "session"] });
       queryClient.invalidateQueries();
     });
   }, [client, queryClient]);
@@ -202,12 +202,18 @@ function DemoShell({
 }
 
 function useDemoClient(brand: BrandConfig) {
-  const [state] = useState(() => createDemoClient(brand));
-  const [current, setCurrent] = useState(state);
+  // Una sola instancia por marca: el effect anterior recreaba client+QueryClient
+  // en CADA mount (mismo brand), y el login podia escribir el token en una
+  // instancia mientras el calendario ya usaba otra con el Bearer en null.
+  const [current, setCurrent] = useState(() => createDemoClient(brand));
+  const brandIdentity = `${brand.companyId}:${brand.apiClient}`;
+  const prevIdentityRef = useRef(brandIdentity);
 
   useEffect(() => {
+    if (prevIdentityRef.current === brandIdentity) return;
+    prevIdentityRef.current = brandIdentity;
     setCurrent(createDemoClient(brand));
-  }, [brand]);
+  }, [brand, brandIdentity]);
 
   return current;
 }
