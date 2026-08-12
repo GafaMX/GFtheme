@@ -318,6 +318,7 @@ export type CheckoutConfig = {
   /** Solo lo que la clase acepta; en checkout sin clase, el catalogo completo. */
   combos: CatalogItem[];
   memberships: CatalogItem[];
+  products: CatalogItem[];
   /** Credenciales del script de GafaPayFront (data-gafapay-config). */
   gafapayClientId?: string | null;
   gafapayClientSecret?: string | null;

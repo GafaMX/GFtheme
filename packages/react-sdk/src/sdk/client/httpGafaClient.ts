@@ -545,7 +545,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     }).format(amount);
   }
 
-  function normalizeCatalogItem(raw: RawCatalogItem, type: "combo" | "membership"): CatalogItem | null {
+  function normalizeCatalogItem(
+    raw: RawCatalogItem,
+    type: "combo" | "membership" | "product",
+  ): CatalogItem | null {
     // hide_in_front: productos solo para uso interno / backoffice.
     if (raw.hide_in_front) return null;
     const price = moneyNumber(raw.price);
@@ -1242,6 +1245,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const validMemberships = membershipsRaw
         .map((item) => normalizeCatalogItem(item, "membership"))
         .filter((item): item is CatalogItem => Boolean(item));
+      const productsRaw = parseJsonBlock<RawCatalogItem[]>(readFancyBlock(doc, "productsSelection")) ?? [];
+      const validProducts = productsRaw
+        .map((item) => normalizeCatalogItem(item, "product"))
+        .filter((item): item is CatalogItem => Boolean(item));
 
       const userBlock = parseJsonBlock<{ id?: number; users_id?: number; companies_id?: number }>(
         readFancyBlock(doc, "user"),
@@ -1289,6 +1296,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         canRedeemStoreCredit: canRedeem === "1" || canRedeem === "true",
         combos: validCombos,
         memberships: validMemberships,
+        products: validProducts,
         companiesId: locationBlock?.companies_id ?? userBlock?.companies_id,
         locationId: locationBlock?.id,
         userProfileId: userBlock?.id ?? profile.id,

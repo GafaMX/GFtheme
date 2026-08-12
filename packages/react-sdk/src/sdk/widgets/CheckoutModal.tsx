@@ -46,7 +46,7 @@ export type CheckoutModalProps = {
 };
 
 type CheckoutStep = "shop" | "auth" | "pay" | "thanks";
-type CatalogTab = "packages" | "memberships";
+type CatalogTab = "packages" | "memberships" | "products";
 
 /**
  * Checkout nativo v2 (reemplaza al Fancy legacy). Cuando nace de una clase,
@@ -199,6 +199,7 @@ export function CheckoutModal({
   const memberships = config?.memberships?.length
     ? config.memberships
     : (catalogQuery.data?.memberships ?? []);
+  const products = config?.products ?? [];
 
   useEffect(() => {
     if (selectedMethodId != null) return;
@@ -207,12 +208,30 @@ export function CheckoutModal({
 
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
 
+  const search = query.trim().toLowerCase();
+
   const catalogItems = useMemo(() => {
-    const list = tab === "packages" ? combos : memberships;
-    const q = query.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((item) => item.name.toLowerCase().includes(q));
-  }, [tab, combos, memberships, query]);
+    if (search) return [];
+    return tab === "packages" ? combos : tab === "memberships" ? memberships : products;
+  }, [tab, combos, memberships, products, search]);
+
+  /**
+   * Buscar no depende de la pestaña activa: escribir "mem" desde Paquetes
+   * tiene que encontrar la membresia igual. Los resultados salen agrupados
+   * por tipo para no perder el contexto.
+   */
+  const searchGroups = useMemo(() => {
+    if (!search) return null;
+    const match = (items: CatalogItem[]) =>
+      items.filter((item) => item.name.toLowerCase().includes(search));
+    return [
+      { key: "packages" as const, label: "Paquetes", items: match(combos) },
+      { key: "memberships" as const, label: "Membresías", items: match(memberships) },
+      { key: "products" as const, label: "Productos", items: match(products) },
+    ].filter((group) => group.items.length > 0);
+  }, [search, combos, memberships, products]);
+
+  const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
   const relevantLines = lines.filter((line) => line.brandSlug === brandSlug);
   const subtotal = cartSubtotal(relevantLines);
@@ -276,7 +295,8 @@ export function CheckoutModal({
 
   function handleAdd(item: CatalogItem) {
     if (!brandSlug) return;
-    const type = item.type === "membership" ? "membership" : "combo";
+    const type: CartLineType =
+      item.type === "membership" ? "membership" : item.type === "product" ? "product" : "combo";
     const price = item.priceFinal ?? item.price ?? 0;
     addItem({
       id: item.id,
@@ -295,14 +315,15 @@ export function CheckoutModal({
   const preselectDone = useRef(false);
   useEffect(() => {
     if (!preselect || preselectDone.current || !brandSlug) return;
-    const pool = preselect.type === "membership" ? memberships : combos;
+    const pool =
+      preselect.type === "membership" ? memberships : preselect.type === "product" ? products : combos;
     const item = pool.find((candidate) => candidate.id === preselect.id);
     if (!item) return;
     preselectDone.current = true;
     handleAdd(item);
     // handleAdd es estable en la practica (depende de brandSlug/currency).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preselect, combos, memberships, brandSlug]);
+  }, [preselect, combos, memberships, products, brandSlug]);
 
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
   async function completePurchase(paymentData: Record<string, unknown>) {
@@ -474,6 +495,18 @@ export function CheckoutModal({
                         Membresías
                         {memberships.length ? <em>{memberships.length}</em> : null}
                       </button>
+                      {products.length ? (
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={tab === "products"}
+                          data-active={tab === "products" ? "true" : undefined}
+                          onClick={() => setTab("products")}
+                        >
+                          Productos
+                          <em>{products.length}</em>
+                        </button>
+                      ) : null}
                     </div>
 
                     <label className="gafa-checkout-search">
@@ -485,7 +518,7 @@ export function CheckoutModal({
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
                         placeholder="Buscar"
-                        aria-label="Buscar en el catálogo"
+                        aria-label="Buscar en todo el catálogo"
                       />
                     </label>
                   </div>
@@ -499,30 +532,50 @@ export function CheckoutModal({
                     </p>
                   ) : null}
 
-                  <div className="gafa-checkout-grid">
-                    {catalogItems.map((item) => (
-                      <ProductCard
-                        key={`${item.type}-${item.id}`}
-                        item={item}
-                        inCartAmount={
-                          relevantLines.find(
-                            (line) =>
-                              line.id === item.id &&
-                              line.type === (item.type === "membership" ? "membership" : "combo"),
-                          )?.amount ?? 0
-                        }
-                        onAdd={() => handleAdd(item)}
-                      />
-                    ))}
-                  </div>
+                  {searchGroups ? (
+                    <div className="gafa-checkout-results">
+                      {searchGroups.map((group) => (
+                        <section key={group.key}>
+                          <h3 className="gafa-checkout-results__title">
+                            {group.label} <span>{group.items.length}</span>
+                          </h3>
+                          <div className="gafa-checkout-grid">
+                            {group.items.map((item) => (
+                              <ProductCard
+                                key={`${item.type}-${item.id}`}
+                                item={item}
+                                inCartAmount={amountInCart(relevantLines, item)}
+                                onAdd={() => handleAdd(item)}
+                              />
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="gafa-checkout-grid">
+                      {catalogItems.map((item) => (
+                        <ProductCard
+                          key={`${item.type}-${item.id}`}
+                          item={item}
+                          inCartAmount={amountInCart(relevantLines, item)}
+                          onAdd={() => handleAdd(item)}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-                  {!configQuery.isLoading && !catalogQuery.isLoading && catalogItems.length === 0 ? (
+                  {!configQuery.isLoading &&
+                  !catalogQuery.isLoading &&
+                  (search ? searchTotal === 0 : catalogItems.length === 0) ? (
                     <p className="gafa-sdk-state">
-                      {query
+                      {search
                         ? "Nada coincide con tu búsqueda."
                         : tab === "packages"
                           ? "Esta clase no tiene paquetes disponibles."
-                          : "Esta clase no tiene membresías disponibles."}
+                          : tab === "memberships"
+                            ? "Esta clase no tiene membresías disponibles."
+                            : "No hay productos disponibles."}
                     </p>
                   ) : null}
                 </>
@@ -613,7 +666,7 @@ export function CheckoutModal({
                     <circle cx="16.4" cy="20.4" r="1.15" fill="currentColor" />
                   </svg>
                   <p>Tu carrito está vacío</p>
-                  <small>Elige un paquete o membresía para continuar.</small>
+                  <small>Agrega algo del catálogo para continuar.</small>
                 </div>
               ) : (
                 <ul className="gafa-checkout__lines">
@@ -779,6 +832,13 @@ export function CheckoutModal({
       </div>
     </div>
   );
+}
+
+/** Cuantas unidades de este item ya estan en el carrito. */
+function amountInCart(lines: CartLine[], item: CatalogItem): number {
+  const type: CartLineType =
+    item.type === "membership" ? "membership" : item.type === "product" ? "product" : "combo";
+  return lines.find((line) => line.id === item.id && line.type === type)?.amount ?? 0;
 }
 
 function ProductCard({

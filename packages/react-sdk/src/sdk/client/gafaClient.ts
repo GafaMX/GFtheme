@@ -210,6 +210,9 @@ export function createMockGafaClient(): GafaClient {
           subscribable: true,
         },
       ],
+      products: [
+        { id: 9, name: "Agua", price: 40, priceFinal: 40, priceLabel: "$40", type: "product" },
+      ],
       companiesId: 1,
       locationId: 1,
       userProfileId: 1,

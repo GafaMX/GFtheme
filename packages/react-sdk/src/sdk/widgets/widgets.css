@@ -4707,3 +4707,30 @@
 .gafa-checkout-paymount .card-list:empty {
   display: none;
 }
+
+/* Resultados de busqueda: agrupados por tipo, porque el buscador mira todo el
+   catalogo y no solo la pestaña abierta. */
+.gafa-checkout-results {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.gafa-checkout-results__title {
+  align-items: center;
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.74rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  letter-spacing: 0.08em;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+}
+
+.gafa-checkout-results__title span {
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 14%, transparent);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  padding: 0.1rem 0.4rem;
+}
