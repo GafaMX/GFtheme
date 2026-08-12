@@ -50,14 +50,7 @@ const BRANDS: Record<string, BrandConfig> = {
     // Mismas credenciales publicas que fitspin.mx expone en GFThemeOptions.
     apiClient: "74",
     apiSecret: "hI8M3iAEVlWIIfxBLesaxhtEIVpEEPwRyHyxw523",
-    theme: {
-      colors: { brand: "#f2b705", accent: "#111827" },
-      colorScheme: "light",
-      typography: {
-        fontFamily: '"Manrope", ui-sans-serif, system-ui, sans-serif',
-        headingFontFamily: '"Syne", ui-sans-serif, system-ui, sans-serif',
-      },
-    },
+    theme: { colors: { brand: "#f2b705", accent: "#111827" }, colorScheme: "light" },
     // Fitspin abre en semana a proposito: demuestra que la vista inicial es
     // configuracion por socio, no un comportamiento fijo del SDK.
     calendar: { view: "week", filters: { location: true, service: true, staff: true } },

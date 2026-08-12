@@ -62,6 +62,20 @@ const presets: Record<string, GafaBrandTheme> = {
 
 const STORAGE_KEY = "gafa-sdk-color-scheme";
 
+/**
+ * Por defecto los widgets HEREDAN la tipografia del sitio donde se montan: el
+ * SDK no impone ni descarga fuentes (un @import de Google Fonts obligaria a
+ * todos los socios a cargar una fuente que no es la suya).
+ *
+ * Un socio que quiera algo distinto lo pasa en `theme.typography`, p.ej.
+ * `fontFamily: NEUTRAL_FONT_STACK` para una pila del sistema.
+ */
+const DEFAULT_FONT_STACK = "inherit";
+
+/** Pila neutra del sistema: Roboto en Android, San Francisco en Apple, Segoe en Windows. */
+export const NEUTRAL_FONT_STACK =
+  'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
 export function resolveTheme(theme?: GafaBrandTheme) {
   const preset = presets[theme?.preset ?? "default"] ?? presets.default;
 
@@ -70,16 +84,18 @@ export function resolveTheme(theme?: GafaBrandTheme) {
     logoUrl: theme?.logoUrl ?? preset.logoUrl ?? "",
     colors: { ...defaultBase, ...preset.colors, ...theme?.colors } as BrandBaseColors,
     typography: {
+      // Por defecto se hereda la tipografia del sitio del socio: el SDK no
+      // impone (ni descarga) una fuente propia. El fallback es la del sistema
+      // (Roboto en Android, San Francisco en Apple, Segoe en Windows) para el
+      // caso raro de una pagina que no define ninguna.
       fontFamily:
-        theme?.typography?.fontFamily ??
-        preset.typography?.fontFamily ??
-        "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        theme?.typography?.fontFamily ?? preset.typography?.fontFamily ?? DEFAULT_FONT_STACK,
       headingFontFamily:
         theme?.typography?.headingFontFamily ??
         preset.typography?.headingFontFamily ??
         theme?.typography?.fontFamily ??
         preset.typography?.fontFamily ??
-        "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        DEFAULT_FONT_STACK,
     },
     radius: { ...defaultRadius, ...preset.radius, ...theme?.radius },
     assets: { ...preset.assets, ...theme?.assets },
