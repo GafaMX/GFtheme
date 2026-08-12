@@ -119,11 +119,17 @@ export function CalendarWidget({
     queryFn: () => client!.getProfile(),
     enabled: Boolean(client) && hasToken,
     staleTime: 60_000,
-    retry: 0,
+    // Con retry:0 UN solo hipo de red (no un token invalido de verdad) se
+    // interpretaba como "sesion muerta" y se borraba el token: eso es
+    // exactamente el "me saca de mi cuenta muy facil" reportado. Con 2
+    // reintentos, para cuando esto resuelve en `false`, ya es mucho mas
+    // confiable que sea un 401 real y no un parpadeo de la red.
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
 
-  // Token muerto (perfil no carga): se limpia para que TODO el sitio quede
-  // des-logueado coherente y el siguiente clic pida login.
+  // Token muerto (perfil no carga TRAS reintentar): se limpia para que TODO
+  // el sitio quede des-logueado coherente y el siguiente clic pida login.
   useEffect(() => {
     if (hasToken && sessionQuery.isSuccess && !sessionQuery.data) {
       clearStoredToken();
@@ -506,9 +512,16 @@ export function CalendarWidget({
    * Clic en una clase: sin sesion pide login AHI MISMO (nada de abrir un
    * detalle que luego vuelve a pedir clic); con sesion abre el detalle con
    * mapa y confirmacion en un solo paso.
+   *
+   * La decision se toma leyendo el token DIRECTO de localStorage (sincrono),
+   * no del estado `isSignedIn` de este componente: justo despues de loguearse
+   * desde "Mi cuenta" (que vive en otro arbol de React), `hasToken` tarda
+   * hasta el siguiente render en alcanzar al resto del sitio, y un clic en
+   * esa ventana volvia a mandar al login aunque ya estuvieras adentro.
    */
   function openMeeting(meeting: Meeting) {
-    if (!isSignedIn && client) {
+    const signedInNow = Boolean(readStoredToken());
+    if (!signedInNow && client) {
       setAuthGateMeeting(meeting);
       return;
     }
@@ -1434,7 +1447,10 @@ function ReservationPreviewModal({
       }),
     enabled: Boolean(client?.getReservationContext && brandSlug && locationSlug && isSignedIn),
     staleTime: 30_000,
-    retry: 0,
+    // Igual que sessionQuery: sin reintentos, un hipo de red al pedir el mapa
+    // se veia igual que "no tienes mapa para esta clase".
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
 
   const context = contextQuery.data;
@@ -1450,7 +1466,10 @@ function ReservationPreviewModal({
   const soldOut = isSoldOut(meeting);
   // Clase llena: nada de mapa; el boton se convierte en "unirme a la lista".
   const waitlistMode = Boolean(canReserveNative && soldOut && context?.waitlistAvailable);
-  const needsSeat = Boolean(canReserveNative && seatMap && !waitlistMode);
+  // El mapa se muestra SIEMPRE que exista, tengas o no creditos aplicables:
+  // antes, sin creditos, ni siquiera se pintaba y se saltaba directo a "debes
+  // comprar" sin dejar ver el salon ni elegir lugar.
+  const needsSeat = Boolean(context && seatMap && !waitlistMode);
 
   async function confirmReservation(seat: SeatMapObject | null) {
     if (!client?.createReservation || !context) return;
@@ -1488,7 +1507,10 @@ function ReservationPreviewModal({
   const primaryDisabled =
     step === "processing" ||
     (isSignedIn && contextQuery.isLoading) ||
-    (needsSeat && !selectedSeat) ||
+    // Elegir lugar solo es obligatorio para completar una reserva nativa: si
+    // el boton manda a comprar (sin creditos), el mapa es para explorar, no
+    // hace falta escoger lugar todavia.
+    (canReserveNative && needsSeat && !selectedSeat) ||
     (needsPaymentChoice && !activeOption);
 
   const primaryLabel = !isSignedIn
@@ -1612,14 +1634,11 @@ function ReservationPreviewModal({
                     </p>
                   ) : (
                     <p className="gafa-reservation-hint">
-                      No tienes paquetes para esta clase: en el siguiente paso puedes comprar uno.
+                      No tienes créditos ni membresía para esta clase. Puedes elegir tu lugar y comprar lo que aplique
+                      para reservarlo.
                     </p>
                   )
-                ) : (
-                  <p className="gafa-reservation-hint">
-                    Inicia sesión para reservar; te lo pedimos en el siguiente paso.
-                  </p>
-                )}
+                ) : null}
               </div>
 
               {needsSeat && seatMap ? (

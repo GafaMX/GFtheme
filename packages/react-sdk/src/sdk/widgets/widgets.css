@@ -1422,6 +1422,38 @@
   gap: var(--gafa-space-2);
 }
 
+/* Con mapa, dos pastillas solidas del mismo ancho y peso se veian pesadas.
+   El secundario ("seguir viendo horarios") pasa a texto/ghost -- no compite
+   con el CTA principal -- y en escritorio la fila se alinea a la derecha,
+   bajo el mapa, en vez de estirarse de punta a punta del modal. */
+.gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary {
+  background: transparent;
+  border-color: transparent;
+  color: var(--gafa-color-muted-text);
+}
+
+.gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary:hover {
+  background: var(--gafa-color-surface-raised);
+  color: var(--gafa-color-text);
+}
+
+@media (min-width: 640px) {
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions {
+    align-items: center;
+    display: flex;
+    gap: var(--gafa-space-3);
+    justify-content: flex-end;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button:not(.gafa-sdk-button--secondary) {
+    flex: 0 1 340px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary {
+    flex: 0 0 auto;
+  }
+}
+
 .gafa-reservation-hint {
   background: var(--gafa-color-surface-raised);
   border: 1px solid var(--gafa-color-border);
@@ -1505,6 +1537,26 @@
 .gafa-reservation-sheet[data-has-map="true"] {
   max-height: calc(100vh - 24px);
   max-width: min(1240px, 96vw);
+}
+
+/* En escritorio, un mapa chico dejaba el modal muy corto para lo ancho que
+   es (1240px de ancho con 400px de alto se ve raro). Con un minimo razonable
+   se aprovecha mejor el espacio sin obligar a los mapas grandes a estirarse
+   de mas (el max-height de arriba sigue limitando ese caso). */
+@media (min-width: 720px) {
+  .gafa-reservation-sheet[data-has-map="true"] {
+    min-height: min(560px, calc(100vh - 24px));
+    /* El body (info + mapa) crece para llenar ese minimo; hero y acciones se
+       quedan a su alto natural arriba y abajo. */
+    grid-template-rows: auto 1fr auto;
+  }
+
+  /* Con mapas chicos el cuerpo queda mas alto que el mapa: centrado en vez
+     de pegado arriba, se ve a proposito en vez de "sobrar espacio". La
+     columna de info se queda arriba (align-items:start del grid padre). */
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-body > .gafa-seatmap {
+    align-self: center;
+  }
 }
 
 .gafa-reservation-body {
@@ -1686,7 +1738,10 @@
   display: grid;
   gap: 6px;
   justify-items: stretch;
-  min-width: 100%;
+  /* Centrado (no min-width:100%): un mapa mas angosto que su columna ya no
+     se queda pegado a la izquierda con un vacio raro del lado derecho. Si es
+     mas ancho que el contenedor, .gafa-seatmap__scroll sigue scrolleando. */
+  margin-inline: auto;
   width: max-content;
 }
 

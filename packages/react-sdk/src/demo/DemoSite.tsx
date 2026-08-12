@@ -86,7 +86,19 @@ function DemoShell({
   const { client, captcha, queryClient } = useDemoClient(brand);
 
   useEffect(() => {
-    const sync = () => client.getProfile().then((profile) => setSignedIn(Boolean(profile)));
+    // Mismo criterio que AccountModal/CalendarWidget: un hipo de red no debe
+    // verse igual que estar deslogueado.
+    const sync = async () => {
+      for (let attempt = 0; attempt <= 2; attempt++) {
+        try {
+          const profile = await client.getProfile();
+          setSignedIn(Boolean(profile));
+          return;
+        } catch {
+          if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
+        }
+      }
+    };
     sync();
     return subscribeToAuthChanges(() => {
       sync();

@@ -43,15 +43,21 @@ export function AccountModal({
   useEffect(() => {
     if (!client) return;
     let alive = true;
-    const sync = () => {
-      client
-        .getProfile()
-        .then((profile) => {
+    const sync = async () => {
+      // Un solo hipo de red (no un token invalido de verdad) no debe verse
+      // igual que estar deslogueado: sin este reintento, un fallo transitorio
+      // justo al abrir el popup mostraba el login aunque la sesion siguiera
+      // viva en el resto del sitio.
+      for (let attempt = 0; attempt <= 2; attempt++) {
+        try {
+          const profile = await client.getProfile();
           if (alive) setSignedIn(Boolean(profile));
-        })
-        .catch(() => {
-          if (alive) setSignedIn(false);
-        });
+          return;
+        } catch {
+          if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
+        }
+      }
+      if (alive) setSignedIn(false);
     };
     sync();
     const unsubscribe = subscribeToAuthChanges(() => {
