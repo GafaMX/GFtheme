@@ -4410,3 +4410,66 @@
     width: 90px;
   }
 }
+
+/* ── Skeleton del mapa mientras carga el contexto de reserva ── */
+
+.gafa-reservation-hint--loading {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.55rem;
+}
+
+.gafa-reservation-spinner {
+  animation: gafa-spin 0.8s linear infinite;
+  border: 2px solid color-mix(in srgb, var(--gafa-color-muted-text) 30%, transparent);
+  border-radius: 999px;
+  border-top-color: var(--gafa-color-primary);
+  display: inline-block;
+  height: 14px;
+  width: 14px;
+}
+
+@keyframes gafa-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gafa-seatmap-skeleton {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.1rem;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.gafa-seatmap-skeleton__legend {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.gafa-seatmap-skeleton__legend span {
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 16%, transparent);
+  border-radius: 999px;
+  height: 10px;
+  width: 64px;
+}
+
+.gafa-seatmap-skeleton__grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(6, 38px);
+}
+
+.gafa-seatmap-skeleton__grid span {
+  animation: gafa-skeleton-pulse 1.2s ease-in-out infinite;
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 18%, transparent);
+  border-radius: 999px;
+  height: 38px;
+  width: 38px;
+}
+
+@keyframes gafa-skeleton-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}

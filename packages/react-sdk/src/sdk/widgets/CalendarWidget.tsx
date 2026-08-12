@@ -1478,6 +1478,12 @@ function ReservationPreviewModal({
   // antes, sin creditos, ni siquiera se pintaba y se saltaba directo a "debes
   // comprar" sin dejar ver el salon ni elegir lugar.
   const needsSeat = Boolean(context && seatMap && !waitlistMode);
+  // Con sesion, el modal abre DIRECTO en layout ancho con un skeleton del mapa
+  // mientras carga el contexto: nada de "doble pantalla" (una angosta de
+  // "revisando..." y luego el salto al mapa). El estado de carga vive inline
+  // en la columna izquierda, donde despues aparecen paquetes/membresias.
+  const contextLoading = isSignedIn && contextQuery.isLoading;
+  const wideLayout = needsSeat || contextLoading;
 
   async function confirmReservation(seat: SeatMapObject | null) {
     if (!client?.createReservation || !context) return;
@@ -1524,7 +1530,8 @@ function ReservationPreviewModal({
   const primaryLabel = !isSignedIn
     ? "Continuar reserva"
     : contextQuery.isLoading
-      ? "Revisando tus paquetes…"
+      ? // El "revisando..." ya vive en la columna izquierda; el CTA no lo repite.
+        "Reservar"
       : canReserveNative
         ? needsPaymentChoice && !activeOption
           ? "Elige cómo reservar"
@@ -1549,7 +1556,7 @@ function ReservationPreviewModal({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="gafa-reservation-sheet" data-step={step} data-has-map={needsSeat ? "true" : undefined}>
+      <div className="gafa-reservation-sheet" data-step={step} data-has-map={wideLayout ? "true" : undefined}>
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar reserva" onClick={onClose}>
           x
         </button>
@@ -1592,7 +1599,10 @@ function ReservationPreviewModal({
 
                 {isSignedIn ? (
                   contextQuery.isLoading ? (
-                    <p className="gafa-reservation-hint">Revisando tus paquetes…</p>
+                    <div className="gafa-reservation-hint gafa-reservation-hint--loading" aria-live="polite">
+                      <span className="gafa-reservation-spinner" aria-hidden="true" />
+                      Revisando tus paquetes…
+                    </div>
                   ) : needsPaymentChoice ? (
                     <div className="gafa-payment-choice" role="radiogroup" aria-label="¿Con qué quieres reservar?">
                       <span className="gafa-payment-choice__title">¿Con qué quieres reservar?</span>
@@ -1651,6 +1661,19 @@ function ReservationPreviewModal({
 
               {needsSeat && seatMap ? (
                 <SeatMapInline map={seatMap} selected={selectedSeat} onSelect={setSelectedSeat} />
+              ) : contextLoading ? (
+                <div className="gafa-seatmap-skeleton" aria-hidden="true">
+                  <div className="gafa-seatmap-skeleton__legend">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <div className="gafa-seatmap-skeleton__grid">
+                    {Array.from({ length: 18 }).map((_, index) => (
+                      <span key={index} style={{ animationDelay: `${(index % 6) * 90}ms` }} />
+                    ))}
+                  </div>
+                </div>
               ) : null}
 
               {waitlistMode ? (
