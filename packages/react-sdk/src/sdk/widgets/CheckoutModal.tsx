@@ -977,6 +977,16 @@ function ThanksPanel({
               <strong>{formatMoney(line.price * line.amount, currency.prefix, "")}</strong>
             </li>
           ))}
+          <li className="gafa-checkout-thanks__total">
+            <span>Total pagado</span>
+            <strong>
+              {formatMoney(
+                lines.reduce((sum, line) => sum + line.price * line.amount, 0),
+                currency.prefix,
+                currency.suffix,
+              )}
+            </strong>
+          </li>
         </ul>
       ) : null}
 
