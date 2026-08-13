@@ -1556,7 +1556,11 @@ function ReservationPreviewModal({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="gafa-reservation-sheet" data-step={step} data-has-map={wideLayout ? "true" : undefined}>
+      <div
+        className="gafa-reservation-sheet"
+        data-step={step}
+        data-has-map={wideLayout && step !== "done" ? "true" : undefined}
+      >
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar reserva" onClick={onClose}>
           x
         </button>
@@ -1702,42 +1706,49 @@ function ReservationPreviewModal({
               ✓
             </span>
             <h3>{result.isWaitlist ? "Estás en la lista de espera" : "¡Reserva confirmada!"}</h3>
-            <p>
-              {meeting.name} · {formatDate(getMeetingStart(meeting))} ·{" "}
+            <p className="gafa-reservation-success__when">
+              {meeting.service?.name ?? meeting.serviceName ?? meeting.name}
+              {" · "}
+              {formatDate(getMeetingStart(meeting))}
+              {" · "}
               {formatTime(getMeetingStart(meeting), meeting.timezone)}
             </p>
-            {selectedSeat?.label ? (
-              <p className="gafa-reservation-success__seat">
-                Tu lugar: <strong>{selectedSeat.label}</strong>
-              </p>
+
+            {selectedSeat?.label || activeOption ? (
+              <div className="gafa-reservation-success__card">
+                {selectedSeat?.label ? (
+                  <p className="gafa-reservation-success__seat">
+                    Tu lugar: <strong>{selectedSeat.label}</strong>
+                  </p>
+                ) : null}
+                {activeOption ? (
+                  <p>
+                    {activeOption.kind === "membership" ? (
+                      <>
+                        Reservaste con tu membresía <strong>{activeOption.name}</strong>.
+                      </>
+                    ) : typeof activeOption.remaining === "number" ? (
+                      <>
+                        Usaste tu paquete <strong>{activeOption.name}</strong>: te{" "}
+                        {activeOption.remaining - 1 === 1 ? "queda" : "quedan"}{" "}
+                        <strong>{activeOption.remaining - 1}</strong>{" "}
+                        {activeOption.remaining - 1 === 1 ? "crédito" : "créditos"}.
+                      </>
+                    ) : (
+                      <>
+                        Reservaste con tu paquete <strong>{activeOption.name}</strong>.
+                      </>
+                    )}
+                  </p>
+                ) : null}
+              </div>
             ) : null}
-            {activeOption ? (
-              <p className="gafa-muted">
-                {activeOption.kind === "membership" ? (
-                  <>
-                    Reservaste con tu membresía <strong>{activeOption.name}</strong>.
-                  </>
-                ) : typeof activeOption.remaining === "number" ? (
-                  <>
-                    Usaste tu paquete <strong>{activeOption.name}</strong>: te{" "}
-                    {activeOption.remaining - 1 === 1 ? "queda" : "quedan"}{" "}
-                    <strong>{activeOption.remaining - 1}</strong>{" "}
-                    {activeOption.remaining - 1 === 1 ? "crédito" : "créditos"}.
-                  </>
-                ) : (
-                  <>
-                    Reservaste con tu paquete <strong>{activeOption.name}</strong>.
-                  </>
-                )}
-              </p>
-            ) : null}
+
             <AddToCalendarRow meeting={meeting} seatLabel={selectedSeat?.label} />
 
-            <div className="gafa-reservation-actions">
-              <button className="gafa-sdk-button" type="button" onClick={onClose}>
-                Listo
-              </button>
-            </div>
+            <button className="gafa-sdk-button gafa-reservation-success__done" type="button" onClick={onClose}>
+              Listo
+            </button>
           </div>
         ) : null}
       </div>

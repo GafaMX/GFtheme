@@ -1906,12 +1906,21 @@
 
 /* ------------------------------------------------------------ reserva exitosa */
 
+/* Confirmacion compacta: el sheet deja de usar el layout ancho del mapa. */
+.gafa-reservation-sheet[data-step="done"] {
+  grid-template-rows: none;
+  max-width: 440px;
+  min-height: 0;
+  padding: var(--gafa-space-5) var(--gafa-space-4);
+}
+
 .gafa-reservation-success {
-  display: grid;
-  gap: var(--gafa-space-2);
-  justify-items: center;
-  padding: var(--gafa-space-4) 0;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
   text-align: center;
+  width: 100%;
 }
 
 .gafa-reservation-success__icon {
@@ -1920,20 +1929,56 @@
   border-radius: 50%;
   color: var(--gafa-color-success);
   display: flex;
-  font-size: 1.6rem;
+  font-size: 1.45rem;
   font-weight: 800;
-  height: 56px;
+  height: 52px;
   justify-content: center;
-  width: 56px;
+  margin-bottom: 0.15rem;
+  width: 52px;
+}
+
+.gafa-reservation-success h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.gafa-reservation-success__when {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 22rem;
+}
+
+.gafa-reservation-success__card {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+  padding: 0.85rem 1rem;
+  width: 100%;
+}
+
+.gafa-reservation-success__card p {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  margin: 0;
 }
 
 .gafa-reservation-success__seat {
-  font-size: 1.05rem;
+  color: var(--gafa-color-text) !important;
+  font-size: 1rem !important;
 }
 
-.gafa-reservation-success .gafa-reservation-actions {
-  justify-items: stretch;
-  margin-top: var(--gafa-space-2);
+.gafa-reservation-success__done {
+  margin-top: 0.15rem;
+  max-width: 220px;
   width: 100%;
 }
 
@@ -1941,42 +1986,45 @@
 .gafa-addtocal {
   border-top: 1px solid var(--gafa-color-border);
   display: grid;
-  gap: var(--gafa-space-2);
+  gap: 0.65rem;
   justify-items: center;
-  margin-top: var(--gafa-space-2);
+  margin-top: 0.35rem;
   padding-top: var(--gafa-space-3);
   width: 100%;
 }
 
 .gafa-addtocal__title {
   color: var(--gafa-color-muted-text);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .gafa-addtocal__row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gafa-space-2);
-  justify-content: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
 }
 
 .gafa-addtocal__button {
   align-items: center;
-  background: var(--gafa-color-surface-raised);
+  background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
-  border-radius: var(--gafa-radius-pill);
+  border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-text);
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  gap: 7px;
-  min-height: 38px;
-  padding: 0 0.95rem;
+  gap: 5px;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 0;
+  padding: 0 0.4rem;
   text-decoration: none;
-  transition: border-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
 }
 
 .gafa-addtocal__button svg {
@@ -1985,9 +2033,15 @@
 }
 
 .gafa-addtocal__button:hover {
+  background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
-  transform: translateY(-1px);
+}
+
+@media (max-width: 420px) {
+  .gafa-addtocal__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ------------------------------------------------------- cuenta (popup + perfil) */
@@ -4388,12 +4442,13 @@
 }
 
 .gafa-checkout-thanks {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
   justify-content: center;
   padding: 2.5rem clamp(1.5rem, 5vw, 3rem);
+  text-align: center;
 }
 
 .gafa-checkout-thanks__badge {
@@ -4437,6 +4492,7 @@
   gap: 0.2rem;
   max-width: 26rem;
   padding: 0.9rem 1.05rem;
+  text-align: left;
   width: 100%;
 }
 
@@ -4462,6 +4518,7 @@
   margin: 0;
   max-width: 26rem;
   padding: 0;
+  text-align: left;
   width: 100%;
 }
 
@@ -4484,6 +4541,12 @@
   font-weight: 700;
   margin-top: 0.3rem;
   padding-top: 0.45rem;
+}
+
+.gafa-checkout-thanks > .gafa-sdk-button {
+  margin-top: 0.35rem;
+  max-width: 240px;
+  width: 100%;
 }
 
 /* ── Responsive ── */
