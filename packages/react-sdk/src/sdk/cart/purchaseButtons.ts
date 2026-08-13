@@ -11,6 +11,7 @@ import { useCartStore } from "./cartStore";
  *   <button data-gf-buy data-gf-membership-id="358">Suscribirme</button>
  *   <button data-gf-buy data-gf-product-id="12" data-gf-brand="fitspin">Comprar</button>
  *   <a href="#" data-gf-cart>Ver carrito (<span data-gf-cart-count>0</span>)</a>
+ *   <button data-gf-account>Mi cuenta</button>
  *
  * Marca y sede son opcionales: sin ellas el checkout resuelve la primera de la
  * compañia, que es lo normal en un sitio de un solo estudio.
@@ -28,11 +29,14 @@ export type PurchaseButtonsOptions = {
   onPurchase: (intent: PurchaseIntent) => void;
   /** Abre el checkout sin preseleccion (icono/boton de carrito). */
   onOpenCart: () => void;
+  /** Abre el popup de cuenta (login / perfil). */
+  onOpenAccount?: () => void;
   root?: Document | Element;
 };
 
 const BUY_SELECTOR = "[data-gf-buy]";
 const CART_SELECTOR = "[data-gf-cart]";
+const ACCOUNT_SELECTOR = "[data-gf-account]";
 const COUNT_SELECTOR = "[data-gf-cart-count]";
 
 function readIntent(element: Element): PurchaseIntent | null {
@@ -96,6 +100,13 @@ export function bootstrapPurchaseButtons(options: PurchaseButtonsOptions): () =>
     if (cartButton && (root === host || root.contains(cartButton))) {
       event.preventDefault();
       options.onOpenCart();
+      return;
+    }
+
+    const accountButton = target.closest(ACCOUNT_SELECTOR);
+    if (accountButton && options.onOpenAccount && (root === host || root.contains(accountButton))) {
+      event.preventDefault();
+      options.onOpenAccount();
     }
   };
 

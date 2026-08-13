@@ -30,6 +30,7 @@ después (sliders, filtros, contenido cargado por AJAX).
 | `data-gf-location` | Slug de sede (opcional) |
 | `data-gf-cart` | Abre el carrito guardado, sin preseleccionar nada |
 | `data-gf-cart-count` | Se rellena solo con el número de artículos |
+| `data-gf-account` | Abre el popup de cuenta (login o perfil) |
 
 Marca y sede son opcionales: sin ellas se usa la primera de la compañía, que es
 lo normal en un sitio de un solo estudio. En sitios multi-marca conviene
@@ -49,6 +50,8 @@ declararlas.
 <a href="#" data-gf-cart>
   Carrito (<span data-gf-cart-count>0</span>)
 </a>
+
+<button type="button" data-gf-account>Mi cuenta</button>
 ```
 
 El contador se actualiza solo cuando cambia el carrito. Para ocultar el badge

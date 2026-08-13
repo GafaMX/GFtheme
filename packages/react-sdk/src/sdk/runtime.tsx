@@ -16,6 +16,7 @@ import { ProfileWidget, type ProfileWidgetProps } from "./widgets/ProfileWidget"
 import { AccountModal, type AccountModalProps } from "./widgets/AccountModal";
 import { CheckoutModal, type CheckoutModalProps } from "./widgets/CheckoutModal";
 import { PurchaseButtonWidget, type PurchaseButtonWidgetProps } from "./widgets/PurchaseButtonWidget";
+import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderControls";
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
@@ -28,6 +29,12 @@ export type GafaSdk = {
   mountCatalog(target: string | Element, props?: CatalogWidgetProps): MountedWidget;
   mountProfile(target: string | Element, props?: ProfileWidgetProps): MountedWidget;
   mountPurchaseButton(target: Element, props?: PurchaseButtonWidgetProps): MountedWidget;
+  /**
+   * Iconos de header (Mi cuenta + carrito). Es lo que va en el
+   * `[data-gf-theme="login-register"]` de los sitios viejos: el login entero
+   * se abre en popup, no se pinta el formulario en la barra.
+   */
+  mountHeaderControls(target: string | Element, props?: HeaderControlsMountProps): MountedWidget;
   /** Abre la cuenta (login o perfil) en un popup sobre la pagina actual. */
   openAccount(props?: AccountModalOptions): { close(): void };
   /** Abre el checkout (carrito + pago) sobre la pagina actual. */
@@ -42,6 +49,7 @@ export type GafaSdk = {
 
 export type AccountModalOptions = Omit<AccountModalProps, "client" | "captcha" | "open" | "onClose">;
 export type CheckoutOptions = Omit<CheckoutModalProps, "client" | "onClose">;
+export type HeaderControlsMountProps = Pick<HeaderControlsProps, "showCart"> & AccountModalOptions;
 
 export type MountedWidget = {
   root: Root;
@@ -115,6 +123,27 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     mountPurchaseButton(target, props = {}) {
       return mount(target, <PurchaseButtonWidget client={client} hostElement={target} {...props} />);
     },
+    mountHeaderControls(target, props = {}) {
+      let account: { close(): void } | null = null;
+      let checkout: { close(): void } | null = null;
+      const { showCart, ...accountProps } = props;
+
+      return mount(
+        target,
+        <HeaderControls
+          client={client}
+          showCart={showCart}
+          onOpenAccount={() => {
+            account?.close();
+            account = sdk.openAccount(accountProps);
+          }}
+          onOpenCart={() => {
+            checkout?.close();
+            checkout = sdk.openCheckout({});
+          }}
+        />,
+      );
+    },
     openAccount(props = {}) {
       const host = document.createElement("div");
       document.body.appendChild(host);
@@ -154,6 +183,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     },
     enablePurchaseButtons(root) {
       let current: { close(): void } | null = null;
+      let account: { close(): void } | null = null;
 
       const open = (props: CheckoutOptions) => {
         current?.close();
@@ -169,6 +199,10 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
             preselect: { type: intent.type, id: intent.id },
           }),
         onOpenCart: () => open({}),
+        onOpenAccount: () => {
+          account?.close();
+          account = sdk.openAccount();
+        },
       });
     },
     unmountAll() {

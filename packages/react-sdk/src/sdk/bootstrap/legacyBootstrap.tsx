@@ -46,6 +46,15 @@ export function bootstrapLegacyWidgets(runtime: GafaSdk, root: ParentNode = docu
     });
   });
 
+  // El mail de "restablecer contraseña" llega con ?token=&email= a la home,
+  // que en los sitios viejos solo tiene el boton de cuenta en el header.
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("token") && params.get("email")) {
+      runtime.openAccount();
+    }
+  }
+
   return { mounted };
 }
 
@@ -78,6 +87,11 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
         type: "packages",
         filterByName: element.getAttribute("data-gf-filterbyname") || undefined,
         filterByBrand: element.getAttribute("data-buq-brand") || undefined,
+        onBuy: (item) =>
+          runtime.openCheckout({
+            brandSlug: item.brandSlug,
+            preselect: { type: "combo", id: item.id },
+          }),
       });
       return;
 
@@ -86,6 +100,11 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
         type: "memberships",
         filterByName: element.getAttribute("data-gf-filterbyname") || undefined,
         filterByBrand: element.getAttribute("data-buq-brand") || undefined,
+        onBuy: (item) =>
+          runtime.openCheckout({
+            brandSlug: item.brandSlug,
+            preselect: { type: "membership", id: item.id },
+          }),
       });
       return;
 
@@ -110,6 +129,11 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
       return;
 
     case "login-register":
+      runtime.mountHeaderControls(element, {
+        combineWaitlist: element.getAttribute("data-bq-combine-waitlist") === "true",
+      });
+      return;
+
     case "login-register-pages":
       runtime.mountAuth(element, {
         initialView: readAuthInitialView(element),

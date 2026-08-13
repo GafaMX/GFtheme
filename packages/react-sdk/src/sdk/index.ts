@@ -1,5 +1,5 @@
 export { createGafaSdk } from "./runtime";
-export type { AccountModalOptions, CheckoutOptions, GafaSdk, MountedWidget } from "./runtime";
+export type { AccountModalOptions, CheckoutOptions, GafaSdk, HeaderControlsMountProps, MountedWidget } from "./runtime";
 export { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 export type { PurchaseIntent } from "./cart/purchaseButtons";
 export { AccountModal } from "./widgets/AccountModal";

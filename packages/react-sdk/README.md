@@ -48,6 +48,7 @@ import { bootstrapLegacyWidgets, createGafaSdk, readLegacyOptionsFromDom } from 
 
 const sdk = createGafaSdk(readLegacyOptionsFromDom());
 bootstrapLegacyWidgets(sdk);
+sdk.enablePurchaseButtons();
 ```
 
 This maps current containers such as:
@@ -55,7 +56,10 @@ This maps current containers such as:
 ```html
 <section data-gf-theme="meetings-calendar" filter-bq-location="true"></section>
 <section data-gf-theme="combo-list" data-gf-filterbyname="starter"></section>
+<div data-gf-theme="login-register"></div>
 ```
+
+`login-register` is the header control from v1: a **Mi cuenta** button (plus cart when there are items). Clicking it opens the full login/profile popup. The dedicated page `login-register-pages` still mounts the full form inline.
 
 ## Development
 
