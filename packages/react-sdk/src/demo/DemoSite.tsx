@@ -11,6 +11,7 @@ import { CatalogWidget } from "../sdk/widgets/CatalogWidget";
 import { AccountModal } from "../sdk/widgets/AccountModal";
 import { CheckoutModal } from "../sdk/widgets/CheckoutModal";
 import { useCartStore } from "../sdk/cart/cartStore";
+import { prefetchCheckoutCatalog } from "../sdk/cart/checkoutCatalog";
 import type { CartLineType } from "../sdk/client/types";
 import "../sdk/theme/theme.css";
 import "../sdk/widgets/widgets.css";
@@ -118,6 +119,10 @@ function DemoShell({
       queryClient.invalidateQueries();
     });
   }, [client, queryClient]);
+
+  useEffect(() => {
+    prefetchCheckoutCatalog(queryClient, client);
+  }, [client, queryClient, cartCount]);
 
   // El fondo de la pagina lo pone el demo, no el SDK: en un sitio real es el
   // propio sitio el que lo define.

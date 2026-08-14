@@ -19,6 +19,7 @@ import { PurchaseButtonWidget, type PurchaseButtonWidgetProps } from "./widgets/
 import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderControls";
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 import { useCartStore } from "./cart/cartStore";
+import { prefetchCheckoutCatalog } from "./cart/checkoutCatalog";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
 
@@ -102,6 +103,10 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   // con la sesion, y pueden haberse cacheado antes de autenticar.
   subscribeToAuthChanges(() => queryClient.invalidateQueries());
   const mounts = new Set<MountedWidget>();
+  prefetchCheckoutCatalog(queryClient, client);
+  const unsubCartWarm = useCartStore.subscribe(() => {
+    prefetchCheckoutCatalog(queryClient, client);
+  });
 
   function mount(target: string | Element, node: ReactNode): MountedWidget {
     const element = resolveTarget(target);
@@ -222,6 +227,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     },
     openCheckout(props = {}) {
       silenceLegacyFancy();
+      prefetchCheckoutCatalog(queryClient, client, props.brandSlug);
       const host = document.createElement("div");
       document.body.appendChild(host);
 
@@ -271,6 +277,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     unmountAll() {
       purchaseButtonsStop?.();
       purchaseButtonsStop = null;
+      unsubCartWarm();
       activeCheckout = null;
       activeAccount = null;
       Array.from(mounts).forEach((mounted) => mounted.unmount());

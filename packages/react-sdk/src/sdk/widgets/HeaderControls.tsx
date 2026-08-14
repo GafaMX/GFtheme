@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { GafaClient } from "../client/types";
 import { subscribeToAuthChanges } from "../client/tokenStorage";
 import { useCartStore } from "../cart/cartStore";
+import {
+  CHECKOUT_CATALOG_STALE_MS,
+  checkoutCatalogQueryKey,
+  fetchCheckoutCatalog,
+} from "../cart/checkoutCatalog";
 
 export type HeaderControlsProps = {
   client?: GafaClient;
@@ -23,7 +29,16 @@ export function HeaderControls({
   onOpenCart,
 }: HeaderControlsProps) {
   const [signedIn, setSignedIn] = useState(false);
-  const cartCount = useCartStore((s) => s.lines.reduce((sum, line) => sum + line.amount, 0));
+  const lines = useCartStore((s) => s.lines);
+  const cartCount = lines.reduce((sum, line) => sum + line.amount, 0);
+  const cartBrand = lines[0]?.brandSlug;
+
+  useQuery({
+    queryKey: checkoutCatalogQueryKey(cartBrand),
+    queryFn: () => fetchCheckoutCatalog(client!, cartBrand!),
+    enabled: Boolean(client && cartBrand && cartCount > 0),
+    staleTime: CHECKOUT_CATALOG_STALE_MS,
+  });
 
   useEffect(() => {
     if (!client) return;

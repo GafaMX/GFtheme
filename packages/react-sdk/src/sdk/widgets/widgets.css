@@ -3954,6 +3954,39 @@
   border-color: var(--gafa-color-primary);
 }
 
+.gafa-checkout-catalog-loading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.gafa-checkout-product--skel {
+  gap: 0.55rem;
+  min-height: 148px;
+  pointer-events: none;
+}
+
+.gafa-checkout-product-skel__price {
+  height: 22px;
+  width: 42%;
+}
+
+.gafa-checkout-product-skel__title {
+  height: 12px;
+  width: 78%;
+}
+
+.gafa-checkout-product-skel__meta {
+  height: 10px;
+  width: 55%;
+}
+
+.gafa-checkout-product-skel__btn {
+  border-radius: 999px;
+  height: 34px;
+  margin-top: auto;
+  width: 100%;
+}
+
 .gafa-checkout-product__info {
   position: absolute;
   right: 0.6rem;

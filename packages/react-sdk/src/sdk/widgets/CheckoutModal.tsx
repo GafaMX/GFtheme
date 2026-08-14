@@ -28,6 +28,11 @@ import {
   type GafaPayWidgetProps,
 } from "../payments/gafaPay";
 import { findPurchasableItem, sameCatalogId } from "../cart/findPurchasable";
+import {
+  CHECKOUT_CATALOG_STALE_MS,
+  checkoutCatalogQueryKey,
+  fetchCheckoutCatalog,
+} from "../cart/checkoutCatalog";
 
 export type CheckoutModalProps = {
   client: GafaClient;
@@ -212,16 +217,10 @@ export function CheckoutModal({
   // sede en create-form-template. Si no, un paquete de Lomas no aparece cuando
   // el checkout resolvio Cancun como primera sede.
   const catalogQuery = useQuery({
-    queryKey: ["checkout", "catalog", brandSlug],
-    queryFn: async () => {
-      const [combos, memberships] = await Promise.all([
-        client.listCombos(brandSlug!),
-        client.listMemberships(brandSlug!),
-      ]);
-      return { combos, memberships };
-    },
+    queryKey: checkoutCatalogQueryKey(brandSlug),
+    queryFn: () => fetchCheckoutCatalog(client, brandSlug!),
     enabled: Boolean(brandSlug) && !meeting,
-    staleTime: 60_000,
+    staleTime: CHECKOUT_CATALOG_STALE_MS,
   });
 
   const combos = meeting ? (config?.combos ?? []) : (catalogQuery.data?.combos ?? config?.combos ?? []);
@@ -229,6 +228,15 @@ export function CheckoutModal({
     ? (config?.memberships ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
   const products = config?.products ?? [];
+
+  // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
+  // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
+  // antes de pedir nada. Skeleton hasta que haya fetch real (exito o error).
+  const catalogBusy = meeting
+    ? !configQuery.isFetched &&
+      !configQuery.isError &&
+      (profileQuery.isPending || Boolean(isSignedIn))
+    : !catalogQuery.isFetched && !catalogQuery.isError;
 
   useEffect(() => {
     if (selectedMethodId != null) return;
@@ -263,12 +271,8 @@ export function CheckoutModal({
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
   const relevantLines = meeting
-    ? lines.filter((line) => line.brandSlug === brandSlug)
-    : lines.filter((line) => {
-        if (preselect && sameCatalogId(line.id, preselect.id)) return true;
-        if (!brandSlug) return true;
-        return line.brandSlug === brandSlug;
-      });
+    ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
+    : lines;
   const subtotal = cartSubtotal(relevantLines);
   const total = Math.max(0, subtotal - discountAmount);
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
@@ -591,16 +595,9 @@ export function CheckoutModal({
                     </label>
                   </div>
 
-                  {configQuery.isLoading || catalogQuery.isLoading ? (
-                    <p className="gafa-sdk-state">Cargando catálogo…</p>
-                  ) : null}
-                  {(configQuery.isError && !combos.length && !memberships.length) || catalogQuery.isError ? (
-                    <p className="gafa-sdk-state gafa-sdk-state--error">
-                      No pudimos cargar el catálogo de esta sede.
-                    </p>
-                  ) : null}
-
-                  {searchGroups ? (
+                  {catalogBusy ? (
+                    <CatalogSkeleton />
+                  ) : searchGroups ? (
                     <div className="gafa-checkout-results">
                       {searchGroups.map((group) => (
                         <section key={group.key}>
@@ -633,8 +630,16 @@ export function CheckoutModal({
                     </div>
                   )}
 
-                  {!configQuery.isLoading &&
-                  !catalogQuery.isLoading &&
+                  {!catalogBusy &&
+                  ((configQuery.isError && !combos.length && !memberships.length) || catalogQuery.isError) ? (
+                    <p className="gafa-sdk-state gafa-sdk-state--error">
+                      No pudimos cargar el catálogo de esta sede.
+                    </p>
+                  ) : null}
+
+                  {!catalogBusy &&
+                  !catalogQuery.isError &&
+                  !(configQuery.isError && !combos.length && !memberships.length) &&
                   (search ? searchTotal === 0 : catalogItems.length === 0) ? (
                     <p className="gafa-sdk-state">
                       {search
@@ -925,6 +930,24 @@ function amountInCart(lines: CartLine[], item: CatalogItem): number {
   const type: CartLineType =
     item.type === "membership" ? "membership" : item.type === "product" ? "product" : "combo";
   return lines.find((line) => line.id === item.id && line.type === type)?.amount ?? 0;
+}
+
+function CatalogSkeleton() {
+  return (
+    <div className="gafa-checkout-catalog-loading" aria-busy="true" aria-live="polite">
+      <div className="gafa-checkout-grid" aria-hidden="true">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div className="gafa-checkout-product gafa-checkout-product--skel" key={index}>
+            <span className="gafa-skeleton gafa-checkout-product-skel__price" />
+            <span className="gafa-skeleton gafa-checkout-product-skel__title" />
+            <span className="gafa-skeleton gafa-checkout-product-skel__meta" />
+            <span className="gafa-skeleton gafa-checkout-product-skel__btn" />
+          </div>
+        ))}
+      </div>
+      <p className="gafa-sdk-state">Cargando catálogo…</p>
+    </div>
+  );
 }
 
 function ProductCard({
