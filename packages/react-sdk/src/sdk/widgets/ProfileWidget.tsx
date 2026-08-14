@@ -615,7 +615,7 @@ function OverviewPanel({
           </div>
         )}
 
-        {upcomingCount > 1 || waitlistCount > 0 ? (
+        {upcomingCount > 0 || waitlistCount > 0 ? (
           <button className="gafa-acct-next__more" type="button" onClick={() => onGoTo("classes")}>
             {upcomingCount > 1 ? `Ver mis ${upcomingCount} clases` : "Ver mis clases"}
             {waitlistCount > 0 ? ` · ${waitlistCount} en lista de espera` : ""}
@@ -1876,7 +1876,7 @@ function relativeDayLabel(value: string): string {
   const days = Math.round((startOfDay(date) - startOfDay(today)) / 86_400_000);
   if (days === 0) return "Hoy";
   if (days === 1) return "Mañana";
-  return capitalize(date.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "short" }));
+  return capitalize(date.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }));
 }
 
 function formatDate(value?: string): string {

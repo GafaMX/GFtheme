@@ -2707,19 +2707,22 @@
 
 .gafa-acct-next__empty {
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: var(--gafa-space-3);
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 .gafa-acct-next__empty-cta {
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 @media (max-width: 560px) {
+  .gafa-acct-next__empty {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
   .gafa-acct-next__empty-cta {
-    margin-left: 0;
+    grid-column: 1 / -1;
     width: 100%;
   }
 }
@@ -2796,7 +2799,7 @@
 .gafa-acct-balance {
   display: grid;
   gap: var(--gafa-space-2);
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .gafa-acct-balance__card {
@@ -2901,17 +2904,19 @@
   grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
 }
 
-/* A los anchos de un popup en movil, minmax(108px) da 2 columnas: con 5
-   tarjetas la ultima quedaba sola y estirada al doble de ancho que sus
-   hermanas, muy raro. Fijar 2 columnas y que la sobrante (si el total es
-   impar) ocupe todo el ancho en vez de estirarse una sola tarjeta al azar. */
+/* Movil: 3 + 2 iguales, sin la quinta tarjeta estirada a lo ancho. */
 @media (max-width: 640px) {
   .gafa-acct-stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  .gafa-acct-stats > :last-child:nth-child(odd) {
-    grid-column: 1 / -1;
+  .gafa-acct-stats > * {
+    grid-column: span 2;
+  }
+
+  .gafa-acct-stats > :nth-child(4),
+  .gafa-acct-stats > :nth-child(5) {
+    grid-column: span 3;
   }
 }
 
@@ -3047,6 +3052,154 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+@media (max-width: 767px) {
+  .gafa-acct__head {
+    padding: var(--gafa-space-3) 48px var(--gafa-space-2) var(--gafa-space-3);
+  }
+
+  .gafa-acct__head h2 {
+    font-size: 1.15rem;
+  }
+
+  .gafa-acct__head p {
+    font-size: 0.8rem;
+  }
+
+  .gafa-acct__body {
+    gap: var(--gafa-space-3);
+    padding: var(--gafa-space-3);
+  }
+
+  .gafa-acct-overview {
+    gap: var(--gafa-space-3);
+  }
+
+  .gafa-acct-next {
+    gap: var(--gafa-space-2);
+    padding: var(--gafa-space-3);
+  }
+
+  .gafa-acct-next__body {
+    align-items: start;
+    gap: var(--gafa-space-2);
+  }
+
+  .gafa-acct-next__when {
+    min-width: 76px;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .gafa-acct-next__when strong {
+    font-size: 0.72rem;
+  }
+
+  .gafa-acct-next__when span {
+    font-size: 0.92rem;
+  }
+
+  .gafa-acct-next__what h3 {
+    font-size: 0.98rem;
+  }
+
+  .gafa-acct-next__what p {
+    font-size: 0.78rem;
+  }
+
+  .gafa-acct-next__countdown {
+    font-size: 0.7rem;
+    margin-top: 0.3rem;
+    padding: 0.12rem 0.45rem;
+  }
+
+  .gafa-acct-next__actions .gafa-sdk-button {
+    font-size: 0.8rem;
+    min-height: 36px;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .gafa-acct-next__empty-emoji {
+    font-size: 1.35rem;
+  }
+
+  .gafa-acct-next__empty p {
+    font-size: 0.9rem;
+  }
+
+  .gafa-acct-next__empty span {
+    font-size: 0.78rem;
+  }
+
+  .gafa-acct-block {
+    gap: var(--gafa-space-2);
+  }
+
+  .gafa-acct-balance {
+    gap: 0.4rem;
+  }
+
+  .gafa-acct-balance__card {
+    padding: 0.55rem 0.4rem;
+    text-align: center;
+  }
+
+  .gafa-acct-balance__card:hover {
+    transform: none;
+  }
+
+  .gafa-acct-balance__emoji {
+    font-size: 0.95rem;
+    margin: 0 auto 0.1rem;
+  }
+
+  .gafa-acct-balance__value {
+    font-size: 1.15rem;
+  }
+
+  .gafa-acct-balance__label {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .gafa-acct-balance__hint,
+  .gafa-acct-balance__title {
+    display: none;
+  }
+
+  .gafa-acct-stats {
+    gap: 0.4rem;
+  }
+
+  .gafa-acct-stat {
+    padding: 0.45rem 0.25rem;
+  }
+
+  .gafa-acct-stat:hover {
+    transform: none;
+  }
+
+  .gafa-acct-stat__emoji {
+    font-size: 0.88rem;
+  }
+
+  .gafa-acct-stat strong {
+    font-size: 1.05rem;
+  }
+
+  .gafa-acct-stat__label {
+    font-size: 0.66rem;
+    line-height: 1.2;
+  }
+
+  .gafa-acct-faves {
+    gap: var(--gafa-space-2);
+    grid-template-columns: 1fr;
+  }
+
+  .gafa-acct-faves p {
+    font-size: 0.78rem;
+  }
 }
 
 /* ----- clases */
