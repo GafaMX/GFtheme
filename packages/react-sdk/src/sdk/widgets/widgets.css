@@ -2645,12 +2645,6 @@
   grid-template-columns: auto minmax(0, 1fr);
 }
 
-@media (min-width: 640px) {
-  .gafa-acct-next__body {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-}
-
 .gafa-acct-next__when {
   background: var(--gafa-color-primary);
   border-radius: var(--gafa-radius-md);
@@ -2690,16 +2684,15 @@
   grid-column: 1 / -1;
 }
 
-@media (min-width: 640px) {
-  .gafa-acct-next__actions {
-    flex-direction: column;
-    grid-column: auto;
-  }
-}
-
 .gafa-acct-next__actions .gafa-sdk-button {
   flex: 1;
   white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .gafa-acct-next__actions .gafa-sdk-button {
+    flex: 0 0 auto;
+  }
 }
 
 .gafa-acct-next__countdown {
