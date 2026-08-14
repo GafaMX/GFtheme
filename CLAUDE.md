@@ -15,12 +15,18 @@ Hay una iniciativa activa para reemplazar el theme legacy (Webpack4/Babel6/React
   - PR [#190](https://github.com/GafaMX/GFtheme/pull/190) `cursor/react-sdk-foundation-6468` — primer código real (ver estado abajo).
   - PR [#191](https://github.com/GafaMX/GFtheme/pull/191) `cursor/setup-dev-environment-3f37` — confirma que el entorno corre limpio en Node 22 (`npm install` + `npm run dev`/`build` del paquete `react-sdk`, sin workarounds).
   - Las 3 son drafts abiertos desde abril/jul-2026, nunca mergeados. Cerrarlos cuando `feature/react-sdk-v2` los reemplace formalmente.
-- **Stack del SDK nuevo:** Vite + TypeScript + React 19 + TanStack Query (data) + Zustand (estado UI) + Zod (validación de `data-gf-options`). Build: `packages/react-sdk/vite.config.ts` (lib mode, exporta ES+UMD, `react`/`react-dom` como peer externos).
+- **Stack del SDK nuevo:** Vite + TypeScript + React 19 + TanStack Query (data) + Zustand (estado UI) + Zod (validación de `data-gf-options`).
+- **Dos builds Vite, no mezclarlos:**
+  - `vite.config.ts` — librería ES+UMD con `react`/`react-dom` **externos** (para apps que ya tienen React). **No** se pega en WordPress.
+  - `vite.embed.config.ts` — IIFE `gafa-sdk.js` con React **dentro**, drop-in como el theme v1. Es el artefacto que se lanza a socios. Receta: `docs/v2-lanzamiento.md`.
+- **No copiar `packages/react-sdk/src` a Replit** (`lib/gafa-react-sdk`). Relanzar Replit reinicia toda la app multi-sitio; V2 se actualiza reemplazando `docs/v2-sdk/gafa-sdk.js`. Replit se queda para sitios que no son V2.
 - **Cómo correr el preview local:**
   ```bash
   cd packages/react-sdk
   npm install
-  npm run dev     # Vite en :5173 (o el puerto libre), demo en index.html con useMockClient:true
+  npm run dev            # Vite en :5173 (o el puerto libre), demo en index.html con useMockClient:true
+  npm test && npm run typecheck
+  npm run publish:embed  # IIFE → ../../docs/v2-sdk/gafa-sdk.js (lo que se pega en WP)
   ```
   El `index.html`/`main.tsx` del paquete montan los 4 widgets con datos mock (`createGafaSdk(..., { useMockClient: true })`) — útil para iterar diseño sin depender de gafa.fit. Para conectar a datos reales hay que resolver el punto de "cliente real" de abajo.
 - **Estado real por widget (verificado corriendo el preview, no solo leyendo código):**
@@ -140,7 +146,8 @@ Pruebas manuales: editar `src/index.html` con distintos `data-gf-theme` y `data-
 `login` · `register` · `password-recovery` · `login-register` (modal) · `combo-list` · `membership-list` · `staff-list` · `service-list` · `meetings-calendar` · `profile-info` · `purchase-button` · `fancy` (overlay de checkout). Extras: i18n ES/EN, responsive, paginación, filtros dinámicos en el calendario.
 
 ## 9. CI/CD
-No hay `.github/workflows/`. Deploy presumiblemente: push a `master` → build → subida del `dist/` al CDN (`gafa.fit/sdk/dist/`). *(Confirmar el mecanismo real del servidor/CDN al montar el pipeline.)*
+- **Theme legacy:** sigue sin pipeline. Deploy: push a `master` + el `dist/main.min.js` commiteado / CDN Azure (`buq-sdk.azurewebsites.net`).
+- **SDK V2:** workflow manual `.github/workflows/publish-v2-sdk.yml` (`workflow_dispatch`) y el mismo comando en el agente: `npm run publish:embed`. Publica `docs/v2-sdk/gafa-sdk.js`. Detalle operativo: `docs/v2-lanzamiento.md`. **No** dispara un relanzamiento de Replit.
 
 ## Reglas especiales para la IA
 - **Nunca** hardcodear `API_CLIENT/API_SECRET`, keys de reCAPTCHA ni de Conekta: vienen de `data-gf-options` en el host (legacy) o de config inyectada (SDK nuevo).
@@ -148,3 +155,4 @@ No hay `.github/workflows/`. Deploy presumiblemente: push a `master` → build �
 - Legacy: preferir el sistema **`newlook/`**; `default/` es legacy del legacy (no ampliar salvo mantenimiento). El SDK nuevo (`packages/react-sdk/`) no usa SCSS con prefijo GFSDK — usa CSS variables por theme tokens (ver sección "Rewrite en curso").
 - Cualquier campo/endpoint nuevo que se consuma debe existir en la API de gafa.fit (coordinar con ese repo).
 - **`master` es producción** — todo el trabajo del rewrite va en `feature/react-sdk-v2` (o ramas hijas), PR + review humano antes de mergear.
+- **No relanzar Replit para publicar V2.** El artefacto es `docs/v2-sdk/gafa-sdk.js` (`npm run publish:embed`). Pedir a Replit que copie el source reinicia todos los sitios, no solo V2.

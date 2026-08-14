@@ -11,6 +11,7 @@ build/
 remote-repo/
 coverage/
 packages/react-sdk/dist/
+packages/react-sdk/dist-embed/
 .module-cache
 fixtures/dom/public/react-dom.js
 fixtures/dom/public/react.js

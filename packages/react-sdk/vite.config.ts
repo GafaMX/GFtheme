@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+/** Librería (React externo). El drop-in de WP es vite.embed.config.ts. */
 export default defineConfig({
   plugins: [react()],
   server: {

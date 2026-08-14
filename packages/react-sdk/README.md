@@ -41,6 +41,25 @@ sdk.mountAuth("#auth", { initialView: "login" });
 sdk.mountProfile("#profile");
 ```
 
+## WordPress / CDN (sin Replit)
+
+El build de librería deja React como peer. Para un sitio WP hace falta el IIFE
+con React dentro, el mismo patrón que `dist/main.min.js` de v1:
+
+```sh
+npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js
+```
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<rama>/docs/v2-sdk/gafa-sdk.js"></script>
+<script data-gf-options type="application/json">
+  { "GAFA_FIT_URL": "...", "COMPANY_ID": 1, "API_CLIENT": "...", "API_SECRET": "..." }
+</script>
+<section data-gf-theme="meetings-calendar"></section>
+```
+
+No copies `src/` a Replit. Guía: [`docs/v2-lanzamiento.md`](../../docs/v2-lanzamiento.md).
+
 ## Legacy-compatible usage
 
 ```ts
@@ -66,7 +85,10 @@ This maps current containers such as:
 ```sh
 npm run dev
 npm run typecheck
+npm test
 npm run build
+npm run build:embed
+npm run publish:embed
 ```
 
 The current API client intentionally returns mock data unless a host injects the legacy `window.GafaFitSDK`. The next implementation step is to replace the mock client with real gafa.fit/gafa.pay HTTP adapters.

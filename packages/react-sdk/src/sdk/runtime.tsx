@@ -59,7 +59,7 @@ export type MountedWidget = {
   unmount(): void;
 };
 
-type RuntimeOptions = {
+export type RuntimeOptions = {
   client?: GafaClient;
   useMockClient?: boolean;
 };

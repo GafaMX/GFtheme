@@ -70,8 +70,12 @@ Cada punto es un PR chico e independiente, revisable y cancelable por separado.
 ```sh
 cd packages/react-sdk
 npm install
-npm run dev     # index.html, datos mock, para iterar diseño
+npm run dev              # index.html, datos mock, para iterar diseño
+npm run publish:embed    # IIFE para WP / CDN → docs/v2-sdk/gafa-sdk.js (sin Replit)
 ```
+
+Lanzar V2 a un socio es cambiar el `<script src>` a `gafa-sdk.js`, no copiar
+TypeScript a Replit. Ver `docs/v2-lanzamiento.md`.
 
 Para datos reales, `live.html` se conecta a producción usando variables de entorno
 (`VITE_GAFA_FIT_URL`, `VITE_GAFA_COMPANY_ID`, `VITE_GAFA_API_CLIENT`, `VITE_GAFA_API_SECRET`,
