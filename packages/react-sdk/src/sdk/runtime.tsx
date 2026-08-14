@@ -18,6 +18,7 @@ import { CheckoutModal, type CheckoutModalProps } from "./widgets/CheckoutModal"
 import { PurchaseButtonWidget, type PurchaseButtonWidgetProps } from "./widgets/PurchaseButtonWidget";
 import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderControls";
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
+import { useCartStore } from "./cart/cartStore";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
 
@@ -67,6 +68,16 @@ type RuntimeOptions = {
 let activeCheckout: { close(): void } | null = null;
 let activeAccount: { close(): void } | null = null;
 let purchaseButtonsStop: (() => void) | null = null;
+
+function checkoutFromCart(): CheckoutOptions {
+  const { lines } = useCartStore.getState();
+  const first = lines[0];
+  return {
+    skipCatalog: lines.length > 0,
+    brandSlug: first?.brandSlug,
+    locationSlug: lines.find((line) => line.locationSlug)?.locationSlug,
+  };
+}
 
 function silenceLegacyFancy() {
   if (typeof document === "undefined") return;
@@ -179,7 +190,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           }}
           onOpenCart={() => {
             checkout?.close();
-            checkout = sdk.openCheckout({});
+            checkout = sdk.openCheckout(checkoutFromCart());
           }}
         />,
       );
@@ -245,7 +256,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
             preselect: { type: intent.type, id: intent.id },
             skipCatalog: true,
           }),
-        onOpenCart: () => sdk.openCheckout({}),
+        onOpenCart: () => sdk.openCheckout(checkoutFromCart()),
         onOpenAccount: () => {
           sdk.openAccount();
         },

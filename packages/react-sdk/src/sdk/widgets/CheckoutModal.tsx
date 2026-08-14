@@ -86,12 +86,17 @@ export function CheckoutModal({
   const setReservation = useCartStore((s) => s.setReservation);
   const resetAfterPurchase = useCartStore((s) => s.resetAfterPurchase);
 
-  const wantsDirectPay = Boolean(preselect) && skipCatalog !== false;
+  const persistedCart = useCartStore.getState();
+  const wantsDirectPay =
+    skipCatalog !== false &&
+    (Boolean(preselect) || skipCatalog === true || (!meeting && persistedCart.lines.length > 0));
   const stayOnPayRef = useRef(wantsDirectPay);
   const [step, setStep] = useState<CheckoutStep>(wantsDirectPay ? "pay" : "shop");
   // Solo aplica en movil (en desktop el carrito siempre esta desplegado).
   const [cartOpen, setCartOpen] = useState(wantsDirectPay);
-  const [lockedBrandSlug, setLockedBrandSlug] = useState<string | undefined>(brandSlugProp);
+  const [lockedBrandSlug, setLockedBrandSlug] = useState<string | undefined>(
+    brandSlugProp ?? persistedCart.lines[0]?.brandSlug,
+  );
   const [preselectStatus, setPreselectStatus] = useState<"idle" | "loading" | "ready" | "miss">(
     preselect ? "loading" : "idle",
   );
@@ -128,7 +133,7 @@ export function CheckoutModal({
     enabled: !brandSlugProp,
     staleTime: 300_000,
   });
-  const brandSlug = lockedBrandSlug ?? brandSlugProp ?? brandsQuery.data?.[0]?.slug;
+  const brandSlug = lockedBrandSlug ?? brandSlugProp ?? lines[0]?.brandSlug ?? brandsQuery.data?.[0]?.slug;
 
   const locationsQuery = useQuery({
     queryKey: ["checkout", "locations", brandSlug],
@@ -140,7 +145,11 @@ export function CheckoutModal({
     locationId != null
       ? locationsQuery.data?.find((location) => sameCatalogId(location.id, locationId))
       : undefined;
-  const locationSlug = locationSlugProp ?? locationFromId?.slug ?? locationsQuery.data?.[0]?.slug;
+  const locationSlug =
+    locationSlugProp ??
+    locationFromId?.slug ??
+    lines.find((line) => line.locationSlug)?.locationSlug ??
+    locationsQuery.data?.[0]?.slug;
   const resolvedLocationName =
     locationName ?? locationFromId?.name ?? (locationSlugProp ? undefined : locationsQuery.data?.[0]?.name);
 
@@ -252,10 +261,13 @@ export function CheckoutModal({
 
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
-  const relevantLines = lines.filter((line) => {
-    if (preselect && sameCatalogId(line.id, preselect.id)) return true;
-    return Boolean(brandSlug) && line.brandSlug === brandSlug;
-  });
+  const relevantLines = meeting
+    ? lines.filter((line) => line.brandSlug === brandSlug)
+    : lines.filter((line) => {
+        if (preselect && sameCatalogId(line.id, preselect.id)) return true;
+        if (!brandSlug) return true;
+        return line.brandSlug === brandSlug;
+      });
   const subtotal = cartSubtotal(relevantLines);
   const total = Math.max(0, subtotal - discountAmount);
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
@@ -627,9 +639,13 @@ export function CheckoutModal({
                       {search
                         ? "Nada coincide con tu búsqueda."
                         : tab === "packages"
-                          ? "Esta clase no tiene paquetes disponibles."
+                          ? meeting
+                            ? "Esta clase no tiene paquetes disponibles."
+                            : "No hay paquetes disponibles."
                           : tab === "memberships"
-                            ? "Esta clase no tiene membresías disponibles."
+                            ? meeting
+                              ? "Esta clase no tiene membresías disponibles."
+                              : "No hay membresías disponibles."
                             : "No hay productos disponibles."}
                     </p>
                   ) : null}

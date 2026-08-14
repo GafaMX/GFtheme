@@ -86,7 +86,10 @@ function DemoShell({
   const [signedIn, setSignedIn] = useState(false);
   // Compra suelta (sin reserva): el catalogo abre el checkout con el item ya
   // puesto, y el boton del header lo reabre con lo que quedo guardado.
-  const [checkout, setCheckout] = useState<{ preselect?: { type: CartLineType; id: number } } | null>(null);
+  const [checkout, setCheckout] = useState<{
+    preselect?: { type: CartLineType; id: number };
+    skipCatalog?: boolean;
+  } | null>(null);
   const cartCount = useCartStore((s) => s.lines.reduce((sum, line) => sum + line.amount, 0));
   const { scheme } = useGafaTheme();
 
@@ -161,7 +164,7 @@ function DemoShell({
                   className="demo-cart"
                   type="button"
                   title="Tu carrito"
-                  onClick={() => setCheckout({})}
+                  onClick={() => setCheckout({ skipCatalog: true })}
                 >
                   <CartIcon />
                   <span className="demo-cart__count">{cartCount}</span>
@@ -221,7 +224,7 @@ function DemoShell({
           <CheckoutModal
             client={client}
             preselect={checkout.preselect ?? null}
-            skipCatalog={Boolean(checkout.preselect)}
+            skipCatalog={checkout.skipCatalog ?? Boolean(checkout.preselect)}
             onClose={() => setCheckout(null)}
           />
         ) : null}
