@@ -340,7 +340,11 @@ export type DiscountCodeResult = {
   valid: boolean;
   code: string;
   label?: string;
-  /** Monto a restar del total (si el API lo manda). */
+  message?: string;
+  /** `percent` | `price` — contrato del fancy v1 / gafa.fit. */
+  discountType?: string;
+  discountNumber?: number;
+  /** Monto a restar del total (si el API o el mock lo mandan ya calculado). */
   discountAmount?: number;
   raw?: unknown;
 };
@@ -512,6 +516,10 @@ export type GafaClient = {
     brandSlug: string;
     locationSlug: string;
     code: string;
+    /** `users_profiles.id`. El fancy lo pone en la ruta; el meeting NO. */
+    userProfileId?: string | number;
+    /** `urlCheckDiscountCode` del create-form-template (`_|_` = código). */
+    urlTemplate?: string;
     meetingId?: string | number;
     lines: Array<{ id: number; type: CartLineType }>;
   }): Promise<DiscountCodeResult>;

@@ -8,7 +8,6 @@ import type {
   CreateReservationPayload,
   CustomFieldValues,
   CreateReservationResult,
-  DiscountCodeResult,
   FrontPaymentMethod,
   GafaClient,
   GiftCodeResult,
@@ -37,6 +36,7 @@ import type {
   UpdateProfilePayload,
 } from "./types";
 import type { GafaSdkConfig } from "../config";
+import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
 import {
   clearStoredToken,
   readStoredToken,
@@ -1313,38 +1313,18 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async checkDiscountCode(payload) {
-      const meetingPart = payload.meetingId != null ? String(payload.meetingId) : "";
-      const url = new URL(
-        `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/check-discount-code/${encodeURIComponent(payload.code)}/${meetingPart}`,
-      );
-      payload.lines
-        .filter((line) => line.type === "combo")
-        .forEach((line) => url.searchParams.append("combo[]", String(line.id)));
-      payload.lines
-        .filter((line) => line.type === "membership")
-        .forEach((line) => url.searchParams.append("membership[]", String(line.id)));
-      payload.lines
-        .filter((line) => line.type === "product")
-        .forEach((line) => url.searchParams.append("product[]", String(line.id)));
-
-      const response = await fetch(url.toString(), { headers: authHeaders() });
-      if (!response.ok) {
-        return { valid: false, code: payload.code };
-      }
-      const data = (await response.json()) as Record<string, unknown>;
-      const discountAmount =
-        typeof data.discount === "number"
-          ? data.discount
-          : typeof data.amount === "number"
-            ? data.amount
-            : undefined;
-      return {
-        valid: true,
+      const url = buildCheckDiscountUrl({
+        apiBaseUrl: baseUrl,
+        brandSlug: payload.brandSlug,
+        locationSlug: payload.locationSlug,
         code: payload.code,
-        label: typeof data.name === "string" ? data.name : typeof data.label === "string" ? data.label : undefined,
-        discountAmount,
-        raw: data,
-      } satisfies DiscountCodeResult;
+        userProfileId: payload.userProfileId,
+        urlTemplate: payload.urlTemplate,
+        lines: payload.lines,
+      });
+      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const data: unknown = await response.json().catch(() => null);
+      return parseDiscountCheckResponse(payload.code, response.ok, data);
     },
 
     async checkGiftCode(payload) {

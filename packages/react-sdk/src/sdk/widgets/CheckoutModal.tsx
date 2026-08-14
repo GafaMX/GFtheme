@@ -4,6 +4,7 @@ import type {
   CartLineType,
   CatalogItem,
   CheckoutConfig,
+  DiscountCodeResult,
   GafaClient,
   Meeting,
 } from "../client/types";
@@ -33,6 +34,7 @@ import {
   checkoutCatalogQueryKey,
   fetchCheckoutCatalog,
 } from "../cart/checkoutCatalog";
+import { resolveDiscountAmount } from "../cart/discountCode";
 
 export type CheckoutModalProps = {
   client: GafaClient;
@@ -111,9 +113,9 @@ export function CheckoutModal({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
-  const [discountAmount, setDiscountAmount] = useState(0);
-  const [discountLabel, setDiscountLabel] = useState<string>();
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCodeResult | null>(null);
   const [discountStatus, setDiscountStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+  const [discountError, setDiscountError] = useState<string>();
   const [giftOpen, setGiftOpen] = useState(false);
   const [giftCode, setGiftCode] = useState("");
   const [giftStatus, setGiftStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
@@ -274,6 +276,8 @@ export function CheckoutModal({
     ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
     : lines;
   const subtotal = cartSubtotal(relevantLines);
+  const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
+  const discountLabel = appliedDiscount?.label;
   const total = Math.max(0, subtotal - discountAmount);
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
@@ -287,26 +291,27 @@ export function CheckoutModal({
   async function applyDiscount() {
     if (!client.checkDiscountCode || !discountCode.trim() || !brandSlug || !locationSlug) return;
     setDiscountStatus("checking");
+    setDiscountError(undefined);
+    setAppliedDiscount(null);
     try {
       const result = await client.checkDiscountCode({
         brandSlug,
         locationSlug,
         code: discountCode.trim(),
-        meetingId: meeting?.id ?? reservation?.meetingId,
+        userProfileId: config?.userProfileId ?? profileQuery.data?.id,
+        urlTemplate: config?.urls.checkDiscountCode,
         lines: relevantLines.map((line) => ({ id: line.id, type: line.type })),
       });
       if (!result.valid) {
         setDiscountStatus("error");
-        setDiscountAmount(0);
-        setDiscountLabel(undefined);
+        setDiscountError(result.message ?? "Código no válido");
         return;
       }
+      setAppliedDiscount(result);
       setDiscountStatus("ok");
-      setDiscountLabel(result.label);
-      setDiscountAmount(result.discountAmount ?? 0);
     } catch {
       setDiscountStatus("error");
-      setDiscountAmount(0);
+      setDiscountError("Código no válido");
     }
   }
 
@@ -805,14 +810,20 @@ export function CheckoutModal({
                       open={discountOpen}
                       onToggle={() => setDiscountOpen((v) => !v)}
                       value={discountCode}
-                      onChange={setDiscountCode}
+                      onChange={(value) => {
+                        setDiscountCode(value);
+                        if (discountStatus === "error") {
+                          setDiscountStatus("idle");
+                          setDiscountError(undefined);
+                        }
+                      }}
                       onApply={applyDiscount}
                       status={discountStatus}
                       hint={
                         discountStatus === "ok"
                           ? (discountLabel ?? "Descuento aplicado")
                           : discountStatus === "error"
-                            ? "Código no válido"
+                            ? (discountError ?? "Código no válido")
                             : undefined
                       }
                     />
