@@ -4,7 +4,9 @@ import { createHttpGafaClient } from "../sdk/client/httpGafaClient";
 import { createLegacyGafaFitAdapter } from "../sdk/client/legacyGafaFitAdapter";
 import { createCaptchaProvider } from "../sdk/captcha/CaptchaProvider";
 import { parseSdkConfig } from "../sdk/config";
-import { subscribeToAuthChanges } from "../sdk/client/tokenStorage";
+import { BUQ_ENVIRONMENTS, readBuqEnvironmentFromLocation, type BuqEnvironmentId } from "../sdk/config/buqEnvironments";
+import { subscribeToAuthChanges, configureTokenStorage } from "../sdk/client/tokenStorage";
+import { setGafaPayFrontUrl } from "../sdk/payments/gafaPay";
 import { ColorSchemeToggle, ThemeProvider, useGafaTheme, type GafaBrandTheme } from "../sdk/theme/theme";
 import { CalendarWidget } from "../sdk/widgets/CalendarWidget";
 import { CatalogWidget } from "../sdk/widgets/CatalogWidget";
@@ -77,6 +79,9 @@ function DemoShell({
   onBrandChange(key: keyof typeof BRANDS): void;
 }) {
   const brand = BRANDS[brandKey];
+  const [environment, setEnvironment] = useState<BuqEnvironmentId>(
+    () => readBuqEnvironmentFromLocation() ?? "production",
+  );
   const [page, setPage] = useState<Page>("calendario");
   // El link del correo de restablecer contraseña llega con ?token=&email=:
   // hay que abrir la cuenta de una vez, no dejar al socio en el calendario.
@@ -94,7 +99,7 @@ function DemoShell({
   const cartCount = useCartStore((s) => s.lines.reduce((sum, line) => sum + line.amount, 0));
   const { scheme } = useGafaTheme();
 
-  const { client, captcha, queryClient } = useDemoClient(brand);
+  const { client, captcha, queryClient, config } = useDemoClient(brand, environment);
 
   useEffect(() => {
     // Mismo criterio que AccountModal/CalendarWidget: un hipo de red no debe
@@ -149,6 +154,25 @@ function DemoShell({
             </nav>
 
             <div className="demo-header__actions">
+              <select
+                aria-label="Entorno Buq"
+                className="demo-brand-select"
+                value={environment}
+                onChange={(event) => {
+                  const next = event.target.value as BuqEnvironmentId;
+                  setEnvironment(next);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("buq-env", next);
+                  window.history.replaceState({}, "", url);
+                }}
+              >
+                {Object.values(BUQ_ENVIRONMENTS).map((env) => (
+                  <option key={env.id} value={env.id}>
+                    {env.label}
+                  </option>
+                ))}
+              </select>
+
               <select
                 aria-label="Socio de prueba"
                 className="demo-brand-select"
@@ -230,12 +254,13 @@ function DemoShell({
             client={client}
             preselect={checkout.preselect ?? null}
             skipCatalog={checkout.skipCatalog ?? Boolean(checkout.preselect)}
+            gafaPayFrontUrl={config.gafaPayFrontUrl}
             onClose={() => setCheckout(null)}
           />
         ) : null}
 
         <footer className="demo-footer">
-          Sitio de prueba del SDK v2 · datos reales de {brand.label} · tema {scheme === "dark" ? "oscuro" : "claro"}
+          Sitio de prueba del SDK v2 · {brand.label} · {config.environment} · {config.apiBaseUrl}
         </footer>
 
         {/* OJO: sin contenedor fancy global. FancyOverlay crea el suyo, y el
@@ -246,34 +271,34 @@ function DemoShell({
   );
 }
 
-function useDemoClient(brand: BrandConfig) {
-  // Una sola instancia por marca: el effect anterior recreaba client+QueryClient
+function useDemoClient(brand: BrandConfig, environment: BuqEnvironmentId) {
+  // Una sola instancia por marca+entorno: el effect anterior recreaba client+QueryClient
   // en CADA mount (mismo brand), y el login podia escribir el token en una
   // instancia mientras el calendario ya usaba otra con el Bearer en null.
-  const [current, setCurrent] = useState(() => createDemoClient(brand));
-  const brandIdentity = `${brand.companyId}:${brand.apiClient}`;
-  const prevIdentityRef = useRef(brandIdentity);
+  const [current, setCurrent] = useState(() => createDemoClient(brand, environment));
+  const identity = `${brand.companyId}:${brand.apiClient}:${environment}`;
+  const prevIdentityRef = useRef(identity);
 
   useEffect(() => {
-    if (prevIdentityRef.current === brandIdentity) return;
-    prevIdentityRef.current = brandIdentity;
-    setCurrent(createDemoClient(brand));
-  }, [brand, brandIdentity]);
+    if (prevIdentityRef.current === identity) return;
+    prevIdentityRef.current = identity;
+    setCurrent(createDemoClient(brand, environment));
+  }, [brand, environment, identity]);
 
   return current;
 }
 
-function createDemoClient(brand: BrandConfig) {
+function createDemoClient(brand: BrandConfig, environment: BuqEnvironmentId) {
   const config = parseSdkConfig({
-    // Fallback a producción Buq: sin VITE_GAFA_FIT_URL el build queda en blanco
-    // (Zod rechaza undefined y React no monta #app).
-    apiBaseUrl: (import.meta.env.VITE_GAFA_FIT_URL as string) || "https://buq.partners/",
+    environment,
+    apiBaseUrl:
+      environment === "production" ? (import.meta.env.VITE_GAFA_FIT_URL as string) || undefined : undefined,
     companyId: brand.companyId,
     publicClientId: brand.apiClient,
     clientSecret: brand.apiSecret,
-    // Sin captchaPublicKey/SecretKey: el SDK usa el par compartido de Buq por
-    // default. Asi el registro funciona sin configurar captcha en cada sitio.
   });
+  configureTokenStorage(config.apiBaseUrl);
+  setGafaPayFrontUrl(config.gafaPayFrontUrl);
 
   const legacy =
     typeof window !== "undefined" && window.GafaFitSDK
@@ -281,6 +306,7 @@ function createDemoClient(brand: BrandConfig) {
       : undefined;
 
   return {
+    config,
     client: createHttpGafaClient(config, legacy),
     captcha: createCaptchaProvider(config.captchaProvider, config.captchaPublicKey),
     queryClient: new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 60_000 } } }),

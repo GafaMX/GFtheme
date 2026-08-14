@@ -93,6 +93,17 @@ const REACT_DOM16_URL = "https://unpkg.com/react-dom@16.8.6/umd/react-dom.produc
 /** API clasica que GafaPayFront.PaypalPayment llama (`paypal.Button.render`). */
 const PAYPAL_CHECKOUT_JS = "https://www.paypalobjects.com/api/checkout.min.js";
 
+let configuredFrontUrl: string | undefined;
+
+/** Lo llama createGafaSdk con el front del entorno (production/staging/dev). */
+export function setGafaPayFrontUrl(url?: string): void {
+  configuredFrontUrl = url;
+}
+
+export function resolveGafaPayFrontUrl(override?: string): string {
+  return override || configuredFrontUrl || (typeof window !== "undefined" ? window.GAFAPAY_SDK_URL : undefined) || DEFAULT_GAFAPAY_FRONT_URL;
+}
+
 export type GafaPayCredentials = {
   clientId: string | number;
   clientSecret: string;
@@ -218,7 +229,7 @@ export function loadGafaPay(credentials: GafaPayCredentials): Promise<Runtime> {
     }
 
     if (!alreadyLoaded) {
-      await loadScript(credentials.scriptUrl ?? window.GAFAPAY_SDK_URL ?? DEFAULT_GAFAPAY_FRONT_URL);
+      await loadScript(resolveGafaPayFrontUrl(credentials.scriptUrl));
     }
 
     const elements = window.GafaPayElements;

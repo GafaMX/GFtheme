@@ -7,7 +7,7 @@ import type { GafaClient } from "./client/types";
 import { createLegacyGafaFitAdapter } from "./client/legacyGafaFitAdapter";
 import { createHttpGafaClient } from "./client/httpGafaClient";
 import { createCaptchaProvider } from "./captcha/CaptchaProvider";
-import { subscribeToAuthChanges } from "./client/tokenStorage";
+import { subscribeToAuthChanges, configureTokenStorage } from "./client/tokenStorage";
 import { ThemeProvider } from "./theme/theme";
 import { AuthWidget, type AuthWidgetProps } from "./widgets/AuthWidget";
 import { CalendarWidget, type CalendarWidgetProps } from "./widgets/CalendarWidget";
@@ -20,6 +20,7 @@ import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderContro
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 import { useCartStore } from "./cart/cartStore";
 import { prefetchCheckoutCatalog } from "./cart/checkoutCatalog";
+import { setGafaPayFrontUrl } from "./payments/gafaPay";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
 
@@ -89,6 +90,8 @@ function silenceLegacyFancy() {
 
 export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions = {}): GafaSdk {
   const config = parseSdkConfig(input);
+  configureTokenStorage(config.apiBaseUrl);
+  setGafaPayFrontUrl(config.gafaPayFrontUrl);
   const client = options.client ?? createClient(config, options);
   const captcha = createCaptchaProvider(config.captchaProvider, config.captchaPublicKey);
   const queryClient = new QueryClient({
@@ -245,7 +248,15 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       const handle = { close };
       activeCheckout = handle;
 
-      const mounted = mount(host, <CheckoutModal client={client} onClose={close} {...props} />);
+      const mounted = mount(
+        host,
+        <CheckoutModal
+          client={client}
+          {...props}
+          onClose={close}
+          gafaPayFrontUrl={props.gafaPayFrontUrl ?? config.gafaPayFrontUrl}
+        />,
+      );
 
       return handle;
     },

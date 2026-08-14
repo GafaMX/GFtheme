@@ -20,6 +20,7 @@ describe("embed drop-in", () => {
     const host = window as EmbedHostWindow;
     host.GafaThemeSDK?.unmountAll();
     delete host.GafaThemeSDK;
+    delete host.GafaSdk;
     document.body.innerHTML = "";
   });
 
@@ -49,5 +50,17 @@ describe("embed drop-in", () => {
     startEmbedWhenReady(document, host, { useMockClient: true });
     expect(host.GafaThemeSDK?.config.companyId).toBe(80);
     host.GafaThemeSDK?.unmountAll();
+  });
+
+  it("data-gafa-v2 es alias de data-gf-theme para no pelear con el v1", async () => {
+    mountHost(`<div data-gafa-v2="login-register"></div>`);
+    const sdk = bootGafaSdkFromDom(document, window, { useMockClient: true });
+    expect((window as EmbedHostWindow).GafaSdk).toBe(sdk);
+    expect(document.querySelector("[data-gafa-v2]")?.getAttribute("data-gf-theme")).toBe(
+      "login-register",
+    );
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-v2]")?.childElementCount).toBeGreaterThan(0);
+    });
   });
 });

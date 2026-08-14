@@ -45,17 +45,17 @@ jsDelivr sirve el archivo público en cuanto está en GitHub:
 https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<rama-o-sha>/docs/v2-sdk/gafa-sdk.js
 ```
 
-En esta rama:
+La rama durable es `v2/main`:
 
 ```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cursor/v2-cdn-lanzamiento-1494/docs/v2-sdk/gafa-sdk.js
+https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/main/docs/v2-sdk/gafa-sdk.js
 ```
 
 Caché de jsDelivr: una rama se cachea ~12 h en el CDN (7 días en el navegador).
 Después de cada `publish:embed` + push, purgar:
 
 ```
-https://purge.jsdelivr.net/gh/GafaMX/GFtheme@cursor/v2-cdn-lanzamiento-1494/docs/v2-sdk/gafa-sdk.js
+https://purge.jsdelivr.net/gh/GafaMX/GFtheme@v2/main/docs/v2-sdk/gafa-sdk.js
 ```
 
 Para saltarte la caché (preview puntual) usa el SHA del commit que tiene el JS:

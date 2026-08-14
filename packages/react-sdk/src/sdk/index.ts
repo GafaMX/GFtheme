@@ -17,6 +17,8 @@ export { useCartStore } from "./cart/cartStore";
 export type { CartLine, CartReservationContext } from "./cart/cartStore";
 export { legacyOptionsToConfig, parseSdkConfig, readLegacyOptionsFromDom } from "./config";
 export type { GafaSdkConfig, GafaSdkConfigInput } from "./config";
+export { BUQ_ENVIRONMENTS, parseBuqEnvironmentId, resolveBuqEnvironment } from "./config/buqEnvironments";
+export type { BuqEnvironment, BuqEnvironmentId } from "./config/buqEnvironments";
 export { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 export type { LegacyBootstrapResult } from "./bootstrap/legacyBootstrap";
 export type { GafaBrandTheme } from "./theme/theme";

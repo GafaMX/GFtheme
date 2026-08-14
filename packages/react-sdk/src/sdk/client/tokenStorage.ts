@@ -6,10 +6,43 @@ const STORAGE_KEY = "gafafitSDKAutorization";
 // token sea legible por widgets legacy y por el WebView de buq-app en la misma pagina/sesion.
 const ENCRYPTION_KEY = "z9kFLKUk@5SF8FD*J*Lz";
 
+let activeStorageKey = STORAGE_KEY;
+let syncLegacy = true;
+
+function hostOf(apiBaseUrl: string): string | null {
+  try {
+    return new URL(apiBaseUrl, "https://buq.partners").hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function isProductionHost(host: string | null): boolean {
+  if (!host) return true;
+  return (
+    host === "buq.partners" ||
+    host.endsWith(".buq.partners") ||
+    host === "gafa.fit" ||
+    host.endsWith(".gafa.fit")
+  );
+}
+
+/**
+ * Staging/dev no deben pisar el token de produccion en el mismo dominio
+ * (una pagina de prueba en hybrix.mx contra buq.com.mx no puede desloguear
+ * al socio de la home).
+ */
+export function configureTokenStorage(apiBaseUrl?: string): void {
+  const host = apiBaseUrl ? hostOf(apiBaseUrl) : null;
+  const production = isProductionHost(host);
+  activeStorageKey = production || !host ? STORAGE_KEY : `${STORAGE_KEY}::${host}`;
+  syncLegacy = production;
+}
+
 export function readStoredToken(): string | null {
   if (typeof localStorage === "undefined") return null;
 
-  const encrypted = localStorage.getItem(STORAGE_KEY);
+  const encrypted = localStorage.getItem(activeStorageKey);
   if (!encrypted) return null;
 
   try {
@@ -25,15 +58,15 @@ export function writeStoredToken(token: string): void {
   if (typeof localStorage === "undefined") return;
 
   const encrypted = CryptoJS.AES.encrypt(token, ENCRYPTION_KEY).toString();
-  localStorage.setItem(STORAGE_KEY, encrypted);
-  syncLegacySdkToken(token);
+  localStorage.setItem(activeStorageKey, encrypted);
+  if (syncLegacy) syncLegacySdkToken(token);
   notifyAuthChanged();
 }
 
 export function clearStoredToken(): void {
   if (typeof localStorage === "undefined") return;
-  localStorage.removeItem(STORAGE_KEY);
-  syncLegacySdkToken(null);
+  localStorage.removeItem(activeStorageKey);
+  if (syncLegacy) syncLegacySdkToken(null);
   notifyAuthChanged();
 }
 

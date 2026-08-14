@@ -9,7 +9,7 @@ GFtheme es la **capa visual embebible** del producto Buq (ver mapa en el `CLAUDE
 Hay una iniciativa activa para reemplazar el theme legacy (Webpack4/Babel6/React16, un solo bundle) por un SDK moderno mobile-first, **en paralelo dentro de este mismo repo** (no en un repo nuevo) — se descubrió y confirmó esto el 2026-08-05 tras revisar exploración previa ya hecha vía Cursor Cloud agent.
 
 - **Dónde vive:** `packages/react-sdk/` (monorepo simple, no afecta `src/`/`dist/` del theme legacy).
-- **Rama de trabajo activa:** `feature/react-sdk-v2` (partió de `cursor/react-sdk-foundation-6468`). **`master` no se toca** hasta que haya revisión humana.
+- **Rama de trabajo activa:** `v2/main`. Es la rama durable del SDK v2. Las `cursor/*` (account-mobile-nav, checkout, cdn, environments, etc.) son históricas: se trabaja encima de `v2/main`. **`master` no se toca** — sigue siendo el theme legacy de producción.
 - **Historial de la exploración previa (referencia, no borrar):**
   - PR [#189](https://github.com/GafaMX/GFtheme/pull/189) `cursor/react-sdk-analysis-6468` — doc `docs/react-sdk-modernization.md` con el plan de arquitectura completo (bootstrap compatible con `data-gf-theme`, cliente API tipado, theming por tokens/CSS vars, templates editables, TanStack Query + Zustand + Zod, orden de construcción: calendario → catálogo → auth/perfil → checkout).
   - PR [#190](https://github.com/GafaMX/GFtheme/pull/190) `cursor/react-sdk-foundation-6468` — primer código real (ver estado abajo).
@@ -61,6 +61,7 @@ Hay una iniciativa activa para reemplazar el theme legacy (Webpack4/Babel6/React
 - **reCAPTCHA:** se decidió una abstracción `CaptchaProvider` (interfaz común) con reCAPTCHA v3 como default y Cloudflare Turnstile como alternativa detrás del mismo contrato — así cambiar de proveedor es config, no migración de código. Aún no implementado (llega con `AuthWidget`).
 - **Orden de construcción acordado:** 1) ~~Calendario~~ → 2) ~~Fancy/checkout~~ → 3) ~~Login/Registro (+ reCAPTCHA)~~ (los tres con flujo real) → 4) Perfil → 5) Paquetes/membresías (lo que menos se usa hoy; construir y solo registrar su ID).
 - **Sitio de prueba local conectado a producción — LISTO:** `packages/react-sdk/live.html` + `src/main.live.tsx`, credenciales en `packages/react-sdk/.env.local` (gitignored, nunca commitear). Compañía de prueba real: `COMPANY_ID=143` (brand "Buq", slug `buq-1`, location "CDMX" id `235`), `GAFA_FIT_URL=https://buq.partners`. Pagos de esa marca en Stripe test mode. Correr con `npm run dev -- --port <libre>` y abrir `/live.html`.
+- **Tres backends de Buq (ago-2026):** production `buq.partners` (default, lanzamiento), staging `buq.com.mx` (Stripe nuevo + Laravel listo para subir), development `buq.technology`. Se cambian con `BUQ_ENV` / `environment` / `GAFA_FIT_URL` / `?buq-env=staging`. GafaPayFront se deduce del entorno; se pisa con `GAFAPAY_FRONT_URL`. Tokens de staging/dev van a otra key de localStorage para no desloguear producción en el mismo dominio. Embed WordPress: `npm run publish:embed` → `docs/v2-sdk/gafa-sdk.js`. `[data-gafa-v2]` es alias de `[data-gf-theme]` para páginas que aún cargan el v1.
 
 ## Correr localmente (theme legacy) ✅ (verificado jul-2026, Node v25)
 Solo necesita Node + npm. **Build probado OK con Node v25** (Webpack 4 no dio problemas de OpenSSL).
