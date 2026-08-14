@@ -90,6 +90,8 @@ declare global {
 export const DEFAULT_GAFAPAY_FRONT_URL = "https://frontpay.buq.partners/main.js";
 const REACT16_URL = "https://unpkg.com/react@16.8.6/umd/react.production.min.js";
 const REACT_DOM16_URL = "https://unpkg.com/react-dom@16.8.6/umd/react-dom.production.min.js";
+/** API clasica que GafaPayFront.PaypalPayment llama (`paypal.Button.render`). */
+const PAYPAL_CHECKOUT_JS = "https://www.paypalobjects.com/api/checkout.min.js";
 
 export type GafaPayCredentials = {
   clientId: string | number;
@@ -146,6 +148,32 @@ function ensureConfigElement(credentials: GafaPayCredentials): void {
 
 function isReact16(candidate?: ReactLike): boolean {
   return Boolean(candidate?.version && candidate.version.startsWith("16"));
+}
+
+type LegacyPaypal = {
+  Button?: { render?: unknown };
+};
+
+function hasLegacyPaypalButton(): boolean {
+  if (typeof window === "undefined") return false;
+  const paypal = (window as unknown as { paypal?: LegacyPaypal }).paypal;
+  return typeof paypal?.Button?.render === "function";
+}
+
+/**
+ * GafaPayFront.PaypalPayment hace `paypal.Button.render(..., '#paypal')` y
+ * asume que checkout.min.js ya esta en la pagina (en el fancy v1 lo inyectaba
+ * el theme). Ademas pinta un `<div id="paypal">`: si el script no cargo,
+ * `window.paypal` apunta al DIV y revienta con
+ * "Cannot read properties of undefined (reading 'render')".
+ */
+export function ensureLegacyPaypalCheckout(): Promise<void> {
+  if (hasLegacyPaypalButton()) return Promise.resolve();
+  return loadScript(PAYPAL_CHECKOUT_JS).then(() => {
+    if (!hasLegacyPaypalButton()) {
+      throw new Error("No se pudo cargar el botón de PayPal. Intenta de nuevo.");
+    }
+  });
 }
 
 /**

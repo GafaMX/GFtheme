@@ -21,6 +21,7 @@ import {
   mountGafaPayWidget,
   triggerGafaPayConfirm,
   waitForWidgetContent,
+  ensureLegacyPaypalCheckout,
   type GafaPayIsland,
   type GafaPayLineItem,
   type GafaPaySuccess,
@@ -1077,6 +1078,10 @@ function PayPanel({
     loadGafaPay({ clientId, clientSecret, scriptUrl: gafaPayFrontUrl })
       .then(async (runtime) => {
         if (cancelled || !mountRef.current) return;
+        // PaypalPayment del frontpay exige checkout.js ANTES de pintar el
+        // <div id="paypal">; si no, window.paypal es el DIV y revienta.
+        if (slug === "paypal") await ensureLegacyPaypalCheckout();
+        if (cancelled || !mountRef.current) return;
         const container = mountRef.current;
         islandRef.current?.unmount();
         islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
@@ -1087,7 +1092,12 @@ function PayPanel({
       .catch((error: unknown) => {
         if (cancelled) return;
         setLoadState("error");
-        setLoadError(error instanceof Error ? error.message : undefined);
+        const raw = error instanceof Error ? error.message : undefined;
+        setLoadError(
+          raw && /render/i.test(raw)
+            ? "PayPal no terminó de cargar. Cierra el checkout e inténtalo de nuevo."
+            : raw,
+        );
       });
 
     return () => {
