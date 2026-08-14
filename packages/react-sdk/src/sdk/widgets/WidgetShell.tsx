@@ -1,4 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react";
+import { RemoteImage } from "../images/ImagesProvider";
 
 type WidgetShellProps = PropsWithChildren<{
   eyebrow?: string;
@@ -23,9 +24,18 @@ export function WidgetShell({
       {showHeader ? (
         <header className="gafa-widget-header">
           <div className="gafa-widget-heading">
-            {logoUrl ? (
-              <img className="gafa-widget-logo" src={logoUrl} alt="" aria-hidden="true" />
-            ) : null}
+            {/* El "logo" del perfil es la foto que sube el usuario, del mismo
+                storage que las de coach: se pide en miniatura, pero si no hay
+                transformaciones se deja el original (es una sola imagen). */}
+            <RemoteImage
+              className="gafa-widget-logo"
+              src={logoUrl}
+              height={42}
+              fit="scale-down"
+              whenUnavailable="original"
+              alt=""
+              aria-hidden="true"
+            />
             <div>
               {eyebrow ? <p className="gafa-eyebrow">{eyebrow}</p> : null}
               {title ? <h2>{title}</h2> : null}

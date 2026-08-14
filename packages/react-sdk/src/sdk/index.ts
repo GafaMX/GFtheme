@@ -23,3 +23,6 @@ export { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 export type { LegacyBootstrapResult } from "./bootstrap/legacyBootstrap";
 export type { GafaBrandTheme } from "./theme/theme";
 export type { GafaClient } from "./client/types";
+export { buildThumbnailUrl, resolveImagesConfig } from "./images/imageProxy";
+export type { ImagesConfig, ThumbnailOptions } from "./images/imageProxy";
+export { RemoteImage } from "./images/ImagesProvider";

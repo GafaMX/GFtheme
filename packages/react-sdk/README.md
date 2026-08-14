@@ -51,7 +51,7 @@ npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js
 ```
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<rama>/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/main/docs/v2-sdk/gafa-sdk.js"></script>
 <script data-gf-options type="application/json">
   { "GAFA_FIT_URL": "...", "COMPANY_ID": 1, "API_CLIENT": "...", "API_SECRET": "..." }
 </script>
@@ -79,6 +79,31 @@ This maps current containers such as:
 ```
 
 `login-register` is the header control from v1: a **Mi cuenta** button (plus cart when there are items). Clicking it opens the full login/profile popup. The dedicated page `login-register-pages` still mounts the full form inline.
+
+## Imágenes de marca (fotos de coach, perfil, mapa de salón)
+
+La API de gafa.fit devuelve la imagen **original tal cual la subió la marca**. Las cinco
+variantes que expone (`picture_web`, `picture_web_list`, etc.) son copias byte a byte del
+mismo archivo. Hay fotos de 15 MB que el calendario pintaba en un círculo de 36 px.
+
+El SDK pide miniaturas a las Transformations de Cloudflare de la zona de `apiBaseUrl`
+(`https://buq.partners`). Ya está activado en esa zona (2026-08-11), con origen
+`buqstorage.blob.core.windows.net`. URLs:
+
+`https://buq.partners/cdn-cgi/image/<params>/<url original>`
+
+Si `/cdn-cgi/image/...` responde `404` o `403`, el SDK apaga las transformaciones por la
+sesión y no baja originales de 15 MB: las fotos de coach simplemente no se pintan.
+Logo, avatar de cuenta y mapa de salón sí caen al original.
+
+```ts
+createGafaSdk({
+  apiBaseUrl: "https://buq.partners",
+  companyId: 80,
+  // Opcional. Pintar originales pesados si no hay miniatura:
+  // images: { allowUnoptimizedOriginals: true },
+});
+```
 
 ## Development
 

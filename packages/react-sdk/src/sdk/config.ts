@@ -12,6 +12,20 @@ import { withBuqEnvironment, type BuqEnvironmentId } from "./config/buqEnvironme
 export const DEFAULT_CAPTCHA_PUBLIC_KEY = "6LcGcsEUAAAAAJWbE6HqaOHQAwzAhjbifExQx3e8";
 export const DEFAULT_CAPTCHA_SECRET_KEY = "6LcGcsEUAAAAAOQCOt68hLjGsYHuELQZFheZtgbn";
 
+/**
+ * Miniaturas de las imagenes que suben las marcas. Por default se piden a la
+ * misma zona de Cloudflare donde vive la API (ver `images/imageProxy.ts`); si la
+ * zona no tiene Transformations activado, el SDK lo detecta solo y sigue
+ * funcionando sin miniaturas.
+ */
+const imagesSchema = z
+  .object({
+    provider: z.enum(["cloudflare", "none"]).optional(),
+    transformBaseUrl: z.string().optional(),
+    allowUnoptimizedOriginals: z.boolean().optional(),
+  })
+  .optional();
+
 const legacyThemeSchema = z
   .object({
     preset: z.string().optional(),
@@ -55,6 +69,7 @@ export const sdkConfigSchema = z
     environment: z.string().optional(),
     /** Script de GafaPayFront (Stripe/PayPal). Default: el del entorno. */
     gafaPayFrontUrl: z.string().optional(),
+    images: imagesSchema,
     theme: legacyThemeSchema,
   })
   .passthrough();
@@ -78,6 +93,7 @@ const legacyOptionsSchema = z
     CAPTCHA_SECRET_KEY: z.string().optional(),
     BUQ_ENV: z.string().optional(),
     GAFAPAY_FRONT_URL: z.string().optional(),
+    IMAGES: imagesSchema,
     THEME: legacyThemeSchema,
   })
   .passthrough();
@@ -112,6 +128,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY,
     environment: legacyOptions.BUQ_ENV,
     gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL,
+    images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
   });
 }

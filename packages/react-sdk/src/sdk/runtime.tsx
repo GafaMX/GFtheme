@@ -21,6 +21,7 @@ import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 import { useCartStore } from "./cart/cartStore";
 import { prefetchCheckoutCatalog } from "./cart/checkoutCatalog";
 import { setGafaPayFrontUrl } from "./payments/gafaPay";
+import { ImagesProvider } from "./images/ImagesProvider";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
 
@@ -126,9 +127,11 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     root.render(
       <React.StrictMode>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider theme={config.theme}>
-            {node}
-          </ThemeProvider>
+          <ImagesProvider images={config.images} apiBaseUrl={config.apiBaseUrl}>
+            <ThemeProvider theme={config.theme}>
+              {node}
+            </ThemeProvider>
+          </ImagesProvider>
         </QueryClientProvider>
       </React.StrictMode>
     );

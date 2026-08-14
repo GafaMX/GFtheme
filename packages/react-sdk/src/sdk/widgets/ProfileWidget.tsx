@@ -14,6 +14,7 @@ import type {
   UserReservation,
 } from "../client/types";
 import { subscribeToAuthChanges } from "../client/tokenStorage";
+import { RemoteImage } from "../images/ImagesProvider";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CustomFieldInput } from "./CustomFieldInput";
 import { MonthCalendar } from "./MonthCalendar";
@@ -1657,7 +1658,16 @@ function QrModal({ reservation, onClose }: { reservation: UserReservation; onClo
 
 function Avatar({ profile }: { profile: UserProfile }) {
   if (profile.photoUrl) {
-    return <img className="gafa-acct__avatar" src={profile.photoUrl} alt="" />;
+    return (
+      <RemoteImage
+        className="gafa-acct__avatar"
+        src={profile.photoUrl}
+        size={56}
+        gravity="face"
+        whenUnavailable="original"
+        alt=""
+      />
+    );
   }
   return (
     <span className="gafa-acct__avatar gafa-acct__avatar--initials" aria-hidden="true">
