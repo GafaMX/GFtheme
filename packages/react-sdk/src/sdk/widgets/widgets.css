@@ -2690,6 +2690,14 @@
 }
 
 @media (min-width: 640px) {
+  .gafa-acct-next__body {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .gafa-acct-next__actions {
+    grid-column: auto;
+  }
+
   .gafa-acct-next__actions .gafa-sdk-button {
     flex: 0 0 auto;
   }
