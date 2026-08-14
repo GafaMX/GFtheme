@@ -2604,10 +2604,18 @@
   align-items: center;
   color: var(--gafa-color-muted-text);
   display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.gafa-acct-next__label-text {
+  align-items: center;
+  display: inline-flex;
   font-size: 0.74rem;
   font-weight: 800;
   gap: 0.45rem;
   letter-spacing: 0.08em;
+  min-width: 0;
   text-transform: uppercase;
 }
 
@@ -2698,11 +2706,12 @@
   background: color-mix(in srgb, var(--gafa-color-accent) 16%, transparent);
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-text);
-  display: inline-block;
+  flex-shrink: 0;
   font-size: 0.76rem;
   font-weight: 700;
-  margin-top: 0.45rem;
+  letter-spacing: 0;
   padding: 0.2rem 0.6rem;
+  text-transform: none;
 }
 
 .gafa-acct-next__empty {
@@ -3109,7 +3118,6 @@
 
   .gafa-acct-next__countdown {
     font-size: 0.7rem;
-    margin-top: 0.3rem;
     padding: 0.12rem 0.45rem;
   }
 

@@ -561,8 +561,13 @@ function OverviewPanel({
     <div className="gafa-acct-overview">
       <section className="gafa-acct-next" aria-label="Tu próxima clase">
         <div className="gafa-acct-next__label">
-          <span className="gafa-acct-dot" aria-hidden="true" />
-          Tu próxima clase
+          <span className="gafa-acct-next__label-text">
+            <span className="gafa-acct-dot" aria-hidden="true" />
+            Tu próxima clase
+          </span>
+          {nextClass ? (
+            <span className="gafa-acct-next__countdown">{countdownLabel(nextClass.startsAt)}</span>
+          ) : null}
         </div>
 
         {loadingNext ? (
@@ -578,7 +583,6 @@ function OverviewPanel({
             <div className="gafa-acct-next__what">
               <h3>{nextClass.serviceName}</h3>
               <p>{describeReservation(nextClass)}</p>
-              <span className="gafa-acct-next__countdown">{countdownLabel(nextClass.startsAt)}</span>
             </div>
             <div className="gafa-acct-next__actions">
               {nextClass.qrHash ? (
@@ -605,7 +609,7 @@ function OverviewPanel({
             </span>
             <div>
               <p>Sin clases reservadas</p>
-              <span className="gafa-muted">Reserva desde el calendario y aparecerá aquí con tu código QR.</span>
+              <span className="gafa-muted">Reserva desde el calendario y aparecerá aquí con tu QR.</span>
             </div>
             {onExploreClasses ? (
               <button className="gafa-sdk-button gafa-acct-next__empty-cta" type="button" onClick={onExploreClasses}>
