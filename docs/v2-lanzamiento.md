@@ -51,8 +51,14 @@ En esta rama:
 https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cursor/v2-cdn-lanzamiento-1494/docs/v2-sdk/gafa-sdk.js
 ```
 
-Caché de jsDelivr: si el `src` apunta a una **rama**, puede tardar en verse el
-commit nuevo. Para forzar el bundle de este commit usa el SHA de `VERSION.txt`:
+Caché de jsDelivr: una rama se cachea ~12 h en el CDN (7 días en el navegador).
+Después de cada `publish:embed` + push, purgar:
+
+```
+https://purge.jsdelivr.net/gh/GafaMX/GFtheme@cursor/v2-cdn-lanzamiento-1494/docs/v2-sdk/gafa-sdk.js
+```
+
+Para saltarte la caché (preview puntual) usa el SHA del commit que tiene el JS:
 
 ```
 https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<sha>/docs/v2-sdk/gafa-sdk.js
