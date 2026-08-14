@@ -90,8 +90,46 @@ export function ProfileWidget({
 }: ProfileWidgetProps) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>("overview");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [qrReservation, setQrReservation] = useState<UserReservation | null>(null);
   const [pendingCancel, setPendingCancel] = useState<UserReservation | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const sideRef = useRef<HTMLElement | null>(null);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const side = sideRef.current;
+    if (!root || !side) return;
+    const sync = () => {
+      root.style.setProperty("--gafa-acct-side-h", `${side.offsetHeight}px`);
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(side);
+    return () => observer.disconnect();
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(min-width: 768px)");
+    const onChange = () => {
+      if (media.matches) setMenuOpen(false);
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(
     () => subscribeToAuthChanges(() => queryClient.invalidateQueries({ queryKey: ["profile"] })),
@@ -256,8 +294,13 @@ export function ProfileWidget({
   const section = TABS.find((item) => item.id === tab)!;
 
   return (
-    <div className="gafa-acct" data-variant={variant}>
-      <aside className="gafa-acct__side">
+    <div
+      className="gafa-acct"
+      data-variant={variant}
+      data-menu={menuOpen ? "open" : undefined}
+      ref={rootRef}
+    >
+      <aside className="gafa-acct__side" ref={sideRef}>
         <div className="gafa-acct__user">
           <Avatar profile={profile} />
           <div className="gafa-acct__user-text">
@@ -266,11 +309,21 @@ export function ProfileWidget({
           </div>
         </div>
 
-        {/* El degradado de los bordes (CSS, .gafa-acct__nav-shell) es lo que le
-            avisa al socio en movil que la fila de secciones sigue para los
-            lados: sin el, parecia una lista completa y quedaba "Contraseña"
-            escondida fuera de la pantalla sin ninguna pista. */}
-        <div className="gafa-acct__nav-shell">
+        <button
+          className="gafa-acct__menu-toggle"
+          type="button"
+          aria-expanded={menuOpen}
+          aria-controls="gafa-acct-nav"
+          aria-haspopup="true"
+          aria-label={menuOpen ? "Cerrar secciones de tu cuenta" : "Abrir secciones de tu cuenta"}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span className="gafa-acct__nav-icon">{section.icon}</span>
+          <span>{section.label}</span>
+          <ChevronDownIcon />
+        </button>
+
+        <div className="gafa-acct__nav-panel" id="gafa-acct-nav">
           <nav className="gafa-acct__nav" aria-label="Secciones de tu cuenta">
             {TABS.map((item) => (
               <button
@@ -278,9 +331,9 @@ export function ProfileWidget({
                 type="button"
                 className="gafa-acct__nav-item"
                 aria-current={tab === item.id ? "page" : undefined}
-                onClick={(event) => {
+                onClick={() => {
                   setTab(item.id);
-                  event.currentTarget.scrollIntoView({ block: "nearest", inline: "center" });
+                  setMenuOpen(false);
                 }}
               >
                 <span className="gafa-acct__nav-icon">{item.icon}</span>
@@ -288,24 +341,23 @@ export function ProfileWidget({
               </button>
             ))}
           </nav>
-        </div>
-
-        <div className="gafa-acct__side-foot">
-          <button
-            className="gafa-acct__logout"
-            type="button"
-            onClick={() => {
-              client?.logout();
-              onRequestClose?.();
-            }}
-          >
-            <LogoutIcon />
-            Cerrar sesión
-          </button>
+          <div className="gafa-acct__side-foot">
+            <button
+              className="gafa-acct__logout"
+              type="button"
+              onClick={() => {
+                client?.logout();
+                onRequestClose?.();
+              }}
+            >
+              <LogoutIcon />
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </aside>
 
-      <section className="gafa-acct__main">
+      <section className="gafa-acct__main" inert={menuOpen ? true : undefined}>
         <header className="gafa-acct__head">
           <h2>
             {tab === "overview" ? (
@@ -1671,6 +1723,14 @@ function LogoutIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <path d="M10 8 6 12l4 4M6 12h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

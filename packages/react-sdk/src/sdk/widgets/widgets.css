@@ -2145,13 +2145,12 @@
   width: 100%;
 }
 
-/* Alto fijo con la sesion iniciada, en TODOS los tamaños: sin esto, saltar de
-   "Mis clases" (largo) a "Compras" o "Contraseña" (cortos) encogia el popup
-   entero y, como en movil esta anclado abajo (align-items: flex-end), se veia
-   como si saltara/se moviera solo. El sobrante corto queda en blanco al
-   fondo del panel, que es mucho menos raro que el salto. */
+/* Alto fijo con la sesion iniciada: si cada seccion define el alto, el popup
+   salta de tamaño. En movil ocupa casi toda la pantalla (sheet desde abajo).
+   El sobrante de las secciones cortas queda en blanco al fondo del panel. */
 .gafa-account-modal[data-state="account"] {
-  height: min(620px, 88dvh);
+  height: 96dvh;
+  max-height: 96dvh;
 }
 
 .gafa-account-modal:focus {
@@ -2181,6 +2180,7 @@
      salta de tamaño cada vez que cambias de seccion. */
   .gafa-account-modal[data-state="account"] {
     height: min(720px, 92vh);
+    max-height: min(760px, 92vh);
   }
 }
 
@@ -2199,7 +2199,7 @@
   top: var(--gafa-space-3);
   transition: background 0.15s ease, border-color 0.15s ease;
   width: 36px;
-  z-index: 3;
+  z-index: 6;
 }
 
 .gafa-account-modal__close:hover {
@@ -2245,8 +2245,10 @@
   color: var(--gafa-color-text);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
+  position: relative;
 }
 
 .gafa-acct[data-variant="page"] {
@@ -2285,17 +2287,16 @@
   border-bottom: 1px solid var(--gafa-color-border);
   display: flex;
   flex-direction: column;
-  gap: var(--gafa-space-4);
-  /* Sin esto, en movil la fila de secciones (que se scrollea sola) estira la
-     columna a su ancho completo y todo el popup se desborda. */
+  gap: var(--gafa-space-3);
   min-width: 0;
-  padding: var(--gafa-space-4) var(--gafa-space-4) var(--gafa-space-4);
+  padding: var(--gafa-space-4) var(--gafa-space-4) var(--gafa-space-3);
 }
 
 @media (min-width: 768px) {
   .gafa-acct__side {
     border-bottom: none;
     border-right: 1px solid var(--gafa-color-border);
+    gap: var(--gafa-space-4);
     padding: var(--gafa-space-5) var(--gafa-space-3) var(--gafa-space-4);
   }
 }
@@ -2353,90 +2354,93 @@
   white-space: nowrap;
 }
 
-.gafa-acct__nav-shell {
-  margin: 0 calc(var(--gafa-space-4) * -1);
-  position: relative;
+.gafa-acct__menu-toggle {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  width: 100%;
 }
 
-/* Degradado en los dos bordes: la unica pista de que la fila de secciones
-   sigue para los lados. Sin esto se ve como una lista completa y "Mis datos"
-   /"Contraseña" quedan escondidos sin ningun aviso. */
-.gafa-acct__nav-shell::before,
-.gafa-acct__nav-shell::after {
-  bottom: 0;
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  top: 0;
-  width: 28px;
-  z-index: 1;
+.gafa-acct__menu-toggle svg:last-child {
+  color: var(--gafa-color-muted-text);
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: transform 0.16s ease;
 }
 
-.gafa-acct__nav-shell::before {
-  background: linear-gradient(to right, var(--gafa-color-surface-raised), transparent);
-  left: 0;
-}
-
-.gafa-acct__nav-shell::after {
-  background: linear-gradient(to left, var(--gafa-color-surface-raised), transparent);
-  right: 0;
+.gafa-acct__menu-toggle[aria-expanded="true"] svg:last-child {
+  transform: rotate(180deg);
 }
 
 @media (min-width: 768px) {
-  .gafa-acct__nav-shell {
-    margin: 0;
-  }
-
-  .gafa-acct__nav-shell::before,
-  .gafa-acct__nav-shell::after {
+  .gafa-acct__menu-toggle {
     display: none;
+  }
+}
+
+.gafa-acct__nav-panel {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .gafa-acct[data-menu="open"] .gafa-acct__nav-panel {
+    background: var(--gafa-color-surface-raised);
+    border-top: 1px solid var(--gafa-color-border);
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gafa-space-3);
+    left: 0;
+    overflow: auto;
+    padding: var(--gafa-space-3) var(--gafa-space-4) var(--gafa-space-4);
+    position: absolute;
+    right: 0;
+    top: var(--gafa-acct-side-h, 0px);
+    z-index: 4;
+  }
+}
+
+@media (min-width: 768px) {
+  .gafa-acct__nav-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
   }
 }
 
 .gafa-acct__nav {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
-  overflow-x: auto;
-  padding: 2px var(--gafa-space-4);
-  scrollbar-width: none;
-}
-
-.gafa-acct__nav::-webkit-scrollbar {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .gafa-acct__nav {
-    flex-direction: column;
-    overflow: visible;
-    padding: 0;
-  }
 }
 
 .gafa-acct__nav-item {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--gafa-radius-pill);
+  border-radius: var(--gafa-radius-md);
   color: var(--gafa-color-muted-text);
   cursor: pointer;
-  display: inline-flex;
-  flex: 0 0 auto;
+  display: flex;
   font-size: 0.88rem;
   font-weight: 600;
   gap: 0.6rem;
   padding: 0.68rem 0.95rem;
   text-align: left;
   transition: background 0.15s ease, color 0.15s ease;
-  white-space: nowrap;
-}
-
-@media (min-width: 768px) {
-  .gafa-acct__nav-item {
-    border-radius: var(--gafa-radius-md);
-    width: 100%;
-  }
+  width: 100%;
 }
 
 .gafa-acct__nav-item:hover {
@@ -2456,15 +2460,8 @@
 }
 
 .gafa-acct__side-foot {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .gafa-acct__side-foot {
-    display: block;
-    margin-top: auto;
-    padding-top: var(--gafa-space-3);
-  }
+  margin-top: auto;
+  padding-top: var(--gafa-space-3);
 }
 
 .gafa-acct__logout {
