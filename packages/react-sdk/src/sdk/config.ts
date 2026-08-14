@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { GafaBrandTheme } from "./theme/theme";
+import { withBuqEnvironment, type BuqEnvironmentId } from "./config/buqEnvironments";
 
 /**
  * Par de llaves reCAPTCHA v3 COMPARTIDO de Buq/gafa.fit. El backend valida el
@@ -30,7 +31,7 @@ const legacyThemeSchema = z
 
 export const sdkConfigSchema = z
   .object({
-    apiBaseUrl: z.string().min(1),
+    apiBaseUrl: z.string().optional(),
     companyId: z.union([z.string(), z.number()]).transform(Number),
     publicClientId: z.union([z.string(), z.number()]).optional(),
     // OAuth2 password-grant client secret. Se envia desde el navegador porque asi lo exige
@@ -47,7 +48,12 @@ export const sdkConfigSchema = z
     // que el cliente le manda en cada registro (ver App\Rules\Captcha). Viene asi del backend.
     captchaSecretKey: z.string().default(DEFAULT_CAPTCHA_SECRET_KEY),
     language: z.enum(["es", "en"]).default("es"),
-    /** Script de GafaPayFront (Stripe/PayPal). Default: frontpay del mismo host de la API. */
+    /**
+     * Backend de Buq. Default production. `staging` = buq.com.mx (Stripe nuevo),
+     * `development` = buq.technology. Tambien se puede poner solo `GAFA_FIT_URL`.
+     */
+    environment: z.string().optional(),
+    /** Script de GafaPayFront (Stripe/PayPal). Default: el del entorno. */
     gafaPayFrontUrl: z.string().optional(),
     theme: legacyThemeSchema,
   })
@@ -55,11 +61,14 @@ export const sdkConfigSchema = z
 
 export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   theme?: GafaBrandTheme;
+  environment: BuqEnvironmentId;
+  apiBaseUrl: string;
+  gafaPayFrontUrl: string;
 };
 
 const legacyOptionsSchema = z
   .object({
-    GAFA_FIT_URL: z.string().min(1),
+    GAFA_FIT_URL: z.string().optional(),
     COMPANY_ID: z.union([z.string(), z.number()]),
     API_CLIENT: z.union([z.string(), z.number()]).optional(),
     API_SECRET: z.string().optional(),
@@ -67,6 +76,8 @@ const legacyOptionsSchema = z
     TOKENMOVIL: z.string().nullable().optional(),
     CAPTCHA_PUBLIC_KEY: z.string().optional(),
     CAPTCHA_SECRET_KEY: z.string().optional(),
+    BUQ_ENV: z.string().optional(),
+    GAFAPAY_FRONT_URL: z.string().optional(),
     THEME: legacyThemeSchema,
   })
   .passthrough();
@@ -75,7 +86,14 @@ export type GafaSdkConfigInput = z.input<typeof sdkConfigSchema>;
 export type LegacyGfOptions = z.input<typeof legacyOptionsSchema>;
 
 export function parseGafaSdkConfig(input: unknown): GafaSdkConfig {
-  return sdkConfigSchema.parse(input);
+  const parsed = sdkConfigSchema.parse(input);
+  const resolved = withBuqEnvironment(parsed);
+  return {
+    ...parsed,
+    environment: resolved.environment,
+    apiBaseUrl: resolved.apiBaseUrl,
+    gafaPayFrontUrl: resolved.gafaPayFrontUrl,
+  };
 }
 
 export const parseSdkConfig = parseGafaSdkConfig;
@@ -92,12 +110,15 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     tokenMovil: legacyOptions.TOKENMOVIL,
     captchaPublicKey: legacyOptions.CAPTCHA_PUBLIC_KEY,
     captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY,
+    environment: legacyOptions.BUQ_ENV,
+    gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL,
     theme: legacyOptions.THEME,
   });
 }
 
 export function readLegacyOptionsFromDom(documentRef: Document = document): GafaSdkConfig {
-  const optionsElement = documentRef.querySelector("[data-gf-options]");
+  const optionsElement =
+    documentRef.querySelector("[data-gafa-options]") ?? documentRef.querySelector("[data-gf-options]");
 
   if (!optionsElement) {
     throw new Error("GFTheme options were not found. Expected a [data-gf-options] JSON script.");
@@ -109,7 +130,15 @@ export function readLegacyOptionsFromDom(documentRef: Document = document): Gafa
     throw new Error("GFTheme options are empty.");
   }
 
-  return legacyOptionsToConfig(JSON.parse(json));
+  const raw = JSON.parse(json) as Record<string, unknown>;
+  const queryEnv =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("buq-env") ??
+        new URLSearchParams(window.location.search).get("gafa-env")
+      : null;
+  if (queryEnv) raw.BUQ_ENV = queryEnv;
+
+  return legacyOptionsToConfig(raw);
 }
 
 export const parseLegacyOptions = legacyOptionsToConfig;

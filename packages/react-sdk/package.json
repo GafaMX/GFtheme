@@ -14,7 +14,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "dev": "vite --host 0.0.0.0",
-    "build:demo": "vite build --config vite.demo.config.ts"
+    "build:demo": "vite build --config vite.demo.config.ts",
+    "build:embed": "vite build --config vite.embed.config.ts"
   },
   "keywords": [
     "gafa",
