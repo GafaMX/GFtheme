@@ -39,6 +39,10 @@ export type LegacyBootstrapResult = {
 export function bootstrapLegacyWidgets(runtime: GafaSdk, root: ParentNode = document): LegacyBootstrapResult {
   let mounted = 0;
 
+  // Los [data-gf-theme="purchase-button"] y [data-gf-buy] escuchan por
+  // delegacion: una sola vez, aunque el socio vuelva a llamar bootstrap.
+  runtime.enablePurchaseButtons(root instanceof Element ? root : undefined);
+
   LEGACY_WIDGETS.forEach((widgetName) => {
     root.querySelectorAll<HTMLElement>(`[data-gf-theme="${widgetName}"]`).forEach((element) => {
       mountLegacyWidget(runtime, widgetName, element);
@@ -91,6 +95,7 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
           runtime.openCheckout({
             brandSlug: item.brandSlug,
             preselect: { type: "combo", id: item.id },
+            skipCatalog: true,
           }),
       });
       return;
@@ -104,6 +109,7 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
           runtime.openCheckout({
             brandSlug: item.brandSlug,
             preselect: { type: "membership", id: item.id },
+            skipCatalog: true,
           }),
       });
       return;
@@ -147,17 +153,41 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
       });
       return;
 
-    case "purchase-button":
+    case "purchase-button": {
+      const comboId = element.getAttribute("data-bq-combo-id") || element.getAttribute("data-gf-combo-id");
+      const membershipId =
+        element.getAttribute("data-bq-membership-id") || element.getAttribute("data-gf-membership-id");
+      const productId = element.getAttribute("data-bq-product-id") || element.getAttribute("data-gf-product-id");
+      const locationId = element.getAttribute("data-bq-location-id") || element.getAttribute("data-gf-location-id");
+      const locationSlug = element.getAttribute("data-gf-location") || element.getAttribute("data-bq-location");
+      const brandSlug = element.getAttribute("data-gf-brand") || element.getAttribute("data-buq-brand");
+
+      // Sitio con boton propio (Fitspin COMPRAR): no reemplazar el HTML, solo
+      // marcar el host para que enablePurchaseButtons abra el checkout nativo.
+      const hasOwnTrigger = Boolean(element.querySelector("button, a") || element.textContent?.trim());
+      if (hasOwnTrigger) {
+        element.setAttribute("data-gf-buy", "");
+        if (comboId) element.setAttribute("data-gf-combo-id", comboId);
+        if (membershipId) element.setAttribute("data-gf-membership-id", membershipId);
+        if (productId) element.setAttribute("data-gf-product-id", productId);
+        if (locationSlug) element.setAttribute("data-gf-location", locationSlug);
+        if (locationId) element.setAttribute("data-gf-location-id", locationId);
+        if (brandSlug) element.setAttribute("data-gf-brand", brandSlug);
+        return;
+      }
+
       runtime.mountPurchaseButton(element, {
-        comboId: element.getAttribute("data-bq-combo-id") || undefined,
-        membershipId: element.getAttribute("data-bq-membership-id") || undefined,
-        productId: element.getAttribute("data-bq-product-id") || undefined,
+        comboId: comboId || undefined,
+        membershipId: membershipId || undefined,
+        productId: productId || undefined,
         reservationId: element.getAttribute("data-bq-reservation-id") || undefined,
-        locationId: element.getAttribute("data-bq-location-id") || undefined,
+        locationId: locationId || undefined,
+        brandSlug: brandSlug || undefined,
         defaultStoreTab: element.getAttribute("data-bq-default-store-tab") || undefined,
         noLoading: element.getAttribute("data-bq-no-loading") === "true",
       });
       return;
+    }
 
     case "fancy":
       element.dataset.gafaCheckoutHost = "true";

@@ -194,6 +194,7 @@ function DemoShell({
                 client={client}
                 type="packages"
                 onBuy={(item) => setCheckout({ preselect: { type: "combo", id: item.id } })}
+
               />
               <CatalogWidget
                 client={client}
@@ -220,6 +221,7 @@ function DemoShell({
           <CheckoutModal
             client={client}
             preselect={checkout.preselect ?? null}
+            skipCatalog={Boolean(checkout.preselect)}
             onClose={() => setCheckout(null)}
           />
         ) : null}

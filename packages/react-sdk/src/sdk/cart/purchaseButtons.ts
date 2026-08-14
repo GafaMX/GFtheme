@@ -22,6 +22,7 @@ export type PurchaseIntent = {
   id: number;
   brandSlug?: string;
   locationSlug?: string;
+  locationId?: number;
 };
 
 export type PurchaseButtonsOptions = {
@@ -39,23 +40,35 @@ const CART_SELECTOR = "[data-gf-cart]";
 const ACCOUNT_SELECTOR = "[data-gf-account]";
 const COUNT_SELECTOR = "[data-gf-cart-count]";
 
+function firstDataset(el: HTMLElement, ...keys: string[]): string | undefined {
+  const data = el.dataset as Record<string, string | undefined>;
+  for (const key of keys) {
+    const value = data[key];
+    if (value) return value;
+  }
+  return undefined;
+}
+
 function readIntent(element: Element): PurchaseIntent | null {
   const el = element as HTMLElement;
   const pairs: Array<[CartLineType, string | undefined]> = [
-    ["combo", el.dataset.gfComboId],
-    ["membership", el.dataset.gfMembershipId],
-    ["product", el.dataset.gfProductId],
+    ["combo", firstDataset(el, "gfComboId", "bqComboId")],
+    ["membership", firstDataset(el, "gfMembershipId", "bqMembershipId")],
+    ["product", firstDataset(el, "gfProductId", "bqProductId")],
   ];
 
   for (const [type, raw] of pairs) {
     if (!raw) continue;
     const id = Number(raw);
     if (!Number.isFinite(id)) continue;
+    const locationIdRaw = firstDataset(el, "gfLocationId", "bqLocationId");
+    const locationId = locationIdRaw != null ? Number(locationIdRaw) : NaN;
     return {
       type,
       id,
-      brandSlug: el.dataset.gfBrand || undefined,
-      locationSlug: el.dataset.gfLocation || undefined,
+      brandSlug: firstDataset(el, "gfBrand", "bqBrand", "buqBrand"),
+      locationSlug: firstDataset(el, "gfLocation", "bqLocation"),
+      locationId: Number.isFinite(locationId) ? locationId : undefined,
     };
   }
 

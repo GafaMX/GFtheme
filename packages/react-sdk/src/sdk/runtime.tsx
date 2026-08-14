@@ -62,6 +62,19 @@ type RuntimeOptions = {
   useMockClient?: boolean;
 };
 
+/** Un solo fancy a la vez: dos instancias del SDK (React StrictMode, cambio
+ *  de tema) no deben apilar overlays oscuros. */
+let activeCheckout: { close(): void } | null = null;
+let activeAccount: { close(): void } | null = null;
+let purchaseButtonsStop: (() => void) | null = null;
+
+function silenceLegacyFancy() {
+  if (typeof document === "undefined") return;
+  document.querySelectorAll<HTMLElement>('[data-gf-theme="fancy"]').forEach((node) => {
+    node.classList.remove("active", "show");
+  });
+}
+
 export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions = {}): GafaSdk {
   const config = parseSdkConfig(input);
   const client = options.client ?? createClient(config, options);
@@ -121,7 +134,34 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       return mount(target, <ProfileWidget client={client} {...props} />);
     },
     mountPurchaseButton(target, props = {}) {
-      return mount(target, <PurchaseButtonWidget client={client} hostElement={target} {...props} />);
+      const { comboId, membershipId, productId, locationId, ...rest } = props;
+      const preselect = comboId
+        ? { type: "combo" as const, id: Number(comboId) }
+        : membershipId
+          ? { type: "membership" as const, id: Number(membershipId) }
+          : productId
+            ? { type: "product" as const, id: Number(productId) }
+            : null;
+      return mount(
+        target,
+        <PurchaseButtonWidget
+          client={client}
+          hostElement={target}
+          comboId={comboId}
+          membershipId={membershipId}
+          productId={productId}
+          locationId={locationId}
+          {...rest}
+          onOpenCheckout={() =>
+            sdk.openCheckout({
+              brandSlug: rest.brandSlug,
+              locationId: locationId != null ? Number(locationId) : undefined,
+              preselect,
+              skipCatalog: Boolean(preselect),
+            })
+          }
+        />,
+      );
     },
     mountHeaderControls(target, props = {}) {
       let account: { close(): void } | null = null;
@@ -149,6 +189,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       document.body.appendChild(host);
 
       const close = () => {
+        if (activeAccount === handle) activeAccount = null;
         // El cierre viene de un handler de React: desmontar la raiz en el mismo
         // tick tira "synchronously unmount a root while React was rendering".
         queueMicrotask(() => {
@@ -157,18 +198,24 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         });
       };
 
+      activeAccount?.close();
+      const handle = { close };
+      activeAccount = handle;
+
       const mounted = mount(
         host,
         <AccountModal client={client} captcha={captcha} open onClose={close} {...props} />,
       );
 
-      return { close };
+      return handle;
     },
     openCheckout(props = {}) {
+      silenceLegacyFancy();
       const host = document.createElement("div");
       document.body.appendChild(host);
 
       const close = () => {
+        if (activeCheckout === handle) activeCheckout = null;
         // Igual que openAccount: desmontar en el mismo tick del handler de
         // React revienta con "synchronously unmount a root while rendering".
         queueMicrotask(() => {
@@ -177,35 +224,44 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         });
       };
 
+      activeCheckout?.close();
+      const handle = { close };
+      activeCheckout = handle;
+
       const mounted = mount(host, <CheckoutModal client={client} onClose={close} {...props} />);
 
-      return { close };
+      return handle;
     },
     enablePurchaseButtons(root) {
-      let current: { close(): void } | null = null;
-      let account: { close(): void } | null = null;
+      purchaseButtonsStop?.();
 
-      const open = (props: CheckoutOptions) => {
-        current?.close();
-        current = sdk.openCheckout(props);
-      };
-
-      return bootstrapPurchaseButtons({
+      const stop = bootstrapPurchaseButtons({
         root,
         onPurchase: (intent) =>
-          open({
+          sdk.openCheckout({
             brandSlug: intent.brandSlug,
             locationSlug: intent.locationSlug,
+            locationId: intent.locationId,
             preselect: { type: intent.type, id: intent.id },
+            skipCatalog: true,
           }),
-        onOpenCart: () => open({}),
+        onOpenCart: () => sdk.openCheckout({}),
         onOpenAccount: () => {
-          account?.close();
-          account = sdk.openAccount();
+          sdk.openAccount();
         },
       });
+
+      purchaseButtonsStop = stop;
+      return () => {
+        stop();
+        if (purchaseButtonsStop === stop) purchaseButtonsStop = null;
+      };
     },
     unmountAll() {
+      purchaseButtonsStop?.();
+      purchaseButtonsStop = null;
+      activeCheckout = null;
+      activeAccount = null;
       Array.from(mounts).forEach((mounted) => mounted.unmount());
       queryClient.clear();
     }

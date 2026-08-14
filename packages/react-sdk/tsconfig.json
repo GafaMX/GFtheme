@@ -19,5 +19,6 @@
     "declarationDir": "dist/types"
   },
   "include": ["src", "vite.config.ts", "vitest.config.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
   "references": []
 }

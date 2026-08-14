@@ -26,6 +26,7 @@ import {
   type GafaPaySuccess,
   type GafaPayWidgetProps,
 } from "../payments/gafaPay";
+import { findPurchasableItem, sameCatalogId } from "../cart/findPurchasable";
 
 export type CheckoutModalProps = {
   client: GafaClient;
@@ -33,6 +34,8 @@ export type CheckoutModalProps = {
   /** Sin marca/sede (compra suelta desde un boton HTML) se resuelve la primera. */
   brandSlug?: string;
   locationSlug?: string;
+  /** ID numerico de sede (data-gf-location-id); se traduce a slug. */
+  locationId?: number;
   locationName?: string;
   /** Si viene del calendario: pre-carga contexto de reserva. */
   meeting?: Meeting | null;
@@ -40,6 +43,12 @@ export type CheckoutModalProps = {
   seatLabel?: string;
   /** Producto que dispara la compra (boton HTML): se agrega solo al abrir. */
   preselect?: { type: CartLineType; id: number } | null;
+  /**
+   * Compra directa (COMPRAR en la pagina de paquetes): salta el catalogo
+   * y abre en pagar. El socio puede volver atras para agregar mas.
+   * Default: true cuando hay `preselect`.
+   */
+  skipCatalog?: boolean;
   gafaPayFrontUrl?: string;
   onClose: () => void;
   onCompleted?: (result: { purchaseId?: number | null; reservationId?: number }) => void;
@@ -58,11 +67,13 @@ export function CheckoutModal({
   captcha,
   brandSlug: brandSlugProp,
   locationSlug: locationSlugProp,
+  locationId,
   locationName,
   meeting,
   seatObjectId,
   seatLabel,
   preselect,
+  skipCatalog,
   gafaPayFrontUrl,
   onClose,
   onCompleted,
@@ -75,9 +86,15 @@ export function CheckoutModal({
   const setReservation = useCartStore((s) => s.setReservation);
   const resetAfterPurchase = useCartStore((s) => s.resetAfterPurchase);
 
-  const [step, setStep] = useState<CheckoutStep>("shop");
+  const wantsDirectPay = Boolean(preselect) && skipCatalog !== false;
+  const stayOnPayRef = useRef(wantsDirectPay);
+  const [step, setStep] = useState<CheckoutStep>(wantsDirectPay ? "pay" : "shop");
   // Solo aplica en movil (en desktop el carrito siempre esta desplegado).
-  const [cartOpen, setCartOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(wantsDirectPay);
+  const [lockedBrandSlug, setLockedBrandSlug] = useState<string | undefined>(brandSlugProp);
+  const [preselectStatus, setPreselectStatus] = useState<"idle" | "loading" | "ready" | "miss">(
+    preselect ? "loading" : "idle",
+  );
   const [tab, setTab] = useState<CatalogTab>("packages");
   const [query, setQuery] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -111,16 +128,21 @@ export function CheckoutModal({
     enabled: !brandSlugProp,
     staleTime: 300_000,
   });
-  const brandSlug = brandSlugProp ?? brandsQuery.data?.[0]?.slug;
+  const brandSlug = lockedBrandSlug ?? brandSlugProp ?? brandsQuery.data?.[0]?.slug;
 
   const locationsQuery = useQuery({
     queryKey: ["checkout", "locations", brandSlug],
     queryFn: () => client.listLocations(brandSlug),
-    enabled: Boolean(brandSlug) && !locationSlugProp,
+    enabled: Boolean(brandSlug) && (!locationSlugProp || locationId != null),
     staleTime: 300_000,
   });
-  const locationSlug = locationSlugProp ?? locationsQuery.data?.[0]?.slug;
-  const resolvedLocationName = locationName ?? (locationSlugProp ? undefined : locationsQuery.data?.[0]?.name);
+  const locationFromId =
+    locationId != null
+      ? locationsQuery.data?.find((location) => sameCatalogId(location.id, locationId))
+      : undefined;
+  const locationSlug = locationSlugProp ?? locationFromId?.slug ?? locationsQuery.data?.[0]?.slug;
+  const resolvedLocationName =
+    locationName ?? locationFromId?.name ?? (locationSlugProp ? undefined : locationsQuery.data?.[0]?.name);
 
   // Al abrir desde una clase: anclar el contexto de reserva al carrito.
   useEffect(() => {
@@ -176,12 +198,9 @@ export function CheckoutModal({
   const paymentMethods = config?.paymentMethods ?? [];
   const hasTerms = Boolean(config?.termsConditionsLink);
 
-  // Compra suelta: si el template no acota el catalogo (no hay clase que
-  // limite que aplica), se cae al catalogo completo de la marca.
-  const needsCatalogFallback =
-    !meeting &&
-    (!isSignedIn || (configQuery.isSuccess && !config?.combos?.length && !config?.memberships?.length));
-
+  // Compra suelta: el catalogo de la MARCA (listCombos), no el recorte de la
+  // sede en create-form-template. Si no, un paquete de Lomas no aparece cuando
+  // el checkout resolvio Cancun como primera sede.
   const catalogQuery = useQuery({
     queryKey: ["checkout", "catalog", brandSlug],
     queryFn: async () => {
@@ -191,14 +210,14 @@ export function CheckoutModal({
       ]);
       return { combos, memberships };
     },
-    enabled: Boolean(brandSlug) && needsCatalogFallback,
+    enabled: Boolean(brandSlug) && !meeting,
     staleTime: 60_000,
   });
 
-  const combos = config?.combos?.length ? config.combos : (catalogQuery.data?.combos ?? []);
-  const memberships = config?.memberships?.length
-    ? config.memberships
-    : (catalogQuery.data?.memberships ?? []);
+  const combos = meeting ? (config?.combos ?? []) : (catalogQuery.data?.combos ?? config?.combos ?? []);
+  const memberships = meeting
+    ? (config?.memberships ?? [])
+    : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
   const products = config?.products ?? [];
 
   useEffect(() => {
@@ -233,7 +252,10 @@ export function CheckoutModal({
 
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
-  const relevantLines = lines.filter((line) => line.brandSlug === brandSlug);
+  const relevantLines = lines.filter((line) => {
+    if (preselect && sameCatalogId(line.id, preselect.id)) return true;
+    return Boolean(brandSlug) && line.brandSlug === brandSlug;
+  });
   const subtotal = cartSubtotal(relevantLines);
   const total = Math.max(0, subtotal - discountAmount);
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
@@ -310,20 +332,53 @@ export function CheckoutModal({
     });
   }
 
-  // Boton HTML de compra: el ID llega solo, el precio/nombre salen del catalogo
-  // ya cargado. Se agrega UNA vez por apertura del modal.
+  // Boton HTML de compra: el ID llega solo. Se busca en TODAS las marcas de
+  // la compañia (no solo la primera sede) y se agrega UNA vez.
   const preselectDone = useRef(false);
   useEffect(() => {
-    if (!preselect || preselectDone.current || !brandSlug) return;
-    const pool =
-      preselect.type === "membership" ? memberships : preselect.type === "product" ? products : combos;
-    const item = pool.find((candidate) => candidate.id === preselect.id);
-    if (!item) return;
-    preselectDone.current = true;
-    handleAdd(item);
-    // handleAdd es estable en la practica (depende de brandSlug/currency).
+    if (!preselect || preselectDone.current) return;
+    let cancelled = false;
+    setPreselectStatus("loading");
+    void findPurchasableItem(client, preselect, brandSlugProp ?? lockedBrandSlug).then((match) => {
+      if (cancelled) return;
+      if (!match) {
+        setPreselectStatus("miss");
+        stayOnPayRef.current = false;
+        setStep("shop");
+        return;
+      }
+      preselectDone.current = true;
+      setLockedBrandSlug(match.brandSlug);
+      setTab(match.type === "membership" ? "memberships" : match.type === "product" ? "products" : "packages");
+      const price = match.item.priceFinal ?? match.item.price ?? 0;
+      addItem({
+        id: match.item.id,
+        type: match.type,
+        name: match.item.name,
+        price,
+        priceLabel: match.item.priceLabel ?? formatMoney(price, currency.prefix, ""),
+        brandSlug: match.brandSlug,
+        locationSlug: locationSlugProp,
+        expirationLabel: match.item.expirationDays ? `Expira en ${match.item.expirationDays} días` : undefined,
+      });
+      setPreselectStatus("ready");
+    });
+    return () => {
+      cancelled = true;
+    };
+    // currency.prefix es estable por marca; addItem viene del store.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preselect, combos, memberships, products, brandSlug]);
+  }, [preselect, client, brandSlugProp]);
+
+  // Compra directa: login si falta, si no el paso de pago. Si el socio vuelve
+  // al catalogo a proposito, ya no lo empujamos otra vez a pagar.
+  useEffect(() => {
+    if (!stayOnPayRef.current) return;
+    if (step === "shop" || step === "thanks") return;
+    if (profileQuery.isLoading) return;
+    const next: CheckoutStep = isSignedIn ? "pay" : "auth";
+    if (step !== next) setStep(next);
+  }, [isSignedIn, profileQuery.isLoading, step]);
 
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
   async function completePurchase(paymentData: Record<string, unknown>) {
@@ -453,7 +508,7 @@ export function CheckoutModal({
                       ? reservation
                         ? "Estos son los planes que aplican para esta clase."
                         : "Agrega paquetes o membresías."
-                      : "Revisa tu pedido y paga de forma segura."}
+                      : "Revisa tu pedido y paga de forma segura. Si quieres agregar más, vuelve al paso anterior."}
                 </p>
               </header>
 
@@ -579,6 +634,8 @@ export function CheckoutModal({
                     </p>
                   ) : null}
                 </>
+              ) : preselectStatus === "loading" ? (
+                <p className="gafa-sdk-state">Preparando tu compra…</p>
               ) : (
                 <PayPanel
                   methods={paymentMethods}
@@ -652,7 +709,12 @@ export function CheckoutModal({
                 </div>
               ) : null}
 
-              {relevantLines.length === 0 ? (
+              {preselectStatus === "loading" ? (
+                <div className="gafa-checkout__empty">
+                  <p>Agregando tu plan…</p>
+                  <small>Un segundo, estamos cargando el producto.</small>
+                </div>
+              ) : relevantLines.length === 0 ? (
                 <div className="gafa-checkout__empty">
                   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path
@@ -820,7 +882,14 @@ export function CheckoutModal({
               )}
 
               {step === "pay" || step === "auth" ? (
-                <button className="gafa-checkout__backlink" type="button" onClick={() => setStep("shop")}>
+                <button
+                  className="gafa-checkout__backlink"
+                  type="button"
+                  onClick={() => {
+                    stayOnPayRef.current = false;
+                    setStep("shop");
+                  }}
+                >
                   ← Agregar otro paquete o membresía
                 </button>
               ) : null}
