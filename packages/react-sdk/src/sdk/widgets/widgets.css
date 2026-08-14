@@ -2784,6 +2784,13 @@
   justify-content: space-between;
 }
 
+.gafa-acct-block__actions {
+  align-items: baseline;
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--gafa-space-3);
+}
+
 .gafa-acct-block__head h3,
 .gafa-acct-group h3 {
   align-items: center;

@@ -18,6 +18,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { CustomFieldInput } from "./CustomFieldInput";
 import { MonthCalendar } from "./MonthCalendar";
 import { toIsoDate } from "./calendarRange";
+import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { WidgetShell } from "./WidgetShell";
 
 export type ProfileWidgetProps = {
@@ -27,7 +28,10 @@ export type ProfileWidgetProps = {
   /** En `modal` el contenedor pone el marco y el boton de cerrar. */
   variant?: "page" | "modal";
   onRequestClose?(): void;
-  /** CTA de los estados vacios ("aun no tienes clases/compras..."): llevan al calendario o a paquetes del sitio anfitrion. Sin estos, el CTA no se pinta. */
+  /**
+   * CTA de los estados vacios: Reservar (calendario) y Comprar (paquetes).
+   * Si el sitio no los pasa, el SDK navega solo al calendario / #paquetes.
+   */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
 };
@@ -88,6 +92,8 @@ export function ProfileWidget({
   onExploreClasses,
   onExplorePackages,
 }: ProfileWidgetProps) {
+  const goToClasses = onExploreClasses ?? defaultExploreClasses;
+  const goToPackages = onExplorePackages ?? defaultExplorePackages;
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>("overview");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -392,7 +398,8 @@ export function ProfileWidget({
               onCancel={setPendingCancel}
               onShowQr={setQrReservation}
               onGoTo={setTab}
-              onExploreClasses={onExploreClasses}
+              onExploreClasses={goToClasses}
+              onExplorePackages={goToPackages}
             />
           ) : null}
 
@@ -410,7 +417,7 @@ export function ProfileWidget({
               paymentLabel={paymentLabel}
               onCancel={setPendingCancel}
               onShowQr={setQrReservation}
-              onExploreClasses={onExploreClasses}
+              onExploreClasses={goToClasses}
             />
           ) : null}
 
@@ -421,7 +428,7 @@ export function ProfileWidget({
               storeCredit={profile.storeCreditTotal}
               loading={creditsQuery.isLoading || membershipsQuery.isLoading}
               error={creditsQuery.isError || membershipsQuery.isError}
-              onExplorePackages={onExplorePackages}
+              onExplorePackages={goToPackages}
             />
           ) : null}
 
@@ -430,7 +437,7 @@ export function ProfileWidget({
               purchases={purchasesQuery.data ?? []}
               loading={purchasesQuery.isLoading}
               error={purchasesQuery.isError}
-              onExplorePackages={onExplorePackages}
+              onExplorePackages={goToPackages}
             />
           ) : null}
 
@@ -514,6 +521,7 @@ function OverviewPanel({
   onShowQr,
   onGoTo,
   onExploreClasses,
+  onExplorePackages,
 }: {
   profile: UserProfile;
   nextClass?: UserReservation;
@@ -530,7 +538,8 @@ function OverviewPanel({
   onCancel(reservation: UserReservation): void;
   onShowQr(reservation: UserReservation): void;
   onGoTo(tab: ProfileTab): void;
-  onExploreClasses?(): void;
+  onExploreClasses(): void;
+  onExplorePackages(): void;
 }) {
   const creditTotal = credits.reduce((sum, credit) => sum + (Number(credit.total) || 0), 0);
 
@@ -611,11 +620,9 @@ function OverviewPanel({
               <p>Sin clases reservadas</p>
               <span className="gafa-muted">Reserva desde el calendario y aparecerá aquí con tu QR.</span>
             </div>
-            {onExploreClasses ? (
-              <button className="gafa-sdk-button gafa-acct-next__empty-cta" type="button" onClick={onExploreClasses}>
-                Ver calendario
-              </button>
-            ) : null}
+            <button className="gafa-sdk-button gafa-acct-next__empty-cta" type="button" onClick={onExploreClasses}>
+              Reservar
+            </button>
           </div>
         )}
 
@@ -631,9 +638,16 @@ function OverviewPanel({
       <section className="gafa-acct-block" aria-label="Tu saldo">
         <header className="gafa-acct-block__head">
           <h3>Tu saldo</h3>
-          <button type="button" className="gafa-acct-link" onClick={() => onGoTo("balance")}>
-            Ver detalle
-          </button>
+          <div className="gafa-acct-block__actions">
+            {creditTotal === 0 && memberships.length === 0 ? (
+              <button type="button" className="gafa-acct-link" onClick={onExplorePackages}>
+                Comprar
+              </button>
+            ) : null}
+            <button type="button" className="gafa-acct-link" onClick={() => onGoTo("balance")}>
+              Ver detalle
+            </button>
+          </div>
         </header>
         {loadingBalance ? (
           <span className="gafa-skeleton gafa-acct__boot-bar" />
@@ -862,7 +876,7 @@ function ClassesPanel({
   paymentLabel(reservation: UserReservation): string | null;
   onCancel(reservation: UserReservation): void;
   onShowQr(reservation: UserReservation): void;
-  onExploreClasses?(): void;
+  onExploreClasses(): void;
 }) {
   const [scope, setScope] = useState<"upcoming" | "history">("upcoming");
 
@@ -888,7 +902,7 @@ function ClassesPanel({
                 emoji="🗓️"
                 title="No tienes clases reservadas"
                 description="Explora el calendario y reserva tu próxima clase."
-                actionLabel={onExploreClasses ? "Ver calendario" : undefined}
+                actionLabel="Reservar"
                 onAction={onExploreClasses}
               />
             }
@@ -1111,7 +1125,7 @@ function BalancePanel({
   storeCredit?: string;
   loading: boolean;
   error: boolean;
-  onExplorePackages?(): void;
+  onExplorePackages(): void;
 }) {
   if (loading) return <span className="gafa-skeleton gafa-acct__boot-bar" />;
   if (error) return <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar esta sección.</p>;
@@ -1122,7 +1136,7 @@ function BalancePanel({
         emoji="🎟️"
         title="No tienes paquetes ni membresías activos"
         description="Compra un paquete de clases o una membresía para empezar a reservar."
-        actionLabel={onExplorePackages ? "Ver paquetes" : undefined}
+        actionLabel="Comprar"
         onAction={onExplorePackages}
       />
     );
@@ -1179,7 +1193,7 @@ function PurchasesPanel({
   purchases: UserPurchase[];
   loading: boolean;
   error: boolean;
-  onExplorePackages?(): void;
+  onExplorePackages(): void;
 }) {
   if (loading) return <span className="gafa-skeleton gafa-acct__boot-bar" />;
   if (error) return <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar esta sección.</p>;
@@ -1189,7 +1203,7 @@ function PurchasesPanel({
         emoji="🧾"
         title="Todavía no tienes compras"
         description="Cuando compres un paquete o una membresía, aparecerá aquí."
-        actionLabel={onExplorePackages ? "Ver paquetes" : undefined}
+        actionLabel="Comprar"
         onAction={onExplorePackages}
       />
     );

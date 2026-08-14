@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { GafaClient } from "../client/types";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { subscribeToAuthChanges } from "../client/tokenStorage";
+import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { AuthWidget } from "./AuthWidget";
 import { ProfileWidget } from "./ProfileWidget";
 
@@ -15,7 +16,11 @@ export type AccountModalProps = {
   /** Nombre de la marca para el encabezado del popup. */
   title?: string;
   combineWaitlist?: boolean;
-  /** CTA de los estados vacios de la cuenta: cierran el popup y llevan al calendario/paquetes del sitio. */
+  /**
+   * CTA de los estados vacios (Reservar / Comprar). Opcionales: si el sitio no
+   * los pasa, el popup se cierra y el SDK lleva al calendario o a paquetes
+   * que ya estan en la pagina (Fitspin, Fancy, etc.).
+   */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
 };
@@ -126,22 +131,14 @@ export function AccountModal({
             combineWaitlist={combineWaitlist}
             variant="modal"
             onRequestClose={onClose}
-            onExploreClasses={
-              onExploreClasses
-                ? () => {
-                    onClose();
-                    onExploreClasses();
-                  }
-                : undefined
-            }
-            onExplorePackages={
-              onExplorePackages
-                ? () => {
-                    onClose();
-                    onExplorePackages();
-                  }
-                : undefined
-            }
+            onExploreClasses={() => {
+              onClose();
+              queueMicrotask(() => (onExploreClasses ?? defaultExploreClasses)());
+            }}
+            onExplorePackages={() => {
+              onClose();
+              queueMicrotask(() => (onExplorePackages ?? defaultExplorePackages)());
+            }}
           />
         ) : (
           <div className="gafa-account-modal__auth">
