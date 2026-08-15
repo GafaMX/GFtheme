@@ -19,7 +19,7 @@ Hay una iniciativa activa para reemplazar el theme legacy (Webpack4/Babel6/React
 - **Dos builds Vite, no mezclarlos:**
   - `vite.config.ts` — librería ES+UMD con `react`/`react-dom` **externos** (para apps que ya tienen React). **No** se pega en WordPress.
   - `vite.embed.config.ts` — IIFE `gafa-sdk.js` con React **dentro**, drop-in como el theme v1. Es el artefacto que se lanza a socios. Receta: `docs/v2-lanzamiento.md`.
-- **No copiar `packages/react-sdk/src` a Replit** (`lib/gafa-react-sdk`). Relanzar Replit reinicia toda la app multi-sitio; V2 se actualiza reemplazando `docs/v2-sdk/gafa-sdk.js`. Replit se queda para sitios que no son V2.
+- **No copiar `packages/react-sdk/src` a Replit** (`lib/gafa-react-sdk`). Relanzar Replit reinicia toda la app multi-sitio. V2 en Replit se monta con un `<script>` remoto (`docs/v2-replit.md`): Vite en vivo (`/src/sdk/embed.ts`) o el IIFE publicado. Los sitios que no son V2 no se tocan.
 - **Cómo correr el preview local:**
   ```bash
   cd packages/react-sdk

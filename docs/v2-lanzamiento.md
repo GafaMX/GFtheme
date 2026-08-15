@@ -24,9 +24,15 @@ packages/react-sdk/src  →  npm run publish:embed  →  docs/v2-sdk/gafa-sdk.js
 | Host | Azure `buq-sdk*.azurewebsites.net` | jsDelivr desde este repo (inmediato) o el mismo Azure en `/v2/` |
 | Replit | No aplica | **No aplica.** No copiar `packages/react-sdk/src` a `lib/gafa-react-sdk`. |
 
-Replit se queda para los sitios que **no** son V2. Fitspin WP de producción hoy
-sigue en v1 (`main.min.js` + `buq.partners/sdk/dist/main.js`); el preview V2
-que vivía en Replit se sustituye por este script.
+Replit **sí** puede seguir teniendo Fitspin (y otros) en V2, pero **sin** copiar
+`packages/react-sdk/src`. El preview V2 de Replit carga un `<script src>` remoto.
+Receta para el agente de Replit: `docs/v2-replit.md`.
+
+- **En vivo (sin publicar):** Vite de este repo + túnel → Replit pone
+  `GAFA_SDK_V2_URL=https://<host>/src/sdk/embed.ts` (`type="module"`). Recargar
+  Fitspin. No relanzar Replit.
+- **Snapshot:** `publish:embed` + IIFE en jsDelivr / Azure (WordPress, o Replit
+  cuando quieras congelar).
 
 ## Receta para el agente de Cursor (cada cambio V2)
 
