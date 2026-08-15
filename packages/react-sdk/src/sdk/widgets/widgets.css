@@ -60,6 +60,7 @@
 .gafa-widget-card h2,
 .gafa-widget-card h3,
 .gafa-widget-card h4 {
+  background: none;
   color: var(--gafa-color-text);
   font-family: var(--gafa-font-heading);
   letter-spacing: -0.02em;
@@ -101,6 +102,12 @@
 /* ----------------------------------------------------------------- controles */
 
 .gafa-sdk-button {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-control-min-height: 46px;
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-tracking: normal;
+  --gafa-control-transform: none;
   background: var(--gafa-color-primary);
   border: 1px solid transparent;
   border-radius: var(--gafa-radius-pill);
@@ -127,18 +134,24 @@
 }
 
 .gafa-sdk-button--secondary {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-text);
   background: transparent;
   border-color: var(--gafa-color-border);
   color: var(--gafa-color-text);
 }
 
 .gafa-sdk-button--secondary:not(:disabled):hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
   filter: none;
 }
 
 .gafa-icon-button {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
@@ -151,6 +164,7 @@
 }
 
 .gafa-icon-button:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
 }
@@ -168,6 +182,9 @@
 
 .gafa-segmented button,
 .gafa-sdk-auth-tabs button {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: transparent;
   border: none;
   border-radius: var(--gafa-radius-pill);
@@ -181,6 +198,8 @@
 
 .gafa-segmented button[aria-pressed="true"],
 .gafa-sdk-auth-tabs button[aria-pressed="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
 }
@@ -314,6 +333,10 @@
 }
 
 .gafa-social__button {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 42px;
+  --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -391,6 +414,9 @@
 }
 
 .gafa-auth-link {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 0px;
   background: none;
   border: none;
   color: var(--gafa-color-muted-text);
@@ -402,10 +428,12 @@
 }
 
 .gafa-auth-link:hover {
+  --gafa-control-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
 
 .gafa-auth-link--strong {
+  --gafa-control-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
   font-weight: 700;
 }
@@ -425,6 +453,9 @@
 }
 
 .gafa-chip {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: transparent;
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
@@ -437,6 +468,8 @@
 }
 
 .gafa-chip[aria-pressed="true"] {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  --gafa-control-fg: var(--gafa-color-primary);
   background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
@@ -498,11 +531,8 @@
   font-size: 0.78rem;
 }
 
-/* Blindaje de iconos contra el CSS del sitio anfitrion: templates con reglas
-   tipo `svg { fill: #000 }` rellenaban de negro nuestros iconos de trazo
-   (el pin de ubicacion se veia negro en tema oscuro). Los iconos de trazo
-   NUNCA llevan relleno y siempre heredan el color del texto; los rellenos
-   (Apple/Google) declaran su propio fill y no entran aqui. */
+/* Blindaje de iconos: el reset de theme.css cubre todo .gafa-sdk (cuenta,
+   checkout, calendario). Se deja tambien el ancla historica de la tarjeta. */
 .gafa-widget-card svg [stroke]:not([fill]) {
   fill: none !important;
   stroke: currentColor !important;
@@ -633,6 +663,10 @@
 
 /* La fecha ES un boton: abre el mini calendario para saltar a otro dia. */
 .gafa-calendar-date-button {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-min-height: 36px;
+  --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
@@ -649,6 +683,8 @@
 
 .gafa-calendar-date-button:hover,
 .gafa-calendar-date-button[aria-expanded="true"] {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-primary);
   background: var(--gafa-color-surface);
   border-color: var(--gafa-color-border);
   color: var(--gafa-color-primary);
@@ -724,6 +760,10 @@
 }
 
 .gafa-datepicker__day {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 34px;
+  --gafa-control-radius: 50%;
   align-items: center;
   aspect-ratio: 1;
   background: transparent;
@@ -741,6 +781,7 @@
 
 /* Con clases: se nota que es elegible. */
 .gafa-datepicker__day[data-has-classes="true"]:not(:disabled) {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 8%, transparent);
   background: color-mix(in srgb, var(--gafa-color-primary) 8%, transparent);
 }
 
@@ -763,6 +804,8 @@
 .gafa-datepicker__day[data-selected="true"],
 .gafa-datepicker__day[data-selected="true"]:not(:disabled),
 .gafa-datepicker__day[data-selected="true"]:not(:disabled):hover {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
@@ -931,6 +974,9 @@
 }
 
 .gafa-filterbar-toggle {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -948,6 +994,7 @@
 
 .gafa-filterbar-toggle:hover,
 .gafa-filterbar-toggle[aria-expanded="true"] {
+  --gafa-control-fg: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
@@ -1116,6 +1163,9 @@
 }
 
 .gafa-meeting-card {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-sm);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-sm);
@@ -1373,6 +1423,9 @@
 
 .gafa-reservation-close,
 .gafa-fancy-close {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: var(--gafa-color-surface-raised);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
@@ -1456,12 +1509,16 @@
    con el CTA principal -- y en escritorio la fila se alinea a la derecha,
    bajo el mapa, en vez de estirarse de punta a punta del modal. */
 .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
   background: transparent;
   border-color: transparent;
   color: var(--gafa-color-muted-text);
 }
 
 .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-fg: var(--gafa-color-text);
   background: var(--gafa-color-surface-raised);
   color: var(--gafa-color-text);
 }
@@ -1791,6 +1848,10 @@
 }
 
 .gafa-seatmap__seat {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 30px;
+  --gafa-control-radius: 50%;
   align-items: center;
   aspect-ratio: 1;
   background: var(--gafa-color-surface);
@@ -1862,6 +1923,8 @@
 }
 
 .gafa-seatmap__seat[data-taken="true"] {
+  --gafa-control-bg: var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
   background: var(--gafa-color-border);
   color: var(--gafa-color-muted-text);
   cursor: not-allowed;
@@ -1869,11 +1932,14 @@
 }
 
 .gafa-seatmap__seat[data-has-image="true"][data-taken="true"] {
+  --gafa-control-bg: transparent;
   background: transparent;
   opacity: 0.85;
 }
 
 .gafa-seatmap__seat[data-selected="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
@@ -1881,6 +1947,8 @@
 
 /* Seleccion con imagen: anillo de marca alrededor de la imagen elegida. */
 .gafa-seatmap__seat[data-has-image="true"][data-selected="true"] {
+  --gafa-control-bg: transparent;
+  --gafa-control-shadow: 0 0 0 2.5px var(--gafa-color-primary);
   background: transparent;
   box-shadow: 0 0 0 2.5px var(--gafa-color-primary);
 }
@@ -2009,6 +2077,10 @@
 }
 
 .gafa-addtocal__button {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 40px;
+  --gafa-control-radius: var(--gafa-radius-md);
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -2033,6 +2105,7 @@
 }
 
 .gafa-addtocal__button:hover {
+  --gafa-control-fg: var(--gafa-color-primary);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
@@ -2073,6 +2146,9 @@
 }
 
 .gafa-header-cart {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
@@ -2090,6 +2166,9 @@
 }
 
 .gafa-header-account {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: var(--gafa-color-primary);
   border: none;
   border-radius: var(--gafa-radius-pill);
@@ -2185,6 +2264,9 @@
 }
 
 .gafa-account-modal__close {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -2203,6 +2285,7 @@
 }
 
 .gafa-account-modal__close:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
 }
@@ -2355,6 +2438,10 @@
 }
 
 .gafa-acct__menu-toggle {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-md);
+  --gafa-control-transform: none;
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -2427,6 +2514,11 @@
 }
 
 .gafa-acct__nav-item {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-md);
+  --gafa-control-tracking: normal;
+  --gafa-control-transform: none;
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
@@ -2444,11 +2536,15 @@
 }
 
 .gafa-acct__nav-item:hover {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
   background: var(--gafa-color-surface);
   color: var(--gafa-color-text);
 }
 
 .gafa-acct__nav-item[aria-current="page"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
 }
@@ -2465,6 +2561,10 @@
 }
 
 .gafa-acct__logout {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-md);
+  --gafa-control-transform: none;
   align-items: center;
   background: transparent;
   border: 1px solid var(--gafa-color-border);
@@ -2482,6 +2582,7 @@
 }
 
 .gafa-acct__logout:hover {
+  --gafa-control-fg: var(--gafa-color-danger, #dc2626);
   border-color: var(--gafa-color-danger, #dc2626);
   color: var(--gafa-color-danger, #dc2626);
 }
@@ -2510,6 +2611,7 @@
 }
 
 .gafa-acct__head h2 {
+  background: none;
   font-size: clamp(1.25rem, 2.2vw, 1.6rem);
   margin: 0;
 }
@@ -2753,6 +2855,9 @@
 }
 
 .gafa-acct-next__more {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
   align-items: center;
   background: transparent;
   border: none;
@@ -2769,6 +2874,7 @@
 }
 
 .gafa-acct-next__more:hover {
+  --gafa-control-fg: var(--gafa-color-accent);
   color: var(--gafa-color-accent);
 }
 
@@ -2794,6 +2900,7 @@
 .gafa-acct-block__head h3,
 .gafa-acct-group h3 {
   align-items: center;
+  background: none;
   display: flex;
   font-size: 0.76rem;
   font-weight: 800;
@@ -2804,6 +2911,9 @@
 }
 
 .gafa-acct-link {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-accent);
+  --gafa-control-radius: 0px;
   background: none;
   border: none;
   color: var(--gafa-color-accent);
@@ -2885,6 +2995,9 @@
 
 .gafa-acct-balance__nav button:first-child,
 .gafa-acct-balance__nav button:last-child {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
   background: transparent;
   border: none;
@@ -3236,6 +3349,9 @@
 }
 
 .gafa-acct-switch button {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: transparent;
   border: none;
   border-radius: var(--gafa-radius-pill);
@@ -3247,6 +3363,8 @@
 }
 
 .gafa-acct-switch button[aria-selected="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
 }
@@ -3531,6 +3649,10 @@
 }
 
 .gafa-acct-datefield__button {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-min-height: 56px;
+  --gafa-control-radius: var(--gafa-radius-md);
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -3592,6 +3714,9 @@
 }
 
 .gafa-acct-choice__button {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
@@ -3603,6 +3728,8 @@
 }
 
 .gafa-acct-choice__button[aria-pressed="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: transparent;
   color: var(--gafa-color-primary-text);
@@ -3651,6 +3778,7 @@
 }
 
 .gafa-acct-qr h3 {
+  background: none;
   font-size: 1.15rem;
   margin: 0;
 }
@@ -3773,6 +3901,8 @@
 /* El rojo del tema es claro en modo oscuro y oscuro en modo claro: el texto
    tiene que ir al color del fondo de la pagina, no siempre a blanco. */
 .gafa-confirm[data-tone="danger"] .gafa-confirm__confirm {
+  --gafa-control-bg: var(--gafa-color-danger, #dc2626);
+  --gafa-control-fg: var(--gafa-color-background);
   background: var(--gafa-color-danger, #dc2626);
   border-color: transparent;
   color: var(--gafa-color-background);
@@ -3942,6 +4072,9 @@
 }
 
 .gafa-checkout__close {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-surface-raised) 85%, transparent);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: 999px;
   align-items: center;
   background: color-mix(in srgb, var(--gafa-color-surface-raised) 85%, transparent);
   border: 1px solid var(--gafa-color-border);
@@ -3960,6 +4093,7 @@
 }
 
 .gafa-checkout__close:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
   background: var(--gafa-color-surface-raised);
 }
 
@@ -4005,6 +4139,7 @@
 }
 
 .gafa-checkout__hero h2 {
+  background: none;
   font-family: var(--gafa-heading-font-family);
   font-size: clamp(1.35rem, 2.4vw, 1.7rem);
   font-weight: 800;
@@ -4033,6 +4168,9 @@
 }
 
 .gafa-checkout-tabs button {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 999px;
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
@@ -4058,6 +4196,8 @@
 }
 
 .gafa-checkout-tabs button[data-active="true"] {
+  --gafa-control-bg: var(--gafa-color-text);
+  --gafa-control-fg: var(--gafa-color-surface);
   background: var(--gafa-color-text);
   color: var(--gafa-color-surface);
 }
@@ -4160,6 +4300,9 @@
 }
 
 .gafa-checkout-product__info > button {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 999px;
   align-items: center;
   background: transparent;
   border: 1px solid var(--gafa-color-border);
@@ -4235,6 +4378,9 @@
 }
 
 .gafa-checkout-product__add {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: 999px;
   background: transparent;
   border: 1px solid var(--gafa-color-border);
   border-radius: 999px;
@@ -4250,6 +4396,8 @@
 }
 
 .gafa-checkout-product__add:hover {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
@@ -4272,6 +4420,9 @@
 
 /* Resumen plegable del carrito: solo existe en movil. */
 .gafa-checkout__cart-toggle {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
   align-items: center;
   background: none;
   border: 0;
@@ -4433,6 +4584,9 @@
 }
 
 .gafa-checkout__stepper button {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   background: transparent;
   border: 0;
   color: var(--gafa-color-text);
@@ -4458,6 +4612,9 @@
 }
 
 .gafa-checkout__line-remove {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 999px;
   align-items: center;
   background: transparent;
   border: 0;
@@ -4467,11 +4624,19 @@
   display: inline-flex;
   height: 22px;
   justify-content: center;
+  padding: 0;
   width: 22px;
 }
 
 .gafa-checkout__line-remove:hover {
+  --gafa-control-fg: var(--gafa-color-danger, #dc2626);
   color: var(--gafa-color-danger, #dc2626);
+}
+
+.gafa-checkout__line-remove svg,
+.gafa-checkout__line-remove svg [stroke] {
+  fill: none !important;
+  stroke: currentColor !important;
 }
 
 /* ── Promos / términos ── */
@@ -4482,6 +4647,9 @@
 }
 
 .gafa-checkout-promo__link {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
   background: none;
   border: 0;
   color: var(--gafa-color-text);
@@ -4499,6 +4667,7 @@
 }
 
 .gafa-checkout-promo__link:hover {
+  --gafa-control-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
 
@@ -4520,6 +4689,9 @@
 }
 
 .gafa-checkout-promo__row button {
+  --gafa-control-bg: var(--gafa-color-text);
+  --gafa-control-fg: var(--gafa-color-surface);
+  --gafa-control-radius: 10px;
   background: var(--gafa-color-text);
   border: 0;
   border-radius: 10px;
@@ -4568,6 +4740,9 @@
 }
 
 .gafa-checkout__terms a {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
   color: var(--gafa-color-text);
   font-weight: 700;
   text-decoration: underline;
@@ -4625,6 +4800,11 @@
 }
 
 .gafa-checkout__backlink {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 0px;
+  --gafa-control-tracking: normal;
+  --gafa-control-transform: none;
   background: none;
   border: 0;
   color: var(--gafa-color-muted-text);
@@ -4633,9 +4813,12 @@
   font-size: 0.78rem;
   font-weight: 600;
   padding: 0;
+  text-align: left;
+  white-space: normal;
 }
 
 .gafa-checkout__backlink:hover {
+  --gafa-control-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
 }
 
@@ -4666,6 +4849,9 @@
 }
 
 .gafa-checkout-methods button {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 12px;
   align-items: center;
   background: transparent;
   border: 1px solid var(--gafa-color-border);
@@ -4682,6 +4868,8 @@
 }
 
 .gafa-checkout-methods button[data-active="true"] {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
+  --gafa-control-fg: var(--gafa-color-text);
   background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-text);

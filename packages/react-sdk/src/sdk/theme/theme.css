@@ -48,12 +48,81 @@
   font-family: inherit;
 }
 
-.gafa-sdk :focus-visible {
-  outline: 2px solid var(--gafa-color-accent);
-  outline-offset: 2px;
+/*
+ * Aislamiento del CSS del anfitrion (Hello / Elementor / WP).
+ *
+ * No usamos `all: revert` sobre `button`/`h2`: `.gafa-sdk button` gana a
+ * `.gafa-sdk-button` y tumba nuestro chrome. Tampoco `@layer`: el CSS del
+ * tema llega sin capa y se come las capas.
+ *
+ * El reset pinta con !important leyendo --gafa-control-* (widgets.css las
+ * asigna por componente). Lo que SI se hereda del socio: --gafa-color-primary
+ * y font-family. Lo que NO: radio de boton, text-transform, fondo de headings,
+ * outline naranja, min-height de WP.
+ *
+ * `html body` sube la especificidad por encima de `.elementor-kit-N button`.
+ */
+html body .gafa-sdk button,
+html body .gafa-sdk a,
+html body .gafa-sdk [type="button"],
+html body .gafa-sdk [type="submit"],
+html body .gafa-sdk [type="reset"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: var(--gafa-control-bg, transparent) none !important;
+  color: var(--gafa-control-fg, inherit) !important;
+  border-radius: var(--gafa-control-radius, var(--gafa-radius-md)) !important;
+  box-shadow: var(--gafa-control-shadow, none) !important;
+  letter-spacing: var(--gafa-control-tracking, normal) !important;
+  min-height: var(--gafa-control-min-height, 0px) !important;
+  outline: none !important;
+  text-shadow: none !important;
+  text-transform: var(--gafa-control-transform, none) !important;
+}
+
+html body .gafa-sdk h1,
+html body .gafa-sdk h2,
+html body .gafa-sdk h3,
+html body .gafa-sdk h4,
+html body .gafa-sdk h5,
+html body .gafa-sdk h6 {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+html body .gafa-sdk img {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+html body .gafa-sdk svg {
+  background: none !important;
+}
+
+html body .gafa-sdk svg[stroke]:not([fill]),
+html body .gafa-sdk svg [stroke]:not([fill]) {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+html body .gafa-sdk :focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html body .gafa-sdk :focus-visible {
+  outline: 2px solid var(--gafa-color-accent) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
 }
 
 .gafa-scheme-toggle {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -70,6 +139,7 @@
 }
 
 .gafa-scheme-toggle:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
 }
