@@ -1,5 +1,6 @@
 import type { GafaSdk } from "../runtime";
 import type { CalendarView } from "../widgets/calendarRange";
+import { readCalendarLocationIdFromWindow } from "../widgets/calendarLocationQuery";
 
 type LegacyWidgetName =
   | "login"
@@ -79,7 +80,8 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
           staff: element.hasAttribute("filter-bq-staff"),
           room: element.hasAttribute("filter-bq-room"),
           brandId: toNumber(element.getAttribute("filter-bq-brand-default")),
-          locationId: toNumber(element.getAttribute("filter-bq-location-default")),
+          locationId:
+            readCalendarLocationIdFromWindow() ?? toNumber(element.getAttribute("filter-bq-location-default")),
           serviceId: toNumber(element.getAttribute("filter-bq-service-default")),
           staffId: toNumber(element.getAttribute("filter-bq-staff-default")),
         },

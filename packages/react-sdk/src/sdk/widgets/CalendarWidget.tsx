@@ -35,6 +35,11 @@ import {
   type DateRange,
   type TimeOfDay,
 } from "./calendarRange";
+import {
+  calendarLocationSelectValue,
+  readCalendarLocationIdFromWindow,
+  resolveCalendarLocationId,
+} from "./calendarLocationQuery";
 
 export type CalendarWidgetProps = {
   client?: GafaClient;
@@ -62,7 +67,8 @@ export type CalendarWidgetProps = {
 
 type CalendarFiltersState = {
   brandSlug?: string;
-  locationId?: number;
+  /** `null` = el usuario eligió "Todos"; no reaplicar URL / default. */
+  locationId?: number | null;
   serviceId?: number;
   staffId?: number;
 };
@@ -82,7 +88,9 @@ export function CalendarWidget({
   description: _description,
 }: CalendarWidgetProps) {
   const queryClient = useQueryClient();
-  const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>({});
+  const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>(() => ({
+    locationId: readCalendarLocationIdFromWindow() ?? filters.locationId,
+  }));
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [checkoutMeeting, setCheckoutMeeting] = useState<Meeting | null>(null);
   // Meeting que el usuario quiere reservar pero aun no tiene sesion: dispara el
@@ -247,9 +255,10 @@ export function CalendarWidget({
     return (brandsQuery.data ?? []).filter((brand) => slugs.has(brand.slug));
   }, [bookableLocations, brandsQuery.data]);
 
-  // undefined = "Todos" (como el calendar legacy). Solo se fija una sede si el
-  // sitio manda filters.locationId o el usuario elige una en el select.
-  const selectedLocationId = selectedFilters.locationId ?? filters.locationId;
+  // URL (?location=200) y filter-bq-location-default arrancan el select en esa
+  // sede. Si el usuario elige "Todos" (null) no se vuelve a aplicar ese default.
+  const locationFallbackId = readCalendarLocationIdFromWindow() ?? filters.locationId;
+  const selectedLocationId = resolveCalendarLocationId(selectedFilters.locationId, locationFallbackId);
   const showAllLocations = selectedLocationId == null;
 
   const activeLocation = useMemo(() => {
@@ -259,6 +268,13 @@ export function CalendarWidget({
     // El <select> solo tiene el representante (primer id) de cada nombre.
     return locations.find((location) => locationNameKey(location.name) === locationNameKey(match.name)) ?? match;
   }, [bookableLocations, locations, selectedLocationId, showAllLocations]);
+
+  const locationSelectValue =
+    selectedFilters.locationId === null
+      ? ""
+      : activeLocation
+        ? String(activeLocation.id)
+        : calendarLocationSelectValue(selectedFilters.locationId, locationFallbackId);
 
   const activeLocationGroup = useMemo(() => {
     if (showAllLocations) return bookableLocations;
@@ -274,7 +290,7 @@ export function CalendarWidget({
     if (selectedId == null) return;
     const stillThere = bookableLocations.some((location) => location.id === selectedId);
     if (!stillThere) {
-      setSelectedFilters((current) => ({ ...current, locationId: undefined }));
+      setSelectedFilters((current) => ({ ...current, locationId: null }));
     }
   }, [bookableLocations, bookableLocationsQuery.isSuccess, selectedFilters.locationId]);
 
@@ -642,6 +658,7 @@ export function CalendarWidget({
             filters={filters}
             loading={discoveringLocations}
             locations={locations}
+            locationSelectValue={locationSelectValue}
             onChange={(updater) => {
               allowAutoSkipRef.current = true;
               setSelectedFilters(updater);
@@ -1187,6 +1204,7 @@ function CalendarFilterBar({
   filters,
   loading = false,
   locations,
+  locationSelectValue,
   onChange,
   selected,
   serviceOptions,
@@ -1200,6 +1218,7 @@ function CalendarFilterBar({
   filters: NonNullable<CalendarWidgetProps["filters"]>;
   loading?: boolean;
   locations: Location[];
+  locationSelectValue: string;
   onChange: React.Dispatch<React.SetStateAction<CalendarFiltersState>>;
   selected: CalendarFiltersState;
   serviceOptions: Array<{ id: number; name: string }>;
@@ -1259,8 +1278,13 @@ function CalendarFilterBar({
           <LocationIcon />
           <select
             aria-label="Ubicación"
-            value={selected.locationId ?? ""}
-            onChange={(event) => onChange((current) => ({ ...current, locationId: toOptionalNumber(event.target.value) }))}
+            value={locationSelectValue}
+            onChange={(event) =>
+              onChange((current) => ({
+                ...current,
+                locationId: event.target.value === "" ? null : toOptionalNumber(event.target.value),
+              }))
+            }
           >
             <option value="">Todos</option>
             {locations.map((location) => (
