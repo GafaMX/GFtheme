@@ -52,7 +52,7 @@ el theme PHP en cada deploy v2: se reemplaza `gafa-sdk.js` en git.
 
 **Replit (app multi-sitio):** no copies a `lib/gafa-react-sdk` y no relances
 toda la app. Solo las páginas v2 cambian el `src`. Los sitios que siguen en v1
-no se tocan. Si usas env, `GAFA_SDK_V2_URL` apunta al IIFE o al Vite.
+no se tocan. Si usas env, `VITE_GAFA_SDK_V2_URL` apunta al IIFE (`@v2.0.0-rc.2`).
 
 **HTML / Webflow / otro:** el mismo `<script src>` + `data-gf-options` + contenedores.
 

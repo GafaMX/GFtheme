@@ -220,4 +220,57 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     });
     expect(screen.queryByRole("button", { name: /procesando/i })).toBeNull();
   });
+
+  it("paquete suelto: no espera el poll de reserva (eso dejaba Procesando minutos)", async () => {
+    const client = mockClient({
+      pollInitialPurchaseStatus: vi.fn(() => new Promise(() => undefined)),
+    });
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" } });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    });
+    expect(client.pollInitialPurchaseStatus).not.toHaveBeenCalled();
+  });
+
+  it("con clase: muestra el thank you sin esperar el poll de la reserva", async () => {
+    const client = mockClient({
+      pollInitialPurchaseStatus: vi.fn(() => new Promise(() => undefined)),
+    });
+    useCartStore.setState({
+      lines: [cartLine],
+      reservation: {
+        meetingId: 501,
+        meetingName: "HELIPUERTO BICI",
+        serviceName: "HELIPUERTO BICI",
+        startsAt: "2026-08-18T09:30:00",
+        timezone: "America/Mexico_City",
+        brandSlug: "fitspin",
+        locationSlug: "polanco",
+      },
+    });
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" } });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/reserva confirmada/i)).toBeTruthy();
+    });
+    expect(screen.getByText(/orden #88/i)).toBeTruthy();
+    expect(client.pollInitialPurchaseStatus).toHaveBeenCalled();
+  });
 });

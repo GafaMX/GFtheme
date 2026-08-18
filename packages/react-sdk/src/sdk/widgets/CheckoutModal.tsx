@@ -453,25 +453,33 @@ export function CheckoutModal({
         seatObjectId: reservation?.seatObjectId,
       });
 
-      let reservationId: number | undefined;
-      if (purchase.purchaseId && client.pollInitialPurchaseStatus) {
-        reservationId = await waitForPurchase(client, {
-          brandSlug,
-          locationSlug,
-          checkoutToken: purchase.checkoutToken ?? checkoutToken,
-          pendingPurchaseId: purchase.purchaseId,
-        });
-      }
-
+      const purchaseId = purchase.purchaseId;
+      // El cobro ya está en initial-purchase. El poll de status es solo para la
+      // CLASE (reservation_id). Un paquete suelto nunca resuelve code=1 y
+      // dejaba "Procesando…" 20–60s con la orden ya creada.
       setThanks({
-        purchaseId: purchase.purchaseId,
-        reservationId,
+        purchaseId,
         reservationSnapshot,
         linesSnapshot,
       });
       resetAfterPurchase();
       setStep("thanks");
-      onCompleted?.({ purchaseId: purchase.purchaseId, reservationId });
+      onCompleted?.({ purchaseId });
+
+      if (reservationSnapshot && purchaseId && client.pollInitialPurchaseStatus) {
+        void waitForPurchase(client, {
+          brandSlug,
+          locationSlug,
+          checkoutToken: purchase.checkoutToken ?? checkoutToken,
+          pendingPurchaseId: purchaseId,
+        })
+          .then((reservationId) => {
+            if (reservationId == null) return;
+            setThanks((current) => (current ? { ...current, reservationId } : current));
+            onCompleted?.({ purchaseId, reservationId });
+          })
+          .catch(() => undefined);
+      }
     } catch (err) {
       setPayError(err instanceof Error ? err.message : "No pudimos completar el pago.");
     } finally {
