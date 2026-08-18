@@ -21,10 +21,22 @@ describe("checkout Stripe saved-card layout", () => {
     );
   });
 
-  /* GafaPayFront fija las tarjetas en 200px: el panel desbordaba el modal. */
-  it("no deja que la isla saque scroll horizontal del modal", () => {
+  it("no deja que la isla desborde el panel de pago", () => {
     expect(payMountCss).toMatch(/\.gafa-checkout-paymount \{[^}]*min-width: 0/);
     expect(payMountCss).toMatch(/\.gafa-checkout-paymount__island \{[^}]*max-width: 100%/);
+  });
+
+  /*
+   * theme.css pone content-box en la isla por el boton de PayPal. Con Stripe,
+   * `width: 100%` + padding + borde se salia del panel y cortaba el `•••• 3002`.
+   */
+  it("devuelve border-box a la isla de Stripe, sin tocar la de PayPal", () => {
+    const rule = payMountCss.match(
+      /\.gafa-checkout-paymount\[data-method="stripe"\] \.gafa-pay-native,\s*\.gafa-checkout-paymount\[data-method="stripe"\] \.gafa-pay-native \* \{[^}]*\}/,
+    )?.[0];
+    expect(rule).toBeTruthy();
+    expect(rule).toContain("box-sizing: border-box");
+    expect(payMountCss).not.toMatch(/\[data-method="paypal"\][^{]*\{[^}]*box-sizing: border-box/);
   });
 
   it("separa la tarjeta guardada del campo nuevo (GafaPay trae row-gap: 0)", () => {

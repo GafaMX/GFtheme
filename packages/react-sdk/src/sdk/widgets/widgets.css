@@ -4938,7 +4938,17 @@
 .gafa-checkout-paymount__island {
   max-width: 100%;
   min-width: 0;
-  overflow-x: clip;
+}
+
+/*
+ * theme.css pone `content-box` en toda la isla de GafaPay porque checkout.js
+ * (PayPal) mide asi su boton. Con Stripe eso hacia que `width: 100%` + padding
+ * + borde se saliera del panel: el `•••• 3002` y el `MM / YY CVC` quedaban
+ * cortados a la derecha. PayPal se queda como estaba.
+ */
+.gafa-checkout-paymount[data-method="stripe"] .gafa-pay-native,
+.gafa-checkout-paymount[data-method="stripe"] .gafa-pay-native * {
+  box-sizing: border-box;
 }
 
 .gafa-checkout-paymount[data-method="paypal"] {
@@ -5446,6 +5456,9 @@
   border-radius: 12px;
   color: var(--gafa-color-text);
   gap: 0.45rem;
+  /* GafaPayFront usa 2 columnas y manda el `•••• 1234` a la derecha; apilado
+     bajo la marca se lee como una tarjeta. */
+  grid-template-columns: 1fr;
   grid-template-rows: auto auto;
   height: auto;
   justify-items: start;
