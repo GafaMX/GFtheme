@@ -7,6 +7,12 @@ import { CustomFieldInput } from "./CustomFieldInput";
 
 export type AuthView = "login" | "register" | "password-recovery" | "profile";
 
+/**
+ * Google/Apple/Facebook quedan apagados hasta que gafa.fit tenga el endpoint
+ * que cambia el token del proveedor por una sesión (ver SocialAuthButtons).
+ */
+const SHOW_SOCIAL_AUTH: boolean = false;
+
 /** Formulario que el widget tiene a la vista; `profile` no es un paso real. */
 export type AuthStage = "login" | "register" | "password-recovery" | "password-reset";
 
@@ -131,7 +137,7 @@ export function AuthWidget({
       {formView === "login" ? (
         <>
           <LoginForm client={client} onAuthenticated={onAuthenticated} />
-          <SocialAuthButtons />
+          {SHOW_SOCIAL_AUTH ? <SocialAuthButtons /> : null}
           <p className="gafa-auth-links">
             <button className="gafa-auth-link" type="button" onClick={() => setView("password-recovery")}>
               ¿Olvidaste tu contraseña?
@@ -147,7 +153,7 @@ export function AuthWidget({
       ) : (
         <>
           <RegisterForm client={client} captcha={captcha} brandSlug={brandSlug} onAuthenticated={onAuthenticated} />
-          <SocialAuthButtons />
+          {SHOW_SOCIAL_AUTH ? <SocialAuthButtons /> : null}
           <p className="gafa-auth-links">
             <span>
               ¿Ya tienes cuenta?{" "}
