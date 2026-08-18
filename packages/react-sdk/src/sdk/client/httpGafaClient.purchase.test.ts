@@ -67,6 +67,36 @@ describe("initialPurchase", () => {
     expect(body.get("combos_amounts[0]")).toBe("1");
     expect(body.get("checkout_token")).toBe("chk_1");
   });
+
+  it("manda cart/combo con product_type Eloquent, como el fancy v1", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase_id: 88 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().initialPurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+      userId: 4412,
+      lines: [{ id: 971, type: "combo", amount: 1, name: "1 clase", price: 330, companiesId: 80 }],
+      paymentTypeId: 6,
+      paymentData: { id: "ch_123" },
+      discountCode: "buqmx",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+
+    expect(body.get("discountCode")).toBe("buqmx");
+    expect(body.get("cart[0][id]")).toBe("971");
+    expect(body.get("cart[0][type]")).toBe("combo");
+    expect(body.get("cart[0][amount]")).toBe("1");
+    expect(body.get("cart[0][name]")).toBe("1 clase");
+    expect(body.get("cart[0][price_final]")).toBe("330");
+    expect(body.get("cart[0][product_type]")).toBe("App\\Models\\Combos\\Combos");
+    expect(body.get("cart[0][companies_id]")).toBe("80");
+    expect(body.get("combo[0][id]")).toBe("971");
+    expect(body.get("combo[0][product_type]")).toBe("App\\Models\\Combos\\Combos");
+    expect(body.get("memberships_id[0]")).toBeNull();
+  });
 });
 
 describe("pollInitialPurchaseStatus", () => {

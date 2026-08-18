@@ -4478,6 +4478,7 @@
 .gafa-checkout__cta,
 .gafa-checkout__backlink,
 .gafa-checkout__error,
+.gafa-checkout__env-warn,
 .gafa-checkout__paypal-hint {
   flex-shrink: 0;
 }
@@ -4863,7 +4864,18 @@
 .gafa-checkout__error {
   color: #b91c1c;
   font-size: 0.8rem;
+  line-height: 1.4;
   margin: 0;
+}
+
+.gafa-checkout__env-warn {
+  background: color-mix(in srgb, #b45309 12%, transparent);
+  border-radius: 10px;
+  color: #92400e;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
 }
 
 .gafa-checkout__paypal-hint {
@@ -5348,6 +5360,29 @@
   padding: 0.7rem 0.9rem;
 }
 
+/*
+ * Stripe + tarjeta guardada. GafaPayFront pinta .card-list__item a 200×110 y
+ * el Payment Element al 100% del panel, con padding:0: los bordes se enciman
+ * y el campo nuevo es una pastilla más ancha. Misma columna tipo tarjeta.
+ */
+.gafa-checkout-paymount[data-method="stripe"] {
+  --gafa-pay-card-width: 200px;
+}
+
+.gafa-checkout-paymount[data-method="stripe"] .gafa-checkout-paymount__island {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  max-width: 100%;
+  width: var(--gafa-pay-card-width);
+}
+
+.gafa-checkout-paymount[data-method="stripe"] .gafapay-elements__container {
+  gap: 1rem;
+  justify-items: stretch;
+  width: 100%;
+}
+
 .gafa-checkout-paymount input,
 .gafa-checkout-paymount select {
   background: transparent;
@@ -5368,16 +5403,22 @@
 }
 
 /* GafaPayFront envuelve el campo de tarjeta en 30px de aire arriba y abajo:
-   dentro del modal se veia como un hueco vacio debajo del borde. */
+   dentro del modal se veia como un hueco vacio debajo del borde. El fancy v1
+   deja padding:0 pero pone margin-bottom:20px en .card-list para no encimar. */
 .gafa-checkout-paymount .gafapay-form__container {
   padding: 0;
-  row-gap: 0.6rem;
+  row-gap: 0.75rem;
+  width: 100%;
 }
 
 /* ── Tarjetas guardadas (las pinta GafaPayFront) ── */
 
 .gafa-checkout-paymount .card-list {
+  grid-template-columns: 1fr;
   justify-items: stretch;
+  margin: 0;
+  row-gap: 0.75rem;
+  width: 100%;
 }
 
 .gafa-checkout-paymount .card-list__item {
@@ -5386,6 +5427,16 @@
   border-radius: 12px;
   color: var(--gafa-color-text);
   gap: 0.5rem;
+  height: 110px;
+  width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="stripe"] .gafapay-form__group {
+  align-items: center;
+  display: flex;
+  min-height: 110px;
+  padding: 0.85rem 0.9rem;
+  width: 100%;
 }
 
 .gafa-checkout-paymount .card-list__item.is-selected,

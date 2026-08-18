@@ -96,8 +96,11 @@
       <section data-gf-theme="combo-list"></section>
 
       <footer>
-        Versión por URL: <code>?sdk=v2.0.0-rc.11</code>, <code>?sdk=&lt;sha&gt;</code> o
-        <code>?sdk=https://…/gafa-sdk.js</code>. Entorno: <code>?buq-env=staging</code>.
+        Versión por URL: <code>?sdk=v2.0.0-rc.12</code>, <code>?sdk=&lt;sha&gt;</code> o
+        <code>?sdk=https://…/gafa-sdk.js</code>.
+        Entorno por default: production (<code>buq.partners</code>).
+        <code>?buq-env=staging</code> pega a <code>buq.com.mx</code> pero GafaPay puede cobrar en el Stripe de producción: no uses tarjeta real.
+        Si hay que probar un cobro, usa el código <code>buqmx</code>.
         Diagnóstico de la compra: <code>?debug=1</code>.
       </footer>
     </div>

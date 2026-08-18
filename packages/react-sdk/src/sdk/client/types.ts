@@ -368,8 +368,20 @@ export type InitialPurchasePayload = {
   locationSlug: string;
   userId: number;
   meetingId?: number;
-  /** Lineas del carrito (combos / membresias / productos). */
-  lines: Array<{ id: number; type: CartLineType; amount: number }>;
+  /**
+   * Lineas del carrito. El fancy v1 manda cada item completo en `cart` /
+   * `combo` / `membership` / `product` (id, amount, name, price_final,
+   * product_type Eloquent). Sin eso gafa.fit puede responder 500 después de
+   * que Stripe ya cobró.
+   */
+  lines: Array<{
+    id: number;
+    type: CartLineType;
+    amount: number;
+    name?: string;
+    price?: number;
+    companiesId?: number;
+  }>;
   paymentTypeId: number;
   /** Lo que GafaPay entrega en `message`: objeto o texto, sin envolver. */
   paymentData?: unknown;

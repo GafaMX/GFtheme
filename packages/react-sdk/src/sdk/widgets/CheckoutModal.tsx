@@ -36,6 +36,20 @@ import {
   fetchCheckoutCatalog,
 } from "../cart/checkoutCatalog";
 import { resolveDiscountAmount } from "../cart/discountCode";
+import { gafaFitProductType } from "../cart/gafaFitCart";
+
+/** GafaPay ya cobró; reintentar "Pagar" haría un segundo cargo. */
+export const CHARGED_BUT_NOT_RECORDED =
+  "Tu tarjeta ya fue cobrada, pero Buq no registró la compra. No vuelvas a pagar. Pulsa «Registrar compra» para reintentar el registro sin otro cargo.";
+
+function stagingPayWarning(): string | null {
+  if (typeof window === "undefined") return null;
+  const env = new URLSearchParams(window.location.search).get("buq-env");
+  if (env === "staging" || env === "dev" || env === "development") {
+    return "Estás en staging: GafaPay puede cobrar en el Stripe de producción. No uses una tarjeta real.";
+  }
+  return null;
+}
 
 export type CheckoutModalProps = {
   client: GafaClient;
@@ -157,6 +171,10 @@ export function CheckoutModal({
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
   const [paying, setPaying] = useState(false);
+  /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
+  const [registerOnly, setRegisterOnly] = useState(false);
+  const chargedRef = useRef(false);
+  const pendingRegisterRef = useRef<{ paymentData: unknown; recurring: boolean } | null>(null);
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
     reservationId?: number;
@@ -325,6 +343,7 @@ export function CheckoutModal({
   const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
   const discountLabel = appliedDiscount?.label;
   const total = Math.max(0, subtotal - discountAmount);
+  const envWarning = step === "pay" ? stagingPayWarning() : null;
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
   const waitingOnTerms = hasTerms && !termsAccepted;
@@ -465,7 +484,14 @@ export function CheckoutModal({
         locationSlug,
         userId: config?.userProfileId ?? profile.id,
         meetingId: reservation?.meetingId,
-        lines: linesSnapshot.map((line) => ({ id: line.id, type: line.type, amount: line.amount })),
+        lines: linesSnapshot.map((line) => ({
+          id: line.id,
+          type: line.type,
+          amount: line.amount,
+          name: line.name,
+          price: line.price,
+          companiesId: config?.companiesId,
+        })),
         paymentTypeId: selectedMethod.id,
         paymentData,
         discountCode: discountStatus === "ok" ? discountCode.trim() : null,
@@ -507,7 +533,17 @@ export function CheckoutModal({
           });
       }
     } catch (err) {
-      setPayError(err instanceof Error ? err.message : "No pudimos completar el pago.");
+      const detail = err instanceof Error ? err.message : "No pudimos completar el pago.";
+      if (chargedRef.current) {
+        setRegisterOnly(true);
+        setPayError(
+          detail && detail !== CHARGED_BUT_NOT_RECORDED
+            ? `${CHARGED_BUT_NOT_RECORDED} (${detail})`
+            : CHARGED_BUT_NOT_RECORDED,
+        );
+      } else {
+        setPayError(detail);
+      }
     } finally {
       setPaying(false);
     }
@@ -517,10 +553,22 @@ export function CheckoutModal({
     // Mismo contrato que el fancy v1 (`ht.payment_data = e.message`): el recibo
     // va tal cual. Si GafaPay manda texto viaja como `payment_data=…`; envolverlo
     // en `{token}` lo dejaba en `payment_data[token]` y gafa.fit no lo reconocía.
+    chargedRef.current = true;
+    pendingRegisterRef.current = {
+      paymentData: result.message,
+      recurring: Boolean(result.recurringPayment),
+    };
     void completePurchase(result.message, Boolean(result.recurringPayment));
   }
 
   async function proceedToPay() {
+    if (registerOnly && pendingRegisterRef.current) {
+      setPayError(undefined);
+      setPaying(true);
+      const pending = pendingRegisterRef.current;
+      await completePurchase(pending.paymentData, pending.recurring);
+      return;
+    }
     if (!paymentReady) {
       setPayError("El formulario de pago todavía no está listo.");
       return;
@@ -553,6 +601,10 @@ export function CheckoutModal({
     setPayError(undefined);
     if (!relevantLines.length) {
       setPayError("Agrega un paquete o membresía para continuar.");
+      return;
+    }
+    if (registerOnly) {
+      void proceedToPay();
       return;
     }
     if (waitingOnTerms) {
@@ -992,6 +1044,8 @@ export function CheckoutModal({
                 </div>
               </div>
 
+              {envWarning ? <p className="gafa-checkout__env-warn">{envWarning}</p> : null}
+
               {payError ? <p className="gafa-checkout__error">{payError}</p> : null}
 
               {/* En el paso de login la accion es "Entrar" del propio formulario:
@@ -1011,10 +1065,18 @@ export function CheckoutModal({
                 <button
                   className="gafa-sdk-button gafa-checkout__cta"
                   type="button"
-                  disabled={paying || relevantLines.length === 0 || (!waitingOnTerms && !canPay)}
+                  disabled={
+                    paying ||
+                    relevantLines.length === 0 ||
+                    (!registerOnly && !waitingOnTerms && !canPay)
+                  }
                   onClick={handlePayClick}
                 >
-                  {paying ? "Procesando…" : `Pagar ${formatMoney(total, currency.prefix, "")}`}
+                  {paying
+                    ? "Procesando…"
+                    : registerOnly
+                      ? "Registrar compra"
+                      : `Pagar ${formatMoney(total, currency.prefix, "")}`}
                 </button>
               )}
 
@@ -1187,7 +1249,7 @@ function PayPanel({
         name: line.name,
         unitPrice: Math.max(0, unit - perUnitDiscount),
         quantity: line.amount,
-        product_type: line.type,
+        product_type: gafaFitProductType(line.type),
         product_id: line.id,
         height: 1,
         length: 1,

@@ -38,6 +38,7 @@ import type {
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
+import { partitionGafaFitCart } from "../cart/gafaFitCart";
 import { toFormBody } from "./formBody";
 import {
   clearStoredToken,
@@ -1392,9 +1393,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async initialPurchase(payload: InitialPurchasePayload) {
-      const combos = payload.lines.filter((line) => line.type === "combo");
-      const memberships = payload.lines.filter((line) => line.type === "membership");
-      const products = payload.lines.filter((line) => line.type === "product");
+      // Mismo cuerpo que `sendInitialPurchaseForm` del fancy v1: ids sueltos
+      // Y el carrito completo. Sin `cart`/`combo` Laravel 8+ tira TypeError
+      // (foreach sobre null) → 500 "Server Error" con el cargo ya hecho.
+      const partitioned = partitionGafaFitCart(payload.lines);
 
       const body: Record<string, unknown> = {
         users_id: payload.userId,
@@ -1406,24 +1408,20 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         selected_credit: payload.selectedCredit,
         subscribe: payload.subscribe ? 1 : 0,
         set_payment: payload.setPayment ? 1 : 0,
+        combos_id: partitioned.combosId,
+        combos_amounts: partitioned.combosAmounts,
+        memberships_id: partitioned.membershipsId,
+        memberships_amounts: partitioned.membershipsAmounts,
+        products_id: partitioned.productsId,
+        products_amounts: partitioned.productsAmounts,
+        cart: partitioned.cart,
+        combo: partitioned.combo,
+        membership: partitioned.membership,
+        product: partitioned.product,
       };
 
-      // Arrays al estilo PHP que espera gafa.fit
-      combos.forEach((line, index) => {
-        body[`combos_id[${index}]`] = line.id;
-        body[`combos_amounts[${index}]`] = line.amount;
-      });
-      memberships.forEach((line, index) => {
-        body[`memberships_id[${index}]`] = line.id;
-        body[`memberships_amounts[${index}]`] = line.amount;
-      });
-      products.forEach((line, index) => {
-        body[`products_id[${index}]`] = line.id;
-        body[`products_amounts[${index}]`] = line.amount;
-      });
-
       if (payload.seatObjectId != null) {
-        body["map_objectsSelected[0][id]"] = payload.seatObjectId;
+        body.map_objectsSelected = [{ id: payload.seatObjectId }];
       }
 
       if (payload.paymentData != null) {

@@ -165,6 +165,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
 
     expect(typeof lastProps?.onStartPayAction).toBe("function");
     expect(() => lastProps?.onStartPayAction()).not.toThrow();
+    expect(lastProps?.order.lineItems[0]?.product_type).toBe("App\\Models\\Combos\\Combos");
   });
 
   it("no se queda en Procesando si el handler de Stripe revienta", async () => {
@@ -227,6 +228,16 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     const payload = vi.mocked(client.initialPurchase!).mock.calls[0][0];
     expect(payload.paymentData).toEqual({ id: "ch_123", status: "succeeded" });
     expect(payload.subscribe).toBe(false);
+    expect(payload.lines[0]).toEqual(
+      expect.objectContaining({
+        id: 971,
+        type: "combo",
+        amount: 1,
+        name: "SCULPT",
+        price: 275,
+        companiesId: 1,
+      }),
+    );
   });
 
   it("si GafaPay contesta con texto, payment_data va sin envolver", async () => {
@@ -302,9 +313,10 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     fireEvent.click(payButton());
 
     await waitFor(() => {
-      expect(screen.getByText(/no pudimos completar la compra/i)).toBeTruthy();
+      expect(screen.getByText(/ya fue cobrada/i)).toBeTruthy();
     });
     expect(screen.queryByRole("button", { name: /procesando/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /registrar compra/i })).toBeTruthy();
   });
 
   it("no bloquea el thank you con el poll, pero lo sigue esperando en segundo plano", async () => {
@@ -385,4 +397,34 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     });
   });
 
+  it("si Buq falla después del cobro, no vuelve a llamar a Stripe", async () => {
+    const initialPurchase = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Server Error"))
+      .mockResolvedValueOnce({ purchaseId: 88, checkoutToken: null });
+    const client = mockClient({ initialPurchase });
+    const stripe = vi.fn(async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { id: "ch_123" } });
+    });
+
+    renderPay(client);
+    await waitUntilPayReady();
+    window._handleStripePayment = stripe;
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/ya fue cobrada/i)).toBeTruthy();
+    });
+    expect(stripe).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /registrar compra/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    });
+    expect(stripe).toHaveBeenCalledTimes(1);
+    expect(initialPurchase).toHaveBeenCalledTimes(2);
+  });
 });
