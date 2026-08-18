@@ -550,15 +550,24 @@ export function CheckoutModal({
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
-    // Mismo contrato que el fancy v1 (`ht.payment_data = e.message`): el recibo
-    // va tal cual. Si GafaPay manda texto viaja como `payment_data=…`; envolverlo
-    // en `{token}` lo dejaba en `payment_data[token]` y gafa.fit no lo reconocía.
+    // gafa.fit (App\Librerias\...\Stripe) espera payment_data como array con
+    // {subscriptionId, recurringPayment, webToken, message}, donde `message`
+    // es el recibo (con Stripe: base64 de `id_||_ch_…_||_centavos_||_…`).
+    // Mandar solo `message` dejaba initial-purchase en 500 (confirmado con el
+    // equipo de gafa.fit). Booleanos como 0/1: en PHP "false" es truthy.
+    const recurring = Boolean(result.recurringPayment);
+    const paymentData: Record<string, unknown> = {
+      subscriptionId: result.subscriptionId ?? null,
+      recurringPayment: recurring ? 1 : 0,
+      webToken: result.webToken ?? null,
+      message: result.message,
+    };
     chargedRef.current = true;
     pendingRegisterRef.current = {
-      paymentData: result.message,
-      recurring: Boolean(result.recurringPayment),
+      paymentData,
+      recurring,
     };
-    void completePurchase(result.message, Boolean(result.recurringPayment));
+    void completePurchase(paymentData, recurring);
   }
 
   async function proceedToPay() {
