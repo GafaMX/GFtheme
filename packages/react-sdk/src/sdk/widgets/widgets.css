@@ -5381,25 +5381,53 @@
 }
 
 /*
- * Stripe: tarjeta guardada y tarjeta nueva.
+ * Stripe vs Conekta (GafaPayFront): no es el mismo padre.
  *
- * GafaPayFront pone `row-gap: 0` en `.is-newCard`, así que la tarjeta guardada
- * y el campo nuevo quedaban pegados, y el campo salía más ancho que la tarjeta.
- * Aquí comparten ancho y se separan.
+ * Stripe (Fitspin):
+ *   .gafapay-elements
+ *     .gafapay-elements__container.is-cardList > .card-list > .card-list__item*
+ *     .gafapay-elements__container.is-newCard  > form (Nueva tarjeta)
+ *   GafaPay deja `.gafapay-elements__container { display: block }` y NO
+ *   pone gap en `.gafapay-elements`. Las cajas hermanas se tocan.
+ *
+ * Conekta:
+ *   .gafapay-elements__section.is-cards (row-gap 20px)
+ *     .gafapay-elements__cards.is-cardList
+ *     .gafapay-elements__cards.is-newCard { row-gap: 0 }
+ *
+ * Varias tarjetas guardadas: StripeSources hace un `.card-list__item` por
+ * source. GafaPay a ≥992px las pone en 3 columnas de 200×110. Aquí cada
+ * una es un tile a todo el ancho, con el mismo hueco que la tarjeta nueva.
  *
  * OJO: nada de `display: flex` en `.gafapay-form__group`. El div `.StripeElement`
  * no lleva ancho propio, como flex item se encoge a 0 y el iframe de Stripe
  * queda invisible (la caja se ve vacía).
+ *
+ * Prefijo `html body .gafa-sdk`: GafaPay inyecta su CSS DESPUÉS del embed.
  */
-.gafa-checkout-paymount[data-method="stripe"] .gafapay-elements__container {
-  gap: 0.85rem;
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] {
+  --gafa-pay-card-gap: 0.85rem;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements {
+  align-items: start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: stretch;
+  row-gap: var(--gafa-pay-card-gap);
   width: 100%;
 }
 
-/* `.gafapay-elements__cards` es el padre de la lista de tarjetas y del campo
-   nuevo, y con `is-newCard` GafaPayFront lo deja en `row-gap: 0`: los dos
-   bordes se tocaban y parecían una sola caja partida por una raya. */
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements.has-noCards > .gafapay-elements__container.is-cardList {
+  display: none;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements__container {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
 .gafa-checkout-paymount .gafapay-elements__cards {
   justify-items: stretch;
   row-gap: 0.85rem;
@@ -5449,11 +5477,34 @@
 /* ── Tarjetas guardadas (las pinta GafaPayFront) ── */
 
 .gafa-checkout-paymount .card-list {
-  grid-template-columns: 1fr;
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: stretch;
   margin: 0;
-  row-gap: 0.75rem;
+  row-gap: 0.85rem;
   width: 100%;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list {
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  margin: 0;
+  row-gap: var(--gafa-pay-card-gap);
+  width: 100%;
+}
+
+@media screen and (min-width: 992px) {
+  html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list__item {
+    height: auto;
+    width: 100%;
+  }
 }
 
 /* GafaPayFront las fija en 200×110 y alinea el `•••• 1234` a la derecha: dentro

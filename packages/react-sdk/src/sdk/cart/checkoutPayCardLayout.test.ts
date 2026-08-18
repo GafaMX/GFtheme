@@ -39,11 +39,40 @@ describe("checkout Stripe saved-card layout", () => {
     expect(payMountCss).not.toMatch(/\[data-method="paypal"\][^{]*\{[^}]*box-sizing: border-box/);
   });
 
-  /* `.gafapay-elements__cards.is-newCard` trae `row-gap: 0`: los bordes de la
-     tarjeta guardada y del campo nuevo se tocaban. */
-  it("separa la tarjeta guardada del campo nuevo", () => {
+  /*
+   * Stripe no usa `.gafapay-elements__cards` (eso es Conekta). Las tarjetas
+   * guardadas y "Nueva tarjeta" son hermanos bajo `.gafapay-elements`, que
+   * GafaPay deja en display:block sin gap. El hueco va en ese padre.
+   */
+  it("separa en Stripe la lista guardada del campo nuevo", () => {
+    const stripeStack = payMountCss.match(
+      /\[data-method="stripe"\] \.gafapay-elements \{[^}]*\}/,
+    )?.[0];
+    expect(stripeStack).toBeTruthy();
+    expect(stripeStack).toContain("display: grid");
+    expect(stripeStack).toContain("row-gap: var(--gafa-pay-card-gap)");
+  });
+
+  it("sigue separando el listado Conekta (.gafapay-elements__cards)", () => {
     expect(payMountCss).toMatch(
       /\.gafa-checkout-paymount \.gafapay-elements__cards \{[^}]*row-gap: 0\.85rem/,
+    );
+  });
+
+  /*
+   * StripeSources pinta un `.card-list__item` por source. GafaPay a ≥992px
+   * las pone en 3 columnas de 200px; el checkout las apila a todo el ancho
+   * con el mismo hueco que la tarjeta nueva.
+   */
+  it("apila N tarjetas guardadas en una columna con el mismo hueco", () => {
+    const stripeList = payMountCss.match(
+      /\[data-method="stripe"\] \.card-list \{[^}]*\}/,
+    )?.[0];
+    expect(stripeList).toBeTruthy();
+    expect(stripeList).toContain("grid-template-columns: minmax(0, 1fr)");
+    expect(stripeList).toContain("row-gap: var(--gafa-pay-card-gap)");
+    expect(payMountCss).toMatch(
+      /@media screen and \(min-width: 992px\) \{[^}]*\[data-method="stripe"\] \.card-list \{[^}]*grid-template-columns: minmax\(0, 1fr\)/,
     );
   });
 
