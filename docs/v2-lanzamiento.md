@@ -46,7 +46,7 @@ necesita un tag nuevo.
 URL pública actual:
 
 ```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.2/docs/v2-sdk/gafa-sdk.js
+https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.3/docs/v2-sdk/gafa-sdk.js
 ```
 
 Tras cada `publish:embed` + push a `v2/main`, un tag **nuevo** (no reusar `v2`):
