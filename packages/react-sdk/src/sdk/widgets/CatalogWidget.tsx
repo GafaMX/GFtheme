@@ -54,7 +54,21 @@ export function CatalogWidget({
       title={title ?? getCatalogTitle(type)}
       description="Elige el paquete ideal para reservar sin friccion."
     >
-      {isLoading ? <p className="gafa-sdk-state">Cargando catalogo...</p> : null}
+      {isLoading ? (
+        <div className="gafa-sdk-grid" aria-busy="true" aria-live="polite">
+          <span className="gafa-sr-only">Cargando catálogo…</span>
+          {Array.from({ length: 3 }, (_, index) => (
+            <article className="gafa-sdk-card gafa-catalog-card gafa-catalog-card--skel" key={index} aria-hidden="true">
+              <div>
+                <span className="gafa-skeleton gafa-catalog-skel__kicker" />
+                <span className="gafa-skeleton gafa-catalog-skel__title" />
+                <span className="gafa-skeleton gafa-catalog-skel__price" />
+              </div>
+              <span className="gafa-skeleton gafa-catalog-skel__btn" />
+            </article>
+          ))}
+        </div>
+      ) : null}
       {isError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el catalogo.</p> : null}
       <div className="gafa-sdk-grid">
         {(data ?? []).map((item) => (

@@ -887,9 +887,11 @@ export function CheckoutModal({
               ) : null}
 
               {preselectStatus === "loading" ? (
-                <div className="gafa-checkout__empty">
-                  <p>Agregando tu plan…</p>
-                  <small>Un segundo, estamos cargando el producto.</small>
+                <div className="gafa-checkout-line-skel" aria-busy="true" aria-live="polite">
+                  <span className="gafa-sr-only">Agregando tu plan…</span>
+                  <span className="gafa-skeleton gafa-checkout-line-skel__name" aria-hidden="true" />
+                  <span className="gafa-skeleton gafa-checkout-line-skel__meta" aria-hidden="true" />
+                  <span className="gafa-skeleton gafa-checkout-line-skel__controls" aria-hidden="true" />
                 </div>
               ) : relevantLines.length === 0 ? (
                 <div className="gafa-checkout__empty">

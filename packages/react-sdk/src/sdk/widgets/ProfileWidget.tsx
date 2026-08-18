@@ -280,7 +280,12 @@ export function ProfileWidget({
       </div>
     ) : (
       <WidgetShell eyebrow="Perfil" title="Tu cuenta">
-        <p className="gafa-sdk-state">Cargando tu perfil…</p>
+        <div className="gafa-acct__boot" aria-busy="true" aria-live="polite">
+          <span className="gafa-sr-only">Cargando tu perfil…</span>
+          <span className="gafa-skeleton gafa-acct__boot-bar" />
+          <span className="gafa-skeleton gafa-acct__boot-bar" />
+          <span className="gafa-skeleton gafa-acct__boot-bar" />
+        </div>
       </WidgetShell>
     );
   }

@@ -85,17 +85,23 @@ export function ReservationLauncher({
           x
         </button>
 
-        <div className="gafa-reservation-hero">
-          <span className="gafa-eyebrow">Reserva</span>
-          <h3 id="reservation-launcher-title">
-            {failed ? "No encontramos esa clase" : "Abriendo tu clase…"}
-          </h3>
-          <p>
-            {failed
-              ? "Puede que ya no esté publicada o que sea de otra sede. Revísala en el calendario."
-              : "Estamos cargando el detalle de la clase."}
-          </p>
-        </div>
+        {failed ? (
+          <div className="gafa-reservation-hero">
+            <span className="gafa-eyebrow">Reserva</span>
+            <h3 id="reservation-launcher-title">No encontramos esa clase</h3>
+            <p>Puede que ya no esté publicada o que sea de otra sede. Revísala en el calendario.</p>
+          </div>
+        ) : (
+          <div className="gafa-reservation-hero" aria-busy="true" aria-live="polite">
+            <span className="gafa-eyebrow">Reserva</span>
+            <h3 id="reservation-launcher-title" className="gafa-sr-only">
+              Abriendo tu clase…
+            </h3>
+            <span className="gafa-skeleton gafa-launcher-skel__title" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -627,7 +627,7 @@ export function CalendarWidget({
         <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
           <DayColumn
             date={anchor}
-            emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
+            loading={isUpdating}
             meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
             onSelect={openMeeting}
             showDescription={showDescription}
@@ -640,7 +640,7 @@ export function CalendarWidget({
               key={toIsoDate(day)}
               compact
               date={day}
-              emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
+              loading={isUpdating}
               meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
               onSelect={openMeeting}
               showDescription={showDescription}
@@ -859,6 +859,7 @@ function DayColumn({
   compact = false,
   showDescription = false,
   emptyLabel = "Sin horarios",
+  loading = false,
 }: {
   date: Date;
   meetings: Meeting[];
@@ -866,6 +867,7 @@ function DayColumn({
   compact?: boolean;
   showDescription?: boolean;
   emptyLabel?: string;
+  loading?: boolean;
 }) {
   const weekday = new Intl.DateTimeFormat("es-MX", { weekday: compact ? "short" : "long" }).format(date);
 
@@ -891,7 +893,16 @@ function DayColumn({
       ) : null}
 
       {meetings.length === 0 ? (
-        <p className="gafa-day-column__empty">{emptyLabel}</p>
+        loading ? (
+          <div className="gafa-day-column__list" aria-busy="true" aria-live="polite">
+            <span className="gafa-sr-only">Cargando horarios…</span>
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+          </div>
+        ) : (
+          <p className="gafa-day-column__empty">{emptyLabel}</p>
+        )
       ) : compact ? (
         <div className="gafa-day-column__list">
           {orderedMeetings.map((meeting) => (
@@ -1662,9 +1673,10 @@ function ReservationPreviewModal({
 
                 {isSignedIn ? (
                   contextQuery.isLoading ? (
-                    <div className="gafa-reservation-hint gafa-reservation-hint--loading" aria-live="polite">
-                      <span className="gafa-reservation-spinner" aria-hidden="true" />
-                      Revisando tus paquetes…
+                    <div className="gafa-payment-choice-skel" aria-busy="true" aria-live="polite">
+                      <span className="gafa-sr-only">Revisando tus paquetes…</span>
+                      <span className="gafa-skeleton gafa-payment-choice-skel__bar" aria-hidden="true" />
+                      <span className="gafa-skeleton gafa-payment-choice-skel__bar" aria-hidden="true" />
                     </div>
                   ) : needsPaymentChoice ? (
                     <div className="gafa-payment-choice" role="radiogroup" aria-label="¿Con qué quieres reservar?">

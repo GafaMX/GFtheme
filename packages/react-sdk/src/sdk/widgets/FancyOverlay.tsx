@@ -74,7 +74,14 @@ export function FancyOverlay({ title, description, run, onClose }: FancyOverlayP
           </div>
         ) : null}
 
-        {status === "opening" ? <p className="gafa-sdk-state">Abriendo checkout...</p> : null}
+        {status === "opening" ? (
+          <div className="gafa-fancy-skel" aria-busy="true" aria-live="polite">
+            <span className="gafa-sr-only">Abriendo checkout...</span>
+            <span className="gafa-skeleton gafa-skeleton--line" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+          </div>
+        ) : null}
 
         {status === "error" ? (
           <div className="gafa-sdk-state gafa-sdk-state--error">

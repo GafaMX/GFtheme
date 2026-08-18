@@ -1446,6 +1446,24 @@
   padding-right: 44px;
 }
 
+/* Silueta del detalle de la clase mientras se resuelve por id. */
+.gafa-launcher-skel__title {
+  height: 22px;
+  margin-top: 0.35rem;
+  width: 62%;
+}
+
+/* Silueta del formulario del fancy legacy mientras el SDK externo lo inyecta. */
+.gafa-fancy-skel {
+  display: grid;
+  gap: 0.6rem;
+  padding: var(--gafa-space-3) 0;
+}
+
+.gafa-fancy-skel .gafa-skeleton--line {
+  width: 55%;
+}
+
 .gafa-reservation-summary {
   display: grid;
   gap: var(--gafa-space-2);
@@ -3940,6 +3958,37 @@
   grid-template-rows: 1fr auto;
 }
 
+/* Tarjetas fantasma mientras llega el catálogo. */
+.gafa-catalog-card--skel {
+  pointer-events: none;
+}
+
+.gafa-catalog-card--skel > div {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gafa-catalog-skel__kicker {
+  height: 10px;
+  width: 38%;
+}
+
+.gafa-catalog-skel__title {
+  height: 18px;
+  width: 72%;
+}
+
+.gafa-catalog-skel__price {
+  height: 22px;
+  width: 45%;
+}
+
+.gafa-catalog-skel__btn {
+  border-radius: 999px;
+  height: 40px;
+  width: 100%;
+}
+
 .gafa-catalog-price {
   color: var(--gafa-color-text);
   display: block;
@@ -4279,6 +4328,29 @@
 .gafa-checkout-catalog-loading {
   display: grid;
   gap: 0.35rem;
+}
+
+/* La línea de pedido que está por aparecer (compra directa desde botón). */
+.gafa-checkout-line-skel {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.4rem 0;
+}
+
+.gafa-checkout-line-skel__name {
+  height: 16px;
+  width: 55%;
+}
+
+.gafa-checkout-line-skel__meta {
+  height: 12px;
+  width: 40%;
+}
+
+.gafa-checkout-line-skel__controls {
+  border-radius: 999px;
+  height: 30px;
+  width: 96px;
 }
 
 /* Loader del paso de pago: mismas cajas que va a ocupar GafaPay. */
@@ -5297,24 +5369,16 @@
 
 /* ── Skeleton del mapa mientras carga el contexto de reserva ── */
 
-.gafa-reservation-hint--loading {
-  align-items: center;
-  display: inline-flex;
-  gap: 0.55rem;
+/* Donde van a aparecer las opciones de pago (paquete / membresía). */
+.gafa-payment-choice-skel {
+  display: grid;
+  gap: 0.5rem;
 }
 
-.gafa-reservation-spinner {
-  animation: gafa-spin 0.8s linear infinite;
-  border: 2px solid color-mix(in srgb, var(--gafa-color-muted-text) 30%, transparent);
-  border-radius: 999px;
-  border-top-color: var(--gafa-color-primary);
-  display: inline-block;
-  height: 14px;
-  width: 14px;
-}
-
-@keyframes gafa-spin {
-  to { transform: rotate(360deg); }
+.gafa-payment-choice-skel__bar {
+  border-radius: var(--gafa-radius-md);
+  height: 44px;
+  width: 100%;
 }
 
 .gafa-seatmap-skeleton {
