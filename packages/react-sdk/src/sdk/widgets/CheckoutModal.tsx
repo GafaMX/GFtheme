@@ -92,7 +92,11 @@ export function CheckoutModal({
   const removeItem = useCartStore((s) => s.removeItem);
   const setAmount = useCartStore((s) => s.setAmount);
   const setReservation = useCartStore((s) => s.setReservation);
+  const clearReservation = useCartStore((s) => s.clearReservation);
   const resetAfterPurchase = useCartStore((s) => s.resetAfterPurchase);
+  // Si el socio quita la clase, no la re-anclamos mientras el modal siga
+  // abierto con la misma reunion (el prop `meeting` no se borra solo).
+  const droppedMeetingIdRef = useRef<number | null>(null);
 
   const persistedCart = useCartStore.getState();
   const wantsDirectPay =
@@ -161,11 +165,24 @@ export function CheckoutModal({
   const resolvedLocationName =
     locationName ?? locationFromId?.name ?? (locationSlugProp ? undefined : locationsQuery.data?.[0]?.name);
 
+  function dropPendingClass() {
+    if (meeting?.id != null) droppedMeetingIdRef.current = Number(meeting.id);
+    clearReservation();
+  }
+
+  // Compra con clase anclada (chip / catalogo recortado). False si la quitaron
+  // para pagar el paquete sin reservar todavia.
+  const classAttached =
+    Boolean(reservation) ||
+    (meeting != null && droppedMeetingIdRef.current !== Number(meeting.id));
+
   // Al abrir desde una clase: anclar el contexto de reserva al carrito.
   useEffect(() => {
     if (!meeting || !brandSlug || !locationSlug) return;
+    const meetingId = Number(meeting.id);
+    if (droppedMeetingIdRef.current === meetingId) return;
     setReservation({
-      meetingId: Number(meeting.id),
+      meetingId,
       meetingName: meeting.name,
       serviceName: meeting.service?.name ?? meeting.serviceName,
       startsAt: meeting.startsAt ?? meeting.start ?? meeting.startTime ?? "",
@@ -198,12 +215,12 @@ export function CheckoutModal({
   const isSignedIn = Boolean(profileQuery.data);
 
   const configQuery = useQuery({
-    queryKey: ["checkout", "config", brandSlug, locationSlug, meeting?.id],
+    queryKey: ["checkout", "config", brandSlug, locationSlug, classAttached ? meeting?.id : undefined],
     queryFn: () =>
       client.getCheckoutConfig!({
         brandSlug: brandSlug!,
         locationSlug: locationSlug!,
-        meetingId: meeting?.id,
+        meetingId: classAttached ? meeting?.id : undefined,
       }),
     enabled: Boolean(client.getCheckoutConfig && brandSlug && locationSlug && isSignedIn),
     staleTime: 60_000,
@@ -221,12 +238,12 @@ export function CheckoutModal({
   const catalogQuery = useQuery({
     queryKey: checkoutCatalogQueryKey(brandSlug),
     queryFn: () => fetchCheckoutCatalog(client, brandSlug!),
-    enabled: Boolean(brandSlug) && !meeting,
+    enabled: Boolean(brandSlug) && !classAttached,
     staleTime: CHECKOUT_CATALOG_STALE_MS,
   });
 
-  const combos = meeting ? (config?.combos ?? []) : (catalogQuery.data?.combos ?? config?.combos ?? []);
-  const memberships = meeting
+  const combos = classAttached ? (config?.combos ?? []) : (catalogQuery.data?.combos ?? config?.combos ?? []);
+  const memberships = classAttached
     ? (config?.memberships ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
   const products = config?.products ?? [];
@@ -234,7 +251,7 @@ export function CheckoutModal({
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
   // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
   // antes de pedir nada. Skeleton hasta que haya fetch real (exito o error).
-  const catalogBusy = meeting
+  const catalogBusy = classAttached
     ? !configQuery.isFetched &&
       !configQuery.isError &&
       (profileQuery.isPending || Boolean(isSignedIn))
@@ -272,7 +289,7 @@ export function CheckoutModal({
 
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
-  const relevantLines = meeting
+  const relevantLines = classAttached
     ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
     : lines;
   const subtotal = cartSubtotal(relevantLines);
@@ -506,11 +523,14 @@ export function CheckoutModal({
           <div className="gafa-checkout__layout">
             <section className="gafa-checkout__main">
               {reservation ? (
-                <p className="gafa-checkout__context">
+                <div className="gafa-checkout__context">
                   <span className="gafa-checkout__context-dot" aria-hidden="true" />
-                  {reservation.serviceName ?? reservation.meetingName} ·{" "}
-                  {formatMeetingWhen(reservation.startsAt, reservation.timezone)}
-                </p>
+                  <span className="gafa-checkout__context-text">
+                    {reservation.serviceName ?? reservation.meetingName} ·{" "}
+                    {formatMeetingWhen(reservation.startsAt, reservation.timezone)}
+                  </span>
+                  <RemoveClassButton onClick={dropPendingClass} />
+                </div>
               ) : null}
 
               <header className="gafa-checkout__hero">
@@ -650,11 +670,11 @@ export function CheckoutModal({
                       {search
                         ? "Nada coincide con tu búsqueda."
                         : tab === "packages"
-                          ? meeting
+                          ? classAttached
                             ? "Esta clase no tiene paquetes disponibles."
                             : "No hay paquetes disponibles."
                           : tab === "memberships"
-                            ? meeting
+                            ? classAttached
                               ? "Esta clase no tiene membresías disponibles."
                               : "No hay membresías disponibles."
                             : "No hay productos disponibles."}
@@ -728,11 +748,14 @@ export function CheckoutModal({
 
               {reservation ? (
                 <div className="gafa-checkout__reserve-chip">
-                  <strong>{reservation.serviceName ?? reservation.meetingName}</strong>
-                  <small>
-                    {formatMeetingWhen(reservation.startsAt, reservation.timezone)}
-                    {reservation.seatLabel ? ` · Lugar ${reservation.seatLabel}` : ""}
-                  </small>
+                  <div className="gafa-checkout__reserve-chip-text">
+                    <strong>{reservation.serviceName ?? reservation.meetingName}</strong>
+                    <small>
+                      {formatMeetingWhen(reservation.startsAt, reservation.timezone)}
+                      {reservation.seatLabel ? ` · Lugar ${reservation.seatLabel}` : ""}
+                    </small>
+                  </div>
+                  <RemoveClassButton onClick={dropPendingClass} />
                 </div>
               ) : null}
 
@@ -1328,6 +1351,21 @@ function ThanksPanel({
         {reservation ? "Volver al calendario" : "Seguir explorando"}
       </button>
     </div>
+  );
+}
+
+function RemoveClassButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      className="gafa-checkout__line-remove"
+      type="button"
+      aria-label="Quitar clase"
+      onClick={onClick}
+    >
+      <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    </button>
   );
 }
 

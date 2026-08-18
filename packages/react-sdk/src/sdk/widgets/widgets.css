@@ -4128,6 +4128,15 @@
   gap: 0.45rem;
   letter-spacing: 0.02em;
   margin: 0;
+  max-width: 100%;
+}
+
+.gafa-checkout__context-text {
+  min-width: 0;
+}
+
+.gafa-checkout__context .gafa-checkout__line-remove {
+  flex-shrink: 0;
 }
 
 .gafa-checkout__context-dot {
@@ -4490,12 +4499,20 @@
 }
 
 .gafa-checkout__reserve-chip {
+  align-items: flex-start;
   background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
   border-left: 3px solid var(--gafa-color-primary);
   border-radius: 10px;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0.5rem 0.6rem 0.75rem;
+}
+
+.gafa-checkout__reserve-chip-text {
   display: grid;
+  flex: 1;
   gap: 0.1rem;
-  padding: 0.6rem 0.75rem;
+  min-width: 0;
 }
 
 .gafa-checkout__reserve-chip strong {
@@ -4505,6 +4522,11 @@
 .gafa-checkout__reserve-chip small {
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
+}
+
+.gafa-checkout__reserve-chip .gafa-checkout__line-remove {
+  flex-shrink: 0;
+  margin-top: 0.05rem;
 }
 
 .gafa-checkout__empty {
@@ -5056,10 +5078,9 @@
     display: flex;
   }
 
-  /* En movil la cabecera del carrito y el chip de la clase repetian lo que ya
-     dicen la barra de resumen y la linea de contexto de arriba. */
-  .gafa-checkout__cart-head,
-  .gafa-checkout__reserve-chip {
+  /* En movil la cabecera del carrito repetia la barra de resumen. El chip de
+     la clase se deja: ahi esta la X para quitarla y comprar sin reservar. */
+  .gafa-checkout__cart-head {
     display: none;
   }
 

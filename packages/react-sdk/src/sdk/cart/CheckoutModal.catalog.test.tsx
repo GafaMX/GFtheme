@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import type { CatalogItem, GafaClient } from "../client/types";
+import type { CatalogItem, GafaClient, Meeting } from "../client/types";
 import { CheckoutModal } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
 
@@ -36,27 +36,39 @@ function mockClient(combos: Promise<CatalogItem[]>): GafaClient {
   } as unknown as GafaClient;
 }
 
-function renderShop(client: GafaClient) {
+const helipuerto: Meeting = {
+  id: 99,
+  name: "HELIPUERTO BICI 🚲",
+  startsAt: "2026-08-15T09:30:00",
+  timezone: "America/Mexico_City",
+  serviceName: "HELIPUERTO BICI 🚲",
+};
+
+function renderShop(client: GafaClient, meeting?: Meeting | null) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <CheckoutModal
         client={client}
         brandSlug="fitspin-cancun"
         locationSlug="cancun"
+        locationName="Polanco"
+        meeting={meeting}
         skipCatalog={false}
         onClose={() => undefined}
       />
     </QueryClientProvider>,
   );
+  return { ...view, queryClient };
 }
 
 describe("CheckoutModal catalog loading", () => {
   afterEach(() => {
     cleanup();
     useCartStore.setState({ lines: [], reservation: null });
+    localStorage.removeItem("gafa-sdk:cart-v1");
   });
 
   it("muestra skeleton y el pedido, no el vacio de 'esta clase no tiene paquetes'", async () => {
@@ -85,5 +97,49 @@ describe("CheckoutModal catalog loading", () => {
       expect(screen.getByRole("button", { name: /agregar otro/i })).toBeTruthy();
     });
     expect(screen.queryByText(/esta clase no tiene paquetes/i)).toBeNull();
+  });
+
+  it("quita la clase del carrito sin vaciar el paquete y no la restaura", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    const view = renderShop(mockClient(Promise.resolve([])), helipuerto);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: /quitar clase/i }).length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText(/HELIPUERTO BICI/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: /compra para reservar/i })).toBeTruthy();
+    expect(useCartStore.getState().reservation?.meetingId).toBe(99);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /quitar clase/i })[0]!);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /quitar clase/i })).toBeNull();
+    });
+    expect(screen.queryByText(/HELIPUERTO BICI/i)).toBeNull();
+    expect(screen.getByRole("heading", { name: /elige tu plan/i })).toBeTruthy();
+    expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
+    expect(useCartStore.getState().reservation).toBeNull();
+    expect(useCartStore.getState().lines).toEqual([cartLine]);
+
+    const client = mockClient(Promise.resolve([]));
+    view.rerender(
+      <QueryClientProvider client={view.queryClient}>
+        <CheckoutModal
+          client={client}
+          brandSlug="fitspin-cancun"
+          locationSlug="cancun"
+          locationName="Polanco"
+          meeting={{ ...helipuerto }}
+          skipCatalog={false}
+          onClose={() => undefined}
+        />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(useCartStore.getState().reservation).toBeNull();
+      expect(screen.queryByRole("button", { name: /quitar clase/i })).toBeNull();
+    });
+    expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
   });
 });
