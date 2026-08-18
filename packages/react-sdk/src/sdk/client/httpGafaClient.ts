@@ -37,6 +37,7 @@ import type {
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
+import { toFormBody } from "./formBody";
 import {
   clearStoredToken,
   readStoredToken,
@@ -604,15 +605,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return response.json();
   }
 
-  async function apiPostFormUrl<T>(
-    absoluteOrPath: string,
-    body: Record<string, string | number | boolean | undefined | null>,
-  ): Promise<T> {
+  async function apiPostFormUrl<T>(absoluteOrPath: string, body: Record<string, unknown>): Promise<T> {
     const url = absoluteOrPath.startsWith("http") ? absoluteOrPath : `${baseUrl}${absoluteOrPath}`;
-    const form = new URLSearchParams();
-    Object.entries(body).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) form.set(key, String(value));
-    });
+    const form = toFormBody(body);
     const response = await fetch(url, {
       method: "POST",
       headers: { ...authHeaders(), "Content-Type": "application/x-www-form-urlencoded" },
@@ -1348,7 +1343,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const memberships = payload.lines.filter((line) => line.type === "membership");
       const products = payload.lines.filter((line) => line.type === "product");
 
-      const body: Record<string, string | number | boolean | undefined | null> = {
+      const body: Record<string, unknown> = {
         users_id: payload.userId,
         meetings_id: payload.meetingId,
         payment_types_id: payload.paymentTypeId,
@@ -1379,14 +1374,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       }
 
       if (payload.paymentData) {
-        Object.entries(payload.paymentData).forEach(([key, value]) => {
-          if (value == null) return;
-          if (typeof value === "object") {
-            body[`payment_data[${key}]`] = JSON.stringify(value);
-          } else {
-            body[`payment_data[${key}]`] = value as string | number | boolean;
-          }
-        });
+        // Anidado como array PHP (toFormBody). Con JSON.stringify el backend
+        // recibía un string y dejaba la compra en "Checkout no resuelto".
+        body.payment_data = payload.paymentData;
       }
 
       const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase`;

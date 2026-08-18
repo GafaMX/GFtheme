@@ -221,7 +221,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(screen.queryByRole("button", { name: /procesando/i })).toBeNull();
   });
 
-  it("paquete suelto: no espera el poll de reserva (eso dejaba Procesando minutos)", async () => {
+  it("no bloquea el thank you con el poll, pero lo sigue esperando en segundo plano", async () => {
     const client = mockClient({
       pollInitialPurchaseStatus: vi.fn(() => new Promise(() => undefined)),
     });
@@ -238,24 +238,12 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     await waitFor(() => {
       expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
     });
-    expect(client.pollInitialPurchaseStatus).not.toHaveBeenCalled();
+    expect(client.pollInitialPurchaseStatus).toHaveBeenCalled();
   });
 
-  it("con clase: muestra el thank you sin esperar el poll de la reserva", async () => {
+  it("si gafa.fit no resuelve el checkout, lo dice en vez de darlo por bueno", async () => {
     const client = mockClient({
-      pollInitialPurchaseStatus: vi.fn(() => new Promise(() => undefined)),
-    });
-    useCartStore.setState({
-      lines: [cartLine],
-      reservation: {
-        meetingId: 501,
-        meetingName: "HELIPUERTO BICI",
-        serviceName: "HELIPUERTO BICI",
-        startsAt: "2026-08-18T09:30:00",
-        timezone: "America/Mexico_City",
-        brandSlug: "fitspin",
-        locationSlug: "polanco",
-      },
+      pollInitialPurchaseStatus: vi.fn(async () => ({ code: -1, message: "Checkout no resuelto" })),
     });
     renderPay(client);
     await waitUntilPayReady();
@@ -268,9 +256,8 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     fireEvent.click(payButton());
 
     await waitFor(() => {
-      expect(screen.getByText(/reserva confirmada/i)).toBeTruthy();
+      expect(screen.getByText(/seguimos confirmando la compra/i)).toBeTruthy();
     });
-    expect(screen.getByText(/orden #88/i)).toBeTruthy();
-    expect(client.pollInitialPurchaseStatus).toHaveBeenCalled();
   });
+
 });

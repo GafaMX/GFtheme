@@ -136,6 +136,8 @@ export function CheckoutModal({
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
     reservationId?: number;
+    /** undefined mientras gafa.fit confirma; false si se quedó sin resolver. */
+    confirmed?: boolean;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null>(null);
@@ -454,9 +456,6 @@ export function CheckoutModal({
       });
 
       const purchaseId = purchase.purchaseId;
-      // El cobro ya está en initial-purchase. El poll de status es solo para la
-      // CLASE (reservation_id). Un paquete suelto nunca resuelve code=1 y
-      // dejaba "Procesando…" 20–60s con la orden ya creada.
       setThanks({
         purchaseId,
         reservationSnapshot,
@@ -466,7 +465,10 @@ export function CheckoutModal({
       setStep("thanks");
       onCompleted?.({ purchaseId });
 
-      if (reservationSnapshot && purchaseId && client.pollInitialPurchaseStatus) {
+      // El status es lo que cierra la compra del lado de gafa.fit (créditos y
+      // reserva). Se sigue esperando, pero en segundo plano: bloquear el UI
+      // dejaba "Procesando…" hasta un minuto con el cobro ya hecho.
+      if (purchaseId && client.pollInitialPurchaseStatus) {
         void waitForPurchase(client, {
           brandSlug,
           locationSlug,
@@ -474,11 +476,14 @@ export function CheckoutModal({
           pendingPurchaseId: purchaseId,
         })
           .then((reservationId) => {
-            if (reservationId == null) return;
-            setThanks((current) => (current ? { ...current, reservationId } : current));
+            setThanks((current) =>
+              current ? { ...current, reservationId, confirmed: true } : current,
+            );
             onCompleted?.({ purchaseId, reservationId });
           })
-          .catch(() => undefined);
+          .catch(() => {
+            setThanks((current) => (current ? { ...current, confirmed: false } : current));
+          });
       }
     } catch (err) {
       setPayError(err instanceof Error ? err.message : "No pudimos completar el pago.");
@@ -1378,6 +1383,7 @@ function ThanksPanel({
   thanks: {
     purchaseId?: number | null;
     reservationId?: number;
+    confirmed?: boolean;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null;
@@ -1400,6 +1406,13 @@ function ThanksPanel({
         {firstName ? `${firstName}, tu` : "Tu"} pago quedó registrado
         {thanks?.purchaseId ? ` (orden #${thanks.purchaseId})` : ""}. Te enviamos el detalle por correo.
       </p>
+
+      {thanks?.confirmed === false ? (
+        <p className="gafa-checkout-thanks__pending" role="status">
+          Tu cobro ya se hizo, pero seguimos confirmando la compra. Si en unos minutos no ves tus
+          créditos, escríbenos con el número de orden.
+        </p>
+      ) : null}
 
       {reservation ? (
         <div className="gafa-checkout-thanks__card">
@@ -1502,15 +1515,16 @@ async function waitForPurchase(
     pendingPurchaseId: number;
   },
 ): Promise<number | undefined> {
-  if (!client.pollInitialPurchaseStatus) return undefined;
+  if (!client.pollInitialPurchaseStatus) throw new Error("Sin confirmación de pago disponible.");
   for (let attempt = 0; attempt < 40; attempt++) {
     const status = await client.pollInitialPurchaseStatus(payload);
     if (status.code === 1) return status.reservationId;
     if (status.code === -1) throw new Error(status.message || "El pago no se pudo confirmar.");
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  // Compra creada pero el status no resolvió a tiempo: no bloqueamos el thank you.
-  return undefined;
+  // Sigue pendiente: en gafa.fit es un "Checkout no resuelto" (cobro hecho,
+  // créditos sin otorgar). Se avisa en el thank you en vez de darlo por bueno.
+  throw new Error("La confirmación del pago está tardando más de lo normal.");
 }
 
 function formatMeetingWhen(value: string, timeZone?: string) {
