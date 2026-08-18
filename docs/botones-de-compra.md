@@ -34,6 +34,8 @@ después (sliders, filtros, contenido cargado por AJAX).
 | `data-gf-cart` | Abre el carrito guardado, sin preseleccionar nada |
 | `data-gf-cart-count` | Se rellena solo con el número de artículos |
 | `data-gf-account` | Abre el popup de cuenta (login o perfil) |
+| `data-gf-reserve` | Abre la reserva de una clase (con `data-gf-meeting-id`) |
+| `data-gf-meeting-id` | ID de la clase en gafa.fit |
 
 También se leen los alias legacy `data-bq-combo-id`, `data-bq-membership-id`,
 `data-bq-product-id` y `data-gf-theme="purchase-button"`.
@@ -59,7 +61,12 @@ tarjeta para cobrar en la sede correcta.
   Carrito (<span data-gf-cart-count>0</span>)</a>
 
 <button type="button" data-gf-account>Mi cuenta</button>
+
+<button type="button" data-gf-reserve data-gf-meeting-id="84213">Reservar esta clase</button>
 ```
+
+Reservar una clase concreta (por atributo o por JS) está detallado en
+`docs/reservar-una-clase-desde-js.md`.
 
 React:
 
