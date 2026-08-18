@@ -158,6 +158,17 @@
             var node = doc.querySelector(".CreateReservationFancy--" + name);
             out.push(name + ": " + (node ? node.textContent.trim() : "(no vino)"));
           });
+
+          // El propio HTML trae el JS del fancy v1, que es el que sí cierra la
+          // compra: de ahí sale con qué campos arma payment_types_id.
+          Array.prototype.slice.call(doc.querySelectorAll("script")).forEach(function (script) {
+            var code = script.textContent || "";
+            var hit = code.indexOf("payment_types_id");
+            if (hit < 0) hit = code.indexOf("initial-purchase");
+            if (hit < 0) return;
+            out.push("fancy v1 → " + code.slice(Math.max(0, hit - 500), hit + 900));
+          });
+
           return out.join("\n   ");
         }
 
