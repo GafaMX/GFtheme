@@ -4,10 +4,12 @@
   2. Quita el theme v1 (buq-sdk.azurewebsites.net/main.min.js o gafa.fit/sdk/dist/main.js).
   3. Pon ESTE script. No copies TypeScript a Replit.
 
-  URL de esta rama (purgar jsDelivr tras cada push):
-  https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/main/docs/v2-sdk/gafa-sdk.js
+  jsDelivr NO acepta la rama v2/main (el slash parte la URL → 404).
+  La URL pública es el tag `v2` (sin slash), que se mueve en cada publish:
 
-  Producción (cuando copien el archivo al Azure del SDK, igual que v1):
-  https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js
+  https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js
+
+  Snapshot puntual: @<sha> o @v2.0.0-rc.N
+  Azure (cuando exista): https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js
 -->
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/main/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js"></script>

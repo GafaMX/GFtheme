@@ -20,7 +20,7 @@ Publicar el JS: `docs/v2-lanzamiento.md`. Este archivo es **cómo se pega en una
    nodos v2 usen `data-gafa-v2` (el header viejo puede seguir en v1).
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@ef0b62d/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js"></script>
 <script data-gf-options type="application/json">
   { "GAFA_FIT_URL": "https://buq.partners", "COMPANY_ID": 1, "API_CLIENT": "...", "API_SECRET": "..." }
 </script>
@@ -29,9 +29,9 @@ Publicar el JS: `docs/v2-lanzamiento.md`. Este archivo es **cómo se pega en una
 
 `data-gafa-v2` es el mismo shortcode que `data-gf-theme`, para no pelear con el v1.
 
-jsDelivr con `@v2/main` **404** (el `/` de la rama se parte). Usa el SHA del
-commit (`docs/v2-sdk/VERSION.txt` o `git rev-parse v2/main`) o Azure cuando exista
-`https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js`.
+jsDelivr con `@v2/main` **404** (el `/` de la rama se parte). La URL pública es
+el tag `v2` (arriba). SHA en `docs/v2-sdk/VERSION.txt` para un snapshot. Azure
+cuando exista: `https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js`.
 
 ## Dos URLs
 
@@ -73,8 +73,8 @@ El SDK v2 de Buq se monta con UN script remoto. No copies packages/react-sdk.
 1. Deja data-gf-options y los contenedores (data-gf-theme o data-gafa-v2).
 2. Quita main.min.js del theme v1 en esas páginas (o usa data-gafa-v2 si el header sigue en v1).
 3. Agrega:
-   <script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@SHA/docs/v2-sdk/gafa-sdk.js"></script>
-   SHA = el commit de v2/main que tenga gafa-sdk.js (no uses @v2/main en jsDelivr).
+   <script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js"></script>
+   No uses @v2/main en jsDelivr (404). Tag `v2` o un SHA de VERSION.txt.
 4. No cargues v1 y v2 sobre los mismos nodos.
 5. No relances una app entera (Replit multi-sitio) por un cambio del SDK.
 ```

@@ -36,26 +36,25 @@ npm test && npm run typecheck && npm run publish:embed
 Commit de `docs/v2-sdk/` (el JS + `VERSION.txt`) en la rama V2. **No mergear a
 `master`**: `master` es el theme legacy de producción.
 
-jsDelivr sirve el archivo público en cuanto está en GitHub:
+jsDelivr sirve el archivo público en cuanto el **tag** está en GitHub.
+`@v2/main` da **404**: el slash de la rama se parte. No lo uses.
+
+URL pública (tag `v2`, sin slash):
 
 ```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<rama-o-sha>/docs/v2-sdk/gafa-sdk.js
+https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js
 ```
 
-La rama durable es `v2/main`:
+Tras cada `publish:embed` + push a `v2/main`, mover el tag y purgar:
 
 ```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/main/docs/v2-sdk/gafa-sdk.js
+git tag -f v2
+git push -f origin v2
+# y un tag inmutable del snapshot, p.ej. v2.0.0-rc.2
+https://purge.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js
 ```
 
-Caché de jsDelivr: una rama se cachea ~12 h en el CDN (7 días en el navegador).
-Después de cada `publish:embed` + push, purgar:
-
-```
-https://purge.jsdelivr.net/gh/GafaMX/GFtheme@v2/main/docs/v2-sdk/gafa-sdk.js
-```
-
-Para saltarte la caché (preview puntual) usa el SHA del commit que tiene el JS:
+Preview puntual (sin mover el tag): SHA de `docs/v2-sdk/VERSION.txt`:
 
 ```
 https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<sha>/docs/v2-sdk/gafa-sdk.js

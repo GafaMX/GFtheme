@@ -10,6 +10,7 @@ Hay una iniciativa activa para reemplazar el theme legacy (Webpack4/Babel6/React
 
 - **Dónde vive:** `packages/react-sdk/` (monorepo simple, no afecta `src/`/`dist/` del theme legacy).
 - **Rama de trabajo activa:** `v2/main`. Es la rama durable del SDK v2. Las `cursor/*` (account-mobile-nav, checkout, cdn, environments, etc.) son históricas: se trabaja encima de `v2/main`. **`master` no se toca** — sigue siendo el theme legacy de producción.
+- **CDN (jsDelivr):** `@v2/main` da 404 (slash). URL pública: `https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js` (tag `v2`, sin slash). Tras `publish:embed` hay que mover el tag. Receta: `docs/v2-lanzamiento.md` + `docs/v2-sdk/snippet.html`.
 - **Historial de la exploración previa (referencia, no borrar):**
   - PR [#189](https://github.com/GafaMX/GFtheme/pull/189) `cursor/react-sdk-analysis-6468` — doc `docs/react-sdk-modernization.md` con el plan de arquitectura completo (bootstrap compatible con `data-gf-theme`, cliente API tipado, theming por tokens/CSS vars, templates editables, TanStack Query + Zustand + Zod, orden de construcción: calendario → catálogo → auth/perfil → checkout).
   - PR [#190](https://github.com/GafaMX/GFtheme/pull/190) `cursor/react-sdk-foundation-6468` — primer código real (ver estado abajo).
