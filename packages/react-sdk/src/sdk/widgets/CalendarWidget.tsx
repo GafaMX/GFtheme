@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
 import { MonthCalendar } from "./MonthCalendar";
 import { CheckoutModal } from "./CheckoutModal";
-import { AuthWidget } from "./AuthWidget";
+import { AuthWidget, type AuthStage } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
@@ -2116,6 +2116,8 @@ function ReservationAuthGate({
   onClose: () => void;
   onAuthenticated: () => void;
 }) {
+  const [authStage, setAuthStage] = useState<AuthStage>("login");
+
   return (
     <div
       className="gafa-reservation-overlay"
@@ -2133,24 +2135,34 @@ function ReservationAuthGate({
 
         <div className="gafa-reservation-hero">
           <span className="gafa-eyebrow">Casi listo</span>
-          <h3 id="reservation-auth-title">Inicia sesión para reservar</h3>
+          <h3 id="reservation-auth-title">{RESERVATION_AUTH_TITLES[authStage]}</h3>
           <p>
             {meeting.name} · {formatDate(getMeetingStart(meeting))} ·{" "}
             {formatTime(getMeetingStart(meeting), meeting.timezone)}
           </p>
         </div>
 
+        {/* El titulo de arriba es el unico del paso: el AuthWidget va sin header. */}
         <AuthWidget
           client={client}
           captcha={captcha}
           brandSlug={brandSlug}
           initialView="login"
+          hideHeader
+          onStageChange={setAuthStage}
           onAuthenticated={onAuthenticated}
         />
       </div>
     </div>
   );
 }
+
+const RESERVATION_AUTH_TITLES: Record<AuthStage, string> = {
+  login: "Inicia sesión para reservar",
+  register: "Crea tu cuenta para reservar",
+  "password-recovery": "Recupera tu contraseña",
+  "password-reset": "Elige tu nueva contraseña",
+};
 
 
 function groupMeetingsByDay(meetings: Meeting[]) {

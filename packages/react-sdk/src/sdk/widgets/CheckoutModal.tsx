@@ -15,7 +15,7 @@ import {
   type CartLine,
   type CartReservationContext,
 } from "../cart/cartStore";
-import { AuthWidget } from "./AuthWidget";
+import { AuthWidget, type AuthStage } from "./AuthWidget";
 import { ConfirmDialog } from "./ConfirmDialog";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import {
@@ -67,6 +67,29 @@ type CheckoutStep = "shop" | "auth" | "pay" | "thanks";
 type CatalogTab = "packages" | "memberships" | "products";
 
 /**
+ * El titulo del paso de cuenta lo pone SOLO el hero del checkout (el AuthWidget
+ * va sin header), asi que aqui tiene que decir cual de sus formularios se ve.
+ */
+const AUTH_COPY: Record<AuthStage, { title: string; description: string }> = {
+  login: {
+    title: "Inicia sesión para pagar",
+    description: "Tu carrito te espera; solo necesitamos tu cuenta para cobrar.",
+  },
+  register: {
+    title: "Crea tu cuenta para pagar",
+    description: "Tu carrito te espera; creamos tu cuenta y seguimos con el cobro.",
+  },
+  "password-recovery": {
+    title: "Recupera tu contraseña",
+    description: "Te enviamos un correo para entrar y terminar tu compra.",
+  },
+  "password-reset": {
+    title: "Elige tu nueva contraseña",
+    description: "La guardamos, entras a tu cuenta y terminas tu compra.",
+  },
+};
+
+/**
  * Checkout nativo v2 (reemplaza al Fancy legacy). Cuando nace de una clase,
  * el catalogo trae SOLO los paquetes/membresias que esa clase acepta
  * (combosSelection/membershipSelection del create-form-template).
@@ -114,6 +137,7 @@ export function CheckoutModal({
     preselect ? "loading" : "idle",
   );
   const [tab, setTab] = useState<CatalogTab>("packages");
+  const [authStage, setAuthStage] = useState<AuthStage>("login");
   const [query, setQuery] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsPromptOpen, setTermsPromptOpen] = useState(false);
@@ -583,7 +607,7 @@ export function CheckoutModal({
               <header className="gafa-checkout__hero">
                 <h2 id="gafa-checkout-title">
                   {step === "auth"
-                    ? "Inicia sesión para pagar"
+                    ? AUTH_COPY[authStage].title
                     : step === "shop"
                       ? reservation
                         ? "Compra para reservar"
@@ -592,7 +616,7 @@ export function CheckoutModal({
                 </h2>
                 <p>
                   {step === "auth"
-                    ? "Tu carrito te espera; solo necesitamos tu cuenta para cobrar."
+                    ? AUTH_COPY[authStage].description
                     : step === "shop"
                       ? reservation
                         ? "Estos son los planes que aplican para esta clase."
@@ -608,6 +632,8 @@ export function CheckoutModal({
                     captcha={captcha}
                     brandSlug={brandSlug}
                     initialView="login"
+                    hideHeader
+                    onStageChange={setAuthStage}
                     onAuthenticated={() => {
                       // Con sesion ya se puede pedir la config de pago real.
                       void profileQuery.refetch();

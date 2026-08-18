@@ -5289,6 +5289,16 @@
   max-width: 26rem;
 }
 
+/* El hero del contenedor ya es el encabezado del paso de cuenta: la tarjeta del
+   AuthWidget no necesita repetir marco dentro del modal. */
+.gafa-checkout-auth .gafa-widget-card,
+.gafa-reservation-sheet .gafa-widget-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
 .gafa-checkout-auth .gafa-sdk-form {
   gap: 0.7rem;
 }

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { CustomField, CustomFieldValues, GafaClient } from "../client/types";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
@@ -7,6 +7,9 @@ import { CustomFieldInput } from "./CustomFieldInput";
 
 export type AuthView = "login" | "register" | "password-recovery" | "profile";
 
+/** Formulario que el widget tiene a la vista; `profile` no es un paso real. */
+export type AuthStage = "login" | "register" | "password-recovery" | "password-reset";
+
 export type AuthWidgetProps = {
   client?: GafaClient;
   captcha?: CaptchaProvider;
@@ -14,6 +17,13 @@ export type AuthWidgetProps = {
   /** Marca cuyos campos especiales de registro hay que pedir. */
   brandSlug?: string;
   baseUrl?: string;
+  /**
+   * El contenedor (checkout, reserva) ya pinta el título del paso: sin esto se
+   * ven dos títulos encimados diciendo lo mismo.
+   */
+  hideHeader?: boolean;
+  /** Para que ese contenedor ajuste su título al formulario visible. */
+  onStageChange?: (stage: AuthStage) => void;
   onAuthenticated?: () => void;
 };
 
@@ -32,6 +42,13 @@ function readPasswordResetLink(): { token: string; email: string } | null {
   return token && email ? { token, email } : null;
 }
 
+function stageTitle(stage: AuthStage): string {
+  if (stage === "register") return "Crea tu cuenta";
+  if (stage === "password-recovery") return "Recupera tu contraseña";
+  if (stage === "password-reset") return "Elige tu nueva contraseña";
+  return "Inicia sesión";
+}
+
 function clearPasswordResetLink() {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
@@ -40,14 +57,38 @@ function clearPasswordResetLink() {
   window.history.replaceState(null, "", url.toString());
 }
 
-export function AuthWidget({ client, captcha, initialView = "login", brandSlug, onAuthenticated }: AuthWidgetProps) {
+export function AuthWidget({
+  client,
+  captcha,
+  initialView = "login",
+  brandSlug,
+  hideHeader,
+  onStageChange,
+  onAuthenticated,
+}: AuthWidgetProps) {
   const [resetLink, setResetLink] = useState(readPasswordResetLink);
   const [view, setView] = useState(initialView);
   const formView = view === "profile" ? "login" : view;
+  const stage: AuthStage = resetLink ? "password-reset" : formView;
+
+  // El callback suele venir inline desde el contenedor: por la ref el aviso sale
+  // solo cuando cambia el formulario, no en cada render del padre.
+  const onStageChangeRef = useRef(onStageChange);
+  useEffect(() => {
+    onStageChangeRef.current = onStageChange;
+  }, [onStageChange]);
+  useEffect(() => {
+    onStageChangeRef.current?.(stage);
+  }, [stage]);
+
+  /** Sin header propio el título lo pone el contenedor. */
+  const header = hideHeader
+    ? {}
+    : { eyebrow: "Cuenta", title: stageTitle(stage), description: resetLink?.email };
 
   if (resetLink) {
     return (
-      <WidgetShell eyebrow="Cuenta" title="Elige tu nueva contraseña" description={resetLink.email}>
+      <WidgetShell {...header}>
         <PasswordResetForm
           client={client}
           token={resetLink.token}
@@ -64,7 +105,7 @@ export function AuthWidget({ client, captcha, initialView = "login", brandSlug, 
 
   if (formView === "password-recovery") {
     return (
-      <WidgetShell eyebrow="Cuenta" title="Recupera tu contraseña">
+      <WidgetShell {...header}>
         <PasswordRecoveryForm client={client} />
         <p className="gafa-auth-links">
           <button className="gafa-auth-link" type="button" onClick={() => setView("login")}>
@@ -76,7 +117,7 @@ export function AuthWidget({ client, captcha, initialView = "login", brandSlug, 
   }
 
   return (
-    <WidgetShell eyebrow="Cuenta" title={formView === "register" ? "Crea tu cuenta" : "Inicia sesión"}>
+    <WidgetShell {...header}>
       {/* Dos opciones claras; la activa se pinta con el color de marca. */}
       <div className="gafa-sdk-auth-tabs" role="tablist" aria-label="Iniciar sesión o crear cuenta">
         <button type="button" aria-pressed={formView === "login"} onClick={() => setView("login")}>
