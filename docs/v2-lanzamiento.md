@@ -4,8 +4,9 @@ Replit no es el canal de V2. Relanzar Replit reinicia **toda** la app multi-siti
 (Fitspin y el resto). V2 se publica como **un JS**, igual que el theme v1
 (`dist/main.min.js` → `buq-sdk.azurewebsites.net`).
 
-Los sitios WordPress **no cambian de markup**: siguen `data-gf-options` +
-`data-gf-theme`. Solo cambia el `src` del script.
+Los sitios **no cambian de markup**: siguen `data-gf-options` + `data-gf-theme`
+(o `data-gafa-v2`). Solo cambia el `src` del script. Vale para WordPress,
+Replit, HTML estático o cualquier host. Montaje: `docs/v2-embed/README.md`.
 
 ## Modelo
 
@@ -21,12 +22,8 @@ packages/react-sdk/src  →  npm run publish:embed  →  docs/v2-sdk/gafa-sdk.js
 | --- | --- | --- |
 | Artefacto | `dist/main.min.js` (commiteado) | `docs/v2-sdk/gafa-sdk.js` (commiteado) |
 | React | Va **dentro** del bundle | Va **dentro** del IIFE (`vite.embed.config.ts`). El build de librería (`vite.config.ts`) sigue dejando React como peer; **ese no se pega en WP**. |
-| Host | Azure `buq-sdk*.azurewebsites.net` | jsDelivr desde este repo (inmediato) o el mismo Azure en `/v2/` |
-| Replit | No aplica | **No aplica.** No copiar `packages/react-sdk/src` a `lib/gafa-react-sdk`. |
-
-Replit se queda para los sitios que **no** son V2. Fitspin WP de producción hoy
-sigue en v1 (`main.min.js` + `buq.partners/sdk/dist/main.js`); el preview V2
-que vivía en Replit se sustituye por este script.
+| Host | Azure `buq-sdk*.azurewebsites.net` | jsDelivr (por SHA) o el mismo Azure en `/v2/` |
+| Sitio del socio | `<script src>` del theme v1 | El mismo `<script src>` a `gafa-sdk.js`. **No** copiar TypeScript al host. |
 
 ## Receta para el agente de Cursor (cada cambio V2)
 
