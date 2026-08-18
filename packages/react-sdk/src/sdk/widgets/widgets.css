@@ -5361,25 +5361,31 @@
 }
 
 /*
- * Stripe + tarjeta guardada. GafaPayFront pinta .card-list__item a 200×110 y
- * el Payment Element al 100% del panel, con padding:0: los bordes se enciman
- * y el campo nuevo es una pastilla más ancha. Misma columna tipo tarjeta.
+ * Stripe: tarjeta guardada y tarjeta nueva.
+ *
+ * GafaPayFront pone `row-gap: 0` en `.is-newCard`, así que la tarjeta guardada
+ * y el campo nuevo quedaban pegados, y el campo salía más ancho que la tarjeta.
+ * Aquí comparten ancho y se separan.
+ *
+ * OJO: nada de `display: flex` en `.gafapay-form__group`. El div `.StripeElement`
+ * no lleva ancho propio, como flex item se encoge a 0 y el iframe de Stripe
+ * queda invisible (la caja se ve vacía).
  */
-.gafa-checkout-paymount[data-method="stripe"] {
-  --gafa-pay-card-width: 200px;
-}
-
-.gafa-checkout-paymount[data-method="stripe"] .gafa-checkout-paymount__island {
-  display: grid;
-  gap: 1rem;
-  justify-items: start;
-  max-width: 100%;
-  width: var(--gafa-pay-card-width);
-}
-
 .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements__container {
-  gap: 1rem;
+  gap: 0.85rem;
   justify-items: stretch;
+  width: 100%;
+}
+
+/* GafaPayFront centra los hijos de la sección: sin esto el campo de tarjeta
+   se encoge al ancho de su contenido y no cuadra con la tarjeta guardada. */
+.gafa-checkout-paymount .gafapay-form__section {
+  justify-items: stretch;
+  row-gap: 0.6rem;
+  width: 100%;
+}
+
+.gafa-checkout-paymount .StripeElement {
   width: 100%;
 }
 
@@ -5422,21 +5428,42 @@
 }
 
 .gafa-checkout-paymount .card-list__item {
+  align-content: space-between;
   background: var(--gafa-color-surface);
   border-color: var(--gafa-color-border);
   border-radius: 12px;
   color: var(--gafa-color-text);
   gap: 0.5rem;
-  height: 110px;
+  min-height: 110px;
+  padding: 0.75rem;
   width: 100%;
 }
 
-.gafa-checkout-paymount[data-method="stripe"] .gafapay-form__group {
-  align-items: center;
-  display: flex;
+/* La tarjeta nueva se pinta como una tarjeta más: mismo marco, mismo alto y un
+   rótulo arriba, en el lugar donde la guardada trae la marca. */
+.gafa-checkout-paymount[data-method="stripe"] .gafapay-form__group:not(.is-checkbox) {
+  align-content: space-between;
+  display: grid;
+  gap: 0.55rem;
+  justify-items: stretch;
   min-height: 110px;
-  padding: 0.85rem 0.9rem;
+  padding: 0.75rem;
   width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="stripe"] .gafapay-form__group:not(.is-checkbox)::before {
+  background: var(--gafa-color-surface-raised, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 6px;
+  color: var(--gafa-color-muted-text);
+  content: "Nueva tarjeta";
+  font-size: 0.62rem;
+  font-weight: 700;
+  justify-self: start;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  padding: 0.2rem 0.4rem;
+  text-transform: uppercase;
 }
 
 .gafa-checkout-paymount .card-list__item.is-selected,
