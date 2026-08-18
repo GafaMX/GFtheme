@@ -4913,15 +4913,16 @@
   color: var(--gafa-color-text);
 }
 
+/* Sin marco propio: el campo de tarjeta que inyecta GafaPayFront ya trae el
+   suyo, y los dos juntos se veian como un doble borde con hueco en medio. */
 .gafa-checkout-paymount {
-  border: 1px solid var(--gafa-color-border);
-  border-radius: 16px;
-  min-height: 120px;
-  padding: 1rem;
+  min-height: 0;
 }
 
 .gafa-checkout-paymount[data-method="paypal"] {
   background: color-mix(in srgb, var(--gafa-color-primary) 8%, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 16px;
   display: grid;
   gap: 1rem;
   justify-items: stretch;
@@ -5360,6 +5361,62 @@
 
 .gafa-checkout-paymount .card-list:empty {
   display: none;
+}
+
+/* GafaPayFront envuelve el campo de tarjeta en 30px de aire arriba y abajo:
+   dentro del modal se veia como un hueco vacio debajo del borde. */
+.gafa-checkout-paymount .gafapay-form__container {
+  padding: 0;
+  row-gap: 0.6rem;
+}
+
+/* ── Tarjetas guardadas (las pinta GafaPayFront) ── */
+
+.gafa-checkout-paymount .card-list {
+  justify-items: stretch;
+}
+
+.gafa-checkout-paymount .card-list__item {
+  background: var(--gafa-color-surface);
+  border-color: var(--gafa-color-border);
+  border-radius: 12px;
+  color: var(--gafa-color-text);
+  gap: 0.5rem;
+}
+
+.gafa-checkout-paymount .card-list__item.is-selected,
+.gafa-checkout-paymount .card-list__item:hover {
+  background: color-mix(in srgb, var(--gafa-color-primary) 10%, var(--gafa-color-surface));
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-text);
+}
+
+/* El nombre de la marca va en un <p>, pero la hoja de GafaPayFront solo
+   estiliza el <span> de su version de Conekta: sin esto el texto se sale de la
+   cajita de 35px y se parte en dos renglones. */
+.gafa-checkout-paymount .card-list__item > .type {
+  background: var(--gafa-color-surface);
+  border-color: var(--gafa-color-border);
+  border-radius: 6px;
+  max-width: 100%;
+  padding: 0.2rem 0.4rem;
+  width: auto;
+}
+
+.gafa-checkout-paymount .card-list__item > .type p {
+  color: var(--gafa-color-text);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gafa-checkout-paymount .card-list__item > .last4 p {
+  font-size: 0.95rem;
 }
 
 /* Resultados de busqueda: agrupados por tipo, porque el buscador mira todo el
