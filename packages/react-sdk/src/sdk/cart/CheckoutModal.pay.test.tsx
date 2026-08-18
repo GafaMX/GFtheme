@@ -248,6 +248,45 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     );
   });
 
+  it("carrito persistido sin raw: el JSON del item se resuelve del catálogo al pagar", async () => {
+    // El carrito de localStorage puede venir de una versión sin `raw`.
+    const client = mockClient({
+      getCheckoutConfig: async () => ({
+        ...checkoutConfig(),
+        combos: [
+          {
+            id: 971,
+            name: "SCULPT",
+            type: "combo",
+            price: 275,
+            priceFinal: 275,
+            raw: { id: 971, name: "SCULPT", credits: 1, expiration_days: 30, price_final: "275.00" },
+          },
+        ],
+      }),
+    });
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: "recibo" });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(client.initialPurchase).toHaveBeenCalled();
+    });
+    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].lines[0]?.raw).toEqual({
+      id: 971,
+      name: "SCULPT",
+      credits: 1,
+      expiration_days: 30,
+      price_final: "275.00",
+    });
+  });
+
   it("sin subscriptionId/webToken el objeto igual lleva message y recurringPayment", async () => {
     const client = mockClient();
     renderPay(client);

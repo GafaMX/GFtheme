@@ -476,6 +476,23 @@ export function CheckoutModal({
     const reservationSnapshot = reservation;
     const linesSnapshot = relevantLines;
 
+    // Carritos guardados antes de que las líneas cargaran `raw` (localStorage)
+    // no traen el JSON del API: se resuelve del catálogo de la sede al pagar.
+    const rawFor = (line: CartLine): Record<string, unknown> | undefined => {
+      if (line.raw) return line.raw;
+      const pools =
+        line.type === "membership"
+          ? [memberships, config?.memberships ?? []]
+          : line.type === "product"
+            ? [products, config?.products ?? []]
+            : [combos, config?.combos ?? []];
+      for (const pool of pools) {
+        const hit = pool.find((item) => sameCatalogId(item.id, line.id));
+        if (hit?.raw) return hit.raw;
+      }
+      return undefined;
+    };
+
     try {
       if (!profile || !client.initialPurchase || !selectedMethod || !brandSlug || !locationSlug) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
@@ -493,7 +510,7 @@ export function CheckoutModal({
           name: line.name,
           price: line.price,
           companiesId: config?.companiesId,
-          raw: line.raw,
+          raw: rawFor(line),
         })),
         paymentTypeId: selectedMethod.id,
         paymentData,
