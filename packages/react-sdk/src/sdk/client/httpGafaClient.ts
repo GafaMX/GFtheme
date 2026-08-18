@@ -1426,9 +1426,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         body["map_objectsSelected[0][id]"] = payload.seatObjectId;
       }
 
-      if (payload.paymentData) {
-        // Anidado como array PHP (toFormBody). Con JSON.stringify el backend
-        // recibía un string y dejaba la compra en "Checkout no resuelto".
+      if (payload.paymentData != null) {
+        // Igual que `$.param` del fancy v1: objeto → array PHP anidado,
+        // texto → `payment_data=…` tal cual.
         body.payment_data = payload.paymentData;
       }
 

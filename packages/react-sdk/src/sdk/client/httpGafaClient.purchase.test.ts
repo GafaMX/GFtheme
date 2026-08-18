@@ -17,7 +17,7 @@ describe("initialPurchase", () => {
     vi.unstubAllGlobals();
   });
 
-  async function purchaseWith(paymentData: Record<string, unknown>) {
+  async function purchaseWith(paymentData: unknown) {
     const fetchMock = vi.fn(async () => jsonResponse({ purchase_id: 88, checkout_token: "chk_1" }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -51,6 +51,13 @@ describe("initialPurchase", () => {
     const body = await purchaseWith({ token: "tok_simple" });
 
     expect(body.get("payment_data[token]")).toBe("tok_simple");
+  });
+
+  it("si GafaPay contesta con texto, va plano como en el fancy v1", async () => {
+    const body = await purchaseWith("Se completó el pago.");
+
+    expect(body.get("payment_data")).toBe("Se completó el pago.");
+    expect(body.get("payment_data[token]")).toBeNull();
   });
 
   it("manda las líneas como arrays PHP", async () => {

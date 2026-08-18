@@ -229,6 +229,26 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(payload.subscribe).toBe(false);
   });
 
+  it("si GafaPay contesta con texto, payment_data va sin envolver", async () => {
+    const client = mockClient();
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: "Se completó el pago." });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(client.initialPurchase).toHaveBeenCalled();
+    });
+    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].paymentData).toBe(
+      "Se completó el pago.",
+    );
+  });
+
   it("no manda checkout_token: eso registraba la compra como checkout de Recurrente", async () => {
     const client = mockClient();
     renderPay(client);

@@ -371,7 +371,8 @@ export type InitialPurchasePayload = {
   /** Lineas del carrito (combos / membresias / productos). */
   lines: Array<{ id: number; type: CartLineType; amount: number }>;
   paymentTypeId: number;
-  paymentData?: Record<string, unknown>;
+  /** Lo que GafaPay entrega en `message`: objeto o texto, sin envolver. */
+  paymentData?: unknown;
   discountCode?: string | null;
   giftCode?: string | null;
   /**

@@ -450,7 +450,7 @@ export function CheckoutModal({
   }, [isSignedIn, profileQuery.isLoading, step]);
 
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
-  async function completePurchase(paymentData: Record<string, unknown>, recurring = false) {
+  async function completePurchase(paymentData: unknown, recurring = false) {
     const profile = profileQuery.data;
     const reservationSnapshot = reservation;
     const linesSnapshot = relevantLines;
@@ -514,13 +514,10 @@ export function CheckoutModal({
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
-    // Mismo contrato que el fancy v1: `payment_data` es el contenido de
-    // `message`, y `recurringPayment` viaja como subscribe/set_payment.
-    const paymentData =
-      result.message && typeof result.message === "object"
-        ? (result.message as Record<string, unknown>)
-        : { token: result.message };
-    void completePurchase(paymentData, Boolean(result.recurringPayment));
+    // Mismo contrato que el fancy v1 (`ht.payment_data = e.message`): el recibo
+    // va tal cual. Si GafaPay manda texto viaja como `payment_data=…`; envolverlo
+    // en `{token}` lo dejaba en `payment_data[token]` y gafa.fit no lo reconocía.
+    void completePurchase(result.message, Boolean(result.recurringPayment));
   }
 
   async function proceedToPay() {
