@@ -12,13 +12,19 @@ const widgetsCss = readFileSync(
 const payMountCss = widgetsCss.slice(widgetsCss.indexOf(".gafa-checkout-paymount"));
 
 describe("checkout Stripe saved-card layout", () => {
-  it("la tarjeta nueva y la guardada comparten ancho y alto", () => {
+  it("la tarjeta nueva y la guardada comparten ancho y padding", () => {
     expect(payMountCss).toMatch(
-      /\.gafa-checkout-paymount \.card-list__item \{[^}]*min-height: 110px/,
+      /\.gafa-checkout-paymount \.card-list__item \{[^}]*padding: 0\.7rem 0\.8rem;[^}]*width: 100%/,
     );
     expect(payMountCss).toMatch(
-      /\[data-method="stripe"\] \.gafapay-form__group:not\(\.is-checkbox\) \{[^}]*min-height: 110px/,
+      /\[data-method="stripe"\] \.gafapay-form__group:not\(\.is-checkbox\) \{[^}]*padding: 0\.7rem 0\.8rem;[^}]*width: 100%/,
     );
+  });
+
+  /* GafaPayFront fija las tarjetas en 200px: el panel desbordaba el modal. */
+  it("no deja que la isla saque scroll horizontal del modal", () => {
+    expect(payMountCss).toMatch(/\.gafa-checkout-paymount \{[^}]*min-width: 0/);
+    expect(payMountCss).toMatch(/\.gafa-checkout-paymount__island \{[^}]*max-width: 100%/);
   });
 
   it("separa la tarjeta guardada del campo nuevo (GafaPay trae row-gap: 0)", () => {
