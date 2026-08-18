@@ -16,6 +16,7 @@ import {
   type CartReservationContext,
 } from "../cart/cartStore";
 import { AuthWidget } from "./AuthWidget";
+import { ConfirmDialog } from "./ConfirmDialog";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import {
   loadGafaPay,
@@ -115,6 +116,8 @@ export function CheckoutModal({
   const [tab, setTab] = useState<CatalogTab>("packages");
   const [query, setQuery] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsPromptOpen, setTermsPromptOpen] = useState(false);
+  const [termsAttention, setTermsAttention] = useState(false);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCodeResult | null>(null);
@@ -126,8 +129,8 @@ export function CheckoutModal({
   const [giftLabel, setGiftLabel] = useState<string>();
   const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
   const [payError, setPayError] = useState<string>();
-  // El formulario del proveedor vive fuera de React: sin el listo, "Pagar" no
-  // puede hacer nada, asi que no debe quedar habilitado.
+  // El formulario del proveedor vive fuera de React. Sin el listo, "Pagar"
+  // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
   const [paying, setPaying] = useState(false);
   const [thanks, setThanks] = useState<{
@@ -298,11 +301,12 @@ export function CheckoutModal({
   const total = Math.max(0, subtotal - discountAmount);
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
+  const waitingOnTerms = hasTerms && !termsAccepted;
   const canPay =
     relevantLines.length > 0 &&
     Boolean(selectedMethod) &&
     paymentReady &&
-    (!hasTerms || termsAccepted) &&
+    !waitingOnTerms &&
     !paying;
 
   async function applyDiscount() {
@@ -481,14 +485,12 @@ export function CheckoutModal({
     void completePurchase(paymentData);
   }
 
-  function handlePayClick() {
-    setPayError(undefined);
-    if (!canPay) {
-      if (!relevantLines.length) setPayError("Agrega un paquete o membresía para continuar.");
-      else if (hasTerms && !termsAccepted) setPayError("Acepta los términos y condiciones para pagar.");
-      else if (!paymentReady) setPayError("El formulario de pago todavía no está listo.");
+  function proceedToPay() {
+    if (!paymentReady) {
+      setPayError("El formulario de pago todavía no está listo.");
       return;
     }
+    setPayError(undefined);
     setPaying(true);
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
     const triggered = triggerGafaPayConfirm(selectedMethod?.slug ?? "");
@@ -502,7 +504,32 @@ export function CheckoutModal({
     }
   }
 
+  function handlePayClick() {
+    setPayError(undefined);
+    if (!relevantLines.length) {
+      setPayError("Agrega un paquete o membresía para continuar.");
+      return;
+    }
+    if (waitingOnTerms) {
+      setTermsPromptOpen(true);
+      return;
+    }
+    if (!canPay) {
+      if (!paymentReady) setPayError("El formulario de pago todavía no está listo.");
+      return;
+    }
+    proceedToPay();
+  }
+
+  function acceptTermsAndPay() {
+    setTermsAccepted(true);
+    setTermsAttention(false);
+    setTermsPromptOpen(false);
+    proceedToPay();
+  }
+
   return (
+    <>
     <div
       className="gafa-checkout-overlay"
       role="dialog"
@@ -872,11 +899,17 @@ export function CheckoutModal({
                   ) : null}
 
                   {hasTerms ? (
-                    <label className="gafa-checkout__terms">
+                    <label
+                      className="gafa-checkout__terms"
+                      data-attention={termsAttention || termsPromptOpen ? "true" : undefined}
+                    >
                       <input
                         type="checkbox"
                         checked={termsAccepted}
-                        onChange={(event) => setTermsAccepted(event.target.checked)}
+                        onChange={(event) => {
+                          setTermsAccepted(event.target.checked);
+                          if (event.target.checked) setTermsAttention(false);
+                        }}
                       />
                       <span>
                         Acepto los{" "}
@@ -930,7 +963,7 @@ export function CheckoutModal({
                 <button
                   className="gafa-sdk-button gafa-checkout__cta"
                   type="button"
-                  disabled={!canPay}
+                  disabled={paying || relevantLines.length === 0 || (!waitingOnTerms && !canPay)}
                   onClick={handlePayClick}
                 >
                   {paying ? "Procesando…" : `Pagar ${formatMoney(total, currency.prefix, "")}`}
@@ -956,6 +989,28 @@ export function CheckoutModal({
         )}
       </div>
     </div>
+    {termsPromptOpen && config?.termsConditionsLink ? (
+      <ConfirmDialog
+        title="Acepta los términos"
+        description={
+          <>
+            Para cobrar necesitamos que aceptes los{" "}
+            <a href={config.termsConditionsLink} target="_blank" rel="noreferrer">
+              términos y condiciones
+            </a>
+            .
+          </>
+        }
+        confirmLabel="Aceptar y pagar"
+        cancelLabel="Volver"
+        onConfirm={acceptTermsAndPay}
+        onDismiss={() => {
+          setTermsPromptOpen(false);
+          setTermsAttention(true);
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 
