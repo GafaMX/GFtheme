@@ -20,7 +20,7 @@ Publicar el JS: `docs/v2-lanzamiento.md`. Este archivo es **cómo se pega en una
    nodos v2 usen `data-gafa-v2` (el header viejo puede seguir en v1).
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.9/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.10/docs/v2-sdk/gafa-sdk.js"></script>
 <script data-gf-options type="application/json">
   { "GAFA_FIT_URL": "https://buq.partners", "COMPANY_ID": 1, "API_CLIENT": "...", "API_SECRET": "..." }
 </script>
@@ -31,7 +31,7 @@ Publicar el JS: `docs/v2-lanzamiento.md`. Este archivo es **cómo se pega en una
 
 jsDelivr con `@v2/main` **404** (el `/` de la rama se parte). `@v2` lo trata
 como versión `2` y la **congela**: no sirve el tag git aunque lo muevas.
-La URL pública actual es `@v2.0.0-rc.9` (arriba). Azure cuando exista:
+La URL pública actual es `@v2.0.0-rc.10` (arriba). Azure cuando exista:
 `https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js`.
 
 ## Dos URLs
@@ -52,7 +52,7 @@ el theme PHP en cada deploy v2: se reemplaza `gafa-sdk.js` en git.
 
 **Replit (app multi-sitio):** no copies a `lib/gafa-react-sdk` y no relances
 toda la app. Solo las páginas v2 cambian el `src`. Los sitios que siguen en v1
-no se tocan. Si usas env, `VITE_GAFA_SDK_V2_URL` apunta al IIFE (`@v2.0.0-rc.9`).
+no se tocan. Si usas env, `VITE_GAFA_SDK_V2_URL` apunta al IIFE (`@v2.0.0-rc.10`).
 
 **HTML / Webflow / otro:** el mismo `<script src>` + `data-gf-options` + contenedores.
 
@@ -74,8 +74,8 @@ El SDK v2 de Buq se monta con UN script remoto. No copies packages/react-sdk.
 1. Deja data-gf-options y los contenedores (data-gf-theme o data-gafa-v2).
 2. Quita main.min.js del theme v1 en esas páginas (o usa data-gafa-v2 si el header sigue en v1).
 3. Agrega:
-   <script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.9/docs/v2-sdk/gafa-sdk.js"></script>
-   No uses @v2/main (404) ni @v2 (jsDelivr lo congela). Tag `v2.0.0-rc.9`.
+   <script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.10/docs/v2-sdk/gafa-sdk.js"></script>
+   No uses @v2/main (404) ni @v2 (jsDelivr lo congela). Tag `v2.0.0-rc.10`.
 4. No cargues v1 y v2 sobre los mismos nodos.
 5. No relances una app entera (Replit multi-sitio) por un cambio del SDK.
 ```
