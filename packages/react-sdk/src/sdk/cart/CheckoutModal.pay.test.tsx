@@ -241,6 +241,45 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(client.pollInitialPurchaseStatus).toHaveBeenCalled();
   });
 
+  it("reintenta el status hasta que gafa.fit resuelve el checkout", async () => {
+    const poll = vi
+      .fn()
+      .mockResolvedValueOnce({ code: 0 })
+      .mockResolvedValue({ code: 1, reservationId: 77 });
+    useCartStore.setState({
+      lines: [cartLine],
+      reservation: {
+        meetingId: 501,
+        meetingName: "HELIPUERTO BICI",
+        serviceName: "HELIPUERTO BICI",
+        startsAt: "2026-08-18T09:30:00",
+        timezone: "America/Mexico_City",
+        brandSlug: "fitspin",
+        locationSlug: "polanco",
+      },
+    });
+    renderPay(mockClient({ pollInitialPurchaseStatus: poll }));
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" } });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/reserva confirmada/i)).toBeTruthy();
+    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/reserva #77/i)).toBeTruthy();
+      },
+      { timeout: 5000 },
+    );
+    expect(poll.mock.calls.length).toBeGreaterThan(1);
+  });
+
   it("si gafa.fit no resuelve el checkout, lo dice en vez de darlo por bueno", async () => {
     const client = mockClient({
       pollInitialPurchaseStatus: vi.fn(async () => ({ code: -1, message: "Checkout no resuelto" })),

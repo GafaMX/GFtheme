@@ -61,3 +61,36 @@ describe("initialPurchase", () => {
     expect(body.get("checkout_token")).toBe("chk_1");
   });
 });
+
+describe("pollInitialPurchaseStatus", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function poll(payload: Record<string, unknown>) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse(payload)),
+    );
+    return client().pollInitialPurchaseStatus?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      checkoutToken: "chk_1",
+      pendingPurchaseId: 88,
+    });
+  }
+
+  it("lee el detalle del fallo de `error`, que es como responde gafa.fit", async () => {
+    const status = await poll({ code: -1, error: "Hubo un error en la creación del pago" });
+
+    expect(status?.code).toBe(-1);
+    expect(status?.message).toBe("Hubo un error en la creación del pago");
+  });
+
+  it("devuelve la reserva cuando ya resolvió", async () => {
+    const status = await poll({ code: 1, reservation_id: 77 });
+
+    expect(status?.code).toBe(1);
+    expect(status?.reservationId).toBe(77);
+  });
+});

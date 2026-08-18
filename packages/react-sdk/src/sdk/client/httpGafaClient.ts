@@ -1390,14 +1390,21 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async pollInitialPurchaseStatus(payload) {
       const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase-status`;
-      const data = await apiGetUrl<{ code?: number; message?: string; reservation_id?: number }>(url, {
+      // El endpoint contesta 200 siempre; el detalle del fallo viaja en `error`
+      // ("Hubo un error en la creación del pago"), no en `message`.
+      const data = await apiGetUrl<{
+        code?: number;
+        message?: string;
+        error?: string;
+        reservation_id?: number;
+      }>(url, {
         checkout_token: payload.checkoutToken,
         pending_purchase_id: payload.pendingPurchaseId,
         _: Date.now(),
       });
       return {
         code: typeof data.code === "number" ? data.code : 0,
-        message: data.message,
+        message: data.message ?? data.error,
         reservationId: data.reservation_id,
         raw: data,
       } satisfies InitialPurchaseStatus;

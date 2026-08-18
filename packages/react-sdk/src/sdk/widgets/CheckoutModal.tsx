@@ -1506,6 +1506,17 @@ function PaypalMark() {
   );
 }
 
+/**
+ * `initial-purchase-status` es lo que cierra la compra en gafa.fit: mientras
+ * nadie lo consulte hasta `code = 1`, la orden queda como "Checkout no
+ * resuelto" en el admin aunque Stripe ya haya cobrado.
+ *
+ * La conciliación tarda bastante más que los 20s que esperábamos antes; como
+ * el poll corre en segundo plano (el thank you ya está en pantalla) se le da
+ * una ventana larga, espaciando los intentos.
+ */
+const PURCHASE_CONFIRM_TIMEOUT_MS = 5 * 60_000;
+
 async function waitForPurchase(
   client: GafaClient,
   payload: {
@@ -1516,14 +1527,18 @@ async function waitForPurchase(
   },
 ): Promise<number | undefined> {
   if (!client.pollInitialPurchaseStatus) throw new Error("Sin confirmación de pago disponible.");
-  for (let attempt = 0; attempt < 40; attempt++) {
+  const deadline = Date.now() + PURCHASE_CONFIRM_TIMEOUT_MS;
+  let attempt = 0;
+
+  while (Date.now() < deadline) {
     const status = await client.pollInitialPurchaseStatus(payload);
     if (status.code === 1) return status.reservationId;
     if (status.code === -1) throw new Error(status.message || "El pago no se pudo confirmar.");
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    attempt += 1;
+    // Rápido al principio (la mayoría resuelve ahí), luego cada 3s.
+    await new Promise((resolve) => setTimeout(resolve, attempt <= 20 ? 1000 : 3000));
   }
-  // Sigue pendiente: en gafa.fit es un "Checkout no resuelto" (cobro hecho,
-  // créditos sin otorgar). Se avisa en el thank you en vez de darlo por bueno.
+
   throw new Error("La confirmación del pago está tardando más de lo normal.");
 }
 
