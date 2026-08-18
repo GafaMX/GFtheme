@@ -417,6 +417,7 @@ export function CheckoutModal({
       brandSlug,
       locationSlug,
       expirationLabel: item.expirationDays ? `Expira en ${item.expirationDays} días` : undefined,
+      raw: item.raw,
     });
   }
 
@@ -448,6 +449,7 @@ export function CheckoutModal({
         brandSlug: match.brandSlug,
         locationSlug: locationSlugProp,
         expirationLabel: match.item.expirationDays ? `Expira en ${match.item.expirationDays} días` : undefined,
+        raw: match.item.raw,
       });
       setPreselectStatus("ready");
     });
@@ -491,6 +493,7 @@ export function CheckoutModal({
           name: line.name,
           price: line.price,
           companiesId: config?.companiesId,
+          raw: line.raw,
         })),
         paymentTypeId: selectedMethod.id,
         paymentData,

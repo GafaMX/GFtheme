@@ -93,6 +93,12 @@ export type CatalogItem = {
   credits?: number;
   /** Membresia / paquete suscribible (pago recurrente). */
   subscribable?: boolean;
+  /**
+   * JSON original del item tal como lo entrega gafa.fit. El fancy v1 manda el
+   * objeto COMPLETO en `cart`/`combo` (con credits, expiration_days, etc.);
+   * initial-purchase puede tronar si le faltan claves.
+   */
+  raw?: Record<string, unknown>;
 };
 
 export type UserProfile = {
@@ -381,6 +387,8 @@ export type InitialPurchasePayload = {
     name?: string;
     price?: number;
     companiesId?: number;
+    /** JSON original del item (v1 manda el combo entero en el cart). */
+    raw?: Record<string, unknown>;
   }>;
   paymentTypeId: number;
   /** Lo que GafaPay entrega en `message`: objeto o texto, sin envolver. */

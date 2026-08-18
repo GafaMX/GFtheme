@@ -21,33 +21,39 @@ export type GafaFitPurchaseLine = {
   name?: string;
   price?: number;
   companiesId?: number;
+  /** JSON original del item de gafa.fit (combosSelection / membershipSelection). */
+  raw?: Record<string, unknown>;
 };
 
 /** Item de `cart` / `combo` / `membership` / `product` del fancy v1. */
-export type GafaFitCartItem = {
+export type GafaFitCartItem = Record<string, unknown> & {
   id: number;
   type: CartLineType;
   amount: number;
-  name?: string;
-  price_final?: number;
   product_type: string;
-  companies_id?: number;
 };
 
 export function gafaFitProductType(type: CartLineType): string {
   return GAFA_FIT_PRODUCT_TYPE[type];
 }
 
+/**
+ * v1: `Object.assign({amount, type, product_type}, comboData)` — el item del
+ * API viaja ENTERO (credits, expiration_days, created_at…). initial-purchase
+ * puede leer cualquiera de esas claves; mandarlo recortado tiraba 500 con el
+ * cargo ya hecho.
+ */
 export function toGafaFitCartItem(line: GafaFitPurchaseLine): GafaFitCartItem {
   const item: GafaFitCartItem = {
+    ...(line.raw ?? {}),
     id: line.id,
     type: line.type,
     amount: line.amount,
     product_type: gafaFitProductType(line.type),
   };
-  if (line.name != null) item.name = line.name;
-  if (line.price != null) item.price_final = line.price;
-  if (line.companiesId != null) item.companies_id = line.companiesId;
+  if (item.name == null && line.name != null) item.name = line.name;
+  if (item.price_final == null && line.price != null) item.price_final = line.price;
+  if (item.companies_id == null && line.companiesId != null) item.companies_id = line.companiesId;
   return item;
 }
 

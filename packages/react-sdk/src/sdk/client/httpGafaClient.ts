@@ -586,6 +586,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       credits: raw.credits ?? undefined,
       subscribable: Boolean(raw.subscribable),
       ctaLabel: "Agregar",
+      // El JSON íntegro: v1 manda el combo entero en el cart de
+      // initial-purchase y gafa.fit puede leer claves que no normalizamos.
+      raw: { ...(raw as Record<string, unknown>) },
     };
   }
 
