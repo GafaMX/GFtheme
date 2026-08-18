@@ -89,6 +89,22 @@ describe("checkout Stripe saved-card layout", () => {
     expect(payMountCss).toContain('content: "Nueva tarjeta"');
   });
 
+  /* GafaPay muestra el form nuevo solo sin guardada elegida (.is-active):
+     visible = método activo, y debe verse elegido. */
+  it("resalta la tarjeta nueva cuando es el método activo", () => {
+    expect(payMountCss).toMatch(
+      /\.gafapay-form__container\.is-active \.gafapay-form__group:not\(\.is-checkbox\) \{[^}]*border-color: var\(--gafa-color-primary\)/,
+    );
+  });
+
+  /* Deseleccionar la guardada es otro clic (toggle de GafaPay); la ✕ lo hace
+     descubrible. */
+  it("pinta una ✕ en la tarjeta guardada seleccionada", () => {
+    expect(payMountCss).toMatch(
+      /\.card-list__item\.is-selected::after \{[^}]*content: "✕"/,
+    );
+  });
+
   /*
    * El div `.StripeElement` no trae ancho propio: dentro de un contenedor flex
    * se encoge a 0 y el iframe de Stripe se ve como una caja vacía.
