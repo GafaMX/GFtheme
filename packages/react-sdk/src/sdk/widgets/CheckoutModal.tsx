@@ -555,11 +555,13 @@ export function CheckoutModal({
     // es el recibo (con Stripe: base64 de `id_||_ch_…_||_centavos_||_…`).
     // Mandar solo `message` dejaba initial-purchase en 500 (confirmado con el
     // equipo de gafa.fit). Booleanos como 0/1: en PHP "false" es truthy.
+    // Claves SIEMPRE presentes aunque vengan null (jQuery manda `a=` vacío;
+    // Laravel convierte "Undefined array key" en excepción → 500).
     const recurring = Boolean(result.recurringPayment);
     const paymentData: Record<string, unknown> = {
-      subscriptionId: result.subscriptionId ?? null,
+      subscriptionId: result.subscriptionId ?? "",
       recurringPayment: recurring ? 1 : 0,
-      webToken: result.webToken ?? null,
+      webToken: result.webToken ?? "",
       message: result.message,
     };
     chargedRef.current = true;

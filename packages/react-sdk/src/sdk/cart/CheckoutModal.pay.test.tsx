@@ -227,9 +227,10 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     });
     const payload = vi.mocked(client.initialPurchase!).mock.calls[0][0];
     // gafa.fit lee payment_data[message]; los booleanos van 0/1 porque en PHP
-    // la cadena "false" es truthy.
+    // la cadena "false" es truthy. subscriptionId null viaja como "" para que
+    // la clave exista (Laravel truena con "Undefined array key").
     expect(payload.paymentData).toEqual({
-      subscriptionId: null,
+      subscriptionId: "",
       recurringPayment: 0,
       webToken: "test",
       message: "NDk0MTE4X3x8X2NoXzNVNXJZ…",
@@ -263,9 +264,9 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
       expect(client.initialPurchase).toHaveBeenCalled();
     });
     expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].paymentData).toEqual({
-      subscriptionId: null,
+      subscriptionId: "",
       recurringPayment: 0,
-      webToken: null,
+      webToken: "",
       message: "Se completó el pago.",
     });
   });
