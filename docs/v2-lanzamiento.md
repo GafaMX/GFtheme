@@ -63,6 +63,32 @@ reiniciar Vite. Preview puntual: SHA de `docs/v2-sdk/VERSION.txt`:
 https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<sha>/docs/v2-sdk/gafa-sdk.js
 ```
 
+## URL fija: la rama `sdk-live`
+
+Para que los sitios NO tengan que cambiar el `<script src>` (ni redesplegar) en
+cada publicación, existe la rama `sdk-live`, que se adelanta a `v2/main` en cada
+release:
+
+```
+https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@sdk-live/docs/v2-sdk/gafa-sdk.js
+```
+
+jsDelivr la sirve como rama (`x-jsd-version-type: branch`). Ojo con el nombre:
+uno que empiece con `v` (`v2-live`) lo interpreta como versión y da 404.
+
+Al publicar:
+
+```sh
+git push origin v2/main
+git branch -f sdk-live v2/main && git push -f origin sdk-live
+curl -s https://purge.jsdelivr.net/gh/GafaMX/GFtheme@sdk-live/docs/v2-sdk/gafa-sdk.js
+```
+
+El purge limpia el CDN (12 h de caché de borde). Al **navegador** jsDelivr le
+manda 7 días, así que quien ya cargó el archivo puede tardar en ver lo nuevo:
+para propagación en minutos hace falta servirlo desde Azure con `max-age` corto.
+Los tags `v2.0.0-rc.N` se siguen publicando como snapshot inmutable.
+
 ## Puente de pruebas (sin Replit ni WordPress)
 
 ```
