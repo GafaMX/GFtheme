@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { parseSdkConfig, type GafaSdkConfigInput, type GafaSdkConfig } from "./config";
 import { createGafaClient } from "./client/gafaClient";
-import type { GafaClient } from "./client/types";
+import type { CartLineType, CheckoutPayload, GafaClient, ReservationCheckoutPayload } from "./client/types";
 import { createLegacyGafaFitAdapter } from "./client/legacyGafaFitAdapter";
 import { createHttpGafaClient } from "./client/httpGafaClient";
 import { createCaptchaProvider } from "./captcha/CaptchaProvider";
@@ -15,6 +15,7 @@ import { CatalogWidget, type CatalogWidgetProps } from "./widgets/CatalogWidget"
 import { ProfileWidget, type ProfileWidgetProps } from "./widgets/ProfileWidget";
 import { AccountModal, type AccountModalProps } from "./widgets/AccountModal";
 import { CheckoutModal, type CheckoutModalProps } from "./widgets/CheckoutModal";
+import { ReservationLauncher, type ReservationLauncherProps } from "./widgets/ReservationLauncher";
 import { PurchaseButtonWidget, type PurchaseButtonWidgetProps } from "./widgets/PurchaseButtonWidget";
 import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderControls";
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
@@ -44,6 +45,12 @@ export type GafaSdk = {
   /** Abre el checkout (carrito + pago) sobre la pagina actual. */
   openCheckout(props?: CheckoutOptions): { close(): void };
   /**
+   * Abre la reserva de UNA clase por id, igual que un clic en el calendario:
+   * login si hace falta, detalle con mapa y creditos, y checkout si no hay con
+   * que pagarla.
+   */
+  openReservation(props: ReservationOptions): { close(): void };
+  /**
    * Activa los botones de compra en HTML plano ([data-gf-buy] con
    * data-gf-combo-id / data-gf-membership-id / data-gf-product-id).
    */
@@ -53,6 +60,9 @@ export type GafaSdk = {
 
 export type AccountModalOptions = Omit<AccountModalProps, "client" | "captcha" | "open" | "onClose">;
 export type CheckoutOptions = Omit<CheckoutModalProps, "client" | "onClose">;
+export type ReservationOptions = Omit<ReservationLauncherProps, "client" | "captcha" | "onClose"> & {
+  onClose?: () => void;
+};
 export type HeaderControlsMountProps = Pick<HeaderControlsProps, "showCart"> & AccountModalOptions;
 
 export type MountedWidget = {
@@ -70,6 +80,7 @@ export type RuntimeOptions = {
  *  de tema) no deben apilar overlays oscuros. */
 let activeCheckout: { close(): void } | null = null;
 let activeAccount: { close(): void } | null = null;
+let activeReservation: { close(): void } | null = null;
 let purchaseButtonsStop: (() => void) | null = null;
 
 function checkoutFromCart(): CheckoutOptions {
@@ -263,6 +274,33 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
 
       return handle;
     },
+    openReservation({ onClose, ...props }) {
+      silenceLegacyFancy();
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+
+      const close = () => {
+        if (activeReservation === handle) activeReservation = null;
+        // Igual que openCheckout: desmontar en el mismo tick del handler de
+        // React revienta con "synchronously unmount a root while rendering".
+        queueMicrotask(() => {
+          mounted.unmount();
+          host.remove();
+        });
+        onClose?.();
+      };
+
+      activeReservation?.close();
+      const handle = { close };
+      activeReservation = handle;
+
+      const mounted = mount(
+        host,
+        <ReservationLauncher client={client} captcha={captcha} {...props} onClose={close} />,
+      );
+
+      return handle;
+    },
     enablePurchaseButtons(root) {
       purchaseButtonsStop?.();
 
@@ -276,6 +314,14 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
             preselect: { type: intent.type, id: intent.id },
             skipCatalog: true,
           }),
+        onReserve: (intent) => {
+          sdk.openReservation({
+            meetingId: intent.meetingId,
+            brandSlug: intent.brandSlug,
+            locationSlug: intent.locationSlug,
+            locationId: intent.locationId,
+          });
+        },
         onOpenCart: () => sdk.openCheckout(checkoutFromCart()),
         onOpenAccount: () => {
           sdk.openAccount();
@@ -294,12 +340,84 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       unsubCartWarm();
       activeCheckout = null;
       activeAccount = null;
+      activeReservation = null;
       Array.from(mounts).forEach((mounted) => mounted.unmount());
       queryClient.clear();
     }
   };
 
+  // `client.openCheckout` / `client.openReservationCheckout` eran el unico
+  // puente al fancy legacy y tiraban error sin el script viejo en la pagina.
+  // Las integraciones que ya los llaman ahora abren los modales nativos.
+  sdk.client = bridgeLegacyCheckout(client, sdk);
+
   return sdk;
+}
+
+/**
+ * Adapta el contrato viejo del cliente (payload del fancy de gafa.fit) a los
+ * modales nativos de v2. Se envuelve, no se muta: los widgets siguen usando el
+ * cliente de datos tal cual.
+ */
+function bridgeLegacyCheckout(client: GafaClient, sdk: GafaSdk): GafaClient {
+  return {
+    ...client,
+    async openCheckout(payload: CheckoutPayload) {
+      const meetingId = readLegacyId(payload.payload, "meetings_id");
+
+      if (meetingId != null) {
+        sdk.openReservation({
+          meetingId,
+          brandSlug: payload.brandSlug,
+          ...readLegacyLocation(payload.locationId),
+        });
+        return;
+      }
+
+      const preselect = readLegacyPreselect(payload.payload);
+      sdk.openCheckout({
+        brandSlug: payload.brandSlug,
+        ...readLegacyLocation(payload.locationId),
+        preselect,
+        skipCatalog: Boolean(preselect),
+      });
+    },
+    async openReservationCheckout(payload: ReservationCheckoutPayload) {
+      sdk.openReservation({
+        meetingId: payload.meetingId,
+        brandSlug: payload.brandSlug,
+        locationSlug: payload.locationSlug,
+      });
+    },
+  };
+}
+
+const LEGACY_PRESELECT_KEYS: Array<[CartLineType, string]> = [
+  ["combo", "combos_id"],
+  ["membership", "memberships_id"],
+  ["product", "products_id"],
+];
+
+function readLegacyPreselect(payload: Record<string, unknown>): { type: CartLineType; id: number } | null {
+  for (const [type, key] of LEGACY_PRESELECT_KEYS) {
+    const id = readLegacyId(payload, key);
+    if (id != null) return { type, id };
+  }
+  return null;
+}
+
+function readLegacyId(payload: Record<string, unknown> | undefined, key: string): number | null {
+  const raw = payload?.[key];
+  if (raw == null) return null;
+  const id = Number(raw);
+  return Number.isFinite(id) ? id : null;
+}
+
+/** El contrato viejo manda un solo campo que puede ser id numerico o slug. */
+function readLegacyLocation(location?: string | number): { locationId?: number; locationSlug?: string } {
+  if (location == null || location === "") return {};
+  const id = Number(location);
+  return Number.isFinite(id) ? { locationId: id } : { locationSlug: String(location) };
 }
 
 function createClient(config: GafaSdkConfig, options: RuntimeOptions): GafaClient {

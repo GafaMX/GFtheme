@@ -31,3 +31,12 @@ sdk.mountCalendar("#calendar-demo");
 sdk.mountCatalog("#packages-demo", { type: "packages" });
 sdk.mountAuth("#auth-demo", { initialView: "login" });
 sdk.mountProfile("#profile-demo");
+
+// Reserva de una clase por id: por atributo (data-gf-reserve) y por JS.
+sdk.enablePurchaseButtons();
+document.querySelector("#reserve-by-js")?.addEventListener("click", () => {
+  sdk.openReservation({ meetingId: 2, brandSlug: "demo-studio", locationSlug: "condesa" });
+});
+
+// Para probar la API desde la consola del navegador, igual que en un sitio real.
+window.GafaThemeSDK = sdk;
