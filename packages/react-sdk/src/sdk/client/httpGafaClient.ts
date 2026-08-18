@@ -1436,7 +1436,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const data = await apiPostFormUrl<{ purchase_id?: number; checkout_token?: string }>(url, body);
       return {
         purchaseId: data?.purchase_id ?? null,
-        checkoutToken: data?.checkout_token ?? payload.checkoutToken ?? null,
+        checkoutToken: data?.checkout_token ?? null,
         raw: data,
       } satisfies InitialPurchaseResult;
     },

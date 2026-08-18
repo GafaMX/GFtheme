@@ -204,7 +204,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(screen.getByText(/orden #88/i)).toBeTruthy();
   });
 
-  it("manda el recibo completo de GafaPay: gafa.fit concilia por payment_data[message]", async () => {
+  it("payment_data es el `message` de GafaPay, igual que el fancy v1", async () => {
     const client = mockClient();
     renderPay(client);
     await waitUntilPayReady();
@@ -224,13 +224,50 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     await waitFor(() => {
       expect(client.initialPurchase).toHaveBeenCalled();
     });
-    const { paymentData } = vi.mocked(client.initialPurchase!).mock.calls[0][0];
-    expect(paymentData).toEqual({
-      message: { id: "ch_123", status: "succeeded" },
-      webToken: "test",
-      subscriptionId: "",
-      recurringPayment: false,
+    const payload = vi.mocked(client.initialPurchase!).mock.calls[0][0];
+    expect(payload.paymentData).toEqual({ id: "ch_123", status: "succeeded" });
+    expect(payload.subscribe).toBe(false);
+  });
+
+  it("no manda checkout_token: eso registraba la compra como checkout de Recurrente", async () => {
+    const client = mockClient();
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { id: "ch_123" } });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(client.initialPurchase).toHaveBeenCalled();
     });
+    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].checkoutToken).toBeUndefined();
+  });
+
+  it("con Stripe la compra ya viene resuelta: no consulta el status", async () => {
+    const poll = vi.fn(async () => ({ code: 1 }));
+    const client = mockClient({
+      // Sin checkout alojado gafa.fit no devuelve checkout_token.
+      initialPurchase: vi.fn(async () => ({ purchaseId: 88, checkoutToken: null })),
+      pollInitialPurchaseStatus: poll,
+    });
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { id: "ch_123" } });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    });
+    expect(poll).not.toHaveBeenCalled();
   });
 
   it("si falta initialPurchase no se queda en Procesando: muestra el error", async () => {

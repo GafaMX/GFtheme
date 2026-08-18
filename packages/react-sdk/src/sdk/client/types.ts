@@ -374,6 +374,12 @@ export type InitialPurchasePayload = {
   paymentData?: Record<string, unknown>;
   discountCode?: string | null;
   giftCode?: string | null;
+  /**
+   * SOLO para el checkout alojado (Recurrente), donde el token lo emite la
+   * pasarela al abrirse. Mandarlo en un cobro normal hace que gafa.fit registre
+   * la compra como "Checkout de Recurrente" y la deje en "Checkout no resuelto":
+   * cobro hecho, sin créditos ni reserva.
+   */
   checkoutToken?: string | null;
   selectedCredit?: string;
   seatObjectId?: number;

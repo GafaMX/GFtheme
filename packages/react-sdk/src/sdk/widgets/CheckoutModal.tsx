@@ -450,7 +450,7 @@ export function CheckoutModal({
   }, [isSignedIn, profileQuery.isLoading, step]);
 
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
-  async function completePurchase(paymentData: Record<string, unknown>) {
+  async function completePurchase(paymentData: Record<string, unknown>, recurring = false) {
     const profile = profileQuery.data;
     const reservationSnapshot = reservation;
     const linesSnapshot = relevantLines;
@@ -459,11 +459,6 @@ export function CheckoutModal({
       if (!profile || !client.initialPurchase || !selectedMethod || !brandSlug || !locationSlug) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
-
-      const checkoutToken =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `chk_${Date.now()}`;
 
       const purchase = await client.initialPurchase({
         brandSlug,
@@ -475,7 +470,8 @@ export function CheckoutModal({
         paymentData,
         discountCode: discountStatus === "ok" ? discountCode.trim() : null,
         giftCode: giftStatus === "ok" ? giftCode.trim() : null,
-        checkoutToken,
+        subscribe: recurring,
+        setPayment: recurring,
         seatObjectId: reservation?.seatObjectId,
       });
 
@@ -489,14 +485,15 @@ export function CheckoutModal({
       setStep("thanks");
       onCompleted?.({ purchaseId });
 
-      // El status es lo que cierra la compra del lado de gafa.fit (créditos y
-      // reserva). Se sigue esperando, pero en segundo plano: bloquear el UI
-      // dejaba "Procesando…" hasta un minuto con el cobro ya hecho.
-      if (purchaseId && client.pollInitialPurchaseStatus) {
+      // Solo el checkout alojado (Recurrente) queda pendiente y se confirma por
+      // status; ahí gafa.fit devuelve el checkout_token. Con Stripe/PayPal la
+      // compra ya viene resuelta en initial-purchase.
+      const checkoutToken = purchase.checkoutToken;
+      if (purchaseId && checkoutToken && client.pollInitialPurchaseStatus) {
         void waitForPurchase(client, {
           brandSlug,
           locationSlug,
-          checkoutToken: purchase.checkoutToken ?? checkoutToken,
+          checkoutToken,
           pendingPurchaseId: purchaseId,
         })
           .then((reservationId) => {
@@ -517,16 +514,13 @@ export function CheckoutModal({
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
-    // El recibo va tal cual lo entrega GafaPayFront: gafa.fit busca el cargo en
-    // `payment_data[message]`. Antes se mandaba solo el contenido de `message`
-    // y la compra quedaba en "Checkout no resuelto" con el cobro ya hecho.
-    void completePurchase({
-      message: result.message,
-      webToken: result.webToken ?? "test",
-      // jQuery (el fancy v1) manda los vacíos como cadena, no los omite.
-      subscriptionId: result.subscriptionId ?? "",
-      recurringPayment: result.recurringPayment ?? false,
-    });
+    // Mismo contrato que el fancy v1: `payment_data` es el contenido de
+    // `message`, y `recurringPayment` viaja como subscribe/set_payment.
+    const paymentData =
+      result.message && typeof result.message === "object"
+        ? (result.message as Record<string, unknown>)
+        : { token: result.message };
+    void completePurchase(paymentData, Boolean(result.recurringPayment));
   }
 
   async function proceedToPay() {
