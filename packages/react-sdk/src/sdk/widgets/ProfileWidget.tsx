@@ -752,7 +752,7 @@ function OverviewPanel({
                     ))}
                   </div>
                 ) : (
-                  <p className="gafa-muted">Cuando tomes clases, aquí verás con quién entrenas más.</p>
+                  <p className="gafa-muted">Aparecerán con tus primeras clases.</p>
                 )}
               </div>
               <div>
@@ -766,7 +766,7 @@ function OverviewPanel({
                     ))}
                   </div>
                 ) : (
-                  <p className="gafa-muted">Aún no tenemos suficientes clases para calcularlo.</p>
+                  <p className="gafa-muted">Se calculan con tus clases.</p>
                 )}
               </div>
             </div>

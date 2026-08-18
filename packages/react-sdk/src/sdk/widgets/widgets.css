@@ -2677,9 +2677,11 @@
   }
 }
 
+/* space-3, no space-4: con space-4 "Mi actividad" no cabía sin scroll ni en
+   el modal de escritorio (720px). */
 .gafa-acct-overview {
   display: grid;
-  gap: var(--gafa-space-4);
+  gap: var(--gafa-space-3);
 }
 
 /* Entrada escalonada: el panel se siente vivo al abrir sin depender de una
@@ -3188,11 +3190,11 @@
   display: block;
   font-size: 0.76rem;
   font-weight: 700;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.25rem;
 }
 
 .gafa-acct-faves p {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   margin: 0;
 }
 
