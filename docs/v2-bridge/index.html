@@ -98,10 +98,89 @@
       <footer>
         Versión por URL: <code>?sdk=v2.0.0-rc.6</code>, <code>?sdk=&lt;sha&gt;</code> o
         <code>?sdk=https://…/gafa-sdk.js</code>. Entorno: <code>?buq-env=staging</code>.
+        Diagnóstico de la compra: <code>?debug=1</code>.
       </footer>
     </div>
 
     <script>
+      /*
+       * ?debug=1 — panel con lo que viaja a gafa.fit en la compra. El
+       * "Checkout no resuelto" no se puede diagnosticar desde el código: hay que
+       * ver el cuerpo real de initial-purchase y qué contesta initial-purchase-status.
+       * El Authorization y el API_SECRET nunca se pintan.
+       */
+      (function () {
+        if (new URLSearchParams(location.search).get("debug") !== "1") return;
+
+        var INTERESTING = /(initial-purchase|create-form-template|reservate)/;
+        var entries = [];
+
+        var panel = document.createElement("div");
+        panel.style.cssText =
+          "position:fixed;right:0;bottom:0;z-index:99999;width:min(560px,100vw);" +
+          "max-height:52vh;overflow:auto;background:#0b1020;color:#d7e0f5;" +
+          "font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;" +
+          "border-top-left-radius:12px;box-shadow:0 -8px 30px rgba(0,0,0,.35)";
+        panel.innerHTML =
+          '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+          '<b style="flex:1">Diagnóstico de compra</b>' +
+          '<button id="dbg-copy" style="cursor:pointer">Copiar todo</button>' +
+          '<button id="dbg-clear" style="cursor:pointer">Limpiar</button>' +
+          "</div><pre id=\"dbg-log\" style=\"margin:0;white-space:pre-wrap;overflow-wrap:anywhere\">Esperando la compra…</pre>";
+        document.addEventListener("DOMContentLoaded", function () {
+          document.body.appendChild(panel);
+          document.getElementById("dbg-copy").onclick = function () {
+            navigator.clipboard.writeText(render());
+          };
+          document.getElementById("dbg-clear").onclick = function () {
+            entries = [];
+            paint();
+          };
+        });
+
+        function mask(text) {
+          return String(text).replace(/(API_SECRET|api_secret)=([^&]+)/g, "$1=***");
+        }
+
+        function render() {
+          return entries.length ? entries.join("\n\n") : "Esperando la compra…";
+        }
+
+        function paint() {
+          var log = document.getElementById("dbg-log");
+          if (log) log.textContent = render();
+        }
+
+        function push(line) {
+          entries.push(line);
+          if (entries.length > 40) entries.shift();
+          paint();
+        }
+
+        var nativeFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+          var url = typeof input === "string" ? input : (input && input.url) || "";
+          var method = (init && init.method) || (input && input.method) || "GET";
+
+          if (!INTERESTING.test(url)) return nativeFetch(input, init);
+
+          var body = init && init.body ? mask(String(init.body)) : "";
+          var stamp = new Date().toISOString().slice(11, 19);
+          push("→ " + stamp + " " + method + " " + url + (body ? "\n   body: " + body : ""));
+
+          return nativeFetch(input, init).then(function (response) {
+            response
+              .clone()
+              .text()
+              .then(function (text) {
+                push("← " + response.status + " " + url + "\n   " + mask(text).slice(0, 900));
+              })
+              .catch(function () {});
+            return response;
+          });
+        };
+      })();
+
       // El puente no se re-publica en cada release: la versión del SDK entra por
       // ?sdk= (tag, SHA o URL completa) y por default toma el último tag.
       (function () {
