@@ -51,6 +51,9 @@ describe("checkout Stripe saved-card layout", () => {
     expect(stripeStack).toBeTruthy();
     expect(stripeStack).toContain("display: grid");
     expect(stripeStack).toContain("row-gap: var(--gafa-pay-card-gap)");
+    expect(payMountCss).toMatch(
+      /\[data-method="stripe"\] \.gafapay-elements__container\.is-cardList \{[^}]*margin-bottom: 12px/,
+    );
   });
 
   it("sigue separando el listado Conekta (.gafapay-elements__cards)", () => {

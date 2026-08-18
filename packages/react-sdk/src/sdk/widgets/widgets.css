@@ -5428,6 +5428,16 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-eleme
   width: 100%;
 }
 
+/* Hueco visible entre la lista guardada y «Nueva tarjeta». GafaPay las deja
+   pegadas (display:block, sin margin). */
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements__container.is-cardList {
+  margin-bottom: 12px;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list__item + .card-list__item {
+  margin-top: 12px;
+}
+
 .gafa-checkout-paymount .gafapay-elements__cards {
   justify-items: stretch;
   row-gap: 0.85rem;
