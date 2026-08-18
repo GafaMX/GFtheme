@@ -1,4 +1,4 @@
-# Cómo lanzar el SDK V2 sin Replit
+# Cómo publicar el SDK V2 (el JS)
 
 Replit no es el canal de V2. Relanzar Replit reinicia **toda** la app multi-sitio
 (Fitspin y el resto). V2 se publica como **un JS**, igual que el theme v1
