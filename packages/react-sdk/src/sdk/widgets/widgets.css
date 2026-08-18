@@ -3852,20 +3852,20 @@
 
 .gafa-confirm__mark {
   align-items: center;
-  background: var(--gafa-color-surface-raised);
+  background: var(--gafa-color-primary);
   border-radius: 50%;
-  color: var(--gafa-color-text);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--gafa-color-primary) 18%, transparent);
+  color: var(--gafa-color-primary-text);
   display: inline-flex;
-  font-size: 1.3rem;
-  font-weight: 800;
-  height: 46px;
+  height: 52px;
   justify-content: center;
-  width: 46px;
+  width: 52px;
 }
 
 .gafa-confirm[data-tone="danger"] .gafa-confirm__mark {
-  background: var(--gafa-color-danger-soft, var(--gafa-color-surface-raised));
-  color: var(--gafa-color-danger, #dc2626);
+  background: var(--gafa-color-danger, #dc2626);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--gafa-color-danger, #dc2626) 16%, transparent);
+  color: var(--gafa-color-background);
 }
 
 .gafa-confirm__title {
