@@ -2,6 +2,8 @@ export type Brand = {
   id: number;
   name: string;
   slug: string;
+  /** `America/Cancun`, `America/Mexico_City`… */
+  timeZone?: string;
   /** Link a terminos y condiciones (admin de la marca). */
   termsConditionsLink?: string | null;
   gafapayBrandId?: number | null;
@@ -138,6 +140,8 @@ export type UserReservation = {
   id: number;
   serviceName: string;
   startsAt: string;
+  /** Zona horaria de la sede. Sin esto la clase se pinta en la hora del navegador. */
+  timezone?: string;
   locationName?: string;
   staffName?: string;
   brandSlug: string;
