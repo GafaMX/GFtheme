@@ -5,10 +5,15 @@ export type {
   GafaSdk,
   HeaderControlsMountProps,
   MountedWidget,
+  ReservationOptions,
   RuntimeOptions,
 } from "./runtime";
 export { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
-export type { PurchaseIntent } from "./cart/purchaseButtons";
+export type { PurchaseIntent, ReserveIntent } from "./cart/purchaseButtons";
+export { ReservationLauncher } from "./widgets/ReservationLauncher";
+export type { ReservationLauncherProps } from "./widgets/ReservationLauncher";
+export { ReservationFlow } from "./widgets/CalendarWidget";
+export type { ReservationFlowProps } from "./widgets/CalendarWidget";
 export { AccountModal } from "./widgets/AccountModal";
 export type { AccountModalProps } from "./widgets/AccountModal";
 export { CheckoutModal } from "./widgets/CheckoutModal";

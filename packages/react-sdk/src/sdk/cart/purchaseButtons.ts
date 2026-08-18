@@ -10,6 +10,7 @@ import { useCartStore } from "./cartStore";
  *   <button data-gf-buy data-gf-combo-id="971">Comprar paquete</button>
  *   <button data-gf-buy data-gf-membership-id="358">Suscribirme</button>
  *   <button data-gf-buy data-gf-product-id="12" data-gf-brand="fitspin">Comprar</button>
+ *   <button data-gf-reserve data-gf-meeting-id="84213">Reservar esta clase</button>
  *   <a href="#" data-gf-cart>Ver carrito (<span data-gf-cart-count>0</span>)</a>
  *   <button data-gf-account>Mi cuenta</button>
  *
@@ -25,9 +26,19 @@ export type PurchaseIntent = {
   locationId?: number;
 };
 
+/** Reserva de una clase concreta disparada desde el HTML del socio. */
+export type ReserveIntent = {
+  meetingId: number;
+  brandSlug?: string;
+  locationSlug?: string;
+  locationId?: number;
+};
+
 export type PurchaseButtonsOptions = {
   /** Abre el checkout con el producto ya seleccionado. */
   onPurchase: (intent: PurchaseIntent) => void;
+  /** Abre la reserva de una clase por id. */
+  onReserve?: (intent: ReserveIntent) => void;
   /** Abre el checkout sin preseleccion (icono/boton de carrito). */
   onOpenCart: () => void;
   /** Abre el popup de cuenta (login / perfil). */
@@ -36,6 +47,7 @@ export type PurchaseButtonsOptions = {
 };
 
 const BUY_SELECTOR = "[data-gf-buy]";
+const RESERVE_SELECTOR = "[data-gf-reserve]";
 const CART_SELECTOR = "[data-gf-cart]";
 const ACCOUNT_SELECTOR = "[data-gf-account]";
 const COUNT_SELECTOR = "[data-gf-cart-count]";
@@ -75,6 +87,23 @@ function readIntent(element: Element): PurchaseIntent | null {
   return null;
 }
 
+function readReserveIntent(element: Element): ReserveIntent | null {
+  const el = element as HTMLElement;
+  const raw = firstDataset(el, "gfMeetingId", "bqMeetingId", "gfReserve");
+  const meetingId = Number(raw);
+  if (!raw || !Number.isFinite(meetingId)) return null;
+
+  const locationIdRaw = firstDataset(el, "gfLocationId", "bqLocationId");
+  const locationId = locationIdRaw != null ? Number(locationIdRaw) : NaN;
+
+  return {
+    meetingId,
+    brandSlug: firstDataset(el, "gfBrand", "bqBrand", "buqBrand"),
+    locationSlug: firstDataset(el, "gfLocation", "bqLocation"),
+    locationId: Number.isFinite(locationId) ? locationId : undefined,
+  };
+}
+
 /** Mantiene los contadores [data-gf-cart-count] al dia con el carrito. */
 function renderCartCount(root: Document | Element) {
   const total = useCartStore.getState().lines.reduce((sum, line) => sum + line.amount, 0);
@@ -105,6 +134,16 @@ export function bootstrapPurchaseButtons(options: PurchaseButtonsOptions): () =>
       if (intent) {
         event.preventDefault();
         options.onPurchase(intent);
+        return;
+      }
+    }
+
+    const reserveButton = options.onReserve ? target.closest(RESERVE_SELECTOR) : null;
+    if (reserveButton && (root === host || root.contains(reserveButton))) {
+      const intent = readReserveIntent(reserveButton);
+      if (intent) {
+        event.preventDefault();
+        options.onReserve?.(intent);
         return;
       }
     }

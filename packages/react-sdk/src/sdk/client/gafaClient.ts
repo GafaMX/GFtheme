@@ -74,6 +74,8 @@ export function createMockGafaClient(): GafaClient {
       },
     ],
     listMeetings: async () => demoMeetings(),
+    getMeeting: async ({ meetingId }) =>
+      demoMeetings().find((meeting) => Number(meeting.id) === Number(meetingId)) ?? null,
     getProfile: async (): Promise<UserProfile | null> => ({
       id: 1,
       name: "Usuario Demo",
@@ -249,6 +251,7 @@ function demoMeetings(): Meeting[] {
     {
       id: 1,
       name: "Functional Training",
+      brandSlug: "demo-studio",
       startsAt: first.toISOString(),
       durationMinutes: 50,
       staffName: "Coach Demo",
@@ -266,6 +269,7 @@ function demoMeetings(): Meeting[] {
     {
       id: 2,
       name: "Mobility Flow",
+      brandSlug: "demo-studio",
       startsAt: second.toISOString(),
       durationMinutes: 45,
       staffName: "Coach Ana",

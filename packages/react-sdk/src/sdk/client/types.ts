@@ -391,6 +391,18 @@ export type InitialPurchaseStatus = {
   raw?: unknown;
 };
 
+/**
+ * Como ubicar una clase suelta. Marca y sede son opcionales: sin ellas se
+ * busca en las sedes publicadas de la compañia, que es lo que un sitio de un
+ * solo estudio espera al pasar nada mas el id.
+ */
+export type MeetingLookup = {
+  meetingId: string | number;
+  brandSlug?: string;
+  locationSlug?: string;
+  locationId?: string | number;
+};
+
 export type MeetingFilters = {
   brandId?: string | number;
   locationId?: string | number;
@@ -490,6 +502,8 @@ export type GafaClient = {
   listServices(brandSlug?: string): Promise<Service[]>;
   listStaff(brandSlug?: string): Promise<StaffMember[]>;
   listMeetings(filters?: MeetingFilters): Promise<Meeting[]>;
+  /** Una clase por id, para abrir su reserva sin pasar por el calendario. */
+  getMeeting?(payload: MeetingLookup): Promise<Meeting | null>;
   listCombos(brandSlug: string): Promise<CatalogItem[]>;
   listMemberships(brandSlug: string): Promise<CatalogItem[]>;
   getProfile(): Promise<UserProfile | null>;
