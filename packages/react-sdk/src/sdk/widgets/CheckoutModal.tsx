@@ -493,11 +493,16 @@ export function CheckoutModal({
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
-    const paymentData =
-      result.message && typeof result.message === "object"
-        ? (result.message as Record<string, unknown>)
-        : { token: result.message };
-    void completePurchase(paymentData);
+    // El recibo va tal cual lo entrega GafaPayFront: gafa.fit busca el cargo en
+    // `payment_data[message]`. Antes se mandaba solo el contenido de `message`
+    // y la compra quedaba en "Checkout no resuelto" con el cobro ya hecho.
+    void completePurchase({
+      message: result.message,
+      webToken: result.webToken ?? "test",
+      // jQuery (el fancy v1) manda los vacíos como cadena, no los omite.
+      subscriptionId: result.subscriptionId ?? "",
+      recurringPayment: result.recurringPayment ?? false,
+    });
   }
 
   async function proceedToPay() {

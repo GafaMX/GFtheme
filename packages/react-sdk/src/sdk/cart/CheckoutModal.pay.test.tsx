@@ -204,6 +204,35 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(screen.getByText(/orden #88/i)).toBeTruthy();
   });
 
+  it("manda el recibo completo de GafaPay: gafa.fit concilia por payment_data[message]", async () => {
+    const client = mockClient();
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({
+        message: { id: "ch_123", status: "succeeded" },
+        subscriptionId: null,
+        recurringPayment: false,
+        webToken: "test",
+      });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(client.initialPurchase).toHaveBeenCalled();
+    });
+    const { paymentData } = vi.mocked(client.initialPurchase!).mock.calls[0][0];
+    expect(paymentData).toEqual({
+      message: { id: "ch_123", status: "succeeded" },
+      webToken: "test",
+      subscriptionId: "",
+      recurringPayment: false,
+    });
+  });
+
   it("si falta initialPurchase no se queda en Procesando: muestra el error", async () => {
     const { initialPurchase: _ignored, ...rest } = mockClient();
     renderPay(rest as GafaClient);

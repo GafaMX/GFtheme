@@ -45,11 +45,17 @@ export type GafaPayGeneralData = {
   usersId?: number;
 };
 
+/**
+ * Lo que GafaPayFront entrega al confirmar. El cobro ya ocurrió: lo hace el
+ * navegador contra `gafapay-api` (`stripe.process.clientpaymentbycard`), no
+ * gafa.fit. Este objeto COMPLETO es el `payment_data` con el que gafa.fit
+ * concilia el cargo; recortarlo deja la compra en "Checkout no resuelto".
+ */
 export type GafaPaySuccess = {
-  /** payment_data para initial-purchase. */
   message: unknown;
   subscriptionId?: string | number | null;
   recurringPayment?: boolean;
+  webToken?: string;
 };
 
 export type GafaPayWidgetProps = {
