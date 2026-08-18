@@ -1,4 +1,4 @@
-commit=d2115dae8dc275dc4ed11dfe385543936c5a2249
-short=d2115da
-built_at=2026-08-18T17:28:17Z
-bytes=660147
+commit=8cea5efc6387c0350c0ccb319830864f8f68cf99
+short=8cea5ef
+built_at=2026-08-18T17:34:28Z
+bytes=660310

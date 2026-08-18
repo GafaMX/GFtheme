@@ -5397,6 +5397,15 @@
   width: 100%;
 }
 
+/* `.gafapay-elements__cards` es el padre de la lista de tarjetas y del campo
+   nuevo, y con `is-newCard` GafaPayFront lo deja en `row-gap: 0`: los dos
+   bordes se tocaban y parecían una sola caja partida por una raya. */
+.gafa-checkout-paymount .gafapay-elements__cards {
+  justify-items: stretch;
+  row-gap: 0.85rem;
+  width: 100%;
+}
+
 /* GafaPayFront centra los hijos de la sección: sin esto el campo de tarjeta
    se encoge al ancho de su contenido y no cuadra con la tarjeta guardada. */
 .gafa-checkout-paymount .gafapay-form__section {
@@ -5523,6 +5532,13 @@
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* GafaPayFront manda el `•••• 1234` abajo a la derecha (tarjeta de 200×110).
+   Apilado bajo la marca se lee como una tarjeta y no como una fila suelta. */
+.gafa-checkout-paymount .card-list__item > .last4 {
+  align-items: start;
+  justify-items: start;
 }
 
 .gafa-checkout-paymount .card-list__item > .last4 p {

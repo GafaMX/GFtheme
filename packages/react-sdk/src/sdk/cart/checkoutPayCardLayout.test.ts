@@ -39,9 +39,17 @@ describe("checkout Stripe saved-card layout", () => {
     expect(payMountCss).not.toMatch(/\[data-method="paypal"\][^{]*\{[^}]*box-sizing: border-box/);
   });
 
-  it("separa la tarjeta guardada del campo nuevo (GafaPay trae row-gap: 0)", () => {
+  /* `.gafapay-elements__cards.is-newCard` trae `row-gap: 0`: los bordes de la
+     tarjeta guardada y del campo nuevo se tocaban. */
+  it("separa la tarjeta guardada del campo nuevo", () => {
     expect(payMountCss).toMatch(
-      /\[data-method="stripe"\] \.gafapay-elements__container \{[^}]*gap: 0\.85rem/,
+      /\.gafa-checkout-paymount \.gafapay-elements__cards \{[^}]*row-gap: 0\.85rem/,
+    );
+  });
+
+  it("apila el •••• bajo la marca en vez de mandarlo a la derecha", () => {
+    expect(payMountCss).toMatch(
+      /\.card-list__item > \.last4 \{[^}]*justify-items: start/,
     );
   });
 
