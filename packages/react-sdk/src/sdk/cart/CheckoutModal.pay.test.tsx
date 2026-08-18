@@ -204,6 +204,35 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(screen.getByText(/orden #88/i)).toBeTruthy();
   });
 
+  it("manda el recibo completo de GafaPay: gafa.fit concilia por payment_data[message]", async () => {
+    const client = mockClient();
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({
+        message: { id: "ch_123", status: "succeeded" },
+        subscriptionId: null,
+        recurringPayment: false,
+        webToken: "test",
+      });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(client.initialPurchase).toHaveBeenCalled();
+    });
+    const { paymentData } = vi.mocked(client.initialPurchase!).mock.calls[0][0];
+    expect(paymentData).toEqual({
+      message: { id: "ch_123", status: "succeeded" },
+      webToken: "test",
+      subscriptionId: "",
+      recurringPayment: false,
+    });
+  });
+
   it("si falta initialPurchase no se queda en Procesando: muestra el error", async () => {
     const { initialPurchase: _ignored, ...rest } = mockClient();
     renderPay(rest as GafaClient);
@@ -221,7 +250,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(screen.queryByRole("button", { name: /procesando/i })).toBeNull();
   });
 
-  it("paquete suelto: no espera el poll de reserva (eso dejaba Procesando minutos)", async () => {
+  it("no bloquea el thank you con el poll, pero lo sigue esperando en segundo plano", async () => {
     const client = mockClient({
       pollInitialPurchaseStatus: vi.fn(() => new Promise(() => undefined)),
     });
@@ -238,13 +267,14 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     await waitFor(() => {
       expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
     });
-    expect(client.pollInitialPurchaseStatus).not.toHaveBeenCalled();
+    expect(client.pollInitialPurchaseStatus).toHaveBeenCalled();
   });
 
-  it("con clase: muestra el thank you sin esperar el poll de la reserva", async () => {
-    const client = mockClient({
-      pollInitialPurchaseStatus: vi.fn(() => new Promise(() => undefined)),
-    });
+  it("reintenta el status hasta que gafa.fit resuelve el checkout", async () => {
+    const poll = vi
+      .fn()
+      .mockResolvedValueOnce({ code: 0 })
+      .mockResolvedValue({ code: 1, reservationId: 77 });
     useCartStore.setState({
       lines: [cartLine],
       reservation: {
@@ -257,7 +287,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
         locationSlug: "polanco",
       },
     });
-    renderPay(client);
+    renderPay(mockClient({ pollInitialPurchaseStatus: poll }));
     await waitUntilPayReady();
 
     window._handleStripePayment = async () => {
@@ -270,7 +300,32 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     await waitFor(() => {
       expect(screen.getByText(/reserva confirmada/i)).toBeTruthy();
     });
-    expect(screen.getByText(/orden #88/i)).toBeTruthy();
-    expect(client.pollInitialPurchaseStatus).toHaveBeenCalled();
+    await waitFor(
+      () => {
+        expect(screen.getByText(/reserva #77/i)).toBeTruthy();
+      },
+      { timeout: 5000 },
+    );
+    expect(poll.mock.calls.length).toBeGreaterThan(1);
   });
+
+  it("si gafa.fit no resuelve el checkout, lo dice en vez de darlo por bueno", async () => {
+    const client = mockClient({
+      pollInitialPurchaseStatus: vi.fn(async () => ({ code: -1, message: "Checkout no resuelto" })),
+    });
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" } });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/seguimos confirmando la compra/i)).toBeTruthy();
+    });
+  });
+
 });

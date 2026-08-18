@@ -37,6 +37,7 @@ import type {
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
+import { toFormBody } from "./formBody";
 import {
   clearStoredToken,
   readStoredToken,
@@ -57,6 +58,8 @@ type RawBrand = {
   id: number;
   name: string;
   slug: string;
+  /** Fitspin vende Cancún (UTC-5) desde una marca con horario propio. */
+  time_zone?: string | null;
   terms_conditions_link?: string | null;
   gafapay_brand_id?: number | null;
   gafapay_client_id?: string | number | null;
@@ -128,6 +131,7 @@ type RawStaff = { name?: string; lastname?: string; job?: string | null };
 type RawReservation = {
   id: number;
   meeting_start: string;
+  timezone?: string | null;
   hash_qr?: string | null;
   cancelled?: boolean;
   canBeCancelled?: boolean;
@@ -263,6 +267,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   // La API anida location/meetings bajo brand/{slug}; el widget solo conoce el locationId,
   // asi que recordamos la location completa (con su slug y brand) cuando se listan.
   const locationById = new Map<number, Location>();
+  // Las reservas se pintan en la hora de la SEDE, no en la del navegador: una
+  // clase de Cancún (UTC-5) vista desde CDMX salía una hora antes.
+  const brandTimeZoneBySlug = new Map<string, string>();
   // Cache en memoria para no desencriptar en cada request, pero SIEMPRE se
   // resincroniza con localStorage: el login puede ocurrir en otra instancia del
   // cliente (otro mount / otro widget root) y dejar esta copia vieja en null.
@@ -450,13 +457,16 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       raw.meeting_position ??
       undefined;
 
+    const brandSlugResolved = brandSlugFrom(raw, brandSlug);
+
     return {
       id: raw.id,
       serviceName: raw.meetings?.service?.name ?? raw.service?.name ?? "Reserva",
       startsAt: raw.meeting_start,
+      timezone: raw.timezone ?? brandTimeZoneBySlug.get(brandSlugResolved),
       locationName: locationLabel(raw.location),
       staffName: staffLabel(staff),
-      brandSlug: brandSlugFrom(raw, brandSlug),
+      brandSlug: brandSlugResolved,
       isWaitlist,
       isOverbooking: raw.is_overbooking === 1,
       // El legacy distingue membresia de credito por `credit === null`, no por un campo propio.
@@ -519,10 +529,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   }
 
   function normalizeBrand(raw: RawBrand): Brand {
+    if (raw.time_zone) brandTimeZoneBySlug.set(raw.slug, raw.time_zone);
     return {
       id: raw.id,
       name: raw.name,
       slug: raw.slug,
+      timeZone: raw.time_zone ?? undefined,
       termsConditionsLink: raw.terms_conditions_link ?? null,
       gafapayBrandId: raw.gafapay_brand_id ?? null,
       gafapayClientId: raw.gafapay_client_id != null ? String(raw.gafapay_client_id) : null,
@@ -604,15 +616,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return response.json();
   }
 
-  async function apiPostFormUrl<T>(
-    absoluteOrPath: string,
-    body: Record<string, string | number | boolean | undefined | null>,
-  ): Promise<T> {
+  async function apiPostFormUrl<T>(absoluteOrPath: string, body: Record<string, unknown>): Promise<T> {
     const url = absoluteOrPath.startsWith("http") ? absoluteOrPath : `${baseUrl}${absoluteOrPath}`;
-    const form = new URLSearchParams();
-    Object.entries(body).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) form.set(key, String(value));
-    });
+    const form = toFormBody(body);
     const response = await fetch(url, {
       method: "POST",
       headers: { ...authHeaders(), "Content-Type": "application/x-www-form-urlencoded" },
@@ -1348,7 +1354,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const memberships = payload.lines.filter((line) => line.type === "membership");
       const products = payload.lines.filter((line) => line.type === "product");
 
-      const body: Record<string, string | number | boolean | undefined | null> = {
+      const body: Record<string, unknown> = {
         users_id: payload.userId,
         meetings_id: payload.meetingId,
         payment_types_id: payload.paymentTypeId,
@@ -1379,14 +1385,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       }
 
       if (payload.paymentData) {
-        Object.entries(payload.paymentData).forEach(([key, value]) => {
-          if (value == null) return;
-          if (typeof value === "object") {
-            body[`payment_data[${key}]`] = JSON.stringify(value);
-          } else {
-            body[`payment_data[${key}]`] = value as string | number | boolean;
-          }
-        });
+        // Anidado como array PHP (toFormBody). Con JSON.stringify el backend
+        // recibía un string y dejaba la compra en "Checkout no resuelto".
+        body.payment_data = payload.paymentData;
       }
 
       const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase`;
@@ -1400,14 +1401,21 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async pollInitialPurchaseStatus(payload) {
       const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase-status`;
-      const data = await apiGetUrl<{ code?: number; message?: string; reservation_id?: number }>(url, {
+      // El endpoint contesta 200 siempre; el detalle del fallo viaja en `error`
+      // ("Hubo un error en la creación del pago"), no en `message`.
+      const data = await apiGetUrl<{
+        code?: number;
+        message?: string;
+        error?: string;
+        reservation_id?: number;
+      }>(url, {
         checkout_token: payload.checkoutToken,
         pending_purchase_id: payload.pendingPurchaseId,
         _: Date.now(),
       });
       return {
         code: typeof data.code === "number" ? data.code : 0,
-        message: data.message,
+        message: data.message ?? data.error,
         reservationId: data.reservation_id,
         raw: data,
       } satisfies InitialPurchaseStatus;

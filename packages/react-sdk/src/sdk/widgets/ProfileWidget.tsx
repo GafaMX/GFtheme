@@ -480,8 +480,9 @@ export function ProfileWidget({
           description={
             <>
               <span className="gafa-confirm__subject">
-                {pendingCancel.serviceName} · {capitalize(formatWeekday(pendingCancel.startsAt))},{" "}
-                {formatTime(pendingCancel.startsAt)}
+                {pendingCancel.serviceName} ·{" "}
+                {capitalize(formatWeekday(pendingCancel.startsAt, pendingCancel.timezone))},{" "}
+                {formatTime(pendingCancel.startsAt, pendingCancel.timezone)}
               </span>
               {pendingCancel.isWaitlist
                 ? "Si vuelves a entrar, pierdes el lugar que tienes en la fila."
@@ -587,8 +588,8 @@ function OverviewPanel({
         ) : nextClass ? (
           <div className="gafa-acct-next__body">
             <div className="gafa-acct-next__when">
-              <strong>{relativeDayLabel(nextClass.startsAt)}</strong>
-              <span>{formatTime(nextClass.startsAt)}</span>
+              <strong>{relativeDayLabel(nextClass.startsAt, nextClass.timezone)}</strong>
+              <span>{formatTime(nextClass.startsAt, nextClass.timezone)}</span>
             </div>
             <div className="gafa-acct-next__what">
               <h3>{nextClass.serviceName}</h3>
@@ -1063,8 +1064,8 @@ function ReservationCard({
       data-historic={historic ? "true" : undefined}
     >
       <div className="gafa-acct-class__date" aria-hidden="true">
-        <strong>{formatDayNumber(reservation.startsAt)}</strong>
-        <span>{formatMonthShort(reservation.startsAt)}</span>
+        <strong>{formatDayNumber(reservation.startsAt, reservation.timezone)}</strong>
+        <span>{formatMonthShort(reservation.startsAt, reservation.timezone)}</span>
       </div>
 
       <div className="gafa-acct-class__info">
@@ -1073,7 +1074,8 @@ function ReservationCard({
             aqui + la hora no cabe en una linea en movil y el a.m./p.m. se
             partia solo. Aqui solo va el nombre del dia. */}
         <p className="gafa-acct-class__when">
-          {capitalize(formatWeekdayShort(reservation.startsAt))} · {formatTime(reservation.startsAt)}
+          {capitalize(formatWeekdayShort(reservation.startsAt, reservation.timezone))} ·{" "}
+          {formatTime(reservation.startsAt, reservation.timezone)}
         </p>
         <p className="gafa-acct-class__meta">{describeReservation(reservation)}</p>
         <div className="gafa-acct-class__tags">
@@ -1644,7 +1646,8 @@ function QrModal({ reservation, onClose }: { reservation: UserReservation; onClo
         <p className="gafa-eyebrow">Muestra este código en recepción</p>
         <h3>{reservation.serviceName}</h3>
         <p className="gafa-acct-qr__when">
-          {capitalize(formatWeekday(reservation.startsAt))} · {formatTime(reservation.startsAt)}
+          {capitalize(formatWeekday(reservation.startsAt, reservation.timezone))} ·{" "}
+          {formatTime(reservation.startsAt, reservation.timezone)}
         </p>
         <img className="gafa-acct-qr__image" src={qrUrl} alt="Código QR de la reserva" />
         {reservation.seatLabel ? <p className="gafa-acct-qr__seat">Lugar {reservation.seatLabel}</p> : null}
@@ -1867,44 +1870,75 @@ function describeReservation(reservation: UserReservation): string {
   );
 }
 
-function formatTime(value: string): string {
+/**
+ * Las clases se cuentan en la hora de la SEDE. Fitspin vende Cancún (UTC-5) y
+ * CDMX (UTC-6) en la misma cuenta: sin `timeZone` el navegador pintaba las de
+ * Cancún una hora antes de la real.
+ */
+function dateParts(value: string, timeZone?: string) {
   const date = toDate(value);
-  if (!date) return value;
-  return date.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
+  if (!date) return null;
+  const options: Intl.DateTimeFormatOptions = timeZone ? { timeZone } : {};
+  return { date, options };
 }
 
-function formatWeekdayShort(value: string): string {
-  const date = toDate(value);
-  if (!date) return value;
-  return date.toLocaleDateString("es-MX", { weekday: "long" });
+function formatTime(value: string, timeZone?: string): string {
+  const parts = dateParts(value, timeZone);
+  if (!parts) return value;
+  return parts.date.toLocaleTimeString("es-MX", {
+    hour: "numeric",
+    minute: "2-digit",
+    ...parts.options,
+  });
 }
 
-function formatWeekday(value: string): string {
-  const date = toDate(value);
-  if (!date) return value;
-  return date.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+function formatWeekdayShort(value: string, timeZone?: string): string {
+  const parts = dateParts(value, timeZone);
+  if (!parts) return value;
+  return parts.date.toLocaleDateString("es-MX", { weekday: "long", ...parts.options });
 }
 
-function formatDayNumber(value: string): string {
-  const date = toDate(value);
-  return date ? String(date.getDate()) : "–";
+function formatWeekday(value: string, timeZone?: string): string {
+  const parts = dateParts(value, timeZone);
+  if (!parts) return value;
+  return parts.date.toLocaleDateString("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    ...parts.options,
+  });
 }
 
-function formatMonthShort(value: string): string {
-  const date = toDate(value);
-  if (!date) return "";
-  return date.toLocaleDateString("es-MX", { month: "short" }).replace(".", "");
+function formatDayNumber(value: string, timeZone?: string): string {
+  const parts = dateParts(value, timeZone);
+  if (!parts) return "–";
+  return parts.date.toLocaleDateString("es-MX", { day: "numeric", ...parts.options });
 }
 
-function relativeDayLabel(value: string): string {
-  const date = toDate(value);
-  if (!date) return value;
+function formatMonthShort(value: string, timeZone?: string): string {
+  const parts = dateParts(value, timeZone);
+  if (!parts) return "";
+  return parts.date.toLocaleDateString("es-MX", { month: "short", ...parts.options }).replace(".", "");
+}
+
+function relativeDayLabel(value: string, timeZone?: string): string {
+  const parts = dateParts(value, timeZone);
+  if (!parts) return value;
+  // "Hoy"/"Mañana" se comparan por el día en la zona de la sede, no por epoch.
+  const dayKey = (input: Date) =>
+    input.toLocaleDateString("en-CA", timeZone ? { timeZone } : undefined);
   const today = new Date();
-  const startOfDay = (input: Date) => new Date(input.getFullYear(), input.getMonth(), input.getDate()).getTime();
-  const days = Math.round((startOfDay(date) - startOfDay(today)) / 86_400_000);
-  if (days === 0) return "Hoy";
-  if (days === 1) return "Mañana";
-  return capitalize(date.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }));
+  if (dayKey(parts.date) === dayKey(today)) return "Hoy";
+  const tomorrow = new Date(today.getTime() + 86_400_000);
+  if (dayKey(parts.date) === dayKey(tomorrow)) return "Mañana";
+  return capitalize(
+    parts.date.toLocaleDateString("es-MX", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      ...parts.options,
+    }),
+  );
 }
 
 function formatDate(value?: string): string {

@@ -46,14 +46,14 @@ necesita un tag nuevo.
 URL pública actual:
 
 ```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.3/docs/v2-sdk/gafa-sdk.js
+https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.8/docs/v2-sdk/gafa-sdk.js
 ```
 
 Tras cada `publish:embed` + push a `v2/main`, un tag **nuevo** (no reusar `v2`):
 
 ```
-git tag v2.0.0-rc.3
-git push origin v2.0.0-rc.3
+git tag v2.0.0-rc.9
+git push origin v2.0.0-rc.9
 ```
 
 Replit / WP: `VITE_GAFA_SDK_V2_URL` (o el `<script src>`) a ese tag nuevo, luego
@@ -62,6 +62,17 @@ reiniciar Vite. Preview puntual: SHA de `docs/v2-sdk/VERSION.txt`:
 ```
 https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<sha>/docs/v2-sdk/gafa-sdk.js
 ```
+
+## Puente de pruebas (sin Replit ni WordPress)
+
+```
+https://raw.githack.com/GafaMX/GFtheme/v2/main/docs/v2-bridge/index.html
+```
+
+Sirve `docs/v2-bridge/index.html` desde `v2/main` con las credenciales públicas
+de Fitspin. La versión del SDK se cambia con `?sdk=<tag|sha|url>` y la caja de
+arriba dice cuál cargó. Al publicar un tag nuevo, subir `DEFAULT_VERSION` en esa
+página. jsDelivr no sirve de host: manda los `.html` como `text/plain`.
 
 ## Cambio de una vez en WordPress (Fitspin y cualquier socio V2)
 
