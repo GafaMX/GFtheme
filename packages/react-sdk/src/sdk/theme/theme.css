@@ -41,6 +41,13 @@
   box-sizing: border-box;
 }
 
+/* checkout.js mide el contenedor y usa content-box en logo + “Pagar”.
+   border-box los superpone (el efecto raro del botón de PayPal). */
+.gafa-sdk .gafa-pay-native,
+.gafa-sdk .gafa-pay-native * {
+  box-sizing: content-box;
+}
+
 .gafa-sdk button,
 .gafa-sdk input,
 .gafa-sdk select,
@@ -61,12 +68,15 @@
  * outline naranja, min-height de WP.
  *
  * `html body` sube la especificidad por encima de `.elementor-kit-N button`.
+ *
+ * `.gafa-pay-native` es la isla de GafaPay (PayPal checkout.js / Stripe).
+ * El reset le quitaba el oro del boton y superponia el logo con “Pagar”.
  */
-html body .gafa-sdk button,
-html body .gafa-sdk a,
-html body .gafa-sdk [type="button"],
-html body .gafa-sdk [type="submit"],
-html body .gafa-sdk [type="reset"] {
+html body .gafa-sdk button:not(.gafa-pay-native *),
+html body .gafa-sdk a:not(.gafa-pay-native *),
+html body .gafa-sdk [type="button"]:not(.gafa-pay-native *),
+html body .gafa-sdk [type="submit"]:not(.gafa-pay-native *),
+html body .gafa-sdk [type="reset"]:not(.gafa-pay-native *) {
   appearance: none !important;
   -webkit-appearance: none !important;
   background: var(--gafa-control-bg, transparent) none !important;
@@ -93,27 +103,27 @@ html body .gafa-sdk h6 {
   padding: 0 !important;
 }
 
-html body .gafa-sdk img {
+html body .gafa-sdk img:not(.gafa-pay-native *) {
   background: none !important;
   box-shadow: none !important;
 }
 
-html body .gafa-sdk svg {
+html body .gafa-sdk svg:not(.gafa-pay-native *) {
   background: none !important;
 }
 
-html body .gafa-sdk svg[stroke]:not([fill]),
-html body .gafa-sdk svg [stroke]:not([fill]) {
+html body .gafa-sdk svg[stroke]:not([fill]):not(.gafa-pay-native *),
+html body .gafa-sdk svg [stroke]:not([fill]):not(.gafa-pay-native *) {
   fill: none !important;
   stroke: currentColor !important;
 }
 
-html body .gafa-sdk :focus {
+html body .gafa-sdk :focus:not(.gafa-pay-native *):not(.gafa-pay-native) {
   outline: none !important;
   box-shadow: none !important;
 }
 
-html body .gafa-sdk :focus-visible {
+html body .gafa-sdk :focus-visible:not(.gafa-pay-native *):not(.gafa-pay-native) {
   outline: 2px solid var(--gafa-color-accent) !important;
   outline-offset: 2px !important;
   box-shadow: none !important;

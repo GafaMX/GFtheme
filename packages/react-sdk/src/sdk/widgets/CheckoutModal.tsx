@@ -1251,8 +1251,19 @@ function PayPanel({
 
       {/* GafaPayFront trae su propio React 16: este div es suyo, nuestro React
           nunca toca lo que hay dentro (ver payments/gafaPay.ts). */}
-      <div className="gafa-checkout-paymount" data-state={loadState}>
-        <div className="gafa-checkout-paymount__island" ref={mountRef} />
+      <div className="gafa-checkout-paymount" data-state={loadState} data-method={slug || undefined}>
+        {slug === "paypal" ? (
+          <div className="gafa-checkout-paypal-copy">
+            <span className="gafa-checkout-paypal-copy__mark" aria-hidden="true">
+              <PaypalMark />
+            </span>
+            <div>
+              <strong>Pagar con PayPal</strong>
+              <p>Te llevamos a PayPal para confirmar. No guardamos tu cuenta.</p>
+            </div>
+          </div>
+        ) : null}
+        <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
 
         {loadState === "loading" ? (
           <p className="gafa-sdk-state">Conectando con el procesador de pago…</p>
@@ -1441,6 +1452,17 @@ function PaypalIcon() {
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function PaypalMark() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M7.2 21l.7-4.5H5L7.4 3h7.1c2.9 0 4.7 1.6 4.3 4.3-.5 3.4-2.7 4.9-5.9 4.9h-2.4L9.6 21H7.2z"
+        fill="currentColor"
       />
     </svg>
   );

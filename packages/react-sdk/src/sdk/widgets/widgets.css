@@ -4920,6 +4920,71 @@
   padding: 1rem;
 }
 
+.gafa-checkout-paymount[data-method="paypal"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, var(--gafa-color-surface));
+  display: grid;
+  gap: 1rem;
+  justify-items: stretch;
+  min-height: 0;
+  padding: 1.15rem 1.15rem 1.05rem;
+}
+
+.gafa-checkout-paypal-copy {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.gafa-checkout-paypal-copy__mark {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  color: var(--gafa-color-text);
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.gafa-checkout-paypal-copy strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.gafa-checkout-paypal-copy p {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0.15rem 0 0;
+}
+
+.gafa-checkout-paymount[data-method="paypal"] .gafa-checkout-paymount__island {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  min-height: 52px;
+  padding: 0.65rem 0.75rem;
+}
+
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__container,
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__section.is-paypal {
+  display: block;
+  justify-items: center;
+  row-gap: 0;
+  width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="paypal"] #paypal,
+.gafa-checkout-paymount[data-method="paypal"] .paypal__btn {
+  margin: 0 auto;
+  max-width: 320px;
+  min-height: 45px;
+  width: 100%;
+}
+
 .gafa-checkout-paymount[data-loading="true"] {
   align-items: center;
   display: flex;
@@ -5111,6 +5176,10 @@
     padding: 0.75rem;
   }
 
+  .gafa-checkout-paymount[data-method="paypal"] {
+    min-height: 0;
+  }
+
   /* Paso de catalogo: el carrito arranca colapsado y solo se ve el resumen. */
   .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__lines,
   .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__empty,
@@ -5231,12 +5300,23 @@
 }
 
 /* Mientras carga se mantiene montado pero fuera de vista: desmontarlo
-   reiniciaria el iframe de Stripe en cada render. */
+   reiniciaria el iframe de Stripe en cada render. PayPal (checkout.js)
+   mide el contenedor al pintar: si la isla vale height:0, logo y “Pagar”
+   se enciman. */
 .gafa-checkout-paymount[data-state="loading"] .gafa-checkout-paymount__island,
 .gafa-checkout-paymount[data-state="idle"] .gafa-checkout-paymount__island {
   height: 0;
   opacity: 0;
   overflow: hidden;
+}
+
+.gafa-checkout-paymount[data-method="paypal"][data-state="loading"] .gafa-checkout-paymount__island,
+.gafa-checkout-paymount[data-method="paypal"][data-state="idle"] .gafa-checkout-paymount__island {
+  height: 45px;
+  min-height: 45px;
+  opacity: 0;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .gafa-checkout-paymount .gafapay-elements__container {
