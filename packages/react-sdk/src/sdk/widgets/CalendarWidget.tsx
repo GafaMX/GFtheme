@@ -92,11 +92,6 @@ export function CalendarWidget({
     locationId: readCalendarLocationIdFromWindow() ?? filters.locationId,
   }));
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-  const [checkoutMeeting, setCheckoutMeeting] = useState<Meeting | null>(null);
-  // Meeting que el usuario quiere reservar pero aun no tiene sesion: dispara el
-  // login/registro DENTRO del flujo, sin sacarlo del calendario. Al autenticar
-  // se continua solo hacia el checkout.
-  const [authGateMeeting, setAuthGateMeeting] = useState<Meeting | null>(null);
   const [view, setView] = useState<CalendarView>(initialView);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("all");
   const [anchorIso, setAnchorIso] = useState(() => toIsoDate(new Date()));
@@ -109,15 +104,11 @@ export function CalendarWidget({
     queryFn: async () => (client ? client.listBrands() : demoBrands()),
   });
 
-  // Sesion actual: token almacenado (sincrono, compartido entre widgets) +
-  // verificacion contra la API. Un token viejo/revocado hacia creer que habia
-  // sesion y el clic abria el detalle en vez del login.
-  const [hasToken, setHasToken] = useState(() => Boolean(readStoredToken()));
-
+  // Login/logout desde cualquier otro widget: lo que ve el calendario depende
+  // de la sesion (mapa, creditos), asi que su cache se tira aqui. El estado de
+  // sesion en si lo resuelve `ReservationFlow` al abrir una clase.
   useEffect(() => {
     return subscribeToAuthChanges(() => {
-      const next = Boolean(readStoredToken());
-      setHasToken(next);
       // Importante REMOVE y no solo invalidate: un getProfile() previo que
       // devolvio `null` (sin token / 401) queda cacheado como success+null.
       // Tras un login fresco, ese null cacheado disparaba "sesion muerta" y
@@ -127,31 +118,6 @@ export function CalendarWidget({
       queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
     });
   }, [queryClient]);
-
-  const sessionQuery = useQuery({
-    queryKey: ["calendar", "session"],
-    queryFn: () => client!.getProfile(),
-    enabled: Boolean(client) && hasToken,
-    staleTime: 60_000,
-    // Con retry:0 UN solo hipo de red (no un token invalido de verdad) se
-    // interpretaba como "sesion muerta" y se borraba el token: eso es
-    // exactamente el "me saca de mi cuenta muy facil" reportado. Con 2
-    // reintentos, para cuando esto resuelve en `false`, ya es mucho mas
-    // confiable que sea un 401 real y no un parpadeo de la red.
-    retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
-  });
-
-  // El 401 real limpia token en httpGafaClient.getProfile (memoria + storage).
-  // Aqui YA NO se borra el token cuando data===null: un null cacheado de antes
-  // del login (o un /me viejo en vuelo) estaba borrando el Bearer recien
-  // escrito y el siguiente clic volvia a pedir login con "Mi cuenta" en verde.
-
-  // Optimista mientras el perfil carga o refresca: con token no mandamos al
-  // login por un parpadeo. Incluye isFetching (refetch con cache).
-  const isSignedIn =
-    hasToken &&
-    (Boolean(sessionQuery.data) || sessionQuery.isLoading || sessionQuery.isFetching);
 
   const activeBrand = useMemo(
     () => findActiveBrand(brandsQuery.data ?? [], selectedFilters.brandSlug, filters.brandId),
@@ -529,46 +495,10 @@ export function CalendarWidget({
   const hasError =
     brandsQuery.isError || locationsQuery.isError || bookableLocationsQuery.isError || meetingsQuery.isError;
 
-  /**
-   * Clic en una clase: sin sesion pide login AHI MISMO (nada de abrir un
-   * detalle que luego vuelve a pedir clic); con sesion abre el detalle con
-   * mapa y confirmacion en un solo paso.
-   *
-   * La decision se toma leyendo el token DIRECTO de localStorage (sincrono),
-   * no del estado `isSignedIn` de este componente: justo despues de loguearse
-   * desde "Mi cuenta" (que vive en otro arbol de React), `hasToken` tarda
-   * hasta el siguiente render en alcanzar al resto del sitio, y un clic en
-   * esa ventana volvia a mandar al login aunque ya estuvieras adentro.
-   */
+  /** Clic en una clase: el flujo completo (login, detalle y compra) vive en `ReservationFlow`. */
   function openMeeting(meeting: Meeting) {
-    // Token en storage O perfil ya resuelto en este arbol: evita el falso
-    // "necesitas login" cuando localStorage se limpio por un race pero la
-    // sesion sigue viva en memoria / query cache (o al reves).
-    const signedInNow =
-      Boolean(readStoredToken()) || Boolean(sessionQuery.data) || (hasToken && sessionQuery.isFetching);
-    if (!signedInNow && client) {
-      setAuthGateMeeting(meeting);
-      return;
-    }
     setSelectedMeeting(meeting);
   }
-
-  /** Camino de compra: sin creditos compatibles se va al checkout nativo. */
-  function handleBuy(meeting: Meeting) {
-    if (!client) return;
-    setSelectedMeeting(null);
-    setCheckoutMeeting(meeting);
-  }
-
-  // Al autenticarse desde el gate, abrir el detalle de la clase que estaba
-  // intentando reservar (ya con mapa y creditos de SU cuenta).
-  useEffect(() => {
-    if (isSignedIn && authGateMeeting) {
-      const meeting = authGateMeeting;
-      setAuthGateMeeting(null);
-      setSelectedMeeting(meeting);
-    }
-  }, [authGateMeeting, isSignedIn]);
 
   function goPrev() {
     allowAutoSkipRef.current = false;
@@ -720,51 +650,14 @@ export function CalendarWidget({
       )}
 
       {selectedMeeting ? (
-        <ReservationPreviewModal
-          client={client}
-          meeting={selectedMeeting}
-          isSignedIn={isSignedIn}
-          onClose={() => setSelectedMeeting(null)}
-          onContinue={() => handleBuy(selectedMeeting)}
-          onReserved={() => {
-            // La clase reservada cambia la disponibilidad visible y el perfil.
-            queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
-            queryClient.invalidateQueries({ queryKey: ["profile"] });
-          }}
-        />
-      ) : null}
-
-      {authGateMeeting && client ? (
-        <ReservationAuthGate
+        <ReservationFlow
           client={client}
           captcha={captcha}
-          meeting={authGateMeeting}
-          brandSlug={getMeetingBrandSlug(authGateMeeting, activeBrand)}
-          onClose={() => setAuthGateMeeting(null)}
-          onAuthenticated={() => {
-            // Directo del login al detalle de la clase que estaba reservando.
-            const meeting = authGateMeeting;
-            setAuthGateMeeting(null);
-            queryClient.invalidateQueries({ queryKey: ["calendar", "session"] });
-            setSelectedMeeting(meeting);
-          }}
-        />
-      ) : null}
-
-      {checkoutMeeting && client ? (
-        <CheckoutModal
-          key={checkoutMeeting.id}
-          client={client}
-          brandSlug={getMeetingBrandSlug(checkoutMeeting, activeBrand)}
-          locationSlug={getMeetingLocationSlug(checkoutMeeting, activeLocation)}
-          locationName={checkoutMeeting.location?.name ?? activeLocation?.name}
-          meeting={checkoutMeeting}
-          onClose={() => setCheckoutMeeting(null)}
-          onCompleted={() => {
-            queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
-            queryClient.invalidateQueries({ queryKey: ["profile"] });
-            queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
-          }}
+          meeting={selectedMeeting}
+          brandSlug={getMeetingBrandSlug(selectedMeeting, activeBrand)}
+          locationSlug={getMeetingLocationSlug(selectedMeeting, activeLocation)}
+          locationName={selectedMeeting.location?.name ?? activeLocation?.name}
+          onClose={() => setSelectedMeeting(null)}
         />
       ) : null}
     </WidgetShell>
@@ -1452,10 +1345,140 @@ type ReservationStep = "detail" | "processing" | "done";
  * clase lo usa) viven en el mismo modal; eliges lugar y confirmas ahi mismo.
  * Solo cae al fancy legacy cuando hay que comprar (sin creditos).
  */
+export type ReservationFlowProps = {
+  client?: GafaClient;
+  captcha?: CaptchaProvider;
+  meeting: Meeting;
+  brandSlug?: string;
+  locationSlug?: string;
+  locationName?: string;
+  onClose: () => void;
+  /** Reserva creada con credito/membresia (sin pasar por el pago). */
+  onReserved?: () => void;
+  /** Compra terminada dentro del checkout de la clase. */
+  onPurchased?: () => void;
+};
+
+/**
+ * Reserva de UNA clase de principio a fin: login si hace falta, detalle con
+ * mapa y creditos, y checkout cuando no hay con que pagarla. Lo usan tanto el
+ * calendario (clic en una clase) como `GafaThemeSDK.openReservation()` desde
+ * el JS del sitio, para que las dos entradas se comporten igual.
+ */
+export function ReservationFlow({
+  client,
+  captcha,
+  meeting,
+  brandSlug,
+  locationSlug,
+  locationName,
+  onClose,
+  onReserved,
+  onPurchased,
+}: ReservationFlowProps) {
+  const queryClient = useQueryClient();
+
+  // El token se lee DIRECTO de localStorage (sincrono): justo despues de
+  // loguearse desde "Mi cuenta" (otro arbol de React) el estado tarda un
+  // render en llegar, y ahi el flujo volvia a pedir login estando dentro.
+  const [hasToken, setHasToken] = useState(() => Boolean(readStoredToken()));
+
+  useEffect(() => {
+    return subscribeToAuthChanges(() => {
+      setHasToken(Boolean(readStoredToken()));
+      queryClient.removeQueries({ queryKey: ["calendar", "session"] });
+    });
+  }, [queryClient]);
+
+  const sessionQuery = useQuery({
+    queryKey: ["calendar", "session"],
+    queryFn: () => client!.getProfile(),
+    enabled: Boolean(client) && hasToken,
+    staleTime: 60_000,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
+  });
+
+  const isSignedIn =
+    hasToken && (Boolean(sessionQuery.data) || sessionQuery.isLoading || sessionQuery.isFetching);
+
+  // Sin cliente (demo) no hay login ni checkout: solo el detalle.
+  const [step, setStep] = useState<"auth" | "detail" | "checkout">(() =>
+    client && !readStoredToken() ? "auth" : "detail",
+  );
+
+  // Login desde cualquier otra parte de la pagina mientras el gate esta
+  // abierto: seguir al detalle en vez de dejarlo pidiendo sesion.
+  useEffect(() => {
+    if (step === "auth" && isSignedIn) setStep("detail");
+  }, [isSignedIn, step]);
+
+  if (step === "auth" && client) {
+    return (
+      <ReservationAuthGate
+        client={client}
+        captcha={captcha}
+        meeting={meeting}
+        brandSlug={brandSlug ?? ""}
+        onClose={onClose}
+        onAuthenticated={() => {
+          queryClient.invalidateQueries({ queryKey: ["calendar", "session"] });
+          setStep("detail");
+        }}
+      />
+    );
+  }
+
+  if (step === "checkout" && client) {
+    return (
+      <CheckoutModal
+        key={meeting.id}
+        client={client}
+        brandSlug={brandSlug}
+        locationSlug={locationSlug}
+        locationName={locationName ?? meeting.location?.name}
+        meeting={meeting}
+        onClose={onClose}
+        onCompleted={() => {
+          queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
+          queryClient.invalidateQueries({ queryKey: ["profile"] });
+          queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
+          onPurchased?.();
+        }}
+      />
+    );
+  }
+
+  return (
+    <ReservationPreviewModal
+      client={client}
+      meeting={meeting}
+      isSignedIn={isSignedIn}
+      brandSlug={brandSlug}
+      locationSlug={locationSlug}
+      onClose={onClose}
+      onContinue={() => {
+        // Sin cliente no hay a donde ir; con sesion, el unico camino que queda
+        // es comprar (el detalle ya descarto creditos aplicables).
+        if (!client) return;
+        setStep(isSignedIn ? "checkout" : "auth");
+      }}
+      onReserved={() => {
+        // La clase reservada cambia la disponibilidad visible y el perfil.
+        queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
+        queryClient.invalidateQueries({ queryKey: ["profile"] });
+        onReserved?.();
+      }}
+    />
+  );
+}
+
 function ReservationPreviewModal({
   client,
   meeting,
   isSignedIn,
+  brandSlug: brandSlugProp,
+  locationSlug: locationSlugProp,
   onClose,
   onContinue,
   onReserved,
@@ -1463,13 +1486,16 @@ function ReservationPreviewModal({
   client?: GafaClient;
   meeting: Meeting;
   isSignedIn: boolean;
+  /** Se pasan cuando el meeting no los trae (reserva abierta por id). */
+  brandSlug?: string;
+  locationSlug?: string;
   onClose: () => void;
   /** Camino de compra / login: lo maneja el padre (gate o fancy). */
   onContinue: () => void;
   onReserved?: () => void;
 }) {
-  const brandSlug = meeting.location?.brand?.slug ?? meeting.brandSlug;
-  const locationSlug = meeting.location?.slug ?? meeting.locationSlug;
+  const brandSlug = meeting.location?.brand?.slug ?? meeting.brandSlug ?? brandSlugProp;
+  const locationSlug = meeting.location?.slug ?? meeting.locationSlug ?? locationSlugProp;
 
   const [step, setStep] = useState<ReservationStep>("detail");
   const [selectedSeat, setSelectedSeat] = useState<SeatMapObject | null>(null);

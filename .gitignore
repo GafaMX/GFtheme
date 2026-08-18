@@ -32,3 +32,4 @@ src/index.html
 .env.*.local
 packages/react-sdk/.env
 packages/react-sdk/.env.local
+/package-lock.json

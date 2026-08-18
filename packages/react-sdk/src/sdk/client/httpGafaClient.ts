@@ -17,6 +17,7 @@ import type {
   Location,
   Meeting,
   MeetingFilters,
+  MeetingLookup,
   PasswordResetPayload,
   PasswordResetRequestPayload,
   RegisterPayload,
@@ -711,6 +712,47 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         .filter((meeting) => (filters.serviceId ? meeting.service?.id === Number(filters.serviceId) : true))
         .filter((meeting) => (filters.staffId ? meeting.staff?.id === Number(filters.staffId) : true))
         .map((meeting) => normalizeMeeting(meeting, brandSlug, location));
+    },
+
+    /**
+     * La API no expone una clase suelta por id: solo el listado por sede. Se
+     * recorren las sedes candidatas dentro de su ventana publicada
+     * (`calendar_days`) hasta encontrarla, que es donde el calendario podria
+     * mostrarla de todos modos.
+     */
+    async getMeeting(payload: MeetingLookup): Promise<Meeting | null> {
+      const meetingId = Number(payload.meetingId);
+      if (!Number.isFinite(meetingId)) return null;
+
+      const brandSlugs = payload.brandSlug
+        ? [payload.brandSlug]
+        : (await httpClient.listBrands()).map((brand) => brand.slug);
+
+      for (const brandSlug of brandSlugs) {
+        const locations = await httpClient.listLocations(brandSlug);
+        const candidates = payload.locationSlug
+          ? locations.filter((location) => location.slug === payload.locationSlug)
+          : payload.locationId != null
+            ? locations.filter((location) => location.id === Number(payload.locationId))
+            : locations;
+
+        for (const location of candidates) {
+          const from = new Date();
+          const to = new Date(from);
+          to.setDate(to.getDate() + (location.calendarDays ?? 14));
+
+          const meetings = await httpClient.listMeetings({
+            locationId: location.id,
+            from: from.toISOString().slice(0, 10),
+            to: to.toISOString().slice(0, 10),
+          });
+
+          const found = meetings.find((meeting) => Number(meeting.id) === meetingId);
+          if (found) return found;
+        }
+      }
+
+      return null;
     },
 
     async getProfile(): Promise<UserProfile | null> {
@@ -1421,16 +1463,25 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       } satisfies InitialPurchaseStatus;
     },
 
+    /**
+     * Puente al fancy legacy. El checkout nativo NO vive aqui (este cliente no
+     * pinta UI): `createGafaSdk` reemplaza estos dos metodos para que abran los
+     * modales de v2. Solo se llega a este cuerpo usando el cliente suelto.
+     */
     async openCheckout(payload: CheckoutPayload) {
       if (!legacy) {
-        throw new Error("Checkout aun no esta implementado en el cliente HTTP nuevo.");
+        throw new Error(
+          "Este cliente no abre UI. Usa GafaThemeSDK.openCheckout({ brandSlug, preselect }) del runtime del SDK.",
+        );
       }
       return legacy.openCheckout(payload);
     },
 
     async openReservationCheckout(payload: ReservationCheckoutPayload) {
       if (!legacy) {
-        throw new Error("El checkout de reserva aun no esta implementado en el cliente HTTP nuevo.");
+        throw new Error(
+          "Este cliente no abre UI. Usa GafaThemeSDK.openReservation({ meetingId, brandSlug, locationSlug }) del runtime del SDK.",
+        );
       }
       return legacy.openReservationCheckout(payload);
     },
