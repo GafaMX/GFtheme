@@ -1,5 +1,6 @@
 import type { GafaClient, Meeting, UserProfile } from "./types";
 import type { GafaSdkConfig } from "../config";
+import { clearStoredToken, writeStoredToken } from "./tokenStorage";
 
 export function createGafaClient(_options: GafaSdkConfig): GafaClient {
   return createMockGafaClient();
@@ -160,8 +161,13 @@ export function createMockGafaClient(): GafaClient {
       lastName: payload.lastName,
       storeCreditTotal: "0",
     }),
-    login: async () => ({ access_token: "demo-token" }),
-    logout: () => undefined,
+    // El cliente real guarda el token al loguearse; el mock tiene que hacer lo
+    // mismo o la demo pide login de nuevo en cada flujo que consulta la sesion.
+    login: async () => {
+      writeStoredToken("demo-token");
+      return { access_token: "demo-token" };
+    },
+    logout: () => clearStoredToken(),
     register: async () => ({ url: undefined }),
     requestPasswordReset: async () => undefined,
     resetPassword: async () => undefined,
