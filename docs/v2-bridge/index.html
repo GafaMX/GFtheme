@@ -211,28 +211,57 @@
         };
       })();
 
-      // El puente no se re-publica en cada release: la versión del SDK entra por
-      // ?sdk= (tag, SHA o URL completa) y por default toma el último tag.
+      /*
+       * Sin ?sdk= el puente PREGUNTA cuál es el último tag en vez de traerlo
+       * escrito: esta página se cachea y dejaba probando una versión vieja sin
+       * que se notara. Con ?sdk= se fija a un tag, SHA o URL concreta.
+       */
       (function () {
-        var DEFAULT_VERSION = "v2.0.0-rc.11";
-        var params = new URLSearchParams(location.search);
-        var requested = (params.get("sdk") || DEFAULT_VERSION).trim();
-        var url = /^https?:\/\//.test(requested)
-          ? requested
-          : "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@" +
-            requested +
-            "/docs/v2-sdk/gafa-sdk.js";
-
+        var FALLBACK = "v2.0.0-rc.11";
         var label = document.getElementById("sdk-url");
-        label.textContent = url;
+        var requested = (new URLSearchParams(location.search).get("sdk") || "").trim();
 
-        var script = document.createElement("script");
-        script.src = url;
-        script.onerror = function () {
-          label.innerHTML =
-            '<span class="bad">No cargó ' + url + " — revisa el tag o el SHA.</span>";
-        };
-        document.head.appendChild(script);
+        function cdnUrl(ref) {
+          return "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@" + ref + "/docs/v2-sdk/gafa-sdk.js";
+        }
+
+        function load(url, note) {
+          label.textContent = url + (note ? "  (" + note + ")" : "");
+          var script = document.createElement("script");
+          script.src = url;
+          script.onerror = function () {
+            label.innerHTML = '<span class="bad">No cargó ' + url + "</span>";
+          };
+          document.head.appendChild(script);
+        }
+
+        if (requested) {
+          load(/^https?:\/\//.test(requested) ? requested : cdnUrl(requested), "fijada por ?sdk=");
+          return;
+        }
+
+        label.textContent = "buscando la última versión…";
+        fetch("https://data.jsdelivr.com/v1/packages/gh/GafaMX/GFtheme")
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (data) {
+            var tags = (data.versions || [])
+              .map(function (v) {
+                return v.version;
+              })
+              .filter(function (v) {
+                return /^v?2\.0\.0-rc\.\d+$/.test(v);
+              })
+              .sort(function (a, b) {
+                return Number(a.split("rc.")[1]) - Number(b.split("rc.")[1]);
+              });
+            var latest = tags[tags.length - 1];
+            load(cdnUrl(latest || FALLBACK), latest ? "última publicada" : "respaldo");
+          })
+          .catch(function () {
+            load(cdnUrl(FALLBACK), "respaldo");
+          });
       })();
     </script>
   </body>
