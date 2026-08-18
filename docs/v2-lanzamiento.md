@@ -39,22 +39,25 @@ Commit de `docs/v2-sdk/` (el JS + `VERSION.txt`) en la rama V2. **No mergear a
 jsDelivr sirve el archivo público en cuanto el **tag** está en GitHub.
 `@v2/main` da **404**: el slash de la rama se parte. No lo uses.
 
-URL pública (tag `v2`, sin slash):
+jsDelivr trata `@v2` como versión `2` y la **congela** (cache immutable de
+un año). Mover el tag git `v2` no cambia lo que sirve el CDN. Cada lanzamiento
+necesita un tag nuevo.
+
+URL pública actual:
 
 ```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js
+https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.2/docs/v2-sdk/gafa-sdk.js
 ```
 
-Tras cada `publish:embed` + push a `v2/main`, mover el tag y purgar:
+Tras cada `publish:embed` + push a `v2/main`, un tag **nuevo** (no reusar `v2`):
 
 ```
-git tag -f v2
-git push -f origin v2
-# y un tag inmutable del snapshot, p.ej. v2.0.0-rc.2
-https://purge.jsdelivr.net/gh/GafaMX/GFtheme@v2/docs/v2-sdk/gafa-sdk.js
+git tag v2.0.0-rc.3
+git push origin v2.0.0-rc.3
 ```
 
-Preview puntual (sin mover el tag): SHA de `docs/v2-sdk/VERSION.txt`:
+Replit / WP: `VITE_GAFA_SDK_V2_URL` (o el `<script src>`) a ese tag nuevo, luego
+reiniciar Vite. Preview puntual: SHA de `docs/v2-sdk/VERSION.txt`:
 
 ```
 https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<sha>/docs/v2-sdk/gafa-sdk.js
