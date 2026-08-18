@@ -58,6 +58,8 @@ type RawBrand = {
   id: number;
   name: string;
   slug: string;
+  /** Fitspin vende Cancún (UTC-5) desde una marca con horario propio. */
+  time_zone?: string | null;
   terms_conditions_link?: string | null;
   gafapay_brand_id?: number | null;
   gafapay_client_id?: string | number | null;
@@ -129,6 +131,7 @@ type RawStaff = { name?: string; lastname?: string; job?: string | null };
 type RawReservation = {
   id: number;
   meeting_start: string;
+  timezone?: string | null;
   hash_qr?: string | null;
   cancelled?: boolean;
   canBeCancelled?: boolean;
@@ -264,6 +267,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   // La API anida location/meetings bajo brand/{slug}; el widget solo conoce el locationId,
   // asi que recordamos la location completa (con su slug y brand) cuando se listan.
   const locationById = new Map<number, Location>();
+  // Las reservas se pintan en la hora de la SEDE, no en la del navegador: una
+  // clase de Cancún (UTC-5) vista desde CDMX salía una hora antes.
+  const brandTimeZoneBySlug = new Map<string, string>();
   // Cache en memoria para no desencriptar en cada request, pero SIEMPRE se
   // resincroniza con localStorage: el login puede ocurrir en otra instancia del
   // cliente (otro mount / otro widget root) y dejar esta copia vieja en null.
@@ -451,13 +457,16 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       raw.meeting_position ??
       undefined;
 
+    const brandSlugResolved = brandSlugFrom(raw, brandSlug);
+
     return {
       id: raw.id,
       serviceName: raw.meetings?.service?.name ?? raw.service?.name ?? "Reserva",
       startsAt: raw.meeting_start,
+      timezone: raw.timezone ?? brandTimeZoneBySlug.get(brandSlugResolved),
       locationName: locationLabel(raw.location),
       staffName: staffLabel(staff),
-      brandSlug: brandSlugFrom(raw, brandSlug),
+      brandSlug: brandSlugResolved,
       isWaitlist,
       isOverbooking: raw.is_overbooking === 1,
       // El legacy distingue membresia de credito por `credit === null`, no por un campo propio.
@@ -520,10 +529,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   }
 
   function normalizeBrand(raw: RawBrand): Brand {
+    if (raw.time_zone) brandTimeZoneBySlug.set(raw.slug, raw.time_zone);
     return {
       id: raw.id,
       name: raw.name,
       slug: raw.slug,
+      timeZone: raw.time_zone ?? undefined,
       termsConditionsLink: raw.terms_conditions_link ?? null,
       gafapayBrandId: raw.gafapay_brand_id ?? null,
       gafapayClientId: raw.gafapay_client_id != null ? String(raw.gafapay_client_id) : null,
