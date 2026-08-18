@@ -55,7 +55,12 @@ export type GafaPaySuccess = {
 export type GafaPayWidgetProps = {
   order: GafaPayOrder;
   generalData: GafaPayGeneralData;
-  onStartPayAction?: () => void;
+  /**
+   * GafaPayFront.StripePayment.handleSubmit (y Conekta) llaman esto SIN `?.`
+   * al confirmar. Si falta, el throw queda como unhandled rejection: no hay
+   * cobro, ni callback de éxito/error, y el checkout se queda en "Procesando…".
+   */
+  onStartPayAction: () => void;
   onGafaPaySuccessAction: (result: GafaPaySuccess) => void;
   onGafaPayErrAction: (error: { err?: unknown; message?: string }) => void;
   termsAndConditions?: string | null;
@@ -82,8 +87,8 @@ declare global {
     GAFAPAY_SDK_URL?: string;
     React?: ReactLike;
     ReactDOM?: ReactDomLike;
-    _handleStripePayment?: () => void;
-    _handleConektaPayment?: () => void;
+    _handleStripePayment?: () => unknown;
+    _handleConektaPayment?: () => unknown;
   }
 }
 
@@ -334,16 +339,22 @@ export function hasGafaPayRuntime(): boolean {
  * Dispara la confirmacion del metodo activo. Cada formulario registra su
  * handler global al montarse (mismo contrato que el fancy v1). PayPal no
  * aplica: su propio boton maneja el submit.
+ *
+ * StripePayment.handleSubmit es `async` y puede rechazar (p.ej. si falta
+ * onStartPayAction). Hay que await-ear el retorno: un fire-and-forget deja
+ * el throw como unhandled rejection y el UI se queda en "Procesando…".
  */
-export function triggerGafaPayConfirm(slug: string): boolean {
-  if (typeof window === "undefined") return false;
+export function triggerGafaPayConfirm(slug: string): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+
+  let result: unknown;
   if (slug === "stripe" && window._handleStripePayment) {
-    window._handleStripePayment();
-    return true;
+    result = window._handleStripePayment();
+  } else if (slug === "conekta" && window._handleConektaPayment) {
+    result = window._handleConektaPayment();
+  } else {
+    return Promise.resolve(false);
   }
-  if (slug === "conekta" && window._handleConektaPayment) {
-    window._handleConektaPayment();
-    return true;
-  }
-  return false;
+
+  return Promise.resolve(result).then(() => true);
 }

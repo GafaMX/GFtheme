@@ -405,12 +405,14 @@ export function CheckoutModal({
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
   async function completePurchase(paymentData: Record<string, unknown>) {
     const profile = profileQuery.data;
-    if (!profile || !client.initialPurchase || !selectedMethod || !brandSlug || !locationSlug) return;
-
     const reservationSnapshot = reservation;
     const linesSnapshot = relevantLines;
 
     try {
+      if (!profile || !client.initialPurchase || !selectedMethod || !brandSlug || !locationSlug) {
+        throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
+      }
+
       const checkoutToken =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
@@ -464,7 +466,7 @@ export function CheckoutModal({
     void completePurchase(paymentData);
   }
 
-  function handlePayClick() {
+  async function handlePayClick() {
     setPayError(undefined);
     if (!canPay) {
       if (!relevantLines.length) setPayError("Agrega un paquete o membresía para continuar.");
@@ -474,13 +476,23 @@ export function CheckoutModal({
     }
     setPaying(true);
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
-    const triggered = triggerGafaPayConfirm(selectedMethod?.slug ?? "");
-    if (!triggered) {
+    try {
+      const triggered = await triggerGafaPayConfirm(selectedMethod?.slug ?? "");
+      if (!triggered) {
+        setPaying(false);
+        setPayError(
+          selectedMethod?.slug === "paypal"
+            ? "Usa el botón de PayPal para completar el pago."
+            : "El procesador de pago aún no está listo. Intenta de nuevo.",
+        );
+      }
+    } catch (err) {
       setPaying(false);
+      const raw = err instanceof Error ? err.message : "";
       setPayError(
-        selectedMethod?.slug === "paypal"
-          ? "Usa el botón de PayPal para completar el pago."
-          : "El procesador de pago aún no está listo. Intenta de nuevo.",
+        /is not a function/i.test(raw)
+          ? "El procesador de pago aún no está listo. Intenta de nuevo."
+          : raw || "No pudimos iniciar el pago. Intenta de nuevo.",
       );
     }
   }
@@ -683,6 +695,7 @@ export function CheckoutModal({
                     phone: profileQuery.data?.phone ?? undefined,
                   }}
                   onSuccess={handleGafaPaySuccess}
+                  onStart={() => setPaying(true)}
                   onReadyChange={setPaymentReady}
                   onError={(message) => {
                     setPaying(false);
@@ -1014,6 +1027,7 @@ function PayPanel({
   discountAmount,
   customer,
   onSuccess,
+  onStart,
   onReadyChange,
   onError,
 }: {
@@ -1027,6 +1041,7 @@ function PayPanel({
   discountAmount: number;
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
+  onStart: () => void;
   onReadyChange: (ready: boolean) => void;
   onError: (message: string) => void;
 }) {
@@ -1037,8 +1052,8 @@ function PayPanel({
   const islandRef = useRef<GafaPayIsland | null>(null);
   // Los callbacks cambian en cada render; el widget vive fuera de React y no
   // debe re-montarse por eso.
-  const handlersRef = useRef({ onSuccess, onError });
-  handlersRef.current = { onSuccess, onError };
+  const handlersRef = useRef({ onSuccess, onError, onStart });
+  handlersRef.current = { onSuccess, onError, onStart };
 
   useEffect(() => {
     onReadyChange(loadState === "ready");
@@ -1086,6 +1101,8 @@ function PayPanel({
       },
       termsAndConditions: config?.termsConditionsLink ?? null,
       hasRecurringPayment: false,
+      // Función siempre: GafaPayFront la invoca sin optional chaining.
+      onStartPayAction: () => handlersRef.current.onStart(),
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
       onGafaPayErrAction: ({ message }) =>
         handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
