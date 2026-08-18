@@ -46,14 +46,14 @@ necesita un tag nuevo.
 URL pública actual:
 
 ```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.10/docs/v2-sdk/gafa-sdk.js
+https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js
 ```
 
 Tras cada `publish:embed` + push a `v2/main`, un tag **nuevo** (no reusar `v2`):
 
 ```
-git tag v2.0.0-rc.11
-git push origin v2.0.0-rc.11
+git tag v2.0.0-rc.12
+git push origin v2.0.0-rc.12
 ```
 
 Replit / WP: `VITE_GAFA_SDK_V2_URL` (o el `<script src>`) a ese tag nuevo, luego

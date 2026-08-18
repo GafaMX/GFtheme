@@ -51,7 +51,7 @@ npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js
 ```
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.10/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js"></script>
 <script data-gf-options type="application/json">
   { "GAFA_FIT_URL": "...", "COMPANY_ID": 1, "API_CLIENT": "...", "API_SECRET": "..." }
 </script>
