@@ -212,12 +212,13 @@
       })();
 
       /*
-       * Sin ?sdk= el puente PREGUNTA cuál es el último tag en vez de traerlo
-       * escrito: esta página se cachea y dejaba probando una versión vieja sin
-       * que se notara. Con ?sdk= se fija a un tag, SHA o URL concreta.
+       * Por default carga la rama `sdk-live`, que siempre apunta a lo último de
+       * v2/main, con un parámetro anti-caché: esta página y el CDN se guardan en
+       * el navegador y se estaba probando una versión vieja sin notarlo.
+       * Con ?sdk= se fija a un tag, SHA o URL concreta.
        */
       (function () {
-        var FALLBACK = "v2.0.0-rc.11";
+        var LIVE_REF = "sdk-live";
         var label = document.getElementById("sdk-url");
         var requested = (new URLSearchParams(location.search).get("sdk") || "").trim();
 
@@ -240,28 +241,7 @@
           return;
         }
 
-        label.textContent = "buscando la última versión…";
-        fetch("https://data.jsdelivr.com/v1/packages/gh/GafaMX/GFtheme")
-          .then(function (response) {
-            return response.json();
-          })
-          .then(function (data) {
-            var tags = (data.versions || [])
-              .map(function (v) {
-                return v.version;
-              })
-              .filter(function (v) {
-                return /^v?2\.0\.0-rc\.\d+$/.test(v);
-              })
-              .sort(function (a, b) {
-                return Number(a.split("rc.")[1]) - Number(b.split("rc.")[1]);
-              });
-            var latest = tags[tags.length - 1];
-            load(cdnUrl(latest || FALLBACK), latest ? "última publicada" : "respaldo");
-          })
-          .catch(function () {
-            load(cdnUrl(FALLBACK), "respaldo");
-          });
+        load(cdnUrl(LIVE_REF) + "?t=" + Date.now(), "última de v2/main");
       })();
     </script>
   </body>
