@@ -96,7 +96,7 @@
       <section data-gf-theme="combo-list"></section>
 
       <footer>
-        Versión por URL: <code>?sdk=v2.0.0-rc.7</code>, <code>?sdk=&lt;sha&gt;</code> o
+        Versión por URL: <code>?sdk=v2.0.0-rc.8</code>, <code>?sdk=&lt;sha&gt;</code> o
         <code>?sdk=https://…/gafa-sdk.js</code>. Entorno: <code>?buq-env=staging</code>.
         Diagnóstico de la compra: <code>?debug=1</code>.
       </footer>
@@ -184,7 +184,7 @@
       // El puente no se re-publica en cada release: la versión del SDK entra por
       // ?sdk= (tag, SHA o URL completa) y por default toma el último tag.
       (function () {
-        var DEFAULT_VERSION = "v2.0.0-rc.7";
+        var DEFAULT_VERSION = "v2.0.0-rc.8";
         var params = new URLSearchParams(location.search);
         var requested = (params.get("sdk") || DEFAULT_VERSION).trim();
         var url = /^https?:\/\//.test(requested)
