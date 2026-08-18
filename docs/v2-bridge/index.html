@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>Puente SDK v2 — Fitspin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #101828;
+        --muted: #667085;
+        --line: #e6e8ec;
+        --brand: #f2b705;
+      }
+      * { box-sizing: border-box; }
+      body {
+        background: #fff;
+        color: var(--ink);
+        font-family: Inter, system-ui, sans-serif;
+        margin: 0;
+      }
+      .wrap { margin: 0 auto; max-width: 1120px; padding: 0 1.1rem 4rem; }
+      header.top {
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        padding: 0.9rem 0;
+      }
+      .logo { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em; }
+      .logo span { color: var(--brand); }
+      .build {
+        background: #f7f8fa;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font-size: 0.78rem;
+        margin: 1rem 0 1.6rem;
+        padding: 0.75rem 0.9rem;
+      }
+      .build code { font-size: 0.76rem; overflow-wrap: anywhere; }
+      .build b { display: block; margin-bottom: 0.2rem; }
+      .build .bad { color: #b42318; }
+      h2 { font-size: 1.35rem; letter-spacing: -0.02em; margin: 2.2rem 0 0.9rem; }
+      p.lead { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; max-width: 44rem; }
+      footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.78rem; margin-top: 3rem; padding-top: 1rem; }
+    </style>
+
+    <!--
+      Credenciales públicas de Fitspin: las mismas que fitspin.mx expone en
+      GFThemeOptions y que ya vive en packages/react-sdk/src/demo/DemoSite.tsx.
+    -->
+    <script data-gf-options type="application/json">
+      {
+        "GAFA_FIT_URL": "https://buq.partners",
+        "COMPANY_ID": 80,
+        "API_CLIENT": "74",
+        "API_SECRET": "hI8M3iAEVlWIIfxBLesaxhtEIVpEEPwRyHyxw523"
+      }
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <div class="logo">FIT<span>SPIN</span> · puente v2</div>
+        <div data-gf-theme="login-register"></div>
+      </header>
+
+      <div class="build">
+        <b>SDK cargado</b>
+        <code id="sdk-url">…</code>
+      </div>
+
+      <h2>Calendario</h2>
+      <p class="lead">
+        Elige una clase para abrir el checkout con la reserva pegada: quitar la clase, términos y
+        PayPal se prueban desde ahí.
+      </p>
+      <section
+        data-gf-theme="meetings-calendar"
+        data-bq-calendar-view="day"
+        filter-bq-location
+        filter-bq-service
+        filter-bq-staff
+      ></section>
+
+      <h2>Paquetes</h2>
+      <p class="lead">Compra suelta, sin clase: es el caso que dejaba “Checkout no resuelto”.</p>
+      <section data-gf-theme="combo-list"></section>
+
+      <footer>
+        Versión por URL: <code>?sdk=v2.0.0-rc.4</code>, <code>?sdk=&lt;sha&gt;</code> o
+        <code>?sdk=https://…/gafa-sdk.js</code>. Entorno: <code>?buq-env=staging</code>.
+      </footer>
+    </div>
+
+    <script>
+      // El puente no se re-publica en cada release: la versión del SDK entra por
+      // ?sdk= (tag, SHA o URL completa) y por default toma el último tag.
+      (function () {
+        var DEFAULT_VERSION = "v2.0.0-rc.4";
+        var params = new URLSearchParams(location.search);
+        var requested = (params.get("sdk") || DEFAULT_VERSION).trim();
+        var url = /^https?:\/\//.test(requested)
+          ? requested
+          : "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@" +
+            requested +
+            "/docs/v2-sdk/gafa-sdk.js";
+
+        var label = document.getElementById("sdk-url");
+        label.textContent = url;
+
+        var script = document.createElement("script");
+        script.src = url;
+        script.onerror = function () {
+          label.innerHTML =
+            '<span class="bad">No cargó ' + url + " — revisa el tag o el SHA.</span>";
+        };
+        document.head.appendChild(script);
+      })();
+    </script>
+  </body>
+</html>
