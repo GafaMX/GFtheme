@@ -142,6 +142,25 @@
           return String(text).replace(/(API_SECRET|api_secret)=([^&]+)/g, "$1=***");
         }
 
+        /*
+         * create-form-template es el HTML del fancy v1 y pesa demasiado para el
+         * panel. De ahí solo interesa qué id lleva cada método de pago: el admin
+         * de Buq registró "Checkout de Recurrente" para un cobro hecho con
+         * Stripe, así que el `payment_types_id` que mandamos apunta a otra
+         * pasarela.
+         */
+        function summarize(url, text) {
+          if (!/create-form-template/.test(url)) return mask(text).slice(0, 900);
+
+          var doc = new DOMParser().parseFromString(text, "text/html");
+          var out = [];
+          ["payment_types", "urlInitialPurchase", "urlInitialPurchaseStatus"].forEach(function (name) {
+            var node = doc.querySelector(".CreateReservationFancy--" + name);
+            out.push(name + ": " + (node ? node.textContent.trim() : "(no vino)"));
+          });
+          return out.join("\n   ");
+        }
+
         function render() {
           return entries.length ? entries.join("\n\n") : "Esperando la compra…";
         }
@@ -173,7 +192,7 @@
               .clone()
               .text()
               .then(function (text) {
-                push("← " + response.status + " " + url + "\n   " + mask(text).slice(0, 900));
+                push("← " + response.status + " " + url + "\n   " + summarize(url, text));
               })
               .catch(function () {});
             return response;
