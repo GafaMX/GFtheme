@@ -808,7 +808,7 @@ export function CheckoutModal({
                   ) : null}
                 </>
               ) : preselectStatus === "loading" ? (
-                <p className="gafa-sdk-state">Preparando tu compra…</p>
+                <PaySkeleton withMethods label="Preparando tu compra…" />
               ) : (
                 <PayPanel
                   methods={paymentMethods}
@@ -1144,7 +1144,31 @@ function CatalogSkeleton() {
           </div>
         ))}
       </div>
-      <p className="gafa-sdk-state">Cargando catálogo…</p>
+      <p className="gafa-sr-only">Cargando catálogo…</p>
+    </div>
+  );
+}
+
+/* Loader del paso de pago: las mismas cajas que va a pintar GafaPay (tarjeta
+   guardada + tarjeta nueva), no un texto gris que nadie lee. */
+function PaySkeleton({ withMethods = false, label }: { withMethods?: boolean; label: string }) {
+  return (
+    <div className="gafa-checkout-pay-skel" aria-busy="true" aria-live="polite">
+      <span className="gafa-sr-only">{label}</span>
+      {withMethods ? (
+        <div className="gafa-checkout-pay-skel__methods" aria-hidden="true">
+          <span className="gafa-skeleton gafa-checkout-pay-skel__pill" />
+          <span className="gafa-skeleton gafa-checkout-pay-skel__pill" />
+        </div>
+      ) : null}
+      <div className="gafa-checkout-pay-skel__card" aria-hidden="true">
+        <span className="gafa-skeleton gafa-checkout-pay-skel__brand" />
+        <span className="gafa-skeleton gafa-checkout-pay-skel__number" />
+      </div>
+      <div className="gafa-checkout-pay-skel__card" aria-hidden="true">
+        <span className="gafa-skeleton gafa-checkout-pay-skel__brand" />
+        <span className="gafa-skeleton gafa-checkout-pay-skel__number" />
+      </div>
     </div>
   );
 }
@@ -1339,7 +1363,7 @@ function PayPanel({
 
   return (
     <div className="gafa-checkout-pay">
-      {configLoading ? <p className="gafa-sdk-state">Cargando métodos de pago…</p> : null}
+      {configLoading ? <PaySkeleton withMethods label="Cargando métodos de pago…" /> : null}
 
       {methods.length > 1 ? (
         <div className="gafa-checkout-methods" role="tablist" aria-label="Método de pago">
@@ -1380,7 +1404,7 @@ function PayPanel({
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
 
         {loadState === "loading" ? (
-          <p className="gafa-sdk-state">Conectando con el procesador de pago…</p>
+          <PaySkeleton label="Conectando con el procesador de pago…" />
         ) : null}
         {loadState === "error" ? (
           <p className="gafa-sdk-state gafa-sdk-state--error">

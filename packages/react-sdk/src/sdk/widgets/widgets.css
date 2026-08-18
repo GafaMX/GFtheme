@@ -4281,6 +4281,43 @@
   gap: 0.35rem;
 }
 
+/* Loader del paso de pago: mismas cajas que va a ocupar GafaPay. */
+.gafa-checkout-pay-skel {
+  display: grid;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.gafa-checkout-pay-skel__methods {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.gafa-checkout-pay-skel__pill {
+  border-radius: 999px;
+  height: 40px;
+  width: 118px;
+}
+
+.gafa-checkout-pay-skel__card {
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.gafa-checkout-pay-skel__brand {
+  border-radius: 6px;
+  height: 18px;
+  width: 130px;
+}
+
+.gafa-checkout-pay-skel__number {
+  height: 20px;
+  width: 55%;
+}
+
 .gafa-checkout-product--skel {
   gap: 0.55rem;
   min-height: 148px;
