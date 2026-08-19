@@ -68,6 +68,29 @@ describe("initialPurchase", () => {
     expect(body.get("checkout_token")).toBe("chk_1");
   });
 
+  /* jQuery ($.param) manda `clave=` vacía cuando el valor es null; si la
+     clave falta, Laravel convierte "Undefined array key" en excepción y el
+     500 llega con el cargo ya hecho. */
+  it("manda TODAS las claves del fancy v1, vacías si no aplican", async () => {
+    const body = await purchaseWith("NDk0…recibo");
+
+    expect(body.get("payment_data")).toBe("NDk0…recibo");
+    expect(body.get("_token")).toBe("");
+    expect(body.get("meeting_data")).toBe("");
+    expect(body.get("invited_data")).toBe("");
+    expect(body.get("signature")).toBe("");
+    expect(body.get("subscriptionId")).toBe("");
+    expect(body.get("selected_credit")).toBe("");
+    expect(body.get("discountCode")).toBe("");
+    expect(body.get("giftCode")).toBe("");
+    // Booleanos como los serializa jQuery en v1.
+    expect(body.get("subscribe")).toBe("false");
+    expect(body.get("set_payment")).toBe("false");
+    expect(body.get("test")).toBe("false");
+    // Sin meeting: la clave viaja vacía, no ausente.
+    expect(body.get("meetings_id")).toBe("");
+  });
+
   it("manda cart/combo con product_type Eloquent, como el fancy v1", async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ purchase_id: 88 }));
     vi.stubGlobal("fetch", fetchMock);

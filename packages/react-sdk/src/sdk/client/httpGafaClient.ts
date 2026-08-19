@@ -1396,21 +1396,29 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async initialPurchase(payload: InitialPurchasePayload) {
-      // Mismo cuerpo que `sendInitialPurchaseForm` del fancy v1: ids sueltos
-      // Y el carrito completo. Sin `cart`/`combo` Laravel 8+ tira TypeError
-      // (foreach sobre null) → 500 "Server Error" con el cargo ya hecho.
+      // PARIDAD EXACTA con `sendInitialPurchaseForm` del fancy v1
+      // (buildTemplate.js de producción): mismas claves, en el mismo formato.
+      // jQuery `$.param` manda `clave=` (vacío) cuando el valor es null: aquí
+      // igual, porque Laravel convierte "Undefined array key" en excepción y
+      // el 500 llega con el cargo de Stripe ya hecho.
       const partitioned = partitionGafaFitCart(payload.lines);
 
       const body: Record<string, unknown> = {
+        _token: "",
         users_id: payload.userId,
-        meetings_id: payload.meetingId,
+        meetings_id: payload.meetingId ?? "",
+        meeting_data: "",
         payment_types_id: payload.paymentTypeId,
-        discountCode: payload.discountCode ?? undefined,
-        giftCode: payload.giftCode ?? undefined,
-        checkout_token: payload.checkoutToken ?? undefined,
-        selected_credit: payload.selectedCredit,
-        subscribe: payload.subscribe ? 1 : 0,
-        set_payment: payload.setPayment ? 1 : 0,
+        discountCode: payload.discountCode ?? "",
+        giftCode: payload.giftCode ?? "",
+        selected_credit: payload.selectedCredit ?? "",
+        invited_data: "",
+        signature: "",
+        subscriptionId: payload.subscriptionId ?? "",
+        // v1 manda los booleanos como los serializa jQuery ("true"/"false").
+        subscribe: payload.subscribe ? "true" : "false",
+        set_payment: payload.setPayment ? "true" : "false",
+        test: "false",
         combos_id: partitioned.combosId,
         combos_amounts: partitioned.combosAmounts,
         memberships_id: partitioned.membershipsId,
@@ -1423,13 +1431,19 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         product: partitioned.product,
       };
 
+      // Solo el checkout alojado (Recurrente) trae token; v1 lo agrega solo
+      // si existe. Mandarlo con Stripe registraba "Checkout de Recurrente".
+      if (payload.checkoutToken) {
+        body.checkout_token = payload.checkoutToken;
+      }
+
       if (payload.seatObjectId != null) {
         body.map_objectsSelected = [{ id: payload.seatObjectId }];
       }
 
       if (payload.paymentData != null) {
-        // Igual que `$.param` del fancy v1: objeto → array PHP anidado,
-        // texto → `payment_data=…` tal cual.
+        // v1: `ht.payment_data = e.message` → con Stripe es el recibo base64
+        // (string plano). Objetos (Conekta) van como array PHP anidado.
         body.payment_data = payload.paymentData;
       }
 

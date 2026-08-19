@@ -393,6 +393,8 @@ export type InitialPurchasePayload = {
   paymentTypeId: number;
   /** Lo que GafaPay entrega en `message`: objeto o texto, sin envolver. */
   paymentData?: unknown;
+  /** Id de suscripción de GafaPay (Recurrente); v1 lo manda top-level. */
+  subscriptionId?: string | number | null;
   discountCode?: string | null;
   giftCode?: string | null;
   /**

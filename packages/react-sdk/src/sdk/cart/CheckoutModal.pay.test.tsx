@@ -205,7 +205,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(screen.getByText(/orden #88/i)).toBeTruthy();
   });
 
-  it("payment_data es el objeto completo de GafaPay (message + subscriptionId + recurringPayment + webToken)", async () => {
+  it("payment_data es el `message` de GafaPay tal cual (v1: ht.payment_data = e.message)", async () => {
     const client = mockClient();
     renderPay(client);
     await waitUntilPayReady();
@@ -226,15 +226,10 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
       expect(client.initialPurchase).toHaveBeenCalled();
     });
     const payload = vi.mocked(client.initialPurchase!).mock.calls[0][0];
-    // gafa.fit lee payment_data[message]; los booleanos van 0/1 porque en PHP
-    // la cadena "false" es truthy. subscriptionId null viaja como "" para que
-    // la clave exista (Laravel truena con "Undefined array key").
-    expect(payload.paymentData).toEqual({
-      subscriptionId: "",
-      recurringPayment: 0,
-      webToken: "test",
-      message: "NDk0MTE4X3x8X2NoXzNVNXJZ…",
-    });
+    // Producción (Stripe viejo): el recibo base64 viaja como string plano.
+    // webToken NO se manda (v1 lo ignora); subscriptionId va top-level.
+    expect(payload.paymentData).toBe("NDk0MTE4X3x8X2NoXzNVNXJZ…");
+    expect(payload.subscriptionId).toBeNull();
     expect(payload.subscribe).toBe(false);
     expect(payload.lines[0]).toEqual(
       expect.objectContaining({
@@ -287,7 +282,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     });
   });
 
-  it("sin subscriptionId/webToken el objeto igual lleva message y recurringPayment", async () => {
+  it("si GafaPay contesta con texto, payment_data va sin envolver", async () => {
     const client = mockClient();
     renderPay(client);
     await waitUntilPayReady();
@@ -302,12 +297,9 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     await waitFor(() => {
       expect(client.initialPurchase).toHaveBeenCalled();
     });
-    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].paymentData).toEqual({
-      subscriptionId: "",
-      recurringPayment: 0,
-      webToken: "",
-      message: "Se completó el pago.",
-    });
+    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].paymentData).toBe(
+      "Se completó el pago.",
+    );
   });
 
   it("no manda checkout_token: eso registraba la compra como checkout de Recurrente", async () => {

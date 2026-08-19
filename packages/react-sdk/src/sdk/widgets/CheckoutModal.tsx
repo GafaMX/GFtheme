@@ -174,7 +174,11 @@ export function CheckoutModal({
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
   const chargedRef = useRef(false);
-  const pendingRegisterRef = useRef<{ paymentData: unknown; recurring: boolean } | null>(null);
+  const pendingRegisterRef = useRef<{
+    paymentData: unknown;
+    recurring: boolean;
+    subscriptionId: string | number | null;
+  } | null>(null);
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
     reservationId?: number;
@@ -471,7 +475,11 @@ export function CheckoutModal({
   }, [isSignedIn, profileQuery.isLoading, step]);
 
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
-  async function completePurchase(paymentData: unknown, recurring = false) {
+  async function completePurchase(
+    paymentData: unknown,
+    recurring = false,
+    subscriptionId: string | number | null = null,
+  ) {
     const profile = profileQuery.data;
     const reservationSnapshot = reservation;
     const linesSnapshot = relevantLines;
@@ -514,6 +522,7 @@ export function CheckoutModal({
         })),
         paymentTypeId: selectedMethod.id,
         paymentData,
+        subscriptionId,
         discountCode: discountStatus === "ok" ? discountCode.trim() : null,
         giftCode: giftStatus === "ok" ? giftCode.trim() : null,
         subscribe: recurring,
@@ -570,26 +579,20 @@ export function CheckoutModal({
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
-    // gafa.fit (App\Librerias\...\Stripe) espera payment_data como array con
-    // {subscriptionId, recurringPayment, webToken, message}, donde `message`
-    // es el recibo (con Stripe: base64 de `id_||_ch_…_||_centavos_||_…`).
-    // Mandar solo `message` dejaba initial-purchase en 500 (confirmado con el
-    // equipo de gafa.fit). Booleanos como 0/1: en PHP "false" es truthy.
-    // Claves SIEMPRE presentes aunque vengan null (jQuery manda `a=` vacío;
-    // Laravel convierte "Undefined array key" en excepción → 500).
+    // Paridad EXACTA con el fancy v1 de PRODUCCIÓN (buildTemplate.js):
+    // `ht.payment_data = e.message` — el recibo viaja como string base64
+    // (`id_||_ch_…`). El array {subscriptionId, webToken, message} que
+    // describió el equipo de gafa.fit es del Stripe NUEVO (staging); v1 ni
+    // siquiera manda webToken. El subscriptionId de v1 va TOP-LEVEL.
     const recurring = Boolean(result.recurringPayment);
-    const paymentData: Record<string, unknown> = {
-      subscriptionId: result.subscriptionId ?? "",
-      recurringPayment: recurring ? 1 : 0,
-      webToken: result.webToken ?? "",
-      message: result.message,
-    };
+    const subscriptionId = result.subscriptionId ?? null;
     chargedRef.current = true;
     pendingRegisterRef.current = {
-      paymentData,
+      paymentData: result.message,
       recurring,
+      subscriptionId,
     };
-    void completePurchase(paymentData, recurring);
+    void completePurchase(result.message, recurring, subscriptionId);
   }
 
   async function proceedToPay() {
@@ -597,7 +600,7 @@ export function CheckoutModal({
       setPayError(undefined);
       setPaying(true);
       const pending = pendingRegisterRef.current;
-      await completePurchase(pending.paymentData, pending.recurring);
+      await completePurchase(pending.paymentData, pending.recurring, pending.subscriptionId);
       return;
     }
     if (!paymentReady) {
