@@ -96,7 +96,7 @@ export type CatalogItem = {
   /**
    * JSON original del item tal como lo entrega gafa.fit. El fancy v1 manda el
    * objeto COMPLETO en `cart`/`combo` (con credits, expiration_days, etc.);
-   * initial-purchase puede tronar si le faltan claves.
+   * `/reservate` puede tronar si le faltan claves.
    */
   raw?: Record<string, unknown>;
 };
@@ -337,7 +337,15 @@ export type CheckoutConfig = {
   locationId?: number;
   userProfileId?: number;
   usersId?: number;
+  /** CSRF del create-form-template; v1 lo manda como `_token`. */
+  csrfToken?: string;
   urls: {
+    /**
+     * `urlReservation` del fancy: POST `/reservation/reservate`.
+     * Con Stripe/PayPal, BuySystemStep manda el carrito aquí (paymentByCard /
+     * paymentByToken). `initial-purchase` es solo el checkout alojado (Recurrente).
+     */
+    reservation: string;
     initialPurchase: string;
     initialPurchaseStatus: string;
     checkDiscountCode?: string;
@@ -395,6 +403,8 @@ export type InitialPurchasePayload = {
   paymentData?: unknown;
   /** Id de suscripción de GafaPay (Recurrente); v1 lo manda top-level. */
   subscriptionId?: string | number | null;
+  /** CSRF del create-form-template (`_token` en v1). */
+  csrfToken?: string | null;
   discountCode?: string | null;
   giftCode?: string | null;
   /**
@@ -413,6 +423,8 @@ export type InitialPurchasePayload = {
 export type InitialPurchaseResult = {
   purchaseId?: number | null;
   checkoutToken?: string | null;
+  /** Lo que `reservate` devuelve en `reservation[0].id` (compra + clase). */
+  reservationId?: number;
   raw?: unknown;
 };
 
@@ -575,6 +587,13 @@ export type GafaClient = {
     locationSlug: string;
     code: string;
   }): Promise<GiftCodeResult>;
+  /**
+   * Compra directa (Stripe/PayPal/Conekta): el mismo POST que
+   * `BuySystemStep.sendForm` del fancy v1 a `urlReservation` (`/reservate`).
+   * En el back dispara `paymentByCard` o `paymentByToken` del Stripe viejo.
+   */
+  reservatePurchase?(payload: InitialPurchasePayload): Promise<InitialPurchaseResult>;
+  /** Solo Recurrente / checkout alojado: crea la compra pendiente. */
   initialPurchase?(payload: InitialPurchasePayload): Promise<InitialPurchaseResult>;
   pollInitialPurchaseStatus?(payload: {
     brandSlug: string;

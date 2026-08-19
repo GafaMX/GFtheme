@@ -107,10 +107,9 @@
 
     <script>
       /*
-       * ?debug=1 — panel con lo que viaja a gafa.fit en la compra. El
-       * "Checkout no resuelto" no se puede diagnosticar desde el código: hay que
-       * ver el cuerpo real de initial-purchase y qué contesta initial-purchase-status.
-       * El Authorization y el API_SECRET nunca se pintan.
+       * ?debug=1 — panel con lo que viaja a gafa.fit en la compra. Stripe
+       * POSTea a `/reservate` (paymentByCard / paymentByToken); Recurrente
+       * usa initial-purchase. El Authorization y el API_SECRET nunca se pintan.
        */
       (function () {
         if (new URLSearchParams(location.search).get("debug") !== "1") return;

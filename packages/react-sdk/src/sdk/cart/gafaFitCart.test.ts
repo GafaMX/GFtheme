@@ -10,7 +10,7 @@ describe("gafaFitProductType", () => {
 });
 
 describe("toGafaFitCartItem", () => {
-  it("arma el objeto que sendInitialPurchaseForm mete en cart/combo", () => {
+  it("arma el objeto que BuySystemStep.sendForm mete en cart/combo", () => {
     expect(
       toGafaFitCartItem({
         id: 971,

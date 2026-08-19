@@ -502,11 +502,14 @@ export function CheckoutModal({
     };
 
     try {
-      if (!profile || !client.initialPurchase || !selectedMethod || !brandSlug || !locationSlug) {
+      if (!profile || !client.reservatePurchase || !selectedMethod || !brandSlug || !locationSlug) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
 
-      const purchase = await client.initialPurchase({
+      // Fancy v1 (Stripe): GafaPay cobra → BuySystemStep POSTea a `/reservate`.
+      // Eso dispara paymentByCard / paymentByToken. `initial-purchase` es Recurrente
+      // y en producción cae en unpaidPurchase (TypeError $subscribe null).
+      const purchase = await client.reservatePurchase({
         brandSlug,
         locationSlug,
         userId: config?.userProfileId ?? profile.id,
@@ -523,6 +526,7 @@ export function CheckoutModal({
         paymentTypeId: selectedMethod.id,
         paymentData,
         subscriptionId,
+        csrfToken: config?.csrfToken ?? null,
         discountCode: discountStatus === "ok" ? discountCode.trim() : null,
         giftCode: giftStatus === "ok" ? giftCode.trim() : null,
         subscribe: recurring,
@@ -531,36 +535,17 @@ export function CheckoutModal({
       });
 
       const purchaseId = purchase.purchaseId;
+      const reservationId = purchase.reservationId;
       setThanks({
         purchaseId,
+        reservationId,
+        confirmed: true,
         reservationSnapshot,
         linesSnapshot,
       });
       resetAfterPurchase();
       setStep("thanks");
-      onCompleted?.({ purchaseId });
-
-      // Solo el checkout alojado (Recurrente) queda pendiente y se confirma por
-      // status; ahí gafa.fit devuelve el checkout_token. Con Stripe/PayPal la
-      // compra ya viene resuelta en initial-purchase.
-      const checkoutToken = purchase.checkoutToken;
-      if (purchaseId && checkoutToken && client.pollInitialPurchaseStatus) {
-        void waitForPurchase(client, {
-          brandSlug,
-          locationSlug,
-          checkoutToken,
-          pendingPurchaseId: purchaseId,
-        })
-          .then((reservationId) => {
-            setThanks((current) =>
-              current ? { ...current, reservationId, confirmed: true } : current,
-            );
-            onCompleted?.({ purchaseId, reservationId });
-          })
-          .catch(() => {
-            setThanks((current) => (current ? { ...current, confirmed: false } : current));
-          });
-      }
+      onCompleted?.({ purchaseId, reservationId });
     } catch (err) {
       const detail = err instanceof Error ? err.message : "No pudimos completar el pago.";
       if (chargedRef.current) {
@@ -579,11 +564,8 @@ export function CheckoutModal({
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
-    // Paridad EXACTA con el fancy v1 de PRODUCCIÓN (buildTemplate.js):
-    // `ht.payment_data = e.message` — el recibo viaja como string base64
-    // (`id_||_ch_…`). El array {subscriptionId, webToken, message} que
-    // describió el equipo de gafa.fit es del Stripe NUEVO (staging); v1 ni
-    // siquiera manda webToken. El subscriptionId de v1 va TOP-LEVEL.
+    // Paridad con el fancy v1: `ht.payment_data = e.message` y luego
+    // BuySystemStep POSTea a `/reservate` (paymentByCard / paymentByToken).
     const recurring = Boolean(result.recurringPayment);
     const subscriptionId = result.subscriptionId ?? null;
     chargedRef.current = true;
@@ -1648,42 +1630,6 @@ function PaypalMark() {
       />
     </svg>
   );
-}
-
-/**
- * `initial-purchase-status` es lo que cierra la compra en gafa.fit: mientras
- * nadie lo consulte hasta `code = 1`, la orden queda como "Checkout no
- * resuelto" en el admin aunque Stripe ya haya cobrado.
- *
- * La conciliación tarda bastante más que los 20s que esperábamos antes; como
- * el poll corre en segundo plano (el thank you ya está en pantalla) se le da
- * una ventana larga, espaciando los intentos.
- */
-const PURCHASE_CONFIRM_TIMEOUT_MS = 5 * 60_000;
-
-async function waitForPurchase(
-  client: GafaClient,
-  payload: {
-    brandSlug: string;
-    locationSlug: string;
-    checkoutToken: string;
-    pendingPurchaseId: number;
-  },
-): Promise<number | undefined> {
-  if (!client.pollInitialPurchaseStatus) throw new Error("Sin confirmación de pago disponible.");
-  const deadline = Date.now() + PURCHASE_CONFIRM_TIMEOUT_MS;
-  let attempt = 0;
-
-  while (Date.now() < deadline) {
-    const status = await client.pollInitialPurchaseStatus(payload);
-    if (status.code === 1) return status.reservationId;
-    if (status.code === -1) throw new Error(status.message || "El pago no se pudo confirmar.");
-    attempt += 1;
-    // Rápido al principio (la mayoría resuelve ahí), luego cada 3s.
-    await new Promise((resolve) => setTimeout(resolve, attempt <= 20 ? 1000 : 3000));
-  }
-
-  throw new Error("La confirmación del pago está tardando más de lo normal.");
 }
 
 function formatMeetingWhen(value: string, timeZone?: string) {

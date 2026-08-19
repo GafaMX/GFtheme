@@ -226,6 +226,7 @@ export function createMockGafaClient(): GafaClient {
       userProfileId: 1,
       usersId: 1,
       urls: {
+        reservation: "/demo/reservate",
         initialPurchase: "/demo/initial-purchase",
         initialPurchaseStatus: "/demo/initial-purchase-status",
         checkDiscountCode: "/demo/check-discount",
@@ -234,6 +235,7 @@ export function createMockGafaClient(): GafaClient {
     }),
     checkDiscountCode: async ({ code }) => ({ valid: code.length > 2, code, discountAmount: 50, label: "Promo demo" }),
     checkGiftCode: async ({ code }) => ({ valid: code.length > 2, code, balance: 200, label: "Gift demo" }),
+    reservatePurchase: async () => ({ purchaseId: 1 }),
     initialPurchase: async () => ({ purchaseId: 1, checkoutToken: "demo" }),
     pollInitialPurchaseStatus: async () => ({ code: 1, reservationId: 99 }),
   };

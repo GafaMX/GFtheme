@@ -208,6 +208,82 @@ type ApiErrorBody = {
   errors?: Record<string, string[]>;
 };
 
+/**
+ * Cuerpo de `BuySystemStep.sendForm` / `sendInitialPurchaseForm` del fancy v1.
+ * Stripe cobra y otorga créditos en `reservate` (`paymentByCard` / `paymentByToken`);
+ * `initial-purchase` es solo Recurrente.
+ */
+function buildPurchaseFormBody(payload: InitialPurchasePayload): Record<string, unknown> {
+  const partitioned = partitionGafaFitCart(payload.lines);
+  const body: Record<string, unknown> = {
+    _token: payload.csrfToken ?? "",
+    users_id: payload.userId,
+    meetings_id: payload.meetingId ?? "",
+    meeting_data: "",
+    payment_types_id: payload.paymentTypeId,
+    discountCode: payload.discountCode ?? "",
+    giftCode: payload.giftCode ?? "",
+    selected_credit: payload.selectedCredit ?? "",
+    invited_data: "",
+    signature: "",
+    subscriptionId: payload.subscriptionId ?? "",
+    subscribe: payload.subscribe ? "true" : "false",
+    set_payment: payload.setPayment ? "true" : "false",
+    test: "false",
+    combos_id: partitioned.combosId,
+    combos_amounts: partitioned.combosAmounts,
+    memberships_id: partitioned.membershipsId,
+    memberships_amounts: partitioned.membershipsAmounts,
+    products_id: partitioned.productsId,
+    products_amounts: partitioned.productsAmounts,
+    cart: partitioned.cart,
+    combo: partitioned.combo,
+    membership: partitioned.membership,
+    product: partitioned.product,
+    pending_purchase_id: "",
+  };
+
+  if (payload.checkoutToken) {
+    body.checkout_token = payload.checkoutToken;
+  }
+  if (payload.seatObjectId != null) {
+    body.map_objectsSelected = [{ id: payload.seatObjectId }];
+  }
+  if (payload.paymentData != null) {
+    body.payment_data = payload.paymentData;
+  }
+  return body;
+}
+
+function readNumericId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function parsePurchaseResult(data: Record<string, unknown> | null | undefined): InitialPurchaseResult {
+  const purchase = data?.purchase;
+  const purchaseId =
+    readNumericId(data?.purchase_id) ??
+    readNumericId(purchase) ??
+    (purchase && typeof purchase === "object" ? readNumericId((purchase as { id?: unknown }).id) : null);
+
+  const reservation = data?.reservation;
+  const first = Array.isArray(reservation) ? reservation[0] : reservation;
+  const reservationId =
+    first && typeof first === "object" ? readNumericId((first as { id?: unknown }).id) : readNumericId(first);
+
+  return {
+    purchaseId,
+    checkoutToken: typeof data?.checkout_token === "string" ? data.checkout_token : null,
+    reservationId: reservationId ?? undefined,
+    raw: data,
+  };
+}
+
 class GafaApiError extends Error {
   constructor(
     message: string,
@@ -587,7 +663,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       subscribable: Boolean(raw.subscribable),
       ctaLabel: "Agregar",
       // El JSON íntegro: v1 manda el combo entero en el cart de
-      // initial-purchase y gafa.fit puede leer claves que no normalizamos.
+      // `/reservate` y gafa.fit puede leer claves que no normalizamos.
       raw: { ...(raw as Record<string, unknown>) },
     };
   }
@@ -1319,14 +1395,16 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         }))
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
+      const urlReservation = readFancyBlock(doc, "urlReservation");
       const urlInitialPurchase = readFancyBlock(doc, "urlInitialPurchase");
       const urlInitialPurchaseStatus = readFancyBlock(doc, "urlInitialPurchaseStatus");
+      const csrfToken = readFancyBlock(doc, "csrf");
       const urlCheckDiscountCode = readFancyBlock(doc, "urlCheckDiscountCode");
       const urlCheckGiftCode = readFancyBlock(doc, "urlCheckGiftCode");
       const urlGenerateGiftCode = readFancyBlock(doc, "urlGenerateCode");
       const canRedeem = readFancyBlock(doc, "canRedeemStoreCredit");
 
-      if (!urlInitialPurchase || !urlInitialPurchaseStatus) {
+      if (!urlReservation) {
         throw new Error("No encontramos la configuración de pago para esta sede.");
       }
 
@@ -1353,9 +1431,11 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         locationId: locationBlock?.id,
         userProfileId: userBlock?.id ?? profile.id,
         usersId: userBlock?.users_id,
+        csrfToken: csrfToken ?? undefined,
         urls: {
-          initialPurchase: urlInitialPurchase,
-          initialPurchaseStatus: urlInitialPurchaseStatus,
+          reservation: urlReservation,
+          initialPurchase: urlInitialPurchase ?? "",
+          initialPurchaseStatus: urlInitialPurchaseStatus ?? "",
           checkDiscountCode: urlCheckDiscountCode ?? undefined,
           checkGiftCode: urlCheckGiftCode ?? undefined,
           generateGiftCode: urlGenerateGiftCode ?? undefined,
@@ -1395,65 +1475,26 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       } satisfies GiftCodeResult;
     },
 
+    /**
+     * Stripe/PayPal: paridad con `BuySystemStep.sendForm` del fancy v1.
+     * POST a `/reservation/reservate` → Stripe::paymentByCard o paymentByToken.
+     * `initial-purchase` (abajo) es SOLO Recurrente y cae en unpaidPurchase,
+     * que en producción truena: `$subscribe` null.
+     */
+    async reservatePurchase(payload: InitialPurchasePayload) {
+      const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/reservate`;
+      const data = await apiPostFormUrl<Record<string, unknown>>(url, buildPurchaseFormBody(payload));
+      const result = parsePurchaseResult(data);
+      if (result.purchaseId == null && result.reservationId == null) {
+        throw new Error("El servidor no confirmó la compra.");
+      }
+      return result;
+    },
+
     async initialPurchase(payload: InitialPurchasePayload) {
-      // PARIDAD EXACTA con `sendInitialPurchaseForm` del fancy v1
-      // (buildTemplate.js de producción): mismas claves, en el mismo formato.
-      // jQuery `$.param` manda `clave=` (vacío) cuando el valor es null: aquí
-      // igual, porque Laravel convierte "Undefined array key" en excepción y
-      // el 500 llega con el cargo de Stripe ya hecho.
-      const partitioned = partitionGafaFitCart(payload.lines);
-
-      const body: Record<string, unknown> = {
-        _token: "",
-        users_id: payload.userId,
-        meetings_id: payload.meetingId ?? "",
-        meeting_data: "",
-        payment_types_id: payload.paymentTypeId,
-        discountCode: payload.discountCode ?? "",
-        giftCode: payload.giftCode ?? "",
-        selected_credit: payload.selectedCredit ?? "",
-        invited_data: "",
-        signature: "",
-        subscriptionId: payload.subscriptionId ?? "",
-        // v1 manda los booleanos como los serializa jQuery ("true"/"false").
-        subscribe: payload.subscribe ? "true" : "false",
-        set_payment: payload.setPayment ? "true" : "false",
-        test: "false",
-        combos_id: partitioned.combosId,
-        combos_amounts: partitioned.combosAmounts,
-        memberships_id: partitioned.membershipsId,
-        memberships_amounts: partitioned.membershipsAmounts,
-        products_id: partitioned.productsId,
-        products_amounts: partitioned.productsAmounts,
-        cart: partitioned.cart,
-        combo: partitioned.combo,
-        membership: partitioned.membership,
-        product: partitioned.product,
-      };
-
-      // Solo el checkout alojado (Recurrente) trae token; v1 lo agrega solo
-      // si existe. Mandarlo con Stripe registraba "Checkout de Recurrente".
-      if (payload.checkoutToken) {
-        body.checkout_token = payload.checkoutToken;
-      }
-
-      if (payload.seatObjectId != null) {
-        body.map_objectsSelected = [{ id: payload.seatObjectId }];
-      }
-
-      if (payload.paymentData != null) {
-        // v1: `ht.payment_data = e.message` → con Stripe es el recibo base64
-        // (string plano). Objetos (Conekta) van como array PHP anidado.
-        body.payment_data = payload.paymentData;
-      }
-
       const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase`;
-      const data = await apiPostFormUrl<{ purchase_id?: number; checkout_token?: string }>(url, body);
-      return {
-        purchaseId: data?.purchase_id ?? null,
-        checkoutToken: data?.checkout_token ?? null,
-        raw: data,
-      } satisfies InitialPurchaseResult;
+      const data = await apiPostFormUrl<Record<string, unknown>>(url, buildPurchaseFormBody(payload));
+      return parsePurchaseResult(data);
     },
 
     async pollInitialPurchaseStatus(payload) {

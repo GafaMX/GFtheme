@@ -39,9 +39,9 @@ export function gafaFitProductType(type: CartLineType): string {
 
 /**
  * v1: `Object.assign({amount, type, product_type}, comboData)` — el item del
- * API viaja ENTERO (credits, expiration_days, created_at…). initial-purchase
- * puede leer cualquiera de esas claves; mandarlo recortado tiraba 500 con el
- * cargo ya hecho.
+ * API viaja ENTERO (credits, expiration_days, created_at…). `reservate`
+ * (paymentByCard / paymentByToken) puede leer cualquiera de esas claves;
+ * mandarlo recortado tiraba 500 con el cargo ya hecho.
  */
 export function toGafaFitCartItem(line: GafaFitPurchaseLine): GafaFitCartItem {
   const item: GafaFitCartItem = {

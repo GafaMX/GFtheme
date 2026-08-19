@@ -122,6 +122,76 @@ describe("initialPurchase", () => {
   });
 });
 
+describe("reservatePurchase", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("POSTea a /reservate, no a initial-purchase", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase: { id: 88 } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: "NDk0MTE4X3x8X2NoXzNVNXJZ",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      "https://buq.partners/api/brand/fitspin/location/fitspin-polanco/reservation/reservate",
+    );
+    expect(url).not.toContain("initial-purchase");
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("payment_data")).toBe("NDk0MTE4X3x8X2NoXzNVNXJZ");
+    expect(body.get("users_id")).toBe("370466");
+    expect(body.get("payment_types_id")).toBe("6");
+  });
+
+  it("lee purchase.id y reservation[0].id como el fancy v1", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({
+          purchase: { id: 494780 },
+          reservation: [{ id: 9001, meeting_position: 12 }],
+        }),
+      ),
+    );
+
+    const result = await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      meetingId: 849768,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: "recibo",
+    });
+
+    expect(result?.purchaseId).toBe(494780);
+    expect(result?.reservationId).toBe(9001);
+  });
+
+  it("falla si Buq responde 200 sin compra ni reserva", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({})));
+
+    await expect(
+      client().reservatePurchase?.({
+        brandSlug: "fitspin",
+        locationSlug: "fitspin-polanco",
+        userId: 370466,
+        lines: [{ id: 971, type: "combo", amount: 1 }],
+        paymentTypeId: 6,
+        paymentData: "recibo",
+      }),
+    ).rejects.toThrow(/no confirmó la compra/i);
+  });
+});
+
 describe("pollInitialPurchaseStatus", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
