@@ -8,11 +8,49 @@ const themeCss = readFileSync(
   "utf8",
 );
 
+const widgetsCss = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "../widgets/widgets.css"),
+  "utf8",
+);
+
 describe("theme CSS isolation vs GafaPay", () => {
   it("no resetea botones/svg de la isla de PayPal (gafa-pay-native)", () => {
     expect(themeCss).toContain("button:not(.gafa-pay-native *)");
     expect(themeCss).toContain("svg[stroke]:not([fill]):not(.gafa-pay-native *)");
     expect(themeCss).toContain(".gafa-sdk .gafa-pay-native *");
     expect(themeCss).toMatch(/box-sizing:\s*content-box/);
+  });
+});
+
+describe("theme CSS isolation vs host (Elementor / Hello)", () => {
+  it("no usa all:revert (tumba .gafa-sdk-button)", () => {
+    const withoutComments = themeCss.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(withoutComments).not.toMatch(/all:\s*revert/);
+  });
+
+  it("sube especificidad con .gafa-sdk triple para ganar al kit de Elementor", () => {
+    expect(themeCss).toContain(".gafa-sdk.gafa-sdk.gafa-sdk button");
+    expect(themeCss).toContain("border: var(--gafa-control-border, 0 solid transparent) !important");
+    expect(themeCss).toContain("color: var(--gafa-control-fg, inherit) !important");
+  });
+
+  it("no aplasta checkbox/radio del checkout con el reset de campos", () => {
+    expect(themeCss).toContain('input:not([type="checkbox"]):not([type="radio"])');
+  });
+
+  it("bloquea fondo de headings y max-width de img del tema", () => {
+    expect(themeCss).toContain("background-color: transparent !important");
+    expect(themeCss).toContain("max-width: var(--gafa-img-max-width, none) !important");
+  });
+
+  it("pinta el focus del SDK, no el outline naranja de WP", () => {
+    expect(themeCss).toContain("outline: 2px solid var(--gafa-color-accent) !important");
+  });
+
+  it("asigna borde de control en las cards y el Hoy del calendario", () => {
+    expect(widgetsCss).toContain(".gafa-meeting-card");
+    expect(widgetsCss).toMatch(/\.gafa-meeting-card[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);
+    expect(widgetsCss).toMatch(/\.gafa-calendar-today[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);
+    expect(widgetsCss).toMatch(/\.gafa-sdk-button[\s\S]{0,200}--gafa-control-fg:\s*var\(--gafa-color-primary-text\)/);
   });
 });
