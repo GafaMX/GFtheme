@@ -76,8 +76,10 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
         filters: {
           brand: element.hasAttribute("filter-bq-brand"),
           location: element.hasAttribute("filter-bq-location"),
-          service: element.hasAttribute("filter-bq-service"),
-          staff: element.hasAttribute("filter-bq-staff"),
+          // Servicio y coach se filtran siempre que haya opciones: Fitspin
+          // (y casi todo estudio) los espera. Marca/sala siguen opt-in.
+          service: readFilterFlag(element, "filter-bq-service", true),
+          staff: readFilterFlag(element, "filter-bq-staff", true),
           room: element.hasAttribute("filter-bq-room"),
           brandId: toNumber(element.getAttribute("filter-bq-brand-default")),
           locationId:
@@ -205,6 +207,14 @@ function readAuthInitialView(element: HTMLElement): "login" | "register" | "pass
   }
 
   return "login";
+}
+
+/** Ausente = defaultOn. `false`/`0` apaga. Cualquier otro valor (o el attr vacío) enciende. */
+export function readFilterFlag(element: Element, name: string, defaultOn: boolean): boolean {
+  if (!element.hasAttribute(name)) return defaultOn;
+  const value = (element.getAttribute(name) ?? "").trim().toLowerCase();
+  if (value === "false" || value === "0" || value === "off" || value === "no") return false;
+  return true;
 }
 
 function toNumber(value: string | null): number | undefined {

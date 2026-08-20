@@ -76,7 +76,7 @@ type CalendarFiltersState = {
 export function CalendarWidget({
   client,
   captcha,
-  filters = {},
+  filters: filtersProp = {},
   limit,
   view: initialView = "day",
   allowViewChange = true,
@@ -87,6 +87,7 @@ export function CalendarWidget({
   title: _title,
   description: _description,
 }: CalendarWidgetProps) {
+  const filters = { service: true, staff: true, ...filtersProp };
   const queryClient = useQueryClient();
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>(() => ({
     locationId: readCalendarLocationIdFromWindow() ?? filters.locationId,
