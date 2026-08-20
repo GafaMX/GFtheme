@@ -115,10 +115,13 @@ type RawUserProfile = {
 };
 
 type RawUserCredit = {
+  id?: number;
   total: number;
   expiration_date?: string;
+  credits_id?: number;
+  purchase_items_id?: number;
   credit: { id: number; name: string };
-  purchase_item?: { item_name?: string | null } | null;
+  purchase_item?: { id?: number; item_name?: string | null } | null;
 };
 
 type RawUserMembership = {
@@ -313,6 +316,29 @@ const API_MESSAGE_TRANSLATIONS: Record<string, string> = {
 
 function translateApiMessage(message: string): string {
   return API_MESSAGE_TRANSLATIONS[message.trim()] ?? message;
+}
+
+/**
+ * Cada compra es un paquete distinto aunque el tipo interno (`CDMXnew`) se
+ * repita. El id de UI es el `purchase_items_id`; `creditTypeId` queda para
+ * cruzar reservas. Sin purchase_item se fabrica un id que no colisione entre
+ * filas de la misma respuesta.
+ */
+function mapUserCredit(raw: RawUserCredit, index: number): UserCredit {
+  const purchaseItemId = raw.purchase_items_id ?? raw.purchase_item?.id;
+  const creditTypeId = raw.credit?.id ?? raw.credits_id;
+  const uniqueId =
+    purchaseItemId ??
+    (raw.id && raw.id !== creditTypeId ? raw.id : undefined) ??
+    1_000_000_000 + (creditTypeId ?? 0) * 10_000 + index;
+
+  return {
+    id: uniqueId,
+    creditTypeId,
+    name: raw.purchase_item?.item_name || raw.credit?.name || "Paquete",
+    total: Number(raw.total) || 0,
+    expiresAt: raw.expiration_date,
+  };
 }
 
 type RawMeeting = {
@@ -901,13 +927,13 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async listUserCredits(brandSlug) {
       if (!token || !brandSlug) return [];
-      const response = await apiGet<PaginatedResponse<RawUserCredit>>(`/me/brand/${brandSlug}/credits`);
-      return unwrap(response).map((raw) => ({
-        id: raw.credit.id,
-        name: raw.purchase_item?.item_name || raw.credit.name,
-        total: raw.total,
-        expiresAt: raw.expiration_date,
-      }));
+      const response = await apiGet<PaginatedResponse<RawUserCredit>>(`/me/brand/${brandSlug}/credits`, {
+        per_page: 100,
+      });
+      return unwrap(response)
+        .filter((raw) => (Number(raw.total) || 0) > 0)
+        .map((raw, index) => mapUserCredit(raw, index))
+        .sort((a, b) => (a.expiresAt ?? "").localeCompare(b.expiresAt ?? ""));
     },
 
     async listUserMemberships(brandSlug) {
@@ -1151,9 +1177,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             try {
               const response = await apiGet<PaginatedResponse<RawUserCredit>>(
                 `/me/brand/${payload.brandSlug}/credits`,
+                { per_page: 100 },
               );
               for (const raw of unwrap(response)) {
-                const itemId = (raw as { purchase_items_id?: number }).purchase_items_id;
+                const itemId = raw.purchase_items_id ?? raw.purchase_item?.id;
                 const itemName = raw.purchase_item?.item_name;
                 if (itemId && itemName) packageNameByPurchaseItem.set(itemId, itemName);
               }

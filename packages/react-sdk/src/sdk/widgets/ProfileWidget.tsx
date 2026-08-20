@@ -185,7 +185,9 @@ export function ProfileWidget({
     queryKey: ["profile", "credits", brandSlugs.join(",")],
     queryFn: async () => {
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserCredits(slug)));
-      return dedupeById(batches.flat());
+      // Dedupe por compra (`purchase_items_id`), no por tipo interno de credito:
+      // tres "1 clase" de CDMXnew son tres paquetes, no uno.
+      return dedupeById(batches.flat()).sort((a, b) => (a.expiresAt ?? "").localeCompare(b.expiresAt ?? ""));
     },
     enabled: canQueryBrandData,
   });
@@ -261,7 +263,10 @@ export function ProfileWidget({
   // docs/creditos-vs-paquetes.md.
   const packageNameByCreditId = useMemo(() => {
     const map = new Map<number, string>();
-    (creditsQuery.data ?? []).forEach((credit) => map.set(credit.id, credit.name));
+    (creditsQuery.data ?? []).forEach((credit) => {
+      const typeId = credit.creditTypeId ?? credit.id;
+      if (!map.has(typeId)) map.set(typeId, credit.name);
+    });
     return map;
   }, [creditsQuery.data]);
 
@@ -550,24 +555,19 @@ function OverviewPanel({
 }) {
   const creditTotal = credits.reduce((sum, credit) => sum + (Number(credit.total) || 0), 0);
 
-  // Con un solo paquete, el numero grande ya es todo el saldo: no hace falta
-  // nombrarlo. Con mas de uno, la suma escondia cual vence primero, asi que
-  // cada paquete se ve por separado y se navega con el mini slider.
+  // El numero grande es SIEMPRE el total. Con mas de un paquete, el mini
+  // slider recorre cada compra (nombre + vencimiento) sin esconder el saldo.
   const creditSlides: BalanceSlide[] =
     credits.length > 1
       ? credits.map((credit) => ({
-          value: credit.total,
-          label: credit.total === 1 ? "Clase disponible" : "Clases disponibles",
           title: credit.name,
-          hint: expirationLabel(credit.expiresAt),
+          hint: `${credit.total === 1 ? "1 crédito" : `${credit.total} créditos`} · ${expirationLabel(credit.expiresAt)}`,
         }))
       : [];
 
   const membershipSlides: BalanceSlide[] =
     memberships.length > 1
       ? memberships.map((membership) => ({
-          value: "∞",
-          label: "Membresía activa",
           title: membership.name,
           hint: expirationLabel(membership.expiresAt),
         }))
@@ -661,7 +661,12 @@ function OverviewPanel({
         ) : (
           <div className="gafa-acct-balance">
             {creditSlides.length > 0 ? (
-              <BalanceCard emoji="🎟️" slides={creditSlides} />
+              <BalanceCard
+                emoji="🎟️"
+                value={creditTotal}
+                label={creditTotal === 1 ? "Clase disponible" : "Clases disponibles"}
+                slides={creditSlides}
+              />
             ) : (
               <div className="gafa-acct-balance__card">
                 <span className="gafa-acct-balance__emoji" aria-hidden="true">
@@ -678,7 +683,12 @@ function OverviewPanel({
             )}
 
             {membershipSlides.length > 0 ? (
-              <BalanceCard emoji="♾️" slides={membershipSlides} />
+              <BalanceCard
+                emoji="♾️"
+                value={memberships.length}
+                label={memberships.length === 1 ? "Membresía activa" : "Membresías activas"}
+                slides={membershipSlides}
+              />
             ) : (
               <div className="gafa-acct-balance__card">
                 <span className="gafa-acct-balance__emoji" aria-hidden="true">
@@ -800,19 +810,25 @@ function Stat({
 }
 
 type BalanceSlide = {
-  value: ReactNode;
-  label: string;
   title?: string;
   hint?: string;
 };
 
 /**
- * La tarjeta de saldo de "Tu saldo" cuando hay mas de un paquete/membresia
- * activo: un mini slider (flechas + puntos) en vez de sumar todo en un solo
- * numero, que escondia cual paquete vence primero. El detalle completo, sin
- * navegar, sigue viviendo en la pestaña "Creditos".
+ * "Tu saldo" con varios paquetes: el numero grande es el total; el mini
+ * slider recorre cada compra. El detalle completo sigue en "Creditos".
  */
-function BalanceCard({ emoji, slides }: { emoji: string; slides: BalanceSlide[] }) {
+function BalanceCard({
+  emoji,
+  value,
+  label,
+  slides,
+}: {
+  emoji: string;
+  value: ReactNode;
+  label: string;
+  slides: BalanceSlide[];
+}) {
   const [index, setIndex] = useState(0);
   const current = slides[Math.min(index, slides.length - 1)];
   const multiple = slides.length > 1;
@@ -822,10 +838,14 @@ function BalanceCard({ emoji, slides }: { emoji: string; slides: BalanceSlide[] 
       <span className="gafa-acct-balance__emoji" aria-hidden="true">
         {emoji}
       </span>
-      <span className="gafa-acct-balance__value">{current.value}</span>
-      <span className="gafa-acct-balance__label">{current.label}</span>
-      {current.title ? <span className="gafa-acct-balance__title">{current.title}</span> : null}
-      {current.hint ? <span className="gafa-acct-balance__hint">{current.hint}</span> : null}
+      <span className="gafa-acct-balance__value">{value}</span>
+      <span className="gafa-acct-balance__label">{label}</span>
+      {current?.title ? (
+        <span className="gafa-acct-balance__title" aria-live="polite">
+          {current.title}
+        </span>
+      ) : null}
+      {current?.hint ? <span className="gafa-acct-balance__hint">{current.hint}</span> : null}
 
       {multiple ? (
         <div className="gafa-acct-balance__nav" aria-label="Elegir paquete">
@@ -1150,8 +1170,27 @@ function BalancePanel({
     );
   }
 
+  const creditTotal = credits.reduce((sum, credit) => sum + (Number(credit.total) || 0), 0);
+
   return (
     <div className="gafa-acct-cards">
+      {credits.length > 0 ? (
+        <article className="gafa-acct-row gafa-acct-row--hero" aria-label="Total de clases disponibles">
+          <div className="gafa-acct-row__icon">
+            <TicketIcon />
+          </div>
+          <div className="gafa-acct-row__info">
+            <h4>Total disponible</h4>
+            <p>
+              {credits.length === 1
+                ? "1 paquete activo"
+                : `${credits.length} paquetes activos`}
+            </p>
+          </div>
+          <strong className="gafa-acct-row__value">{creditTotal}</strong>
+        </article>
+      ) : null}
+
       {credits.map((credit) => (
         <article className="gafa-acct-row" key={`credit-${credit.id}`}>
           <div className="gafa-acct-row__icon">

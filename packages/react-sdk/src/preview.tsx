@@ -30,7 +30,7 @@ const futureReservations = [
     brandSlug: "fitspin",
     isWaitlist: false,
     isOverbooking: false,
-    creditId: 1,
+    creditId: 509,
     creditTypeName: "CDMXnew",
     seatLabel: "21",
     qrHash: "demo-hash-1",
@@ -143,8 +143,10 @@ const client = {
     isEmptyMode
       ? []
       : [
-          { id: 1, name: "Paquete 10 clases", total: 5, expiresAt: inDays(60) },
-          { id: 2, name: "Clase suelta", total: 1, expiresAt: inDays(12) },
+          { id: 101, creditTypeId: 509, name: "1 clase", total: 1, expiresAt: inDays(28) },
+          { id: 102, creditTypeId: 509, name: "1 clase", total: 1, expiresAt: inDays(29) },
+          { id: 103, creditTypeId: 509, name: "1 clase", total: 1, expiresAt: inDays(30) },
+          { id: 104, creditTypeId: 509, name: "5 Clases", total: 1, expiresAt: inDays(52) },
         ],
   listUserMemberships: async () => (isEmptyMode ? [] : [{ id: 9, name: "Ilimitada mensual", expiresAt: inDays(18) }]),
   // Mutable de verdad (no un fixture que se re-lee igual siempre): cancelar

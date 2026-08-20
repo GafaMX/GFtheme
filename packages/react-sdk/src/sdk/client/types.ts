@@ -129,7 +129,14 @@ export type UserProfile = {
 };
 
 export type UserCredit = {
+  /**
+   * Identificador unico del paquete comprado (`purchase_items_id`).
+   * Varias compras del mismo tipo interno (`CDMXnew`) tienen el mismo
+   * `creditTypeId` pero ids distintos: el perfil debe pintarlas por separado.
+   */
   id: number;
+  /** `credits.id` interno del estudio. Sirve para cruzar reservas, no para agrupar la UI. */
+  creditTypeId?: number;
   name: string;
   total: number;
   expiresAt?: string;

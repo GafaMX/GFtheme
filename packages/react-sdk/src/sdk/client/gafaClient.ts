@@ -103,7 +103,8 @@ export function createMockGafaClient(): GafaClient {
       },
     ],
     listUserCredits: async () => [
-      { id: 1, name: "10 clases", total: 5, expiresAt: inDays(45) },
+      { id: 101, creditTypeId: 1, name: "10 clases", total: 5, expiresAt: inDays(45) },
+      { id: 102, creditTypeId: 1, name: "Clase suelta", total: 1, expiresAt: inDays(12) },
     ],
     listUserMemberships: async () => [
       { id: 2, name: "Mensual ilimitada", startedAt: inDays(-15), expiresAt: inDays(15) },

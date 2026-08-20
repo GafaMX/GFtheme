@@ -3316,6 +3316,15 @@
     display: none;
   }
 
+  .gafa-acct-balance__card[data-carousel="true"] .gafa-acct-balance__title,
+  .gafa-acct-balance__card[data-carousel="true"] .gafa-acct-balance__hint {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+  }
+
   .gafa-acct-stats {
     gap: 0.4rem;
   }
@@ -3624,6 +3633,22 @@
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
   text-transform: capitalize;
+}
+
+.gafa-acct-row--hero {
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--gafa-color-accent) 18%, transparent) 0%, transparent 55%),
+    var(--gafa-color-surface-raised);
+  border-color: color-mix(in srgb, var(--gafa-color-primary) 32%, var(--gafa-color-border));
+}
+
+.gafa-acct-row--hero .gafa-acct-row__icon {
+  background: color-mix(in srgb, var(--gafa-color-primary) 16%, transparent);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-acct-row--hero .gafa-acct-row__value {
+  font-size: 1.55rem;
 }
 
 /* ----- formularios */
