@@ -47,10 +47,26 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(themeCss).toContain("outline: 2px solid var(--gafa-color-accent) !important");
   });
 
+  it("el texto secundario usa --gafa-fg para no heredar el gris oscuro del tema", () => {
+    expect(themeCss).toContain("color: var(--gafa-fg, inherit) !important");
+    expect(themeCss).toContain("color: var(--gafa-fg, var(--gafa-color-text)) !important");
+    expect(widgetsCss).toMatch(/\.gafa-meeting-detail[\s\S]{0,280}--gafa-fg:\s*var\(--gafa-color-muted-text\)/);
+    expect(widgetsCss).toMatch(/\.gafa-sdk-kicker[\s\S]{0,120}--gafa-fg:\s*var\(--gafa-color-muted-text\)/);
+  });
+
+  it("en dark no apaga los dias pasados del datepicker ni infla los botones", () => {
+    expect(widgetsCss).toMatch(
+      /\.gafa-datepicker__day:disabled[\s\S]{0,500}opacity:\s*1/,
+    );
+    expect(widgetsCss).not.toMatch(/\.gafa-datepicker__day:disabled[\s\S]{0,200}opacity:\s*0\.3/);
+    expect(widgetsCss).toMatch(/\.gafa-sdk-button[\s\S]{0,280}min-height:\s*40px/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-product__add[\s\S]{0,400}min-height:\s*34px/);
+  });
+
   it("asigna borde de control en las cards y el Hoy del calendario", () => {
     expect(widgetsCss).toContain(".gafa-meeting-card");
     expect(widgetsCss).toMatch(/\.gafa-meeting-card[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);
     expect(widgetsCss).toMatch(/\.gafa-calendar-today[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);
-    expect(widgetsCss).toMatch(/\.gafa-sdk-button[\s\S]{0,200}--gafa-control-fg:\s*var\(--gafa-color-primary-text\)/);
+    expect(widgetsCss).toMatch(/\.gafa-sdk-button[\s\S]{0,280}--gafa-control-fg:\s*var\(--gafa-color-primary-text\)/);
   });
 });

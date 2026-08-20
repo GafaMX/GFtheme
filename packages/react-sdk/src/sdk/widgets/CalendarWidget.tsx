@@ -840,11 +840,11 @@ function CalendarIcon() {
 
 function ChevronIcon({ direction }: { direction: "left" | "right" }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d={direction === "left" ? "M14.5 5.5 8 12l6.5 6.5" : "M9.5 5.5 16 12l-6.5 6.5"}
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="2.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -1059,7 +1059,7 @@ function MeetingCard({
 
 function PersonIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="8" r="3.4" stroke="currentColor" strokeWidth="2" />
       <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>

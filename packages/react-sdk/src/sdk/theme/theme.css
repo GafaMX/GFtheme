@@ -121,7 +121,16 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk h6 {
   background-color: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
+  color: var(--gafa-fg, var(--gafa-color-text)) !important;
   padding: 0 !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk {
+  color: var(--gafa-color-text) !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk :is(p, span, small, strong, em, li, label, legend, time):not(.gafa-pay-native *) {
+  color: var(--gafa-fg, inherit) !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk p:not(.gafa-pay-native *) {
@@ -187,6 +196,13 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk :focus-visible:not(.gafa-pay-native *):not
   outline: 2px solid var(--gafa-color-accent) !important;
   outline-offset: 2px !important;
   box-shadow: none !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk input:-webkit-autofill:not(.gafa-pay-native *),
+html body .gafa-sdk.gafa-sdk.gafa-sdk textarea:-webkit-autofill:not(.gafa-pay-native *) {
+  -webkit-text-fill-color: var(--gafa-field-fg, var(--gafa-color-text)) !important;
+  box-shadow: 0 0 0 1000px var(--gafa-field-bg, var(--gafa-color-surface)) inset !important;
+  caret-color: var(--gafa-color-text);
 }
 
 .gafa-scheme-toggle {

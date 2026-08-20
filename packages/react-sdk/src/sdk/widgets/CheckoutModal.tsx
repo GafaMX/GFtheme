@@ -960,8 +960,8 @@ export function CheckoutModal({
                           aria-label={`Eliminar ${line.name}`}
                           onClick={() => removeItem(line.key)}
                         >
-                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                           </svg>
                         </button>
                       </div>
@@ -1592,8 +1592,8 @@ function RemoveClassButton({ onClick }: { onClick: () => void }) {
       aria-label="Quitar clase"
       onClick={onClick}
     >
-      <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     </button>
   );
