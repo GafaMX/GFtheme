@@ -78,6 +78,12 @@ No hace falta Republish para que el resto de marcas v2 lo tomen: el próximo loa
 
 No mezclar. `initial-purchase` + Stripe viejo de producción = cargo sin créditos.
 
+El CTA amarillo **Pagar** dispara Recurrente (abre la otra ventana). No uses el botón negro de GafaPay. Tras pagar, el SDK POSTea `initial-purchase` y consulta `initial-purchase-status` hasta que Buq confirma.
+
+## Moneda (Q, €, $)
+
+Los precios salen del `prefijo` / `code3` de la marca (`Q`+`GTQ`, `€`+`EUR`, `$`+`MXN`). El catálogo no asume dólares mexicanos.
+
 ## Perfil: cada paquete es una fila
 
 `listUserCredits` identifica cada compra por `purchase_items_id`, no por tipo de crédito. “Mi actividad” muestra el **total** y un slider por paquete.

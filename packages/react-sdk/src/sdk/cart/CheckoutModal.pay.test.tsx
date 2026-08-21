@@ -430,3 +430,82 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(reservatePurchase).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("CheckoutModal Recurrente", () => {
+  let lastProps: GafaPayWidgetProps | undefined;
+
+  beforeEach(() => {
+    lastProps = undefined;
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    mocks.loadGafaPay.mockResolvedValue({
+      React: { createElement: () => null },
+      ReactDOM: { render: () => undefined, unmountComponentAtNode: () => true },
+      elements: { RecurrentePayment: function RecurrentePayment() {} },
+    });
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      lastProps = props;
+      if (container instanceof Element) {
+        const wrap = document.createElement("div");
+        wrap.className = "gafapay-recurrente";
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = "Pago con Tarjeta";
+        button.addEventListener("click", () => {
+          props.onStartPayAction();
+          props.onCheckoutOpenAction?.({
+            checkout_token: "chk_voltio",
+            redirect: "https://app.recurrente.com/checkout-session/chk_voltio",
+          });
+        });
+        wrap.appendChild(button);
+        container.appendChild(wrap);
+      }
+      return {
+        update: (next) => {
+          lastProps = next;
+        },
+        unmount: () => undefined,
+      };
+    });
+    mocks.waitForWidgetContent.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    cleanup();
+    useCartStore.setState({ lines: [], reservation: null });
+    vi.clearAllMocks();
+  });
+
+  function recurrenteConfig(): CheckoutConfig {
+    return {
+      ...checkoutConfig(),
+      currency: { prefix: "Q", suffix: "GTQ", code: "GTQ" },
+      paymentMethods: [{ id: 9, name: "Recurrente", slug: "recurrente" }],
+    };
+  }
+
+  it("el CTA amarillo abre Recurrente, POSTea initial-purchase y no llama reservate", async () => {
+    const client = mockClient({
+      getCheckoutConfig: async () => recurrenteConfig(),
+    });
+    renderPay(client);
+
+    const pay = await waitFor(() => screen.getByRole("button", { name: /pagar/i }));
+    await waitFor(() => {
+      expect((pay as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    fireEvent.click(pay);
+
+    await waitFor(() => {
+      expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    });
+    expect(client.initialPurchase).toHaveBeenCalledWith(
+      expect.objectContaining({ checkoutToken: "chk_voltio", paymentTypeId: 9 }),
+    );
+    expect(client.pollInitialPurchaseStatus).toHaveBeenCalled();
+    expect(client.reservatePurchase).not.toHaveBeenCalled();
+    expect(lastProps?.order.currency).toBe("GTQ");
+    expect(lastProps?.termsAndConditions).toBe(true);
+  });
+});

@@ -39,6 +39,7 @@ import type {
 import type { GafaSdkConfig } from "../config";
 import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
 import { partitionGafaFitCart } from "../cart/gafaFitCart";
+import { formatCatalogAmount, resolveMoneyCurrency } from "../cart/money";
 import { toFormBody } from "./formBody";
 import {
   clearStoredToken,
@@ -66,6 +67,7 @@ type RawBrand = {
   gafapay_brand_id?: number | null;
   gafapay_client_id?: string | number | null;
   gafapay_client_secret?: string | null;
+  currency?: { prefijo?: string; sufijo?: string; code3?: string } | string | null;
 };
 
 type RawCatalogItem = {
@@ -80,7 +82,7 @@ type RawCatalogItem = {
   credits?: number | null;
   subscribable?: boolean | number | null;
   hide_in_front?: boolean | number | null;
-  currency?: string;
+  currency?: string | { prefijo?: string; sufijo?: string; code3?: string } | null;
 };
 
 type RawUserProfile = {
@@ -643,6 +645,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       gafapayBrandId: raw.gafapay_brand_id ?? null,
       gafapayClientId: raw.gafapay_client_id != null ? String(raw.gafapay_client_id) : null,
       gafapayClientSecret: raw.gafapay_client_secret ?? null,
+      currency: resolveMoneyCurrency(raw.currency) ?? undefined,
     };
   }
 
@@ -652,13 +655,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return Number.isFinite(n) ? n : undefined;
   }
 
-  function formatCatalogPrice(amount: number | undefined, currency = "MXN"): string | undefined {
-    if (amount == null) return undefined;
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    }).format(amount);
+  function formatCatalogPrice(amount: number | undefined, currencyRaw: unknown): string | undefined {
+    return formatCatalogAmount(amount, currencyRaw);
   }
 
   function normalizeCatalogItem(
@@ -669,17 +667,18 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     if (raw.hide_in_front) return null;
     const price = moneyNumber(raw.price);
     const priceFinal = moneyNumber(raw.price_final) ?? price;
-    const currency = raw.currency ?? "MXN";
+    const money = resolveMoneyCurrency(raw.currency);
+    const currency = money?.code;
     return {
       id: raw.id,
       name: raw.name,
       description: raw.short_description || raw.description || undefined,
       price,
       priceFinal,
-      priceLabel: formatCatalogPrice(priceFinal, currency),
+      priceLabel: formatCatalogPrice(priceFinal, raw.currency ?? money),
       compareAtPriceLabel:
         raw.has_discount && price != null && priceFinal != null && price > priceFinal
-          ? formatCatalogPrice(price, currency)
+          ? formatCatalogPrice(price, raw.currency ?? money)
           : undefined,
       currency,
       type,
@@ -1439,11 +1438,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         brandSlug: payload.brandSlug,
         locationSlug: payload.locationSlug,
         meetingId: payload.meetingId != null ? Number(payload.meetingId) : undefined,
-        currency: {
-          prefix: currencyRaw?.prefijo ?? "$",
-          suffix: currencyRaw?.sufijo ?? currencyRaw?.code3 ?? "MXN",
-          code: currencyRaw?.code3 ?? "MXN",
-        },
+        currency:
+          resolveMoneyCurrency(currencyRaw) ?? {
+            prefix: currencyRaw?.prefijo ?? "$",
+            suffix: currencyRaw?.sufijo ?? currencyRaw?.code3 ?? "MXN",
+            code: currencyRaw?.code3 ?? "MXN",
+          },
         paymentMethods,
         termsConditionsLink: brand?.termsConditionsLink ?? null,
         gafapayClientId: brand?.gafapayClientId ?? null,

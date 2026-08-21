@@ -35,6 +35,8 @@ export type GafaPayOrder = {
   customerEmail?: string;
   customerPhone?: string;
   lineItems: GafaPayLineItem[];
+  /** ISO 4217. Recurrente lo manda al crear el checkout (GTQ, EUR, MXN). */
+  currency?: string;
 };
 
 export type GafaPayGeneralData = {
@@ -69,7 +71,14 @@ export type GafaPayWidgetProps = {
   onStartPayAction: () => void;
   onGafaPaySuccessAction: (result: GafaPaySuccess) => void;
   onGafaPayErrAction: (error: { err?: unknown; message?: string }) => void;
-  termsAndConditions?: string | null;
+  /**
+   * Recurrente: el cobro pasa en otra ventana. GafaPayFront llama esto con
+   * `{ redirect, checkout_token|id }` en cuanto tiene la URL. Ahí hay que
+   * POSTear `initial-purchase` y pollar el status.
+   */
+  onCheckoutOpenAction?: (data: unknown, done?: () => void) => void;
+  onCheckoutCloseAction?: () => void;
+  termsAndConditions?: string | boolean | null;
   hasRecurringPayment?: boolean;
   paymentFrequency?: string | null;
   changePaymentSystemProperties?: (props: { recurringPayment?: boolean; saveCard?: boolean }) => void;
@@ -95,6 +104,7 @@ declare global {
     ReactDOM?: ReactDomLike;
     _handleStripePayment?: () => unknown;
     _handleConektaPayment?: () => unknown;
+    _handleRecurrentePayment?: () => unknown;
   }
 }
 
@@ -350,7 +360,7 @@ export function hasGafaPayRuntime(): boolean {
  * onStartPayAction). Hay que await-ear el retorno: un fire-and-forget deja
  * el throw como unhandled rejection y el UI se queda en "Procesando…".
  */
-export function triggerGafaPayConfirm(slug: string): Promise<boolean> {
+export function triggerGafaPayConfirm(slug: string, root?: ParentNode | null): Promise<boolean> {
   if (typeof window === "undefined") return Promise.resolve(false);
 
   let result: unknown;
@@ -358,6 +368,16 @@ export function triggerGafaPayConfirm(slug: string): Promise<boolean> {
     result = window._handleStripePayment();
   } else if (slug === "conekta" && window._handleConektaPayment) {
     result = window._handleConektaPayment();
+  } else if (slug === "recurrente") {
+    // RecurrentePayment no registra handler global: abre la ventana desde
+    // el click de su botón "Pago con Tarjeta". El CTA amarillo lo dispara.
+    const scope = root ?? document;
+    const button = scope.querySelector<HTMLButtonElement>(
+      ".gafapay-recurrente button, .gafa-checkout-paymount[data-method='recurrente'] button",
+    );
+    if (!button) return Promise.resolve(false);
+    button.click();
+    return Promise.resolve(true);
   } else {
     return Promise.resolve(false);
   }

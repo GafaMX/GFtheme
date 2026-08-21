@@ -6,6 +6,7 @@ import type {
   CheckoutConfig,
   DiscountCodeResult,
   GafaClient,
+  InitialPurchasePayload,
   Meeting,
 } from "../client/types";
 import {
@@ -37,6 +38,11 @@ import {
 } from "../cart/checkoutCatalog";
 import { resolveDiscountAmount } from "../cart/discountCode";
 import { gafaFitProductType } from "../cart/gafaFitCart";
+import { resolveMoneyCurrency } from "../cart/money";
+import {
+  checkoutTokenFromHostedData,
+  pollRecurrenteUntilDone,
+} from "../cart/recurrenteCheckout";
 
 /** GafaPay ya cobró; reintentar "Pagar" haría un segundo cargo. */
 export const CHARGED_BUT_NOT_RECORDED =
@@ -179,6 +185,11 @@ export function CheckoutModal({
     recurring: boolean;
     subscriptionId: string | number | null;
   } | null>(null);
+  const hostedPendingRef = useRef<{
+    checkoutToken: string;
+    purchaseId: number;
+    payload: InitialPurchasePayload;
+  } | null>(null);
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
     reservationId?: number;
@@ -193,7 +204,6 @@ export function CheckoutModal({
   const brandsQuery = useQuery({
     queryKey: ["checkout", "brands"],
     queryFn: () => client.listBrands(),
-    enabled: !brandSlugProp,
     staleTime: 300_000,
   });
   const brandSlug = lockedBrandSlug ?? brandSlugProp ?? lines[0]?.brandSlug ?? brandsQuery.data?.[0]?.slug;
@@ -279,7 +289,6 @@ export function CheckoutModal({
   });
 
   const config = configQuery.data;
-  const currency = config?.currency ?? { prefix: "$", suffix: "MXN", code: "MXN" };
   const paymentMethods = config?.paymentMethods ?? [];
   const hasTerms = Boolean(config?.termsConditionsLink);
 
@@ -298,6 +307,16 @@ export function CheckoutModal({
     ? (config?.memberships ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
   const products = config?.products ?? [];
+  const catalogCurrency = useMemo(() => {
+    for (const item of [...combos, ...memberships, ...products]) {
+      const resolved = resolveMoneyCurrency(item.raw?.currency ?? item.currency);
+      if (resolved) return resolved;
+    }
+    return null;
+  }, [combos, memberships, products]);
+  const brandCurrency = brandsQuery.data?.find((brand) => brand.slug === brandSlug)?.currency;
+  const currency =
+    config?.currency ?? brandCurrency ?? catalogCurrency ?? { prefix: "$", suffix: "MXN", code: "MXN" };
 
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
   // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
@@ -417,7 +436,7 @@ export function CheckoutModal({
       type,
       name: item.name,
       price,
-      priceLabel: item.priceLabel ?? formatMoney(price, currency.prefix, ""),
+      priceLabel: formatMoney(price, currency.prefix, ""),
       brandSlug,
       locationSlug,
       expirationLabel: item.expirationDays ? `Expira en ${item.expirationDays} días` : undefined,
@@ -449,7 +468,7 @@ export function CheckoutModal({
         type: match.type,
         name: match.item.name,
         price,
-        priceLabel: match.item.priceLabel ?? formatMoney(price, currency.prefix, ""),
+        priceLabel: formatMoney(price, currency.prefix, ""),
         brandSlug: match.brandSlug,
         locationSlug: locationSlugProp,
         expirationLabel: match.item.expirationDays ? `Expira en ${match.item.expirationDays} días` : undefined,
@@ -563,6 +582,32 @@ export function CheckoutModal({
     }
   }
 
+  function purchaseLinesPayload() {
+    const rawFor = (line: CartLine): Record<string, unknown> | undefined => {
+      if (line.raw) return line.raw;
+      const pools =
+        line.type === "membership"
+          ? [memberships, config?.memberships ?? []]
+          : line.type === "product"
+            ? [products, config?.products ?? []]
+            : [combos, config?.combos ?? []];
+      for (const pool of pools) {
+        const hit = pool.find((item) => sameCatalogId(item.id, line.id));
+        if (hit?.raw) return hit.raw;
+      }
+      return undefined;
+    };
+    return relevantLines.map((line) => ({
+      id: line.id,
+      type: line.type,
+      amount: line.amount,
+      name: line.name,
+      price: line.price,
+      companiesId: config?.companiesId,
+      raw: rawFor(line),
+    }));
+  }
+
   function handleGafaPaySuccess(result: GafaPaySuccess) {
     // Paridad con el fancy v1: `ht.payment_data = e.message` y luego
     // BuySystemStep POSTea a `/reservate` (paymentByCard / paymentByToken).
@@ -577,7 +622,106 @@ export function CheckoutModal({
     void completePurchase(result.message, recurring, subscriptionId);
   }
 
+  async function finishHostedPurchase(result: { purchaseId?: number | null; reservationId?: number }) {
+    hostedPendingRef.current = null;
+    setRegisterOnly(false);
+    setThanks({
+      purchaseId: result.purchaseId,
+      reservationId: result.reservationId,
+      confirmed: true,
+      reservationSnapshot: reservation,
+      linesSnapshot: relevantLines,
+    });
+    resetAfterPurchase();
+    setStep("thanks");
+    onCompleted?.({ purchaseId: result.purchaseId, reservationId: result.reservationId });
+  }
+
+  async function handleHostedCheckout(data: unknown) {
+    const profile = profileQuery.data;
+    if (!profile || !selectedMethod || !brandSlug || !locationSlug) {
+      setPaying(false);
+      setPayError("No pudimos abrir Recurrente. Recarga e inténtalo de nuevo.");
+      return;
+    }
+    const checkoutToken = checkoutTokenFromHostedData(data);
+    if (!checkoutToken) {
+      setPaying(false);
+      setPayError("Recurrente no devolvió el token de checkout. Intenta de nuevo.");
+      return;
+    }
+
+    const payload: InitialPurchasePayload = {
+      brandSlug,
+      locationSlug,
+      userId: config?.userProfileId ?? profile.id,
+      meetingId: reservation?.meetingId,
+      lines: purchaseLinesPayload(),
+      paymentTypeId: selectedMethod.id,
+      paymentData: data,
+      csrfToken: config?.csrfToken ?? null,
+      discountCode: discountStatus === "ok" ? discountCode.trim() : null,
+      giftCode: giftStatus === "ok" ? giftCode.trim() : null,
+      checkoutToken,
+      seatObjectId: reservation?.seatObjectId,
+    };
+
+    setPayError(undefined);
+    setPaying(true);
+    try {
+      if (!client.initialPurchase || !client.pollInitialPurchaseStatus) {
+        throw new Error("Esta marca no tiene configurado el checkout de Recurrente.");
+      }
+      const pending = await client.initialPurchase(payload);
+      const purchaseId = pending.purchaseId;
+      const token = pending.checkoutToken?.trim() || checkoutToken;
+      if (purchaseId == null) {
+        throw new Error("Buq no creó la compra pendiente de Recurrente.");
+      }
+      hostedPendingRef.current = { checkoutToken: token, purchaseId, payload };
+      const done = await pollRecurrenteUntilDone({
+        client,
+        brandSlug,
+        locationSlug,
+        checkoutToken: token,
+        pendingPurchaseId: purchaseId,
+      });
+      await finishHostedPurchase({ purchaseId, reservationId: done.reservationId });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "No pudimos confirmar el pago de Recurrente.";
+      if (hostedPendingRef.current?.purchaseId) {
+        setRegisterOnly(true);
+      }
+      setPayError(detail);
+    } finally {
+      setPaying(false);
+    }
+  }
+
   async function proceedToPay() {
+    if (registerOnly && hostedPendingRef.current?.purchaseId) {
+      setPayError(undefined);
+      setPaying(true);
+      const pending = hostedPendingRef.current;
+      try {
+        const status = await pollRecurrenteUntilDone({
+          client,
+          brandSlug: pending.payload.brandSlug,
+          locationSlug: pending.payload.locationSlug,
+          checkoutToken: pending.checkoutToken,
+          pendingPurchaseId: pending.purchaseId,
+        });
+        await finishHostedPurchase({
+          purchaseId: pending.purchaseId,
+          reservationId: status.reservationId,
+        });
+      } catch (err) {
+        setPayError(err instanceof Error ? err.message : "El pago sigue pendiente.");
+      } finally {
+        setPaying(false);
+      }
+      return;
+    }
     if (registerOnly && pendingRegisterRef.current) {
       setPayError(undefined);
       setPaying(true);
@@ -599,7 +743,9 @@ export function CheckoutModal({
         setPayError(
           selectedMethod?.slug === "paypal"
             ? "Usa el botón de PayPal para completar el pago."
-            : "El procesador de pago aún no está listo. Intenta de nuevo.",
+            : selectedMethod?.slug === "recurrente"
+              ? "No pudimos abrir Recurrente. Intenta de nuevo."
+              : "El procesador de pago aún no está listo. Intenta de nuevo.",
         );
       }
     } catch (err) {
@@ -776,6 +922,7 @@ export function CheckoutModal({
                               <ProductCard
                                 key={`${item.type}-${item.id}`}
                                 item={item}
+                                currency={currency}
                                 inCartAmount={amountInCart(relevantLines, item)}
                                 onAdd={() => handleAdd(item)}
                               />
@@ -790,6 +937,7 @@ export function CheckoutModal({
                         <ProductCard
                           key={`${item.type}-${item.id}`}
                           item={item}
+                          currency={currency}
                           inCartAmount={amountInCart(relevantLines, item)}
                           onAdd={() => handleAdd(item)}
                         />
@@ -845,6 +993,7 @@ export function CheckoutModal({
                     phone: profileQuery.data?.phone ?? undefined,
                   }}
                   onSuccess={handleGafaPaySuccess}
+                  onHostedCheckout={handleHostedCheckout}
                   onStart={() => setPaying(true)}
                   onReadyChange={setPaymentReady}
                   onError={(message) => {
@@ -1091,9 +1240,13 @@ export function CheckoutModal({
                   onClick={handlePayClick}
                 >
                   {paying
-                    ? "Procesando…"
+                    ? selectedMethod?.slug === "recurrente"
+                      ? "Esperando Recurrente…"
+                      : "Procesando…"
                     : registerOnly
-                      ? "Registrar compra"
+                      ? hostedPendingRef.current?.purchaseId
+                        ? "Revisar pago"
+                        : "Registrar compra"
                       : `Pagar ${formatMoney(total, currency.prefix, "")}`}
                 </button>
               )}
@@ -1193,13 +1346,20 @@ function PaySkeleton({ withMethods = false, label }: { withMethods?: boolean; la
 
 function ProductCard({
   item,
+  currency,
   inCartAmount,
   onAdd,
 }: {
   item: CatalogItem;
+  currency: { prefix: string; suffix: string; code: string };
   inCartAmount: number;
   onAdd: () => void;
 }) {
+  const price = item.priceFinal ?? item.price ?? 0;
+  const compareAt =
+    item.hasDiscount && item.price != null && item.priceFinal != null && item.price > item.priceFinal
+      ? formatMoney(item.price, currency.prefix, "")
+      : null;
   return (
     <article className="gafa-checkout-product" data-in-cart={inCartAmount > 0 ? "true" : undefined}>
       {item.description ? (
@@ -1214,8 +1374,8 @@ function ProductCard({
       ) : null}
 
       <div className="gafa-checkout-product__price">
-        {item.compareAtPriceLabel ? <s>{item.compareAtPriceLabel}</s> : null}
-        <strong>{item.priceLabel}</strong>
+        {compareAt ? <s>{compareAt}</s> : null}
+        <strong>{formatMoney(price, currency.prefix, "")}</strong>
       </div>
       <h3>{item.name}</h3>
       <p className="gafa-checkout-product__meta">
@@ -1244,6 +1404,7 @@ function PayPanel({
   discountAmount,
   customer,
   onSuccess,
+  onHostedCheckout,
   onStart,
   onReadyChange,
   onError,
@@ -1258,6 +1419,7 @@ function PayPanel({
   discountAmount: number;
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
+  onHostedCheckout: (data: unknown) => void;
   onStart: () => void;
   onReadyChange: (ready: boolean) => void;
   onError: (message: string) => void;
@@ -1269,8 +1431,8 @@ function PayPanel({
   const islandRef = useRef<GafaPayIsland | null>(null);
   // Los callbacks cambian en cada render; el widget vive fuera de React y no
   // debe re-montarse por eso.
-  const handlersRef = useRef({ onSuccess, onError, onStart });
-  handlersRef.current = { onSuccess, onError, onStart };
+  const handlersRef = useRef({ onSuccess, onError, onStart, onHostedCheckout });
+  handlersRef.current = { onSuccess, onError, onStart, onHostedCheckout };
 
   useEffect(() => {
     onReadyChange(loadState === "ready");
@@ -1308,6 +1470,7 @@ function PayPanel({
         customerEmail: customer.email,
         customerPhone: customer.phone,
         lineItems,
+        currency: config?.currency.code,
       },
       generalData: {
         companiesId: config?.companiesId,
@@ -1316,15 +1479,17 @@ function PayPanel({
         usersProfilesId: config?.userProfileId,
         usersId: config?.usersId,
       },
-      termsAndConditions: config?.termsConditionsLink ?? null,
+      // GafaPay Recurrente deshabilita su botón si esto es falsy. Los términos
+      // los exigimos en nuestro CTA; aquí hay que dejarlo pasar.
+      termsAndConditions: selected?.slug === "recurrente" ? true : (config?.termsConditionsLink ?? null),
       hasRecurringPayment: false,
-      // Función siempre: GafaPayFront la invoca sin optional chaining.
       onStartPayAction: () => handlersRef.current.onStart(),
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
       onGafaPayErrAction: ({ message }) =>
         handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
+      onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
     }),
-    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.termsConditionsLink, customer.email, customer.firstName, customer.lastName, customer.phone],
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone],
   );
 
   // Cambios de carrito/cliente actualizan props sin re-montar: tirar el iframe
@@ -1394,8 +1559,8 @@ function PayPanel({
               data-active={method.id === selectedMethodId ? "true" : undefined}
               onClick={() => onSelectMethod(method.id)}
             >
-              {method.slug === "stripe" ? <CardIcon /> : method.slug === "paypal" ? <PaypalIcon /> : null}
-              {method.slug === "stripe" ? "Tarjeta" : method.name}
+              {method.slug === "stripe" ? <CardIcon /> : method.slug === "paypal" ? <PaypalIcon /> : method.slug === "recurrente" ? <CardIcon /> : null}
+              {method.slug === "stripe" ? "Tarjeta" : method.slug === "recurrente" ? "Tarjeta" : method.name}
             </button>
           ))}
         </div>
@@ -1416,6 +1581,17 @@ function PayPanel({
             <div>
               <strong>Pagar con PayPal</strong>
               <p>Te llevamos a PayPal para confirmar. No guardamos tu cuenta.</p>
+            </div>
+          </div>
+        ) : null}
+        {slug === "recurrente" ? (
+          <div className="gafa-checkout-paypal-copy">
+            <span className="gafa-checkout-paypal-copy__mark" aria-hidden="true">
+              <CardIcon />
+            </span>
+            <div>
+              <strong>Pagar con tarjeta</strong>
+              <p>El botón amarillo abre Recurrente en otra ventana. Al terminar, volvemos a registrar la compra aquí.</p>
             </div>
           </div>
         ) : null}

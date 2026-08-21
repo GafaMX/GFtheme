@@ -5098,6 +5098,27 @@
   padding: 1.15rem 1.15rem 1.05rem;
 }
 
+.gafa-checkout-paymount[data-method="recurrente"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 1rem;
+  justify-items: stretch;
+  min-height: 0;
+  padding: 1.15rem 1.15rem 1.05rem;
+  position: relative;
+}
+
+/* El CTA amarillo dispara este botón. GafaPay lo pinta feo ("Pago con Tarjeta"). */
+.gafa-checkout-paymount[data-method="recurrente"] .gafapay-recurrente button {
+  height: 1px;
+  left: -9999px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
 .gafa-checkout-paypal-copy {
   align-items: flex-start;
   display: flex;

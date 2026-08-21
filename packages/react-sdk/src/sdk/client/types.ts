@@ -10,6 +10,8 @@ export type Brand = {
   gafapayClientId?: string | null;
   /** La API lo expone en el payload publico de marca; el fancy v1 lo usa igual. */
   gafapayClientSecret?: string | null;
+  /** Prefijo/código de la marca (Q/GTQ, €/EUR, $/MXN). */
+  currency?: { prefix: string; suffix: string; code: string };
 };
 
 export type Location = {
