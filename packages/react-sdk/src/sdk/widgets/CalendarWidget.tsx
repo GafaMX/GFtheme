@@ -8,6 +8,7 @@ import { AuthWidget, type AuthStage } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
+import { reservationShowsSeatMapLayout } from "../client/seatMapHint";
 import type {
   Brand,
   CreateReservationResult,
@@ -1549,12 +1550,15 @@ function ReservationPreviewModal({
   // antes, sin creditos, ni siquiera se pintaba y se saltaba directo a "debes
   // comprar" sin dejar ver el salon ni elegir lugar.
   const needsSeat = Boolean(context && seatMap && !waitlistMode);
-  // Con sesion, el modal abre DIRECTO en layout ancho con un skeleton del mapa
-  // mientras carga el contexto: nada de "doble pantalla" (una angosta de
-  // "revisando..." y luego el salto al mapa). El estado de carga vive inline
-  // en la columna izquierda, donde despues aparecen paquetes/membresias.
+  // El listado ya suele decir si hay mapa (`maps_id` / `has_map`). Si no hay,
+  // el modal sencillo abre de una: no se infla a fancy con skeleton y luego
+  // se encoge. Si el listado promete mapa, sí abrimos ancho con skeleton.
   const contextLoading = isSignedIn && contextQuery.isLoading;
-  const wideLayout = needsSeat || contextLoading;
+  const wideLayout = reservationShowsSeatMapLayout({
+    hasSeatMap: meeting.hasSeatMap,
+    hasLoadedSeatMap: needsSeat,
+    contextLoading,
+  });
 
   async function confirmReservation(seat: SeatMapObject | null) {
     if (!client?.createReservation || !context) return;
@@ -1728,8 +1732,10 @@ function ReservationPreviewModal({
                     </p>
                   ) : (
                     <p className="gafa-reservation-hint">
-                      No tienes créditos ni membresía para esta clase. Puedes elegir tu lugar y comprar lo que aplique
-                      para reservarlo.
+                      No tienes créditos ni membresía para esta clase.
+                      {wideLayout
+                        ? " Puedes elegir tu lugar y comprar lo que aplique para reservarlo."
+                        : " Compra lo que aplique para reservarla."}
                     </p>
                   )
                 ) : null}
@@ -1737,7 +1743,7 @@ function ReservationPreviewModal({
 
               {needsSeat && seatMap ? (
                 <SeatMapInline map={seatMap} selected={selectedSeat} onSelect={setSelectedSeat} />
-              ) : contextLoading ? (
+              ) : wideLayout && contextLoading ? (
                 <div className="gafa-seatmap-skeleton" aria-hidden="true">
                   <div className="gafa-seatmap-skeleton__legend">
                     <span />
