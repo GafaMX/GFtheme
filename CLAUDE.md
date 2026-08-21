@@ -10,7 +10,7 @@ Hay una iniciativa activa para reemplazar el theme legacy (Webpack4/Babel6/React
 
 - **Dónde vive:** `packages/react-sdk/` (monorepo simple, no afecta `src/`/`dist/` del theme legacy).
 - **Rama de trabajo activa:** `v2/main`. Es la rama durable del SDK v2. Las `cursor/*` (account-mobile-nav, checkout, cdn, environments, etc.) son históricas: se trabaja encima de `v2/main`. **`master` no se toca** — sigue siendo el theme legacy de producción.
-- **CDN (jsDelivr):** `@v2/main` da 404 (slash). `@v2` lo trata como versión `2` y la congela (no sigue el tag git). URL pública actual: `https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js`. Cada publish: tag nuevo `v2.0.0-rc.N`. Receta: `docs/v2-lanzamiento.md` + `docs/v2-sdk/snippet.html`. Replit: `VITE_GAFA_SDK_V2_URL` a ese tag + Stop/Run.
+- **CDN (jsDelivr):** `@v2/main` da 404 (slash). `@v2` lo trata como versión `2` y la congela. Tags `v2.0.0-rc.N` son inmutables. URL pública: `https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js`. Cada publish: `npm run publish:embed` → commit `docs/v2-sdk/` → `git push origin HEAD:refs/heads/cdn-live` → purge jsDelivr. **No Republish** Buq-Webs. Receta: `docs/v2-lanzamiento.md`. Replit: `VITE_GAFA_SDK_V2_URL` ya apunta a `@cdn-live`; no lo toques.
 - **Historial de la exploración previa (referencia, no borrar):**
   - PR [#189](https://github.com/GafaMX/GFtheme/pull/189) `cursor/react-sdk-analysis-6468` — doc `docs/react-sdk-modernization.md` con el plan de arquitectura completo (bootstrap compatible con `data-gf-theme`, cliente API tipado, theming por tokens/CSS vars, templates editables, TanStack Query + Zustand + Zod, orden de construcción: calendario → catálogo → auth/perfil → checkout).
   - PR [#190](https://github.com/GafaMX/GFtheme/pull/190) `cursor/react-sdk-foundation-6468` — primer código real (ver estado abajo).
@@ -164,4 +164,4 @@ Pruebas manuales: editar `src/index.html` con distintos `data-gf-theme` y `data-
 - Legacy: preferir el sistema **`newlook/`**; `default/` es legacy del legacy (no ampliar salvo mantenimiento). El SDK nuevo (`packages/react-sdk/`) no usa SCSS con prefijo GFSDK — usa CSS variables por theme tokens (ver sección "Rewrite en curso").
 - Cualquier campo/endpoint nuevo que se consuma debe existir en la API de gafa.fit (coordinar con ese repo).
 - **`master` es producción** — todo el trabajo del rewrite va en `feature/react-sdk-v2` (o ramas hijas), PR + review humano antes de mergear.
-- **No relanzar Replit para publicar V2.** El artefacto es `docs/v2-sdk/gafa-sdk.js` (`npm run publish:embed`). Pedir a Replit que copie el source reinicia todos los sitios, no solo V2.
+- **No pulses Republish ni Stop/Run en Buq-Webs para publicar V2.** El artefacto es `docs/v2-sdk/gafa-sdk.js` (`npm run publish:embed`) empujado a la rama `cdn-live`. Copiar `src/` a Replit o Republish reinicia todos los sitios, no solo V2. Receta: `docs/v2-lanzamiento.md`.

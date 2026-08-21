@@ -1,143 +1,85 @@
-# Cómo publicar el SDK V2 (el JS)
+# Lanzar GFtheme v2 a Fitspin (proceso real)
 
-Replit no es el canal de V2. Relanzar Replit reinicia **toda** la app multi-sitio
-(Fitspin y el resto). V2 se publica como **un JS**, igual que el theme v1
-(`dist/main.min.js` → `buq-sdk.azurewebsites.net`).
+El sitio de producción es **https://web.buq.mx/fitspin** (Replit **Buq-Webs**). El JS del SDK vive en **jsDelivr**, no en Replit.
 
-Los sitios **no cambian de markup**: siguen `data-gf-options` + `data-gf-theme`
-(o `data-gafa-v2`). Solo cambia el `src` del script. Vale para WordPress,
-Replit, HTML estático o cualquier host. Montaje: `docs/v2-embed/README.md`.
-
-## Modelo
+## URL canónica de producción
 
 ```
-packages/react-sdk/src  →  npm run publish:embed  →  docs/v2-sdk/gafa-sdk.js
-                                                      ↓
-                         jsDelivr / GitHub Pages / Azure /v2/
-                                                      ↓
-                         Fitspin WP (un <script src>, una vez)
+https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js
 ```
 
-| Qué | V1 (producción hoy) | V2 |
-| --- | --- | --- |
-| Artefacto | `dist/main.min.js` (commiteado) | `docs/v2-sdk/gafa-sdk.js` (commiteado) |
-| React | Va **dentro** del bundle | Va **dentro** del IIFE (`vite.embed.config.ts`). El build de librería (`vite.config.ts`) sigue dejando React como peer; **ese no se pega en WP**. |
-| Host | Azure `buq-sdk*.azurewebsites.net` | jsDelivr (por SHA) o el mismo Azure en `/v2/` |
-| Sitio del socio | `<script src>` del theme v1 | El mismo `<script src>` a `gafa-sdk.js`. **No** copiar TypeScript al host. |
+- Secreto de Replit: `VITE_GAFA_SDK_V2_URL` → esa URL.
+- El HTML público sale de `index-*.html` generado. No se edita a mano.
+- **No** copies `packages/react-sdk/src` a Buq-Webs. El runtime es este bundle.
 
-## Receta para el agente de Cursor (cada cambio V2)
+## Qué **no** hacer (lecciones de 2026-08)
 
-En `packages/react-sdk`:
+1. **No pulses Republish en Buq-Webs** para un cambio del SDK. Republish reinicia toda la app multi-sitio y a menudo tumba Fitspin (y otros clientes) varios minutos. El JS ya se carga desde jsDelivr: un hard refresh basta.
+2. **No uses tags `v2.0.0-rc.N`.** jsDelivr las trata como inmutables. Fitspin se quedó pegado en `rc.2` hasta un Republish.
+3. **No uses `@v2/main`.** La barra se interpreta mal (`@v2` + path `/main/...`) → 404.
+4. **No uses `@v2`.** jsDelivr lo trata como versión npm-style `2` (snapshot viejo).
+5. **No uses `sdk-live` para producción.** Tras force-push, jsDelivr siguió sirviendo un snapshot git viejo. El puntero vivo es **`cdn-live`**.
+6. **No hagas Stop + Run** “por si acaso”. El secreto ya apunta a `cdn-live`; no hace falta tocar Replit.
 
-```sh
-npm test && npm run typecheck && npm run publish:embed
+## Receta de cada lanzamiento
+
+Desde `packages/react-sdk`:
+
+```bash
+npm test
+npm run typecheck
+npm run publish:embed
 ```
 
-Commit de `docs/v2-sdk/` (el JS + `VERSION.txt`) en la rama V2. **No mergear a
-`master`**: `master` es el theme legacy de producción.
+Luego, en la raíz del repo:
 
-jsDelivr sirve el archivo público en cuanto el **tag** está en GitHub.
-`@v2/main` da **404**: el slash de la rama se parte. No lo uses.
-
-jsDelivr trata `@v2` como versión `2` y la **congela** (cache immutable de
-un año). Mover el tag git `v2` no cambia lo que sirve el CDN. Cada lanzamiento
-necesita un tag nuevo.
-
-URL pública actual:
-
-```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js
+```bash
+git add docs/v2-sdk/gafa-sdk.js docs/v2-sdk/VERSION.txt
+git commit -m "chore(v2): republicar gafa-sdk.js"
+git push origin HEAD          # tu rama de trabajo / PR
+git push origin HEAD:refs/heads/cdn-live
+curl -s https://purge.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js
 ```
 
-Tras cada `publish:embed` + push a `v2/main`, un tag **nuevo** (no reusar `v2`):
+Comprueba que GitHub raw y jsDelivr coinciden:
 
-```
-git tag v2.0.0-rc.12
-git push origin v2.0.0-rc.12
-```
-
-Replit / WP: `VITE_GAFA_SDK_V2_URL` (o el `<script src>`) a ese tag nuevo, luego
-reiniciar Vite. Preview puntual: SHA de `docs/v2-sdk/VERSION.txt`:
-
-```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@<sha>/docs/v2-sdk/gafa-sdk.js
+```bash
+curl -sI https://raw.githubusercontent.com/GafaMX/GFtheme/cdn-live/docs/v2-sdk/gafa-sdk.js | grep content-length
+curl -sI https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js | grep -iE 'content-length|x-jsd-version'
 ```
 
-## URL fija: la rama `sdk-live`
+`x-jsd-version-type` debe ser `branch`. Los `Content-Length` deben coincidir (o jsDelivr un poco mayor por el banner). Si jsDelivr se queda corto, **no force-pushees `cdn-live`**: crea otra rama nueva (`cdn-live-2`, etc.) y cambia el secreto **solo si** hace falta. Un cambio de secreto **sí** exige Republish (evítalo).
 
-Para que los sitios NO tengan que cambiar el `<script src>` (ni redesplegar) en
-cada publicación, existe la rama `sdk-live`, que se adelanta a `v2/main` en cada
-release:
+En el navegador (Fitspin, login hecho):
 
-```
-https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@sdk-live/docs/v2-sdk/gafa-sdk.js
-```
+1. Hard refresh: Ctrl+Shift+R.
+2. Network → `gafa-sdk.js` → URL con `@cdn-live`.
+3. Si ves un tag `v2.0.0-rc.*` o `sdk-live`, el HTML cacheado está viejo: otro hard refresh, o espera al Service Worker.
 
-jsDelivr la sirve como rama (`x-jsd-version-type: branch`). Ojo con el nombre:
-uno que empiece con `v` (`v2-live`) lo interpreta como versión y da 404.
+## Rama `cdn-live`
 
-Al publicar:
+- Puntero **mutable** a “lo que corre Fitspin ahora”.
+- Fast-forward desde el commit que acaba de publicar el embed.
+- No es la rama de producto (`v2/main`). Los PRs siguen yendo a `v2/main`.
+- No uses `--force` contra `cdn-live` si jsDelivr ya cacheó ese nombre.
 
-```sh
-git push origin v2/main
-git branch -f sdk-live v2/main && git push -f origin sdk-live
-curl -s https://purge.jsdelivr.net/gh/GafaMX/GFtheme@sdk-live/docs/v2-sdk/gafa-sdk.js
-```
+## Checkout: dos POSTs distintos
 
-El purge limpia el CDN (12 h de caché de borde). Al **navegador** jsDelivr le
-manda 7 días, así que quien ya cargó el archivo puede tardar en ver lo nuevo:
-para propagación en minutos hace falta servirlo desde Azure con `max-age` corto.
-Los tags `v2.0.0-rc.N` se siguen publicando como snapshot inmutable.
+| Pasarela | Tras pagar, el SDK llama |
+|---|---|
+| **GafaPay (Stripe / Openpay / Conekta)** | `POST .../reservation/reservate` (`client.reservatePurchase`) |
+| **Recurrente** | `POST .../gafapay/initial-purchase` (`client.initialPurchase`) |
 
-## Puente de pruebas (sin Replit ni WordPress)
+No mezclar. `initial-purchase` + Stripe viejo de producción = cargo sin créditos.
 
-```
-https://raw.githack.com/GafaMX/GFtheme/v2/main/docs/v2-bridge/index.html
-```
+## Perfil: cada paquete es una fila
 
-Sirve `docs/v2-bridge/index.html` desde `v2/main` con las credenciales públicas
-de Fitspin. La versión del SDK se cambia con `?sdk=<tag|sha|url>` y la caja de
-arriba dice cuál cargó. Al publicar un tag nuevo, subir `DEFAULT_VERSION` en esa
-página. jsDelivr no sirve de host: manda los `.html` como `text/plain`.
+`listUserCredits` identifica cada compra por `purchase_items_id`, no por tipo de crédito. “Mi actividad” muestra el **total** y un slider por paquete.
 
-## Cambio de una vez en WordPress (Fitspin y cualquier socio V2)
+## Calendario: filtros Servicio y Staff
 
-En el theme / header:
+Van **encendidos por defecto**. En el HTML de Replit no hace falta `filter-bq-service` / `filter-bq-staff`. Para apagarlos: `="false"`.
 
-1. **Quita** el script del theme v1 (`main.min.js` / `main.js` de Azure o `gafa.fit/sdk`).
-2. **No quites** `[data-gf-options]` ni los `data-gf-theme`.
-3. **Agrega** el script de `docs/v2-sdk/snippet.html`.
-4. Opcional: deja `https://buq.partners/sdk/dist/main.js` (`window.GafaFitSDK`, el
-   cliente API) solo si hace falta el fancy legacy. El checkout nativo V2 **no**
-   lo necesita. **No** cargues el theme v1 y el IIFE V2 a la vez: montarían los
-   mismos nodos dos veces.
+## Tags `v2.0.0-rc.N`
 
-Eso es un cambio de una línea. Los siguientes deploys V2 **no tocan WP** ni Replit:
-se reemplaza `gafa-sdk.js` en git.
-
-## GitHub Action (sin el agente)
-
-`Actions` → **Publish V2 embed SDK** → `Run workflow` en la rama V2.
-Hace test + typecheck + `publish:embed` y commitea `docs/v2-sdk/` si cambió.
-
-No corre en push a `master`. No hay deploy automático del legacy.
-
-## Azure (mismo CDN que v1)
-
-Cuando haya credenciales del app `buq-sdk` / `buq-sdk-dev`, copiar
-`docs/v2-sdk/gafa-sdk.js` a `/v2/gafa-sdk.js`. URL de producción entonces:
-
-```
-https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js
-```
-
-Hasta entonces jsDelivr es suficiente: el repo es público.
-
-## Qué no hacer
-
-- Pedir a Replit que copie `packages/react-sdk/src` y transpila ahí.
-- Relanzar la app Replit “porque cambió V2”.
-- Publicar V2 con el `vite.config.ts` de librería (React queda externo; WP no
-  tiene React 19).
-- Mergear el IIFE a `master` junto con el theme v1 sin revisión: conviven por URL,
-  no por el mismo `dist/main.min.js`.
+Siguen existiendo como **archivo** (rollback humano, no URL de producción). No las pongas en `VITE_GAFA_SDK_V2_URL`.

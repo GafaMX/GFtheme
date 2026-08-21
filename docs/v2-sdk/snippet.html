@@ -6,11 +6,12 @@
 
   jsDelivr NO acepta la rama v2/main (el slash parte la URL → 404).
   `@v2` lo trata como versión "2" y la congela (no sigue el tag git).
-  URL pública actual: tag inmutable v2.0.0-rc.11
+  Tags `v2.0.0-rc.N` son inmutables: no las uses en producción.
+  URL pública actual: rama cdn-live (puntero mutable)
 
-    https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js
+    https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js
 
-  Siguiente publish: un tag nuevo (v2.0.0-rc.12, etc.).
+  Receta de lanzamiento: docs/v2-lanzamiento.md
   Azure (cuando exista): https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js
 -->
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js"></script>
