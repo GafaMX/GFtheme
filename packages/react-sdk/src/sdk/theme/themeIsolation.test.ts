@@ -63,6 +63,14 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(themeCss).toContain("width: var(--gafa-control-width, 32px) !important");
   });
 
+  it("el buscador del checkout y la X de quitar producto no los infla Elementor", () => {
+    expect(themeCss).toContain(".gafa-checkout-search");
+    expect(themeCss).toMatch(/\.gafa-checkout-search:not\(\.gafa-pay-native \*\) \{[\s\S]{0,280}height:\s*32px/);
+    expect(themeCss).toMatch(/\.gafa-checkout__line-remove:not\(\.gafa-pay-native \*\) \{[\s\S]{0,120}overflow:\s*visible/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-search \{[\s\S]{0,420}height:\s*32px/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-search \{[\s\S]{0,420}--gafa-search-width:\s*92px/);
+  });
+
   it("el calendario mensual tiene tope de ancho, no se estira al contenedor", () => {
     expect(widgetsCss).toMatch(/\.gafa-datepicker \{[\s\S]{0,400}width:\s*264px/);
     expect(widgetsCss).toMatch(/\.gafa-datepicker__day \{[\s\S]{0,500}width:\s*30px/);

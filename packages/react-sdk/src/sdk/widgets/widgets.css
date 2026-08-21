@@ -4847,15 +4847,22 @@
 }
 
 .gafa-checkout-search {
+  --gafa-type-size: 0.78rem;
+  --gafa-type-leading: 1;
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-search-width: 92px;
   align-items: center;
   background: var(--gafa-color-surface-raised);
   border: 1px solid var(--gafa-color-border);
   border-radius: 999px;
-  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
-  gap: 0.4rem;
-  padding: 0.28rem 0.7rem;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+  height: 32px;
+  max-width: 168px;
+  min-height: 32px;
+  padding: 0 0.55rem;
   transition: border-color 0.16s ease;
 }
 
@@ -4863,20 +4870,30 @@
   border-color: var(--gafa-color-primary);
 }
 
+.gafa-checkout-search svg {
+  flex-shrink: 0;
+  height: 12px;
+  width: 12px;
+}
+
 .gafa-checkout-search input {
-  --gafa-type-size: 0.84rem;
+  --gafa-type-size: 0.78rem;
   --gafa-field-bg: transparent;
   --gafa-field-border: 0 solid transparent;
   --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-font-size: 0.78rem;
   --gafa-field-radius: 0px;
+  --gafa-fg: var(--gafa-color-text);
   background: transparent;
   border: 0;
-  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
+  height: 30px;
+  min-height: 0;
   outline: none;
-  width: 120px;
+  padding: 0;
+  width: 92px;
 }
 
 /* ── Productos ── */
@@ -5437,7 +5454,8 @@
   flex: 0 0 auto;
   height: 22px;
   justify-content: center;
-  overflow: hidden;
+  line-height: 0;
+  overflow: visible;
   padding: 0;
   width: 22px;
 }
@@ -6091,8 +6109,12 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 
+  .gafa-checkout-search {
+    --gafa-search-width: 72px;
+  }
+
   .gafa-checkout-search input {
-    width: 90px;
+    width: 72px;
   }
 
   /* El titulo compite con el catalogo por el alto util. */
