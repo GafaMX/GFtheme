@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
+import { CloseIcon } from "./sdkIcons";
 import { MonthCalendar } from "./MonthCalendar";
 import { CheckoutModal } from "./CheckoutModal";
 import { AuthWidget, type AuthStage } from "./AuthWidget";
@@ -840,11 +841,11 @@ function CalendarIcon() {
 
 function ChevronIcon({ direction }: { direction: "left" | "right" }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d={direction === "left" ? "M14.5 5.5 8 12l6.5 6.5" : "M9.5 5.5 16 12l-6.5 6.5"}
         stroke="currentColor"
-        strokeWidth="2.6"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -1632,7 +1633,7 @@ function ReservationPreviewModal({
         data-has-map={wideLayout && step !== "done" ? "true" : undefined}
       >
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar reserva" onClick={onClose}>
-          x
+          <CloseIcon />
         </button>
 
         {step !== "done" ? (
@@ -2168,7 +2169,7 @@ function ReservationAuthGate({
     >
       <div className="gafa-reservation-sheet">
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar" onClick={onClose}>
-          x
+          <CloseIcon />
         </button>
 
         <div className="gafa-reservation-hero">

@@ -92,6 +92,51 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk [type="reset"]:not(.gafa-pay-native *) {
   outline: none !important;
   text-shadow: none !important;
   text-transform: var(--gafa-control-transform, none) !important;
+  font-size: var(--gafa-control-font-size, inherit) !important;
+  line-height: var(--gafa-control-line-height, inherit) !important;
+  padding: var(--gafa-control-padding, 0px) !important;
+}
+
+/*
+ * Hits cuadrados (flechas, X, días, stepper): Elementor les mete padding
+ * horizontal y min-width, y se vuelven pastillas rotas con el icono recortado.
+ */
+html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
+  .gafa-icon-button,
+  .gafa-reservation-close,
+  .gafa-fancy-close,
+  .gafa-account-modal__close,
+  .gafa-checkout__close,
+  .gafa-checkout__line-remove,
+  .gafa-checkout__stepper button,
+  .gafa-datepicker__day
+):not(.gafa-pay-native *) {
+  align-items: center !important;
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  height: var(--gafa-control-height, var(--gafa-control-width, 32px)) !important;
+  justify-content: center !important;
+  max-width: var(--gafa-control-width, 32px) !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  width: var(--gafa-control-width, 32px) !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
+  .gafa-icon-button,
+  .gafa-reservation-close,
+  .gafa-fancy-close,
+  .gafa-account-modal__close,
+  .gafa-checkout__close,
+  .gafa-checkout__line-remove
+) svg:not(.gafa-pay-native *) {
+  display: block !important;
+  flex-shrink: 0 !important;
+  height: var(--gafa-icon-size, 16px) !important;
+  max-height: var(--gafa-icon-size, 16px) !important;
+  max-width: var(--gafa-icon-size, 16px) !important;
+  overflow: visible !important;
+  width: var(--gafa-icon-size, 16px) !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not(.gafa-pay-native *),
@@ -104,6 +149,8 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk textarea:not(.gafa-pay-native *) {
   border-radius: var(--gafa-field-radius, var(--gafa-radius-md)) !important;
   box-shadow: none !important;
   color: var(--gafa-field-fg, var(--gafa-color-text)) !important;
+  font-size: var(--gafa-field-font-size, 0.9rem) !important;
+  line-height: 1.3 !important;
   outline: none !important;
 }
 
@@ -122,6 +169,9 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk h6 {
   background-image: none !important;
   box-shadow: none !important;
   color: var(--gafa-fg, var(--gafa-color-text)) !important;
+  font-size: var(--gafa-heading-size, 1.15rem) !important;
+  font-weight: var(--gafa-heading-weight, 700) !important;
+  line-height: var(--gafa-heading-leading, 1.25) !important;
   padding: 0 !important;
 }
 
@@ -131,6 +181,8 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk {
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk :is(p, span, small, strong, em, li, label, legend, time):not(.gafa-pay-native *) {
   color: var(--gafa-fg, inherit) !important;
+  font-size: var(--gafa-type-size, inherit) !important;
+  line-height: var(--gafa-type-leading, inherit) !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk p:not(.gafa-pay-native *) {

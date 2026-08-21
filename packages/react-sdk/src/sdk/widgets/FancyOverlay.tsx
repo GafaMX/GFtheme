@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CloseIcon } from "./sdkIcons";
 
 export type FancyOverlayProps = {
   title: string;
@@ -63,7 +64,7 @@ export function FancyOverlay({ title, description, run, onClose }: FancyOverlayP
           de salon necesita espacio real, no una columna de 520px. */}
       <div className="gafa-reservation-sheet" data-fancy-ready={status === "ready" ? "true" : undefined}>
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar checkout" onClick={onClose}>
-          x
+          <CloseIcon />
         </button>
 
         {status !== "ready" ? (

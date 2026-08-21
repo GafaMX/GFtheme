@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ReservationFlow } from "./CalendarWidget";
+import { CloseIcon } from "./sdkIcons";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import type { GafaClient, Meeting } from "../client/types";
 
@@ -82,7 +83,7 @@ export function ReservationLauncher({
     >
       <div className="gafa-reservation-sheet">
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar" onClick={onClose}>
-          x
+          <CloseIcon />
         </button>
 
         {failed ? (

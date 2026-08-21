@@ -54,6 +54,20 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(/\.gafa-sdk-kicker[\s\S]{0,120}--gafa-fg:\s*var\(--gafa-color-muted-text\)/);
   });
 
+  it("bloquea padding/ancho de flechas, X y dias para que Elementor no los aplaste", () => {
+    expect(themeCss).toContain(".gafa-icon-button");
+    expect(themeCss).toContain(".gafa-reservation-close");
+    expect(themeCss).toContain(".gafa-checkout__line-remove");
+    expect(themeCss).toContain(".gafa-datepicker__day");
+    expect(themeCss).toContain("padding: var(--gafa-control-padding, 0px) !important");
+    expect(themeCss).toContain("width: var(--gafa-control-width, 32px) !important");
+  });
+
+  it("el calendario mensual tiene tope de ancho, no se estira al contenedor", () => {
+    expect(widgetsCss).toMatch(/\.gafa-datepicker \{[\s\S]{0,400}width:\s*264px/);
+    expect(widgetsCss).toMatch(/\.gafa-datepicker__day \{[\s\S]{0,500}width:\s*30px/);
+  });
+
   it("en dark no apaga los dias pasados del datepicker ni infla los botones", () => {
     expect(widgetsCss).toMatch(
       /\.gafa-datepicker__day:disabled[\s\S]{0,500}opacity:\s*1/,

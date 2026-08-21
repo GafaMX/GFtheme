@@ -1,4 +1,5 @@
 import type { CustomField } from "../client/types";
+import { DateField, isBirthDateField, isDateFieldType } from "./DateField";
 
 /**
  * Campo "especial": los que cada marca configura desde gafa.fit (teléfono de
@@ -41,6 +42,21 @@ export function CustomFieldInput({
         </select>
         {field.helpText ? <span className="gafa-sdk-field-help">{field.helpText}</span> : null}
       </label>
+    );
+  }
+
+  if (isDateFieldType(field.type)) {
+    return (
+      <DateField
+        label={labelText}
+        name={name}
+        value={value}
+        onChange={onChange}
+        required={field.required}
+        error={error}
+        helpText={field.helpText}
+        mode={isBirthDateField(field.name, field.type) ? "birth" : "date"}
+      />
     );
   }
 
