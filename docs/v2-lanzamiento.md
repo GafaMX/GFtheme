@@ -1,21 +1,25 @@
-# Lanzar GFtheme v2 a Fitspin (proceso real)
+# Lanzar GFtheme v2 en Buq-Webs
 
-El sitio de producción es **https://web.buq.mx/fitspin** (Replit **Buq-Webs**). El JS del SDK vive en **jsDelivr**, no en Replit.
+**Buq-Webs** es la app Replit (Autoscale) que sirve **todas** las marcas en `https://web.buq.mx/<marca>`. Un solo secreto, un solo JS. Publicar el SDK no es “lanzar Fitspin”: es actualizar el bundle que carga **cualquier página v2** de esa app.
 
-## URL canónica de producción
+El JS vive en **jsDelivr**, no dentro de Replit. Fitspin (`/fitspin`) es el piloto actual para QA; el mismo `src` lo reciben las demás marcas que ya estén en v2.
+
+## URL canónica (todas las marcas v2)
 
 ```
 https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js
 ```
 
-- Secreto de Replit: `VITE_GAFA_SDK_V2_URL` → esa URL.
-- El HTML público sale de `index-*.html` generado. No se edita a mano.
+- Secreto de Buq-Webs: `VITE_GAFA_SDK_V2_URL` → esa URL. Es **uno** para toda la app.
+- El HTML público sale de `index-*.html` generado. No se edita a mano por marca.
 - **No** copies `packages/react-sdk/src` a Buq-Webs. El runtime es este bundle.
+
+Sitios que siguen en v1 (`main.min.js`) no cargan esta URL y no se enteran del publish.
 
 ## Qué **no** hacer (lecciones de 2026-08)
 
-1. **No pulses Republish en Buq-Webs** para un cambio del SDK. Republish reinicia toda la app multi-sitio y a menudo tumba Fitspin (y otros clientes) varios minutos. El JS ya se carga desde jsDelivr: un hard refresh basta.
-2. **No uses tags `v2.0.0-rc.N`.** jsDelivr las trata como inmutables. Fitspin se quedó pegado en `rc.2` hasta un Republish.
+1. **No pulses Republish en Buq-Webs** para un cambio del SDK. Republish reinicia **toda** la app: Fitspin, el resto de marcas y el editor. A menudo hay varios minutos de caída. El JS ya se carga desde jsDelivr: un hard refresh en el sitio que estés viendo basta.
+2. **No uses tags `v2.0.0-rc.N`.** jsDelivr las trata como inmutables. Buq-Webs se quedó pegado en `rc.2` (Fitspin lo mostró primero) hasta un Republish.
 3. **No uses `@v2/main`.** La barra se interpreta mal (`@v2` + path `/main/...`) → 404.
 4. **No uses `@v2`.** jsDelivr lo trata como versión npm-style `2` (snapshot viejo).
 5. **No uses `sdk-live` para producción.** Tras force-push, jsDelivr siguió sirviendo un snapshot git viejo. El puntero vivo es **`cdn-live`**.
@@ -48,17 +52,19 @@ curl -sI https://raw.githubusercontent.com/GafaMX/GFtheme/cdn-live/docs/v2-sdk/g
 curl -sI https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js | grep -iE 'content-length|x-jsd-version'
 ```
 
-`x-jsd-version-type` debe ser `branch`. Los `Content-Length` deben coincidir (o jsDelivr un poco mayor por el banner). Si jsDelivr se queda corto, **no force-pushees `cdn-live`**: crea otra rama nueva (`cdn-live-2`, etc.) y cambia el secreto **solo si** hace falta. Un cambio de secreto **sí** exige Republish (evítalo).
+`x-jsd-version-type` debe ser `branch`. Los `Content-Length` deben coincidir (o jsDelivr un poco mayor por el banner). Si jsDelivr se queda corto, **no force-pushees `cdn-live`**: crea otra rama nueva (`cdn-live-2`, etc.) y cambia el secreto **solo si** hace falta. Un cambio de secreto **sí** exige Republish (cae toda Buq-Webs: evítalo).
 
-En el navegador (Fitspin, login hecho):
+En el navegador, en **cualquier** marca v2 de Buq-Webs (piloto: `https://web.buq.mx/fitspin`):
 
 1. Hard refresh: Ctrl+Shift+R.
 2. Network → `gafa-sdk.js` → URL con `@cdn-live`.
 3. Si ves un tag `v2.0.0-rc.*` o `sdk-live`, el HTML cacheado está viejo: otro hard refresh, o espera al Service Worker.
 
+No hace falta Republish para que el resto de marcas v2 lo tomen: el próximo load ya pide `@cdn-live`.
+
 ## Rama `cdn-live`
 
-- Puntero **mutable** a “lo que corre Fitspin ahora”.
+- Puntero **mutable** a “lo que sirve Buq-Webs ahora” (todas las marcas v2).
 - Fast-forward desde el commit que acaba de publicar el embed.
 - No es la rama de producto (`v2/main`). Los PRs siguen yendo a `v2/main`.
 - No uses `--force` contra `cdn-live` si jsDelivr ya cacheó ese nombre.
@@ -78,7 +84,7 @@ No mezclar. `initial-purchase` + Stripe viejo de producción = cargo sin crédit
 
 ## Calendario: filtros Servicio y Staff
 
-Van **encendidos por defecto**. En el HTML de Replit no hace falta `filter-bq-service` / `filter-bq-staff`. Para apagarlos: `="false"`.
+Van **encendidos por defecto**. En el HTML de Buq-Webs no hace falta `filter-bq-service` / `filter-bq-staff`. Para apagarlos: `="false"`.
 
 ## Tags `v2.0.0-rc.N`
 

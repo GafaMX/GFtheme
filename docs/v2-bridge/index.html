@@ -214,7 +214,7 @@
       })();
 
       /*
-       * Por default carga la rama `cdn-live` (puntero de producción Fitspin),
+       * Por default carga la rama `cdn-live` (puntero de producción Buq-Webs),
        * con un parámetro anti-caché: esta página y el CDN se guardan en
        * el navegador y se estaba probando una versión vieja sin notarlo.
        * Con ?sdk= se fija a un tag, SHA o URL concreta.
@@ -243,7 +243,7 @@
           return;
         }
 
-        load(cdnUrl(LIVE_REF) + "?t=" + Date.now(), "cdn-live (producción Fitspin)");
+        load(cdnUrl(LIVE_REF) + "?t=" + Date.now(), "cdn-live (producción Buq-Webs)");
       })();
     </script>
   </body>

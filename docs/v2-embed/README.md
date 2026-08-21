@@ -50,10 +50,11 @@ lo alcanza WordPress ni Replit.
 **WordPress / Elementor:** una línea en el header o un HTML widget. No se toca
 el theme PHP en cada deploy v2: se reemplaza `gafa-sdk.js` en git.
 
-**Replit (app multi-sitio):** no copies a `lib/gafa-react-sdk` y **no pulses
-Republish**. El secreto `VITE_GAFA_SDK_V2_URL` ya apunta a `@cdn-live`. Para
-un cambio del SDK: publica el JS en la rama `cdn-live`, purge jsDelivr, hard
-refresh. Receta: [`docs/v2-lanzamiento.md`](../v2-lanzamiento.md).
+**Buq-Webs (Replit, todas las marcas en `web.buq.mx/<marca>`):** no copies a
+`lib/gafa-react-sdk` y **no pulses Republish**. Un secreto
+`VITE_GAFA_SDK_V2_URL` ya apunta a `@cdn-live` para **toda** la app. Fitspin
+es el piloto; el publish llega a todas las páginas v2. Receta:
+[`docs/v2-lanzamiento.md`](../v2-lanzamiento.md).
 
 **HTML / Webflow / otro:** el mismo `<script src>` + `data-gf-options` + contenedores.
 
@@ -78,5 +79,5 @@ El SDK v2 de Buq se monta con UN script remoto. No copies packages/react-sdk.
    <script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js"></script>
    No uses @v2/main (404), @v2 (jsDelivr lo congela), ni tags rc.* (inmutables).
 4. No cargues v1 y v2 sobre los mismos nodos.
-5. No pulses Republish en Buq-Webs por un cambio del SDK. Publica en cdn-live.
+5. No pulses Republish en Buq-Webs (cae todas las marcas). Publica en cdn-live.
 ```

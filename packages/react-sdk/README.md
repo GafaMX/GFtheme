@@ -58,7 +58,7 @@ npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js
 <section data-gf-theme="meetings-calendar"></section>
 ```
 
-No copies `src/` a Replit. Guía: [`docs/v2-lanzamiento.md`](../../docs/v2-lanzamiento.md).
+No copies `src/` a Buq-Webs. Guía: [`docs/v2-lanzamiento.md`](../../docs/v2-lanzamiento.md).
 
 ## Legacy-compatible usage
 
