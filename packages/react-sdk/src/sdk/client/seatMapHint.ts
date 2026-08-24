@@ -69,12 +69,16 @@ export function readHasSeatMap(raw: unknown): boolean | undefined {
   return undefined;
 }
 
-/** El sheet ancho (info + mapa) solo si ya hay mapa o el listado prometió uno. */
+/** El sheet ancho (info + mapa) solo si ya hay mapa o el listado prometió uno.
+ *  En clase llena / waitlist el mapa no aplica: si abrimos ancho y luego
+ *  encogemos, el fancy “brinca”. */
 export function reservationShowsSeatMapLayout(opts: {
   hasSeatMap?: boolean;
   hasLoadedSeatMap: boolean;
   contextLoading: boolean;
+  soldOut?: boolean;
 }): boolean {
+  if (opts.soldOut) return false;
   if (opts.hasLoadedSeatMap) return true;
   return Boolean(opts.contextLoading && opts.hasSeatMap === true);
 }

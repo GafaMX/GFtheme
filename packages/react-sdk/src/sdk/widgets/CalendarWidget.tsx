@@ -1572,6 +1572,7 @@ function ReservationPreviewModal({
     hasSeatMap: meeting.hasSeatMap,
     hasLoadedSeatMap: needsSeat,
     contextLoading,
+    soldOut,
   });
 
   async function confirmReservation(seat: SeatMapObject | null) {
