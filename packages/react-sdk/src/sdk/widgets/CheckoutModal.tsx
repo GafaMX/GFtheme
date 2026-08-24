@@ -46,6 +46,7 @@ import {
   pollRecurrenteUntilDone,
   watchNextPopup,
 } from "../cart/recurrenteCheckout";
+import { cartHasMembership, syncGafaPayMembershipToggles } from "../cart/membershipPayOptions";
 import { CloseIcon } from "./sdkIcons";
 
 /** GafaPay ya cobró; reintentar "Pagar" haría un segundo cargo. */
@@ -181,6 +182,10 @@ export function CheckoutModal({
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
   const [paying, setPaying] = useState(false);
+  /** Membresía: como v1, guardar tarjeta + renovar van ON y ocultos. */
+  const [saveCard, setSaveCard] = useState(true);
+  const [autoRenew, setAutoRenew] = useState(true);
+  const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
   const chargedRef = useRef(false);
@@ -387,6 +392,7 @@ export function CheckoutModal({
   const relevantLines = classAttached
     ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
     : lines;
+  const membershipPurchase = cartHasMembership(relevantLines);
   const subtotal = cartSubtotal(relevantLines);
   const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
   const discountLabel = appliedDiscount?.label;
@@ -580,8 +586,8 @@ export function CheckoutModal({
         csrfToken: config?.csrfToken ?? null,
         discountCode: discountStatus === "ok" ? discountCode.trim() : null,
         giftCode: giftStatus === "ok" ? giftCode.trim() : null,
-        subscribe: recurring,
-        setPayment: recurring,
+        subscribe: membershipPurchase ? autoRenew : recurring,
+        setPayment: membershipPurchase ? saveCard : recurring,
         seatObjectId: reservation?.seatObjectId,
       });
 
@@ -702,6 +708,8 @@ export function CheckoutModal({
       giftCode: giftStatus === "ok" ? giftCode.trim() : null,
       checkoutToken,
       seatObjectId: reservation?.seatObjectId,
+      subscribe: membershipPurchase ? autoRenew : false,
+      setPayment: membershipPurchase ? saveCard : false,
     };
 
     setPayError(undefined);
@@ -1086,6 +1094,18 @@ export function CheckoutModal({
                     setPaying(false);
                     setPayError(message);
                   }}
+                  membershipOptions={
+                    membershipPurchase
+                      ? {
+                          saveCard,
+                          autoRenew,
+                          open: membershipOptsOpen,
+                          onToggle: () => setMembershipOptsOpen((current) => !current),
+                          onSaveCard: setSaveCard,
+                          onAutoRenew: setAutoRenew,
+                        }
+                      : undefined
+                  }
                   payCta={
                     selectedMethod?.slug === "recurrente"
                       ? {
@@ -1512,6 +1532,7 @@ function PayPanel({
   onReadyChange,
   onError,
   payCta,
+  membershipOptions,
 }: {
   methods: CheckoutConfig["paymentMethods"];
   selectedMethodId: number | null;
@@ -1535,6 +1556,14 @@ function PayPanel({
     disabled: boolean;
     onClick: () => void;
   };
+  membershipOptions?: {
+    saveCard: boolean;
+    autoRenew: boolean;
+    open: boolean;
+    onToggle: () => void;
+    onSaveCard: (value: boolean) => void;
+    onAutoRenew: (value: boolean) => void;
+  };
 }) {
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState<string>();
@@ -1543,8 +1572,24 @@ function PayPanel({
   const islandRef = useRef<GafaPayIsland | null>(null);
   // Los callbacks cambian en cada render; el widget vive fuera de React y no
   // debe re-montarse por eso.
-  const handlersRef = useRef({ onSuccess, onError, onStart, onHostedCheckout, onHostedClose });
-  handlersRef.current = { onSuccess, onError, onStart, onHostedCheckout, onHostedClose };
+  const handlersRef = useRef({
+    onSuccess,
+    onError,
+    onStart,
+    onHostedCheckout,
+    onHostedClose,
+    onSaveCard: membershipOptions?.onSaveCard,
+    onAutoRenew: membershipOptions?.onAutoRenew,
+  });
+  handlersRef.current = {
+    onSuccess,
+    onError,
+    onStart,
+    onHostedCheckout,
+    onHostedClose,
+    onSaveCard: membershipOptions?.onSaveCard,
+    onAutoRenew: membershipOptions?.onAutoRenew,
+  };
 
   useEffect(() => {
     onReadyChange(loadState === "ready");
@@ -1594,15 +1639,19 @@ function PayPanel({
       // GafaPay Recurrente deshabilita su botón si esto es falsy. Los términos
       // los exigimos en nuestro CTA; aquí hay que dejarlo pasar.
       termsAndConditions: selected?.slug === "recurrente" ? true : (config?.termsConditionsLink ?? null),
-      hasRecurringPayment: false,
+      hasRecurringPayment: Boolean(membershipOptions),
       onStartPayAction: () => handlersRef.current.onStart(),
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
       onGafaPayErrAction: ({ message }) =>
         handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
       onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
       onCheckoutCloseAction: () => handlersRef.current.onHostedClose(),
+      changePaymentSystemProperties: ({ recurringPayment, saveCard: nextSave }) => {
+        if (typeof nextSave === "boolean") handlersRef.current.onSaveCard?.(nextSave);
+        if (typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
+      },
     }),
-    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone],
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions],
   );
 
   // Cambios de carrito/cliente actualizan props sin re-montar: tirar el iframe
@@ -1657,6 +1706,14 @@ function PayPanel({
     if (loadState === "ready") islandRef.current?.update(widgetProps);
   }, [widgetProps, loadState]);
 
+  useEffect(() => {
+    if (loadState !== "ready" || !mountRef.current || !membershipOptions) return;
+    syncGafaPayMembershipToggles(mountRef.current, {
+      saveCard: membershipOptions.saveCard,
+      autoRenew: membershipOptions.autoRenew,
+    });
+  }, [loadState, membershipOptions]);
+
   return (
     <div className="gafa-checkout-pay">
       {configLoading ? <PaySkeleton withMethods label="Cargando métodos de pago…" /> : null}
@@ -1685,7 +1742,12 @@ function PayPanel({
 
       {/* GafaPayFront trae su propio React 16: este div es suyo, nuestro React
           nunca toca lo que hay dentro (ver payments/gafaPay.ts). */}
-      <div className="gafa-checkout-paymount" data-state={loadState} data-method={slug || undefined}>
+      <div
+        className="gafa-checkout-paymount"
+        data-state={loadState}
+        data-method={slug || undefined}
+        data-membership={membershipOptions ? "true" : undefined}
+      >
         {slug === "paypal" ? (
           <div className="gafa-checkout-paypal-copy">
             <span className="gafa-checkout-paypal-copy__mark" aria-hidden="true">
@@ -1721,6 +1783,39 @@ function PayPanel({
           </div>
         ) : null}
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
+
+        {membershipOptions ? (
+          <div className="gafa-checkout-membership" data-open={membershipOptions.open ? "true" : undefined}>
+            <button
+              className="gafa-checkout-promo__link"
+              type="button"
+              aria-expanded={membershipOptions.open}
+              onClick={membershipOptions.onToggle}
+            >
+              Opciones de la membresía
+            </button>
+            {membershipOptions.open ? (
+              <div className="gafa-checkout-membership__fields">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={membershipOptions.saveCard}
+                    onChange={(event) => membershipOptions.onSaveCard(event.target.checked)}
+                  />
+                  Guardar mi tarjeta para la próxima compra
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={membershipOptions.autoRenew}
+                    onChange={(event) => membershipOptions.onAutoRenew(event.target.checked)}
+                  />
+                  Renovar automáticamente al vencer
+                </label>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {loadState === "loading" ? (
           <PaySkeleton label="Conectando con el procesador de pago…" />

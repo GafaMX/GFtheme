@@ -5875,6 +5875,43 @@
   width: 100%;
 }
 
+/* Fancy v1: #saveCard / #recurringPayment / [name=subscribe] van marcados
+   y ocultos. El socio los ve solo si abre “Opciones de la membresía”. */
+.gafa-checkout-paymount .gafapay-form__group.is-checkbox,
+.gafa-checkout-paymount #saveCard,
+.gafa-checkout-paymount #recurringPayment,
+.gafa-checkout-paymount [name="saveCard"],
+.gafa-checkout-paymount [name="recurringPayment"],
+.gafa-checkout-paymount [name="subscribe"] {
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.gafa-checkout-membership {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.gafa-checkout-membership__fields {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.gafa-checkout-membership__fields label {
+  align-items: flex-start;
+  color: var(--gafa-color-text);
+  display: grid;
+  font-size: 0.82rem;
+  gap: 0.45rem;
+  grid-template-columns: auto 1fr;
+  line-height: 1.35;
+}
+
 .gafa-checkout-paypal-copy {
   align-items: flex-start;
   display: flex;

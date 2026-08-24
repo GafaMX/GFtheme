@@ -21,6 +21,12 @@ describe("checkout Stripe saved-card layout", () => {
     );
   });
 
+  it("oculta saveCard y recurringPayment de GafaPay como el fancy v1", () => {
+    expect(payMountCss).toMatch(/#saveCard/);
+    expect(payMountCss).toMatch(/#recurringPayment/);
+    expect(payMountCss).toMatch(/visibility: hidden/);
+  });
+
   it("no deja que la isla desborde el panel de pago", () => {
     expect(payMountCss).toMatch(/\.gafa-checkout-paymount \{[^}]*min-width: 0/);
     expect(payMountCss).toMatch(/\.gafa-checkout-paymount__island \{[^}]*max-width: 100%/);

@@ -551,3 +551,107 @@ describe("CheckoutModal Recurrente", () => {
     window.open = originalOpen;
   });
 });
+
+const membershipLine: CartLine = {
+  ...cartLine,
+  key: "fitspin:membership:12",
+  id: 12,
+  type: "membership",
+  name: "MEMBRESÍA CDMX",
+  price: 3100,
+  priceLabel: "$3,100",
+};
+
+describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
+  let lastProps: GafaPayWidgetProps | undefined;
+
+  beforeEach(() => {
+    lastProps = undefined;
+    useCartStore.setState({ lines: [membershipLine], reservation: null });
+    mocks.loadGafaPay.mockResolvedValue({
+      React: { createElement: () => null },
+      ReactDOM: { render: () => undefined, unmountComponentAtNode: () => true },
+      elements: { StripePayment: function StripePayment() {} },
+    });
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      lastProps = props;
+      if (container instanceof Element) {
+        container.innerHTML = `
+          <div class="gafapay-form__group is-checkbox">
+            <input id="saveCard" type="checkbox" />
+            <input id="recurringPayment" type="checkbox" />
+          </div>
+        `;
+      }
+      return {
+        update: (next) => {
+          lastProps = next;
+        },
+        unmount: () => undefined,
+      };
+    });
+    mocks.waitForWidgetContent.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    cleanup();
+    useCartStore.setState({ lines: [], reservation: null });
+    delete window._handleStripePayment;
+    vi.clearAllMocks();
+  });
+
+  it("las opciones van ON y ocultas; GafaPay recibe hasRecurringPayment", async () => {
+    renderPay(mockClient());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /pagar/i })).toBeTruthy();
+    });
+    await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
+    expect(screen.getByRole("button", { name: /opciones de la membresía/i })).toBeTruthy();
+    expect(screen.queryByLabelText(/guardar mi tarjeta/i)).toBeNull();
+    expect(screen.queryByLabelText(/renovar automáticamente/i)).toBeNull();
+    expect(document.body.textContent ?? "").not.toMatch(/Recurrente/);
+
+    fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
+    const save = screen.getByLabelText(/guardar mi tarjeta/i) as HTMLInputElement;
+    const renew = screen.getByLabelText(/renovar automáticamente/i) as HTMLInputElement;
+    expect(save.checked).toBe(true);
+    expect(renew.checked).toBe(true);
+  });
+
+  it("al pagar una membresía manda subscribe y set_payment en true", async () => {
+    const client = mockClient();
+    renderPay(client);
+    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" }, recurringPayment: false });
+    };
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+
+    await waitFor(() => expect(client.reservatePurchase).toHaveBeenCalled());
+    expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0]).toEqual(
+      expect.objectContaining({ subscribe: true, setPayment: true }),
+    );
+  });
+
+  it("si desmarcan renovar, reservate manda subscribe false", async () => {
+    const client = mockClient();
+    renderPay(client);
+    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+
+    fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
+    fireEvent.click(screen.getByLabelText(/renovar automáticamente/i));
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" }, recurringPayment: true });
+    };
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+
+    await waitFor(() => expect(client.reservatePurchase).toHaveBeenCalled());
+    expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0]).toEqual(
+      expect.objectContaining({ subscribe: false, setPayment: true }),
+    );
+  });
+});
