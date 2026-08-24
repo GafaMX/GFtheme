@@ -60,3 +60,27 @@ export function availabilityFromCapacity(raw: {
   }
   return "available";
 }
+
+/**
+ * Qué puede hacer el socio en una clase llena. El fancy v1 NO deja entrar a
+ * waitlist de a gratis: o hay crédito/membresía que aplique (POST reservate,
+ * el servidor descuenta y te pone en espera), o hay que comprar y el mismo
+ * `/reservate` con `meetings_id` te mete a la lista y resta el crédito nuevo.
+ *
+ * `waitlistEnabled` sale de `is_valid_for_waitlist` del create-form-template.
+ * Si el estudio no tiene waitlist, la clase llena es solo “sin lugares”.
+ */
+export type FullClassAction = "join-waitlist" | "buy-to-waitlist" | "full" | "none";
+
+export function fullClassAction(opts: {
+  soldOut: boolean;
+  waitlistEnabled?: boolean;
+  hasPaymentOption: boolean;
+  contextReady: boolean;
+}): FullClassAction {
+  if (!opts.soldOut || !opts.contextReady) return "none";
+  if (opts.waitlistEnabled) {
+    return opts.hasPaymentOption ? "join-waitlist" : "buy-to-waitlist";
+  }
+  return "full";
+}

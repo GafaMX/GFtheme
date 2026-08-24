@@ -6,6 +6,7 @@ import {
   isSoldOut,
   offersWaitlist,
   readWaitlistAvailable,
+  fullClassAction,
 } from "./meetingAvailability";
 
 function meeting(overrides: Partial<Meeting> = {}): Meeting {
@@ -69,5 +70,28 @@ describe("availabilityFromCapacity", () => {
     expect(availabilityFromCapacity({ available: 0 })).toBe("waitlist");
     expect(availabilityFromCapacity({ available: 0, waitlistAvailable: false })).toBe("sold-out");
     expect(availabilityFromCapacity({ available: 5 })).toBe("available");
+  });
+});
+
+describe("fullClassAction", () => {
+  const ready = { soldOut: true, contextReady: true };
+
+  it("con waitlist y crédito: unirse ahora (el servidor descuenta)", () => {
+    expect(fullClassAction({ ...ready, waitlistEnabled: true, hasPaymentOption: true })).toBe("join-waitlist");
+  });
+
+  it("con waitlist y sin crédito: hay que comprar, luego el reservate te mete a la lista", () => {
+    expect(fullClassAction({ ...ready, waitlistEnabled: true, hasPaymentOption: false })).toBe("buy-to-waitlist");
+  });
+
+  it("estudio sin waitlist: clase llena, no se ofrece lista", () => {
+    expect(fullClassAction({ ...ready, waitlistEnabled: false, hasPaymentOption: true })).toBe("full");
+    expect(fullClassAction({ ...ready, waitlistEnabled: false, hasPaymentOption: false })).toBe("full");
+  });
+
+  it("sin contexto todavía no decide", () => {
+    expect(
+      fullClassAction({ soldOut: true, waitlistEnabled: true, hasPaymentOption: true, contextReady: false }),
+    ).toBe("none");
   });
 });

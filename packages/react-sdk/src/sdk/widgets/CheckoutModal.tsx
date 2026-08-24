@@ -19,6 +19,7 @@ import {
 import { AuthWidget, type AuthStage } from "./AuthWidget";
 import { ConfirmDialog } from "./ConfirmDialog";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
+import { isSoldOut, offersWaitlist } from "../client/meetingAvailability";
 import {
   loadGafaPay,
   mountGafaPayWidget,
@@ -196,6 +197,7 @@ export function CheckoutModal({
     reservationId?: number;
     /** undefined mientras gafa.fit confirma; false si se quedó sin resolver. */
     confirmed?: boolean;
+    isWaitlist?: boolean;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null>(null);
@@ -237,6 +239,9 @@ export function CheckoutModal({
   const classAttached =
     Boolean(reservation) ||
     (meeting != null && droppedMeetingIdRef.current !== Number(meeting.id));
+  const waitlistPurchase = Boolean(
+    classAttached && meeting && (offersWaitlist(meeting) || isSoldOut(meeting)),
+  );
 
   // Al abrir desde una clase: anclar el contexto de reserva al carrito.
   useEffect(() => {
@@ -560,6 +565,7 @@ export function CheckoutModal({
         purchaseId,
         reservationId,
         confirmed: true,
+        isWaitlist: Boolean(purchase.isWaitlist) || waitlistPurchase,
         reservationSnapshot,
         linesSnapshot,
       });
@@ -623,13 +629,18 @@ export function CheckoutModal({
     void completePurchase(result.message, recurring, subscriptionId);
   }
 
-  async function finishHostedPurchase(result: { purchaseId?: number | null; reservationId?: number }) {
+  async function finishHostedPurchase(result: {
+    purchaseId?: number | null;
+    reservationId?: number;
+    isWaitlist?: boolean;
+  }) {
     hostedPendingRef.current = null;
     setRegisterOnly(false);
     setThanks({
       purchaseId: result.purchaseId,
       reservationId: result.reservationId,
       confirmed: true,
+      isWaitlist: Boolean(result.isWaitlist) || waitlistPurchase,
       reservationSnapshot: reservation,
       linesSnapshot: relevantLines,
     });
@@ -824,7 +835,9 @@ export function CheckoutModal({
                     ? AUTH_COPY[authStage].title
                     : step === "shop"
                       ? reservation
-                        ? "Compra para reservar"
+                        ? waitlistPurchase
+                          ? "Compra para la lista de espera"
+                          : "Compra para reservar"
                         : "Elige tu plan"
                       : "Pago"}
                 </h2>
@@ -833,7 +846,9 @@ export function CheckoutModal({
                     ? AUTH_COPY[authStage].description
                     : step === "shop"
                       ? reservation
-                        ? "Estos son los planes que aplican para esta clase."
+                        ? waitlistPurchase
+                          ? "Al pagar te sumamos a la lista de espera y se descuenta el crédito."
+                          : "Estos son los planes que aplican para esta clase."
                         : "Agrega paquetes o membresías."
                       : "Revisa tu pedido y paga de forma segura. Si quieres agregar más, vuelve al paso anterior."}
                 </p>
@@ -1683,6 +1698,7 @@ function ThanksPanel({
     purchaseId?: number | null;
     reservationId?: number;
     confirmed?: boolean;
+    isWaitlist?: boolean;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null;
@@ -1700,7 +1716,13 @@ function ThanksPanel({
           <path d="M4 12.5L9.5 18L20 6.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
-      <h2 id="gafa-checkout-title">{reservation ? "¡Reserva confirmada!" : "¡Gracias por tu compra!"}</h2>
+      <h2 id="gafa-checkout-title">
+        {thanks?.isWaitlist
+          ? "Estás en la lista de espera"
+          : reservation
+            ? "¡Reserva confirmada!"
+            : "¡Gracias por tu compra!"}
+      </h2>
       <p>
         {firstName ? `${firstName}, tu` : "Tu"} pago quedó registrado
         {thanks?.purchaseId ? ` (orden #${thanks.purchaseId})` : ""}. Te enviamos el detalle por correo.

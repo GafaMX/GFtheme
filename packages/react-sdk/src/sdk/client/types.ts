@@ -446,6 +446,8 @@ export type InitialPurchaseResult = {
   checkoutToken?: string | null;
   /** Lo que `reservate` devuelve en `reservation[0].id` (compra + clase). */
   reservationId?: number;
+  /** Si el servidor metió la clase en waitlist (`reservation[0].is_waitlist`). */
+  isWaitlist?: boolean;
   raw?: unknown;
 };
 

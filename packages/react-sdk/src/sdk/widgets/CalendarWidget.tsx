@@ -9,7 +9,7 @@ import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import { reservationShowsSeatMapLayout } from "../client/seatMapHint";
-import { getAvailabilityText, isSoldOut, offersWaitlist } from "../client/meetingAvailability";
+import { fullClassAction, getAvailabilityText, isSoldOut, offersWaitlist } from "../client/meetingAvailability";
 import type {
   Brand,
   CreateReservationResult,
@@ -1548,18 +1548,22 @@ function ReservationPreviewModal({
     : (paymentOptions[0] ?? null);
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const soldOut = isSoldOut(meeting);
-  // Clase llena: nada de mapa; el boton se convierte en "unirme a la lista".
-  // No exige créditos: el fancy v1 dejaba sumarse a la espera sin comprar.
-  const waitlistMode = Boolean(
-    client?.createReservation &&
-      context &&
-      soldOut &&
-      (context.waitlistAvailable || offersWaitlist(meeting)),
-  );
+  // Fuente de verdad: `is_valid_for_waitlist` del create-form-template (v1).
+  // Sin crédito que aplique NO se entra a la lista: hay que comprar y el
+  // `/reservate` con la clase te mete a espera y descuenta el crédito.
+  const classAction = fullClassAction({
+    soldOut,
+    waitlistEnabled: context?.waitlistAvailable,
+    hasPaymentOption: paymentOptions.length > 0,
+    contextReady: Boolean(context),
+  });
+  const joinWaitlistNow = classAction === "join-waitlist";
+  const buyToWaitlist = classAction === "buy-to-waitlist";
+  const classFullNoWaitlist = classAction === "full";
   // El mapa se muestra SIEMPRE que exista, tengas o no creditos aplicables:
   // antes, sin creditos, ni siquiera se pintaba y se saltaba directo a "debes
-  // comprar" sin dejar ver el salon ni elegir lugar.
-  const needsSeat = Boolean(context && seatMap && !waitlistMode);
+  // comprar" sin dejar ver el salon ni elegir lugar. En clase llena no hay mapa.
+  const needsSeat = Boolean(context && seatMap && !soldOut);
   // El listado ya suele decir si hay mapa (`maps_id` / `has_map`). Si no hay,
   // el modal sencillo abre de una: no se infla a fancy con skeleton y luego
   // se encoge. Si el listado promete mapa, sí abrimos ancho con skeleton.
@@ -1599,12 +1603,13 @@ function ReservationPreviewModal({
       onContinue();
       return;
     }
-    if (waitlistMode) {
+    if (joinWaitlistNow) {
       void confirmReservation(null);
       return;
     }
-    if (!canReserveNative) {
-      // Login o compra: los resuelve el padre (gate de auth o fancy).
+    if (buyToWaitlist || !canReserveNative) {
+      // Compra: el padre abre el fancy con la clase anclada. Tras pagar,
+      // `/reservate` con meetings_id te mete a waitlist y resta el crédito.
       onContinue();
       return;
     }
@@ -1614,6 +1619,7 @@ function ReservationPreviewModal({
   const primaryDisabled =
     step === "processing" ||
     (isSignedIn && contextQuery.isLoading) ||
+    classFullNoWaitlist ||
     // Elegir lugar solo es obligatorio para completar una reserva nativa: si
     // el boton manda a comprar (sin creditos), el mapa es para explorar, no
     // hace falta escoger lugar todavia.
@@ -1625,19 +1631,23 @@ function ReservationPreviewModal({
     : contextQuery.isLoading
       ? // El "revisando..." ya vive en la columna izquierda; el CTA no lo repite.
         "Reservar"
-      : waitlistMode
+      : joinWaitlistNow
         ? "Unirme a la lista de espera"
-        : canReserveNative
-        ? needsPaymentChoice && !activeOption
-          ? "Elige cómo reservar"
-          : needsSeat
-            ? selectedSeat
-              ? `Reservar lugar ${selectedSeat.label}`
-              : "Elige tu lugar en el mapa"
-            : activeOption?.kind === "membership"
-              ? "Reservar con mi membresía"
-              : "Reservar con mi paquete"
-        : "Comprar y reservar";
+        : buyToWaitlist
+          ? "Comprar y unirme a la lista"
+          : classFullNoWaitlist
+            ? "Clase llena"
+            : canReserveNative
+              ? needsPaymentChoice && !activeOption
+                ? "Elige cómo reservar"
+                : needsSeat
+                  ? selectedSeat
+                    ? `Reservar lugar ${selectedSeat.label}`
+                    : "Elige tu lugar en el mapa"
+                  : activeOption?.kind === "membership"
+                    ? "Reservar con mi membresía"
+                    : "Reservar con mi paquete"
+              : "Comprar y reservar";
 
   return (
     <div
@@ -1742,7 +1752,16 @@ function ReservationPreviewModal({
                         </>
                       )}
                     </p>
-                  ) : waitlistMode ? null : contextQuery.isError ? (
+                  ) : buyToWaitlist ? (
+                    <p className="gafa-reservation-hint">
+                      La clase está llena y no tienes un paquete o membresía que aplique. Cómpralo y te
+                      sumamos a la lista de espera; se descuenta el crédito como en una reserva.
+                    </p>
+                  ) : classFullNoWaitlist ? (
+                    <p className="gafa-reservation-hint">
+                      Esta clase está llena y el estudio no tiene lista de espera.
+                    </p>
+                  ) : contextQuery.isError ? (
                     <p className="gafa-reservation-hint">
                       {contextQuery.error instanceof Error
                         ? contextQuery.error.message
@@ -1776,9 +1795,10 @@ function ReservationPreviewModal({
                 </div>
               ) : null}
 
-              {waitlistMode ? (
+              {joinWaitlistNow ? (
                 <p className="gafa-reservation-hint">
-                  La clase está llena. Únete a la lista de espera y te avisamos si se libera un lugar.
+                  La clase está llena. Únete a la lista de espera: se usa un crédito de tu paquete y te
+                  avisamos si se libera un lugar.
                 </p>
               ) : null}
             </div>
@@ -1788,7 +1808,7 @@ function ReservationPreviewModal({
             <div className="gafa-reservation-actions">
               <button className="gafa-sdk-button" type="button" disabled={primaryDisabled} onClick={handlePrimary}>
                 {step === "processing"
-                  ? waitlistMode
+                  ? joinWaitlistNow
                     ? "Uniendo…"
                     : "Reservando…"
                   : primaryLabel}

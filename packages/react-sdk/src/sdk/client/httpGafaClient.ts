@@ -280,13 +280,14 @@ function parsePurchaseResult(data: Record<string, unknown> | null | undefined): 
 
   const reservation = data?.reservation;
   const first = Array.isArray(reservation) ? reservation[0] : reservation;
-  const reservationId =
-    first && typeof first === "object" ? readNumericId((first as { id?: unknown }).id) : readNumericId(first);
+  const firstRecord = first && typeof first === "object" ? (first as { id?: unknown; is_waitlist?: unknown }) : null;
+  const reservationId = firstRecord ? readNumericId(firstRecord.id) : readNumericId(first);
 
   return {
     purchaseId,
     checkoutToken: typeof data?.checkout_token === "string" ? data.checkout_token : null,
     reservationId: reservationId ?? undefined,
+    isWaitlist: Boolean(firstRecord?.is_waitlist),
     raw: data,
   };
 }

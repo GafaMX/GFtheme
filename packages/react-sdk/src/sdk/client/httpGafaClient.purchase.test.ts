@@ -176,6 +176,31 @@ describe("reservatePurchase", () => {
     expect(result?.reservationId).toBe(9001);
   });
 
+  it("marca isWaitlist cuando reservate mete la clase a la lista", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({
+          purchase: { id: 10 },
+          reservation: [{ id: 22, is_waitlist: true }],
+        }),
+      ),
+    );
+
+    const result = await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      meetingId: 849768,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: "recibo",
+    });
+
+    expect(result?.isWaitlist).toBe(true);
+    expect(result?.reservationId).toBe(22);
+  });
+
   it("falla si Buq responde 200 sin compra ni reserva", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({})));
 
