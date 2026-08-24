@@ -225,6 +225,8 @@
 
 .gafa-float input,
 .gafa-float select {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-text);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);

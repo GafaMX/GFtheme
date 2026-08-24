@@ -221,10 +221,13 @@ html body .gafa-sdk .gafa-checkout__terms input:checked {
   background-color: var(--sdk-main-color) !important;
 }
 
-html body .gafa-sdk .gafa-checkout-promo input,
-html body .gafa-sdk .gafa-float input {
-  background: transparent;
-  color: #fff;
+html body .gafa-sdk .gafa-float input,
+html body .gafa-sdk .gafa-float select,
+html body .gafa-sdk .gafa-checkout-promo input {
+  --gafa-control-bg: #000;
+  --gafa-control-fg: #fff;
+  background: #000 !important;
+  color: #fff !important;
 }
 
 html body .gafa-sdk .gafa-checkout__total strong {
@@ -317,7 +320,7 @@ html body .gafa-sdk .gafa-account-modal__auth .gafa-widget-card,
 html body .gafa-sdk .gafa-acct,
 html body .gafa-sdk .gafa-acct__main,
 html body .gafa-sdk .gafa-acct__side {
-  background: #000;
+  background: #000 !important;
   color: #fff;
 }
 

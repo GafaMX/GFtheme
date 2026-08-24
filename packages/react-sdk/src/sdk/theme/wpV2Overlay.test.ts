@@ -20,7 +20,7 @@ describe("overlay CSS WP v2", () => {
     expect(overlay).toContain(".gafa-account-modal");
     expect(overlay).toContain(".gafa-catalog-card");
     expect(overlay).toContain(".gafa-confirm");
-    expect(overlay).toContain(".gafa-reservation-sheet");
+    expect(overlay).toContain(".gafa-float input");
     expect(withoutComments).not.toMatch(/#CreateReservationFancyTemplate/);
     expect(withoutComments).not.toMatch(/\.GFSDK-/);
     expect(withoutComments).not.toMatch(/\.gafapay-form__group[^{]*\{[^}]*display:\s*flex/);

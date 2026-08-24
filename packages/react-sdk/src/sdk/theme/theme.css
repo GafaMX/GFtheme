@@ -129,6 +129,17 @@ html body .gafa-sdk :focus-visible:not(.gafa-pay-native *):not(.gafa-pay-native)
   box-shadow: none !important;
 }
 
+/* Hello / Elementor pinta inputs blancos (kit). El login v2 se veia una caja
+   clara sobre el modal oscuro. Misma estrategia que los botones: !important
+   leyendo --gafa-control-* / superficie del tema. La isla de GafaPay no. */
+html body .gafa-sdk input:not(.gafa-pay-native *):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+html body .gafa-sdk select:not(.gafa-pay-native *),
+html body .gafa-sdk textarea:not(.gafa-pay-native *) {
+  background: var(--gafa-control-bg, var(--gafa-color-surface)) none !important;
+  color: var(--gafa-control-fg, var(--gafa-color-text)) !important;
+  border-color: var(--gafa-color-border) !important;
+}
+
 .gafa-scheme-toggle {
   --gafa-control-bg: var(--gafa-color-surface);
   --gafa-control-fg: var(--gafa-color-text);
