@@ -715,7 +715,7 @@
   position: absolute;
   top: calc(100% + 8px);
   transform: translateX(-50%);
-  z-index: 40;
+  z-index: 9999;
 }
 
 @media (max-width: 480px) {
@@ -1054,7 +1054,7 @@
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  z-index: 30;
+  z-index: 9999;
 }
 
 .gafa-calendar-filter {
@@ -4119,7 +4119,9 @@
   position: fixed;
   right: 0;
   top: 0;
-  z-index: 80;
+  /* Mismo techo que cuenta/reserva: en WP/Elementor el header sticky vive
+     en 9999–10000 y z-index 80 dejaba el checkout debajo. */
+  z-index: 2147483000;
   animation: gafa-checkout-fade 0.24s ease;
 }
 

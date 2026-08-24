@@ -1087,6 +1087,7 @@ function ReservationCard({
       className="gafa-acct-class"
       data-cancelled={reservation.cancelled ? "true" : undefined}
       data-historic={historic ? "true" : undefined}
+      data-overbooking={reservation.isOverbooking ? "true" : undefined}
     >
       <div className="gafa-acct-class__date" aria-hidden="true">
         <strong>{formatDayNumber(reservation.startsAt, reservation.timezone)}</strong>
