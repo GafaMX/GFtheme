@@ -2,10 +2,10 @@
  * CTAs de los estados vacios de la cuenta (Reservar / Comprar).
  *
  * En el demo del SDK el sitio pasa onExploreClasses / onExplorePackages.
- * En Fitspin y el resto de sitios Fancy, openAccount() se llama sin esos
- * callbacks: si el boton depende de ellos, desaparece. Estos defaults
- * cierran el hueco: buscan el calendario o la seccion de paquetes que
- * el propio sitio ya tiene en el DOM.
+ * En Fitspin, Voltio y el resto, openAccount() se llama sin esos callbacks:
+ * Comprar tiene que abrir el fancy nativo (paquetes / membresías / productos),
+ * no un #paquetes que en WordPress a menudo no existe. Reservar sigue yendo
+ * al calendario de la pagina.
  */
 
 const ACCOUNT_CHROME = ".gafa-account-overlay, .gafa-checkout-overlay";
@@ -68,8 +68,24 @@ export function defaultExploreClasses() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+type CheckoutOpener = {
+  openCheckout(options?: { skipCatalog?: boolean; brandSlug?: string }): unknown;
+};
+
+function nativeCheckout(): CheckoutOpener | undefined {
+  if (typeof window === "undefined") return undefined;
+  const host = window as Window & { GafaThemeSDK?: CheckoutOpener; GafaSdk?: CheckoutOpener };
+  return host.GafaThemeSDK ?? host.GafaSdk;
+}
+
 export function defaultExplorePackages() {
   if (typeof window === "undefined") return;
+
+  const sdk = nativeCheckout();
+  if (sdk && typeof sdk.openCheckout === "function") {
+    sdk.openCheckout({ skipCatalog: false });
+    return;
+  }
 
   const nav = firstOutsideChrome(PACKAGE_LINK_SELECTORS);
   if (nav) {

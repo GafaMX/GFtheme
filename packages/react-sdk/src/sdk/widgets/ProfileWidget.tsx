@@ -29,7 +29,8 @@ export type ProfileWidgetProps = {
   onRequestClose?(): void;
   /**
    * CTA de los estados vacios: Reservar (calendario) y Comprar (paquetes).
-   * Si el sitio no los pasa, el SDK navega solo al calendario / #paquetes.
+   * Si el sitio no los pasa, Reservar lleva al calendario y Comprar abre el
+   * fancy nativo de paquetes / membresías / productos.
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
@@ -374,19 +375,31 @@ export function ProfileWidget({
 
       <section className="gafa-acct__main" inert={menuOpen ? true : undefined}>
         <header className="gafa-acct__head">
-          <h2>
-            {tab === "overview" ? (
-              <>
-                ¡Hola, {firstNameOf(profile)}!{" "}
-                <span className="gafa-acct__wave" aria-hidden="true">
-                  👋
-                </span>
-              </>
-            ) : (
-              section.title
-            )}
-          </h2>
-          <p>{section.subtitle}</p>
+          <div className="gafa-acct__head-copy">
+            <h2>
+              {tab === "overview" ? (
+                <>
+                  ¡Hola, {firstNameOf(profile)}!{" "}
+                  <span className="gafa-acct__wave" aria-hidden="true">
+                    👋
+                  </span>
+                </>
+              ) : (
+                section.title
+              )}
+            </h2>
+            <p>{section.subtitle}</p>
+          </div>
+          {tab === "purchases" ? (
+            <button
+              type="button"
+              className="gafa-sdk-button gafa-acct__buy"
+              aria-label="Comprar paquetes"
+              onClick={goToPackages}
+            >
+              Comprar
+            </button>
+          ) : null}
         </header>
 
         <div className="gafa-acct__body">

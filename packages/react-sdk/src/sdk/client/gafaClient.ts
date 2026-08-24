@@ -239,6 +239,28 @@ export function createMockGafaClient(): GafaClient {
     reservatePurchase: async () => ({ purchaseId: 1 }),
     initialPurchase: async () => ({ purchaseId: 1, checkoutToken: "demo" }),
     pollInitialPurchaseStatus: async () => ({ code: 1, reservationId: 99 }),
+    getReservationContext: async ({ meetingId, brandSlug, locationSlug }) => {
+      const meeting = demoMeetings().find((item) => Number(item.id) === Number(meetingId));
+      const waitlist = Boolean(meeting && (meeting.available ?? 1) <= 0);
+      return {
+        meetingId: Number(meetingId),
+        brandSlug: brandSlug ?? meeting?.brandSlug ?? "demo-studio",
+        locationSlug: locationSlug ?? meeting?.location?.slug ?? "roma-norte",
+        userProfileId: 1,
+        seatMap: null,
+        paymentOptions: waitlist
+          ? []
+          : [{ id: "credits--1--2099-01-01", kind: "credit" as const, name: "10 clases", remaining: 5 }],
+        waitlistAvailable: waitlist,
+      };
+    },
+    createReservation: async ({ meetingId }) => {
+      const meeting = demoMeetings().find((item) => Number(item.id) === Number(meetingId));
+      return {
+        reservationId: 99,
+        isWaitlist: Boolean(meeting && (meeting.available ?? 1) <= 0),
+      };
+    },
   };
 }
 
@@ -286,6 +308,7 @@ function demoMeetings(): Meeting[] {
       availability: "waitlist",
       available: 0,
       capacity: 14,
+      waitlistAvailable: true,
       isReserved: false,
       location: {
         id: 2,

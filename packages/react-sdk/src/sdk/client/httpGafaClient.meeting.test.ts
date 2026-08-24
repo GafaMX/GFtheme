@@ -104,6 +104,24 @@ describe("getMeeting", () => {
     expect(withMap?.hasSeatMap).toBe(true);
   });
 
+  it("marca waitlist cuando la clase está llena", async () => {
+    stubApi([
+      [/\/location\?/, LOCATIONS],
+      [
+        /\/location\/235\/meetings/,
+        [{ ...MEETING, available: 0, capacity: 13, is_valid_for_waitlist: true }],
+      ],
+    ]);
+
+    const full = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+    });
+    expect(full?.availability).toBe("waitlist");
+    expect(full?.waitlistAvailable).toBe(true);
+  });
+
   it("marca hasSeatMap false cuando el salon no tiene mapa", async () => {
     stubApi([
       [/\/location\?/, LOCATIONS],

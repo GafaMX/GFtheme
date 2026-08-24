@@ -9,6 +9,7 @@ import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import { reservationShowsSeatMapLayout } from "../client/seatMapHint";
+import { getAvailabilityText, isSoldOut, offersWaitlist } from "../client/meetingAvailability";
 import type {
   Brand,
   CreateReservationResult,
@@ -1002,6 +1003,7 @@ function MeetingCard({
   showDescription: boolean;
 }) {
   const soldOut = isSoldOut(meeting);
+  const waitlist = offersWaitlist(meeting);
   const duration = getDurationMinutes(meeting);
   // El legacy directamente oculta las clases que ya pasaron; aqui se dejan
   // visibles pero apagadas, para que el dia se entienda completo.
@@ -1016,7 +1018,8 @@ function MeetingCard({
   return (
     <button
       className="gafa-meeting-card"
-      data-sold-out={soldOut ? "true" : undefined}
+      data-sold-out={soldOut && !waitlist ? "true" : undefined}
+      data-waitlist={waitlist ? "true" : undefined}
       data-passed={passed ? "true" : undefined}
       data-compact={compact ? "true" : undefined}
       data-has-photo={showsPhoto ? "true" : undefined}
@@ -1546,7 +1549,13 @@ function ReservationPreviewModal({
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const soldOut = isSoldOut(meeting);
   // Clase llena: nada de mapa; el boton se convierte en "unirme a la lista".
-  const waitlistMode = Boolean(canReserveNative && soldOut && context?.waitlistAvailable);
+  // No exige créditos: el fancy v1 dejaba sumarse a la espera sin comprar.
+  const waitlistMode = Boolean(
+    client?.createReservation &&
+      context &&
+      soldOut &&
+      (context.waitlistAvailable || offersWaitlist(meeting)),
+  );
   // El mapa se muestra SIEMPRE que exista, tengas o no creditos aplicables:
   // antes, sin creditos, ni siquiera se pintaba y se saltaba directo a "debes
   // comprar" sin dejar ver el salon ni elegir lugar.
@@ -1586,7 +1595,15 @@ function ReservationPreviewModal({
   }
 
   function handlePrimary() {
-    if (!isSignedIn || !canReserveNative) {
+    if (!isSignedIn) {
+      onContinue();
+      return;
+    }
+    if (waitlistMode) {
+      void confirmReservation(null);
+      return;
+    }
+    if (!canReserveNative) {
       // Login o compra: los resuelve el padre (gate de auth o fancy).
       onContinue();
       return;
@@ -1601,25 +1618,25 @@ function ReservationPreviewModal({
     // el boton manda a comprar (sin creditos), el mapa es para explorar, no
     // hace falta escoger lugar todavia.
     (canReserveNative && needsSeat && !selectedSeat) ||
-    (needsPaymentChoice && !activeOption);
+    (canReserveNative && needsPaymentChoice && !activeOption);
 
   const primaryLabel = !isSignedIn
     ? "Continuar reserva"
     : contextQuery.isLoading
       ? // El "revisando..." ya vive en la columna izquierda; el CTA no lo repite.
         "Reservar"
-      : canReserveNative
+      : waitlistMode
+        ? "Unirme a la lista de espera"
+        : canReserveNative
         ? needsPaymentChoice && !activeOption
           ? "Elige cómo reservar"
-          : waitlistMode
-            ? "Unirme a la lista de espera"
-            : needsSeat
-              ? selectedSeat
-                ? `Reservar lugar ${selectedSeat.label}`
-                : "Elige tu lugar en el mapa"
-              : activeOption?.kind === "membership"
-                ? "Reservar con mi membresía"
-                : "Reservar con mi paquete"
+          : needsSeat
+            ? selectedSeat
+              ? `Reservar lugar ${selectedSeat.label}`
+              : "Elige tu lugar en el mapa"
+            : activeOption?.kind === "membership"
+              ? "Reservar con mi membresía"
+              : "Reservar con mi paquete"
         : "Comprar y reservar";
 
   return (
@@ -1725,7 +1742,7 @@ function ReservationPreviewModal({
                         </>
                       )}
                     </p>
-                  ) : contextQuery.isError ? (
+                  ) : waitlistMode ? null : contextQuery.isError ? (
                     <p className="gafa-reservation-hint">
                       {contextQuery.error instanceof Error
                         ? contextQuery.error.message
@@ -1770,7 +1787,11 @@ function ReservationPreviewModal({
 
             <div className="gafa-reservation-actions">
               <button className="gafa-sdk-button" type="button" disabled={primaryDisabled} onClick={handlePrimary}>
-                {step === "processing" ? "Reservando…" : primaryLabel}
+                {step === "processing"
+                  ? waitlistMode
+                    ? "Uniendo…"
+                    : "Reservando…"
+                  : primaryLabel}
               </button>
               <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
                 Seguir viendo horarios
@@ -2283,27 +2304,6 @@ function getMeetingLocationSlug(meeting: Meeting, activeLocation?: Location): st
   return locationSlug;
 }
 
-function isSoldOut(meeting: Meeting): boolean {
-  if (meeting.availability === "sold-out") return true;
-  if (typeof meeting.available === "number") return meeting.available <= 0 && !meeting.isReserved;
-  if (typeof meeting.availability === "object" && meeting.availability.capacity) {
-    return (meeting.availability.reserved ?? 0) >= meeting.availability.capacity;
-  }
-
-  return false;
-}
-
-function getAvailabilityText(meeting: Meeting): string {
-  if (meeting.isReserved) return "Ya reservado";
-  if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {
-    return `${meeting.available}/${meeting.capacity} lugares`;
-  }
-  if (meeting.availability === "waitlist") return "Lista de espera";
-  if (isSoldOut(meeting)) return "Sin lugares";
-  return "Disponible";
-}
-
-/** Semaforo: verde 70%+ libre, amarillo 30–69%, rojo menos del 30%. */
 function availabilityLevel(available: number, capacity: number): "green" | "yellow" | "red" {
   if (capacity <= 0) return "red";
   const freeRatio = available / capacity;
@@ -2317,6 +2317,14 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
     return <span className="gafa-availability-pill gafa-availability-pill--reserved">Reservado</span>;
   }
 
+  if (offersWaitlist(meeting)) {
+    return (
+      <span className="gafa-availability-pill gafa-availability-pill--waitlist">
+        {compact ? "Waitlist" : "Lista de espera"}
+      </span>
+    );
+  }
+
   if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {
     return (
       <span className="gafa-availability-pill" data-level={availabilityLevel(meeting.available, meeting.capacity)}>
@@ -2324,10 +2332,6 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
         {compact ? "" : " lugares"}
       </span>
     );
-  }
-
-  if (meeting.availability === "waitlist") {
-    return <span className="gafa-availability-pill gafa-availability-pill--waitlist">Waitlist</span>;
   }
 
   if (isSoldOut(meeting)) {
@@ -2443,6 +2447,7 @@ function demoMeetings(range: DateRange): Meeting[] {
       staff: { id: 2, name: "Coach Wellness" },
       service: { id: 2, name: "Yoga" },
       availability: "waitlist",
+      waitlistAvailable: true,
     },
   ];
 }

@@ -1396,6 +1396,10 @@
   opacity: 0.55;
 }
 
+.gafa-meeting-card[data-waitlist="true"] {
+  opacity: 1;
+}
+
 .gafa-meeting-card[data-compact="true"] .gafa-meeting-name {
   --gafa-type-size: 0.82rem;
   font-size: 0.82rem;
@@ -1532,11 +1536,17 @@
   color: var(--gafa-color-danger);
 }
 
-.gafa-availability-pill--sold-out,
-.gafa-availability-pill--waitlist {
+.gafa-availability-pill--sold-out {
   background: var(--gafa-color-danger-soft);
   --gafa-fg: var(--gafa-color-danger);
   color: var(--gafa-color-danger);
+}
+
+.gafa-availability-pill--waitlist {
+  background: color-mix(in srgb, var(--gafa-color-accent) 22%, transparent);
+  --gafa-fg: var(--gafa-color-accent);
+  color: var(--gafa-color-accent);
+  font-weight: 800;
 }
 
 .gafa-availability-pill--reserved {
@@ -2989,10 +2999,28 @@
 }
 
 .gafa-acct__head {
+  align-items: flex-start;
   border-bottom: 1px solid var(--gafa-color-border);
+  display: flex;
+  gap: var(--gafa-space-3);
+  justify-content: space-between;
   /* padding-right reserva espacio para la X, que es absoluta y flota encima:
      sin esto un titulo largo (el saludo con el nombre) se le mete debajo. */
   padding: var(--gafa-space-4) 52px var(--gafa-space-3) var(--gafa-space-4);
+}
+
+.gafa-acct__head-copy {
+  min-width: 0;
+}
+
+.gafa-acct__buy {
+  --gafa-control-min-height: 32px;
+  --gafa-control-padding: 0.2rem 0.85rem;
+  --gafa-control-font-size: 0.82rem;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  min-height: 32px;
+  padding: 0.2rem 0.85rem;
 }
 
 @media (min-width: 768px) {

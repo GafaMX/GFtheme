@@ -71,6 +71,12 @@ export type Meeting = {
    * no se abre “fancy” hasta que el contexto confirme el mapa.
    */
   hasSeatMap?: boolean;
+  /**
+   * Si el listado o el create-form-template dicen que esta clase acepta
+   * lista de espera. `undefined` = no lo dijeron; el calendario asume waitlist
+   * cuando está llena.
+   */
+  waitlistAvailable?: boolean;
   availability?:
     | "available"
     | "waitlist"

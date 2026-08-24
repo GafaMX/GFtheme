@@ -5,6 +5,8 @@ describe("exploreDefaults", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     window.history.pushState("", document.title, "/");
+    delete (window as Window & { GafaThemeSDK?: unknown }).GafaThemeSDK;
+    delete (window as Window & { GafaSdk?: unknown }).GafaSdk;
     vi.restoreAllMocks();
   });
 
@@ -20,7 +22,19 @@ describe("exploreDefaults", () => {
     expect(calendar.scrollIntoView).toHaveBeenCalled();
   });
 
-  it("Comprar usa el link de PAQUETES del sitio si existe", () => {
+  it("Comprar abre el fancy nativo si el SDK está en la pagina", () => {
+    const openCheckout = vi.fn();
+    (window as Window & { GafaThemeSDK?: { openCheckout: typeof openCheckout } }).GafaThemeSDK = {
+      openCheckout,
+    };
+    document.body.innerHTML = `<a href="#paquetes">PAQUETES</a>`;
+
+    defaultExplorePackages();
+
+    expect(openCheckout).toHaveBeenCalledWith({ skipCatalog: false });
+  });
+
+  it("Comprar usa el link de PAQUETES del sitio si no hay SDK", () => {
     const onClick = vi.fn();
     document.body.innerHTML = `<a href="#paquetes">PAQUETES</a>`;
     document.querySelector("a")!.addEventListener("click", (event) => {
@@ -50,7 +64,7 @@ describe("exploreDefaults", () => {
     expect(catalog.scrollIntoView).toHaveBeenCalled();
   });
 
-  it("Comprar cae a #paquetes si el sitio no tiene seccion ni link", () => {
+  it("Comprar cae a #paquetes si el sitio no tiene seccion ni link ni SDK", () => {
     defaultExplorePackages();
     expect(window.location.hash).toBe("#paquetes");
   });

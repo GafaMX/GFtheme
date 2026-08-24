@@ -164,7 +164,22 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       return mount(target, <CatalogWidget client={client} {...props} />);
     },
     mountProfile(target, props = {}) {
-      return mount(target, <ProfileWidget client={client} {...props} />);
+      const { onExplorePackages, ...rest } = props;
+      return mount(
+        target,
+        <ProfileWidget
+          client={client}
+          onExplorePackages={
+            onExplorePackages ??
+            (() =>
+              sdk.openCheckout({
+                brandSlug: rest.brandSlug,
+                skipCatalog: false,
+              }))
+          }
+          {...rest}
+        />,
+      );
     },
     mountPurchaseButton(target, props = {}) {
       const { comboId, membershipId, productId, locationId, ...rest } = props;
@@ -235,9 +250,24 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       const handle = { close };
       activeAccount = handle;
 
+      const { onExplorePackages, ...rest } = props;
       const mounted = mount(
         host,
-        <AccountModal client={client} captcha={captcha} open onClose={close} {...props} />,
+        <AccountModal
+          client={client}
+          captcha={captcha}
+          open
+          onClose={close}
+          onExplorePackages={
+            onExplorePackages ??
+            (() =>
+              sdk.openCheckout({
+                brandSlug: rest.brandSlug,
+                skipCatalog: false,
+              }))
+          }
+          {...rest}
+        />,
       );
 
       return handle;

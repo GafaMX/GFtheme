@@ -48,6 +48,7 @@ import {
   writeStoredToken,
 } from "./tokenStorage";
 import { readHasSeatMap } from "./seatMapHint";
+import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -357,6 +358,9 @@ type RawMeeting = {
   capacity?: number;
   is_reserved?: number | boolean;
   passed?: boolean;
+  is_valid_for_waitlist?: boolean | number | string;
+  waitlist_available?: boolean | number | string;
+  is_waitlist_available?: boolean | number | string;
   service?: { id: number; name: string };
   staff?: { id: number; name: string; lastname?: string; description?: string; job?: string; picture_web?: string | null };
   room?: { id: number; name: string; maps_id?: number | null; map_id?: number | null; has_map?: boolean | number | null };
@@ -610,6 +614,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   }
 
   function normalizeMeeting(raw: RawMeeting, brandSlug: string, location?: Location): Meeting {
+    const waitlistAvailable = readWaitlistAvailable(raw);
     return {
       id: raw.id,
       name: raw.service?.name ?? raw.type ?? "Clase",
@@ -638,6 +643,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       isReserved: Boolean(raw.is_reserved),
       passed: raw.passed,
       hasSeatMap: readHasSeatMap(raw),
+      waitlistAvailable,
+      availability: availabilityFromCapacity({
+        available: raw.available,
+        is_reserved: raw.is_reserved,
+        waitlistAvailable,
+      }),
     };
   }
 
@@ -1251,7 +1262,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         userProfileId,
         seatMap,
         paymentOptions,
-        waitlistAvailable: Boolean(meetingData.is_valid_for_waitlist),
+        waitlistAvailable: readWaitlistAvailable(meetingData) === true,
       };
     },
 

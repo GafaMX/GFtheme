@@ -97,4 +97,24 @@ describe("openReservation", () => {
       expect(document.querySelectorAll(".gafa-reservation-overlay")).toHaveLength(1);
     });
   });
+
+  it("en una clase llena el CTA es unirse a la waitlist y confirma la espera", async () => {
+    writeStoredToken("token-de-prueba");
+    boot().openReservation({ meetingId: 2, brandSlug: "demo-studio", locationSlug: "condesa" });
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Lista de espera");
+      expect(overlayText()).toContain("Unirme a la lista de espera");
+    });
+
+    const join = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Unirme a la lista de espera"),
+    );
+    expect(join).toBeTruthy();
+    join?.click();
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Estás en la lista de espera");
+    });
+  });
 });
