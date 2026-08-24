@@ -92,6 +92,17 @@ Los precios salen del `prefijo` / `code3` de la marca (`Q`+`GTQ`, `€`+`EUR`, `
 
 Van **encendidos por defecto**. En el HTML de Buq-Webs no hace falta `filter-bq-service` / `filter-bq-staff`. Para apagarlos: `="false"`.
 
+## WordPress / Elementor (no Buq-Webs)
+
+El JS es el mismo `@cdn-live`. El CSS de Elementor que sigue en clases v1
+(`GFSDK-*`, `#CreateReservationFancyTemplate`, `.modal-profile`) **no aplica**.
+Sustituye esos bloques por `docs/v2-embed/wp-v2-overlay.css` (o un `<link>` a
+`https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-embed/wp-v2-overlay.css`).
+No hace falta Republish. Hard refresh.
+
+Opcional en `data-gafa-options` → `THEME.colors`: `surface`, `background`, `text`
+si quieres negro puro en vez del gris derivado del color de marca.
+
 ## Tags `v2.0.0-rc.N`
 
 Siguen existiendo como **archivo** (rollback humano, no URL de producción). No las pongas en `VITE_GAFA_SDK_V2_URL`.

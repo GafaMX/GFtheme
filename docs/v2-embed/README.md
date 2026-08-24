@@ -50,6 +50,19 @@ lo alcanza WordPress ni Replit.
 **WordPress / Elementor:** una línea en el header o un HTML widget. No se toca
 el theme PHP en cada deploy v2: se reemplaza `gafa-sdk.js` en git.
 
+El CSS custom de Elementor que apunta a `GFSDK-*`, `#CreateReservationFancyTemplate`
+o `.modal-profile` **no pinta el v2**. Sustitúyelo por
+[`wp-v2-overlay.css`](./wp-v2-overlay.css) (calendario, checkout, perfil, login,
+catálogo, Recurrente). Cambia las variables `--sdk-*` al color de la marca.
+Pegarlo en Custom CSS o:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-embed/wp-v2-overlay.css">
+```
+
+En `THEME.colors` puedes forzar fondos (`surface`, `background`, `text`) si no
+quieres que el SDK derive el gris a partir del color de marca.
+
 **Buq-Webs (Replit, todas las marcas en `web.buq.mx/<marca>`):** no copies a
 `lib/gafa-react-sdk` y **no pulses Republish**. Un secreto
 `VITE_GAFA_SDK_V2_URL` ya apunta a `@cdn-live` para **toda** la app. Fitspin

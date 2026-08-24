@@ -1,0 +1,452 @@
+/*
+ * Overlay WordPress / Elementor → SDK v2
+ * =======================================
+ * El CSS custom de Elementor seguía apuntando a v1 (GFSDK-*, #CreateReservationFancyTemplate,
+ * .modal-profile, [data-gf-theme="login-register"] .GFSDK-e-buttons). El SDK v2 usa .gafa-*.
+ * Esas reglas v1 no pintan nada. Este archivo es el mapeo completo.
+ *
+ * Cómo usarlo (producción hoy):
+ * 1. En Elementor → Custom CSS (o un HTML widget), REEMPLAZA los bloques GFSDK / CreateReservation /
+ *    modal-profile / login-register por ESTE archivo entero.
+ * 2. Deja las variables --sdk-* (abajo). Son las mismas que ya tenías.
+ * 3. El script del SDK sigue en @cdn-live. No hace falta Republish de Buq-Webs.
+ * 4. Hard refresh (Ctrl+Shift+R).
+ *
+ * URL si prefieres <link> en vez de pegar:
+ *   https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-embed/wp-v2-overlay.css
+ *
+ * No uses display:flex en .gafapay-form__group (rompe Stripe/Recurrente).
+ */
+
+:root {
+  --sdk-main-color: #DAE343;
+  --sdk-hover-color: #000;
+  --sdk-text-color: #FFF;
+  --sdk-background-color: transparent;
+  --sdk-secondary-color: #363535;
+}
+
+/* ======================================================================
+   Header: Mi cuenta / Entrar
+   v1: [data-gf-theme="login-register"] .GFSDK-e-buttons.is-primary
+   ====================================================================== */
+
+html body .gafa-sdk .gafa-header-account {
+  --gafa-control-bg: #000;
+  --gafa-control-fg: var(--sdk-main-color);
+  --gafa-control-transform: uppercase;
+  background: #000 !important;
+  color: var(--sdk-main-color) !important;
+  text-transform: uppercase !important;
+}
+
+html body .gafa-sdk .gafa-header-account svg {
+  color: var(--sdk-main-color);
+  fill: none;
+}
+
+html body .gafa-sdk .gafa-header-cart {
+  --gafa-control-bg: #000;
+  --gafa-control-fg: var(--sdk-text-color);
+  background: #000 !important;
+  color: var(--sdk-text-color) !important;
+  border-color: var(--sdk-main-color) !important;
+}
+
+/* ======================================================================
+   Calendario (toolbar, filtros, tarjetas)
+   v1: .GFSDK-c-Calendar__*, .GFSDK-e-meeting, .GFSDK-c-filter__item
+   ====================================================================== */
+
+html body .gafa-sdk .gafa-calendar-toolbar,
+html body .gafa-sdk .gafa-filterbar,
+html body .gafa-sdk .gafa-calendar-today,
+html body .gafa-sdk .gafa-segmented button,
+html body .gafa-sdk .gafa-calendar-date-button,
+html body .gafa-sdk .gafa-filterbar-location select,
+html body .gafa-sdk .gafa-calendar-filter select {
+  font-family: Fairview, inherit;
+}
+
+html body .gafa-sdk .gafa-calendar-toolbar,
+html body .gafa-sdk .gafa-calendar-date-button,
+html body .gafa-sdk .gafa-calendar-today,
+html body .gafa-sdk .gafa-filterbar-location,
+html body .gafa-sdk .gafa-filterbar-toggle,
+html body .gafa-sdk .gafa-calendar-filter,
+html body .gafa-sdk .gafa-calendar-filter select,
+html body .gafa-sdk .gafa-filterbar-location select {
+  color: var(--sdk-text-color);
+}
+
+html body .gafa-sdk .gafa-calendar-filter select,
+html body .gafa-sdk .gafa-filterbar-location select {
+  border-color: var(--sdk-text-color);
+  font-size: 14px;
+}
+
+html body .gafa-sdk .gafa-calendar-filter select option,
+html body .gafa-sdk .gafa-filterbar-location select option {
+  background-color: #000;
+  color: #fff;
+}
+
+html body .gafa-sdk .gafa-filterbar-panel .gafa-calendar-filter:nth-of-type(2) select,
+html body .gafa-sdk .gafa-calendar-filter select {
+  text-transform: capitalize;
+}
+
+html body .gafa-sdk .gafa-day-column {
+  background: var(--sdk-background-color);
+}
+
+html body .gafa-sdk .gafa-meeting-card {
+  --gafa-control-bg: var(--sdk-background-color);
+  background: var(--sdk-background-color) !important;
+  color: var(--sdk-text-color);
+  padding: 10px;
+  row-gap: 5px;
+}
+
+html body .gafa-sdk .gafa-meeting-card:hover {
+  border-color: var(--sdk-main-color);
+}
+
+html body .gafa-sdk .gafa-meeting-time {
+  color: var(--sdk-main-color);
+}
+
+html body .gafa-sdk .gafa-meeting-staff {
+  color: var(--sdk-main-color);
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+html body .gafa-sdk .gafa-meeting-detail,
+html body .gafa-sdk .gafa-meeting-desc {
+  color: var(--sdk-text-color);
+  font-size: 12px;
+  line-height: 17px;
+  text-align: left;
+}
+
+html body .gafa-sdk .gafa-day-slot__title {
+  color: var(--sdk-text-color);
+}
+
+@media (max-width: 768px) {
+  html body .gafa-sdk .gafa-calendar-toolbar .gafa-icon-button {
+    padding: 5px 10px;
+  }
+
+  html body .gafa-sdk .gafa-segmented button {
+    font-size: 9px;
+  }
+
+  html body .gafa-sdk .gafa-meeting-detail {
+    display: inline;
+    margin-right: 12px;
+  }
+}
+
+/* ======================================================================
+   Checkout (catálogo + carrito + Pagar / Recurrente)
+   v1: #CreateReservationFancyTemplate, .gs-checkOut, .add-to-card, .gs-summary
+   ====================================================================== */
+
+html body .gafa-sdk .gafa-checkout-overlay {
+  z-index: 2147483000;
+}
+
+html body .gafa-sdk .gafa-checkout,
+html body .gafa-sdk .gafa-checkout__cart {
+  background: #000;
+  color: #fff;
+}
+
+html body .gafa-sdk .gafa-checkout__hero h2,
+html body .gafa-sdk .gafa-checkout-product h3,
+html body .gafa-sdk .gafa-checkout__cart-head h3,
+html body .gafa-sdk .gafa-checkout__total {
+  color: #fff;
+}
+
+html body .gafa-sdk .gafa-checkout-product__add {
+  --gafa-control-bg: var(--sdk-main-color);
+  --gafa-control-fg: var(--sdk-secondary-color);
+  background: var(--sdk-main-color) !important;
+  border-color: var(--sdk-main-color) !important;
+  color: var(--sdk-secondary-color) !important;
+}
+
+html body .gafa-sdk .gafa-checkout-product__add:hover {
+  --gafa-control-bg: var(--sdk-hover-color);
+  --gafa-control-fg: var(--sdk-main-color);
+  background: var(--sdk-hover-color) !important;
+  border-color: var(--sdk-hover-color) !important;
+  color: var(--sdk-main-color) !important;
+}
+
+html body .gafa-sdk .gafa-checkout__cta {
+  --gafa-control-bg: var(--sdk-main-color);
+  --gafa-control-fg: var(--sdk-secondary-color);
+  --gafa-control-radius: 0px;
+  --gafa-control-transform: uppercase;
+  background: var(--sdk-main-color) !important;
+  border: 2px solid var(--sdk-main-color) !important;
+  border-radius: 0 !important;
+  color: var(--sdk-secondary-color) !important;
+  font-size: 15px;
+  text-transform: uppercase !important;
+}
+
+html body .gafa-sdk .gafa-checkout__cta:hover {
+  --gafa-control-bg: var(--sdk-hover-color);
+  --gafa-control-fg: var(--sdk-main-color);
+  background: var(--sdk-hover-color) !important;
+  border-color: var(--sdk-secondary-color) !important;
+  color: var(--sdk-main-color) !important;
+}
+
+html body .gafa-sdk .gafa-checkout__backlink {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+html body .gafa-sdk .gafa-checkout input[type="checkbox"]:checked,
+html body .gafa-sdk .gafa-checkout__terms input:checked {
+  accent-color: var(--sdk-main-color);
+  background-color: var(--sdk-main-color) !important;
+}
+
+html body .gafa-sdk .gafa-checkout-promo input,
+html body .gafa-sdk .gafa-float input {
+  background: transparent;
+  color: #fff;
+}
+
+html body .gafa-sdk .gafa-checkout__total strong {
+  font-size: 1.6em;
+}
+
+/* GafaPay Recurrente: el CTA amarillo dispara el botón nativo; no se ve. */
+html body .gafa-sdk .gafa-checkout-paymount[data-method="recurrente"] .gafapay-recurrente button {
+  height: 1px;
+  left: -9999px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+#saveCard[type="checkbox"],
+#saveCard[type="checkbox"] + label,
+#recurringPayment[type="checkbox"],
+#recurringPayment[type="checkbox"] + label,
+.gafapay-elements.gafapay-recurrente .gafapay-form__group.is-checkbox {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+@media (max-width: 768px) {
+  html body .gafa-sdk .gafa-checkout,
+  html body .gafa-sdk .gafa-reservation-sheet {
+    max-width: 100vw;
+  }
+}
+
+/* ======================================================================
+   Reserva + mapa de salón
+   v1: .MapMeeting, .CellGrid, #CreateReservationFancyTemplate--Block
+   ====================================================================== */
+
+html body .gafa-sdk .gafa-reservation-overlay,
+html body .gafa-sdk .gafa-fancy-overlay {
+  z-index: 2147483000;
+}
+
+html body .gafa-sdk .gafa-reservation-sheet,
+html body .gafa-sdk .gafa-reservation-hero,
+html body .gafa-sdk .gafa-reservation-body {
+  background: #000;
+  color: #fff;
+}
+
+html body .gafa-sdk .gafa-reservation-sheet .gafa-sdk-button:not(.gafa-sdk-button--secondary) {
+  --gafa-control-bg: var(--sdk-main-color);
+  --gafa-control-fg: #000;
+  background: var(--sdk-main-color) !important;
+  color: #000 !important;
+}
+
+html body .gafa-sdk .gafa-seatmap__fixture,
+html body .gafa-sdk .gafa-seatmap__fixture-img {
+  background-size: cover;
+  border-radius: 50%;
+}
+
+html body .gafa-sdk .gafa-seatmap__seat {
+  aspect-ratio: 1 / 1;
+}
+
+@media (max-width: 768px) {
+  html body .gafa-sdk .gafa-reservation-sheet[data-has-map="true"] {
+    max-height: 100vh;
+    max-width: 100vw;
+  }
+
+  html body .gafa-sdk .gafa-seatmap__scroll {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}
+
+/* ======================================================================
+   Cuenta / perfil
+   v1: .modal-profile, #ProfileTabs, .UserCredit__credits, .profile-user__name
+   ====================================================================== */
+
+html body .gafa-sdk .gafa-account-overlay {
+  z-index: 2147483000;
+}
+
+html body .gafa-sdk .gafa-account-modal,
+html body .gafa-sdk .gafa-account-modal__auth,
+html body .gafa-sdk .gafa-account-modal__auth .gafa-widget-card,
+html body .gafa-sdk .gafa-acct,
+html body .gafa-sdk .gafa-acct__main,
+html body .gafa-sdk .gafa-acct__side {
+  background: #000;
+  color: #fff;
+}
+
+html body .gafa-sdk .gafa-acct__user-text,
+html body .gafa-sdk .gafa-acct__head,
+html body .gafa-sdk .gafa-float input,
+html body .gafa-sdk .gafa-float select,
+html body .gafa-sdk .gafa-float > span:first-of-type {
+  color: #fff !important;
+}
+
+html body .gafa-sdk .gafa-acct__user-text {
+  font-size: 18px;
+}
+
+html body .gafa-sdk .gafa-acct-balance__card {
+  background: var(--sdk-main-color);
+  color: #000;
+}
+
+html body .gafa-sdk .gafa-acct-balance__value {
+  font-size: 20px;
+}
+
+html body .gafa-sdk .gafa-account-modal .gafa-sdk-button:not(.gafa-sdk-button--secondary),
+html body .gafa-sdk .gafa-acct-form__actions .gafa-sdk-button,
+html body .gafa-sdk .gafa-account-modal__auth .gafa-sdk-button {
+  --gafa-control-bg: var(--sdk-main-color);
+  --gafa-control-fg: #000;
+  background: var(--sdk-main-color) !important;
+  color: #000 !important;
+}
+
+html body .gafa-sdk .gafa-acct__logout {
+  color: #000;
+}
+
+html body .gafa-sdk .gafa-acct-class[data-overbooking="true"] {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  html body .gafa-sdk .gafa-acct-class {
+    border-radius: 0;
+    min-height: 30px;
+    padding: 5px;
+    width: 100%;
+  }
+}
+
+/* ======================================================================
+   Login / registro / contraseña
+   v1: .fade.modal-login, .modal-register, .modal-password
+   ====================================================================== */
+
+html body .gafa-sdk .gafa-account-modal[data-state="auth"],
+html body .gafa-sdk .gafa-account-modal[data-state="auth"] .gafa-widget-card {
+  background: #000;
+  color: #fff !important;
+}
+
+html body .gafa-sdk .gafa-account-modal[data-state="auth"] h2,
+html body .gafa-sdk .gafa-account-modal[data-state="auth"] a,
+html body .gafa-sdk .gafa-account-modal[data-state="auth"] .gafa-float input {
+  color: #fff !important;
+}
+
+html body .gafa-sdk .gafa-account-modal[data-state="auth"] button[type="submit"],
+html body .gafa-sdk .gafa-account-modal[data-state="auth"] .gafa-sdk-button:not(.gafa-sdk-button--secondary) {
+  --gafa-control-bg: var(--sdk-main-color);
+  --gafa-control-fg: #000;
+  background: var(--sdk-main-color) !important;
+  color: #000 !important;
+}
+
+/* ======================================================================
+   Confirmar cancelación
+   v1: [role="dialog"].modal-cancelation
+   ====================================================================== */
+
+html body .gafa-sdk .gafa-confirm-overlay {
+  z-index: 2147483002;
+}
+
+html body .gafa-sdk .gafa-confirm {
+  background: #000;
+  color: #fff;
+}
+
+html body .gafa-sdk .gafa-confirm__title,
+html body .gafa-sdk .gafa-confirm__text {
+  color: #fff !important;
+}
+
+html body .gafa-sdk .gafa-confirm__confirm {
+  --gafa-control-bg: var(--sdk-main-color);
+  --gafa-control-fg: #000;
+  background: var(--sdk-main-color) !important;
+  color: #000 !important;
+}
+
+/* ======================================================================
+   Catálogo (paquetes / membresías)
+   v1: .GFSDK-e-product, .GFSDK-c-comboList, .GFSDK-c-membershipList
+   ====================================================================== */
+
+html body .gafa-sdk .gafa-catalog-card {
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 30px;
+  width: 95%;
+}
+
+html body .gafa-sdk .gafa-catalog-card h3,
+html body .gafa-sdk .gafa-catalog-card p,
+html body .gafa-sdk .gafa-catalog-price {
+  color: var(--sdk-text-color);
+}
+
+html body .gafa-sdk .gafa-catalog-card .gafa-sdk-button {
+  --gafa-control-bg: var(--sdk-main-color);
+  --gafa-control-fg: var(--sdk-secondary-color);
+  background: var(--sdk-main-color) !important;
+  color: var(--sdk-secondary-color) !important;
+}
+
+html body .gafa-sdk .gafa-catalog-card .gafa-sdk-button:hover {
+  --gafa-control-bg: var(--sdk-hover-color);
+  --gafa-control-fg: var(--sdk-main-color);
+  background: var(--sdk-hover-color) !important;
+  color: var(--sdk-main-color) !important;
+}
