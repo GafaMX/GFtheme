@@ -310,6 +310,7 @@ function demoMeetings(): Meeting[] {
       capacity: 14,
       waitlistAvailable: true,
       isReserved: false,
+      hasSeatMap: true,
       location: {
         id: 2,
         name: "Condesa",
