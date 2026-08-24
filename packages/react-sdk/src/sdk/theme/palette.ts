@@ -174,7 +174,7 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
       danger: hsl({ h: dangerHsl.h, s: 70, l: 65 }),
       dangerSoft: hsl({ h: dangerHsl.h, s: 45, l: 20 }),
       overlay: "hsl(0 0% 0% / 0.72)",
-    };
+    });
   }
 
   const brand = hsl({ h: brandHsl.h, s: brandHsl.s, l: Math.min(brandHsl.l, 52) });
@@ -198,5 +198,5 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
     danger: hsl({ h: dangerHsl.h, s: dangerHsl.s, l: 46 }),
     dangerSoft: hsl({ h: dangerHsl.h, s: 75, l: 96 }),
     overlay: "hsl(0 0% 8% / 0.55)",
-  };
+  });
 }
