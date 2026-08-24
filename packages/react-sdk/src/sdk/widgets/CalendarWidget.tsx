@@ -1548,6 +1548,7 @@ function ReservationPreviewModal({
     : (paymentOptions[0] ?? null);
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const soldOut = isSoldOut(meeting);
+  const waitlistCard = offersWaitlist(meeting);
   // Fuente de verdad: `is_valid_for_waitlist` del create-form-template (v1).
   // Sin crédito que aplique NO se entra a la lista: hay que comprar y el
   // `/reservate` con la clase te mete a espera y descuenta el crédito.
@@ -1562,17 +1563,16 @@ function ReservationPreviewModal({
   const classFullNoWaitlist = classAction === "full";
   // El mapa se muestra SIEMPRE que exista, tengas o no creditos aplicables:
   // antes, sin creditos, ni siquiera se pintaba y se saltaba directo a "debes
-  // comprar" sin dejar ver el salon ni elegir lugar. En clase llena no hay mapa.
-  const needsSeat = Boolean(context && seatMap && !soldOut);
-  // El listado ya suele decir si hay mapa (`maps_id` / `has_map`). Si no hay,
-  // el modal sencillo abre de una: no se infla a fancy con skeleton y luego
-  // se encoge. Si el listado promete mapa, sí abrimos ancho con skeleton.
-  const contextLoading = isSignedIn && contextQuery.isLoading;
+  // comprar" sin dejar ver el salon ni elegir lugar. En clase llena / waitlist
+  // no hay lugar que elegir: el modal nace compacto, aunque el salón tenga mapa.
+  const needsSeat = Boolean(context && seatMap && !soldOut && !waitlistCard);
+  const contextLoading = isSignedIn && (contextQuery.isPending || contextQuery.isFetching) && !context;
   const wideLayout = reservationShowsSeatMapLayout({
     hasSeatMap: meeting.hasSeatMap,
     hasLoadedSeatMap: needsSeat,
     contextLoading,
     soldOut,
+    waitlist: waitlistCard || joinWaitlistNow || buyToWaitlist || classFullNoWaitlist,
   });
 
   async function confirmReservation(seat: SeatMapObject | null) {

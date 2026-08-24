@@ -1,9 +1,21 @@
 import type { Meeting } from "./types";
 
+function spotsLeft(meeting: Meeting): number | undefined {
+  const value: unknown = meeting.available;
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+}
+
 /** Clase sin cupo libre (y sin reserva propia que la “abra”). */
 export function isSoldOut(meeting: Meeting): boolean {
-  if (meeting.availability === "sold-out") return true;
-  if (typeof meeting.available === "number") return meeting.available <= 0 && !meeting.isReserved;
+  if (meeting.isReserved) return false;
+  if (meeting.availability === "sold-out" || meeting.availability === "waitlist") return true;
+  const available = spotsLeft(meeting);
+  if (typeof available === "number") return available <= 0;
   if (typeof meeting.availability === "object" && meeting.availability.capacity) {
     return (meeting.availability.reserved ?? 0) >= meeting.availability.capacity;
   }
@@ -50,12 +62,18 @@ export function readWaitlistAvailable(raw: unknown): boolean | undefined {
 }
 
 export function availabilityFromCapacity(raw: {
-  available?: number;
+  available?: number | string;
   is_reserved?: number | boolean;
   waitlistAvailable?: boolean;
 }): Meeting["availability"] {
   const reserved = Boolean(raw.is_reserved);
-  if (typeof raw.available === "number" && raw.available <= 0 && !reserved) {
+  const available =
+    typeof raw.available === "number"
+      ? raw.available
+      : typeof raw.available === "string" && raw.available.trim() !== ""
+        ? Number(raw.available)
+        : undefined;
+  if (typeof available === "number" && Number.isFinite(available) && available <= 0 && !reserved) {
     return raw.waitlistAvailable === false ? "sold-out" : "waitlist";
   }
   return "available";

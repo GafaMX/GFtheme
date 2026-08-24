@@ -23,6 +23,11 @@ describe("isSoldOut", () => {
     expect(isSoldOut(meeting({ available: 0, capacity: 13 }))).toBe(true);
   });
 
+  it("availability waitlist o available como string también es lleno", () => {
+    expect(isSoldOut(meeting({ availability: "waitlist" }))).toBe(true);
+    expect(isSoldOut(meeting({ available: "0" as unknown as number, capacity: 13 }))).toBe(true);
+  });
+
   it("con cupo libre no está lleno", () => {
     expect(isSoldOut(meeting({ available: 3, capacity: 13 }))).toBe(false);
   });

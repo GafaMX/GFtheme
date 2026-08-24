@@ -242,12 +242,32 @@ export function createMockGafaClient(): GafaClient {
     getReservationContext: async ({ meetingId, brandSlug, locationSlug }) => {
       const meeting = demoMeetings().find((item) => Number(item.id) === Number(meetingId));
       const waitlist = Boolean(meeting && (meeting.available ?? 1) <= 0);
+      const seatMap = {
+        id: 9,
+        name: "Salón demo",
+        rows: 4,
+        columns: 6,
+        capacity: waitlist ? 14 : 18,
+        objects: [
+          {
+            id: 1,
+            row: 1,
+            column: 1,
+            width: 1,
+            height: 1,
+            label: "1",
+            type: "public",
+            isBlocked: false,
+            isOccupied: Boolean(waitlist),
+          },
+        ],
+      };
       return {
         meetingId: Number(meetingId),
         brandSlug: brandSlug ?? meeting?.brandSlug ?? "demo-studio",
         locationSlug: locationSlug ?? meeting?.location?.slug ?? "roma-norte",
         userProfileId: 1,
-        seatMap: null,
+        seatMap,
         paymentOptions: waitlist
           ? []
           : [{ id: "credits--1--2099-01-01", kind: "credit" as const, name: "10 clases", remaining: 5 }],
@@ -291,6 +311,7 @@ function demoMeetings(): Meeting[] {
       available: 8,
       capacity: 18,
       isReserved: false,
+      hasSeatMap: true,
       location: {
         id: 1,
         name: "Roma Norte",

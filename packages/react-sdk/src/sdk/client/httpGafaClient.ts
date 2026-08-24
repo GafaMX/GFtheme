@@ -388,7 +388,7 @@ type RawMeeting = {
   end_date?: string;
   type?: string;
   title?: string;
-  available?: number;
+  available?: number | string;
   capacity?: number;
   is_reserved?: number | boolean;
   passed?: boolean;
@@ -686,6 +686,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   }
 
   function normalizeMeeting(raw: RawMeeting, brandSlug: string, location?: Location): Meeting {
+    const available =
+      typeof raw.available === "number"
+        ? raw.available
+        : typeof raw.available === "string" && raw.available.trim() !== ""
+          ? Number(raw.available)
+          : undefined;
     const waitlistAvailable = readWaitlistAvailable(raw);
     return {
       id: raw.id,
@@ -710,14 +716,14 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       staffName: raw.staff ? [raw.staff.name, raw.staff.lastname].filter(Boolean).join(" ") : undefined,
       location,
       locationSlug: location?.slug,
-      available: raw.available,
+      available: typeof available === "number" && Number.isFinite(available) ? available : undefined,
       capacity: raw.capacity,
       isReserved: Boolean(raw.is_reserved),
       passed: raw.passed,
       hasSeatMap: readHasSeatMap(raw),
       waitlistAvailable,
       availability: availabilityFromCapacity({
-        available: raw.available,
+        available: typeof available === "number" && Number.isFinite(available) ? available : undefined,
         is_reserved: raw.is_reserved,
         waitlistAvailable,
       }),

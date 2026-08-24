@@ -65,4 +65,15 @@ describe("reservationShowsSeatMapLayout", () => {
       }),
     ).toBe(false);
   });
+
+  it("pill de waitlist en el calendario: compacto desde el primer frame", () => {
+    expect(
+      reservationShowsSeatMapLayout({
+        hasSeatMap: true,
+        hasLoadedSeatMap: false,
+        contextLoading: true,
+        waitlist: true,
+      }),
+    ).toBe(false);
+  });
 });
