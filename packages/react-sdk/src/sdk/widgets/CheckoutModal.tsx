@@ -283,12 +283,25 @@ export function CheckoutModal({
 
   const configQuery = useQuery({
     queryKey: ["checkout", "config", brandSlug, locationSlug, classAttached ? meeting?.id : undefined],
-    queryFn: () =>
-      client.getCheckoutConfig!({
-        brandSlug: brandSlug!,
-        locationSlug: locationSlug!,
-        meetingId: classAttached ? meeting?.id : undefined,
-      }),
+    queryFn: async () => {
+      try {
+        return await client.getCheckoutConfig!({
+          brandSlug: brandSlug!,
+          locationSlug: locationSlug!,
+          meetingId: classAttached ? meeting?.id : undefined,
+        });
+      } catch (error) {
+        // Clase llena / waitlist: el create-form a veces no arma el fancy y
+        // el catálogo queda vacío. Reintentamos la sede sin anclar la clase.
+        if (classAttached && meeting?.id != null) {
+          return client.getCheckoutConfig!({
+            brandSlug: brandSlug!,
+            locationSlug: locationSlug!,
+          });
+        }
+        throw error;
+      }
+    },
     enabled: Boolean(client.getCheckoutConfig && brandSlug && locationSlug && isSignedIn),
     staleTime: 60_000,
     retry: 1,
@@ -304,13 +317,15 @@ export function CheckoutModal({
   const catalogQuery = useQuery({
     queryKey: checkoutCatalogQueryKey(brandSlug),
     queryFn: () => fetchCheckoutCatalog(client, brandSlug!),
-    enabled: Boolean(brandSlug) && !classAttached,
+    enabled: Boolean(brandSlug) && (!classAttached || configQuery.isError),
     staleTime: CHECKOUT_CATALOG_STALE_MS,
   });
 
-  const combos = classAttached ? (config?.combos ?? []) : (catalogQuery.data?.combos ?? config?.combos ?? []);
+  const combos = classAttached
+    ? ((config?.combos?.length ? config.combos : catalogQuery.data?.combos) ?? [])
+    : (catalogQuery.data?.combos ?? config?.combos ?? []);
   const memberships = classAttached
-    ? (config?.memberships ?? [])
+    ? ((config?.memberships?.length ? config.memberships : catalogQuery.data?.memberships) ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
   const products = config?.products ?? [];
   const catalogCurrency = useMemo(() => {
@@ -328,9 +343,8 @@ export function CheckoutModal({
   // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
   // antes de pedir nada. Skeleton hasta que haya fetch real (exito o error).
   const catalogBusy = classAttached
-    ? !configQuery.isFetched &&
-      !configQuery.isError &&
-      (profileQuery.isPending || Boolean(isSignedIn))
+    ? (!configQuery.isFetched && !configQuery.isError && (profileQuery.isPending || Boolean(isSignedIn))) ||
+      (configQuery.isError && !catalogQuery.isFetched && !catalogQuery.isError)
     : !catalogQuery.isFetched && !catalogQuery.isError;
 
   useEffect(() => {
@@ -960,7 +974,8 @@ export function CheckoutModal({
                   )}
 
                   {!catalogBusy &&
-                  ((configQuery.isError && !combos.length && !memberships.length) || catalogQuery.isError) ? (
+                  ((configQuery.isError && !combos.length && !memberships.length && catalogQuery.isError) ||
+                    (!classAttached && catalogQuery.isError && !combos.length && !memberships.length)) ? (
                     <p className="gafa-sdk-state gafa-sdk-state--error">
                       No pudimos cargar el catálogo de esta sede.
                     </p>

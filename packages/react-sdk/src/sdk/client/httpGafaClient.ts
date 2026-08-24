@@ -336,6 +336,15 @@ class GafaApiError extends Error {
   }
 }
 
+/** create-form-template respondió HTML de error (clase llena, etc.) sin el
+ *  bloque del meeting. No tiene sentido reintentar: el servidor ya contestó. */
+export class ReservationFormUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ReservationFormUnavailableError";
+  }
+}
+
 /** El API responde en ingles (o en español muy largo); al usuario se le
     muestran mensajes cortos en español que caben en una linea en movil. */
 const API_MESSAGE_TRANSLATIONS: Record<string, string> = {
@@ -692,7 +701,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         : typeof raw.available === "string" && raw.available.trim() !== ""
           ? Number(raw.available)
           : undefined;
-    const waitlistAvailable = readWaitlistAvailable(raw);
+    // El listado de Voltio manda `is_valid_for_waitlist: false` en TODAS las
+    // clases (llenas o no). Ese false no es “el estudio no tiene waitlist”:
+    // solo confiamos en `true`. El `false` de verdad sale del create-form.
+    const waitlistAvailable = readWaitlistAvailable(raw) === true ? true : undefined;
     return {
       id: raw.id,
       name: raw.service?.name ?? raw.type ?? "Clase",
@@ -1191,7 +1203,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const meetingRaw = readBlock("meeting");
       if (!meetingRaw) {
         const serverError = errorList?.textContent?.trim();
-        throw new Error(serverError || "El servidor no devolvio la informacion de la reserva.");
+        throw new ReservationFormUnavailableError(
+          serverError || "El servidor no devolvio la informacion de la reserva.",
+        );
       }
 
       const meetingData = JSON.parse(meetingRaw) as {
@@ -1531,7 +1545,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const canRedeem = readFancyBlock(doc, "canRedeemStoreCredit");
 
       if (!urlReservation) {
-        throw new Error("No encontramos la configuración de pago para esta sede.");
+        throw new ReservationFormUnavailableError(
+          "No encontramos la configuración de pago para esta sede.",
+        );
       }
 
       const config: CheckoutConfig = {

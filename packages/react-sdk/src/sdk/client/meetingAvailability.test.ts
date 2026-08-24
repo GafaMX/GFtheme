@@ -38,6 +38,10 @@ describe("offersWaitlist", () => {
     expect(offersWaitlist(meeting({ available: 0, capacity: 13 }))).toBe(true);
   });
 
+  it("el false del listado no apaga waitlist si no hay flag de template", () => {
+    expect(offersWaitlist(meeting({ available: 0, capacity: 25 }))).toBe(true);
+  });
+
   it("respeta availability: waitlist aunque también traiga 0/N", () => {
     expect(offersWaitlist(meeting({ available: 0, capacity: 12, availability: "waitlist" }))).toBe(true);
   });

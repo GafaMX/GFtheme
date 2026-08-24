@@ -1531,10 +1531,12 @@ function ReservationPreviewModal({
       }),
     enabled: Boolean(client?.getReservationContext && brandSlug && locationSlug && isSignedIn),
     staleTime: 30_000,
-    // Igual que sessionQuery: sin reintentos, un hipo de red al pedir el mapa
-    // se veia igual que "no tienes mapa para esta clase".
-    retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
+    retry: (count, error) => {
+      if (error instanceof Error && error.name === "ReservationFormUnavailableError") return false;
+      if (isSoldOut(meeting)) return false;
+      return count < 1;
+    },
+    retryDelay: (attempt) => Math.min(800 * 2 ** attempt, 2500),
   });
 
   const context = contextQuery.data;
@@ -1549,14 +1551,15 @@ function ReservationPreviewModal({
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const soldOut = isSoldOut(meeting);
   const waitlistCard = offersWaitlist(meeting);
+  const contextFailed = contextQuery.isError;
   // Fuente de verdad: `is_valid_for_waitlist` del create-form-template (v1).
-  // Sin crédito que aplique NO se entra a la lista: hay que comprar y el
-  // `/reservate` con la clase te mete a espera y descuenta el crédito.
+  // Si el template ni siquiera arma el form (clase llena → “no hay lugar”),
+  // no apagamos la waitlist: el listado de Voltio manda false en todas.
   const classAction = fullClassAction({
     soldOut,
-    waitlistEnabled: context?.waitlistAvailable,
+    waitlistEnabled: contextFailed ? waitlistCard || soldOut : context?.waitlistAvailable,
     hasPaymentOption: paymentOptions.length > 0,
-    contextReady: Boolean(context),
+    contextReady: Boolean(context) || contextFailed,
   });
   const joinWaitlistNow = classAction === "join-waitlist";
   const buyToWaitlist = classAction === "buy-to-waitlist";
@@ -1762,7 +1765,7 @@ function ReservationPreviewModal({
                     <p className="gafa-reservation-hint">
                       Esta clase está llena y el estudio no tiene lista de espera.
                     </p>
-                  ) : contextQuery.isError ? (
+                  ) : contextQuery.isError && !soldOut ? (
                     <p className="gafa-reservation-hint">
                       {contextQuery.error instanceof Error
                         ? contextQuery.error.message
