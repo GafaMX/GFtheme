@@ -3212,6 +3212,10 @@
   margin: 0.2rem 0 0;
 }
 
+.gafa-acct-next__what .gafa-meeting-chip {
+  margin-top: 0.45rem;
+}
+
 .gafa-acct-next__actions {
   display: flex;
   gap: var(--gafa-space-2);

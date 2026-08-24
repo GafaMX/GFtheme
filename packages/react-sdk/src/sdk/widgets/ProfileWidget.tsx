@@ -166,9 +166,11 @@ export function ProfileWidget({
     queryKey: ["profile", "reservations", "future", brandSlugs.join(",")],
     queryFn: async () => {
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserReservations(slug, "future")));
-      return batches.flat().sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+      return batches.flat().sort((a, b) => (a.startsAt || "").localeCompare(b.startsAt || ""));
     },
     enabled: canQueryBrandData,
+    // Tras unirse a waitlist hay que verla al abrir Mi cuenta, no el cache de 60s.
+    staleTime: 0,
   });
 
   const pastQuery = useQuery({
@@ -406,7 +408,7 @@ export function ProfileWidget({
           {tab === "overview" ? (
             <OverviewPanel
               profile={profile}
-              nextClass={upcoming[0]}
+              nextClass={upcoming[0] ?? waitlist[0]}
               upcomingCount={upcoming.length}
               waitlistCount={waitlist.length}
               credits={creditsQuery.data ?? []}
@@ -590,7 +592,7 @@ function OverviewPanel({
         <div className="gafa-acct-next__label">
           <span className="gafa-acct-next__label-text">
             <span className="gafa-acct-dot" aria-hidden="true" />
-            Tu próxima clase
+            {nextClass?.isWaitlist ? "En lista de espera" : "Tu próxima clase"}
           </span>
           {nextClass ? (
             <span className="gafa-acct-next__countdown">{countdownLabel(nextClass.startsAt)}</span>
@@ -602,7 +604,7 @@ function OverviewPanel({
             <span className="gafa-skeleton gafa-acct__boot-bar" />
           </div>
         ) : nextClass ? (
-          <div className="gafa-acct-next__body">
+          <div className="gafa-acct-next__body" data-waitlist={nextClass.isWaitlist ? "true" : undefined}>
             <div className="gafa-acct-next__when">
               <strong>{relativeDayLabel(nextClass.startsAt, nextClass.timezone)}</strong>
               <span>{formatTime(nextClass.startsAt, nextClass.timezone)}</span>
@@ -610,9 +612,14 @@ function OverviewPanel({
             <div className="gafa-acct-next__what">
               <h3>{nextClass.serviceName}</h3>
               <p>{describeReservation(nextClass)}</p>
+              {nextClass.isWaitlist ? (
+                <span className="gafa-meeting-chip">
+                  En espera{nextClass.waitlistPosition ? ` · lugar ${nextClass.waitlistPosition}` : ""}
+                </span>
+              ) : null}
             </div>
             <div className="gafa-acct-next__actions">
-              {nextClass.qrHash ? (
+              {nextClass.qrHash && !nextClass.isWaitlist ? (
                 <button className="gafa-sdk-button" type="button" onClick={() => onShowQr(nextClass)}>
                   Ver mi QR
                 </button>
@@ -624,7 +631,13 @@ function OverviewPanel({
                   disabled={cancelPendingId === nextClass.id}
                   onClick={() => onCancel(nextClass)}
                 >
-                  {cancelPendingId === nextClass.id ? "Cancelando…" : "Cancelar"}
+                  {cancelPendingId === nextClass.id
+                    ? nextClass.isWaitlist
+                      ? "Saliendo…"
+                      : "Cancelando…"
+                    : nextClass.isWaitlist
+                      ? "Salir"
+                      : "Cancelar"}
                 </button>
               ) : null}
             </div>
@@ -1099,6 +1112,7 @@ function ReservationCard({
       data-cancelled={reservation.cancelled ? "true" : undefined}
       data-historic={historic ? "true" : undefined}
       data-overbooking={reservation.isOverbooking ? "true" : undefined}
+      data-waitlist={reservation.isWaitlist ? "true" : undefined}
     >
       <div className="gafa-acct-class__date" aria-hidden="true">
         <strong>{formatDayNumber(reservation.startsAt, reservation.timezone)}</strong>

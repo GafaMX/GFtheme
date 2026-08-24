@@ -139,24 +139,30 @@ type RawStaff = { name?: string; lastname?: string; job?: string | null };
 
 type RawReservation = {
   id: number;
-  meeting_start: string;
+  meeting_start?: string;
+  start?: string;
   timezone?: string | null;
   hash_qr?: string | null;
   cancelled?: boolean;
   canBeCancelled?: boolean;
   canBeCancelledWithoutCredit?: boolean;
   is_overbooking?: number;
+  is_waitlist?: boolean | number | string;
+  isWaitlist?: boolean | number | string;
+  waitlist_number?: number | string | null;
+  waitlistNumber?: number | string | null;
   meeting_position?: number | string | null;
   credit?: { id?: number; name?: string } | null;
   location?: { name?: string } | string | null;
   brand?: { slug?: string } | string | null;
   staff?: RawStaff;
   substitute_staff?: RawStaff | null;
-  service?: { name?: string } | null;
+  service?: { name?: string } | string | null;
   meetings?: {
     service?: { name?: string };
     staff?: RawStaff;
     substitute_staff?: RawStaff | null;
+    start?: string;
   };
   object?: { position_number?: number; position_text?: string };
 };
@@ -167,6 +173,33 @@ type RawReservationGroup = {
   reservations?: RawReservation[];
   waitlists?: RawReservation[];
 };
+
+function asItemList<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === "object" && Array.isArray((value as { data?: unknown }).data)) {
+    return (value as { data: T[] }).data;
+  }
+  return [];
+}
+
+function truthyFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+/** El v1 marca waitlist por el array `waitlists`; a veces el API las mete en
+ *  `reservations` con `is_waitlist` / `waitlist_number`. */
+function itemIsWaitlist(raw: RawReservation): boolean {
+  if (truthyFlag(raw.is_waitlist) || truthyFlag(raw.isWaitlist)) return true;
+  if (raw.waitlist_number != null && raw.waitlist_number !== "") return true;
+  if (raw.waitlistNumber != null && raw.waitlistNumber !== "") return true;
+  return false;
+}
+
+function waitlistPositionOf(raw: RawReservation): string | undefined {
+  const n = raw.waitlist_number ?? raw.waitlistNumber;
+  if (n == null || n === "") return undefined;
+  return String(n);
+}
 
 type RawPurchase = {
   id: number;
@@ -573,13 +606,18 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       raw.object?.position_number ??
       raw.meeting_position ??
       undefined;
-
+    const waitlistPosition = waitlistPositionOf(raw);
     const brandSlugResolved = brandSlugFrom(raw, brandSlug);
+    const service =
+      raw.meetings?.service?.name ??
+      (raw.service && typeof raw.service === "object" ? raw.service.name : undefined) ??
+      (typeof raw.service === "string" ? raw.service : undefined) ??
+      "Reserva";
 
     return {
       id: raw.id,
-      serviceName: raw.meetings?.service?.name ?? raw.service?.name ?? "Reserva",
-      startsAt: raw.meeting_start,
+      serviceName: service,
+      startsAt: raw.meeting_start ?? raw.meetings?.start ?? raw.start ?? "",
       timezone: raw.timezone ?? brandTimeZoneBySlug.get(brandSlugResolved),
       locationName: locationLabel(raw.location),
       staffName: staffLabel(staff),
@@ -591,11 +629,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       // que compro el socio: se guarda para poder resolver el paquete por id.
       creditId: raw.credit?.id ?? null,
       creditTypeName: raw.credit ? (raw.credit.name ?? null) : null,
-      waitlistPosition: isWaitlist && seat !== undefined && seat !== null ? String(seat) : undefined,
+      waitlistPosition: isWaitlist ? waitlistPosition : undefined,
       seatLabel: !isWaitlist && seat !== undefined && seat !== null ? String(seat) : undefined,
-      qrHash: raw.hash_qr ?? undefined,
+      qrHash: isWaitlist ? undefined : (raw.hash_qr ?? undefined),
       cancelled: Boolean(raw.cancelled),
-      canCancel: Boolean(raw.canBeCancelled || raw.canBeCancelledWithoutCredit),
+      // v1 siempre deja salir de la lista; el API de waitlist casi nunca manda canBeCancelled.
+      canCancel: isWaitlist ? true : Boolean(raw.canBeCancelled || raw.canBeCancelledWithoutCredit),
     };
   }
 
@@ -605,13 +644,45 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
   /** reservation-future/past: objeto unico, array de grupos, o paginado. */
   function unwrapReservationGroups(response: unknown): RawReservationGroup[] {
-    if (Array.isArray(response)) return response as RawReservationGroup[];
+    if (Array.isArray(response)) {
+      if (response.length === 0) return [];
+      const first = response[0];
+      if (first && typeof first === "object") {
+        const row = first as Record<string, unknown>;
+        if ("reservations" in row || "waitlists" in row || "waitlist" in row) {
+          return response.map((group) => normalizeReservationGroup(group));
+        }
+        if ("meeting_start" in row || "waitlist_number" in row || "is_waitlist" in row) {
+          return splitFlatReservations(response as RawReservation[]);
+        }
+      }
+      return response as RawReservationGroup[];
+    }
     if (response && typeof response === "object") {
       const obj = response as Record<string, unknown>;
-      if (Array.isArray(obj.data)) return obj.data as RawReservationGroup[];
-      if ("reservations" in obj || "waitlists" in obj) return [obj as RawReservationGroup];
+      if (Array.isArray(obj.data)) return unwrapReservationGroups(obj.data);
+      if ("reservations" in obj || "waitlists" in obj || "waitlist" in obj) {
+        return [normalizeReservationGroup(obj)];
+      }
     }
     return [];
+  }
+
+  function normalizeReservationGroup(group: unknown): RawReservationGroup {
+    const row = group && typeof group === "object" ? (group as Record<string, unknown>) : {};
+    return {
+      reservations: asItemList<RawReservation>(row.reservations),
+      waitlists: asItemList<RawReservation>(row.waitlists ?? row.waitlist ?? row.waiting_lists),
+    };
+  }
+
+  function splitFlatReservations(items: RawReservation[]): RawReservationGroup[] {
+    return [
+      {
+        reservations: items.filter((item) => !itemIsWaitlist(item)),
+        waitlists: items.filter((item) => itemIsWaitlist(item)),
+      },
+    ];
   }
 
   function normalizeMeeting(raw: RawMeeting, brandSlug: string, location?: Location): Meeting {
@@ -975,10 +1046,14 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
       return unwrapReservationGroups(response)
         .flatMap((group) => [
-          ...(group.reservations ?? []).map((raw) => normalizeReservation(raw, brandSlug, false)),
-          ...(group.waitlists ?? []).map((raw) => normalizeReservation(raw, brandSlug, true)),
+          ...asItemList<RawReservation>(group.reservations).map((raw) =>
+            normalizeReservation(raw, brandSlug, itemIsWaitlist(raw)),
+          ),
+          ...asItemList<RawReservation>(group.waitlists).map((raw) =>
+            normalizeReservation(raw, brandSlug, true),
+          ),
         ])
-        .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+        .sort((a, b) => (a.startsAt || "").localeCompare(b.startsAt || ""));
     },
 
     async listUserPurchases(brandSlug) {
