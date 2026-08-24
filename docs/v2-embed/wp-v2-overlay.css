@@ -31,7 +31,7 @@
    v1: [data-gf-theme="login-register"] .GFSDK-e-buttons.is-primary
    ====================================================================== */
 
-html body .gafa-sdk .gafa-header-account {
+html body .gafa-sdk button.gafa-header-account {
   --gafa-control-bg: #000;
   --gafa-control-fg: var(--sdk-main-color);
   --gafa-control-transform: uppercase;
@@ -40,12 +40,12 @@ html body .gafa-sdk .gafa-header-account {
   text-transform: uppercase !important;
 }
 
-html body .gafa-sdk .gafa-header-account svg {
+html body .gafa-sdk button.gafa-header-account svg {
   color: var(--sdk-main-color);
   fill: none;
 }
 
-html body .gafa-sdk .gafa-header-cart {
+html body .gafa-sdk button.gafa-header-cart {
   --gafa-control-bg: #000;
   --gafa-control-fg: var(--sdk-text-color);
   background: #000 !important;

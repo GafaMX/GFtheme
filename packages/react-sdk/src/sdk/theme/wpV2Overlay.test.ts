@@ -13,7 +13,7 @@ const widgetsCss = readFileSync(join(dirname(fileURLToPath(import.meta.url)), ".
 describe("overlay CSS WP v2", () => {
   it("mapea las superficies v2, no las clases GFSDK de v1", () => {
     const withoutComments = overlay.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(overlay).toContain(".gafa-header-account");
+    expect(overlay).toContain("button.gafa-header-account");
     expect(overlay).toContain(".gafa-meeting-card");
     expect(overlay).toContain(".gafa-calendar-filter");
     expect(overlay).toContain(".gafa-checkout__cta");
