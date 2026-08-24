@@ -967,13 +967,16 @@
   text-align: center;
 }
 
-/* El popup de la cuenta recorta su overflow (esquinas redondeadas) y tiene
-   scroll interno: un position:absolute normal quedaria cortado o desalineado.
-   Este va por portal a document.body con position:fixed calculado en JS
-   (BirthDateField), como un tooltip flotante de verdad. */
+/* El fancy de reserva y Mi cuenta recortan overflow; Elementor a veces pone
+   transform en un ancestro. El calendario sale por portal a document.body
+   (DateField) con z-index por encima del overlay (2147483000). */
+.gafa-datepicker-host {
+  position: static;
+}
+
 .gafa-datepicker--floating {
   position: fixed;
-  z-index: 2147483003;
+  z-index: 2147483646;
 }
 
 .gafa-datepicker__selects {

@@ -2342,11 +2342,7 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
   }
 
   if (offersWaitlist(meeting)) {
-    return (
-      <span className="gafa-availability-pill gafa-availability-pill--waitlist">
-        {compact ? "Waitlist" : "Lista de espera"}
-      </span>
-    );
+    return <span className="gafa-availability-pill gafa-availability-pill--waitlist">Waitlist</span>;
   }
 
   if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {

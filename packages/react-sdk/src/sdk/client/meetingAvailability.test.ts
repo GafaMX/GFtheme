@@ -46,8 +46,8 @@ describe("offersWaitlist", () => {
     expect(offersWaitlist(meeting({ available: 0, capacity: 12, availability: "waitlist" }))).toBe(true);
   });
 
-  it("si el API dice que no hay waitlist, no la inventa", () => {
-    expect(offersWaitlist(meeting({ available: 0, capacity: 10, waitlistAvailable: false }))).toBe(false);
+  it("el false del listado no apaga la pastilla: 0/N sigue siendo Waitlist", () => {
+    expect(offersWaitlist(meeting({ available: 0, capacity: 10, waitlistAvailable: false }))).toBe(true);
   });
 
   it("no ofrece waitlist en clases pasadas ni ya reservadas", () => {
@@ -75,9 +75,9 @@ describe("readWaitlistAvailable", () => {
 });
 
 describe("availabilityFromCapacity", () => {
-  it("mapea 0 disponibles a waitlist salvo flag en falso", () => {
+  it("mapea 0 disponibles a waitlist aunque el listado mande false", () => {
     expect(availabilityFromCapacity({ available: 0 })).toBe("waitlist");
-    expect(availabilityFromCapacity({ available: 0, waitlistAvailable: false })).toBe("sold-out");
+    expect(availabilityFromCapacity({ available: 0, waitlistAvailable: false })).toBe("waitlist");
     expect(availabilityFromCapacity({ available: 5 })).toBe("available");
   });
 });

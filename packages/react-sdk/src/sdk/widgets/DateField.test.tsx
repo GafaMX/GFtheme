@@ -3,7 +3,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { CustomFieldInput } from "./CustomFieldInput";
 import { isBirthDateField, isDateFieldType } from "./DateField";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  document.querySelector(".gafa-reservation-overlay")?.remove();
+});
 
 const dateField = {
   id: 1,
@@ -35,5 +38,25 @@ describe("campos de fecha del SDK", () => {
     fireEvent.click(trigger!);
     expect(document.querySelector(".gafa-datepicker")).toBeTruthy();
     expect(document.querySelector(".gafa-datepicker__day")).toBeTruthy();
+  });
+
+  it("el calendario flota en document.body, no dentro del overlay que recorta", () => {
+    const overlay = document.createElement("div");
+    overlay.className = "gafa-sdk gafa-reservation-overlay";
+    overlay.style.overflow = "hidden";
+    overlay.style.transform = "translateZ(0)";
+    document.body.appendChild(overlay);
+
+    render(
+      <CustomFieldInput field={dateField} name="cf-date" value="" onChange={() => undefined} />,
+      { container: overlay },
+    );
+
+    fireEvent.click(overlay.querySelector(".gafa-acct-datefield__button")!);
+    const popover = document.querySelector(".gafa-datepicker--floating");
+    expect(popover).toBeTruthy();
+    expect(popover?.parentElement?.classList.contains("gafa-datepicker-host")).toBe(true);
+    expect(document.body.contains(popover)).toBe(true);
+    expect(overlay.contains(popover)).toBe(false);
   });
 });

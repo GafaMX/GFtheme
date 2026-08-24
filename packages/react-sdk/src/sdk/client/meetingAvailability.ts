@@ -24,15 +24,15 @@ export function isSoldOut(meeting: Meeting): boolean {
 }
 
 /**
- * Lista de espera visible en el calendario. El listado a veces trae el flag
- * (`is_valid_for_waitlist`); si no, una clase llena se ofrece como waitlist
- * salvo que el API haya dicho explícitamente que no.
+ * Pastilla del calendario: clase llena = Waitlist. El listado de Voltio manda
+ * `is_valid_for_waitlist: false` en TODAS las reuniones (llenas o no); ese
+ * false no significa “el estudio no tiene lista”. El create-form-template
+ * decide después si se puede unir o hay que comprar (`fullClassAction`).
  */
 export function offersWaitlist(meeting: Meeting): boolean {
   if (meeting.passed || meeting.isReserved) return false;
   if (meeting.availability === "waitlist") return true;
   if (meeting.waitlistAvailable === true) return true;
-  if (meeting.waitlistAvailable === false) return false;
   return isSoldOut(meeting);
 }
 
@@ -74,7 +74,7 @@ export function availabilityFromCapacity(raw: {
         ? Number(raw.available)
         : undefined;
   if (typeof available === "number" && Number.isFinite(available) && available <= 0 && !reserved) {
-    return raw.waitlistAvailable === false ? "sold-out" : "waitlist";
+    return "waitlist";
   }
   return "available";
 }
