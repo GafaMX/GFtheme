@@ -14,9 +14,9 @@
   border-radius: var(--gafa-radius-lg);
   box-shadow: var(--gafa-shadow-card);
   display: grid;
-  gap: var(--gafa-space-4);
+  gap: var(--gafa-space-3);
   overflow: hidden;
-  padding: var(--gafa-space-5);
+  padding: var(--gafa-space-4);
   position: relative;
 }
 
@@ -35,6 +35,10 @@
 }
 
 .gafa-widget-logo {
+  --gafa-img-fit: cover;
+  --gafa-img-height: 44px;
+  --gafa-img-radius: var(--gafa-radius-pill);
+  --gafa-img-width: 44px;
   border-radius: var(--gafa-radius-pill);
   height: 44px;
   object-fit: cover;
@@ -49,6 +53,9 @@
 
 .gafa-eyebrow,
 .gafa-sdk-label {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.72rem;
   font-weight: 700;
@@ -61,6 +68,7 @@
 .gafa-widget-card h3,
 .gafa-widget-card h4 {
   background: none;
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font-family: var(--gafa-font-heading);
   letter-spacing: -0.02em;
@@ -68,17 +76,21 @@
 }
 
 .gafa-widget-card h2 {
-  font-size: clamp(1.35rem, 1.1rem + 1vw, 1.75rem);
+  --gafa-heading-size: 1.22rem;
+  font-size: 1.22rem;
   font-weight: 800;
 }
 
 .gafa-widget-card h3 {
-  font-size: 1.02rem;
+  --gafa-heading-size: 1rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
 .gafa-muted,
 .gafa-widget-card p {
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   margin: 0;
 }
@@ -96,15 +108,20 @@
 .gafa-sdk-profile-grid {
   display: grid;
   gap: var(--gafa-space-3);
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 /* ----------------------------------------------------------------- controles */
 
 .gafa-sdk-button {
+  --gafa-type-size: 0.86rem;
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-primary-text);
-  --gafa-control-min-height: 46px;
+  --gafa-fg: var(--gafa-color-primary-text);
+  --gafa-control-min-height: 40px;
+  --gafa-control-padding: 0.45rem 1rem;
+  --gafa-control-font-size: 0.86rem;
   --gafa-control-radius: var(--gafa-radius-pill);
   --gafa-control-tracking: normal;
   --gafa-control-transform: none;
@@ -113,10 +130,10 @@
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-primary-text);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   font-weight: 700;
-  min-height: 46px;
-  padding: 0.7rem 1.4rem;
+  min-height: 40px;
+  padding: 0.45rem 1rem;
   transition: filter 0.15s ease, transform 0.1s ease;
 }
 
@@ -135,7 +152,9 @@
 
 .gafa-sdk-button--secondary {
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   background: transparent;
   border-color: var(--gafa-color-border);
   color: var(--gafa-color-text);
@@ -143,28 +162,51 @@
 
 .gafa-sdk-button--secondary:not(:disabled):hover {
   --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
   filter: none;
 }
 
 .gafa-icon-button {
+  --gafa-type-size: 0;
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  --gafa-control-min-height: 32px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 16px;
+  align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-text);
   cursor: pointer;
-  font-size: 1.3rem;
-  height: 40px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0;
+  height: 32px;
+  justify-content: center;
   line-height: 1;
-  width: 40px;
+  overflow: hidden;
+  padding: 0;
+  width: 32px;
+}
+
+.gafa-icon-button svg {
+  display: block;
+  height: 16px;
+  width: 16px;
 }
 
 .gafa-icon-button:hover {
   --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
 }
@@ -182,24 +224,31 @@
 
 .gafa-segmented button,
 .gafa-sdk-auth-tabs button {
+  --gafa-type-size: 0.8rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0.34rem 0.75rem;
+  --gafa-control-font-size: 0.8rem;
   background: transparent;
   border: none;
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-muted-text);
   cursor: pointer;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 0.5rem 1rem;
+  padding: 0.34rem 0.75rem;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .gafa-segmented button[aria-pressed="true"],
 .gafa-sdk-auth-tabs button[aria-pressed="true"] {
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
 }
@@ -225,20 +274,25 @@
 
 .gafa-float input,
 .gafa-float select {
-  --gafa-control-bg: var(--gafa-color-surface);
-  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-field-bg: var(--gafa-color-surface);
+  --gafa-field-border: 1px solid var(--gafa-color-border);
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-font-size: 0.9rem;
+  --gafa-field-radius: var(--gafa-radius-md);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font: inherit;
-  min-height: 56px;
-  padding: 1.35rem 1rem 0.4rem;
+  min-height: 44px;
+  padding: 1.05rem 0.85rem 0.3rem;
   width: 100%;
 }
 
 .gafa-float input:focus,
 .gafa-float select:focus {
+  --gafa-field-border: 1px solid var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   outline: none;
 }
@@ -246,9 +300,12 @@
 /* El label vive dentro del campo... */
 .gafa-float > span:first-of-type,
 .gafa-float input + span {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.8rem;
+
   color: var(--gafa-color-muted-text);
   /* Chico desde el reposo: el salto de tamano al flotar era lo que se veia raro. */
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   left: 1.05rem;
   /* En una sola linea SIEMPRE: partido en dos hacia un efecto horrible. */
   max-width: calc(100% - 1.8rem);
@@ -266,6 +323,7 @@
 .gafa-float input:focus + span,
 .gafa-float input:not(:placeholder-shown) + span,
 .gafa-float--select > span:first-of-type {
+  --gafa-type-size: 0.6rem;
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -283,12 +341,14 @@
    sola vez arriba del formulario; nada de textos por campo ni cambios de tamano. */
 .gafa-float[data-invalid="true"] input,
 .gafa-float[data-invalid="true"] select {
+  --gafa-field-border: 1px solid var(--gafa-color-danger);
   border-color: var(--gafa-color-danger);
-  box-shadow: 0 0 0 1px var(--gafa-color-danger);
 }
 
 .gafa-float[data-invalid="true"] > span:first-of-type,
 .gafa-float[data-invalid="true"] input + span {
+  --gafa-fg: var(--gafa-color-danger);
+
   color: var(--gafa-color-danger);
 }
 
@@ -314,7 +374,9 @@
 }
 
 .gafa-social__divider {
+  --gafa-type-size: 0.78rem;
   align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: flex;
   font-size: 0.78rem;
@@ -335,8 +397,13 @@
 }
 
 .gafa-social__button {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0 0.5rem;
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-min-height: 42px;
   --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
@@ -357,6 +424,7 @@
 }
 
 .gafa-social__button:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
 }
 
@@ -373,6 +441,8 @@
   }
 
   .gafa-social__button {
+    --gafa-control-radius: 999px;
+    --gafa-control-min-height: 0;
     border-radius: 999px;
     flex: 0 0 auto;
     height: 44px;
@@ -401,8 +471,10 @@
 
 /* Links discretos bajo los formularios de cuenta. */
 .gafa-auth-links {
+  --gafa-type-size: 0.84rem;
   align-items: center;
-  color: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
   display: flex;
   flex-wrap: wrap;
   font-size: 0.84rem;
@@ -416,12 +488,15 @@
 }
 
 .gafa-auth-link {
+  --gafa-control-padding: 0;
   --gafa-control-bg: transparent;
-  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 0px;
   background: none;
   border: none;
-  color: var(--gafa-color-muted-text);
+  color: var(--gafa-color-text);
   cursor: pointer;
   font: inherit;
   padding: 0;
@@ -431,11 +506,13 @@
 
 .gafa-auth-link:hover {
   --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
 
 .gafa-auth-link--strong {
   --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
   font-weight: 700;
 }
@@ -455,8 +532,13 @@
 }
 
 .gafa-chip {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0.38rem 0.85rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   background: transparent;
   border: 1px solid var(--gafa-color-border);
@@ -471,7 +553,9 @@
 
 .gafa-chip[aria-pressed="true"] {
   --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
   background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
@@ -491,6 +575,9 @@
 
 .gafa-sdk-field > span,
 .gafa-calendar-filter > span {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
   font-weight: 700;
@@ -501,18 +588,25 @@
 .gafa-sdk-field select,
 .gafa-sdk-field textarea,
 .gafa-calendar-filter select {
+  --gafa-field-bg: var(--gafa-color-surface);
+  --gafa-field-border: 1px solid var(--gafa-color-border);
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-radius: var(--gafa-radius-md);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font: inherit;
-  min-height: 46px;
-  padding: 0.65rem 0.85rem;
+  min-height: 42px;
+  padding: 0.5rem 0.8rem;
   width: 100%;
 }
 
 .gafa-sdk-field input::placeholder,
 .gafa-sdk-field textarea::placeholder {
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   opacity: 0.7;
 }
@@ -520,15 +614,20 @@
 .gafa-sdk-field input:focus,
 .gafa-sdk-field select:focus,
 .gafa-calendar-filter select:focus {
+  --gafa-field-border: 1px solid var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   outline: none;
 }
 
 .gafa-sdk-field--invalid input {
+  --gafa-field-border: 1px solid var(--gafa-color-danger);
   border-color: var(--gafa-color-danger);
 }
 
 .gafa-sdk-field-help {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
 }
@@ -541,15 +640,20 @@
 }
 
 .gafa-sdk-state {
+  --gafa-type-size: 0.92rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.92rem;
   margin: 0;
 }
 
 .gafa-sdk-state--error {
+  --gafa-type-size: 0.8rem;
   background: var(--gafa-color-danger-soft);
   border-left: 3px solid var(--gafa-color-danger);
   border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-danger);
   color: var(--gafa-color-danger);
   font-size: 0.8rem;
   font-weight: 600;
@@ -567,6 +671,7 @@
 .gafa-sdk-state--success {
   background: var(--gafa-color-success-soft);
   border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-success);
   color: var(--gafa-color-success);
   padding: 0.7rem 0.9rem;
 }
@@ -665,8 +770,11 @@
 
 /* La fecha ES un boton: abre el mini calendario para saltar a otro dia. */
 .gafa-calendar-date-button {
+  --gafa-control-padding: 0 0.65rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-min-height: 36px;
   --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
@@ -686,13 +794,18 @@
 .gafa-calendar-date-button:hover,
 .gafa-calendar-date-button[aria-expanded="true"] {
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
   background: var(--gafa-color-surface);
   border-color: var(--gafa-color-border);
   color: var(--gafa-color-primary);
 }
 
 .gafa-calendar-date-button strong {
+  --gafa-type-size: 0.92rem;
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-size: 0.92rem;
   font-weight: 700;
@@ -712,11 +825,13 @@
   display: grid;
   gap: var(--gafa-space-2);
   left: 50%;
-  min-width: 286px;
-  padding: var(--gafa-space-3);
+  max-width: min(264px, calc(100vw - 24px));
+  min-width: 240px;
+  padding: 0.7rem;
   position: absolute;
   top: calc(100% + 8px);
   transform: translateX(-50%);
+  width: 264px;
   z-index: 9999;
 }
 
@@ -735,17 +850,30 @@
 }
 
 .gafa-datepicker__header strong {
+  --gafa-type-size: 0.92rem;
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-size: 0.92rem;
   text-transform: capitalize;
 }
 
 .gafa-datepicker__header .gafa-icon-button {
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
   height: 32px;
   width: 32px;
 }
 
+.gafa-datepicker__header .gafa-icon-button svg {
+  height: 16px;
+  width: 16px;
+}
+
 .gafa-datepicker__weekdays {
+  --gafa-type-size: 0.7rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   display: grid;
   font-size: 0.7rem;
@@ -757,27 +885,37 @@
 
 .gafa-datepicker__grid {
   display: grid;
-  gap: 3px;
+  gap: 2px;
   grid-template-columns: repeat(7, 1fr);
+  justify-items: center;
 }
 
 .gafa-datepicker__day {
+  --gafa-type-size: 0.78rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1.5px solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
-  --gafa-control-min-height: 34px;
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 30px;
+  --gafa-control-height: 30px;
+  --gafa-control-width: 30px;
+  --gafa-control-padding: 0px;
+  --gafa-control-font-size: 0.78rem;
   --gafa-control-radius: 50%;
   align-items: center;
-  aspect-ratio: 1;
   background: transparent;
   border: 1.5px solid transparent;
   border-radius: 50%;
   color: var(--gafa-color-text);
   cursor: pointer;
-  display: flex;
-  font-size: 0.85rem;
+  display: inline-flex;
+  font-size: 0.78rem;
   font-weight: 600;
+  height: 30px;
   justify-content: center;
-  min-height: 34px;
+  min-height: 30px;
+  padding: 0;
+  width: 30px;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 
@@ -788,16 +926,20 @@
 }
 
 .gafa-datepicker__day:not(:disabled):hover {
+  --gafa-control-border: 1.5px solid var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
 }
 
 .gafa-datepicker__day:disabled {
-  color: var(--gafa-color-muted-text);
+  --gafa-control-fg: color-mix(in srgb, var(--gafa-color-text) 55%, var(--gafa-color-surface));
+  --gafa-fg: color-mix(in srgb, var(--gafa-color-text) 55%, var(--gafa-color-surface));
+  color: color-mix(in srgb, var(--gafa-color-text) 55%, var(--gafa-color-surface));
   cursor: not-allowed;
-  opacity: 0.38;
+  opacity: 1;
 }
 
 .gafa-datepicker__day[data-today="true"] {
+  --gafa-control-border: 1.5px solid var(--gafa-color-muted-text);
   border-color: var(--gafa-color-muted-text);
 }
 
@@ -807,13 +949,18 @@
 .gafa-datepicker__day[data-selected="true"]:not(:disabled),
 .gafa-datepicker__day[data-selected="true"]:not(:disabled):hover {
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1.5px solid var(--gafa-color-primary);
   --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
 }
 
 .gafa-datepicker__hint {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
   margin: 0;
@@ -835,9 +982,11 @@
 }
 
 .gafa-datepicker__select {
+  --gafa-type-size: 0.85rem;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-sm);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font: inherit;
   font-size: 0.85rem;
@@ -854,6 +1003,9 @@
 }
 
 .gafa-calendar-toolbar__hint {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   flex-shrink: 0;
   font-size: 0.72rem;
@@ -883,6 +1035,15 @@
 /* "Hoy": botón propio con estado. Seleccionado = estás viendo hoy;
    si no, hover/active invitan a volver. */
 .gafa-calendar-today {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0 0.85rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-min-height: 36px;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
@@ -896,15 +1057,23 @@
 }
 
 .gafa-calendar-today[aria-pressed="false"]:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
 
 .gafa-calendar-today[aria-pressed="false"]:active {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 14%, transparent);
   background: color-mix(in srgb, var(--gafa-color-primary) 14%, transparent);
 }
 
 .gafa-calendar-today[aria-pressed="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
@@ -927,8 +1096,10 @@
 }
 
 .gafa-calendar-toolbar .gafa-icon-button {
-  height: 36px;
-  width: 36px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  height: 32px;
+  width: 32px;
 }
 
 /* Barra compacta: la sede a la vista, el resto detras del boton "Filtros". */
@@ -945,6 +1116,7 @@
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
   flex: 0 1 auto;
@@ -960,9 +1132,15 @@
 }
 
 .gafa-filterbar-location select {
+  --gafa-type-size: 0.82rem;
+  --gafa-field-bg: transparent;
+  --gafa-field-border: 0 solid transparent;
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-radius: 0px;
   appearance: none;
   background: transparent;
   border: none;
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font: inherit;
   font-size: 0.82rem;
@@ -976,8 +1154,13 @@
 }
 
 .gafa-filterbar-toggle {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0 0.75rem;
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
   background: var(--gafa-color-surface);
@@ -996,7 +1179,9 @@
 
 .gafa-filterbar-toggle:hover,
 .gafa-filterbar-toggle[aria-expanded="true"] {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
@@ -1022,8 +1207,10 @@
 }
 
 .gafa-filterbar-count {
+  --gafa-type-size: 0.7rem;
   background: var(--gafa-color-primary);
   border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-primary-text);
   color: var(--gafa-color-primary-text);
   font-size: 0.7rem;
   font-weight: 800;
@@ -1122,6 +1309,9 @@
 }
 
 .gafa-day-column__weekday {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.76rem;
   font-weight: 700;
@@ -1130,12 +1320,17 @@
 }
 
 .gafa-day-column__number {
+  --gafa-type-size: 1.1rem;
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-size: 1.1rem;
   font-weight: 800;
 }
 
 .gafa-day-column[data-today="true"] .gafa-day-column__number {
+  --gafa-fg: var(--gafa-color-primary);
+
   color: var(--gafa-color-primary);
 }
 
@@ -1153,11 +1348,14 @@
 }
 
 .gafa-day-column[data-standalone="true"] .gafa-day-column__list {
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--gafa-space-3);
 }
 
 .gafa-day-column__empty {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.82rem;
   padding: var(--gafa-space-3) 0;
@@ -1166,15 +1364,18 @@
 
 .gafa-meeting-card {
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-padding: 0.55rem 0.65rem;
+  --gafa-control-font-size: 0.84rem;
   --gafa-control-radius: var(--gafa-radius-sm);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-sm);
   cursor: pointer;
   display: grid;
-  gap: 3px;
-  padding: var(--gafa-space-2);
+  gap: 2px;
+  padding: 0.55rem 0.65rem;
   /* Ancla de la foto del coach (absolute, arriba a la derecha). */
   position: relative;
   text-align: left;
@@ -1183,6 +1384,7 @@
 }
 
 .gafa-meeting-card:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
 }
 
@@ -1195,11 +1397,16 @@
 }
 
 .gafa-meeting-card[data-compact="true"] .gafa-meeting-name {
-  font-size: 0.86rem;
+  --gafa-type-size: 0.82rem;
+  font-size: 0.82rem;
 }
 
 /* Foto del coach: ABAJO a la derecha, solo cuando la marca la trae. */
 .gafa-meeting-staff-photo {
+  --gafa-img-fit: cover;
+  --gafa-img-height: 36px;
+  --gafa-img-radius: var(--gafa-radius-pill);
+  --gafa-img-width: 36px;
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
   bottom: 10px;
@@ -1216,6 +1423,8 @@
 }
 
 .gafa-meeting-card[data-compact="true"] .gafa-meeting-staff-photo {
+  --gafa-img-height: 34px;
+  --gafa-img-width: 34px;
   height: 34px;
   width: 34px;
 }
@@ -1235,19 +1444,27 @@
 }
 
 .gafa-meeting-time {
+  --gafa-type-size: 0.84rem;
+  --gafa-fg: var(--gafa-color-primary);
+
   color: var(--gafa-color-primary);
   font-size: 0.84rem;
   font-weight: 800;
 }
 
 .gafa-meeting-duration {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.72rem;
   font-weight: 600;
 }
 
 .gafa-meeting-detail {
+  --gafa-type-size: 0.78rem;
   align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
   font-size: 0.78rem;
@@ -1256,25 +1473,33 @@
 
 .gafa-meeting-detail svg {
   flex-shrink: 0;
-  opacity: 0.75;
+  opacity: 1;
 }
 
 .gafa-meeting-name {
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-type-size: 0.86rem;
+
   color: var(--gafa-color-text);
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .gafa-meeting-staff,
 .gafa-meeting-desc {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
 }
 
 .gafa-meeting-chip {
+  --gafa-type-size: 0.74rem;
   background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
   border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
   font-size: 0.74rem;
   font-weight: 700;
@@ -1282,8 +1507,10 @@
 }
 
 .gafa-availability-pill {
+  --gafa-type-size: 0.74rem;
   background: var(--gafa-color-success-soft);
   border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-success);
   color: var(--gafa-color-success);
   font-size: 0.74rem;
   font-weight: 700;
@@ -1295,22 +1522,26 @@
 /* Semaforo de capacidad: verde 70%+ libre, amarillo 30–69%, rojo <30%. */
 .gafa-availability-pill[data-level="yellow"] {
   background: var(--gafa-color-warning-soft);
+  --gafa-fg: var(--gafa-color-warning);
   color: var(--gafa-color-warning);
 }
 
 .gafa-availability-pill[data-level="red"] {
   background: var(--gafa-color-danger-soft);
+  --gafa-fg: var(--gafa-color-danger);
   color: var(--gafa-color-danger);
 }
 
 .gafa-availability-pill--sold-out,
 .gafa-availability-pill--waitlist {
   background: var(--gafa-color-danger-soft);
+  --gafa-fg: var(--gafa-color-danger);
   color: var(--gafa-color-danger);
 }
 
 .gafa-availability-pill--reserved {
   background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  --gafa-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
 
@@ -1333,10 +1564,15 @@
 }
 
 .gafa-empty-state strong {
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
 }
 
 .gafa-empty-state span {
+  --gafa-type-size: 0.9rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.9rem;
 }
@@ -1425,27 +1661,47 @@
 
 .gafa-reservation-close,
 .gafa-fancy-close {
+  --gafa-type-size: 0;
   --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  --gafa-control-min-height: 32px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 14px;
+  align-items: center;
   background: var(--gafa-color-surface-raised);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-text);
   cursor: pointer;
-  font-size: 1.1rem;
-  height: 34px;
+  display: inline-flex;
+  font-size: 0;
+  height: 32px;
+  justify-content: center;
   line-height: 1;
+  overflow: hidden;
+  padding: 0;
   position: absolute;
   right: var(--gafa-space-3);
   top: var(--gafa-space-3);
-  width: 34px;
+  width: 32px;
 }
 
 .gafa-reservation-hero {
   display: grid;
   gap: var(--gafa-space-1);
   padding-right: 44px;
+}
+
+.gafa-reservation-hero h3 {
+  --gafa-heading-size: 1.2rem;
+  font-size: 1.2rem;
+  margin: 0;
 }
 
 /* Silueta del detalle de la clase mientras se resuelve por id. */
@@ -1481,12 +1737,17 @@
 
 .gafa-reservation-summary dt,
 .gafa-reservation-summary span:first-child {
+  --gafa-type-size: 0.85rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.85rem;
 }
 
 .gafa-reservation-summary dd,
 .gafa-reservation-summary span:last-child {
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-weight: 600;
   margin: 0;
@@ -1502,6 +1763,9 @@
 }
 
 .gafa-reservation-steps li {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
   padding-left: var(--gafa-space-4);
@@ -1530,7 +1794,9 @@
    bajo el mapa, en vez de estirarse de punta a punta del modal. */
 .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary {
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   background: transparent;
   border-color: transparent;
   color: var(--gafa-color-muted-text);
@@ -1538,7 +1804,9 @@
 
 .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary:hover {
   --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   background: var(--gafa-color-surface-raised);
   color: var(--gafa-color-text);
 }
@@ -1561,25 +1829,32 @@
 }
 
 .gafa-reservation-hint {
+  --gafa-type-size: 0.88rem;
   background: var(--gafa-color-surface-raised);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
   padding: 0.7rem 0.9rem;
 }
 
 .gafa-reservation-hint strong {
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
 }
 
 .gafa-reservation-hint--ok {
   background: var(--gafa-color-success-soft);
   border-color: transparent;
+  --gafa-fg: var(--gafa-color-success);
   color: var(--gafa-color-success);
 }
 
 .gafa-reservation-hint--ok strong {
+  --gafa-fg: var(--gafa-color-success);
+
   color: var(--gafa-color-success);
 }
 
@@ -1590,6 +1865,9 @@
 }
 
 .gafa-payment-choice__title {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-size: 0.88rem;
   font-weight: 700;
@@ -1625,11 +1903,17 @@
 }
 
 .gafa-payment-option__body strong {
+  --gafa-type-size: 0.9rem;
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-size: 0.9rem;
 }
 
 .gafa-payment-option__body span {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
 }
@@ -1756,14 +2040,15 @@
   }
 
   .gafa-reservation-sheet[data-has-map="true"] .gafa-seatmap__seat {
-    min-height: 54px;
-    min-width: 54px;
+    --gafa-control-min-height: 34px;
+    min-height: 34px;
+    min-width: 34px;
   }
 
   /* En movil el tope es menor: con pocas columnas los lugares llenan el ancho
      igual, pero sin comerse toda la pantalla. */
   .gafa-seatmap__grid {
-    --gafa-seat-max: 78px;
+    --gafa-seat-max: 48px;
   }
 }
 
@@ -1794,6 +2079,9 @@
 }
 
 .gafa-seatmap__legend {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   display: flex;
   flex-wrap: wrap;
@@ -1847,11 +2135,9 @@
 }
 
 .gafa-seatmap__grid {
-  --gafa-seat-gap: 6px;
-  /* Tope por lugar: sin esto un salon de 4 sillas pintaria circulos enormes.
-     No provoca scroll, porque el ancho del grid ya esta limitado al contenedor
-     y las columnas solo desbordan cuando no caben ni en su minimo tocable. */
-  --gafa-seat-max: 112px;
+  --gafa-seat-gap: 5px;
+  /* Tope por lugar: un salon chico no pinta pelotas enormes. */
+  --gafa-seat-max: 42px;
 
   display: grid;
   gap: var(--gafa-seat-gap);
@@ -1868,9 +2154,14 @@
 }
 
 .gafa-seatmap__seat {
+  --gafa-type-size: 0.7rem;
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1.5px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
-  --gafa-control-min-height: 30px;
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 28px;
+  --gafa-control-padding: 0px;
+  --gafa-control-font-size: 0.7rem;
   --gafa-control-radius: 50%;
   align-items: center;
   aspect-ratio: 1;
@@ -1878,26 +2169,27 @@
   border: 1.5px solid var(--gafa-color-border);
   border-radius: 50%;
   color: var(--gafa-color-text);
-  /* Crece con el ancho disponible hasta el tope del mapa (--gafa-seat-max):
-     un salon de 5 sillas ya no se pinta en miniatura dentro de un modal
-     enorme, y uno de 40 sigue acotado. */
   justify-self: center;
-  max-height: var(--gafa-seat-max, 92px);
-  max-width: var(--gafa-seat-max, 92px);
+  max-height: var(--gafa-seat-max, 42px);
+  max-width: var(--gafa-seat-max, 42px);
   width: 100%;
   cursor: pointer;
   display: flex;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 700;
   justify-content: center;
-  min-height: 30px;
-  min-width: 30px;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0;
   position: relative;
   transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
 }
 
 /* Spot con imagen de la marca: la imagen ES el spot; sin borde nuestro. */
 .gafa-seatmap__seat[data-has-image="true"] {
+  --gafa-control-radius: var(--gafa-radius-sm);
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1.5px solid transparent;
   background: transparent;
   border-color: transparent;
   border-radius: var(--gafa-radius-sm);
@@ -1919,10 +2211,12 @@
 
 /* Con imagen, el numero va en un badge chico abajo a la derecha (como el legacy). */
 .gafa-seatmap__seat[data-has-image="true"] .gafa-seatmap__seat-label {
+  --gafa-type-size: 0.62rem;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
   bottom: -2px;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   font-size: 0.62rem;
   line-height: 1;
@@ -1934,6 +2228,7 @@
 }
 
 .gafa-seatmap__seat:not(:disabled):hover {
+  --gafa-control-border: 1.5px solid var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   transform: scale(1.08);
 }
@@ -1945,6 +2240,7 @@
 .gafa-seatmap__seat[data-taken="true"] {
   --gafa-control-bg: var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   background: var(--gafa-color-border);
   color: var(--gafa-color-muted-text);
   cursor: not-allowed;
@@ -1959,7 +2255,9 @@
 
 .gafa-seatmap__seat[data-selected="true"] {
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1.5px solid var(--gafa-color-primary);
   --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
@@ -1974,10 +2272,12 @@
 }
 
 .gafa-seatmap__fixture {
+  --gafa-type-size: 0.66rem;
   align-items: center;
   background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
   border: 1px dashed var(--gafa-color-border);
   border-radius: var(--gafa-radius-sm);
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: flex;
   font-size: 0.66rem;
@@ -2012,9 +2312,11 @@
 }
 
 .gafa-reservation-success__icon {
+  --gafa-type-size: 1.45rem;
   align-items: center;
   background: var(--gafa-color-success-soft);
   border-radius: 50%;
+  --gafa-fg: var(--gafa-color-success);
   color: var(--gafa-color-success);
   display: flex;
   font-size: 1.45rem;
@@ -2026,6 +2328,7 @@
 }
 
 .gafa-reservation-success h3 {
+  --gafa-heading-size: 1.35rem;
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -2034,6 +2337,9 @@
 }
 
 .gafa-reservation-success__when {
+  --gafa-type-size: 0.9rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.9rem;
   line-height: 1.4;
@@ -2053,6 +2359,9 @@
 }
 
 .gafa-reservation-success__card p {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
   line-height: 1.4;
@@ -2082,6 +2391,9 @@
 }
 
 .gafa-addtocal__title {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
   font-weight: 700;
@@ -2097,8 +2409,13 @@
 }
 
 .gafa-addtocal__button {
+  --gafa-type-size: 0.75rem;
+  --gafa-control-font-size: 0.75rem;
+  --gafa-control-padding: 0 0.4rem;
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-min-height: 40px;
   --gafa-control-radius: var(--gafa-radius-md);
   align-items: center;
@@ -2125,7 +2442,10 @@
 }
 
 .gafa-addtocal__button:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
@@ -2158,16 +2478,19 @@
   cursor: pointer;
   display: inline-flex;
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
   gap: 0.4rem;
-  height: 38px;
+  height: 36px;
   position: relative;
 }
 
 .gafa-header-cart {
+  --gafa-control-padding: 0 0.75rem;
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -2177,6 +2500,7 @@
 }
 
 .gafa-header-cart:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
 }
 
@@ -2186,8 +2510,11 @@
 }
 
 .gafa-header-account {
+  --gafa-control-padding: 0 0.9rem;
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   background: var(--gafa-color-primary);
   border: none;
@@ -2285,8 +2612,16 @@
 
 .gafa-account-modal__close {
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  --gafa-control-min-height: 32px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 14px;
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -2294,18 +2629,21 @@
   color: var(--gafa-color-text);
   cursor: pointer;
   display: inline-flex;
-  height: 36px;
+  height: 32px;
   justify-content: center;
+  overflow: hidden;
+  padding: 0;
   position: absolute;
   right: var(--gafa-space-3);
   top: var(--gafa-space-3);
   transition: background 0.15s ease, border-color 0.15s ease;
-  width: 36px;
+  width: 32px;
   z-index: 6;
 }
 
 .gafa-account-modal__close:hover {
   --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
 }
@@ -2345,6 +2683,8 @@
 /* ----- layout de la cuenta */
 
 .gafa-acct {
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2419,6 +2759,10 @@
 }
 
 .gafa-acct__avatar {
+  --gafa-img-fit: cover;
+  --gafa-img-height: 44px;
+  --gafa-img-radius: 50%;
+  --gafa-img-width: 44px;
   border-radius: 50%;
   flex-shrink: 0;
   height: 44px;
@@ -2427,8 +2771,10 @@
 }
 
 .gafa-acct__avatar--initials {
+  --gafa-type-size: 0.95rem;
   align-items: center;
   background: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary-text);
   color: var(--gafa-color-primary-text);
   display: inline-flex;
   font-size: 0.95rem;
@@ -2450,6 +2796,9 @@
 }
 
 .gafa-acct__user-text span {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.8rem;
   overflow: hidden;
@@ -2458,8 +2807,13 @@
 }
 
 .gafa-acct__menu-toggle {
+  --gafa-type-size: 0.92rem;
+  --gafa-control-font-size: 0.92rem;
+  --gafa-control-padding: 0.7rem 0.85rem;
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: var(--gafa-radius-md);
   --gafa-control-transform: none;
   align-items: center;
@@ -2479,6 +2833,8 @@
 }
 
 .gafa-acct__menu-toggle svg:last-child {
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   flex-shrink: 0;
   margin-left: auto;
@@ -2534,8 +2890,13 @@
 }
 
 .gafa-acct__nav-item {
+  --gafa-type-size: 0.88rem;
+  --gafa-control-font-size: 0.88rem;
+  --gafa-control-padding: 0.68rem 0.95rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-md);
   --gafa-control-tracking: normal;
   --gafa-control-transform: none;
@@ -2557,14 +2918,18 @@
 
 .gafa-acct__nav-item:hover {
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   background: var(--gafa-color-surface);
   color: var(--gafa-color-text);
 }
 
 .gafa-acct__nav-item[aria-current="page"] {
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
 }
@@ -2581,8 +2946,13 @@
 }
 
 .gafa-acct__logout {
+  --gafa-type-size: 0.85rem;
+  --gafa-control-font-size: 0.85rem;
+  --gafa-control-padding: 0.55rem 0.9rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-md);
   --gafa-control-transform: none;
   align-items: center;
@@ -2602,7 +2972,9 @@
 }
 
 .gafa-acct__logout:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-danger, #dc2626);
   --gafa-control-fg: var(--gafa-color-danger, #dc2626);
+  --gafa-fg: var(--gafa-color-danger, #dc2626);
   border-color: var(--gafa-color-danger, #dc2626);
   color: var(--gafa-color-danger, #dc2626);
 }
@@ -2631,12 +3003,16 @@
 }
 
 .gafa-acct__head h2 {
+  --gafa-heading-size: clamp(1.25rem, 2.2vw, 1.6rem);
   background: none;
   font-size: clamp(1.25rem, 2.2vw, 1.6rem);
   margin: 0;
 }
 
 .gafa-acct__head p {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
   margin: 0.25rem 0 0;
@@ -2726,6 +3102,7 @@
 
 .gafa-acct-next__label {
   align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: flex;
   gap: 0.5rem;
@@ -2772,6 +3149,7 @@
 .gafa-acct-next__when {
   background: var(--gafa-color-primary);
   border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-primary-text);
   color: var(--gafa-color-primary-text);
   display: grid;
   gap: 2px;
@@ -2792,11 +3170,15 @@
 }
 
 .gafa-acct-next__what h3 {
+  --gafa-heading-size: 1.15rem;
   font-size: 1.15rem;
   margin: 0;
 }
 
 .gafa-acct-next__what p {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
   margin: 0.2rem 0 0;
@@ -2828,8 +3210,10 @@
 }
 
 .gafa-acct-next__countdown {
+  --gafa-type-size: 0.76rem;
   background: color-mix(in srgb, var(--gafa-color-accent) 16%, transparent);
   border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   flex-shrink: 0;
   font-size: 0.76rem;
@@ -2877,9 +3261,15 @@
 }
 
 .gafa-acct-next__more {
+  --gafa-type-size: 0.86rem;
+  --gafa-control-font-size: 0.86rem;
+  --gafa-control-padding: var(--gafa-space-2) 0 0;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 0px;
+  --gafa-control-shadow: inset 0 1px 0 var(--gafa-color-border);
   align-items: center;
   background: transparent;
   border: none;
@@ -2897,6 +3287,7 @@
 
 .gafa-acct-next__more:hover {
   --gafa-control-fg: var(--gafa-color-accent);
+  --gafa-fg: var(--gafa-color-accent);
   color: var(--gafa-color-accent);
 }
 
@@ -2921,6 +3312,7 @@
 
 .gafa-acct-block__head h3,
 .gafa-acct-group h3 {
+  --gafa-heading-size: 0.76rem;
   align-items: center;
   background: none;
   display: flex;
@@ -2933,8 +3325,13 @@
 }
 
 .gafa-acct-link {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-accent);
+  --gafa-fg: var(--gafa-color-accent);
   --gafa-control-radius: 0px;
   background: none;
   border: none;
@@ -2984,6 +3381,9 @@
 }
 
 .gafa-acct-balance__hint {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.76rem;
   overflow: hidden;
@@ -3018,7 +3418,9 @@
 .gafa-acct-balance__nav button:first-child,
 .gafa-acct-balance__nav button:last-child {
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   align-items: center;
   background: transparent;
@@ -3034,6 +3436,8 @@
 
 .gafa-acct-balance__nav button:first-child:hover,
 .gafa-acct-balance__nav button:last-child:hover {
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
 }
 
@@ -3042,6 +3446,9 @@
 }
 
 .gafa-acct-balance__count {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
@@ -3111,6 +3518,9 @@
 }
 
 .gafa-acct-stat__label {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.76rem;
   font-weight: 600;
@@ -3123,6 +3533,8 @@
 
 .gafa-acct-stat[data-tone="strong"] strong,
 .gafa-acct-stat[data-tone="strong"] .gafa-acct-stat__label {
+  --gafa-fg: var(--gafa-color-primary-text);
+
   color: var(--gafa-color-primary-text);
 }
 
@@ -3136,7 +3548,9 @@
 }
 
 .gafa-acct-progress__head {
+  --gafa-type-size: 0.8rem;
   align-items: baseline;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: flex;
   font-size: 0.8rem;
@@ -3145,6 +3559,9 @@
 }
 
 .gafa-acct-progress__head strong {
+  --gafa-type-size: 1rem;
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-size: 1rem;
 }
@@ -3172,12 +3589,17 @@
 }
 
 .gafa-acct-progress__note {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.8rem;
   margin: 0;
 }
 
 .gafa-acct-stat[data-tone="warn"] strong {
+  --gafa-fg: var(--gafa-color-danger, #dc2626);
+
   color: var(--gafa-color-danger, #dc2626);
 }
 
@@ -3188,6 +3610,9 @@
 }
 
 .gafa-acct-faves__title {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   display: block;
   font-size: 0.76rem;
@@ -3212,6 +3637,7 @@
   }
 
   .gafa-acct__head h2 {
+  --gafa-heading-size: 1.15rem;
     font-size: 1.15rem;
   }
 
@@ -3252,6 +3678,7 @@
   }
 
   .gafa-acct-next__what h3 {
+  --gafa-heading-size: 0.98rem;
     font-size: 0.98rem;
   }
 
@@ -3265,6 +3692,7 @@
   }
 
   .gafa-acct-next__actions .gafa-sdk-button {
+    --gafa-control-min-height: 36px;
     font-size: 0.8rem;
     min-height: 36px;
     padding: 0.4rem 0.75rem;
@@ -3380,8 +3808,13 @@
 }
 
 .gafa-acct-switch button {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0.45rem 1.1rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   background: transparent;
   border: none;
@@ -3395,7 +3828,9 @@
 
 .gafa-acct-switch button[aria-selected="true"] {
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
 }
@@ -3406,9 +3841,11 @@
 }
 
 .gafa-acct-group__count {
+  --gafa-type-size: 0.72rem;
   background: var(--gafa-color-surface-raised);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   font-size: 0.72rem;
   letter-spacing: 0;
@@ -3423,8 +3860,10 @@
 }
 
 .gafa-acct-empty {
+  --gafa-type-size: 0.88rem;
   border: 1px dashed var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
   margin: 0;
@@ -3459,6 +3898,9 @@
 }
 
 .gafa-acct-empty2 p {
+  --gafa-type-size: 0.86rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.86rem;
   margin: 0;
@@ -3519,6 +3961,9 @@
 }
 
 .gafa-acct-class__date span {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.72rem;
   font-weight: 700;
@@ -3530,11 +3975,15 @@
 }
 
 .gafa-acct-class__info h4 {
+  --gafa-heading-size: 1rem;
   font-size: 1rem;
   margin: 0;
 }
 
 .gafa-acct-class__when {
+  --gafa-type-size: 0.84rem;
+  --gafa-fg: var(--gafa-color-accent);
+
   color: var(--gafa-color-accent);
   font-size: 0.84rem;
   font-weight: 700;
@@ -3545,6 +3994,9 @@
 }
 
 .gafa-acct-class__meta {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.82rem;
   margin: 0.1rem 0 0;
@@ -3597,6 +4049,7 @@
   align-items: center;
   background: var(--gafa-color-surface-raised);
   border-radius: var(--gafa-radius-sm);
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
   height: 38px;
@@ -3609,11 +4062,15 @@
 }
 
 .gafa-acct-row__info h4 {
+  --gafa-heading-size: 0.98rem;
   font-size: 0.98rem;
   margin: 0;
 }
 
 .gafa-acct-row__info p {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.82rem;
   margin: 0.15rem 0 0;
@@ -3632,6 +4089,9 @@
 }
 
 .gafa-acct-row__status {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
   text-transform: capitalize;
@@ -3646,6 +4106,7 @@
 
 .gafa-acct-row--hero .gafa-acct-row__icon {
   background: color-mix(in srgb, var(--gafa-color-primary) 16%, transparent);
+  --gafa-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
 
@@ -3666,6 +4127,9 @@
 }
 
 .gafa-acct-form__since {
+  --gafa-type-size: 0.84rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.84rem;
   margin: 0;
@@ -3681,6 +4145,9 @@
 }
 
 .gafa-acct-fieldset legend {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
   font-weight: 800;
@@ -3697,8 +4164,12 @@
 
 .gafa-acct-datefield__button {
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-muted-text);
-  --gafa-control-min-height: 56px;
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-min-height: 48px;
+  --gafa-control-padding: 1.1rem 0.85rem 0.3rem;
+  --gafa-control-font-size: 0.88rem;
   --gafa-control-radius: var(--gafa-radius-md);
   align-items: center;
   background: var(--gafa-color-surface);
@@ -3709,8 +4180,8 @@
   display: flex;
   gap: var(--gafa-space-2);
   justify-content: space-between;
-  min-height: 56px;
-  padding: 1.35rem 1rem 0.4rem;
+  min-height: 48px;
+  padding: 1.1rem 0.85rem 0.3rem;
   position: relative;
   text-align: left;
   width: 100%;
@@ -3718,10 +4189,14 @@
 
 .gafa-acct-datefield__button:hover,
 .gafa-acct-datefield__button[aria-expanded="true"] {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
 }
 
 .gafa-acct-datefield__label {
+  --gafa-type-size: 0.6rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.6rem;
   font-weight: 700;
@@ -3739,6 +4214,8 @@
 }
 
 .gafa-acct-datefield__button[data-filled="true"] .gafa-acct-datefield__value {
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
 }
 
@@ -3749,6 +4226,9 @@
 }
 
 .gafa-acct-choice__legend {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
   font-weight: 600;
@@ -3761,8 +4241,13 @@
 }
 
 .gafa-acct-choice__button {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0.45rem 0.85rem;
   --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
@@ -3776,7 +4261,9 @@
 
 .gafa-acct-choice__button[aria-pressed="true"] {
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: transparent;
   color: var(--gafa-color-primary-text);
@@ -3825,12 +4312,16 @@
 }
 
 .gafa-acct-qr h3 {
+  --gafa-heading-size: 1.15rem;
   background: none;
   font-size: 1.15rem;
   margin: 0;
 }
 
 .gafa-acct-qr__when {
+  --gafa-type-size: 0.86rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.86rem;
   margin: 0;
@@ -3838,6 +4329,10 @@
 }
 
 .gafa-acct-qr__image {
+  --gafa-img-bg: #fff;
+  --gafa-img-fit: contain;
+  --gafa-img-height: 240px;
+  --gafa-img-width: 240px;
   background: #fff;
   border-radius: var(--gafa-radius-md);
   display: block;
@@ -3902,6 +4397,7 @@
   background: var(--gafa-color-primary);
   border-radius: 50%;
   box-shadow: 0 0 0 7px color-mix(in srgb, var(--gafa-color-primary) 18%, transparent);
+  --gafa-fg: var(--gafa-color-primary-text);
   color: var(--gafa-color-primary-text);
   display: inline-flex;
   height: 52px;
@@ -3912,6 +4408,7 @@
 .gafa-confirm[data-tone="danger"] .gafa-confirm__mark {
   background: var(--gafa-color-danger, #dc2626);
   box-shadow: 0 0 0 7px color-mix(in srgb, var(--gafa-color-danger, #dc2626) 16%, transparent);
+  --gafa-fg: var(--gafa-color-background);
   color: var(--gafa-color-background);
 }
 
@@ -3921,12 +4418,17 @@
 }
 
 .gafa-confirm__text {
+  --gafa-type-size: 0.9rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.9rem;
   margin: 0;
 }
 
 .gafa-confirm__text a {
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-weight: 700;
   text-decoration: underline;
@@ -3934,6 +4436,8 @@
 }
 
 .gafa-confirm__subject {
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   display: block;
   font-weight: 700;
@@ -3956,7 +4460,9 @@
    tiene que ir al color del fondo de la pagina, no siempre a blanco. */
 .gafa-confirm[data-tone="danger"] .gafa-confirm__confirm {
   --gafa-control-bg: var(--gafa-color-danger, #dc2626);
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-background);
+  --gafa-fg: var(--gafa-color-background);
   background: var(--gafa-color-danger, #dc2626);
   border-color: transparent;
   color: var(--gafa-color-background);
@@ -4019,6 +4525,9 @@
 }
 
 .gafa-catalog-price {
+  --gafa-type-size: 1.3rem;
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   display: block;
   font-size: 1.3rem;
@@ -4027,6 +4536,9 @@
 }
 
 .gafa-sdk-kicker {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
   font-weight: 700;
@@ -4044,6 +4556,9 @@
 }
 
 .gafa-sdk-fieldset legend {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.76rem;
   font-weight: 700;
@@ -4053,6 +4568,9 @@
 }
 
 .gafa-auth-note {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
   text-align: center;
@@ -4065,11 +4583,13 @@
 }
 
 .gafa-meeting-card[data-passed="true"]:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   border-color: var(--gafa-color-border);
 }
 
 .gafa-availability-pill--passed {
   background: color-mix(in srgb, var(--gafa-color-muted-text) 14%, transparent);
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
 }
 
@@ -4084,7 +4604,9 @@
 }
 
 .gafa-day-slot__title {
+  --gafa-type-size: 0.78rem;
   border-bottom: 1px solid var(--gafa-color-border);
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
   font-weight: 700;
@@ -4137,6 +4659,7 @@
   border: 1px solid color-mix(in srgb, var(--gafa-color-border) 60%, transparent);
   border-radius: 22px;
   box-shadow: var(--gafa-shadow-pop);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   display: flex;
   flex-direction: column;
@@ -4160,8 +4683,16 @@
 
 .gafa-checkout__close {
   --gafa-control-bg: color-mix(in srgb, var(--gafa-color-surface-raised) 85%, transparent);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 999px;
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  --gafa-control-min-height: 32px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 14px;
   align-items: center;
   background: color-mix(in srgb, var(--gafa-color-surface-raised) 85%, transparent);
   border: 1px solid var(--gafa-color-border);
@@ -4171,6 +4702,8 @@
   display: inline-flex;
   height: 32px;
   justify-content: center;
+  overflow: hidden;
+  padding: 0;
   position: absolute;
   right: 0.9rem;
   top: 0.9rem;
@@ -4207,7 +4740,9 @@
 }
 
 .gafa-checkout__context {
+  --gafa-type-size: 0.8rem;
   align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
   font-size: 0.8rem;
@@ -4235,16 +4770,20 @@
 }
 
 .gafa-checkout__hero h2 {
+  --gafa-heading-size: 1.2rem;
   background: none;
   font-family: var(--gafa-heading-font-family);
-  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.2;
   margin: 0 0 0.25rem;
 }
 
 .gafa-checkout__hero p {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
   margin: 0;
@@ -4264,8 +4803,13 @@
 }
 
 .gafa-checkout-tabs button {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0.42rem 0.85rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: 999px;
   align-items: center;
   background: transparent;
@@ -4293,7 +4837,9 @@
 
 .gafa-checkout-tabs button[data-active="true"] {
   --gafa-control-bg: var(--gafa-color-text);
+  --gafa-control-border: 1px solid transparent;
   --gafa-control-fg: var(--gafa-color-surface);
+  --gafa-fg: var(--gafa-color-surface);
   background: var(--gafa-color-text);
   color: var(--gafa-color-surface);
 }
@@ -4303,13 +4849,22 @@
 }
 
 .gafa-checkout-search {
+  --gafa-type-size: 0.78rem;
+  --gafa-type-leading: 1;
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-search-width: 92px;
   align-items: center;
+  background: var(--gafa-color-surface-raised);
   border: 1px solid var(--gafa-color-border);
   border-radius: 999px;
   color: var(--gafa-color-muted-text);
   display: inline-flex;
-  gap: 0.4rem;
-  padding: 0.4rem 0.8rem;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+  height: 32px;
+  max-width: 168px;
+  min-height: 32px;
+  padding: 0 0.55rem;
   transition: border-color 0.16s ease;
 }
 
@@ -4317,14 +4872,30 @@
   border-color: var(--gafa-color-primary);
 }
 
+.gafa-checkout-search svg {
+  flex-shrink: 0;
+  height: 12px;
+  width: 12px;
+}
+
 .gafa-checkout-search input {
+  --gafa-type-size: 0.78rem;
+  --gafa-field-bg: transparent;
+  --gafa-field-border: 0 solid transparent;
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-font-size: 0.78rem;
+  --gafa-field-radius: 0px;
+  --gafa-fg: var(--gafa-color-text);
   background: transparent;
   border: 0;
   color: var(--gafa-color-text);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
+  height: 30px;
+  min-height: 0;
   outline: none;
-  width: 120px;
+  padding: 0;
+  width: 92px;
 }
 
 /* ── Productos ── */
@@ -4456,8 +5027,12 @@
 }
 
 .gafa-checkout-product__info > button {
+  --gafa-type-size: 0.66rem;
+  --gafa-control-font-size: 0.66rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: 999px;
   align-items: center;
   background: transparent;
@@ -4477,10 +5052,12 @@
 }
 
 .gafa-checkout-product__tooltip {
+  --gafa-type-size: 0.75rem;
   background: var(--gafa-color-text);
   border-radius: 10px;
   bottom: calc(100% + 8px);
   box-shadow: var(--gafa-shadow-pop);
+  --gafa-fg: var(--gafa-color-surface);
   color: var(--gafa-color-surface);
   font-size: 0.75rem;
   line-height: 1.45;
@@ -4508,11 +5085,17 @@
 }
 
 .gafa-checkout-product__price s {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
 }
 
 .gafa-checkout-product__price strong {
+  --gafa-type-size: 1.18rem;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
   font-family: var(--gafa-heading-font-family);
   font-size: 1.18rem;
   font-weight: 800;
@@ -4520,6 +5103,10 @@
 }
 
 .gafa-checkout-product h3 {
+  --gafa-type-size: 0.86rem;
+  --gafa-heading-size: 0.86rem;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
   font-family: var(--gafa-font-body);
   font-size: 0.86rem;
   font-weight: 700;
@@ -4528,14 +5115,23 @@
 }
 
 .gafa-checkout-product__meta {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
   margin: 0 0 0.55rem;
 }
 
 .gafa-checkout-product__add {
+  --gafa-type-size: 0.78rem;
+  --gafa-control-font-size: 0.78rem;
+  --gafa-control-padding: 0.35rem 0.7rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 34px;
   --gafa-control-radius: 999px;
   background: transparent;
   border: 1px solid var(--gafa-color-border);
@@ -4543,17 +5139,19 @@
   color: var(--gafa-color-text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   margin-top: auto;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.7rem;
   transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
   width: 100%;
 }
 
 .gafa-checkout-product__add:hover {
   --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
   background: var(--gafa-color-primary);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-primary-text);
@@ -4576,8 +5174,11 @@
 
 /* Resumen plegable del carrito: solo existe en movil. */
 .gafa-checkout__cart-toggle {
+  --gafa-control-padding: 0.15rem 0;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 0px;
   align-items: center;
   background: none;
@@ -4592,6 +5193,9 @@
 }
 
 .gafa-checkout__cart-toggle span {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.82rem;
   font-weight: 600;
@@ -4605,6 +5209,8 @@
 }
 
 .gafa-checkout__cart-toggle svg {
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   transition: transform 0.18s ease;
 }
@@ -4632,6 +5238,10 @@
 }
 
 .gafa-checkout__cart-head h3 {
+  --gafa-type-size: 0.95rem;
+  --gafa-heading-size: 0.95rem;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
   font-family: var(--gafa-heading-font-family);
   font-size: 0.95rem;
   font-weight: 800;
@@ -4641,6 +5251,9 @@
 }
 
 .gafa-checkout__cart-head span {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.76rem;
   white-space: nowrap;
@@ -4668,6 +5281,9 @@
 }
 
 .gafa-checkout__reserve-chip small {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
 }
@@ -4679,6 +5295,7 @@
 
 .gafa-checkout__empty {
   align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: flex;
   flex: 1;
@@ -4721,85 +5338,133 @@
 .gafa-checkout__lines li {
   border-bottom: 1px solid color-mix(in srgb, var(--gafa-color-border) 55%, transparent);
   display: grid;
-  gap: 0.4rem;
-  padding: 0.6rem 0;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.5rem 0;
 }
 
 .gafa-checkout__lines li:last-child {
   border-bottom: 0;
 }
 
+.gafa-checkout__line-info {
+  min-width: 0;
+}
+
 .gafa-checkout__line-info strong {
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-type-size: 0.8rem;
+  color: var(--gafa-color-text);
   display: block;
-  font-size: 0.85rem;
-  line-height: 1.3;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gafa-checkout__line-info span {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.7rem;
+
   color: var(--gafa-color-muted-text);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
 }
 
 .gafa-checkout__line-actions {
   align-items: center;
   display: flex;
-  gap: 0.55rem;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .gafa-checkout__stepper {
   align-items: center;
+  background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: 999px;
   display: inline-flex;
+  flex: 0 0 auto;
 }
 
 .gafa-checkout__stepper button {
+  --gafa-type-size: 0.85rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 22px;
+  --gafa-control-height: 22px;
+  --gafa-control-min-height: 22px;
+  --gafa-control-font-size: 0.85rem;
   background: transparent;
   border: 0;
   color: var(--gafa-color-text);
   cursor: pointer;
-  font-size: 0.9rem;
-  height: 24px;
+  font-size: 0.85rem;
+  height: 22px;
   line-height: 1;
-  width: 24px;
+  overflow: hidden;
+  padding: 0;
+  width: 22px;
 }
 
 .gafa-checkout__stepper span {
-  font-size: 0.8rem;
+  --gafa-type-size: 0.78rem;
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  min-width: 1.2rem;
+  min-width: 1.1rem;
   text-align: center;
 }
 
 .gafa-checkout__line-price {
-  font-size: 0.88rem;
+  --gafa-type-size: 0.8rem;
+  flex: 1 1 auto;
+  font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
   margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gafa-checkout__line-remove {
-  --gafa-control-bg: transparent;
-  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 999px;
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 22px;
+  --gafa-control-height: 22px;
+  --gafa-control-min-height: 22px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 11px;
   align-items: center;
-  background: transparent;
-  border: 0;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
   border-radius: 999px;
-  color: var(--gafa-color-muted-text);
+  color: var(--gafa-color-text);
   cursor: pointer;
   display: inline-flex;
+  flex: 0 0 auto;
   height: 22px;
   justify-content: center;
+  line-height: 0;
+  overflow: visible;
   padding: 0;
   width: 22px;
 }
 
 .gafa-checkout__line-remove:hover {
   --gafa-control-fg: var(--gafa-color-danger, #dc2626);
+  --gafa-fg: var(--gafa-color-danger, #dc2626);
   color: var(--gafa-color-danger, #dc2626);
 }
 
@@ -4817,8 +5482,13 @@
 }
 
 .gafa-checkout-promo__link {
+  --gafa-type-size: 0.8rem;
+  --gafa-control-font-size: 0.8rem;
+  --gafa-control-padding: 0;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 0px;
   background: none;
   border: 0;
@@ -4838,6 +5508,7 @@
 
 .gafa-checkout-promo__link:hover {
   --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
   color: var(--gafa-color-primary);
 }
 
@@ -4849,6 +5520,10 @@
 }
 
 .gafa-checkout-promo input {
+  --gafa-field-bg: var(--gafa-color-surface);
+  --gafa-field-border: 1px solid var(--gafa-color-border);
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-radius: 10px;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: 10px;
@@ -4859,8 +5534,13 @@
 }
 
 .gafa-checkout-promo__row button {
+  --gafa-type-size: 0.78rem;
+  --gafa-control-font-size: 0.78rem;
+  --gafa-control-padding: 0.45rem 0.8rem;
   --gafa-control-bg: var(--gafa-color-text);
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-surface);
+  --gafa-fg: var(--gafa-color-surface);
   --gafa-control-radius: 10px;
   background: var(--gafa-color-text);
   border: 0;
@@ -4895,8 +5575,10 @@
 }
 
 .gafa-checkout__terms {
+  --gafa-type-size: 0.8rem;
   align-items: flex-start;
   border-radius: 10px;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: flex;
   font-size: 0.8rem;
@@ -4920,7 +5602,9 @@
 
 .gafa-checkout__terms a {
   --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 0px;
   color: var(--gafa-color-text);
   font-weight: 700;
@@ -4939,6 +5623,9 @@
 }
 
 .gafa-checkout__total-row {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   display: flex;
   font-size: 0.82rem;
@@ -4951,6 +5638,7 @@
 
 .gafa-checkout__total-row--grand {
   align-items: baseline;
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
 }
 
@@ -4967,6 +5655,9 @@
 }
 
 .gafa-checkout__total-row--grand em {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.72rem;
   font-style: normal;
@@ -4979,14 +5670,19 @@
 }
 
 .gafa-checkout__backlink {
+  --gafa-type-size: 0.78rem;
+  --gafa-control-font-size: 0.78rem;
+  --gafa-control-padding: 0;
   --gafa-control-bg: transparent;
-  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 0px;
   --gafa-control-tracking: normal;
   --gafa-control-transform: none;
   background: none;
   border: 0;
-  color: var(--gafa-color-muted-text);
+  color: var(--gafa-color-text);
   cursor: pointer;
   font: inherit;
   font-size: 0.78rem;
@@ -4998,6 +5694,7 @@
 
 .gafa-checkout__backlink:hover {
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
 }
 
@@ -5019,6 +5716,9 @@
 }
 
 .gafa-checkout__paypal-hint {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.82rem;
   margin: 0;
@@ -5039,8 +5739,13 @@
 }
 
 .gafa-checkout-methods button {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0.55rem 0.95rem;
   --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
   --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: 12px;
   align-items: center;
   background: transparent;
@@ -5059,7 +5764,9 @@
 
 .gafa-checkout-methods button[data-active="true"] {
   --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
   --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
   background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
   border-color: var(--gafa-color-primary);
   color: var(--gafa-color-text);
@@ -5134,6 +5841,7 @@
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: 12px;
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   display: inline-flex;
   flex-shrink: 0;
@@ -5149,6 +5857,9 @@
 }
 
 .gafa-checkout-paypal-copy p {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.8rem;
   line-height: 1.4;
@@ -5216,6 +5927,7 @@
   animation: gafa-thanks-pop 0.5s cubic-bezier(0.22, 1.4, 0.36, 1);
   background: var(--gafa-color-primary);
   border-radius: 999px;
+  --gafa-fg: var(--gafa-color-primary-text);
   color: var(--gafa-color-primary-text);
   display: inline-flex;
   height: 54px;
@@ -5229,6 +5941,7 @@
 }
 
 .gafa-checkout-thanks h2 {
+  --gafa-heading-size: clamp(1.7rem, 3.4vw, 2.3rem);
   font-family: var(--gafa-heading-font-family);
   font-size: clamp(1.7rem, 3.4vw, 2.3rem);
   font-weight: 800;
@@ -5237,6 +5950,9 @@
 }
 
 .gafa-checkout-thanks > p {
+  --gafa-type-size: 0.92rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.92rem;
   margin: 0;
@@ -5244,8 +5960,10 @@
 }
 
 .gafa-checkout-thanks > p.gafa-checkout-thanks__pending {
+  --gafa-type-size: 0.84rem;
   background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
   border-radius: 12px;
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font-size: 0.84rem;
   padding: 0.7rem 0.9rem;
@@ -5266,6 +5984,9 @@
 
 .gafa-checkout-thanks__card span,
 .gafa-checkout-thanks__card small {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.74rem;
 }
@@ -5291,6 +6012,9 @@
 }
 
 .gafa-checkout-thanks__lines li {
+  --gafa-type-size: 0.85rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   display: flex;
   font-size: 0.85rem;
@@ -5299,12 +6023,15 @@
 }
 
 .gafa-checkout-thanks__lines strong {
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-variant-numeric: tabular-nums;
 }
 
 .gafa-checkout-thanks__lines li.gafa-checkout-thanks__total {
   border-top: 1px solid var(--gafa-color-border);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font-weight: 700;
   margin-top: 0.3rem;
@@ -5405,12 +6132,17 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 
+  .gafa-checkout-search {
+    --gafa-search-width: 72px;
+  }
+
   .gafa-checkout-search input {
-    width: 90px;
+    width: 72px;
   }
 
   /* El titulo compite con el catalogo por el alto util. */
   .gafa-checkout__hero h2 {
+  --gafa-heading-size: 1.3rem;
     font-size: 1.3rem;
   }
 
@@ -5613,6 +6345,7 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list__it
 .gafa-checkout-paymount select {
   background: transparent;
   border: 0;
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   font: inherit;
   outline: none;
@@ -5620,6 +6353,9 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list__it
 }
 
 .gafa-checkout-paymount label {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
   color: var(--gafa-color-muted-text);
   font-size: 0.78rem;
 }
@@ -5677,6 +6413,7 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list {
   background: var(--gafa-color-surface);
   border-color: var(--gafa-color-border);
   border-radius: 12px;
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   gap: 0.45rem;
   /* GafaPayFront usa 2 columnas y manda el `•••• 1234` a la derecha; apilado
@@ -5703,9 +6440,11 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list {
 }
 
 .gafa-checkout-paymount[data-method="stripe"] .gafapay-form__group:not(.is-checkbox)::before {
+  --gafa-type-size: 0.62rem;
   background: var(--gafa-color-surface-raised, var(--gafa-color-surface));
   border: 1px solid var(--gafa-color-border);
   border-radius: 6px;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   content: "Nueva tarjeta";
   font-size: 0.62rem;
@@ -5730,16 +6469,19 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-form_
 .gafa-checkout-paymount .card-list__item:hover {
   background: color-mix(in srgb, var(--gafa-color-primary) 10%, var(--gafa-color-surface));
   border-color: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
 }
 
 /* La guardada elegida se deselecciona con otro clic (GafaPay hace el toggle);
    la ✕ solo lo hace visible. Es decorativa: el clic lo captura el tile. */
 .gafa-checkout-paymount .card-list__item.is-selected::after {
+  --gafa-type-size: 0.7rem;
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: 50%;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   content: "✕";
   display: inline-flex;
@@ -5766,6 +6508,9 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-form_
 }
 
 .gafa-checkout-paymount .card-list__item > .type p {
+  --gafa-type-size: 0.62rem;
+  --gafa-fg: var(--gafa-color-text);
+
   color: var(--gafa-color-text);
   font-size: 0.62rem;
   font-weight: 700;
@@ -5796,7 +6541,9 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-form_
 }
 
 .gafa-checkout-results__title {
+  --gafa-type-size: 0.74rem;
   align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: flex;
   font-size: 0.74rem;

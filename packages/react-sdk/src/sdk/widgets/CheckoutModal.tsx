@@ -43,6 +43,7 @@ import {
   checkoutTokenFromHostedData,
   pollRecurrenteUntilDone,
 } from "../cart/recurrenteCheckout";
+import { CloseIcon } from "./sdkIcons";
 
 /** GafaPay ya cobró; reintentar "Pagar" haría un segundo cargo. */
 export const CHARGED_BUT_NOT_RECORDED =
@@ -800,9 +801,7 @@ export function CheckoutModal({
     >
       <div className="gafa-checkout" data-step={step}>
         <button className="gafa-checkout__close" type="button" aria-label="Cerrar" onClick={onClose}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
+          <CloseIcon />
         </button>
 
         {step !== "thanks" ? (
@@ -1109,9 +1108,7 @@ export function CheckoutModal({
                           aria-label={`Eliminar ${line.name}`}
                           onClick={() => removeItem(line.key)}
                         >
-                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          </svg>
+                          <CloseIcon size={11} strokeWidth={1.5} />
                         </button>
                       </div>
                     </li>
@@ -1768,9 +1765,7 @@ function RemoveClassButton({ onClick }: { onClick: () => void }) {
       aria-label="Quitar clase"
       onClick={onClick}
     >
-      <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
+      <CloseIcon size={11} strokeWidth={1.5} />
     </button>
   );
 }

@@ -94,14 +94,9 @@ Van **encendidos por defecto**. En el HTML de Buq-Webs no hace falta `filter-bq-
 
 ## WordPress / Elementor (no Buq-Webs)
 
-El JS es el mismo `@cdn-live`. El CSS de Elementor que sigue en clases v1
-(`GFSDK-*`, `#CreateReservationFancyTemplate`, `.modal-profile`) **no aplica**.
-Sustituye esos bloques por `docs/v2-embed/wp-v2-overlay.css` (o un `<link>` a
-`https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-embed/wp-v2-overlay.css`).
-No hace falta Republish. Hard refresh.
-
-Opcional en `data-gafa-options` → `THEME.colors`: `surface`, `background`, `text`
-si quieres negro puro en vez del gris derivado del color de marca.
+El JS es el mismo `@cdn-live`. La muralla CSS contra Hello/Elementor vive **en
+el SDK** (`theme.css` + widgets), no en un overlay por sitio. Hard refresh.
+No hace falta Republish.
 
 ## Tags `v2.0.0-rc.N`
 

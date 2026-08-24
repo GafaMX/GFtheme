@@ -65,6 +65,12 @@ export type Meeting = {
   capacity?: number;
   isReserved?: boolean;
   passed?: boolean;
+  /**
+   * Si la clase usa mapa de salón. Viene del listado (`maps_id`, `has_map`,
+   * `room.maps_id`…). `undefined` = el listado no lo dijo; el modal sencillo
+   * no se abre “fancy” hasta que el contexto confirme el mapa.
+   */
+  hasSeatMap?: boolean;
   availability?:
     | "available"
     | "waitlist"

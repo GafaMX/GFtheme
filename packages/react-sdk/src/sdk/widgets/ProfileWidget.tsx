@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CustomFieldGroup,
@@ -17,8 +16,7 @@ import { subscribeToAuthChanges } from "../client/tokenStorage";
 import { RemoteImage } from "../images/ImagesProvider";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CustomFieldInput } from "./CustomFieldInput";
-import { MonthCalendar } from "./MonthCalendar";
-import { toIsoDate } from "./calendarRange";
+import { DateField } from "./DateField";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { WidgetShell } from "./WidgetShell";
 
@@ -1380,7 +1378,7 @@ function ProfileForm({
         </div>
 
         <div className="gafa-field-row">
-          <BirthDateField value={birthDate} onChange={setBirthDate} />
+          <DateField label="Fecha de nacimiento" value={birthDate} onChange={setBirthDate} mode="birth" />
           <div className="gafa-acct-choice">
             <span className="gafa-acct-choice__legend">Género</span>
             <div className="gafa-acct-choice__options">
@@ -1468,129 +1466,6 @@ function ProfileForm({
         </button>
       </div>
     </form>
-  );
-}
-
-/**
- * Fecha de nacimiento con el calendario del SDK en vez del `input[type=date]`
- * del navegador: ese cambia de pinta en cada sistema operativo, no respeta el
- * tema del socio y obliga a teclear el formato en el orden que le toque.
- */
-function BirthDateField({ value, onChange }: { value: string; onChange(value: string): void }) {
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
-  const [rect, setRect] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
-  // Los colores del popover vienen de variables CSS que ThemeProvider pone en
-  // .gafa-sdk (no en :root): portalear a document.body se saldria de ese
-  // scope y el calendario quedaria sin fondo/bordes/sombra.
-  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
-  const maxIso = toIsoDate(new Date());
-  const minIso = `${new Date().getFullYear() - 100}-01-01`;
-
-  // El popup de la cuenta recorta su overflow (para las esquinas redondeadas) y
-  // ademas tiene scroll interno: un popover con position:absolute quedaria
-  // cortado o desalineado. Se posiciona con position:fixed via portal, como un
-  // tooltip flotante de verdad, y se recalcula al abrir/hacer scroll/resize.
-  useLayoutEffect(() => {
-    if (!open) return;
-    setPortalTarget(buttonRef.current?.closest(".gafa-sdk") ?? document.body);
-
-    const reposition = () => {
-      const anchor = buttonRef.current?.getBoundingClientRect();
-      if (!anchor) return;
-      const width = Math.max(anchor.width, 300);
-      const left = Math.min(Math.max(anchor.left, 12), window.innerWidth - width - 12);
-      const spaceBelow = window.innerHeight - anchor.bottom;
-      const openUpward = spaceBelow < 360 && anchor.top > spaceBelow;
-      setRect({
-        top: openUpward ? undefined : anchor.bottom + 6,
-        bottom: openUpward ? window.innerHeight - anchor.top + 6 : undefined,
-        left,
-        width,
-      });
-    };
-
-    reposition();
-    window.addEventListener("resize", reposition);
-    window.addEventListener("scroll", reposition, true);
-    return () => {
-      window.removeEventListener("resize", reposition);
-      window.removeEventListener("scroll", reposition, true);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  return (
-    <div className="gafa-acct-datefield">
-      <button
-        ref={buttonRef}
-        className="gafa-acct-datefield__button"
-        type="button"
-        aria-expanded={open}
-        data-filled={value ? "true" : undefined}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span className="gafa-acct-datefield__label">Fecha de nacimiento</span>
-        <span className="gafa-acct-datefield__value">{value ? formatDate(value) : "Elegir fecha"}</span>
-        <CalendarIcon />
-      </button>
-
-      {open && rect && portalTarget
-        ? createPortal(
-            <div
-              ref={popoverRef}
-              className="gafa-datepicker gafa-datepicker--floating"
-              style={{ top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width }}
-            >
-              <MonthCalendar
-                selectedIso={value || undefined}
-                initialMonth={value ? undefined : new Date(new Date().getFullYear() - 25, 0, 1)}
-                minIso={minIso}
-                maxIso={maxIso}
-                navigation="select"
-                onPick={(iso) => {
-                  onChange(iso);
-                  setOpen(false);
-                }}
-              />
-              <div className="gafa-datepicker__footer">
-                <button
-                  type="button"
-                  className="gafa-acct-link"
-                  onClick={() => {
-                    onChange("");
-                    setOpen(false);
-                  }}
-                >
-                  Limpiar
-                </button>
-                <button type="button" className="gafa-acct-link" onClick={() => setOpen(false)}>
-                  Cerrar
-                </button>
-              </div>
-            </div>,
-            portalTarget,
-          )
-        : null}
-    </div>
   );
 }
 

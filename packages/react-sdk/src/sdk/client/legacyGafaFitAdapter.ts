@@ -10,6 +10,7 @@ import type {
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { readStoredToken } from "./tokenStorage";
+import { readHasSeatMap } from "./seatMapHint";
 
 type LegacyCallback<T> = (error: unknown, result: T) => void;
 
@@ -271,5 +272,6 @@ function normalizeLegacyMeeting(meeting: Meeting): Meeting {
       meeting.staffName ??
       [meeting.staff?.name, meeting.staff?.lastname].filter(Boolean).join(" ") ??
       undefined,
+    hasSeatMap: meeting.hasSeatMap ?? readHasSeatMap(meeting),
   };
 }

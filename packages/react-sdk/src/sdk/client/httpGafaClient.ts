@@ -47,6 +47,7 @@ import {
   subscribeToAuthChanges,
   writeStoredToken,
 } from "./tokenStorage";
+import { readHasSeatMap } from "./seatMapHint";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -358,7 +359,12 @@ type RawMeeting = {
   passed?: boolean;
   service?: { id: number; name: string };
   staff?: { id: number; name: string; lastname?: string; description?: string; job?: string; picture_web?: string | null };
-  room?: { id: number; name: string };
+  room?: { id: number; name: string; maps_id?: number | null; map_id?: number | null; has_map?: boolean | number | null };
+  rooms_id?: number | null;
+  maps_id?: number | null;
+  map_id?: number | null;
+  has_map?: boolean | number | null;
+  map?: unknown;
   location?: { id: number; name: string };
 };
 
@@ -631,6 +637,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       capacity: raw.capacity,
       isReserved: Boolean(raw.is_reserved),
       passed: raw.passed,
+      hasSeatMap: readHasSeatMap(raw),
     };
   }
 

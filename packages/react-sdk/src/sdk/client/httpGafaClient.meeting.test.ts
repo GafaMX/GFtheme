@@ -86,4 +86,38 @@ describe("getMeeting", () => {
 
     expect(meeting).toBeNull();
   });
+
+  it("marca hasSeatMap cuando el listado trae maps_id o room.maps_id", async () => {
+    stubApi([
+      [/\/location\?/, LOCATIONS],
+      [
+        /\/location\/235\/meetings/,
+        [{ ...MEETING, maps_id: 44, room: { id: 2, name: "Salón mapa", maps_id: 44 } }],
+      ],
+    ]);
+
+    const withMap = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+    });
+    expect(withMap?.hasSeatMap).toBe(true);
+  });
+
+  it("marca hasSeatMap false cuando el salon no tiene mapa", async () => {
+    stubApi([
+      [/\/location\?/, LOCATIONS],
+      [
+        /\/location\/235\/meetings/,
+        [{ ...MEETING, maps_id: null, room: { id: 8, name: "Gaura", maps_id: null } }],
+      ],
+    ]);
+
+    const withoutMap = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+    });
+    expect(withoutMap?.hasSeatMap).toBe(false);
+  });
 });
