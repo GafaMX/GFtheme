@@ -26,6 +26,28 @@ export function checkoutTokenFromHostedData(data: unknown): string | null {
   return null;
 }
 
+export class HostedCheckoutClosedError extends Error {
+  constructor() {
+    super("HOSTED_CHECKOUT_CLOSED");
+    this.name = "HostedCheckoutClosedError";
+  }
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new HostedCheckoutClosedError();
+}
+
+function whenAborted(signal?: AbortSignal): Promise<never> {
+  return new Promise((_, reject) => {
+    if (!signal) return;
+    if (signal.aborted) {
+      reject(new HostedCheckoutClosedError());
+      return;
+    }
+    signal.addEventListener("abort", () => reject(new HostedCheckoutClosedError()), { once: true });
+  });
+}
+
 export async function pollRecurrenteUntilDone(options: {
   client: GafaClient;
   brandSlug: string;
@@ -34,29 +56,69 @@ export async function pollRecurrenteUntilDone(options: {
   pendingPurchaseId: number;
   poll?: (ms: number) => Promise<void>;
   attempts?: number;
+  signal?: AbortSignal;
 }): Promise<{ reservationId?: number; raw?: unknown }> {
   const wait = options.poll ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const attempts = options.attempts ?? POLL_ATTEMPTS;
+  const cancel = whenAborted(options.signal);
 
   for (let i = 0; i < attempts; i += 1) {
-    const status = await options.client.pollInitialPurchaseStatus!({
-      brandSlug: options.brandSlug,
-      locationSlug: options.locationSlug,
-      checkoutToken: options.checkoutToken,
-      pendingPurchaseId: options.pendingPurchaseId,
-    });
+    throwIfAborted(options.signal);
+    const status = await Promise.race([
+      options.client.pollInitialPurchaseStatus!({
+        brandSlug: options.brandSlug,
+        locationSlug: options.locationSlug,
+        checkoutToken: options.checkoutToken,
+        pendingPurchaseId: options.pendingPurchaseId,
+      }),
+      cancel,
+    ]);
     if (status.code === 1) {
       return { reservationId: status.reservationId, raw: status.raw };
     }
     if (status.code === -1) {
-      throw new Error(status.message || "Recurrente no pudo completar el pago.");
+      throw new Error(status.message || "No se pudo completar el pago.");
     }
-    await wait(POLL_MS);
+    throwIfAborted(options.signal);
+    await Promise.race([wait(POLL_MS), cancel]);
   }
 
-  throw new Error(
-    "El pago en Recurrente sigue pendiente. Si ya pagaste, pulsa «Revisar pago» sin volver a abrir la ventana.",
-  );
+  throw new Error("El pago sigue pendiente. Si ya pagaste, pulsa «Revisar pago».");
+}
+
+/**
+ * GafaPay abre el checkout alojado con `window.open`. Si el socio cierra esa
+ * ventana, el CTA no puede quedarse en “Esperando…”.
+ */
+export function watchNextPopup(onClose: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  const original = window.open.bind(window);
+  let interval = 0;
+  let finished = false;
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    if (interval) window.clearInterval(interval);
+    window.open = original;
+    onClose();
+  };
+
+  window.open = ((...args: Parameters<Window["open"]>) => {
+    const popup = original(...args);
+    if (popup && !popup.closed) {
+      interval = window.setInterval(() => {
+        if (popup.closed) finish();
+      }, 350);
+    }
+    return popup;
+  }) as typeof window.open;
+
+  return () => {
+    window.open = original;
+    if (interval) window.clearInterval(interval);
+    finished = true;
+  };
 }
 
 export async function completeRecurrentePurchase(options: {
@@ -68,7 +130,7 @@ export async function completeRecurrentePurchase(options: {
 }): Promise<InitialPurchaseResult> {
   const { client, payload, checkoutToken } = options;
   if (!client.initialPurchase || !client.pollInitialPurchaseStatus) {
-    throw new Error("Esta marca no tiene configurado el checkout de Recurrente.");
+    throw new Error("Esta marca no tiene configurado el pago con tarjeta.");
   }
 
   const pending = await client.initialPurchase({
@@ -80,7 +142,7 @@ export async function completeRecurrentePurchase(options: {
   const token = pending.checkoutToken?.trim() || checkoutToken;
   const purchaseId = pending.purchaseId;
   if (purchaseId == null) {
-    throw new Error("Buq no creó la compra pendiente de Recurrente.");
+    throw new Error("No se pudo crear la compra pendiente.");
   }
 
   const done = await pollRecurrenteUntilDone({

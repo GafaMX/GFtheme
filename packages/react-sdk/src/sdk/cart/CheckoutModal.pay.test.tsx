@@ -451,6 +451,7 @@ describe("CheckoutModal Recurrente", () => {
         button.type = "button";
         button.textContent = "Pago con Tarjeta";
         button.addEventListener("click", () => {
+          window.open("https://app.recurrente.com/checkout-session/chk_voltio");
           props.onStartPayAction();
           props.onCheckoutOpenAction?.({
             checkout_token: "chk_voltio",
@@ -484,18 +485,23 @@ describe("CheckoutModal Recurrente", () => {
     };
   }
 
-  it("el CTA amarillo abre Recurrente, POSTea initial-purchase y no llama reservate", async () => {
+  it("el CTA abre el pago con tarjeta, POSTea initial-purchase y no llama reservate", async () => {
     const client = mockClient({
       getCheckoutConfig: async () => recurrenteConfig(),
     });
     renderPay(client);
 
-    const pay = await waitFor(() => screen.getByRole("button", { name: /pagar/i }));
+    const pays = await waitFor(() => {
+      const buttons = screen.getAllByRole("button", { name: /pagar/i });
+      expect(buttons.length).toBeGreaterThanOrEqual(2);
+      return buttons;
+    });
+    expect(document.body.textContent ?? "").not.toMatch(/Recurrente/);
     await waitFor(() => {
-      expect((pay as HTMLButtonElement).disabled).toBe(false);
+      expect((pays[0] as HTMLButtonElement).disabled).toBe(false);
     });
 
-    fireEvent.click(pay);
+    fireEvent.click(pays[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
@@ -507,5 +513,41 @@ describe("CheckoutModal Recurrente", () => {
     expect(client.reservatePurchase).not.toHaveBeenCalled();
     expect(lastProps?.order.currency).toBe("GTQ");
     expect(lastProps?.termsAndConditions).toBe(true);
+  });
+
+  it("si se cierra la ventana de pago, el botón vuelve a quedar usable", async () => {
+    const popup = { closed: false };
+    const originalOpen = window.open;
+    window.open = () => popup as Window;
+
+    const client = mockClient({
+      getCheckoutConfig: async () => recurrenteConfig(),
+      pollInitialPurchaseStatus: vi.fn(() => new Promise(() => undefined)),
+    });
+    renderPay(client);
+
+    const pay = await waitFor(() => {
+      const buttons = screen.getAllByRole("button", { name: /pagar/i });
+      expect(buttons.length).toBeGreaterThanOrEqual(1);
+      return buttons[0] as HTMLButtonElement;
+    });
+    await waitFor(() => expect(pay.disabled).toBe(false));
+
+    fireEvent.click(pay);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: /esperando el pago/i }).length).toBeGreaterThan(0);
+    });
+
+    popup.closed = true;
+
+    await waitFor(() => {
+      const buttons = screen.getAllByRole("button", { name: /pagar/i });
+      expect(buttons.some((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+    });
+    expect(screen.queryByText(/esperando el pago/i)).toBeNull();
+    expect(screen.queryByText(/gracias por tu compra/i)).toBeNull();
+
+    window.open = originalOpen;
   });
 });

@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GafaClient, InitialPurchasePayload } from "../client/types";
-import { checkoutTokenFromHostedData, completeRecurrentePurchase } from "./recurrenteCheckout";
+import {
+  checkoutTokenFromHostedData,
+  completeRecurrentePurchase,
+  HostedCheckoutClosedError,
+  pollRecurrenteUntilDone,
+  watchNextPopup,
+} from "./recurrenteCheckout";
 
 describe("checkoutTokenFromHostedData", () => {
   it("lee checkout_token, id o la URL de Recurrente", () => {
@@ -69,5 +75,41 @@ describe("completeRecurrentePurchase", () => {
       }),
     ).rejects.toThrow(/pago cancelado/i);
     expect(poll).toHaveBeenCalledTimes(2);
+  });
+
+  it("corta el poll si se aborta (cerraron la ventana de pago)", async () => {
+    const abort = new AbortController();
+    const poll = vi.fn(async () => {
+      abort.abort();
+      return { code: 0 };
+    });
+    await expect(
+      pollRecurrenteUntilDone({
+        client: client({ pollInitialPurchaseStatus: poll }),
+        brandSlug: "voltio",
+        locationSlug: "avia",
+        checkoutToken: "chk_1",
+        pendingPurchaseId: 88,
+        poll: async () => undefined,
+        attempts: 8,
+        signal: abort.signal,
+      }),
+    ).rejects.toBeInstanceOf(HostedCheckoutClosedError);
+  });
+});
+
+describe("watchNextPopup", () => {
+  it("avisa cuando se cierra la ventana que abrió el pago", async () => {
+    const popup = { closed: false };
+    const original = window.open;
+    window.open = () => popup as Window;
+    const closed = vi.fn();
+    const stop = watchNextPopup(closed);
+    window.open("https://pay.example/checkout");
+    expect(closed).not.toHaveBeenCalled();
+    popup.closed = true;
+    await vi.waitFor(() => expect(closed).toHaveBeenCalledTimes(1));
+    stop();
+    window.open = original;
   });
 });

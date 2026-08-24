@@ -5856,13 +5856,23 @@
   position: relative;
 }
 
-/* El CTA amarillo dispara este botón. GafaPay lo pinta feo ("Pago con Tarjeta"). */
+/* GafaPay pinta "Pago con Tarjeta": lo dejamos oculto y usamos nuestro CTA
+   en el recuadro (más el de la columna derecha). */
 .gafa-checkout-paymount[data-method="recurrente"] .gafapay-recurrente button {
   height: 1px;
   left: -9999px;
   overflow: hidden;
   position: absolute;
   width: 1px;
+}
+
+.gafa-checkout-cardpay {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.gafa-checkout-cardpay .gafa-checkout__cta {
+  width: 100%;
 }
 
 .gafa-checkout-paypal-copy {

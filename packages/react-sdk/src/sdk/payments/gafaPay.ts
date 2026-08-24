@@ -373,7 +373,7 @@ export function triggerGafaPayConfirm(slug: string, root?: ParentNode | null): P
     // el click de su botón "Pago con Tarjeta". El CTA amarillo lo dispara.
     const scope = root ?? document;
     const button = scope.querySelector<HTMLButtonElement>(
-      ".gafapay-recurrente button, .gafa-checkout-paymount[data-method='recurrente'] button",
+      ".gafa-checkout-paymount__island .gafapay-recurrente button, .gafapay-recurrente button",
     );
     if (!button) return Promise.resolve(false);
     button.click();

@@ -42,7 +42,9 @@ import { gafaFitProductType } from "../cart/gafaFitCart";
 import { resolveMoneyCurrency } from "../cart/money";
 import {
   checkoutTokenFromHostedData,
+  HostedCheckoutClosedError,
   pollRecurrenteUntilDone,
+  watchNextPopup,
 } from "../cart/recurrenteCheckout";
 import { CloseIcon } from "./sdkIcons";
 
@@ -192,6 +194,9 @@ export function CheckoutModal({
     purchaseId: number;
     payload: InitialPurchasePayload;
   } | null>(null);
+  const hostedAbortRef = useRef<AbortController | null>(null);
+  const hostedSettledRef = useRef(false);
+  const stopPopupWatchRef = useRef<(() => void) | null>(null);
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
     reservationId?: number;
@@ -503,6 +508,13 @@ export function CheckoutModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preselect, client, brandSlugProp]);
 
+  useEffect(() => {
+    return () => {
+      hostedAbortRef.current?.abort();
+      stopPopupWatchRef.current?.();
+    };
+  }, []);
+
   // Compra directa: login si falta, si no el paso de pago. Si el socio vuelve
   // al catalogo a proposito, ya no lo empujamos otra vez a pagar.
   useEffect(() => {
@@ -667,13 +679,13 @@ export function CheckoutModal({
     const profile = profileQuery.data;
     if (!profile || !selectedMethod || !brandSlug || !locationSlug) {
       setPaying(false);
-      setPayError("No pudimos abrir Recurrente. Recarga e inténtalo de nuevo.");
+      setPayError("No pudimos abrir el pago. Recarga e inténtalo de nuevo.");
       return;
     }
     const checkoutToken = checkoutTokenFromHostedData(data);
     if (!checkoutToken) {
       setPaying(false);
-      setPayError("Recurrente no devolvió el token de checkout. Intenta de nuevo.");
+      setPayError("No pudimos iniciar el pago. Intenta de nuevo.");
       return;
     }
 
@@ -694,15 +706,19 @@ export function CheckoutModal({
 
     setPayError(undefined);
     setPaying(true);
+    hostedAbortRef.current?.abort();
+    const abort = new AbortController();
+    hostedAbortRef.current = abort;
+    hostedSettledRef.current = false;
     try {
       if (!client.initialPurchase || !client.pollInitialPurchaseStatus) {
-        throw new Error("Esta marca no tiene configurado el checkout de Recurrente.");
+        throw new Error("Esta marca no tiene configurado el pago con tarjeta.");
       }
       const pending = await client.initialPurchase(payload);
       const purchaseId = pending.purchaseId;
       const token = pending.checkoutToken?.trim() || checkoutToken;
       if (purchaseId == null) {
-        throw new Error("Buq no creó la compra pendiente de Recurrente.");
+        throw new Error("No se pudo crear la compra pendiente.");
       }
       hostedPendingRef.current = { checkoutToken: token, purchaseId, payload };
       const done = await pollRecurrenteUntilDone({
@@ -711,10 +727,18 @@ export function CheckoutModal({
         locationSlug,
         checkoutToken: token,
         pendingPurchaseId: purchaseId,
+        signal: abort.signal,
       });
+      hostedSettledRef.current = true;
+      stopPopupWatchRef.current?.();
+      stopPopupWatchRef.current = null;
       await finishHostedPurchase({ purchaseId, reservationId: done.reservationId });
     } catch (err) {
-      const detail = err instanceof Error ? err.message : "No pudimos confirmar el pago de Recurrente.";
+      if (err instanceof HostedCheckoutClosedError) {
+        setPaying(false);
+        return;
+      }
+      const detail = err instanceof Error ? err.message : "No pudimos confirmar el pago.";
       if (hostedPendingRef.current?.purchaseId) {
         setRegisterOnly(true);
       }
@@ -724,11 +748,31 @@ export function CheckoutModal({
     }
   }
 
+  function releaseHostedWait() {
+    if (hostedSettledRef.current) return;
+    hostedAbortRef.current?.abort();
+    hostedAbortRef.current = null;
+    stopPopupWatchRef.current?.();
+    stopPopupWatchRef.current = null;
+    setPaying(false);
+  }
+
+  function startHostedPopupWatch() {
+    if (stopPopupWatchRef.current) return;
+    hostedSettledRef.current = false;
+    stopPopupWatchRef.current = watchNextPopup(() => {
+      releaseHostedWait();
+    });
+  }
+
   async function proceedToPay() {
     if (registerOnly && hostedPendingRef.current?.purchaseId) {
       setPayError(undefined);
       setPaying(true);
       const pending = hostedPendingRef.current;
+      hostedAbortRef.current?.abort();
+      const abort = new AbortController();
+      hostedAbortRef.current = abort;
       try {
         const status = await pollRecurrenteUntilDone({
           client,
@@ -736,12 +780,18 @@ export function CheckoutModal({
           locationSlug: pending.payload.locationSlug,
           checkoutToken: pending.checkoutToken,
           pendingPurchaseId: pending.purchaseId,
+          signal: abort.signal,
         });
+        hostedSettledRef.current = true;
         await finishHostedPurchase({
           purchaseId: pending.purchaseId,
           reservationId: status.reservationId,
         });
       } catch (err) {
+        if (err instanceof HostedCheckoutClosedError) {
+          setPaying(false);
+          return;
+        }
         setPayError(err instanceof Error ? err.message : "El pago sigue pendiente.");
       } finally {
         setPaying(false);
@@ -761,16 +811,19 @@ export function CheckoutModal({
     }
     setPayError(undefined);
     setPaying(true);
+    if (selectedMethod?.slug === "recurrente") startHostedPopupWatch();
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
     try {
       const triggered = await triggerGafaPayConfirm(selectedMethod?.slug ?? "");
       if (!triggered) {
+        stopPopupWatchRef.current?.();
+        stopPopupWatchRef.current = null;
         setPaying(false);
         setPayError(
           selectedMethod?.slug === "paypal"
             ? "Usa el botón de PayPal para completar el pago."
             : selectedMethod?.slug === "recurrente"
-              ? "No pudimos abrir Recurrente. Intenta de nuevo."
+              ? "No pudimos abrir el pago. Intenta de nuevo."
               : "El procesador de pago aún no está listo. Intenta de nuevo.",
         );
       }
@@ -1023,12 +1076,34 @@ export function CheckoutModal({
                   }}
                   onSuccess={handleGafaPaySuccess}
                   onHostedCheckout={handleHostedCheckout}
-                  onStart={() => setPaying(true)}
+                  onHostedClose={releaseHostedWait}
+                  onStart={() => {
+                    setPaying(true);
+                    if (selectedMethod?.slug === "recurrente") startHostedPopupWatch();
+                  }}
                   onReadyChange={setPaymentReady}
                   onError={(message) => {
                     setPaying(false);
                     setPayError(message);
                   }}
+                  payCta={
+                    selectedMethod?.slug === "recurrente"
+                      ? {
+                          label: registerOnly
+                            ? hostedPendingRef.current?.purchaseId
+                              ? "Revisar pago"
+                              : "Registrar compra"
+                            : `Pagar ${formatMoney(total, currency.prefix, "")}`,
+                          busyLabel: "Esperando el pago…",
+                          busy: paying,
+                          disabled:
+                            paying ||
+                            relevantLines.length === 0 ||
+                            (!registerOnly && !waitingOnTerms && !canPay),
+                          onClick: handlePayClick,
+                        }
+                      : undefined
+                  }
                 />
               )}
             </section>
@@ -1268,7 +1343,7 @@ export function CheckoutModal({
                 >
                   {paying
                     ? selectedMethod?.slug === "recurrente"
-                      ? "Esperando Recurrente…"
+                      ? "Esperando el pago…"
                       : "Procesando…"
                     : registerOnly
                       ? hostedPendingRef.current?.purchaseId
@@ -1408,7 +1483,7 @@ function ProductCard({
       <p className="gafa-checkout-product__meta">
         {[
           item.expirationDays ? `Vigencia ${item.expirationDays} días` : null,
-          item.subscribable ? "Recurrente" : null,
+          item.subscribable ? "Suscripción" : null,
         ]
           .filter(Boolean)
           .join(" · ") || "\u00A0"}
@@ -1432,9 +1507,11 @@ function PayPanel({
   customer,
   onSuccess,
   onHostedCheckout,
+  onHostedClose,
   onStart,
   onReadyChange,
   onError,
+  payCta,
 }: {
   methods: CheckoutConfig["paymentMethods"];
   selectedMethodId: number | null;
@@ -1447,9 +1524,17 @@ function PayPanel({
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
   onHostedCheckout: (data: unknown) => void;
+  onHostedClose: () => void;
   onStart: () => void;
   onReadyChange: (ready: boolean) => void;
   onError: (message: string) => void;
+  payCta?: {
+    label: string;
+    busyLabel: string;
+    busy: boolean;
+    disabled: boolean;
+    onClick: () => void;
+  };
 }) {
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState<string>();
@@ -1458,8 +1543,8 @@ function PayPanel({
   const islandRef = useRef<GafaPayIsland | null>(null);
   // Los callbacks cambian en cada render; el widget vive fuera de React y no
   // debe re-montarse por eso.
-  const handlersRef = useRef({ onSuccess, onError, onStart, onHostedCheckout });
-  handlersRef.current = { onSuccess, onError, onStart, onHostedCheckout };
+  const handlersRef = useRef({ onSuccess, onError, onStart, onHostedCheckout, onHostedClose });
+  handlersRef.current = { onSuccess, onError, onStart, onHostedCheckout, onHostedClose };
 
   useEffect(() => {
     onReadyChange(loadState === "ready");
@@ -1515,6 +1600,7 @@ function PayPanel({
       onGafaPayErrAction: ({ message }) =>
         handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
       onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
+      onCheckoutCloseAction: () => handlersRef.current.onHostedClose(),
     }),
     [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone],
   );
@@ -1612,14 +1698,26 @@ function PayPanel({
           </div>
         ) : null}
         {slug === "recurrente" ? (
-          <div className="gafa-checkout-paypal-copy">
-            <span className="gafa-checkout-paypal-copy__mark" aria-hidden="true">
-              <CardIcon />
-            </span>
-            <div>
-              <strong>Pagar con tarjeta</strong>
-              <p>El botón amarillo abre Recurrente en otra ventana. Al terminar, volvemos a registrar la compra aquí.</p>
+          <div className="gafa-checkout-cardpay">
+            <div className="gafa-checkout-paypal-copy">
+              <span className="gafa-checkout-paypal-copy__mark" aria-hidden="true">
+                <CardIcon />
+              </span>
+              <div>
+                <strong>Pagar con tarjeta</strong>
+                <p>Se abre una ventana segura para confirmar tu pago.</p>
+              </div>
             </div>
+            {payCta ? (
+              <button
+                className="gafa-sdk-button gafa-checkout__cta"
+                type="button"
+                disabled={payCta.disabled}
+                onClick={payCta.onClick}
+              >
+                {payCta.busy ? payCta.busyLabel : payCta.label}
+              </button>
+            ) : null}
           </div>
         ) : null}
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
