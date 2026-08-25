@@ -1514,7 +1514,9 @@
 .gafa-meeting-extra {
   display: inline-flex;
   flex-shrink: 0;
-  position: relative;
+  /* static: el tooltip se ancla a la card (position: relative), no a la i.
+     Si se ancla a la i, overflow-x del week-grid lo recorta. */
+  position: static;
 }
 
 .gafa-meeting-extra__mark {
@@ -1549,15 +1551,15 @@
   display: none;
   font-size: 0.75rem;
   font-weight: 500;
-  left: auto;
+  left: 0.5rem;
   line-height: 1.45;
   padding: 0.55rem 0.7rem;
   pointer-events: none;
   position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
+  right: 0.5rem;
+  top: 2.35rem;
   white-space: normal;
-  width: min(220px, 70vw);
+  width: auto;
   z-index: 8;
 }
 

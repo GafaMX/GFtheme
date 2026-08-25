@@ -61,7 +61,10 @@ const BRANDS: Record<string, BrandConfig> = {
 };
 
 export function DemoSite() {
-  const [brandKey, setBrandKey] = useState<keyof typeof BRANDS>("bunker");
+  const [brandKey, setBrandKey] = useState<keyof typeof BRANDS>(() => {
+    const q = new URLSearchParams(window.location.search).get("brand");
+    return q && q in BRANDS ? (q as keyof typeof BRANDS) : "bunker";
+  });
   const brand = BRANDS[brandKey];
 
   return (
