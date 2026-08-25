@@ -103,7 +103,7 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
   } as GafaClient;
 }
 
-function renderPay(client: GafaClient) {
+function renderPay(client: GafaClient, extras: { showMembershipOptions?: boolean } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
@@ -114,6 +114,7 @@ function renderPay(client: GafaClient) {
         brandSlug="fitspin"
         locationSlug="polanco"
         skipCatalog={true}
+        showMembershipOptions={extras.showMembershipOptions}
         onClose={() => undefined}
       />
     </QueryClientProvider>,
@@ -606,16 +607,21 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
       expect(screen.getByRole("button", { name: /pagar/i })).toBeTruthy();
     });
     await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
-    expect(screen.getByRole("button", { name: /opciones de la membresía/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /opciones de la membresía/i })).toBeNull();
     expect(screen.queryByLabelText(/guardar mi tarjeta/i)).toBeNull();
     expect(screen.queryByLabelText(/renovar automáticamente/i)).toBeNull();
     expect(document.body.textContent ?? "").not.toMatch(/Recurrente/);
+  });
 
+  it("SHOW_MEMBERSHIP_OPTIONS muestra el link y los checks van ON", async () => {
+    renderPay(mockClient(), { showMembershipOptions: true });
+    await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
     const save = screen.getByLabelText(/guardar mi tarjeta/i) as HTMLInputElement;
     const renew = screen.getByLabelText(/renovar automáticamente/i) as HTMLInputElement;
     expect(save.checked).toBe(true);
     expect(renew.checked).toBe(true);
+    expect(save.className).toContain("gafa-check-input");
   });
 
   it("al pagar una membresía manda subscribe y set_payment en true", async () => {
@@ -637,7 +643,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
 
   it("si desmarcan renovar, reservate manda subscribe false", async () => {
     const client = mockClient();
-    renderPay(client);
+    renderPay(client, { showMembershipOptions: true });
     await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
 
     fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));

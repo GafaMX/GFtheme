@@ -299,6 +299,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           {...props}
           onClose={close}
           gafaPayFrontUrl={props.gafaPayFrontUrl ?? config.gafaPayFrontUrl}
+          showMembershipOptions={props.showMembershipOptions ?? config.showMembershipOptions}
         />,
       );
 

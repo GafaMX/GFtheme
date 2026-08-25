@@ -54,6 +54,12 @@ No se toca el `src` ni el theme PHP en cada deploy v2: se reemplaza el bundle
 en git y el loader lo recoge. El CSS de Hello/Elementor lo bloquea el propio
 SDK (muralla en `theme.css`). No hace falta CSS extra por marca.
 
+Las “Opciones de la membresía” van **ocultas** (guardar tarjeta + renovar
+siguen ON). Para mostrarlas, en `data-gf-options`:
+`{ "SHOW_MEMBERSHIP_OPTIONS": true }` o el atributo
+`show-membership-options="true"` en el shortcode. Por CSS:
+`.gafa-checkout-membership[hidden] { display: grid !important; }`.
+
 **Buq-Webs (Replit, todas las marcas en `web.buq.mx/<marca>`):** no copies a
 `lib/gafa-react-sdk` y **no pulses Republish**. Un secreto
 `VITE_GAFA_SDK_V2_URL` ya apunta a `@cdn-live` para **toda** la app. Fitspin

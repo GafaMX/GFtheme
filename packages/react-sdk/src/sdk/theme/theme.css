@@ -324,3 +324,29 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk textarea:-webkit-autofill:not(.gafa-pay-na
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
 }
+
+/* Checks del checkout: Elementor no los deja nativos ni cuadrados. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-check-box:not(.gafa-pay-native *) {
+  background: var(--gafa-color-surface) none !important;
+  border: 1.5px solid color-mix(in srgb, var(--gafa-color-text) 28%, var(--gafa-color-border)) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  height: 1.2rem !important;
+  max-height: 1.2rem !important;
+  max-width: 1.2rem !important;
+  min-height: 1.2rem !important;
+  min-width: 1.2rem !important;
+  padding: 0 !important;
+  width: 1.2rem !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-check-input:checked + .gafa-check-box:not(.gafa-pay-native *) {
+  background: var(--gafa-color-primary) none !important;
+  border-color: var(--gafa-color-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gafa-color-primary) 22%, transparent) !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-check-input:focus-visible + .gafa-check-box:not(.gafa-pay-native *) {
+  outline: 2px solid var(--gafa-color-accent) !important;
+  outline-offset: 2px !important;
+}

@@ -77,6 +77,12 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(/\.gafa-datepicker__day \{[\s\S]{0,500}width:\s*30px/);
   });
 
+  it("los checks del checkout son redondos y no los aplasta Elementor", () => {
+    expect(widgetsCss).toMatch(/\.gafa-check-box[\s\S]{0,280}border-radius:\s*8px/);
+    expect(themeCss).toMatch(/\.gafa-check-box:not\(\.gafa-pay-native \*\) \{[\s\S]{0,280}border-radius:\s*8px/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-membership:not\(\[data-visible="true"\]\)|\.gafa-checkout-membership \{[\s\S]{0,80}display:\s*none/);
+  });
+
   it("en dark no apaga los dias pasados del datepicker ni infla los botones", () => {
     expect(widgetsCss).toMatch(
       /\.gafa-datepicker__day:disabled[\s\S]{0,500}opacity:\s*1/,

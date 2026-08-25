@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { cartHasMembership, syncGafaPayMembershipToggles } from "./membershipPayOptions";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  cartHasMembership,
+  coerceFlag,
+  readShowMembershipOptions,
+  syncGafaPayMembershipToggles,
+} from "./membershipPayOptions";
 
 describe("cartHasMembership", () => {
   it("solo las membresías activan renovación / guardar tarjeta", () => {
@@ -23,5 +28,33 @@ describe("syncGafaPayMembershipToggles", () => {
     syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: true });
     expect(root.querySelector<HTMLInputElement>("#saveCard")?.checked).toBe(false);
     expect(root.querySelector<HTMLInputElement>("#recurringPayment")?.checked).toBe(true);
+  });
+});
+
+describe("readShowMembershipOptions", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("va oculto por defecto", () => {
+    expect(readShowMembershipOptions(document)).toBe(false);
+    expect(coerceFlag(undefined)).toBeUndefined();
+  });
+
+  it("el prop explícito gana", () => {
+    expect(readShowMembershipOptions(document, true)).toBe(true);
+    expect(readShowMembershipOptions(document, false)).toBe(false);
+  });
+
+  it("se enciende desde data-gf-options", () => {
+    document.body.innerHTML = `<script data-gf-options type="application/json">${JSON.stringify({
+      SHOW_MEMBERSHIP_OPTIONS: true,
+    })}</script>`;
+    expect(readShowMembershipOptions(document)).toBe(true);
+  });
+
+  it("se enciende con el atributo del shortcode", () => {
+    document.body.innerHTML = `<section data-gf-theme="purchase-button" show-membership-options="true"></section>`;
+    expect(readShowMembershipOptions(document)).toBe(true);
   });
 });

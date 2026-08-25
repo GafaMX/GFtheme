@@ -46,7 +46,11 @@ import {
   pollRecurrenteUntilDone,
   watchNextPopup,
 } from "../cart/recurrenteCheckout";
-import { cartHasMembership, syncGafaPayMembershipToggles } from "../cart/membershipPayOptions";
+import {
+  cartHasMembership,
+  readShowMembershipOptions,
+  syncGafaPayMembershipToggles,
+} from "../cart/membershipPayOptions";
 import { CloseIcon } from "./sdkIcons";
 
 /** GafaPay ya cobró; reintentar "Pagar" haría un segundo cargo. */
@@ -84,6 +88,8 @@ export type CheckoutModalProps = {
    */
   skipCatalog?: boolean;
   gafaPayFrontUrl?: string;
+  /** Default oculto. El embed también lo enciende con SHOW_MEMBERSHIP_OPTIONS. */
+  showMembershipOptions?: boolean;
   onClose: () => void;
   onCompleted?: (result: { purchaseId?: number | null; reservationId?: number }) => void;
 };
@@ -132,9 +138,11 @@ export function CheckoutModal({
   preselect,
   skipCatalog,
   gafaPayFrontUrl,
+  showMembershipOptions: showMembershipOptionsProp,
   onClose,
   onCompleted,
 }: CheckoutModalProps) {
+  const showMembershipOptions = readShowMembershipOptions(undefined, showMembershipOptionsProp);
   const lines = useCartStore((s) => s.lines);
   const reservation = useCartStore((s) => s.reservation);
   const addItem = useCartStore((s) => s.addItem);
@@ -881,6 +889,7 @@ export function CheckoutModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="gafa-checkout-title"
+      data-gafa-membership-options={showMembershipOptions ? "true" : undefined}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && step !== "thanks") onClose();
       }}
@@ -1100,6 +1109,7 @@ export function CheckoutModal({
                           saveCard,
                           autoRenew,
                           open: membershipOptsOpen,
+                          visible: showMembershipOptions,
                           onToggle: () => setMembershipOptsOpen((current) => !current),
                           onSaveCard: setSaveCard,
                           onAutoRenew: setAutoRenew,
@@ -1288,25 +1298,20 @@ export function CheckoutModal({
                   ) : null}
 
                   {hasTerms ? (
-                    <label
+                    <CheckField
                       className="gafa-checkout__terms"
-                      data-attention={termsAttention || termsPromptOpen ? "true" : undefined}
+                      attention={termsAttention || termsPromptOpen}
+                      checked={termsAccepted}
+                      onChange={(next) => {
+                        setTermsAccepted(next);
+                        if (next) setTermsAttention(false);
+                      }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={termsAccepted}
-                        onChange={(event) => {
-                          setTermsAccepted(event.target.checked);
-                          if (event.target.checked) setTermsAttention(false);
-                        }}
-                      />
-                      <span>
-                        Acepto los{" "}
-                        <a href={config!.termsConditionsLink!} target="_blank" rel="noreferrer">
-                          términos y condiciones
-                        </a>
-                      </span>
-                    </label>
+                      Acepto los{" "}
+                      <a href={config!.termsConditionsLink!} target="_blank" rel="noreferrer">
+                        términos y condiciones
+                      </a>
+                    </CheckField>
                   ) : null}
                 </div>
               ) : null}
@@ -1560,6 +1565,7 @@ function PayPanel({
     saveCard: boolean;
     autoRenew: boolean;
     open: boolean;
+    visible: boolean;
     onToggle: () => void;
     onSaveCard: (value: boolean) => void;
     onAutoRenew: (value: boolean) => void;
@@ -1785,7 +1791,12 @@ function PayPanel({
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
 
         {membershipOptions ? (
-          <div className="gafa-checkout-membership" data-open={membershipOptions.open ? "true" : undefined}>
+          <div
+            className="gafa-checkout-membership"
+            data-open={membershipOptions.open ? "true" : undefined}
+            data-visible={membershipOptions.visible ? "true" : undefined}
+            hidden={!membershipOptions.visible}
+          >
             <button
               className="gafa-checkout-promo__link"
               type="button"
@@ -1796,22 +1807,18 @@ function PayPanel({
             </button>
             {membershipOptions.open ? (
               <div className="gafa-checkout-membership__fields">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={membershipOptions.saveCard}
-                    onChange={(event) => membershipOptions.onSaveCard(event.target.checked)}
-                  />
+                <CheckField
+                  checked={membershipOptions.saveCard}
+                  onChange={membershipOptions.onSaveCard}
+                >
                   Guardar mi tarjeta para la próxima compra
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={membershipOptions.autoRenew}
-                    onChange={(event) => membershipOptions.onAutoRenew(event.target.checked)}
-                  />
+                </CheckField>
+                <CheckField
+                  checked={membershipOptions.autoRenew}
+                  onChange={membershipOptions.onAutoRenew}
+                >
                   Renovar automáticamente al vencer
-                </label>
+                </CheckField>
               </div>
             ) : null}
           </div>
@@ -2030,6 +2037,36 @@ function PaypalMark() {
         fill="currentColor"
       />
     </svg>
+  );
+}
+
+function CheckField({
+  checked,
+  onChange,
+  children,
+  className,
+  attention,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  children: React.ReactNode;
+  className?: string;
+  attention?: boolean;
+}) {
+  return (
+    <label
+      className={["gafa-check-row", className].filter(Boolean).join(" ")}
+      data-attention={attention ? "true" : undefined}
+    >
+      <input
+        className="gafa-check-input"
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="gafa-check-box" aria-hidden="true" />
+      <span className="gafa-check-row__text">{children}</span>
+    </label>
   );
 }
 
