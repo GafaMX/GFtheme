@@ -419,7 +419,6 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk textarea:-webkit-autofill:not(.gafa-pay-na
   border-color: var(--gafa-color-primary);
 }
 
-html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account__dot:not(.gafa-pay-native *) {
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-check-box:not(.gafa-pay-native *) {
   background: var(--gafa-color-surface) none !important;
   border: 1.5px solid color-mix(in srgb, var(--gafa-color-text) 28%, var(--gafa-color-border)) !important;
