@@ -132,6 +132,10 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
     "--gafa-color-danger": palette.danger,
     "--gafa-color-danger-soft": palette.dangerSoft,
     "--gafa-color-overlay": palette.overlay,
+    // Superficie de modales: NO sigue `--sdk-background-color` del host.
+    // En Voltio/Fitspin dark ese token llega transparente o con alpha y el
+    // fancy deja ver el calendario. El carrito ya usa surface-raised (opaco).
+    "--gafa-color-modal": palette.surface,
     "--gafa-font-body": resolved.typography.fontFamily,
     "--gafa-font-heading": resolved.typography.headingFontFamily,
     "--gafa-radius-sm": resolved.radius.sm,

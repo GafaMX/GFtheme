@@ -164,6 +164,25 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account__dot:not(.gafa-pay-na
   width: 10px !important;
 }
 
+/* Fancy / checkout / cuenta: fondo opaco. En dark el host (Voltio) pinta
+   `--sdk-background-color` con alpha y el calendario se veía a través. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
+  .gafa-checkout,
+  .gafa-account-modal,
+  .gafa-reservation-sheet,
+  .gafa-fancy-sheet
+):not(.gafa-pay-native *) {
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised)) none !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-tabs button[data-active="true"]:not(.gafa-pay-native *) {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary) none !important;
+  color: var(--gafa-color-primary-text) !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
   .gafa-icon-button,
   .gafa-reservation-close,
@@ -400,7 +419,7 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk textarea:-webkit-autofill:not(.gafa-pay-na
   border-color: var(--gafa-color-primary);
 }
 
-/* Checks del checkout: Elementor no los deja nativos ni cuadrados. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account__dot:not(.gafa-pay-native *) {
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-check-box:not(.gafa-pay-native *) {
   background: var(--gafa-color-surface) none !important;
   border: 1.5px solid color-mix(in srgb, var(--gafa-color-text) 28%, var(--gafa-color-border)) !important;

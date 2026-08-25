@@ -1712,7 +1712,7 @@
 
 .gafa-reservation-sheet,
 .gafa-fancy-sheet {
-  background: var(--gafa-color-surface);
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-lg);
   box-shadow: var(--gafa-shadow-pop);
@@ -2682,7 +2682,7 @@
 }
 
 .gafa-account-modal {
-  background: var(--gafa-color-surface);
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
   border-radius: var(--gafa-radius-lg) var(--gafa-radius-lg) 0 0;
   box-shadow: var(--gafa-shadow-pop);
   display: flex;
@@ -4822,7 +4822,7 @@
 }
 
 .gafa-checkout {
-  background: var(--gafa-color-surface);
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
   border: 1px solid color-mix(in srgb, var(--gafa-color-border) 60%, transparent);
   border-radius: 22px;
   box-shadow: var(--gafa-shadow-pop);
@@ -5014,16 +5014,18 @@
 }
 
 .gafa-checkout-tabs button[data-active="true"] {
-  --gafa-control-bg: var(--gafa-color-text);
+  --gafa-control-bg: var(--gafa-color-primary);
   --gafa-control-border: 1px solid transparent;
-  --gafa-control-fg: var(--gafa-color-surface);
-  --gafa-fg: var(--gafa-color-surface);
-  background: var(--gafa-color-text);
-  color: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
 }
 
 .gafa-checkout-tabs button[data-active="true"] em {
-  background: color-mix(in srgb, var(--gafa-color-surface) 25%, transparent);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: color-mix(in srgb, var(--gafa-color-primary-text) 18%, transparent);
+  color: var(--gafa-color-primary-text);
 }
 
 .gafa-checkout-search {

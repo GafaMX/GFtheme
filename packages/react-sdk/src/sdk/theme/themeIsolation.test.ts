@@ -152,6 +152,27 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(/\.gafa-reservation-notes \{[\s\S]{0,200}white-space:\s*pre-wrap/);
   });
 
+  it("el fancy oscuro es opaco y el tab activo de Paquetes usa el color de marca", () => {
+    expect(widgetsCss).toMatch(
+      /\.gafa-checkout \{[\s\S]{0,120}background:\s*var\(--gafa-color-modal/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-account-modal \{[\s\S]{0,120}background:\s*var\(--gafa-color-modal/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-checkout-tabs button\[data-active="true"\] \{[\s\S]{0,280}--gafa-control-bg:\s*var\(--gafa-color-primary\)/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-checkout-tabs button\[data-active="true"\] \{[\s\S]{0,320}--gafa-control-fg:\s*var\(--gafa-color-primary-text\)/,
+    );
+    expect(themeCss).toMatch(
+      /\.gafa-checkout,[\s\S]{0,200}\.gafa-fancy-sheet[\s\S]{0,160}background:\s*var\(--gafa-color-modal/,
+    );
+    expect(themeCss).toMatch(
+      /\.gafa-checkout-tabs button\[data-active="true"\]:not\(\.gafa-pay-native \*\) \{[\s\S]{0,280}background:\s*var\(--gafa-color-primary\)/,
+    );
+  });
+
   it("asigna borde de control en las cards y el Hoy del calendario", () => {
     expect(widgetsCss).toContain(".gafa-meeting-card");
     expect(widgetsCss).toMatch(/\.gafa-meeting-card[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);

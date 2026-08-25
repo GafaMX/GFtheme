@@ -23,6 +23,9 @@ describe("ThemeProvider sigue el theme de la página", () => {
     expect(view.container.querySelector(".gafa-sdk")?.getAttribute("style") ?? "").toContain(
       "var(--sdk-text-color",
     );
+    const style = view.container.querySelector(".gafa-sdk")?.getAttribute("style") ?? "";
+    expect(style).toMatch(/--gafa-color-modal:\s*hsl\(/);
+    expect(style).not.toMatch(/--gafa-color-modal:\s*var\(--sdk-/);
   });
 
   it("al quitar fitspin-dark vuelve al THEME light", async () => {
