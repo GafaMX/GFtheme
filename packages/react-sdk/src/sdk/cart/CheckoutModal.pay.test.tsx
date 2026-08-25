@@ -5,6 +5,7 @@ import type { CheckoutConfig, GafaClient } from "../client/types";
 import type { GafaPayIsland, GafaPayWidgetProps } from "../payments/gafaPay";
 import { CheckoutModal } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
+import { reservateRetryWait } from "./reservateRetry";
 
 const { mocks } = vi.hoisted(() => ({
   mocks: {
@@ -103,7 +104,10 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
   } as GafaClient;
 }
 
-function renderPay(client: GafaClient, extras: { showMembershipOptions?: boolean } = {}) {
+function renderPay(
+  client: GafaClient,
+  extras: { showMembershipOptions?: boolean; onClose?: () => void } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
@@ -115,7 +119,7 @@ function renderPay(client: GafaClient, extras: { showMembershipOptions?: boolean
         locationSlug="polanco"
         skipCatalog={true}
         showMembershipOptions={extras.showMembershipOptions}
-        onClose={() => undefined}
+        onClose={extras.onClose ?? (() => undefined)}
       />
     </QueryClientProvider>,
   );
@@ -127,6 +131,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
   beforeEach(() => {
     lastProps = undefined;
     useCartStore.setState({ lines: [cartLine], reservation: null });
+    reservateRetryWait.wait = async () => undefined;
     mocks.loadGafaPay.mockResolvedValue({
       React: { createElement: () => null },
       ReactDOM: { render: () => undefined, unmountComponentAtNode: () => true },
@@ -149,6 +154,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     cleanup();
     useCartStore.setState({ lines: [], reservation: null });
     delete window._handleStripePayment;
+    reservateRetryWait.wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     vi.clearAllMocks();
   });
 
@@ -413,7 +419,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(poll).not.toHaveBeenCalled();
   });
 
-  it("si Buq falla después del cobro, no vuelve a llamar a Stripe", async () => {
+  it("si Buq falla después del cobro, reintenta /reservate sin volver a Stripe", async () => {
     const reservatePurchase = vi
       .fn()
       .mockRejectedValueOnce(new Error("Server Error"))
@@ -431,17 +437,75 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     fireEvent.click(payButton());
 
     await waitFor(() => {
-      expect(screen.getByText(/ya fue cobrada/i)).toBeTruthy();
-    });
-    expect(stripe).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByRole("button", { name: /registrar compra/i }));
-
-    await waitFor(() => {
       expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
     });
     expect(stripe).toHaveBeenCalledTimes(1);
     expect(reservatePurchase).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: /registrar compra/i })).toBeNull();
+  });
+
+  it("mientras registra el cargo no deja cerrar y dice Registrando compra", async () => {
+    const onClose = vi.fn();
+    let release!: (value: { purchaseId: number }) => void;
+    const reservatePurchase = vi.fn(
+      () =>
+        new Promise<{ purchaseId: number }>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const client = mockClient({ reservatePurchase });
+
+    renderPay(client, { onClose });
+    await waitUntilPayReady();
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { id: "ch_123" } });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/registrando compra/i)).toBeTruthy();
+    });
+    expect(screen.queryByRole("button", { name: /cerrar/i })).toBeNull();
+    fireEvent.mouseDown(document.querySelector(".gafa-checkout-overlay")!);
+    expect(onClose).not.toHaveBeenCalled();
+
+    release({ purchaseId: 88 });
+    await waitFor(() => {
+      expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    });
+    expect(screen.getByRole("button", { name: /cerrar/i })).toBeTruthy();
+  });
+
+  it("si /reservate falla 3 veces, pide registrar y no deja cerrar el overlay", async () => {
+    const onClose = vi.fn();
+    const reservatePurchase = vi.fn(async () => {
+      throw new Error("Server Error");
+    });
+    const client = mockClient({ reservatePurchase });
+    const stripe = vi.fn(async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { id: "ch_123" } });
+    });
+
+    renderPay(client, { onClose });
+    await waitUntilPayReady();
+    window._handleStripePayment = stripe;
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/ya fue cobrada/i)).toBeTruthy();
+    });
+    expect(stripe).toHaveBeenCalledTimes(1);
+    expect(reservatePurchase).toHaveBeenCalledTimes(3);
+    expect(screen.getByRole("button", { name: /registrar compra/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /cerrar/i })).toBeNull();
+    expect(document.querySelector("[data-charge-hold='true']")).toBeTruthy();
+
+    fireEvent.mouseDown(document.querySelector(".gafa-checkout-overlay")!);
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
 
