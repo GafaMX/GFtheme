@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defaultExploreClasses, defaultExplorePackages } from "./exploreDefaults";
+import { defaultExploreClasses, defaultExplorePackages, reservePageHref } from "./exploreDefaults";
 
 describe("exploreDefaults", () => {
   afterEach(() => {
@@ -7,6 +7,7 @@ describe("exploreDefaults", () => {
     window.history.pushState("", document.title, "/");
     delete (window as Window & { GafaThemeSDK?: unknown }).GafaThemeSDK;
     delete (window as Window & { GafaSdk?: unknown }).GafaSdk;
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -20,6 +21,23 @@ describe("exploreDefaults", () => {
 
     expect(window.location.hash).toBe("");
     expect(calendar.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("Reservar sin calendario en la pagina va a /reservar", () => {
+    expect(reservePageHref("/")).toBe("/reservar");
+    expect(reservePageHref("/fitspin")).toBe("/reservar");
+    expect(reservePageHref("/reservar")).toBeNull();
+    expect(reservePageHref("/reservar/")).toBeNull();
+    expect(reservePageHref("/", "/reservar")).toBe("/reservar");
+  });
+
+  it("Reservar sin calendario navega a /reservar", () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { pathname: "/", hash: "", search: "", assign, href: "http://localhost/" });
+
+    defaultExploreClasses();
+
+    expect(assign).toHaveBeenCalledWith("/reservar");
   });
 
   it("Comprar abre el fancy nativo si el SDK está en la pagina", () => {

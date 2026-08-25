@@ -700,6 +700,30 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     ];
   }
 
+  /** Laravel: `{ data, current_page, last_page }` o `meta.current_page`. */
+  function laravelPageMeta(response: unknown): { page: number; lastPage: number } | null {
+    if (!response || typeof response !== "object" || Array.isArray(response)) return null;
+    const obj = response as Record<string, unknown>;
+    const meta = obj.meta && typeof obj.meta === "object" && !Array.isArray(obj.meta)
+      ? (obj.meta as Record<string, unknown>)
+      : obj;
+    const page = Number(meta.current_page ?? obj.current_page);
+    const lastPage = Number(meta.last_page ?? obj.last_page);
+    if (!Number.isFinite(page) || !Number.isFinite(lastPage) || lastPage < 1) return null;
+    return { page, lastPage };
+  }
+
+  function reservationsFromResponse(response: unknown, brandSlug: string): UserReservation[] {
+    return unwrapReservationGroups(response).flatMap((group) => [
+      ...asItemList<RawReservation>(group.reservations).map((raw) =>
+        normalizeReservation(raw, brandSlug, itemIsWaitlist(raw)),
+      ),
+      ...asItemList<RawReservation>(group.waitlists).map((raw) =>
+        normalizeReservation(raw, brandSlug, true),
+      ),
+    ]);
+  }
+
   function normalizeMeeting(raw: RawMeeting, brandSlug: string, location?: Location): Meeting {
     const available =
       typeof raw.available === "number"
@@ -1064,20 +1088,28 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (!token || !brandSlug) return [];
 
       const path = when === "past" ? "reservation-past" : "reservation-future";
-      const response = await apiGet<unknown>(`/me/brand/${brandSlug}/${path}`, {
-        reducePopulation: true,
-      });
+      if (when !== "past") {
+        const response = await apiGet<unknown>(`/me/brand/${brandSlug}/${path}`, {
+          reducePopulation: true,
+        });
+        return reservationsFromResponse(response, brandSlug).sort((a, b) =>
+          (a.startsAt || "").localeCompare(b.startsAt || ""),
+        );
+      }
 
-      return unwrapReservationGroups(response)
-        .flatMap((group) => [
-          ...asItemList<RawReservation>(group.reservations).map((raw) =>
-            normalizeReservation(raw, brandSlug, itemIsWaitlist(raw)),
-          ),
-          ...asItemList<RawReservation>(group.waitlists).map((raw) =>
-            normalizeReservation(raw, brandSlug, true),
-          ),
-        ])
-        .sort((a, b) => (a.startsAt || "").localeCompare(b.startsAt || ""));
+      // Historial: si Laravel pagina, hay que recorrer; si no, un solo GET basta.
+      const acc: UserReservation[] = [];
+      for (let page = 1; page <= 20; page += 1) {
+        const response = await apiGet<unknown>(`/me/brand/${brandSlug}/${path}`, {
+          reducePopulation: true,
+          per_page: 50,
+          page,
+        });
+        acc.push(...reservationsFromResponse(response, brandSlug));
+        const meta = laravelPageMeta(response);
+        if (!meta || page >= meta.lastPage) break;
+      }
+      return acc.sort((a, b) => (a.startsAt || "").localeCompare(b.startsAt || ""));
     },
 
     async listUserPurchases(brandSlug) {

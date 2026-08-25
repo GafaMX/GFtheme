@@ -2000,7 +2000,7 @@ function PromoDisclosure({
             <button type="button" aria-label="Más información">
               i
             </button>
-            <span role="tooltip" className="gafa-checkout-product__tooltip">
+            <span role="tooltip" className="gafa-checkout-promo__tooltip">
               {info}
             </span>
           </span>

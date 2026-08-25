@@ -73,11 +73,12 @@ describe("gafa-sdk-loader.js", () => {
     eval(source);
 
     expect(fetchMock).toHaveBeenCalledWith(GAFA_SDK_VERSION_URLS[0], { cache: "no-store" });
+    expect(fetchMock).not.toHaveBeenCalledWith(GAFA_SDK_GITHUB_TIP, expect.anything());
     await waitFor(() => {
       const injected = [...document.querySelectorAll("script")].map((node) => node.getAttribute("src"));
-      expect(injected).toContain(
+      expect(injected).toEqual([
         "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.bundle.20260825T000000Z.js",
-      );
+      ]);
     });
   });
 

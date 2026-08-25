@@ -18,6 +18,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { CustomFieldInput } from "./CustomFieldInput";
 import { DateField } from "./DateField";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
+import { ACCOUNT_HISTORY_CHUNK, remainingAccountHistory, visibleAccountHistory } from "../account/accountHistory";
 import { WidgetShell } from "./WidgetShell";
 
 export type ProfileWidgetProps = {
@@ -28,9 +29,9 @@ export type ProfileWidgetProps = {
   variant?: "page" | "modal";
   onRequestClose?(): void;
   /**
-   * CTA de los estados vacios: Reservar (calendario) y Comprar (paquetes).
-   * Si el sitio no los pasa, Reservar lleva al calendario y Comprar abre el
-   * fancy nativo de paquetes / membresías / productos.
+   * CTA de los estados vacios: Reservar (calendario o `/reservar`) y Comprar (paquetes).
+   * Si el sitio no los pasa, Reservar lleva al calendario si está en la pagina
+   * y si no a `/reservar`. Comprar abre el fancy nativo de paquetes / membresías / productos.
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
@@ -96,6 +97,7 @@ export function ProfileWidget({
   const goToPackages = onExplorePackages ?? defaultExplorePackages;
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>("overview");
+  const [classScope, setClassScope] = useState<"upcoming" | "history">("upcoming");
   const [menuOpen, setMenuOpen] = useState(false);
   const [qrReservation, setQrReservation] = useState<UserReservation | null>(null);
   const [pendingCancel, setPendingCancel] = useState<UserReservation | null>(null);
@@ -136,6 +138,10 @@ export function ProfileWidget({
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
   }, []);
+
+  useEffect(() => {
+    if (tab !== "classes") setClassScope("upcoming");
+  }, [tab]);
 
   useEffect(
     () => subscribeToAuthChanges(() => queryClient.invalidateQueries({ queryKey: ["profile"] })),
@@ -179,7 +185,7 @@ export function ProfileWidget({
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserReservations(slug, "past")));
       return batches.flat().sort((a, b) => b.startsAt.localeCompare(a.startsAt));
     },
-    enabled: canQueryBrandData && tab === "classes",
+    enabled: canQueryBrandData && tab === "classes" && classScope === "history",
   });
 
   const creditsQuery = useQuery({
@@ -429,6 +435,8 @@ export function ProfileWidget({
 
           {tab === "classes" ? (
             <ClassesPanel
+              scope={classScope}
+              onScopeChange={setClassScope}
               upcoming={upcoming}
               waitlist={waitlist}
               cancelled={cancelledUpcoming}
@@ -901,6 +909,8 @@ function BalanceCard({
 /* ------------------------------------------------------------------- clases */
 
 function ClassesPanel({
+  scope,
+  onScopeChange,
   upcoming,
   waitlist,
   cancelled,
@@ -915,6 +925,8 @@ function ClassesPanel({
   onShowQr,
   onExploreClasses,
 }: {
+  scope: "upcoming" | "history";
+  onScopeChange(next: "upcoming" | "history"): void;
   upcoming: UserReservation[];
   waitlist: UserReservation[];
   cancelled: UserReservation[];
@@ -929,15 +941,21 @@ function ClassesPanel({
   onShowQr(reservation: UserReservation): void;
   onExploreClasses(): void;
 }) {
-  const [scope, setScope] = useState<"upcoming" | "history">("upcoming");
+  const [historyShown, setHistoryShown] = useState(ACCOUNT_HISTORY_CHUNK);
+  const visibleHistory = visibleAccountHistory(history, historyShown);
+  const historyLeft = remainingAccountHistory(history.length, historyShown);
+
+  useEffect(() => {
+    setHistoryShown(ACCOUNT_HISTORY_CHUNK);
+  }, [history.length, history[0]?.id]);
 
   return (
     <div className="gafa-acct-classes">
       <div className="gafa-acct-switch" role="tablist" aria-label="Próximas o historial">
-        <button type="button" role="tab" aria-selected={scope === "upcoming"} onClick={() => setScope("upcoming")}>
+        <button type="button" role="tab" aria-selected={scope === "upcoming"} onClick={() => onScopeChange("upcoming")}>
           Próximas
         </button>
-        <button type="button" role="tab" aria-selected={scope === "history"} onClick={() => setScope("history")}>
+        <button type="button" role="tab" aria-selected={scope === "history"} onClick={() => onScopeChange("history")}>
           Historial
         </button>
       </div>
@@ -1004,22 +1022,33 @@ function ClassesPanel({
           ) : null}
         </>
       ) : (
-        <ClassGroup
-          title="Historial"
-          loading={loadingPast}
-          error={errorPast}
-          empty="Aún no hay clases en tu historial."
-          count={history.length}
-        >
-          {history.map((reservation) => (
-            <ReservationCard
-              key={`past-${reservation.id}`}
-              reservation={reservation}
-              paymentLabel={paymentLabel(reservation)}
-              historic
-            />
-          ))}
-        </ClassGroup>
+        <>
+          <ClassGroup
+            title="Historial"
+            loading={loadingPast}
+            error={errorPast}
+            empty="Aún no hay clases en tu historial."
+            count={history.length}
+          >
+            {visibleHistory.map((reservation) => (
+              <ReservationCard
+                key={`past-${reservation.id}`}
+                reservation={reservation}
+                paymentLabel={paymentLabel(reservation)}
+                historic
+              />
+            ))}
+          </ClassGroup>
+          {historyLeft > 0 && !loadingPast && !errorPast ? (
+            <button
+              className="gafa-acct-more"
+              type="button"
+              onClick={() => setHistoryShown((n) => n + ACCOUNT_HISTORY_CHUNK)}
+            >
+              Ver más ({historyLeft})
+            </button>
+          ) : null}
+        </>
       )}
     </div>
   );

@@ -118,6 +118,7 @@
       var src = parseBundle(text);
       if (src) {
         enqueue(src);
+        return;
       }
       tipBundle();
     })

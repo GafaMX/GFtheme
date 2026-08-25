@@ -18,8 +18,8 @@ export type AccountModalProps = {
   combineWaitlist?: boolean;
   /**
    * CTA de los estados vacios (Reservar / Comprar). Opcionales: si el sitio no
-   * los pasa, el popup se cierra y Reservar lleva al calendario; Comprar abre
-   * el fancy nativo de paquetes / membresías / productos.
+   * los pasa, el popup se cierra y Reservar lleva al calendario o a `/reservar`;
+   * Comprar abre el fancy nativo de paquetes / membresías / productos.
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;

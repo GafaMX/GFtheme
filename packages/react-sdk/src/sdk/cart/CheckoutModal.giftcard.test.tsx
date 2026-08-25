@@ -197,7 +197,7 @@ describe("CheckoutModal Convertir en GiftCard", () => {
       expect(screen.getByLabelText("Código de GiftCard")).toBeTruthy();
     });
     expect(screen.getByRole("button", { name: /más información/i })).toBeTruthy();
-    expect(screen.getByRole("tooltip", { name: /para regalar/i })).toBeTruthy();
+    expect(screen.getByRole("tooltip", { hidden: true, name: /para regalar/i })).toBeTruthy();
   });
 
   it("al activarlo genera un código corto y lo marca válido", async () => {
