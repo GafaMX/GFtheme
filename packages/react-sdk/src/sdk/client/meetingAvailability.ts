@@ -36,6 +36,14 @@ export function offersWaitlist(meeting: Meeting): boolean {
   return isSoldOut(meeting);
 }
 
+/** Pastilla del calendario: 0 cupos = Waitlist, sin mirar flags del listado. */
+export function showsWaitlistPill(meeting: Meeting): boolean {
+  if (meeting.passed || meeting.isReserved) return false;
+  if (offersWaitlist(meeting)) return true;
+  const left = spotsLeft(meeting);
+  return typeof left === "number" && left <= 0;
+}
+
 export function getAvailabilityText(meeting: Meeting): string {
   if (meeting.isReserved) return "Ya reservado";
   if (offersWaitlist(meeting)) return "Lista de espera";

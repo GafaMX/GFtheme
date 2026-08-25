@@ -7,6 +7,7 @@ import {
   offersWaitlist,
   readWaitlistAvailable,
   fullClassAction,
+  showsWaitlistPill,
 } from "./meetingAvailability";
 
 function meeting(overrides: Partial<Meeting> = {}): Meeting {
@@ -48,6 +49,8 @@ describe("offersWaitlist", () => {
 
   it("el false del listado no apaga la pastilla: 0/N sigue siendo Waitlist", () => {
     expect(offersWaitlist(meeting({ available: 0, capacity: 10, waitlistAvailable: false }))).toBe(true);
+    expect(showsWaitlistPill(meeting({ available: 0, capacity: 25, waitlistAvailable: false }))).toBe(true);
+    expect(showsWaitlistPill(meeting({ available: "0" as unknown as number, capacity: 16 }))).toBe(true);
   });
 
   it("no ofrece waitlist en clases pasadas ni ya reservadas", () => {

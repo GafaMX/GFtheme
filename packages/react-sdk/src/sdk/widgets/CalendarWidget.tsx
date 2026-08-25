@@ -9,7 +9,7 @@ import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import { reservationShowsSeatMapLayout } from "../client/seatMapHint";
-import { fullClassAction, getAvailabilityText, isSoldOut, offersWaitlist } from "../client/meetingAvailability";
+import { fullClassAction, getAvailabilityText, isSoldOut, offersWaitlist, showsWaitlistPill } from "../client/meetingAvailability";
 import type {
   Brand,
   CreateReservationResult,
@@ -1003,7 +1003,7 @@ function MeetingCard({
   showDescription: boolean;
 }) {
   const soldOut = isSoldOut(meeting);
-  const waitlist = offersWaitlist(meeting);
+  const waitlist = showsWaitlistPill(meeting);
   const duration = getDurationMinutes(meeting);
   // El legacy directamente oculta las clases que ya pasaron; aqui se dejan
   // visibles pero apagadas, para que el dia se entienda completo.
@@ -1550,7 +1550,7 @@ function ReservationPreviewModal({
     : (paymentOptions[0] ?? null);
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const soldOut = isSoldOut(meeting);
-  const waitlistCard = offersWaitlist(meeting);
+  const waitlistCard = showsWaitlistPill(meeting);
   const contextFailed = contextQuery.isError;
   // Fuente de verdad: `is_valid_for_waitlist` del create-form-template (v1).
   // Si el template ni siquiera arma el form (clase llena → “no hay lugar”),
@@ -2341,11 +2341,11 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
     return <span className="gafa-availability-pill gafa-availability-pill--reserved">Reservado</span>;
   }
 
-  if (offersWaitlist(meeting)) {
+  if (showsWaitlistPill(meeting)) {
     return <span className="gafa-availability-pill gafa-availability-pill--waitlist">Waitlist</span>;
   }
 
-  if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {
+  if (typeof meeting.available === "number" && meeting.available > 0 && typeof meeting.capacity === "number") {
     return (
       <span className="gafa-availability-pill" data-level={availabilityLevel(meeting.available, meeting.capacity)}>
         {meeting.available}/{meeting.capacity}
