@@ -120,6 +120,25 @@ describe("initialPurchase", () => {
     expect(body.get("combo[0][product_type]")).toBe("App\\Models\\Combos\\Combos");
     expect(body.get("memberships_id[0]")).toBeNull();
   });
+
+  it("manda giftCode al convertir la compra en GiftCard", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase_id: 88 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().initialPurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+      userId: 4412,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: { id: "ch_123" },
+      giftCode: "K7M2P9QX",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("giftCode")).toBe("K7M2P9QX");
+  });
 });
 
 describe("reservatePurchase", () => {

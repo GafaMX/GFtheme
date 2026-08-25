@@ -10,7 +10,6 @@ import type {
   CreateReservationResult,
   FrontPaymentMethod,
   GafaClient,
-  GiftCodeResult,
   InitialPurchasePayload,
   InitialPurchaseResult,
   InitialPurchaseStatus,
@@ -38,6 +37,13 @@ import type {
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
+import {
+  buildCheckGiftUrl,
+  buildGenerateGiftUrl,
+  extractGeneratedGiftCode,
+  giftCardsEnabledFromUrls,
+  parseGiftCodeCheckResponse,
+} from "../cart/giftCard";
 import { partitionGafaFitCart } from "../cart/gafaFitCart";
 import { formatCatalogAmount, resolveMoneyCurrency } from "../cart/money";
 import { toFormBody } from "./formBody";
@@ -1564,7 +1570,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         termsConditionsLink: brand?.termsConditionsLink ?? null,
         gafapayClientId: brand?.gafapayClientId ?? null,
         gafapayClientSecret: brand?.gafapayClientSecret ?? null,
-        giftCardsEnabled: Boolean(urlCheckGiftCode),
+        giftCardsEnabled: giftCardsEnabledFromUrls({
+          checkGiftCode: urlCheckGiftCode,
+          generateGiftCode: urlGenerateGiftCode,
+        }),
         discountCodesEnabled: Boolean(urlCheckDiscountCode),
         canRedeemStoreCredit: canRedeem === "1" || canRedeem === "true",
         combos: validCombos,
@@ -1603,19 +1612,39 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async checkGiftCode(payload) {
-      const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/check-gift-code/${encodeURIComponent(payload.code)}`;
-      const response = await fetch(url, { headers: authHeaders() });
-      if (!response.ok) {
-        return { valid: false, code: payload.code } satisfies GiftCodeResult;
-      }
-      const data = (await response.json()) as Record<string, unknown>;
-      return {
-        valid: true,
+      const url = buildCheckGiftUrl({
+        apiBaseUrl: baseUrl,
+        brandSlug: payload.brandSlug,
+        locationSlug: payload.locationSlug,
         code: payload.code,
-        label: typeof data.name === "string" ? data.name : undefined,
-        balance: typeof data.balance === "number" ? data.balance : typeof data.amount === "number" ? data.amount : undefined,
-        raw: data,
-      } satisfies GiftCodeResult;
+        urlTemplate: payload.urlTemplate,
+      });
+      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const data: unknown = await response.json().catch(() => null);
+      return parseGiftCodeCheckResponse(payload.code, response.ok, response.status, data);
+    },
+
+    async generateGiftCode(payload) {
+      const url = buildGenerateGiftUrl({
+        apiBaseUrl: baseUrl,
+        brandSlug: payload.brandSlug,
+        locationSlug: payload.locationSlug,
+        urlTemplate: payload.urlTemplate,
+      });
+      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const data: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const body = data as { message?: string; errors?: Record<string, string[]> } | null;
+        const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined;
+        throw new GafaApiError(
+          firstFieldError ?? body?.message ?? `gafa.fit API ${response.status}`,
+          response.status,
+          body?.errors,
+        );
+      }
+      const code = extractGeneratedGiftCode(data);
+      if (!code) throw new Error("El servidor no devolvió un código de GiftCard.");
+      return code;
     },
 
     /**

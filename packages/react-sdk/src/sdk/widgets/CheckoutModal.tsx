@@ -38,6 +38,15 @@ import {
   fetchCheckoutCatalog,
 } from "../cart/checkoutCatalog";
 import { resolveDiscountAmount } from "../cart/discountCode";
+import {
+  GIFT_CODE_CHECK_DEBOUNCE_MS,
+  formatGiftCodeDisplay,
+  generateShortGiftCode,
+  giftCodeAvailability,
+  isPlausibleGiftCode,
+  normalizeGiftCode,
+  preferShortGeneratedCode,
+} from "../cart/giftCard";
 import { gafaFitProductType } from "../cart/gafaFitCart";
 import { resolveMoneyCurrency } from "../cart/money";
 import {
@@ -180,10 +189,10 @@ export function CheckoutModal({
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCodeResult | null>(null);
   const [discountStatus, setDiscountStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
   const [discountError, setDiscountError] = useState<string>();
-  const [giftOpen, setGiftOpen] = useState(false);
+  const [convertGift, setConvertGift] = useState(false);
   const [giftCode, setGiftCode] = useState("");
   const [giftStatus, setGiftStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
-  const [giftLabel, setGiftLabel] = useState<string>();
+  const [giftHint, setGiftHint] = useState<string>();
   const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
   const [payError, setPayError] = useState<string>();
   // El formulario del proveedor vive fuera de React. Sin el listo, "Pagar"
@@ -210,6 +219,11 @@ export function CheckoutModal({
   const hostedAbortRef = useRef<AbortController | null>(null);
   const hostedSettledRef = useRef(false);
   const stopPopupWatchRef = useRef<(() => void) | null>(null);
+  const giftCheckSeq = useRef(0);
+  const giftTypingRef = useRef(false);
+  const giftValidateRef = useRef<
+    (code: string, seq: number, options?: { regenerateIfTaken?: boolean }) => Promise<void>
+  >(async () => undefined);
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
     reservationId?: number;
@@ -409,12 +423,19 @@ export function CheckoutModal({
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
   const waitingOnTerms = hasTerms && !termsAccepted;
+  const waitingOnGift = convertGift && giftStatus !== "ok";
   const canPay =
     relevantLines.length > 0 &&
     Boolean(selectedMethod) &&
     paymentReady &&
     !waitingOnTerms &&
+    !waitingOnGift &&
     !paying;
+
+  function resolvedGiftCode(): string | null {
+    if (!convertGift || giftStatus !== "ok") return null;
+    return normalizeGiftCode(giftCode) || null;
+  }
 
   async function applyDiscount() {
     if (!client.checkDiscountCode || !discountCode.trim() || !brandSlug || !locationSlug) return;
@@ -443,26 +464,83 @@ export function CheckoutModal({
     }
   }
 
-  async function applyGift() {
-    if (!client.checkGiftCode || !giftCode.trim() || !brandSlug || !locationSlug) return;
+  giftValidateRef.current = async (code, seq, options) => {
+    const compact = normalizeGiftCode(code);
+    if (!isPlausibleGiftCode(compact)) {
+      if (seq !== giftCheckSeq.current) return;
+      setGiftStatus("error");
+      setGiftHint(compact ? "código no válido" : "escribe un código");
+      return;
+    }
+    if (!client.checkGiftCode || !brandSlug || !locationSlug) {
+      if (seq !== giftCheckSeq.current) return;
+      setGiftStatus("ok");
+      setGiftHint("código válido");
+      return;
+    }
     setGiftStatus("checking");
+    setGiftHint("revisando…");
     try {
-      const result = await client.checkGiftCode({ brandSlug, locationSlug, code: giftCode.trim() });
-      if (!result.valid) {
-        setGiftStatus("error");
-        setGiftLabel(undefined);
+      const check = async (candidate: string) =>
+        client.checkGiftCode!({
+          brandSlug,
+          locationSlug,
+          code: candidate,
+          urlTemplate: config?.urls.checkGiftCode,
+        });
+
+      let availability = giftCodeAvailability(await check(compact));
+      if (seq !== giftCheckSeq.current) return;
+
+      if (availability.status === "taken" && options?.regenerateIfTaken) {
+        for (let i = 0; i < 4; i += 1) {
+          const next = generateShortGiftCode();
+          setGiftCode(formatGiftCodeDisplay(next));
+          availability = giftCodeAvailability(await check(next));
+          if (seq !== giftCheckSeq.current) return;
+          if (availability.status === "available") {
+            setGiftStatus("ok");
+            setGiftHint("código válido");
+            return;
+          }
+        }
+      }
+
+      if (availability.status === "available") {
+        setGiftStatus("ok");
+        setGiftHint("código válido");
         return;
       }
-      setGiftStatus("ok");
-      setGiftLabel(
-        result.label ??
-          (result.balance != null
-            ? `Saldo ${formatMoney(result.balance, currency.prefix, currency.suffix)}`
-            : "Gift card válida"),
-      );
-    } catch {
       setGiftStatus("error");
+      setGiftHint(availability.message);
+    } catch {
+      if (seq !== giftCheckSeq.current) return;
+      setGiftStatus("error");
+      setGiftHint("no pudimos validar el código");
     }
+  };
+
+  async function assignGeneratedGiftCode() {
+    giftTypingRef.current = false;
+    const seq = ++giftCheckSeq.current;
+    setGiftStatus("checking");
+    setGiftHint("generando…");
+    let candidate = generateShortGiftCode();
+    if (client.generateGiftCode && brandSlug && locationSlug) {
+      try {
+        const server = await client.generateGiftCode({
+          brandSlug,
+          locationSlug,
+          urlTemplate: config?.urls.generateGiftCode,
+        });
+        if (seq !== giftCheckSeq.current) return;
+        candidate = preferShortGeneratedCode(server);
+      } catch {
+        if (seq !== giftCheckSeq.current) return;
+      }
+    }
+    setGiftCode(formatGiftCodeDisplay(candidate));
+    await giftValidateRef.current(candidate, seq, { regenerateIfTaken: true });
   }
 
   function handleAdd(item: CatalogItem) {
@@ -539,6 +617,15 @@ export function CheckoutModal({
     if (step !== next) setStep(next);
   }, [isSignedIn, profileQuery.isLoading, step]);
 
+  useEffect(() => {
+    if (!convertGift || !giftTypingRef.current) return;
+    const seq = ++giftCheckSeq.current;
+    const handle = window.setTimeout(() => {
+      void giftValidateRef.current(giftCode, seq);
+    }, GIFT_CODE_CHECK_DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
+  }, [giftCode, convertGift]);
+
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
   async function completePurchase(
     paymentData: unknown,
@@ -593,7 +680,7 @@ export function CheckoutModal({
         subscriptionId,
         csrfToken: config?.csrfToken ?? null,
         discountCode: discountStatus === "ok" ? discountCode.trim() : null,
-        giftCode: giftStatus === "ok" ? giftCode.trim() : null,
+        giftCode: resolvedGiftCode(),
         subscribe: membershipPurchase ? autoRenew : recurring,
         setPayment: membershipPurchase ? saveCard : recurring,
         seatObjectId: reservation?.seatObjectId,
@@ -713,7 +800,7 @@ export function CheckoutModal({
       paymentData: data,
       csrfToken: config?.csrfToken ?? null,
       discountCode: discountStatus === "ok" ? discountCode.trim() : null,
-      giftCode: giftStatus === "ok" ? giftCode.trim() : null,
+      giftCode: resolvedGiftCode(),
       checkoutToken,
       seatObjectId: reservation?.seatObjectId,
       subscribe: membershipPurchase ? autoRenew : false,
@@ -869,6 +956,10 @@ export function CheckoutModal({
       return;
     }
     if (!canPay) {
+      if (waitingOnGift) {
+        setPayError("Revisa el código de GiftCard.");
+        return;
+      }
       if (!paymentReady) setPayError("El formulario de pago todavía no está listo.");
       return;
     }
@@ -1278,23 +1369,67 @@ export function CheckoutModal({
                     />
                   ) : null}
 
-                  {config?.giftCardsEnabled && client.checkGiftCode ? (
-                    <PromoDisclosure
-                      linkLabel="Canjear gift card"
-                      open={giftOpen}
-                      onToggle={() => setGiftOpen((v) => !v)}
-                      value={giftCode}
-                      onChange={setGiftCode}
-                      onApply={applyGift}
-                      status={giftStatus}
-                      hint={
-                        giftStatus === "ok"
-                          ? giftLabel
-                          : giftStatus === "error"
-                            ? "Gift card no válida"
-                            : undefined
-                      }
-                    />
+                  {config?.giftCardsEnabled ? (
+                    <div className="gafa-checkout-gift">
+                      <p className="gafa-checkout-gift__lead">
+                        Convierte esta compra en una GiftCard para regalar. El código se activa al
+                        pagar y se canjea en el estudio.
+                      </p>
+                      <CheckField
+                        className="gafa-checkout-gift__toggle"
+                        checked={convertGift}
+                        onChange={(next) => {
+                          setConvertGift(next);
+                          if (next) {
+                            void assignGeneratedGiftCode();
+                            return;
+                          }
+                          giftTypingRef.current = false;
+                          giftCheckSeq.current += 1;
+                          setGiftCode("");
+                          setGiftStatus("idle");
+                          setGiftHint(undefined);
+                        }}
+                      >
+                        Convertir en GiftCard
+                      </CheckField>
+                      {convertGift ? (
+                        <>
+                          <div className="gafa-checkout-gift__row">
+                            <input
+                              value={giftCode}
+                              spellCheck={false}
+                              autoCapitalize="characters"
+                              autoCorrect="off"
+                              aria-label="Código de GiftCard"
+                              onChange={(event) => {
+                                giftTypingRef.current = true;
+                                setGiftStatus("checking");
+                                setGiftHint("revisando…");
+                                setGiftCode(event.target.value.toUpperCase());
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="gafa-checkout-gift__refresh"
+                              aria-label="Generar otro código"
+                              onClick={() => void assignGeneratedGiftCode()}
+                            >
+                              <RefreshGiftIcon />
+                            </button>
+                          </div>
+                          {giftHint ? (
+                            <small
+                              className="gafa-checkout-gift__status"
+                              data-status={giftStatus}
+                              aria-live="polite"
+                            >
+                              {giftHint}
+                            </small>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
                   ) : null}
 
                   {hasTerms ? (
@@ -2035,6 +2170,39 @@ function PaypalMark() {
       <path
         d="M7.2 21l.7-4.5H5L7.4 3h7.1c2.9 0 4.7 1.6 4.3 4.3-.5 3.4-2.7 4.9-5.9 4.9h-2.4L9.6 21H7.2z"
         fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function RefreshGiftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M13.4 8A5.4 5.4 0 0 1 4.2 11.7"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M2.6 8A5.4 5.4 0 0 1 11.8 4.3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M13.5 3.1v3.3h-3.3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2.5 12.9V9.6h3.3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );

@@ -232,10 +232,25 @@ export function createMockGafaClient(): GafaClient {
         initialPurchaseStatus: "/demo/initial-purchase-status",
         checkDiscountCode: "/demo/check-discount",
         checkGiftCode: "/demo/check-gift",
+        generateGiftCode: "/demo/generate-gift",
       },
     }),
     checkDiscountCode: async ({ code }) => ({ valid: code.length > 2, code, discountAmount: 50, label: "Promo demo" }),
-    checkGiftCode: async ({ code }) => ({ valid: code.length > 2, code, balance: 200, label: "Gift demo" }),
+    checkGiftCode: async ({ code }) => {
+      const compact = code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      if (compact.includes("TAKEN")) {
+        return {
+          valid: true,
+          code: compact,
+          balance: 200,
+          label: "Gift demo",
+          httpStatus: 200,
+          raw: { id: 1, code: compact, balance: 200, name: "Gift demo" },
+        };
+      }
+      return { valid: false, code: compact, httpStatus: 404, message: "Gift card not found" };
+    },
+    generateGiftCode: async () => "K7M2P9QX",
     reservatePurchase: async () => ({ purchaseId: 1 }),
     initialPurchase: async () => ({ purchaseId: 1, checkoutToken: "demo" }),
     pollInitialPurchaseStatus: async () => ({ code: 1, reservationId: 99 }),

@@ -5644,6 +5644,94 @@
   margin: 0;
 }
 
+.gafa-checkout-gift {
+  background: color-mix(in srgb, var(--gafa-color-text) 6%, var(--gafa-color-surface));
+  border-radius: 14px;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem 0.9rem;
+}
+
+.gafa-checkout-gift__lead {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.gafa-checkout-gift__toggle {
+  font-weight: 600;
+}
+
+.gafa-checkout-gift__row {
+  align-items: center;
+  border-bottom: 1px solid var(--gafa-color-border);
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: 1fr auto;
+  padding: 0.15rem 0 0.35rem;
+}
+
+.gafa-checkout-gift__row input {
+  --gafa-field-bg: transparent;
+  --gafa-field-border: 0 solid transparent;
+  --gafa-field-fg: var(--gafa-color-text);
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  min-width: 0;
+  padding: 0.2rem 0;
+  text-transform: uppercase;
+}
+
+.gafa-checkout-gift__row input:focus {
+  outline: none;
+}
+
+.gafa-checkout-gift__refresh {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 1.7rem;
+  justify-content: center;
+  padding: 0;
+  width: 1.7rem;
+}
+
+.gafa-checkout-gift__refresh:hover {
+  color: var(--gafa-color-text);
+}
+
+.gafa-checkout-gift__status {
+  display: block;
+  font-size: 0.74rem;
+  margin: 0;
+}
+
+.gafa-checkout-gift__status[data-status="ok"] {
+  color: #15803d;
+}
+
+.gafa-checkout-gift__status[data-status="error"] {
+  color: #b91c1c;
+}
+
+.gafa-checkout-gift__status[data-status="checking"],
+.gafa-checkout-gift__status[data-status="idle"] {
+  color: var(--gafa-color-muted-text);
+}
+
 .gafa-checkout__terms {
   --gafa-type-size: 0.8rem;
   align-items: flex-start;

@@ -389,10 +389,16 @@ export type DiscountCodeResult = {
 };
 
 export type GiftCodeResult = {
+  /**
+   * `true` si el código YA existe como gift card.
+   * En checkout v1 eso significa ocupado: Convertir en GiftCard necesita uno libre.
+   */
   valid: boolean;
   code: string;
   label?: string;
   balance?: number;
+  message?: string;
+  httpStatus?: number;
   raw?: unknown;
 };
 
@@ -609,7 +615,18 @@ export type GafaClient = {
     brandSlug: string;
     locationSlug: string;
     code: string;
+    /** `urlCheckGiftCode` del create-form-template (`_|_` = código). */
+    urlTemplate?: string;
   }): Promise<GiftCodeResult>;
+  /**
+   * GET `urlGenerateCode`. El fancy lo usa para "Convertir en GiftCard";
+   * si el código sale largo, el checkout lo sustituye por uno corto.
+   */
+  generateGiftCode?(payload: {
+    brandSlug: string;
+    locationSlug: string;
+    urlTemplate?: string;
+  }): Promise<string>;
   /**
    * Compra directa (Stripe/PayPal/Conekta): el mismo POST que
    * `BuySystemStep.sendForm` del fancy v1 a `urlReservation` (`/reservate`).
