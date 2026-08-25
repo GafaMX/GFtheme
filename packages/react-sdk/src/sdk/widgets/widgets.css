@@ -4818,6 +4818,10 @@
   animation: gafa-checkout-fade 0.24s ease;
 }
 
+.gafa-checkout-overlay[data-charge-hold="true"] {
+  cursor: default;
+}
+
 @keyframes gafa-checkout-fade {
   from { opacity: 0; }
   to { opacity: 1; }

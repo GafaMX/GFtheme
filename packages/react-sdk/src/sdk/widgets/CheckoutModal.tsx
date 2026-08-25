@@ -55,6 +55,7 @@ import {
   pollRecurrenteUntilDone,
   watchNextPopup,
 } from "../cart/recurrenteCheckout";
+import { retryReservate } from "../cart/reservateRetry";
 import {
   cartHasMembership,
   readShowMembershipOptions,
@@ -207,6 +208,8 @@ export function CheckoutModal({
   const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
+  /** Overlay bloqueado: hay cargo y Buq todavía no confirmó Completada. */
+  const [chargeHold, setChargeHold] = useState(false);
   const chargedRef = useRef(false);
   const pendingRegisterRef = useRef<{
     paymentData: unknown;
@@ -264,6 +267,7 @@ export function CheckoutModal({
     locationName ?? locationFromId?.name ?? (locationSlugProp ? undefined : locationsQuery.data?.[0]?.name);
 
   function dropPendingClass() {
+    if (chargeHold) return;
     if (meeting?.id != null) droppedMeetingIdRef.current = Number(meeting.id);
     clearReservation();
   }
@@ -670,30 +674,33 @@ export function CheckoutModal({
       // Fancy v1 (Stripe): GafaPay cobra → BuySystemStep POSTea a `/reservate`.
       // Eso dispara paymentByCard / paymentByToken. `initial-purchase` es Recurrente
       // y en producción cae en unpaidPurchase (TypeError $subscribe null).
-      const purchase = await client.reservatePurchase({
-        brandSlug,
-        locationSlug,
-        userId: config?.userProfileId ?? profile.id,
-        meetingId: reservation?.meetingId,
-        lines: linesSnapshot.map((line) => ({
-          id: line.id,
-          type: line.type,
-          amount: line.amount,
-          name: line.name,
-          price: line.price,
-          companiesId: config?.companiesId,
-          raw: rawFor(line),
-        })),
-        paymentTypeId: selectedMethod.id,
-        paymentData,
-        subscriptionId,
-        csrfToken: config?.csrfToken ?? null,
-        discountCode: discountStatus === "ok" ? discountCode.trim() : null,
-        giftCode: resolvedGiftCode(),
-        subscribe: membershipPurchase ? autoRenew : recurring,
-        setPayment: membershipPurchase ? saveCard : recurring,
-        seatObjectId: reservation?.seatObjectId,
-      });
+      // 3 intentos: un 500 no debe dejar Pendiente si el back se recupera.
+      const purchase = await retryReservate(() =>
+        client.reservatePurchase!({
+          brandSlug,
+          locationSlug,
+          userId: config?.userProfileId ?? profile.id,
+          meetingId: reservation?.meetingId,
+          lines: linesSnapshot.map((line) => ({
+            id: line.id,
+            type: line.type,
+            amount: line.amount,
+            name: line.name,
+            price: line.price,
+            companiesId: config?.companiesId,
+            raw: rawFor(line),
+          })),
+          paymentTypeId: selectedMethod.id,
+          paymentData,
+          subscriptionId,
+          csrfToken: config?.csrfToken ?? null,
+          discountCode: discountStatus === "ok" ? discountCode.trim() : null,
+          giftCode: resolvedGiftCode(),
+          subscribe: membershipPurchase ? autoRenew : recurring,
+          setPayment: membershipPurchase ? saveCard : recurring,
+          seatObjectId: reservation?.seatObjectId,
+        }),
+      );
 
       const purchaseId = purchase.purchaseId;
       const reservationId = purchase.reservationId;
@@ -757,6 +764,7 @@ export function CheckoutModal({
     const recurring = Boolean(result.recurringPayment);
     const subscriptionId = result.subscriptionId ?? null;
     chargedRef.current = true;
+    setChargeHold(true);
     pendingRegisterRef.current = {
       paymentData: result.message,
       recurring,
@@ -982,6 +990,13 @@ export function CheckoutModal({
     void proceedToPay();
   }
 
+  const blockDismiss = chargeHold && step !== "thanks";
+
+  function requestClose() {
+    if (blockDismiss) return;
+    onClose();
+  }
+
   return (
     <>
     <div
@@ -990,14 +1005,17 @@ export function CheckoutModal({
       aria-modal="true"
       aria-labelledby="gafa-checkout-title"
       data-gafa-membership-options={showMembershipOptions ? "true" : undefined}
+      data-charge-hold={blockDismiss ? "true" : undefined}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && step !== "thanks") onClose();
+        if (event.target === event.currentTarget && step !== "thanks") requestClose();
       }}
     >
       <div className="gafa-checkout" data-step={step}>
-        <button className="gafa-checkout__close" type="button" aria-label="Cerrar" onClick={onClose}>
-          <CloseIcon />
-        </button>
+        {blockDismiss ? null : (
+          <button className="gafa-checkout__close" type="button" aria-label="Cerrar" onClick={requestClose}>
+            <CloseIcon />
+          </button>
+        )}
 
         {step !== "thanks" ? (
           <div className="gafa-checkout__layout">
@@ -1009,7 +1027,7 @@ export function CheckoutModal({
                     {reservation.serviceName ?? reservation.meetingName} ·{" "}
                     {formatMeetingWhen(reservation.startsAt, reservation.timezone)}
                   </span>
-                  <RemoveClassButton onClick={dropPendingClass} />
+                  {blockDismiss ? null : <RemoveClassButton onClick={dropPendingClass} />}
                 </div>
               ) : null}
 
@@ -1282,7 +1300,7 @@ export function CheckoutModal({
                       {reservation.seatLabel ? ` · Lugar ${reservation.seatLabel}` : ""}
                     </small>
                   </div>
-                  <RemoveClassButton onClick={dropPendingClass} />
+                  {blockDismiss ? null : <RemoveClassButton onClick={dropPendingClass} />}
                 </div>
               ) : null}
 
@@ -1486,7 +1504,9 @@ export function CheckoutModal({
                   {paying
                     ? selectedMethod?.slug === "recurrente"
                       ? "Esperando el pago…"
-                      : "Procesando…"
+                      : chargeHold
+                        ? "Registrando compra…"
+                        : "Procesando…"
                     : registerOnly
                       ? hostedPendingRef.current?.purchaseId
                         ? "Revisar pago"
@@ -1495,7 +1515,7 @@ export function CheckoutModal({
                 </button>
               )}
 
-              {step === "pay" || step === "auth" ? (
+              {!blockDismiss && (step === "pay" || step === "auth") ? (
                 <button
                   className="gafa-checkout__backlink"
                   type="button"
