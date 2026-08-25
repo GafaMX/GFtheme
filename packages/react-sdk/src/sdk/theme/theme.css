@@ -159,8 +159,8 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account:not(.gafa-pay-native 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account__dot:not(.gafa-pay-native *) {
   border: 0 !important;
   height: 10px !important;
-  right: 2px !important;
-  top: 2px !important;
+  right: 3px !important;
+  top: 3px !important;
   width: 10px !important;
 }
 
