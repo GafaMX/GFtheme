@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider, ColorSchemeToggle } from "./sdk/theme/theme";
 import { AccountModal } from "./sdk/widgets/AccountModal";
+import { HeaderControls } from "./sdk/widgets/HeaderControls";
+import { useCartStore } from "./sdk/cart/cartStore";
 import type { GafaClient } from "./sdk/client/types";
 import "./sdk/theme/theme.css";
 import "./sdk/widgets/widgets.css";
@@ -210,6 +212,25 @@ function Preview() {
   const [open, setOpen] = useState(params.get("closed") !== "1");
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } });
 
+  useEffect(() => {
+    if (isEmptyMode) return;
+    useCartStore.setState({
+      lines: [
+        {
+          key: "fitspin:combo:971",
+          id: 971,
+          type: "combo",
+          name: "4 clases",
+          price: 1700,
+          priceLabel: "$1,700",
+          amount: 4,
+          brandSlug: "fitspin",
+        },
+      ],
+      reservation: null,
+    });
+  }, []);
+
   return (
     <ThemeProvider
       theme={{
@@ -223,9 +244,11 @@ function Preview() {
             <div className="demo-header__inner">
               <span className="demo-logo">Fitspin</span>
               <ColorSchemeToggle />
-              <button className="demo-account" type="button" onClick={() => setOpen(true)}>
-                Mi cuenta
-              </button>
+              <HeaderControls
+                client={client}
+                onOpenAccount={() => setOpen(true)}
+                onOpenCart={() => undefined}
+              />
             </div>
           </header>
           <main className="demo-main" style={{ minHeight: "70vh" }} />

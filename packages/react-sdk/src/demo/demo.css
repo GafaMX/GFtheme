@@ -148,6 +148,17 @@ body[data-scheme="dark"] {
   text-align: center;
 }
 
+.demo-header .gafa-header-account__label {
+  display: none;
+}
+
+.demo-header .gafa-header-account {
+  height: 38px;
+  justify-content: center;
+  padding: 0;
+  width: 38px;
+}
+
 @media (max-width: 620px) {
   .demo-account__label,
   .demo-brand-select {
