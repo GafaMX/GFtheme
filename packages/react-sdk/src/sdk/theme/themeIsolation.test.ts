@@ -70,6 +70,14 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(themeCss).toMatch(/\.gafa-checkout__line-remove:not\(\.gafa-pay-native \*\) \{[\s\S]{0,120}overflow:\s*visible/);
     expect(widgetsCss).toMatch(/\.gafa-checkout-search \{[\s\S]{0,420}height:\s*32px/);
     expect(widgetsCss).toMatch(/\.gafa-checkout-search \{[\s\S]{0,420}--gafa-search-width:\s*92px/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout__toolbar \{[\s\S]{0,200}flex-wrap:\s*nowrap/);
+    expect(themeCss).toMatch(/\.gafa-checkout__toolbar:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}flex-wrap:\s*nowrap/);
+    expect(widgetsCss).toMatch(
+      /\.gafa-checkout__cart:not\(\[data-open="true"\]\) \.gafa-checkout__lines/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-checkout:not\(\[data-step="thanks"\]\) \.gafa-checkout__cart-toggle \{[\s\S]{0,80}display:\s*flex/,
+    );
   });
 
   it("el calendario mensual tiene tope de ancho, no se estira al contenedor", () => {

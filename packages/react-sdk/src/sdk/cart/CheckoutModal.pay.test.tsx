@@ -162,6 +162,19 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     });
   }
 
+  it("en pago el detalle de productos arranca cerrado y se puede abrir", async () => {
+    renderPay(mockClient());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /pagar/i })).toBeTruthy();
+    });
+
+    const aside = document.querySelector(".gafa-checkout__cart");
+    expect(aside?.getAttribute("data-open")).not.toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
+    expect(aside?.getAttribute("data-open")).toBe("true");
+    expect(screen.getByText("SCULPT")).toBeTruthy();
+  });
+
   it("monta GafaPayFront con onStartPayAction (GafaPay lo llama sin optional chaining)", async () => {
     renderPay(mockClient());
     await waitUntilPayReady();

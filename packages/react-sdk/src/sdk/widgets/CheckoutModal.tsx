@@ -171,7 +171,9 @@ export function CheckoutModal({
   const stayOnPayRef = useRef(wantsDirectPay);
   const [step, setStep] = useState<CheckoutStep>(wantsDirectPay ? "pay" : "shop");
   // Solo aplica en movil (en desktop el carrito siempre esta desplegado).
-  const [cartOpen, setCartOpen] = useState(wantsDirectPay);
+  // Arranca cerrado: en catalogo y en pago el detalle de lineas se asoma
+  // con el chevron, para no comerse la pantalla.
+  const [cartOpen, setCartOpen] = useState(false);
   const [lockedBrandSlug, setLockedBrandSlug] = useState<string | undefined>(
     brandSlugProp ?? persistedCart.lines[0]?.brandSlug,
   );
@@ -302,6 +304,13 @@ export function CheckoutModal({
       document.body.style.overflow = previous;
     };
   }, []);
+
+  // Al pasar a pago/login, cierra el detalle de lineas. En movil el listado
+  // se come el formulario; en desktop el CSS lo ignora y el carrito sigue
+  // visible.
+  useEffect(() => {
+    if (step !== "shop") setCartOpen(false);
+  }, [step]);
 
   // El catalogo se puede ver SIN sesion: el login se pide al ir a pagar, no
   // al abrir. Comprar desde un boton de la pagina no deberia empezar con un
@@ -1241,6 +1250,7 @@ export function CheckoutModal({
                 className="gafa-checkout__cart-toggle"
                 type="button"
                 aria-expanded={cartOpen}
+                aria-label={cartOpen ? "Ocultar productos del carrito" : "Ver productos del carrito"}
                 onClick={() => setCartOpen((value) => !value)}
               >
                 <span>

@@ -142,4 +142,18 @@ describe("CheckoutModal catalog loading", () => {
     });
     expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
   });
+
+  it("el carrito arranca colapsado y el toggle lo abre", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    renderShop(mockClient(Promise.resolve([])));
+
+    const aside = document.querySelector(".gafa-checkout__cart");
+    expect(aside?.getAttribute("data-open")).not.toBe("true");
+
+    const toggle = screen.getByRole("button", { name: /ver productos del carrito/i });
+    fireEvent.click(toggle);
+    expect(aside?.getAttribute("data-open")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: /ocultar productos del carrito/i }));
+    expect(aside?.getAttribute("data-open")).not.toBe("true");
+  });
 });

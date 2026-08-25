@@ -4888,14 +4888,23 @@
 .gafa-checkout__toolbar {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .gafa-checkout-tabs {
   display: inline-flex;
-  gap: 0.35rem;
+  flex: 1 1 auto;
+  gap: 0.3rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.gafa-checkout-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .gafa-checkout-tabs button {
@@ -4920,6 +4929,8 @@
   gap: 0.4rem;
   padding: 0.42rem 0.85rem;
   transition: background 0.16s ease, color 0.16s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .gafa-checkout-tabs button em {
@@ -4956,10 +4967,12 @@
   color: var(--gafa-color-muted-text);
   display: inline-flex;
   flex: 0 0 auto;
+  flex-shrink: 0;
   gap: 0.35rem;
   height: 32px;
   max-width: 168px;
   min-height: 32px;
+  min-width: 0;
   padding: 0 0.55rem;
   transition: border-color 0.16s ease;
 }
@@ -6372,9 +6385,8 @@
     padding: 0.75rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
   }
 
-  /* El resumen plegable solo tiene sentido mientras eliges: en el paso de pago
-     el carrito ya esta a la vista y repetir el total 3 veces era ruido. */
-  .gafa-checkout[data-step="shop"] .gafa-checkout__cart-toggle {
+  /* El resumen plegable: catalogo y pago. En desktop sigue en display:none. */
+  .gafa-checkout:not([data-step="thanks"]) .gafa-checkout__cart-toggle {
     display: flex;
   }
 
@@ -6395,9 +6407,15 @@
     padding: 0.9rem;
   }
 
-  /* Paso de catalogo: el carrito arranca colapsado y solo se ve el resumen. */
-  .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__lines,
-  .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__empty,
+  /* Catalogo y pago: el detalle de lineas arranca colapsado. */
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__lines,
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__empty,
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout-line-skel {
+    display: none;
+  }
+
+  /* En catalogo el total ya vive en la barra; no lo duplicamos. En pago
+     se deja: ahi acompaña a «Pagar». */
   .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__total {
     display: none;
   }
@@ -6422,12 +6440,35 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 
+  .gafa-checkout__toolbar {
+    gap: 0.3rem;
+  }
+
+  .gafa-checkout-tabs {
+    gap: 0.2rem;
+  }
+
+  .gafa-checkout-tabs button {
+    --gafa-control-font-size: 0.72rem;
+    --gafa-control-padding: 0.28rem 0.5rem;
+    font-size: 0.72rem;
+    padding: 0.28rem 0.5rem;
+  }
+
+  .gafa-checkout-tabs button em {
+    font-size: 0.62rem;
+    padding: 0.16rem 0.32rem;
+  }
+
   .gafa-checkout-search {
-    --gafa-search-width: 72px;
+    --gafa-search-width: 58px;
+    max-width: 96px;
+    min-width: 72px;
+    padding: 0 0.45rem;
   }
 
   .gafa-checkout-search input {
-    width: 72px;
+    width: 58px;
   }
 
   /* El titulo compite con el catalogo por el alto util. */
