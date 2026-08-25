@@ -403,6 +403,8 @@ type RawMeeting = {
   end_date?: string;
   type?: string;
   title?: string;
+  /** Nota extra de la clase (la que el admin escribe en el back). */
+  description?: string | null;
   available?: number | string;
   capacity?: number;
   is_reserved?: number | boolean;
@@ -735,12 +737,14 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     // clases (llenas o no). Ese false no es “el estudio no tiene waitlist”:
     // solo confiamos en `true`. El `false` de verdad sale del create-form.
     const waitlistAvailable = readWaitlistAvailable(raw) === true ? true : undefined;
+    const description = typeof raw.description === "string" ? raw.description.replace(/\s+/g, " ").trim() : "";
     return {
       id: raw.id,
       name: raw.service?.name ?? raw.type ?? "Clase",
       startsAt: raw.start ?? raw.start_date ?? "",
       timezone: raw.timezone,
       endsAt: raw.end ?? raw.end_date,
+      description: description || undefined,
       brandSlug,
       service: raw.service,
       serviceId: raw.service?.id,

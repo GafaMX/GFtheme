@@ -23,6 +23,7 @@ const MEETING = {
   id: 84213,
   name: "Ride 45",
   meeting_start: "2026-08-20 07:00:00",
+  description: "  Trae toalla y zapatos de indoor.  ",
   service: { id: 4, name: "Ride" },
   staff: { id: 9, name: "Ana" },
 };
@@ -56,6 +57,7 @@ describe("getMeeting", () => {
 
     expect(meeting?.id).toBe(84213);
     expect(meeting?.locationSlug).toBe("polanco");
+    expect(meeting?.description).toBe("Trae toalla y zapatos de indoor.");
     // Con marca y sede dadas no hace falta listar las marcas de la compañia.
     expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/api/brand"))).toBe(false);
     expect(fetchMock.mock.calls.some(([url]) => /\/location\/122\/meetings/.test(String(url)))).toBe(
@@ -139,6 +141,20 @@ describe("getMeeting", () => {
     expect(full?.availability).toBe("waitlist");
     expect(full?.waitlistAvailable).toBeUndefined();
     expect(full?.available).toBe(0);
+  });
+
+  it("omite description vacía para no pintar una línea en blanco", async () => {
+    stubApi([
+      [/\/location\?/, LOCATIONS],
+      [/\/location\/235\/meetings/, [{ ...MEETING, description: "   \n  " }]],
+    ]);
+
+    const meeting = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+    });
+    expect(meeting?.description).toBeUndefined();
   });
 
   it("marca hasSeatMap false cuando el salon no tiene mapa", async () => {

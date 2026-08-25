@@ -63,6 +63,11 @@ export type CalendarWidgetProps = {
   /** Vista inicial. El usuario puede cambiarla si `allowViewChange` esta activo. */
   view?: CalendarView;
   allowViewChange?: boolean;
+  /**
+   * Legacy: `data-bq-show-description`. La nota extra de la clase se pinta
+   * siempre que la API la mande (una línea en día, `i` en semana, texto
+   * completo en el popup). El atributo se acepta para no romper embeds.
+   */
   showDescription?: boolean;
   title?: string;
   description?: string;
@@ -83,7 +88,7 @@ export function CalendarWidget({
   limit,
   view: initialView = "day",
   allowViewChange = true,
-  showDescription = false,
+  showDescription: _showDescription = false,
   // El calendario embebido ya vive dentro del sitio del socio: no repetimos
   // "Reservas / Reserva tu lugar / ..." arriba. title/description se ignoran
   // a proposito para dejar el chrome en dos lineas compactas.
@@ -634,7 +639,6 @@ export function CalendarWidget({
             loading={isUpdating}
             meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
             onSelect={openMeeting}
-            showDescription={showDescription}
           />
         </div>
       ) : (
@@ -647,7 +651,6 @@ export function CalendarWidget({
               loading={isUpdating}
               meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
               onSelect={openMeeting}
-              showDescription={showDescription}
             />
           ))}
         </div>
@@ -861,7 +864,6 @@ function DayColumn({
   meetings,
   onSelect,
   compact = false,
-  showDescription = false,
   emptyLabel = "Sin horarios",
   loading = false,
 }: {
@@ -869,7 +871,6 @@ function DayColumn({
   meetings: Meeting[];
   onSelect(meeting: Meeting): void;
   compact?: boolean;
-  showDescription?: boolean;
   emptyLabel?: string;
   loading?: boolean;
 }) {
@@ -915,12 +916,11 @@ function DayColumn({
               compact={compact}
               meeting={meeting}
               onSelect={onSelect}
-              showDescription={showDescription}
             />
           ))}
         </div>
       ) : (
-        <StandaloneDaySections meetings={meetings} onSelect={onSelect} showDescription={showDescription} />
+        <StandaloneDaySections meetings={meetings} onSelect={onSelect} />
       )}
     </section>
   );
@@ -938,11 +938,9 @@ function DayColumn({
 function StandaloneDaySections({
   meetings,
   onSelect,
-  showDescription,
 }: {
   meetings: Meeting[];
   onSelect(meeting: Meeting): void;
-  showDescription: boolean;
 }) {
   const upcoming = meetings.filter((meeting) => !meeting.passed);
   const finished = meetings.filter((meeting) => meeting.passed);
@@ -970,7 +968,6 @@ function StandaloneDaySections({
                 compact={false}
                 meeting={meeting}
                 onSelect={onSelect}
-                showDescription={showDescription}
               />
             ))}
           </div>
@@ -991,16 +988,19 @@ function groupByTimeOfDay(meetings: Meeting[]): Array<[Exclude<TimeOfDay, "all">
     .filter(([, slotMeetings]) => slotMeetings.length > 0);
 }
 
+function meetingClassNotes(meeting: Meeting): string | undefined {
+  const text = meeting.description?.replace(/\s+/g, " ").trim();
+  return text || undefined;
+}
+
 function MeetingCard({
   meeting,
   onSelect,
   compact,
-  showDescription,
 }: {
   meeting: Meeting;
   onSelect(meeting: Meeting): void;
   compact: boolean;
-  showDescription: boolean;
 }) {
   const soldOut = isSoldOut(meeting);
   const waitlist = showsWaitlistPill(meeting);
@@ -1014,6 +1014,7 @@ function MeetingCard({
   // circulo de 36 px, asi que sin transformaciones no se pinta.
   const staffPhoto = meeting.staff?.photoUrl;
   const showsPhoto = useRemoteImageEnabled(staffPhoto);
+  const notes = meetingClassNotes(meeting);
 
   return (
     <button
@@ -1037,10 +1038,12 @@ function MeetingCard({
       />
       <span className="gafa-meeting-card__top">
         <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
+        {compact && notes ? <MeetingExtraHint text={notes} /> : null}
         {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
       </span>
 
       <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
+      {!compact && notes ? <span className="gafa-meeting-desc">{notes}</span> : null}
 
       <span className="gafa-meeting-detail">
         <PersonIcon />
@@ -1052,7 +1055,6 @@ function MeetingCard({
           {meeting.location.name}
         </span>
       ) : null}
-      {showDescription && meeting.description ? <span className="gafa-meeting-desc">{meeting.description}</span> : null}
 
       {passed ? (
         <span className="gafa-availability-pill gafa-availability-pill--passed">Finalizada</span>
@@ -1060,6 +1062,20 @@ function MeetingCard({
         <AvailabilityPill meeting={meeting} compact={compact} />
       )}
     </button>
+  );
+}
+
+function MeetingExtraHint({ text }: { text: string }) {
+  return (
+    <span className="gafa-meeting-extra">
+      <span className="gafa-sr-only">{text}</span>
+      <span className="gafa-meeting-extra__mark" aria-hidden="true">
+        i
+      </span>
+      <span className="gafa-meeting-extra__tip" aria-hidden="true">
+        {text}
+      </span>
+    </span>
   );
 }
 
@@ -1551,6 +1567,7 @@ function ReservationPreviewModal({
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const soldOut = isSoldOut(meeting);
   const waitlistCard = showsWaitlistPill(meeting);
+  const notes = meetingClassNotes(meeting);
   const contextFailed = contextQuery.isError;
   // Fuente de verdad: `is_valid_for_waitlist` del create-form-template (v1).
   // Si el template ni siquiera arma el form (clase llena → “no hay lugar”),
@@ -1707,6 +1724,8 @@ function ReservationPreviewModal({
                     <strong>{getAvailabilityText(meeting)}</strong>
                   </div>
                 </div>
+
+                {notes ? <p className="gafa-reservation-notes">{notes}</p> : null}
 
                 {isSignedIn ? (
                   contextQuery.isLoading ? (
@@ -2454,6 +2473,8 @@ function demoMeetings(range: DateRange): Meeting[] {
       location: demoLocations()[0],
       staff: { id: 1, name: "Coach Demo" },
       service: { id: 1, name: "Training" },
+      description:
+        "Trae toalla y zapatos de indoor. Esta clase es de alta intensidad — si es tu primera vez, avísale al coach.",
       availability: "available",
     },
     {

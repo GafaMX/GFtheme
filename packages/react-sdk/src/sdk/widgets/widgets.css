@@ -1502,6 +1502,65 @@
   font-size: 0.78rem;
 }
 
+.gafa-meeting-desc {
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Compact week: no cabe una línea extra. La `i` no es un button (la card ya
+   lo es) — hover muestra el texto; el tap abre el detalle con el texto completo. */
+.gafa-meeting-extra {
+  display: inline-flex;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.gafa-meeting-extra__mark {
+  --gafa-type-size: 0.62rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+  align-items: center;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  font-size: 0.62rem;
+  font-style: italic;
+  font-weight: 700;
+  height: 16px;
+  justify-content: center;
+  line-height: 1;
+  width: 16px;
+}
+
+.gafa-meeting-extra:hover .gafa-meeting-extra__tip,
+.gafa-meeting-card:focus-visible .gafa-meeting-extra__tip {
+  display: block;
+}
+
+.gafa-meeting-extra__tip {
+  --gafa-type-size: 0.75rem;
+  --gafa-fg: var(--gafa-color-surface);
+  background: var(--gafa-color-text);
+  border-radius: 10px;
+  box-shadow: var(--gafa-shadow-pop);
+  color: var(--gafa-color-surface);
+  display: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  left: auto;
+  line-height: 1.45;
+  padding: 0.55rem 0.7rem;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  white-space: normal;
+  width: min(220px, 70vw);
+  z-index: 8;
+}
+
 .gafa-meeting-chip {
   --gafa-type-size: 0.74rem;
   background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
@@ -1765,6 +1824,16 @@
   font-weight: 600;
   margin: 0;
   text-align: right;
+}
+
+.gafa-reservation-notes {
+  --gafa-type-size: 0.86rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .gafa-reservation-steps {

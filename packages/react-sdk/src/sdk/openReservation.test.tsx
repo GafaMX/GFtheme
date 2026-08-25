@@ -33,6 +33,7 @@ describe("openReservation", () => {
     await waitFor(() => {
       expect(overlayText()).toContain("Detalle de reserva");
       expect(overlayText()).toContain("Coach Demo");
+      expect(overlayText()).toContain("Trae toalla y zapatos de indoor");
     });
   });
 

@@ -322,6 +322,8 @@ function demoMeetings(): Meeting[] {
       durationMinutes: 50,
       staffName: "Coach Demo",
       serviceName: "Training",
+      description:
+        "Trae toalla y zapatos de indoor. Esta clase es de alta intensidad — si es tu primera vez, avísale al coach.",
       availability: "available",
       available: 8,
       capacity: 18,

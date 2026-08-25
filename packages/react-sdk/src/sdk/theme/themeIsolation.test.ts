@@ -145,6 +145,13 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     );
   });
 
+  it("la nota extra de la clase se trunca a una línea y la i compacta no es un botón", () => {
+    expect(widgetsCss).toMatch(/\.gafa-meeting-desc \{[\s\S]{0,200}text-overflow:\s*ellipsis/);
+    expect(widgetsCss).toMatch(/\.gafa-meeting-desc \{[\s\S]{0,200}white-space:\s*nowrap/);
+    expect(widgetsCss).toMatch(/\.gafa-meeting-extra__mark \{[\s\S]{0,480}height:\s*16px/);
+    expect(widgetsCss).toMatch(/\.gafa-reservation-notes \{[\s\S]{0,200}white-space:\s*pre-wrap/);
+  });
+
   it("asigna borde de control en las cards y el Hoy del calendario", () => {
     expect(widgetsCss).toContain(".gafa-meeting-card");
     expect(widgetsCss).toMatch(/\.gafa-meeting-card[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);
