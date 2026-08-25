@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { buildPalette, type BrandBaseColors, type ColorScheme } from "./palette";
-import { readHostColorScheme, resolveActiveColorScheme } from "./hostColorScheme";
+import { readHostColorScheme, resolveActiveColorScheme, watchHostColorScheme, withHostSurfaceVars } from "./hostColorScheme";
 
 export type ColorSchemePreference = ColorScheme | "system" | "host";
 
@@ -27,8 +27,9 @@ export type GafaBrandTheme = {
   };
   /**
    * Esquema inicial si la página no declara uno.
-   * Fitspin (`html.fitspin-dark`) y data-theme del host le ganan: la muralla
-   * anti-Elementor ya no deja que el CSS del sitio pinte el SDK.
+   * Esquema si la página no declara uno. Fitspin (`html.fitspin-dark`,
+   * `fitspin-theme` y `--sdk-*` del overlay) le gana: la muralla anti-Elementor
+   * no deja que el CSS del sitio pinte `--gafa-color-*` directo.
    */
   colorScheme?: ColorSchemePreference;
   /** Si el usuario final puede cambiar entre claro y oscuro. */
@@ -113,7 +114,7 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
   const resolved = resolveTheme(theme);
   const palette = buildPalette(resolved.colors, scheme);
 
-  return {
+  return withHostSurfaceVars({
     "--gafa-color-primary": palette.brand,
     "--gafa-color-primary-text": palette.brandContrast,
     "--gafa-color-accent": palette.accent,
@@ -143,7 +144,7 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
     "--gafa-asset-login-background": resolved.assets.loginBackgroundUrl
       ? `url("${resolved.assets.loginBackgroundUrl}")`
       : "none",
-  };
+  });
 }
 
 type ThemeContextValue = {
@@ -181,17 +182,10 @@ function useHostColorScheme(): ColorScheme | null {
   );
 
   useEffect(() => {
-    if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
+    if (typeof document === "undefined") return;
     const sync = () => setScheme(readHostColorScheme(document));
     sync();
-    const observer = new MutationObserver(sync);
-    const options: MutationObserverInit = {
-      attributes: true,
-      attributeFilter: ["class", "data-theme", "data-color-scheme", "data-bs-theme", "data-mode", "data-scheme"],
-    };
-    observer.observe(document.documentElement, options);
-    if (document.body) observer.observe(document.body, options);
-    return () => observer.disconnect();
+    return watchHostColorScheme(sync);
   }, []);
 
   return scheme;
