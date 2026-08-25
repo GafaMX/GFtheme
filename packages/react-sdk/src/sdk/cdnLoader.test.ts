@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import {
   GAFA_SDK_FALLBACK_BUNDLE,
+  GAFA_SDK_GITHUB_TIP,
   GAFA_SDK_PUBLIC_SCRIPT,
   GAFA_SDK_VERSION_URLS,
   parseEmbedVersion,
@@ -29,9 +30,9 @@ describe("cdnLoader", () => {
     );
   });
 
-  it("si no hay bundle stampado usa el commit (jsDelivr inmutable)", () => {
+  it("un VERSION viejo sin bundle= no pinnea un commit (raw puede ir atrasado)", () => {
     expect(resolveBundleUrl("commit=a5f01af76509b24a483a9b7722e6279a754e3732\n")).toBe(
-      "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@a5f01af76509b24a483a9b7722e6279a754e3732/docs/v2-sdk/gafa-sdk.bundle.js",
+      GAFA_SDK_FALLBACK_BUNDLE,
     );
   });
 
@@ -48,12 +49,14 @@ describe("gafa-sdk-loader.js", () => {
     vi.unstubAllGlobals();
     document.head.innerHTML = "";
     document.body.innerHTML = "";
+    sessionStorage.removeItem("gafa-sdk-cdn-sha");
   });
 
   it("está alineado con las URLs del helper y no pide otra rama", () => {
     const source = readFileSync(LOADER_PATH, "utf8");
     expect(source).toContain(GAFA_SDK_PUBLIC_SCRIPT);
     expect(source).toContain(GAFA_SDK_VERSION_URLS[0]);
+    expect(source).toContain(GAFA_SDK_GITHUB_TIP);
     expect(source).toContain(GAFA_SDK_FALLBACK_BUNDLE);
     expect(source).not.toMatch(/cdn-live-\d/);
   });
@@ -74,6 +77,27 @@ describe("gafa-sdk-loader.js", () => {
       const injected = [...document.querySelectorAll("script")].map((node) => node.getAttribute("src"));
       expect(injected).toContain(
         "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.bundle.20260825T000000Z.js",
+      );
+    });
+  });
+
+  it("si raw no trae bundle= pide el tip de GitHub y pinnea el SHA", async () => {
+    const source = readFileSync(LOADER_PATH, "utf8");
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("VERSION.txt")) {
+        return { ok: true, text: async () => "commit=a5f01af\nbytes=717173\n" };
+      }
+      return { ok: true, text: async () => "a03b67912d4d8fea7f126ec5bfdecc4302e9d842\n" };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    // eslint-disable-next-line no-eval
+    eval(source);
+
+    await waitFor(() => {
+      const injected = [...document.querySelectorAll("script")].map((node) => node.getAttribute("src"));
+      expect(injected).toContain(
+        "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@a03b67912d4d8fea7f126ec5bfdecc4302e9d842/docs/v2-sdk/gafa-sdk.bundle.js",
       );
     });
   });

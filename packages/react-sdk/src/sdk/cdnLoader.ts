@@ -13,6 +13,8 @@ export const GAFA_SDK_VERSION_URLS = [
   `https://raw.githubusercontent.com/${GAFA_SDK_REPO}/${GAFA_SDK_BRANCH}/${GAFA_SDK_DIR}/VERSION.txt`,
 ] as const;
 
+export const GAFA_SDK_GITHUB_TIP = `https://api.github.com/repos/${GAFA_SDK_REPO}/commits/${GAFA_SDK_BRANCH}`;
+
 export const GAFA_SDK_FALLBACK_BUNDLE = `https://cdn.jsdelivr.net/gh/${GAFA_SDK_REPO}@${GAFA_SDK_BRANCH}/${GAFA_SDK_DIR}/gafa-sdk.bundle.js`;
 
 export type EmbedVersion = {
@@ -31,16 +33,14 @@ export function jsdelivrFileUrl(ref: string, fileName: string): string {
 }
 
 /**
- * Resuelve el IIFE a pedir. Preferimos un nombre stampado en @cdn-live:
- * path nuevo = jsDelivr no tiene cache y lee GitHub al momento.
+ * Resuelve el IIFE a pedir. Solo confiamos en `bundle=` (path stampado).
+ * Un VERSION viejo sin esa línea no debe pinnear un commit que no tiene
+ * gafa-sdk.bundle.js (GitHub raw de la rama puede ir 5 min atrasado).
  */
 export function resolveBundleUrl(versionText: string): string {
-  const { bundle, commit } = parseEmbedVersion(versionText);
+  const { bundle } = parseEmbedVersion(versionText);
   if (bundle) {
     return jsdelivrFileUrl(GAFA_SDK_BRANCH, bundle);
-  }
-  if (commit) {
-    return jsdelivrFileUrl(commit, "gafa-sdk.bundle.js");
   }
   return GAFA_SDK_FALLBACK_BUNDLE;
 }
