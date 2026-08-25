@@ -2574,13 +2574,13 @@
 
 .gafa-header-account__dot {
   background: var(--gafa-color-success);
-  border: 1px solid var(--gafa-color-primary-text);
+  border: 0;
   border-radius: 50%;
   box-sizing: border-box;
   height: 10px;
   position: absolute;
-  right: 3px;
-  top: 3px;
+  right: 2px;
+  top: 2px;
   width: 10px;
 }
 
