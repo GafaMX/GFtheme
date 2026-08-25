@@ -238,6 +238,22 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout__toolbar:not(.gafa-pay-nati
   min-width: 0 !important;
 }
 
+@media (max-width: 860px) {
+  html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-search:not(.gafa-pay-native *) {
+    max-width: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    width: 32px !important;
+  }
+
+  html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-search:focus-within:not(.gafa-pay-native *) {
+    max-width: 120px !important;
+    min-width: 108px !important;
+    padding: 0 0.45rem !important;
+    width: auto !important;
+  }
+}
+
 /* Código válido / descuento aplicado: Fitspin pinta `p` del aside al tamaño
    del Total. Mismo 0.8rem que el enlace de promo, con !important. */
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-promo__applied:not(.gafa-pay-native *) {

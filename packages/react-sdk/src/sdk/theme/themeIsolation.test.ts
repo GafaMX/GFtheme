@@ -78,6 +78,10 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(
       /\.gafa-checkout:not\(\[data-step="thanks"\]\) \.gafa-checkout__cart-toggle \{[\s\S]{0,80}display:\s*flex/,
     );
+    expect(widgetsCss).toMatch(/\.gafa-checkout-search:focus-within \{[\s\S]{0,160}--gafa-search-width:\s*72px/);
+    expect(themeCss).toMatch(
+      /\.gafa-checkout-search:focus-within:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}min-width:\s*108px/,
+    );
   });
 
   it("el calendario mensual tiene tope de ancho, no se estira al contenedor", () => {
