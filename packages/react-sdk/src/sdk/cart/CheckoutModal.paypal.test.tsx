@@ -81,4 +81,41 @@ describe("CheckoutModal PayPal panel", () => {
     expect(mount?.getAttribute("data-method")).toBe("paypal");
     expect(document.querySelector(".gafa-pay-native")).toBeTruthy();
   });
+
+  it("oculta PayPal si el carrito trae una membresía", async () => {
+    useCartStore.setState({
+      lines: [
+        {
+          ...cartLine,
+          key: "fitspin-cancun:membership:8",
+          id: 8,
+          type: "membership",
+          name: "Unlimited",
+        },
+      ],
+      reservation: null,
+    });
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } })}
+      >
+        <CheckoutModal
+          client={mockClient()}
+          brandSlug="fitspin-cancun"
+          locationSlug="cancun"
+          skipCatalog
+          onClose={() => undefined}
+        />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /pagar/i })).toBeTruthy();
+    });
+    expect(screen.queryByRole("tab", { name: /paypal/i })).toBeNull();
+    expect(document.querySelector(".gafa-checkout-paymount")?.getAttribute("data-method")).not.toBe(
+      "paypal",
+    );
+    expect(screen.queryByText(/te llevamos a paypal/i)).toBeNull();
+  });
 });

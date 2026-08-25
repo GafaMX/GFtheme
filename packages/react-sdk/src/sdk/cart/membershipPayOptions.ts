@@ -65,6 +65,19 @@ export function cartHasMembership(lines: Array<Pick<CartLine, "type">>): boolean
   return lines.some((line) => line.type === "membership");
 }
 
+function isPaypalMethod(slug: string | undefined): boolean {
+  return (slug ?? "").trim().toLowerCase() === "paypal";
+}
+
+/** PayPal no cobra membresías recurrentes: se oculta si hay una en el carrito. */
+export function paymentMethodsForCart<T extends { slug: string }>(
+  methods: T[],
+  hasMembership: boolean,
+): T[] {
+  if (!hasMembership) return methods;
+  return methods.filter((method) => !isPaypalMethod(method.slug));
+}
+
 const SAVE_SELECTORS = '#saveCard, [name="saveCard"], [name="save_card"]';
 const RENEW_SELECTORS = '#recurringPayment, [name="recurringPayment"], [name="subscribe"]';
 
