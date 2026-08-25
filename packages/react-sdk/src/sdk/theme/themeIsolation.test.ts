@@ -110,9 +110,10 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(
       /\.gafa-header-account \{\n  --gafa-control-padding:[\s\S]{0,500}overflow:\s*visible/,
     );
-    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}top:\s*1px/);
+    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}top:\s*3px/);
+    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}right:\s*3px/);
     expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}width:\s*10px/);
-    expect(themeCss).toMatch(/\.gafa-header-account__dot:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}top:\s*1px/);
+    expect(themeCss).toMatch(/\.gafa-header-account__dot:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}top:\s*3px/);
     expect(themeCss).toMatch(/\.gafa-header-account__dot:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}width:\s*10px/);
   });
 
