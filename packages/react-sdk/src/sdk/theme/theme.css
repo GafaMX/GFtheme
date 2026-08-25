@@ -15,7 +15,7 @@
   --gafa-font-family: var(--gafa-font-body);
   --gafa-heading-font-family: var(--gafa-font-heading);
 
-  color-scheme: light;
+  color-scheme: inherit;
   background: transparent;
   color: var(--gafa-color-text);
   font-family: var(--gafa-font-body);
@@ -25,6 +25,7 @@
 /* Las sombras tienen que cambiar con el esquema: una sombra negra sobre fondo
    oscuro no se ve, ahi lo que separa las capas es el borde y el nivel de gris. */
 .gafa-sdk[data-color-scheme="light"] {
+  color-scheme: light;
   --gafa-shadow-card: 0 18px 44px -20px rgb(15 23 42 / 0.28);
   --gafa-shadow-soft: 0 6px 18px -10px rgb(15 23 42 / 0.22);
   --gafa-shadow-pop: 0 24px 60px -24px rgb(15 23 42 / 0.35);

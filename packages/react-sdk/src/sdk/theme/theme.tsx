@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { buildPalette, type BrandBaseColors, type ColorScheme } from "./palette";
+import { readHostColorScheme, resolveActiveColorScheme } from "./hostColorScheme";
 
-export type ColorSchemePreference = ColorScheme | "system";
+export type ColorSchemePreference = ColorScheme | "system" | "host";
 
 export type GafaThemeRadius = {
   sm: string;
@@ -24,7 +25,11 @@ export type GafaBrandTheme = {
     heroBackgroundUrl?: string;
     loginBackgroundUrl?: string;
   };
-  /** Esquema inicial. `system` sigue la preferencia del sistema operativo. */
+  /**
+   * Esquema inicial si la página no declara uno.
+   * Fitspin (`html.fitspin-dark`) y data-theme del host le ganan: la muralla
+   * anti-Elementor ya no deja que el CSS del sitio pinte el SDK.
+   */
   colorScheme?: ColorSchemePreference;
   /** Si el usuario final puede cambiar entre claro y oscuro. */
   allowUserColorScheme?: boolean;
@@ -167,7 +172,29 @@ function systemScheme(): ColorScheme {
 function readStoredPreference(): ColorSchemePreference | null {
   if (typeof localStorage === "undefined") return null;
   const value = localStorage.getItem(STORAGE_KEY);
-  return value === "light" || value === "dark" || value === "system" ? value : null;
+  return value === "light" || value === "dark" || value === "system" || value === "host" ? value : null;
+}
+
+function useHostColorScheme(): ColorScheme | null {
+  const [scheme, setScheme] = useState<ColorScheme | null>(() =>
+    typeof document === "undefined" ? null : readHostColorScheme(document),
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
+    const sync = () => setScheme(readHostColorScheme(document));
+    sync();
+    const observer = new MutationObserver(sync);
+    const options: MutationObserverInit = {
+      attributes: true,
+      attributeFilter: ["class", "data-theme", "data-color-scheme", "data-bs-theme", "data-mode", "data-scheme"],
+    };
+    observer.observe(document.documentElement, options);
+    if (document.body) observer.observe(document.body, options);
+    return () => observer.disconnect();
+  }, []);
+
+  return scheme;
 }
 
 export function ThemeProvider({ children, theme }: { children: React.ReactNode; theme?: GafaBrandTheme }) {
@@ -179,6 +206,7 @@ export function ThemeProvider({ children, theme }: { children: React.ReactNode; 
     () => (resolved.allowUserColorScheme ? readStoredPreference() : null) ?? resolved.colorScheme,
   );
   const [osScheme, setOsScheme] = useState<ColorScheme>(systemScheme);
+  const hostScheme = useHostColorScheme();
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -193,7 +221,11 @@ export function ThemeProvider({ children, theme }: { children: React.ReactNode; 
     if (typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, next);
   }, []);
 
-  const scheme: ColorScheme = preference === "system" ? osScheme : preference;
+  const scheme: ColorScheme = resolveActiveColorScheme({
+    hostScheme,
+    preference,
+    osScheme,
+  });
   const variables = useMemo(() => themeToCssVariables(theme, scheme), [theme, scheme]);
 
   const value = useMemo<ThemeContextValue>(
