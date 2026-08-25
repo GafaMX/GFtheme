@@ -3,7 +3,8 @@
 Receta para **cualquier agente** (Cursor, Replit, WP, HTML estático, Webflow, etc.).
 El SDK no se copia ni se transpila en el sitio del socio. Se carga con **un script**.
 
-El artefacto estable es `docs/v2-sdk/gafa-sdk.js` (React y CSS van adentro).
+La URL pública es siempre `docs/v2-sdk/gafa-sdk.js` (loader). El IIFE con React
+y CSS va en `gafa-sdk.bundle.<stamp>.js`. **No cambies el `src` de los sitios.**
 
 ```bash
 cd packages/react-sdk && npm run publish:embed
@@ -31,7 +32,8 @@ Publicar el JS: `docs/v2-lanzamiento.md`. Este archivo es **cómo se pega en una
 
 jsDelivr con `@v2/main` **404** (el `/` de la rama se parte). `@v2` lo trata
 como versión `2` y la **congela**. Tags `v2.0.0-rc.N` también son inmutables.
-La URL pública actual es `@cdn-live` (arriba). Azure cuando exista:
+**No** uses `cdn-live-2` ni pines un SHA en producción: el loader en `@cdn-live`
+trae solo el bundle nuevo. Azure cuando exista:
 `https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js`.
 
 ## Dos URLs
@@ -47,10 +49,10 @@ lo alcanza WordPress ni Replit.
 
 ## Por tipo de host
 
-**WordPress / Elementor:** una línea en el header o un HTML widget. No se toca
-el theme PHP en cada deploy v2: se reemplaza `gafa-sdk.js` en git. El CSS de
-Hello/Elementor lo bloquea el propio SDK (muralla en `theme.css`). No hace
-falta CSS extra por marca.
+**WordPress / Elementor:** una línea en el header o un HTML widget, **una vez**.
+No se toca el `src` ni el theme PHP en cada deploy v2: se reemplaza el bundle
+en git y el loader lo recoge. El CSS de Hello/Elementor lo bloquea el propio
+SDK (muralla en `theme.css`). No hace falta CSS extra por marca.
 
 **Buq-Webs (Replit, todas las marcas en `web.buq.mx/<marca>`):** no copies a
 `lib/gafa-react-sdk` y **no pulses Republish**. Un secreto

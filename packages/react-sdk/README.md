@@ -47,7 +47,7 @@ El build de librería deja React como peer. Para un sitio WP hace falta el IIFE
 con React dentro, el mismo patrón que `dist/main.min.js` de v1:
 
 ```sh
-npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js
+npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js (loader) + bundle stampado
 ```
 
 ```html

@@ -1,5 +1,6 @@
-# Publica packages/react-sdk como un IIFE en docs/v2-sdk/gafa-sdk.js.
-# No toca master ni el theme legacy. No relanza Replit.
+# Publica el IIFE en docs/v2-sdk/gafa-sdk.bundle*.js y deja gafa-sdk.js como
+# loader estable. La URL pública de los sitios no cambia. No toca master.
+# No relanza Replit. No crear cdn-live-2 ni pedir a los socios otro src.
 #
 # Manual: Actions → "Publish V2 embed SDK" → Run workflow (en esta rama V2).
 # El agente de Cursor hace lo mismo en local: npm run publish:embed && git commit docs/v2-sdk
