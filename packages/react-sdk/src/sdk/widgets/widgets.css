@@ -1533,6 +1533,8 @@
   height: 16px;
   justify-content: center;
   line-height: 1;
+  /* La i itálica se va a la derecha; un pelín a la izquierda la deja al centro. */
+  padding: 0 2px 0 0;
   width: 16px;
 }
 
