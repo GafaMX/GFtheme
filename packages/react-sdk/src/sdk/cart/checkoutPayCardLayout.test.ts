@@ -45,6 +45,15 @@ describe("checkout Stripe saved-card layout", () => {
     expect(payMountCss).not.toMatch(/\[data-method="paypal"\][^{]*\{[^}]*box-sizing: border-box/);
   });
 
+  it("no mete un recuadro blanco alrededor del botón de PayPal", () => {
+    expect(payMountCss).not.toMatch(
+      /\[data-method="paypal"\] \.gafa-checkout-paymount__island \{[^}]*background:/,
+    );
+    expect(payMountCss).not.toMatch(
+      /\[data-method="paypal"\] #paypal[^{]*\{[^}]*min-height:\s*45px/,
+    );
+  });
+
   /*
    * Stripe no usa `.gafapay-elements__cards` (eso es Conekta). Las tarjetas
    * guardadas y "Nueva tarjeta" son hermanos bajo `.gafapay-elements`, que

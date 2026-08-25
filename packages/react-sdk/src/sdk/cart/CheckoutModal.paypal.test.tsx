@@ -79,7 +79,11 @@ describe("CheckoutModal PayPal panel", () => {
     expect(screen.getByText(/te llevamos a paypal/i)).toBeTruthy();
     const mount = document.querySelector(".gafa-checkout-paymount");
     expect(mount?.getAttribute("data-method")).toBe("paypal");
-    expect(document.querySelector(".gafa-pay-native")).toBeTruthy();
+    await waitFor(() => {
+      expect(document.querySelector(".gafa-checkout__paypal-cta .gafa-pay-native")).toBeTruthy();
+    });
+    expect(document.querySelector(".gafa-checkout-paymount .gafa-pay-native")).toBeNull();
+    expect(screen.queryByText(/completa el pago con el botón de paypal/i)).toBeNull();
   });
 
   it("oculta PayPal si el carrito trae una membresía", async () => {

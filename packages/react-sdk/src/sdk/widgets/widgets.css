@@ -5413,7 +5413,7 @@
 .gafa-checkout__backlink,
 .gafa-checkout__error,
 .gafa-checkout__env-warn,
-.gafa-checkout__paypal-hint {
+.gafa-checkout__paypal-cta {
   flex-shrink: 0;
 }
 
@@ -5997,6 +5997,38 @@
   text-align: center;
 }
 
+.gafa-checkout__paypal-cta {
+  min-height: 48px;
+  position: relative;
+  width: 100%;
+}
+
+.gafa-checkout__paypal-cta[data-locked="true"] {
+  cursor: pointer;
+}
+
+.gafa-checkout__paypal-cta[data-locked="true"] .gafa-pay-native {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.gafa-checkout__paypal-cta .gafa-checkout-paymount__island,
+.gafa-checkout__paypal-cta #paypal {
+  max-width: none;
+  width: 100%;
+}
+
+.gafa-checkout__paypal-cta .gafapay-elements,
+.gafa-checkout__paypal-cta .gafapay-elements__container,
+.gafa-checkout__paypal-cta .gafapay-elements__section {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
 /* ── Pago ── */
 
 .gafa-checkout-pay {
@@ -6246,30 +6278,6 @@
   font-size: 0.8rem;
   line-height: 1.4;
   margin: 0.15rem 0 0;
-}
-
-.gafa-checkout-paymount[data-method="paypal"] .gafa-checkout-paymount__island {
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
-  border-radius: 12px;
-  min-height: 52px;
-  padding: 0.65rem 0.75rem;
-}
-
-.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__container,
-.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__section.is-paypal {
-  display: block;
-  justify-items: center;
-  row-gap: 0;
-  width: 100%;
-}
-
-.gafa-checkout-paymount[data-method="paypal"] #paypal,
-.gafa-checkout-paymount[data-method="paypal"] .paypal__btn {
-  margin: 0 auto;
-  max-width: 320px;
-  min-height: 45px;
-  width: 100%;
 }
 
 .gafa-checkout-paymount[data-loading="true"] {

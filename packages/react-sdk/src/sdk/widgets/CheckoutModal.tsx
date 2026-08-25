@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import type {
   CartLineType,
@@ -212,6 +213,7 @@ export function CheckoutModal({
   /** Overlay bloqueado: hay cargo y Buq todavía no confirmó Completada. */
   const [chargeHold, setChargeHold] = useState(false);
   const chargedRef = useRef(false);
+  const [paypalCtaHost, setPaypalCtaHost] = useState<HTMLDivElement | null>(null);
   const pendingRegisterRef = useRef<{
     paymentData: unknown;
     recurring: boolean;
@@ -1224,6 +1226,7 @@ export function CheckoutModal({
                     if (selectedMethod?.slug === "recurrente") startHostedPopupWatch();
                   }}
                   onReadyChange={setPaymentReady}
+                  paypalCtaHost={paypalCtaHost}
                   onError={(message) => {
                     setPaying(false);
                     setPayError(message);
@@ -1496,7 +1499,21 @@ export function CheckoutModal({
                   Ir a pagar
                 </button>
               ) : selectedMethod?.slug === "paypal" ? (
-                <p className="gafa-checkout__paypal-hint">Completa el pago con el botón de PayPal.</p>
+                <div
+                  className="gafa-checkout__paypal-cta"
+                  data-locked={waitingOnTerms ? "true" : undefined}
+                  ref={setPaypalCtaHost}
+                  onClick={
+                    waitingOnTerms
+                      ? (event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setTermsPromptOpen(true);
+                          setTermsAttention(true);
+                        }
+                      : undefined
+                  }
+                />
               ) : (
                 <button
                   className="gafa-sdk-button gafa-checkout__cta"
@@ -1681,6 +1698,7 @@ function PayPanel({
   onReadyChange,
   onError,
   payCta,
+  paypalCtaHost,
   membershipOptions,
 }: {
   methods: CheckoutConfig["paymentMethods"];
@@ -1705,6 +1723,7 @@ function PayPanel({
     disabled: boolean;
     onClick: () => void;
   };
+  paypalCtaHost?: HTMLElement | null;
   membershipOptions?: {
     saveCard: boolean;
     autoRenew: boolean;
@@ -1788,7 +1807,10 @@ function PayPanel({
       },
       // GafaPay Recurrente deshabilita su botón si esto es falsy. Los términos
       // los exigimos en nuestro CTA; aquí hay que dejarlo pasar.
-      termsAndConditions: selected?.slug === "recurrente" ? true : (config?.termsConditionsLink ?? null),
+      termsAndConditions:
+        selected?.slug === "recurrente" || selected?.slug === "paypal"
+          ? true
+          : (config?.termsConditionsLink ?? null),
       hasRecurringPayment: Boolean(membershipOptions),
       onStartPayAction: () => handlersRef.current.onStart(),
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
@@ -1816,6 +1838,8 @@ function PayPanel({
   // Monta la isla: se re-monta solo si cambia el proveedor o las credenciales.
   useEffect(() => {
     if (!slug || !clientId || !clientSecret) return;
+    // PayPal se monta en el CTA de la columna derecha; sin host no hay nodo.
+    if (slug === "paypal" && !paypalCtaHost) return;
     let cancelled = false;
     setLoadState("loading");
     setLoadError(undefined);
@@ -1850,11 +1874,13 @@ function PayPanel({
       islandRef.current?.unmount();
       islandRef.current = null;
     };
-  }, [slug, clientId, clientSecret, gafaPayFrontUrl]);
+  }, [slug, clientId, clientSecret, gafaPayFrontUrl, paypalCtaHost]);
 
   useEffect(() => {
-    if (loadState === "ready") islandRef.current?.update(widgetProps);
-  }, [widgetProps, loadState]);
+    // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
+    if (loadState !== "ready" || slug === "paypal") return;
+    islandRef.current?.update(widgetProps);
+  }, [widgetProps, loadState, slug]);
 
   useEffect(() => {
     if (loadState !== "ready" || !mountRef.current || !membershipOptions) return;
@@ -1932,7 +1958,16 @@ function PayPanel({
             ) : null}
           </div>
         ) : null}
-        <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
+        {slug === "paypal" && paypalCtaHost
+          ? createPortal(
+              <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />,
+              paypalCtaHost,
+            )
+          : slug === "paypal"
+            ? null
+            : (
+              <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
+            )}
 
         {membershipOptions ? (
           <div
