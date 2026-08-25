@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   cartHasMembership,
   coerceFlag,
+  paymentMethodsForCart,
   readShowMembershipOptions,
   syncGafaPayMembershipToggles,
 } from "./membershipPayOptions";
@@ -11,6 +12,33 @@ describe("cartHasMembership", () => {
     expect(cartHasMembership([{ type: "combo" }])).toBe(false);
     expect(cartHasMembership([{ type: "membership" }])).toBe(true);
     expect(cartHasMembership([{ type: "combo" }, { type: "membership" }])).toBe(true);
+  });
+});
+
+describe("paymentMethodsForCart", () => {
+  const methods = [
+    { id: 6, slug: "stripe" },
+    { id: 3, slug: "paypal" },
+  ];
+
+  it("deja PayPal en paquetes / productos", () => {
+    expect(paymentMethodsForCart(methods, false).map((method) => method.slug)).toEqual([
+      "stripe",
+      "paypal",
+    ]);
+  });
+
+  it("oculta PayPal si hay membresía: no hay cobro recurrente", () => {
+    expect(paymentMethodsForCart(methods, true).map((method) => method.slug)).toEqual(["stripe"]);
+    expect(
+      paymentMethodsForCart(
+        [
+          { id: 3, slug: "PayPal" },
+          { id: 6, slug: "stripe" },
+        ],
+        true,
+      ).map((method) => method.slug),
+    ).toEqual(["stripe"]);
   });
 });
 

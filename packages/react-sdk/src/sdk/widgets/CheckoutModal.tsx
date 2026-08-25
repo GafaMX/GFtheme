@@ -58,6 +58,7 @@ import {
 import { retryReservate } from "../cart/reservateRetry";
 import {
   cartHasMembership,
+  paymentMethodsForCart,
   readShowMembershipOptions,
   syncGafaPayMembershipToggles,
 } from "../cart/membershipPayOptions";
@@ -353,8 +354,13 @@ export function CheckoutModal({
   });
 
   const config = configQuery.data;
-  const paymentMethods = config?.paymentMethods ?? [];
   const hasTerms = Boolean(config?.termsConditionsLink);
+
+  const relevantLines = classAttached
+    ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
+    : lines;
+  const membershipPurchase = cartHasMembership(relevantLines);
+  const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
 
   // Compra suelta: el catalogo de la MARCA (listCombos), no el recorte de la
   // sede en create-form-template. Si no, un paquete de Lomas no aparece cuando
@@ -393,8 +399,13 @@ export function CheckoutModal({
     : !catalogQuery.isFetched && !catalogQuery.isError;
 
   useEffect(() => {
-    if (selectedMethodId != null) return;
-    if (paymentMethods[0]) setSelectedMethodId(paymentMethods[0].id);
+    if (paymentMethods.length === 0) {
+      if (selectedMethodId != null) setSelectedMethodId(null);
+      return;
+    }
+    const stillValid = paymentMethods.some((method) => method.id === selectedMethodId);
+    if (selectedMethodId != null && stillValid) return;
+    setSelectedMethodId(paymentMethods[0].id);
   }, [paymentMethods, selectedMethodId]);
 
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
@@ -424,10 +435,6 @@ export function CheckoutModal({
 
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
-  const relevantLines = classAttached
-    ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
-    : lines;
-  const membershipPurchase = cartHasMembership(relevantLines);
   const subtotal = cartSubtotal(relevantLines);
   const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
   const discountLabel = appliedDiscount?.label;
