@@ -2499,27 +2499,62 @@
 }
 
 .gafa-header-cart {
-  --gafa-control-padding: 0 0.75rem;
-  --gafa-control-bg: var(--gafa-color-surface);
-  --gafa-control-border: 1px solid var(--gafa-color-border);
-  --gafa-control-fg: var(--gafa-color-text);
-  --gafa-fg: var(--gafa-color-text);
-  --gafa-control-radius: var(--gafa-radius-pill);
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
-  border-radius: var(--gafa-radius-pill);
-  color: var(--gafa-color-text);
-  padding: 0 0.75rem;
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-control-font-size: 0.68rem;
+  --gafa-control-height: 38px;
+  --gafa-control-min-height: 38px;
+  --gafa-control-padding: 0px;
+  --gafa-control-radius: 999px;
+  --gafa-control-tracking: 0;
+  --gafa-control-transform: none;
+  --gafa-control-width: 38px;
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  border: none;
+  border-radius: 999px;
+  color: var(--gafa-color-primary-text);
+  height: 38px;
+  justify-content: center;
+  min-width: 38px;
+  overflow: visible;
+  padding: 0;
+  width: 38px;
 }
 
 .gafa-header-cart:hover {
-  --gafa-control-border: 1px solid var(--gafa-color-primary);
-  border-color: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  filter: brightness(1.06);
+}
+
+.gafa-header-cart svg {
+  display: block;
+  flex: 0 0 18px;
+  height: 18px;
+  width: 18px;
 }
 
 .gafa-header-cart__count {
-  font-size: 0.8rem;
+  align-items: center;
+  background: var(--gafa-color-primary-text);
+  border: 2px solid var(--gafa-color-primary);
+  border-radius: 999px;
+  color: var(--gafa-color-primary);
+  display: inline-flex;
+  font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  height: 18px;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  min-width: 18px;
+  padding: 0 4px;
+  position: absolute;
+  right: -5px;
+  text-transform: none;
+  top: -5px;
 }
 
 .gafa-header-account {

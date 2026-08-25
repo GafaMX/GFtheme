@@ -128,6 +128,30 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout__line-remove:not(.gafa-pay-
   overflow: visible !important;
 }
 
+/*
+ * Carrito del header: círculo de marca + badge del conteo. Sin esto Fitspin
+ * (`.fp-login-slot button { padding: 10px 20px }`) y Elementor lo aplastan
+ * a una pastilla gris sobre el header oscuro.
+ */
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-cart:not(.gafa-pay-native *) {
+  height: 38px !important;
+  max-width: 38px !important;
+  min-height: 38px !important;
+  min-width: 38px !important;
+  overflow: visible !important;
+  width: 38px !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-cart__count:not(.gafa-pay-native *) {
+  background: var(--gafa-color-primary-text) none !important;
+  color: var(--gafa-color-primary) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  padding: 0 4px !important;
+  text-transform: none !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
   .gafa-icon-button,
   .gafa-reservation-close,

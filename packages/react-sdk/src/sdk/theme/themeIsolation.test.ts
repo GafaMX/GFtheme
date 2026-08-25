@@ -92,6 +92,20 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(/\.gafa-checkout-product__add[\s\S]{0,400}min-height:\s*34px/);
   });
 
+  it("el carrito del header es un círculo de marca, no una pastilla gris", () => {
+    expect(widgetsCss).toMatch(
+      /\.gafa-header-cart \{[\s\S]{0,520}--gafa-control-bg:\s*var\(--gafa-color-primary\)/,
+    );
+    expect(widgetsCss).toMatch(/\.gafa-header-cart \{[\s\S]{0,720}width:\s*38px/);
+    expect(widgetsCss).toMatch(/\.gafa-header-cart \{[\s\S]{0,720}overflow:\s*visible/);
+    expect(widgetsCss).toMatch(
+      /\.gafa-header-cart__count \{[\s\S]{0,420}position:\s*absolute/,
+    );
+    expect(themeCss).toMatch(
+      /\.gafa-header-cart:not\(\.gafa-pay-native \*\) \{[\s\S]{0,280}overflow:\s*visible/,
+    );
+  });
+
   it("asigna borde de control en las cards y el Hoy del calendario", () => {
     expect(widgetsCss).toContain(".gafa-meeting-card");
     expect(widgetsCss).toMatch(/\.gafa-meeting-card[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);
