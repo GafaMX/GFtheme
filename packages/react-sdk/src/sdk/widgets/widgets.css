@@ -2574,14 +2574,14 @@
 
 .gafa-header-account__dot {
   background: var(--gafa-color-success);
-  border: 2px solid var(--gafa-color-primary-text);
+  border: 1px solid var(--gafa-color-primary-text);
   border-radius: 50%;
   box-sizing: border-box;
-  height: 12px;
+  height: 10px;
   position: absolute;
-  right: -3px;
-  top: -3px;
-  width: 12px;
+  right: 1px;
+  top: 1px;
+  width: 10px;
 }
 
 @media (max-width: 620px) {

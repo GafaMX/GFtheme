@@ -106,13 +106,14 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     );
   });
 
-  it("el puntito de conectado se sale como el badge del carrito, no vive dentro del botón", () => {
+  it("el puntito de conectado se asoma un poco en el borde, sin flotar fuera del círculo", () => {
     expect(widgetsCss).toMatch(
       /\.gafa-header-account \{\n  --gafa-control-padding:[\s\S]{0,500}overflow:\s*visible/,
     );
-    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}top:\s*-3px/);
-    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}width:\s*12px/);
-    expect(themeCss).toMatch(/\.gafa-header-account__dot:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}top:\s*-3px/);
+    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}top:\s*1px/);
+    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}width:\s*10px/);
+    expect(themeCss).toMatch(/\.gafa-header-account__dot:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}top:\s*1px/);
+    expect(themeCss).toMatch(/\.gafa-header-account__dot:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}width:\s*10px/);
   });
 
   it("Código válido del GiftCard usa --gafa-type-size chico, no hereda el total del checkout", () => {
