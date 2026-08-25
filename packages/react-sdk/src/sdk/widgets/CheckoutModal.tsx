@@ -475,7 +475,7 @@ export function CheckoutModal({
     if (!client.checkGiftCode || !brandSlug || !locationSlug) {
       if (seq !== giftCheckSeq.current) return;
       setGiftStatus("ok");
-      setGiftHint("código válido");
+      setGiftHint("Código válido");
       return;
     }
     setGiftStatus("checking");
@@ -500,7 +500,7 @@ export function CheckoutModal({
           if (seq !== giftCheckSeq.current) return;
           if (availability.status === "available") {
             setGiftStatus("ok");
-            setGiftHint("código válido");
+            setGiftHint("Código válido");
             return;
           }
         }
@@ -508,7 +508,7 @@ export function CheckoutModal({
 
       if (availability.status === "available") {
         setGiftStatus("ok");
-        setGiftHint("código válido");
+        setGiftHint("Código válido");
         return;
       }
       setGiftStatus("error");
@@ -2036,6 +2036,9 @@ function PromoDisclosure({
           </div>
           {status === "ok" && persistField && hint ? (
             <p className="gafa-checkout-promo__applied" data-status="ok" aria-live="polite">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M2 7.5L5.5 11L12 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               {hint}
             </p>
           ) : status === "error" && hint ? (

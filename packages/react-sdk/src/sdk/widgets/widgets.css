@@ -2568,17 +2568,20 @@
   border: none;
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-primary-text);
+  overflow: visible;
   padding: 0 0.9rem;
 }
 
 .gafa-header-account__dot {
   background: var(--gafa-color-success);
+  border: 2px solid var(--gafa-color-primary);
   border-radius: 50%;
-  height: 8px;
+  box-sizing: border-box;
+  height: 10px;
   position: absolute;
-  right: 4px;
-  top: 4px;
-  width: 8px;
+  right: -3px;
+  top: -3px;
+  width: 10px;
 }
 
 @media (max-width: 620px) {
@@ -5574,6 +5577,11 @@
   gap: 0.5rem;
 }
 
+.gafa-checkout-promo {
+  --gafa-type-size: 0.8rem;
+  --gafa-type-leading: 1.35;
+}
+
 .gafa-checkout-promo__link {
   --gafa-type-size: 0.8rem;
   --gafa-control-font-size: 0.8rem;
@@ -5654,6 +5662,9 @@
 }
 
 .gafa-checkout-promo small {
+  --gafa-fg: #b91c1c;
+  --gafa-type-size: 0.74rem;
+  --gafa-type-leading: 1.3;
   color: #b91c1c;
   display: block;
   font-size: 0.74rem;
@@ -5661,13 +5672,20 @@
 }
 
 .gafa-checkout-promo__applied {
+  --gafa-fg: #15803d;
+  --gafa-type-size: 0.78rem;
+  --gafa-type-leading: 1.3;
   align-items: center;
   color: #15803d;
   display: inline-flex;
-  font-size: 0.8rem;
+  font-family: var(--gafa-font-body);
+  font-size: 0.78rem;
   font-weight: 600;
   gap: 0.4rem;
-  margin: 0;
+  letter-spacing: 0;
+  line-height: 1.3;
+  margin: 0.35rem 0 0;
+  text-transform: none;
 }
 
 .gafa-checkout-promo__head {

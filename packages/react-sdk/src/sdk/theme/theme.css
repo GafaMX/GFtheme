@@ -152,6 +152,17 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-cart__count:not(.gafa-pay-nat
   text-transform: none !important;
 }
 
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account:not(.gafa-pay-native *) {
+  overflow: visible !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account__dot:not(.gafa-pay-native *) {
+  height: 10px !important;
+  right: -3px !important;
+  top: -3px !important;
+  width: 10px !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
   .gafa-icon-button,
   .gafa-reservation-close,

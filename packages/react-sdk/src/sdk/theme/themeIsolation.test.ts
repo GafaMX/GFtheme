@@ -106,6 +106,25 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     );
   });
 
+  it("el puntito de conectado se sale como el badge del carrito, no vive dentro del botón", () => {
+    expect(widgetsCss).toMatch(
+      /\.gafa-header-account \{\n  --gafa-control-padding:[\s\S]{0,500}overflow:\s*visible/,
+    );
+    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}top:\s*-3px/);
+    expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}width:\s*10px/);
+    expect(themeCss).toMatch(/\.gafa-header-account__dot:not\(\.gafa-pay-native \*\) \{[\s\S]{0,200}top:\s*-3px/);
+  });
+
+  it("Código válido del GiftCard usa --gafa-type-size chico, no hereda el total del checkout", () => {
+    expect(widgetsCss).toMatch(/\.gafa-checkout-promo \{[\s\S]{0,80}--gafa-type-size:\s*0\.8rem/);
+    expect(widgetsCss).toMatch(
+      /\.gafa-checkout-promo__applied \{[\s\S]{0,280}--gafa-type-size:\s*0\.78rem/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-checkout-promo__applied \{[\s\S]{0,280}--gafa-fg:\s*#15803d/,
+    );
+  });
+
   it("asigna borde de control en las cards y el Hoy del calendario", () => {
     expect(widgetsCss).toContain(".gafa-meeting-card");
     expect(widgetsCss).toMatch(/\.gafa-meeting-card[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);

@@ -206,7 +206,7 @@ export function giftCodeAvailability(result: GiftCodeResult): GiftCodeAvailabili
     return { status: "invalid", message: "código no válido" };
   }
 
-  return { status: "available", message: "código válido" };
+  return { status: "available", message: "Código válido" };
 }
 
 function giftCheckErrorMessage(data: unknown): string | undefined {
