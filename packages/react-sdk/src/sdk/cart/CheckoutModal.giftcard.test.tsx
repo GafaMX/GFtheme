@@ -179,10 +179,25 @@ describe("CheckoutModal Convertir en GiftCard", () => {
     renderPay(mockClient());
     await waitUntilPayReady();
 
-    expect(screen.getByRole("checkbox", { name: /convertir en giftcard/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /convertir en giftcard/i })).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: /convertir en giftcard/i })).toBeNull();
     expect(screen.queryByText(/canjear gift card/i)).toBeNull();
     expect(screen.queryByText(/mostrador/i)).toBeNull();
-    expect(screen.getByText(/para regalar/i)).toBeTruthy();
+    expect(screen.queryByText(/para regalar/i)).toBeNull();
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(screen.queryByRole("button", { name: /más información/i })).toBeNull();
+  });
+
+  it("al clic sale el campo y la i, como el código de descuento", async () => {
+    renderPay(mockClient());
+    await waitUntilPayReady();
+
+    fireEvent.click(screen.getByRole("button", { name: /convertir en giftcard/i }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Código de GiftCard")).toBeTruthy();
+    });
+    expect(screen.getByRole("button", { name: /más información/i })).toBeTruthy();
+    expect(screen.getByRole("tooltip", { name: /para regalar/i })).toBeTruthy();
   });
 
   it("al activarlo genera un código corto y lo marca válido", async () => {
@@ -190,7 +205,7 @@ describe("CheckoutModal Convertir en GiftCard", () => {
     renderPay(client);
     await waitUntilPayReady();
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /convertir en giftcard/i }));
+    fireEvent.click(screen.getByRole("button", { name: /convertir en giftcard/i }));
 
     const input = await screen.findByLabelText("Código de GiftCard");
     await waitFor(() => {
@@ -207,7 +222,7 @@ describe("CheckoutModal Convertir en GiftCard", () => {
     renderPay(mockClient());
     await waitUntilPayReady();
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /convertir en giftcard/i }));
+    fireEvent.click(screen.getByRole("button", { name: /convertir en giftcard/i }));
     await waitFor(() => {
       expect(screen.getByText(/código válido/i)).toBeTruthy();
     });
@@ -258,7 +273,7 @@ describe("CheckoutModal Convertir en GiftCard", () => {
     renderPay(client2);
     await waitUntilPayReady();
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /convertir en giftcard/i }));
+    fireEvent.click(screen.getByRole("button", { name: /convertir en giftcard/i }));
     await waitFor(() => {
       expect(screen.getByText(/código válido/i)).toBeTruthy();
     });

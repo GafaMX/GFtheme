@@ -1370,66 +1370,38 @@ export function CheckoutModal({
                   ) : null}
 
                   {config?.giftCardsEnabled ? (
-                    <div className="gafa-checkout-gift">
-                      <p className="gafa-checkout-gift__lead">
-                        Convierte esta compra en una GiftCard para regalar. El código se activa al
-                        pagar y se canjea en el estudio.
-                      </p>
-                      <CheckField
-                        className="gafa-checkout-gift__toggle"
-                        checked={convertGift}
-                        onChange={(next) => {
-                          setConvertGift(next);
-                          if (next) {
-                            void assignGeneratedGiftCode();
-                            return;
-                          }
-                          giftTypingRef.current = false;
-                          giftCheckSeq.current += 1;
-                          setGiftCode("");
-                          setGiftStatus("idle");
-                          setGiftHint(undefined);
-                        }}
-                      >
-                        Convertir en GiftCard
-                      </CheckField>
-                      {convertGift ? (
-                        <>
-                          <div className="gafa-checkout-gift__row">
-                            <input
-                              value={giftCode}
-                              spellCheck={false}
-                              autoCapitalize="characters"
-                              autoCorrect="off"
-                              aria-label="Código de GiftCard"
-                              onChange={(event) => {
-                                giftTypingRef.current = true;
-                                setGiftStatus("checking");
-                                setGiftHint("revisando…");
-                                setGiftCode(event.target.value.toUpperCase());
-                              }}
-                            />
-                            <button
-                              type="button"
-                              className="gafa-checkout-gift__refresh"
-                              aria-label="Generar otro código"
-                              onClick={() => void assignGeneratedGiftCode()}
-                            >
-                              <RefreshGiftIcon />
-                            </button>
-                          </div>
-                          {giftHint ? (
-                            <small
-                              className="gafa-checkout-gift__status"
-                              data-status={giftStatus}
-                              aria-live="polite"
-                            >
-                              {giftHint}
-                            </small>
-                          ) : null}
-                        </>
-                      ) : null}
-                    </div>
+                    <PromoDisclosure
+                      linkLabel="Convertir en GiftCard"
+                      open={convertGift}
+                      onToggle={() => {
+                        const next = !convertGift;
+                        setConvertGift(next);
+                        if (next) {
+                          void assignGeneratedGiftCode();
+                          return;
+                        }
+                        giftTypingRef.current = false;
+                        giftCheckSeq.current += 1;
+                        setGiftCode("");
+                        setGiftStatus("idle");
+                        setGiftHint(undefined);
+                      }}
+                      value={giftCode}
+                      onChange={(value) => {
+                        giftTypingRef.current = true;
+                        setGiftStatus("checking");
+                        setGiftHint("revisando…");
+                        setGiftCode(value.toUpperCase());
+                      }}
+                      onApply={assignGeneratedGiftCode}
+                      status={giftStatus}
+                      hint={giftHint}
+                      info="Convierte esta compra en una GiftCard para regalar. El código se activa al pagar y se canjea en el estudio."
+                      persistField
+                      inputLabel="Código de GiftCard"
+                      applyAriaLabel="Generar otro código"
+                      applyLabel={<RefreshGiftIcon />}
+                    />
                   ) : null}
 
                   {hasTerms ? (
@@ -1986,6 +1958,11 @@ function PromoDisclosure({
   onApply,
   status,
   hint,
+  info,
+  persistField = false,
+  inputLabel,
+  applyLabel,
+  applyAriaLabel,
 }: {
   linkLabel: string;
   open: boolean;
@@ -1995,8 +1972,13 @@ function PromoDisclosure({
   onApply: () => void | Promise<void>;
   status: "idle" | "checking" | "ok" | "error";
   hint?: string;
+  info?: string;
+  persistField?: boolean;
+  inputLabel?: string;
+  applyLabel?: React.ReactNode;
+  applyAriaLabel?: string;
 }) {
-  if (status === "ok" && hint) {
+  if (status === "ok" && hint && !persistField) {
     return (
       <p className="gafa-checkout-promo__applied" data-status="ok">
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -2009,15 +1991,31 @@ function PromoDisclosure({
 
   return (
     <div className="gafa-checkout-promo" data-status={status}>
-      <button className="gafa-checkout-promo__link" type="button" aria-expanded={open} onClick={onToggle}>
-        {linkLabel}
-      </button>
+      <div className="gafa-checkout-promo__head">
+        <button className="gafa-checkout-promo__link" type="button" aria-expanded={open} onClick={onToggle}>
+          {linkLabel}
+        </button>
+        {open && info ? (
+          <span className="gafa-checkout-promo__info">
+            <button type="button" aria-label="Más información">
+              i
+            </button>
+            <span role="tooltip" className="gafa-checkout-product__tooltip">
+              {info}
+            </span>
+          </span>
+        ) : null}
+      </div>
       {open ? (
         <>
           <div className="gafa-checkout-promo__row">
             <input
               value={value}
               autoFocus
+              aria-label={inputLabel}
+              spellCheck={false}
+              autoCapitalize="characters"
+              autoCorrect="off"
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -2027,11 +2025,22 @@ function PromoDisclosure({
               }}
               placeholder="Código"
             />
-            <button type="button" onClick={() => void onApply()} disabled={status === "checking" || !value.trim()}>
-              {status === "checking" ? "…" : "Aplicar"}
+            <button
+              type="button"
+              aria-label={applyAriaLabel}
+              onClick={() => void onApply()}
+              disabled={status === "checking" || (!persistField && !value.trim())}
+            >
+              {status === "checking" ? "…" : (applyLabel ?? "Aplicar")}
             </button>
           </div>
-          {status === "error" && hint ? <small>{hint}</small> : null}
+          {status === "ok" && persistField && hint ? (
+            <p className="gafa-checkout-promo__applied" data-status="ok" aria-live="polite">
+              {hint}
+            </p>
+          ) : status === "error" && hint ? (
+            <small>{hint}</small>
+          ) : null}
         </>
       ) : null}
     </div>
