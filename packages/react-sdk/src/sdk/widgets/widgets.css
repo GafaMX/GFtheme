@@ -5671,20 +5671,22 @@
   margin-top: 0.25rem;
 }
 
+.gafa-checkout-promo small.gafa-checkout-promo__applied,
 .gafa-checkout-promo__applied {
   --gafa-fg: #15803d;
-  --gafa-type-size: 0.78rem;
-  --gafa-type-leading: 1.3;
+  --gafa-type-size: 0.8rem;
+  --gafa-type-leading: 1.35;
   align-items: center;
   color: #15803d;
   display: inline-flex;
   font-family: var(--gafa-font-body);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
+  font-style: normal;
   font-weight: 600;
-  gap: 0.4rem;
+  gap: 0.35rem;
   letter-spacing: 0;
-  line-height: 1.3;
-  margin: 0.35rem 0 0;
+  line-height: 1.35;
+  margin: 0.3rem 0 0;
   text-transform: none;
 }
 

@@ -118,10 +118,16 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
   it("Código válido del GiftCard usa --gafa-type-size chico, no hereda el total del checkout", () => {
     expect(widgetsCss).toMatch(/\.gafa-checkout-promo \{[\s\S]{0,80}--gafa-type-size:\s*0\.8rem/);
     expect(widgetsCss).toMatch(
-      /\.gafa-checkout-promo__applied \{[\s\S]{0,280}--gafa-type-size:\s*0\.78rem/,
+      /\.gafa-checkout-promo__applied \{[\s\S]{0,280}--gafa-type-size:\s*0\.8rem/,
     );
     expect(widgetsCss).toMatch(
       /\.gafa-checkout-promo__applied \{[\s\S]{0,280}--gafa-fg:\s*#15803d/,
+    );
+    expect(themeCss).toMatch(
+      /\.gafa-checkout-promo__applied:not\(\.gafa-pay-native \*\) \{[\s\S]{0,400}font-size:\s*0\.8rem !important/,
+    );
+    expect(themeCss).toMatch(
+      /\.gafa-checkout-promo__applied:not\(\.gafa-pay-native \*\) \{[\s\S]{0,400}font-family:\s*var\(--gafa-font-body\) !important/,
     );
   });
 

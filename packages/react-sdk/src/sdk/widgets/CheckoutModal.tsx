@@ -1980,12 +1980,12 @@ function PromoDisclosure({
 }) {
   if (status === "ok" && hint && !persistField) {
     return (
-      <p className="gafa-checkout-promo__applied" data-status="ok">
+      <small className="gafa-checkout-promo__applied" data-status="ok">
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M2 7.5L5.5 11L12 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         {hint}
-      </p>
+      </small>
     );
   }
 
@@ -2035,12 +2035,12 @@ function PromoDisclosure({
             </button>
           </div>
           {status === "ok" && persistField && hint ? (
-            <p className="gafa-checkout-promo__applied" data-status="ok" aria-live="polite">
+            <small className="gafa-checkout-promo__applied" data-status="ok" aria-live="polite">
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M2 7.5L5.5 11L12 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {hint}
-            </p>
+            </small>
           ) : status === "error" && hint ? (
             <small>{hint}</small>
           ) : null}

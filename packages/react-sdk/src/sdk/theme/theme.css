@@ -231,6 +231,22 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-search input:not(.gafa-pay-
   width: var(--gafa-search-width, 92px) !important;
 }
 
+/* Código válido / descuento aplicado: Fitspin pinta `p` del aside al tamaño
+   del Total. Mismo 0.8rem que el enlace de promo, con !important. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-promo__applied:not(.gafa-pay-native *) {
+  --gafa-fg: #15803d;
+  --gafa-type-size: 0.8rem;
+  --gafa-type-leading: 1.35;
+  color: #15803d !important;
+  font-family: var(--gafa-font-body) !important;
+  font-size: 0.8rem !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.35 !important;
+  text-transform: none !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk :is(.gafa-widget-card, .gafa-filterbar-location, .gafa-sdk-panel) {
   border-color: var(--gafa-color-border) !important;
 }
