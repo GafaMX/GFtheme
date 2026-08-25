@@ -11,29 +11,56 @@ describe("exploreDefaults", () => {
     vi.restoreAllMocks();
   });
 
-  it("Reservar hace scroll al calendario y quita el hash de paquetes", () => {
-    window.history.pushState("", document.title, "/#paquetes");
+  it("Reservar va a /reservar aunque haya calendario en la landing", () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", {
+      pathname: "/",
+      hostname: "fitspin.mx",
+      hash: "#paquetes",
+      search: "",
+      assign,
+      href: "https://fitspin.mx/#paquetes",
+    });
     document.body.innerHTML = `<div data-gf-theme="meetings-calendar"></div>`;
     const calendar = document.querySelector<HTMLElement>("[data-gf-theme='meetings-calendar']")!;
     calendar.scrollIntoView = vi.fn();
 
     defaultExploreClasses();
 
-    expect(window.location.hash).toBe("");
-    expect(calendar.scrollIntoView).toHaveBeenCalled();
+    expect(assign).toHaveBeenCalledWith("/reservar");
+    expect(calendar.scrollIntoView).not.toHaveBeenCalled();
   });
 
-  it("Reservar sin calendario en la pagina va a /reservar", () => {
-    expect(reservePageHref("/")).toBe("/reservar");
-    expect(reservePageHref("/fitspin")).toBe("/reservar");
-    expect(reservePageHref("/reservar")).toBeNull();
-    expect(reservePageHref("/reservar/")).toBeNull();
-    expect(reservePageHref("/", "/reservar")).toBe("/reservar");
+  it("Reservar arma /fitspin/reservar en Buq-Webs", () => {
+    expect(reservePageHref("/", null, "fitspin.mx")).toBe("/reservar");
+    expect(reservePageHref("/fitspin", null, "web.buq.mx")).toBe("/fitspin/reservar");
+    expect(reservePageHref("/fitspin/", null, "web.buq.mx")).toBe("/fitspin/reservar");
+    expect(reservePageHref("/reservar", null, "fitspin.mx")).toBeNull();
+    expect(reservePageHref("/fitspin/reservar", null, "web.buq.mx")).toBeNull();
+    expect(reservePageHref("/", "/reservar", "fitspin.mx")).toBe("/reservar");
+  });
+
+  it("ya en /reservar, scrollea al calendario de esa pagina", () => {
+    window.history.pushState("", document.title, "/reservar");
+    document.body.innerHTML = `<div data-gf-theme="meetings-calendar"></div>`;
+    const calendar = document.querySelector<HTMLElement>("[data-gf-theme='meetings-calendar']")!;
+    calendar.scrollIntoView = vi.fn();
+
+    defaultExploreClasses();
+
+    expect(calendar.scrollIntoView).toHaveBeenCalled();
   });
 
   it("Reservar sin calendario navega a /reservar", () => {
     const assign = vi.fn();
-    vi.stubGlobal("location", { pathname: "/", hash: "", search: "", assign, href: "http://localhost/" });
+    vi.stubGlobal("location", {
+      pathname: "/",
+      hostname: "fitspin.mx",
+      hash: "",
+      search: "",
+      assign,
+      href: "https://fitspin.mx/",
+    });
 
     defaultExploreClasses();
 

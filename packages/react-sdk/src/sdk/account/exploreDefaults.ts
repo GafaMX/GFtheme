@@ -6,8 +6,9 @@
  * Comprar tiene que abrir el fancy nativo (paquetes / membresías / productos),
  * no un #paquetes que en WordPress a menudo no existe.
  *
- * Reservar: si el calendario ya está en la pagina, hacemos scroll. Si no
- * (Fitspin home, etc.), hay que ir a `/reservar` — no al top de la misma URL.
+ * Reservar siempre va a la pagina `/reservar` (en Buq-Webs,
+ * `/fitspin/reservar`). Un calendario incrustado en la home no cuenta: Fitspin
+ * reserva en esa ruta, no scrolleando la landing.
  */
 
 const ACCOUNT_CHROME = ".gafa-account-overlay, .gafa-checkout-overlay";
@@ -68,31 +69,43 @@ function clearPackagesHash() {
 }
 
 /**
- * Destino de Reservar cuando el calendario no está en esta pagina.
- * `null` = ya estamos en /reservar: solo hay que scrollear al top.
+ * Destino de Reservar. `null` = ya estamos en esa pagina: scrollear al
+ * calendario si está montado.
+ *
+ * En `web.buq.mx/fitspin` la ruta es `/fitspin/reservar`, no `/reservar`
+ * (eso se sale de la marca). Un `<a href="…reservar">` del sitio gana.
  */
-export function reservePageHref(pathname: string, reserveLinkHref?: string | null): string | null {
-  const href = reserveLinkHref?.trim();
-  if (href && href !== "#" && !href.startsWith("#")) return href;
+export function reservePageHref(
+  pathname: string,
+  reserveLinkHref?: string | null,
+  hostname = typeof window !== "undefined" ? window.location.hostname : "",
+): string | null {
   if (/\/reservar\/?$/i.test(pathname)) return null;
+  const fromNav = reserveLinkHref?.trim();
+  if (fromNav && fromNav !== "#" && !fromNav.startsWith("#")) return fromNav;
+  if (/(^|\.)web\.buq\.mx$/i.test(hostname)) {
+    const brand = pathname.split("/").filter(Boolean)[0];
+    if (brand && brand !== "reservar") return `/${brand}${RESERVE_PATH}`;
+  }
   return RESERVE_PATH;
 }
 
 export function defaultExploreClasses() {
   if (typeof window === "undefined") return;
   clearPackagesHash();
-  const calendar = firstOutsideChrome(CALENDAR_SELECTORS);
-  if (calendar) {
-    scrollTo(calendar);
-    return;
-  }
   const nav = firstOutsideChrome(RESERVE_LINK_SELECTORS);
   const href = reservePageHref(
     window.location.pathname,
     nav instanceof HTMLAnchorElement ? nav.getAttribute("href") : null,
+    window.location.hostname,
   );
   if (href) {
     window.location.assign(href);
+    return;
+  }
+  const calendar = firstOutsideChrome(CALENDAR_SELECTORS);
+  if (calendar) {
+    scrollTo(calendar);
     return;
   }
   window.scrollTo({ top: 0, behavior: "smooth" });

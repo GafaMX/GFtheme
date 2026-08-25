@@ -157,10 +157,10 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account:not(.gafa-pay-native 
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account__dot:not(.gafa-pay-native *) {
-  height: 10px !important;
-  right: -3px !important;
-  top: -3px !important;
-  width: 10px !important;
+  height: 9px !important;
+  right: -1px !important;
+  top: -1px !important;
+  width: 9px !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk :is(

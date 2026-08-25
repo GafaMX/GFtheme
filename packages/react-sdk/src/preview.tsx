@@ -234,7 +234,6 @@ function Preview() {
             open={open}
             onClose={() => setOpen(false)}
             title="Fitspin"
-            onExploreClasses={() => window.alert("Ir al calendario (demo)")}
             onExplorePackages={() => window.alert("Ir a paquetes (demo)")}
           />
         </div>

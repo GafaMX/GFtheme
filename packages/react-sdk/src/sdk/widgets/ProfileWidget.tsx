@@ -29,9 +29,9 @@ export type ProfileWidgetProps = {
   variant?: "page" | "modal";
   onRequestClose?(): void;
   /**
-   * CTA de los estados vacios: Reservar (calendario o `/reservar`) y Comprar (paquetes).
-   * Si el sitio no los pasa, Reservar lleva al calendario si está en la pagina
-   * y si no a `/reservar`. Comprar abre el fancy nativo de paquetes / membresías / productos.
+   * CTA de los estados vacios: Reservar (`/reservar`) y Comprar (paquetes).
+   * Si el sitio no los pasa, Reservar navega a `/reservar`. Comprar abre el
+   * fancy nativo de paquetes / membresías / productos.
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
