@@ -79,30 +79,19 @@ const futureReservations = [
   },
 ];
 
-const pastReservations = [
-  {
-    id: 11,
-    serviceName: "Bici AM",
-    startsAt: inDays(-2, 6),
-    locationName: "Lomas",
-    staffName: "Pau J",
-    brandSlug: "fitspin",
-    isWaitlist: false,
-    isOverbooking: false,
-    creditId: 2,
-    creditTypeName: "CDMXnew",
-  },
-  {
-    id: 12,
-    serviceName: "Fuerza",
-    startsAt: inDays(-6, 7),
-    locationName: "Lomas",
-    staffName: "ISA",
-    brandSlug: "fitspin",
-    isWaitlist: false,
-    isOverbooking: false,
-  },
-];
+const pastReservations = Array.from({ length: 16 }, (_, i) => ({
+  id: 20 + i,
+  serviceName: i % 3 === 0 ? "Fuerza" : "Bici AM",
+  startsAt: inDays(-(i + 1), 7),
+  locationName: i % 2 ? "Cancún" : "Lomas",
+  staffName: i % 2 ? "ISA" : "Pau J",
+  brandSlug: "fitspin",
+  isWaitlist: false,
+  isOverbooking: false,
+  creditId: 2,
+  creditTypeName: "CDMXnew",
+  cancelled: i < 3,
+}));
 
 const client = {
   getProfile: async () => ({
