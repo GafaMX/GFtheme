@@ -669,20 +669,48 @@ describe("CheckoutModal Recurrente", () => {
 
 describe("CheckoutModal PayPal CTA", () => {
   const originalOpen = window.open;
+  let lastPaypalProps: GafaPayWidgetProps | undefined;
 
   beforeEach(() => {
+    lastPaypalProps = undefined;
     useCartStore.setState({ lines: [cartLine], reservation: null });
+    const initXO = vi.fn(() => {
+      window.open("https://www.paypal.com/checkoutnow");
+    });
+    (window as unknown as { paypal: unknown }).paypal = {
+      Button: {
+        render: (_options: unknown, selector: string | Element) => {
+          const node = typeof selector === "string" ? document.querySelector(selector) : selector;
+          if (node instanceof HTMLElement) {
+            node.innerHTML = `<div class="paypal-button" role="button">PayPal</div>`;
+          }
+        },
+      },
+      checkout: { initXO, startFlow: vi.fn(), closeXO: vi.fn() },
+    };
     mocks.loadGafaPay.mockResolvedValue({
       React: { createElement: () => null },
       ReactDOM: { render: () => undefined, unmountComponentAtNode: () => true },
       elements: { PaypalPayment: function PaypalPayment() {} },
     });
-    mocks.mountGafaPayWidget.mockImplementation((_runtime, container): GafaPayIsland => {
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      lastPaypalProps = props;
       if (container instanceof Element) {
-        container.innerHTML = `<div id="paypal"><div class="paypal-button" role="button">PayPal</div></div>`;
-        container.querySelector(".paypal-button")?.addEventListener("click", () => {
-          window.open("https://www.paypal.com/checkoutnow");
-        });
+        container.innerHTML = `<div id="paypal"></div>`;
+        const host = container.querySelector("#paypal");
+        const paypal = (window as unknown as {
+          paypal?: { Button?: { render?: (options: unknown, selector: string | Element) => unknown } };
+        }).paypal;
+        paypal?.Button?.render?.(
+          {
+            payment: () => {
+              props.onStartPayAction();
+              return "PAY-1";
+            },
+            onCancel: () => props.onGafaPayErrAction({ message: "Se canceló el pago con PayPal." }),
+          },
+          host ?? "#paypal",
+        );
       }
       return { update: () => undefined, unmount: () => undefined };
     });
@@ -693,6 +721,7 @@ describe("CheckoutModal PayPal CTA", () => {
     cleanup();
     useCartStore.setState({ lines: [], reservation: null });
     window.open = originalOpen;
+    delete (window as unknown as { paypal?: unknown }).paypal;
     vi.clearAllMocks();
   });
 
@@ -730,6 +759,27 @@ describe("CheckoutModal PayPal CTA", () => {
     expect(screen.queryByText(/gracias por tu compra/i)).toBeNull();
 
     window.open = originalOpen;
+  });
+
+  it("si GafaPay cancela PayPal, el CTA vuelve a Pagar", async () => {
+    renderPay(paypalOnlyClient());
+    const pay = await waitFor(() => screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement);
+    await waitFor(() => expect(pay.disabled).toBe(false));
+    await waitFor(() => expect(document.querySelector("#gafa-paypal-cta-hit .paypal-button")).toBeTruthy());
+
+    fireEvent.click(pay);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /esperando paypal/i })).toBeTruthy();
+    });
+
+    lastPaypalProps?.onGafaPayErrAction({ message: "Se canceló el pago con PayPal." });
+
+    await waitFor(() => {
+      const button = screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+    });
+    expect(screen.queryByText(/esperando paypal/i)).toBeNull();
+    expect(screen.queryByText(/se canceló el pago con paypal/i)).toBeNull();
   });
 
   it("si PayPal no abre ventana, no se queda en Procesando", async () => {

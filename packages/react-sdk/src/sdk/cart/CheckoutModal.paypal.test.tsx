@@ -81,6 +81,7 @@ describe("CheckoutModal PayPal panel", () => {
     expect(mount?.getAttribute("data-method")).toBe("paypal");
     expect(document.querySelector(".gafa-checkout-paymount .gafa-pay-native")).toBeTruthy();
     expect(document.querySelector(".gafa-checkout__paypal-cta")).toBeNull();
+    expect(document.getElementById("gafa-paypal-cta-hit")).toBeTruthy();
     expect(screen.getByRole("button", { name: /pagar \$/i })).toBeTruthy();
     expect(screen.queryByText(/completa el pago con el botón de paypal/i)).toBeNull();
   });

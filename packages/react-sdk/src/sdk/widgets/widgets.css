@@ -5426,6 +5426,7 @@
 .gafa-checkout__extras,
 .gafa-checkout__total,
 .gafa-checkout__cta,
+.gafa-checkout__cta-wrap,
 .gafa-checkout__backlink,
 .gafa-checkout__error,
 .gafa-checkout__env-warn {
@@ -5954,6 +5955,35 @@
 
 .gafa-checkout__cta {
   width: 100%;
+}
+
+.gafa-checkout__cta-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.gafa-checkout__paypal-hit {
+  border-radius: inherit;
+  inset: 0;
+  opacity: 0.001;
+  overflow: hidden;
+  position: absolute;
+  z-index: 2;
+}
+
+.gafa-checkout__cta-wrap[data-paypal-locked="true"] .gafa-checkout__paypal-hit,
+.gafa-checkout__cta-wrap[data-busy="true"] .gafa-checkout__paypal-hit,
+.gafa-checkout__paypal-hit:not(:has(iframe, .paypal-button, .paypal-button-container)) {
+  pointer-events: none;
+}
+
+.gafa-checkout__paypal-hit iframe,
+.gafa-checkout__paypal-hit .paypal-button,
+.gafa-checkout__paypal-hit .paypal-button-container {
+  height: 100% !important;
+  min-height: 100%;
+  min-width: 100%;
+  width: 100% !important;
 }
 
 .gafa-checkout__backlink {

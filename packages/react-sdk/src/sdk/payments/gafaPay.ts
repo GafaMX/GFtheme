@@ -182,14 +182,133 @@ function isReact16(candidate?: ReactLike): boolean {
   return Boolean(candidate?.version && candidate.version.startsWith("16"));
 }
 
-type LegacyPaypal = {
-  Button?: { render?: unknown };
+export const PAYPAL_CTA_HIT_ID = "gafa-paypal-cta-hit";
+
+export type PayPalButtonOptions = {
+  payment?: (data: unknown, actions: unknown) => unknown;
+  onAuthorize?: (...args: unknown[]) => unknown;
+  onCancel?: (...args: unknown[]) => unknown;
+  onError?: (error: unknown) => unknown;
+  style?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
+type PayPalCheckoutJs = {
+  Button?: {
+    render?: (options: PayPalButtonOptions, selector: string | Element) => unknown;
+  };
+  checkout?: {
+    initXO?: () => void;
+    startFlow?: (token: string) => void;
+    closeXO?: () => void;
+  };
+};
+
+function paypalGlobal(): PayPalCheckoutJs | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as unknown as { paypal?: PayPalCheckoutJs }).paypal;
+}
+
 function hasLegacyPaypalButton(): boolean {
-  if (typeof window === "undefined") return false;
-  const paypal = (window as unknown as { paypal?: LegacyPaypal }).paypal;
-  return typeof paypal?.Button?.render === "function";
+  return typeof paypalGlobal()?.Button?.render === "function";
+}
+
+let capturedPaypalOptions: PayPalButtonOptions | null = null;
+
+function paymentIdFromResult(result: unknown): string | null {
+  if (typeof result === "string" && result.trim()) return result.trim();
+  if (!result || typeof result !== "object") return null;
+  const id = (result as { id?: unknown }).id;
+  if (typeof id === "string" && id.trim()) return id.trim();
+  if (typeof id === "number" && Number.isFinite(id)) return String(id);
+  return null;
+}
+
+/**
+ * GafaPayFront pinta el botón oro en `#paypal` (centro). El CTA amarillo de
+ * la derecha no puede hacer `.click()` al iframe de checkout.js: el gesto
+ * no llega. Capturamos las options del `Button.render` para:
+ * 1. clonar el botón encima del CTA (clic real al iframe), y
+ * 2. abrir el checkout con `initXO` + `startFlow` si el socio pulsa el botón
+ *    (teclado / si el overlay aún no montó).
+ */
+export function installPayPalButtonCapture(): () => void {
+  const paypal = paypalGlobal();
+  const button = paypal?.Button;
+  const render = button?.render;
+  if (!button || typeof render !== "function") return () => undefined;
+
+  const original = render.bind(button);
+  button.render = ((options: PayPalButtonOptions, selector: string | Element) => {
+    capturedPaypalOptions = options;
+    const first = original(options, selector);
+    const hit = document.getElementById(PAYPAL_CTA_HIT_ID);
+    if (
+      hit &&
+      selector !== hit &&
+      selector !== `#${PAYPAL_CTA_HIT_ID}`
+    ) {
+      try {
+        original(
+          {
+            ...options,
+            style: {
+              ...(options.style && typeof options.style === "object" ? options.style : {}),
+              size: "responsive",
+              shape: "rect",
+              tagline: false,
+            },
+          },
+          hit,
+        );
+      } catch {
+        // Una sola instancia de checkout.js: el CTA usa initXO.
+      }
+    }
+    return first;
+  }) as typeof button.render;
+
+  return () => {
+    button.render = original;
+    capturedPaypalOptions = null;
+  };
+}
+
+export function triggerPayPalCheckout(root?: ParentNode | null): boolean {
+  const paypal = paypalGlobal();
+  const options = capturedPaypalOptions;
+  const checkout = paypal?.checkout;
+  const initXO = checkout?.initXO;
+  const startFlow = checkout?.startFlow;
+  const closeXO = checkout?.closeXO;
+  if (options && typeof options.payment === "function" && typeof initXO === "function" && typeof startFlow === "function") {
+    try {
+      initXO();
+    } catch {
+      return clickPayPalCheckoutButton(root ?? document);
+    }
+    Promise.resolve()
+      .then(() => options.payment?.({}, {}))
+      .then((result) => {
+        const id = paymentIdFromResult(result);
+        if (!id) {
+          closeXO?.();
+          options.onError?.({ message: "No pudimos abrir PayPal. Intenta de nuevo." });
+          return;
+        }
+        startFlow(id);
+      })
+      .catch((err: unknown) => {
+        closeXO?.();
+        options.onError?.(err);
+      });
+    return true;
+  }
+  return clickPayPalCheckoutButton(root ?? document);
+}
+
+export function isPaypalCheckoutCancelMessage(message?: string): boolean {
+  return /se cancel[oó] el pago con paypal/i.test(message ?? "");
 }
 
 /**
@@ -404,7 +523,7 @@ export function triggerGafaPayConfirm(slug: string, root?: ParentNode | null): P
     button.click();
     return Promise.resolve(true);
   } else if (slug === "paypal") {
-    return Promise.resolve(clickPayPalCheckoutButton(root ?? document));
+    return Promise.resolve(triggerPayPalCheckout(root ?? document));
   } else {
     return Promise.resolve(false);
   }

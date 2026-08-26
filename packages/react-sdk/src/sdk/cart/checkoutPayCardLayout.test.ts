@@ -58,6 +58,11 @@ describe("checkout Stripe saved-card layout", () => {
     expect(payMountCss).not.toMatch(/#paypal[^{]{0,80}\{[^}]*width:\s*100%/);
   });
 
+  it("el overlay del CTA cubre el botón amarillo sin mover el oro del centro", () => {
+    expect(widgetsCss).toMatch(/\.gafa-checkout__paypal-hit \{[^}]*position: absolute/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout__paypal-hit \{[^}]*opacity: 0\.001/);
+  });
+
   /*
    * Stripe no usa `.gafapay-elements__cards` (eso es Conekta). Las tarjetas
    * guardadas y "Nueva tarjeta" son hermanos bajo `.gafapay-elements`, que

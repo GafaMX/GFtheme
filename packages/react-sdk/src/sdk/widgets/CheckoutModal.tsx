@@ -26,6 +26,9 @@ import {
   triggerGafaPayConfirm,
   waitForWidgetContent,
   ensureLegacyPaypalCheckout,
+  installPayPalButtonCapture,
+  isPaypalCheckoutCancelMessage,
+  PAYPAL_CTA_HIT_ID,
   type GafaPayIsland,
   type GafaPayLineItem,
   type GafaPaySuccess,
@@ -768,6 +771,9 @@ export function CheckoutModal({
   function handleGafaPaySuccess(result: GafaPaySuccess) {
     // Paridad con el fancy v1: `ht.payment_data = e.message` y luego
     // BuySystemStep POSTea a `/reservate` (paymentByCard / paymentByToken).
+    hostedSettledRef.current = true;
+    stopPopupWatchRef.current?.();
+    stopPopupWatchRef.current = null;
     const recurring = Boolean(result.recurringPayment);
     const subscriptionId = result.subscriptionId ?? null;
     chargedRef.current = true;
@@ -884,17 +890,17 @@ export function CheckoutModal({
     setPaying(false);
   }
 
-  function startHostedPopupWatch(kind: "recurrente" | "paypal" = "recurrente") {
+  function startHostedPopupWatch(options?: { missMs?: number; missMessage?: string }) {
     if (stopPopupWatchRef.current) return;
     hostedSettledRef.current = false;
     stopPopupWatchRef.current = watchNextPopup(() => {
       releaseHostedWait();
-    }, kind === "paypal"
+    }, options?.missMs
       ? {
-          missMs: 2500,
+          missMs: options.missMs,
           onMiss: () => {
             releaseHostedWait();
-            setPayError("No pudimos abrir PayPal. Intenta de nuevo.");
+            setPayError(options.missMessage ?? "No pudimos abrir el pago. Intenta de nuevo.");
           },
         }
       : undefined);
@@ -946,8 +952,13 @@ export function CheckoutModal({
     }
     setPayError(undefined);
     setPaying(true);
-    if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
-      startHostedPopupWatch(selectedMethod.slug);
+    if (selectedMethod?.slug === "recurrente") {
+      startHostedPopupWatch();
+    } else if (selectedMethod?.slug === "paypal") {
+      startHostedPopupWatch({
+        missMs: 4000,
+        missMessage: "No pudimos abrir PayPal. Intenta de nuevo.",
+      });
     }
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
     try {
@@ -1232,7 +1243,7 @@ export function CheckoutModal({
                   onStart={() => {
                     setPaying(true);
                     if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
-                      startHostedPopupWatch(selectedMethod.slug);
+                      startHostedPopupWatch();
                     }
                   }}
                   onReadyChange={setPaymentReady}
@@ -1242,6 +1253,11 @@ export function CheckoutModal({
                     setTermsAttention(true);
                   }}
                   onError={(message) => {
+                    if (isPaypalCheckoutCancelMessage(message)) {
+                      releaseHostedWait();
+                      setPayError(undefined);
+                      return;
+                    }
                     setPaying(false);
                     setPayError(message);
                   }}
@@ -1513,30 +1529,42 @@ export function CheckoutModal({
                   Ir a pagar
                 </button>
               ) : (
-                <button
-                  className="gafa-sdk-button gafa-checkout__cta"
-                  type="button"
-                  disabled={
-                    paying ||
-                    relevantLines.length === 0 ||
-                    (!registerOnly && !waitingOnTerms && !canPay)
+                <div
+                  className="gafa-checkout__cta-wrap"
+                  data-paypal={selectedMethod?.slug === "paypal" ? "true" : undefined}
+                  data-paypal-locked={
+                    selectedMethod?.slug === "paypal" && waitingOnTerms ? "true" : undefined
                   }
-                  onClick={handlePayClick}
+                  data-busy={paying ? "true" : undefined}
                 >
-                  {paying
-                    ? selectedMethod?.slug === "recurrente"
-                      ? "Esperando el pago…"
-                      : selectedMethod?.slug === "paypal"
-                        ? "Esperando PayPal…"
-                        : chargeHold
-                          ? "Registrando compra…"
-                          : "Procesando…"
-                    : registerOnly
-                      ? hostedPendingRef.current?.purchaseId
-                        ? "Revisar pago"
-                        : "Registrar compra"
-                      : `Pagar ${formatMoney(total, currency.prefix, "")}`}
-                </button>
+                  <button
+                    className="gafa-sdk-button gafa-checkout__cta"
+                    type="button"
+                    disabled={
+                      paying ||
+                      relevantLines.length === 0 ||
+                      (!registerOnly && !waitingOnTerms && !canPay)
+                    }
+                    onClick={handlePayClick}
+                  >
+                    {paying
+                      ? selectedMethod?.slug === "recurrente"
+                        ? "Esperando el pago…"
+                        : selectedMethod?.slug === "paypal"
+                          ? "Esperando PayPal…"
+                          : chargeHold
+                            ? "Registrando compra…"
+                            : "Procesando…"
+                      : registerOnly
+                        ? hostedPendingRef.current?.purchaseId
+                          ? "Revisar pago"
+                          : "Registrar compra"
+                        : `Pagar ${formatMoney(total, currency.prefix, "")}`}
+                  </button>
+                  {selectedMethod?.slug === "paypal" ? (
+                    <div id={PAYPAL_CTA_HIT_ID} className="gafa-checkout__paypal-hit" aria-hidden="true" />
+                  ) : null}
+                </div>
               )}
 
               {!blockDismiss && (step === "pay" || step === "auth") ? (
@@ -1841,6 +1869,7 @@ function PayPanel({
   useEffect(() => {
     if (!slug || !clientId || !clientSecret) return;
     let cancelled = false;
+    let stopPaypalCapture: () => void = () => undefined;
     setLoadState("loading");
     setLoadError(undefined);
 
@@ -1851,6 +1880,7 @@ function PayPanel({
         // <div id="paypal">; si no, window.paypal es el DIV y revienta.
         if (slug === "paypal") await ensureLegacyPaypalCheckout();
         if (cancelled || !mountRef.current) return;
+        if (slug === "paypal") stopPaypalCapture = installPayPalButtonCapture();
         const container = mountRef.current;
         islandRef.current?.unmount();
         islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
@@ -1871,6 +1901,7 @@ function PayPanel({
 
     return () => {
       cancelled = true;
+      stopPaypalCapture();
       islandRef.current?.unmount();
       islandRef.current = null;
     };
