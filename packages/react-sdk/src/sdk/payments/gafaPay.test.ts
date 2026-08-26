@@ -26,6 +26,24 @@ describe("triggerGafaPayConfirm", () => {
     await expect(triggerGafaPayConfirm("paypal")).resolves.toBe(false);
   });
 
+  it("PayPal dispara el #paypal de checkout.js", async () => {
+    const host = document.createElement("div");
+    host.id = "paypal";
+    const button = document.createElement("button");
+    button.className = "paypal-button";
+    host.appendChild(button);
+    const island = document.createElement("div");
+    island.className = "gafa-checkout-paymount__island";
+    island.appendChild(host);
+    document.body.appendChild(island);
+    const clicked = vi.fn();
+    button.addEventListener("click", clicked);
+
+    await expect(triggerGafaPayConfirm("paypal")).resolves.toBe(true);
+    expect(clicked).toHaveBeenCalledTimes(1);
+    island.remove();
+  });
+
   it("Recurrente dispara el botón de GafaPayFront (abre la otra ventana)", async () => {
     const button = document.createElement("button");
     button.textContent = "Pago con Tarjeta";

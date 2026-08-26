@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import type {
   CartLineType,
@@ -213,7 +212,6 @@ export function CheckoutModal({
   /** Overlay bloqueado: hay cargo y Buq todavía no confirmó Completada. */
   const [chargeHold, setChargeHold] = useState(false);
   const chargedRef = useRef(false);
-  const [paypalCtaHost, setPaypalCtaHost] = useState<HTMLDivElement | null>(null);
   const pendingRegisterRef = useRef<{
     paymentData: unknown;
     recurring: boolean;
@@ -1226,7 +1224,11 @@ export function CheckoutModal({
                     if (selectedMethod?.slug === "recurrente") startHostedPopupWatch();
                   }}
                   onReadyChange={setPaymentReady}
-                  paypalCtaHost={paypalCtaHost}
+                  paypalLocked={selectedMethod?.slug === "paypal" && waitingOnTerms}
+                  onPaypalLockedClick={() => {
+                    setTermsPromptOpen(true);
+                    setTermsAttention(true);
+                  }}
                   onError={(message) => {
                     setPaying(false);
                     setPayError(message);
@@ -1498,22 +1500,6 @@ export function CheckoutModal({
                 >
                   Ir a pagar
                 </button>
-              ) : selectedMethod?.slug === "paypal" ? (
-                <div
-                  className="gafa-checkout__paypal-cta"
-                  data-locked={waitingOnTerms ? "true" : undefined}
-                  ref={setPaypalCtaHost}
-                  onClick={
-                    waitingOnTerms
-                      ? (event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setTermsPromptOpen(true);
-                          setTermsAttention(true);
-                        }
-                      : undefined
-                  }
-                />
               ) : (
                 <button
                   className="gafa-sdk-button gafa-checkout__cta"
@@ -1698,7 +1684,8 @@ function PayPanel({
   onReadyChange,
   onError,
   payCta,
-  paypalCtaHost,
+  paypalLocked,
+  onPaypalLockedClick,
   membershipOptions,
 }: {
   methods: CheckoutConfig["paymentMethods"];
@@ -1723,7 +1710,8 @@ function PayPanel({
     disabled: boolean;
     onClick: () => void;
   };
-  paypalCtaHost?: HTMLElement | null;
+  paypalLocked?: boolean;
+  onPaypalLockedClick?: () => void;
   membershipOptions?: {
     saveCard: boolean;
     autoRenew: boolean;
@@ -1838,8 +1826,6 @@ function PayPanel({
   // Monta la isla: se re-monta solo si cambia el proveedor o las credenciales.
   useEffect(() => {
     if (!slug || !clientId || !clientSecret) return;
-    // PayPal se monta en el CTA de la columna derecha; sin host no hay nodo.
-    if (slug === "paypal" && !paypalCtaHost) return;
     let cancelled = false;
     setLoadState("loading");
     setLoadError(undefined);
@@ -1874,7 +1860,7 @@ function PayPanel({
       islandRef.current?.unmount();
       islandRef.current = null;
     };
-  }, [slug, clientId, clientSecret, gafaPayFrontUrl, paypalCtaHost]);
+  }, [slug, clientId, clientSecret, gafaPayFrontUrl]);
 
   useEffect(() => {
     // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
@@ -1923,6 +1909,16 @@ function PayPanel({
         data-state={loadState}
         data-method={slug || undefined}
         data-membership={membershipOptions ? "true" : undefined}
+        data-locked={slug === "paypal" && paypalLocked ? "true" : undefined}
+        onClick={
+          slug === "paypal" && paypalLocked
+            ? (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onPaypalLockedClick?.();
+              }
+            : undefined
+        }
       >
         {slug === "paypal" ? (
           <div className="gafa-checkout-paypal-copy">
@@ -1958,16 +1954,7 @@ function PayPanel({
             ) : null}
           </div>
         ) : null}
-        {slug === "paypal" && paypalCtaHost
-          ? createPortal(
-              <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />,
-              paypalCtaHost,
-            )
-          : slug === "paypal"
-            ? null
-            : (
-              <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
-            )}
+        <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
 
         {membershipOptions ? (
           <div

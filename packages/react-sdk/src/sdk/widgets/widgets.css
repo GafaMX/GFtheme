@@ -5412,8 +5412,7 @@
 .gafa-checkout__cta,
 .gafa-checkout__backlink,
 .gafa-checkout__error,
-.gafa-checkout__env-warn,
-.gafa-checkout__paypal-cta {
+.gafa-checkout__env-warn {
   flex-shrink: 0;
 }
 
@@ -5997,38 +5996,6 @@
   text-align: center;
 }
 
-.gafa-checkout__paypal-cta {
-  min-height: 48px;
-  position: relative;
-  width: 100%;
-}
-
-.gafa-checkout__paypal-cta[data-locked="true"] {
-  cursor: pointer;
-}
-
-.gafa-checkout__paypal-cta[data-locked="true"] .gafa-pay-native {
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-.gafa-checkout__paypal-cta .gafa-checkout-paymount__island,
-.gafa-checkout__paypal-cta #paypal {
-  max-width: none;
-  width: 100%;
-}
-
-.gafa-checkout__paypal-cta .gafapay-elements,
-.gafa-checkout__paypal-cta .gafapay-elements__container,
-.gafa-checkout__paypal-cta .gafapay-elements__section {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-}
-
 /* ── Pago ── */
 
 .gafa-checkout-pay {
@@ -6111,6 +6078,35 @@
   justify-items: stretch;
   min-height: 0;
   padding: 1.15rem 1.15rem 1.05rem;
+}
+
+.gafa-checkout-paymount[data-method="paypal"][data-locked="true"] {
+  cursor: pointer;
+}
+
+.gafa-checkout-paymount[data-method="paypal"][data-locked="true"] .gafa-pay-native {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/*
+ * El botón oro vive aquí, en el recuadro del centro. No le pongas width/height
+ * a #paypal: checkout.js mide content-box y logo + “Pagar” se enciman.
+ * El recuadro es más ancho que la columna del total, así el botón sale grande.
+ */
+.gafa-checkout-paymount[data-method="paypal"] .gafa-checkout-paymount__island {
+  width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements,
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__container,
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__section {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
 }
 
 .gafa-checkout-paymount[data-method="recurrente"] {

@@ -353,8 +353,8 @@ export function hasGafaPayRuntime(): boolean {
 
 /**
  * Dispara la confirmacion del metodo activo. Cada formulario registra su
- * handler global al montarse (mismo contrato que el fancy v1). PayPal no
- * aplica: su propio boton maneja el submit.
+ * handler global al montarse (mismo contrato que el fancy v1). PayPal y
+ * Recurrente no: el CTA amarillo hace click en el botón que montó GafaPay.
  *
  * StripePayment.handleSubmit es `async` y puede rechazar (p.ej. si falta
  * onStartPayAction). Hay que await-ear el retorno: un fire-and-forget deja
@@ -377,6 +377,17 @@ export function triggerGafaPayConfirm(slug: string, root?: ParentNode | null): P
     );
     if (!button) return Promise.resolve(false);
     button.click();
+    return Promise.resolve(true);
+  } else if (slug === "paypal") {
+    // PaypalPayment tampoco registra handler: checkout.js vive en #paypal.
+    const scope = root ?? document;
+    const host = scope.querySelector<HTMLElement>(
+      ".gafa-checkout-paymount__island #paypal, .gafa-pay-native #paypal, #paypal",
+    );
+    if (!host) return Promise.resolve(false);
+    const target =
+      host.querySelector<HTMLElement>("button, .paypal-button, [role='button']") ?? host;
+    target.click();
     return Promise.resolve(true);
   } else {
     return Promise.resolve(false);

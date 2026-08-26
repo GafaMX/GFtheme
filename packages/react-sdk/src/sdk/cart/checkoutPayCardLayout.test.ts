@@ -54,6 +54,10 @@ describe("checkout Stripe saved-card layout", () => {
     );
   });
 
+  it("no fuerza el ancho de #paypal (checkout.js encima logo y Pagar)", () => {
+    expect(payMountCss).not.toMatch(/#paypal[^{]{0,80}\{[^}]*width:\s*100%/);
+  });
+
   /*
    * Stripe no usa `.gafapay-elements__cards` (eso es Conekta). Las tarjetas
    * guardadas y "Nueva tarjeta" son hermanos bajo `.gafapay-elements`, que

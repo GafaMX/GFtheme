@@ -79,10 +79,9 @@ describe("CheckoutModal PayPal panel", () => {
     expect(screen.getByText(/te llevamos a paypal/i)).toBeTruthy();
     const mount = document.querySelector(".gafa-checkout-paymount");
     expect(mount?.getAttribute("data-method")).toBe("paypal");
-    await waitFor(() => {
-      expect(document.querySelector(".gafa-checkout__paypal-cta .gafa-pay-native")).toBeTruthy();
-    });
-    expect(document.querySelector(".gafa-checkout-paymount .gafa-pay-native")).toBeNull();
+    expect(document.querySelector(".gafa-checkout-paymount .gafa-pay-native")).toBeTruthy();
+    expect(document.querySelector(".gafa-checkout__paypal-cta")).toBeNull();
+    expect(screen.getByRole("button", { name: /pagar \$/i })).toBeTruthy();
     expect(screen.queryByText(/completa el pago con el botón de paypal/i)).toBeNull();
   });
 
