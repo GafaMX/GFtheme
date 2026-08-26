@@ -35,6 +35,12 @@ describe("openReservation", () => {
       expect(overlayText()).toContain("Coach Demo");
       expect(overlayText()).toContain("Trae toalla y zapatos de indoor");
     });
+    const hero = document.querySelector(".gafa-reservation-hero");
+    const title = hero?.querySelector("#reservation-title");
+    const notes = hero?.querySelector(".gafa-reservation-notes");
+    expect(notes?.textContent).toContain("Trae toalla y zapatos de indoor");
+    expect(title?.nextElementSibling).toBe(notes);
+    expect(document.querySelector(".gafa-reservation-summary + .gafa-reservation-notes")).toBeNull();
   });
 
   it("sin sesion pide login antes del detalle, igual que el calendario", async () => {
