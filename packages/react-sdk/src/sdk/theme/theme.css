@@ -310,6 +310,11 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk h6 {
   padding: 0 !important;
 }
 
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-reservation-hero .gafa-reservation-notes:not(.gafa-pay-native *) {
+  font-family: var(--gafa-heading-font-family) !important;
+  text-transform: uppercase !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk {
   color: var(--gafa-color-text) !important;
 }

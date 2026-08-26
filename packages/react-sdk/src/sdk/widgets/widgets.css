@@ -1774,10 +1774,26 @@
   padding-right: 44px;
 }
 
-.gafa-reservation-hero h3 {
+.gafa-reservation-hero h3,
+.gafa-reservation-hero .gafa-reservation-notes {
   --gafa-heading-size: 1.2rem;
+  --gafa-heading-weight: 700;
+  --gafa-heading-leading: 1.25;
+  --gafa-type-size: 1.2rem;
+  --gafa-type-leading: 1.25;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-family: var(--gafa-heading-font-family);
   font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.25;
   margin: 0;
+}
+
+.gafa-reservation-hero .gafa-reservation-notes {
+  text-transform: uppercase;
+  white-space: normal;
 }
 
 /* Silueta del detalle de la clase mientras se resuelve por id. */
@@ -1828,16 +1844,6 @@
   font-weight: 600;
   margin: 0;
   text-align: right;
-}
-
-.gafa-reservation-notes {
-  --gafa-type-size: 0.86rem;
-  --gafa-fg: var(--gafa-color-muted-text);
-  color: var(--gafa-color-muted-text);
-  font-size: 0.86rem;
-  line-height: 1.45;
-  margin: 0;
-  white-space: pre-wrap;
 }
 
 .gafa-reservation-steps {

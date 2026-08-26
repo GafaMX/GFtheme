@@ -1694,6 +1694,7 @@ function ReservationPreviewModal({
             <div className="gafa-reservation-hero">
               <span className="gafa-eyebrow">Detalle de reserva</span>
               <h3 id="reservation-title">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</h3>
+              {notes ? <p className="gafa-reservation-notes">{notes}</p> : null}
             </div>
 
             <div className="gafa-reservation-body">
@@ -1724,8 +1725,6 @@ function ReservationPreviewModal({
                     <strong>{getAvailabilityText(meeting)}</strong>
                   </div>
                 </div>
-
-                {notes ? <p className="gafa-reservation-notes">{notes}</p> : null}
 
                 {isSignedIn ? (
                   contextQuery.isLoading ? (
