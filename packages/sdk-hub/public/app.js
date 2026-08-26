@@ -93,11 +93,21 @@ function renderLogin() {
         class: "login-card",
         onSubmit: async (event) => {
           event.preventDefault();
+          const form = event.currentTarget;
+          const password = new FormData(form).get("password");
+          state.password = typeof password === "string" ? password : "";
           try {
             await api("/v1/admin/login", { method: "POST", body: JSON.stringify({ password: state.password }) });
             await refresh();
-          } catch {
-            state.error = "Password incorrecto.";
+            if (!state.me) {
+              state.error = "Entró el login pero la sesión no quedó. Recarga e intenta de nuevo.";
+              render();
+            }
+          } catch (error) {
+            state.error =
+              error.message === "missing_admin_password"
+                ? "Falta ADMIN_PASSWORD. Copia .dev.vars.example a .dev.vars y reinicia wrangler."
+                : "Password incorrecto. Local: buq-hub-dev";
             render();
           }
         },
@@ -105,15 +115,15 @@ function renderLogin() {
       h("small", { class: "muted" }, "hub.buq.partners"),
       h("h1", {}, "SDK Hub"),
       h("p", { class: "muted" }, "Control plane del SDK V2: instalaciones, uso y catálogo. Independiente de Laravel."),
-      h("label", {}, "Password de admin"),
+      h("label", { for: "admin-password" }, "Password de admin"),
       h("input", {
+        id: "admin-password",
+        name: "password",
         type: "password",
-        value: state.password,
         autocomplete: "current-password",
-        onInput: (event) => {
-          state.password = event.target.value;
-        },
+        placeholder: "buq-hub-dev",
       }),
+      h("p", { class: "muted" }, "Local: ", h("code", {}, "buq-hub-dev")),
       h("p", { class: "error" }, state.error),
       h("button", { class: "btn wide", type: "submit" }, "Entrar"),
     ),

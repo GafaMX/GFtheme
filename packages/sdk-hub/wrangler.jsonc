@@ -10,7 +10,9 @@
   },
   "vars": {
     "ENVIRONMENT": "development",
-    "HUB_PUBLIC_ORIGIN": "http://127.0.0.1:8787"
+    "HUB_PUBLIC_ORIGIN": "http://127.0.0.1:8787",
+    "ADMIN_PASSWORD": "buq-hub-dev",
+    "ADMIN_SESSION_SECRET": "dev-session-secret-change-me"
   },
   "d1_databases": [
     {

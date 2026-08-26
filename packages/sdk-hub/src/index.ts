@@ -97,8 +97,18 @@ app.post("/v1/admin/login", async (c) => {
     return c.json({ ok: false, error: "invalid_json" }, 400);
   }
   const expected = c.env.ADMIN_PASSWORD;
-  const given = typeof body.password === "string" ? body.password : "";
-  if (!expected || !timingSafeEqual(given, expected)) {
+  const given = typeof body.password === "string" ? body.password.trim() : "";
+  if (!expected) {
+    return c.json(
+      {
+        ok: false,
+        error: "missing_admin_password",
+        hint: "Copia packages/sdk-hub/.dev.vars.example a .dev.vars y reinicia wrangler.",
+      },
+      503,
+    );
+  }
+  if (!given || !timingSafeEqual(given, expected)) {
     return c.json({ ok: false, error: "unauthorized" }, 401);
   }
   const secure = c.env.ENVIRONMENT === "production" || c.env.ENVIRONMENT === "staging";
