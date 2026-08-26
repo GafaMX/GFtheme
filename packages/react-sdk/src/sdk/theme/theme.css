@@ -311,7 +311,12 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk h6 {
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-reservation-hero .gafa-reservation-notes:not(.gafa-pay-native *) {
-  font-family: var(--gafa-heading-font-family) !important;
+  background: none !important;
+  color: var(--gafa-color-muted-text) !important;
+  font-family: var(--gafa-font-body) !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
   text-transform: uppercase !important;
 }
 
