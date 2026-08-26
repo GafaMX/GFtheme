@@ -23,6 +23,8 @@ import { useCartStore } from "./cart/cartStore";
 import { prefetchCheckoutCatalog } from "./cart/checkoutCatalog";
 import { setGafaPayFrontUrl } from "./payments/gafaPay";
 import { ImagesProvider } from "./images/ImagesProvider";
+import { createSdkTracker, type SdkTracker } from "./analytics/tracker";
+import { instrumentClient } from "./analytics/instrumentClient";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
 
@@ -55,6 +57,9 @@ export type GafaSdk = {
    * data-gf-combo-id / data-gf-membership-id / data-gf-product-id).
    */
   enablePurchaseButtons(root?: Document | Element): () => void;
+  /** Eventos de uso hacia el SDK Hub. Nunca tira si el Hub está caído. */
+  track: SdkTracker["track"];
+  heartbeat(widgets: string[]): void;
   unmountAll(): void;
 };
 
@@ -104,7 +109,14 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   const config = parseSdkConfig(input);
   configureTokenStorage(config.apiBaseUrl);
   setGafaPayFrontUrl(config.gafaPayFrontUrl);
-  const client = options.client ?? createClient(config, options);
+  const tracker = createSdkTracker({
+    hubUrl: config.hubUrl,
+    companyId: config.companyId,
+    brandId: config.brandId,
+    enabled: config.analyticsEnabled,
+  });
+  const rawClient = options.client ?? createClient(config, options);
+  const client = instrumentClient(rawClient, tracker);
   const captcha = createCaptchaProvider(config.captchaProvider, config.captchaPublicKey);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -155,15 +167,20 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     config,
     client,
     mountCalendar(target, props = {}) {
+      tracker.track({ event: "widget.mounted", widget: "meetings-calendar" });
+      tracker.track({ event: "calendar.viewed", widget: "meetings-calendar" });
       return mount(target, <CalendarWidget client={client} captcha={captcha} {...props} />);
     },
     mountAuth(target, props = {}) {
+      tracker.track({ event: "widget.mounted", widget: "auth" });
       return mount(target, <AuthWidget client={client} captcha={captcha} {...props} />);
     },
     mountCatalog(target, props = {}) {
+      tracker.track({ event: "widget.mounted", widget: "catalog" });
       return mount(target, <CatalogWidget client={client} {...props} />);
     },
     mountProfile(target, props = {}) {
+      tracker.track({ event: "widget.mounted", widget: "profile" });
       return mount(target, <ProfileWidget client={client} {...props} />);
     },
     mountPurchaseButton(target, props = {}) {
@@ -243,6 +260,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       return handle;
     },
     openCheckout(props = {}) {
+      tracker.track({ event: "checkout.opened", widget: "checkout" });
       silenceLegacyFancy();
       prefetchCheckoutCatalog(queryClient, client, props.brandSlug);
       const host = document.createElement("div");
@@ -275,6 +293,11 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       return handle;
     },
     openReservation({ onClose, ...props }) {
+      tracker.track({
+        event: "calendar.meeting_opened",
+        widget: "calendar",
+        props: { meeting_id: props.meetingId },
+      });
       silenceLegacyFancy();
       const host = document.createElement("div");
       document.body.appendChild(host);
@@ -306,14 +329,20 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
 
       const stop = bootstrapPurchaseButtons({
         root,
-        onPurchase: (intent) =>
+        onPurchase: (intent) => {
+          tracker.track({
+            event: "purchase_button.clicked",
+            widget: "purchase-button",
+            props: { type: intent.type, id: intent.id },
+          });
           sdk.openCheckout({
             brandSlug: intent.brandSlug,
             locationSlug: intent.locationSlug,
             locationId: intent.locationId,
             preselect: { type: intent.type, id: intent.id },
             skipCatalog: true,
-          }),
+          });
+        },
         onReserve: (intent) => {
           sdk.openReservation({
             meetingId: intent.meetingId,
@@ -334,6 +363,10 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         if (purchaseButtonsStop === stop) purchaseButtonsStop = null;
       };
     },
+    track: tracker.track,
+    heartbeat(widgets) {
+      tracker.heartbeat(widgets);
+    },
     unmountAll() {
       purchaseButtonsStop?.();
       purchaseButtonsStop = null;
@@ -343,6 +376,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       activeReservation = null;
       Array.from(mounts).forEach((mounted) => mounted.unmount());
       queryClient.clear();
+      tracker.flush();
     }
   };
 

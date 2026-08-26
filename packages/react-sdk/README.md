@@ -60,6 +60,8 @@ npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js
 
 No copies `src/` a Replit. Guía: [`docs/v2-lanzamiento.md`](../../docs/v2-lanzamiento.md).
 
+El uso (heartbeats, login, reserva, checkout) se manda al **SDK Hub** (`https://hub.buq.partners`), no a `GAFA_FIT_URL`. Local: `HUB_URL` / `?hub-url=http://127.0.0.1:8787`. Docs: [`docs/v2-hub`](../../docs/v2-hub/README.md).
+
 ## Legacy-compatible usage
 
 ```ts

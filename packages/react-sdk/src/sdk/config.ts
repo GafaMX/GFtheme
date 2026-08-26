@@ -69,6 +69,13 @@ export const sdkConfigSchema = z
     environment: z.string().optional(),
     /** Script de GafaPayFront (Stripe/PayPal). Default: el del entorno. */
     gafaPayFrontUrl: z.string().optional(),
+    /**
+     * SDK Hub (ingest + admin). Default del entorno: hub.buq.partners.
+     * Nunca es GAFA_FIT_URL. Local: http://127.0.0.1:8787
+     */
+    hubUrl: z.string().optional(),
+    /** Apaga heartbeats y eventos de uso. Default on. */
+    analyticsEnabled: z.boolean().optional(),
     images: imagesSchema,
     theme: legacyThemeSchema,
   })
@@ -79,6 +86,8 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   environment: BuqEnvironmentId;
   apiBaseUrl: string;
   gafaPayFrontUrl: string;
+  hubUrl: string;
+  analyticsEnabled: boolean;
 };
 
 const legacyOptionsSchema = z
@@ -93,6 +102,8 @@ const legacyOptionsSchema = z
     CAPTCHA_SECRET_KEY: z.string().optional(),
     BUQ_ENV: z.string().optional(),
     GAFAPAY_FRONT_URL: z.string().optional(),
+    HUB_URL: z.string().optional(),
+    ANALYTICS: z.union([z.boolean(), z.string()]).optional(),
     IMAGES: imagesSchema,
     THEME: legacyThemeSchema,
   })
@@ -109,6 +120,8 @@ export function parseGafaSdkConfig(input: unknown): GafaSdkConfig {
     environment: resolved.environment,
     apiBaseUrl: resolved.apiBaseUrl,
     gafaPayFrontUrl: resolved.gafaPayFrontUrl,
+    hubUrl: resolved.hubUrl,
+    analyticsEnabled: parsed.analyticsEnabled !== false,
   };
 }
 
@@ -128,6 +141,8 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY,
     environment: legacyOptions.BUQ_ENV,
     gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL,
+    hubUrl: legacyOptions.HUB_URL,
+    analyticsEnabled: parseAnalyticsFlag(legacyOptions.ANALYTICS),
     images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
   });
@@ -155,7 +170,21 @@ export function readLegacyOptionsFromDom(documentRef: Document = document): Gafa
       : null;
   if (queryEnv) raw.BUQ_ENV = queryEnv;
 
+  const queryHub =
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("hub-url") : null;
+  if (queryHub) raw.HUB_URL = queryHub;
+
   return legacyOptionsToConfig(raw);
+}
+
+function parseAnalyticsFlag(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "false" || normalized === "0" || normalized === "off") return false;
+    if (normalized === "true" || normalized === "1" || normalized === "on") return true;
+  }
+  return undefined;
 }
 
 export const parseLegacyOptions = legacyOptionsToConfig;
