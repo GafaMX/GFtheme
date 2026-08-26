@@ -11,7 +11,9 @@
     "start": "webpack-dev-server --mode development --open --hot --progress --watch",
     "react-sdk:build": "npm --prefix packages/react-sdk run build",
     "react-sdk:dev": "npm --prefix packages/react-sdk run dev",
-    "react-sdk:typecheck": "npm --prefix packages/react-sdk run typecheck"
+    "react-sdk:typecheck": "npm --prefix packages/react-sdk run typecheck",
+    "sdk-hub:dev": "npm --prefix packages/sdk-hub run dev",
+    "sdk-hub:test": "npm --prefix packages/sdk-hub run test"
   },
   "keywords": [],
   "author": "",

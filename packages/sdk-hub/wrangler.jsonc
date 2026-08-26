@@ -1,0 +1,46 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "sdk-hub",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "HUB_PUBLIC_ORIGIN": "http://127.0.0.1:8787"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sdk-hub",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "./migrations"
+    }
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/v1/*"]
+  },
+  "env": {
+    "staging": {
+      "name": "sdk-hub-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "HUB_PUBLIC_ORIGIN": "https://hub.buq.com.mx"
+      },
+      "routes": [{ "pattern": "hub.buq.com.mx", "custom_domain": true }]
+    },
+    "production": {
+      "name": "sdk-hub",
+      "vars": {
+        "ENVIRONMENT": "production",
+        "HUB_PUBLIC_ORIGIN": "https://hub.buq.partners"
+      },
+      "routes": [{ "pattern": "hub.buq.partners", "custom_domain": true }]
+    }
+  }
+}

@@ -32,4 +32,7 @@ src/index.html
 .env.*.local
 packages/react-sdk/.env
 packages/react-sdk/.env.local
+packages/sdk-hub/.dev.vars
+packages/sdk-hub/.wrangler
+packages/sdk-hub/node_modules
 /package-lock.json

@@ -1,0 +1,23 @@
+{
+  "name": "@gafa/sdk-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SDK Hub control plane: ingest, D1, and admin for hub.buq.partners.",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "migrate:local": "wrangler d1 migrations apply sdk-hub --local",
+    "check": "wrangler check"
+  },
+  "dependencies": {
+    "hono": "^4.9.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.28.0"
+  }
+}
