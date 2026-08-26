@@ -88,35 +88,56 @@ export async function pollRecurrenteUntilDone(options: {
 
 /**
  * GafaPay abre el checkout alojado con `window.open`. Si el socio cierra esa
- * ventana, el CTA no puede quedarse en “Esperando…”.
+ * ventana (o el navegador la bloquea), el CTA no puede quedarse en “Esperando…”.
  */
-export function watchNextPopup(onClose: () => void): () => void {
+export function watchNextPopup(
+  onClose: () => void,
+  options?: { missMs?: number; onMiss?: () => void },
+): () => void {
   if (typeof window === "undefined") return () => undefined;
   const original = window.open.bind(window);
   let interval = 0;
+  let missTimer = 0;
   let finished = false;
+  let opened = false;
 
-  const finish = () => {
+  const finish = (missed = false) => {
     if (finished) return;
     finished = true;
     if (interval) window.clearInterval(interval);
+    if (missTimer) window.clearTimeout(missTimer);
     window.open = original;
-    onClose();
+    if (missed) options?.onMiss?.();
+    else onClose();
   };
 
   window.open = ((...args: Parameters<Window["open"]>) => {
-    const popup = original(...args);
-    if (popup && !popup.closed) {
-      interval = window.setInterval(() => {
-        if (popup.closed) finish();
-      }, 350);
+    opened = true;
+    if (missTimer) {
+      window.clearTimeout(missTimer);
+      missTimer = 0;
     }
+    const popup = original(...args);
+    if (!popup || popup.closed) {
+      finish();
+      return popup;
+    }
+    interval = window.setInterval(() => {
+      if (popup.closed) finish();
+    }, 350);
     return popup;
   }) as typeof window.open;
+
+  if (options?.missMs && options.onMiss) {
+    missTimer = window.setTimeout(() => {
+      if (!opened) finish(true);
+    }, options.missMs);
+  }
 
   return () => {
     window.open = original;
     if (interval) window.clearInterval(interval);
+    if (missTimer) window.clearTimeout(missTimer);
     finished = true;
   };
 }

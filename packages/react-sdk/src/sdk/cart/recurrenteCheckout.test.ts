@@ -112,4 +112,24 @@ describe("watchNextPopup", () => {
     stop();
     window.open = original;
   });
+
+  it("si el navegador bloquea el popup, vuelve al estado anterior", () => {
+    const original = window.open;
+    window.open = () => null;
+    const closed = vi.fn();
+    const stop = watchNextPopup(closed);
+    window.open("https://www.paypal.com/checkoutnow");
+    expect(closed).toHaveBeenCalledTimes(1);
+    stop();
+    window.open = original;
+  });
+
+  it("si no se abre ninguna ventana, dispara onMiss", async () => {
+    const closed = vi.fn();
+    const missed = vi.fn();
+    const stop = watchNextPopup(closed, { missMs: 20, onMiss: missed });
+    await vi.waitFor(() => expect(missed).toHaveBeenCalledTimes(1));
+    expect(closed).not.toHaveBeenCalled();
+    stop();
+  });
 });
