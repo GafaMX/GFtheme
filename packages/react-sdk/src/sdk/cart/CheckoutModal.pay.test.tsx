@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CheckoutConfig, GafaClient } from "../client/types";
+import type { CheckoutConfig, GafaClient, Meeting } from "../client/types";
 import type { GafaPayIsland, GafaPayWidgetProps } from "../payments/gafaPay";
 import { CheckoutModal } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
@@ -106,7 +106,13 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
 
 function renderPay(
   client: GafaClient,
-  extras: { showMembershipOptions?: boolean; onClose?: () => void } = {},
+  extras: {
+    showMembershipOptions?: boolean;
+    onClose?: () => void;
+    meeting?: Meeting | null;
+    seatObjectId?: number;
+    seatLabel?: string;
+  } = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
@@ -118,6 +124,9 @@ function renderPay(
         brandSlug="fitspin"
         locationSlug="polanco"
         skipCatalog={true}
+        meeting={extras.meeting}
+        seatObjectId={extras.seatObjectId}
+        seatLabel={extras.seatLabel}
         showMembershipOptions={extras.showMembershipOptions}
         onClose={extras.onClose ?? (() => undefined)}
       />
@@ -226,6 +235,34 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(client.reservatePurchase).toHaveBeenCalled();
     expect(client.initialPurchase).not.toHaveBeenCalled();
     expect(screen.getByText(/orden #88/i)).toBeTruthy();
+  });
+
+  it("al pagar una clase manda el lugar elegido en reservate", async () => {
+    const client = mockClient();
+    renderPay(client, {
+      meeting: {
+        id: 849768,
+        name: "HELIPUERTO BICI",
+        startsAt: "2026-08-29T09:30:00",
+        timezone: "America/Mexico_City",
+        serviceName: "HELIPUERTO BICI",
+      },
+      seatObjectId: 42,
+      seatLabel: "42",
+    });
+    await waitUntilPayReady();
+    expect(screen.getByText(/Lugar 42/)).toBeTruthy();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" } });
+    };
+    fireEvent.click(payButton());
+
+    await waitFor(() => expect(client.reservatePurchase).toHaveBeenCalled());
+    expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0]).toEqual(
+      expect.objectContaining({ meetingId: 849768, seatObjectId: 42 }),
+    );
   });
 
   it("payment_data es el `message` de GafaPay tal cual (v1: ht.payment_data = e.message)", async () => {

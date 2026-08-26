@@ -220,6 +220,46 @@ describe("reservatePurchase", () => {
     expect(result?.reservationId).toBe(22);
   });
 
+  it("manda map_objectsSelected cuando hay lugar elegido", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase: { id: 88 }, reservation: [{ id: 1 }] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      meetingId: 849768,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: "recibo",
+      seatObjectId: 42,
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("map_objectsSelected[0][id]")).toBe("42");
+    expect(body.get("meetings_id")).toBe("849768");
+  });
+
+  it("no inventa map_objectsSelected si no hay lugar", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase: { id: 88 } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      meetingId: 849768,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: "recibo",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("map_objectsSelected[0][id]")).toBeNull();
+  });
+
   it("falla si Buq responde 200 sin compra ni reserva", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({})));
 
@@ -233,6 +273,51 @@ describe("reservatePurchase", () => {
         paymentData: "recibo",
       }),
     ).rejects.toThrow(/no confirmó la compra/i);
+  });
+});
+
+describe("createReservation", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("manda el lugar como map_objectsSelected[0][id]", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ reservation: [{ id: 3509997, meeting_position: 42 }] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await client().createReservation?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-reforma",
+      meetingId: 849768,
+      userProfileId: 171227,
+      seatObjectId: 42,
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("map_objectsSelected[0][id]")).toBe("42");
+    expect(body.get("meetings_id")).toBe("849768");
+    expect(result?.reservationId).toBe(3509997);
+  });
+
+  it("omite el lugar si no hay asiento (waitlist)", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ reservation: [{ id: 22, is_waitlist: true }] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().createReservation?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-reforma",
+      meetingId: 849768,
+      userProfileId: 171227,
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("map_objectsSelected[0][id]")).toBeNull();
   });
 });
 

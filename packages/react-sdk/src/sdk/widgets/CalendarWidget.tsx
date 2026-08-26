@@ -1439,6 +1439,10 @@ export function ReservationFlow({
   const [step, setStep] = useState<"auth" | "detail" | "checkout">(() =>
     client && !readStoredToken() ? "auth" : "detail",
   );
+  // El preview se desmonta al pasar a pagar: si no levantamos el lugar acá,
+  // `/reservate` nace sin `map_objectsSelected` y la reserva sale en la lista
+  // sin posición (el mapa no la ve → se sobrevende el mismo lugar).
+  const [pendingSeat, setPendingSeat] = useState<SeatMapObject | null>(null);
 
   // Login desde cualquier otra parte de la pagina mientras el gate esta
   // abierto: seguir al detalle en vez de dejarlo pidiendo sesion.
@@ -1471,6 +1475,8 @@ export function ReservationFlow({
         locationSlug={locationSlug}
         locationName={locationName ?? meeting.location?.name}
         meeting={meeting}
+        seatObjectId={pendingSeat?.id}
+        seatLabel={pendingSeat?.label}
         onClose={onClose}
         onCompleted={() => {
           queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
@@ -1490,10 +1496,11 @@ export function ReservationFlow({
       brandSlug={brandSlug}
       locationSlug={locationSlug}
       onClose={onClose}
-      onContinue={() => {
+      onContinue={(seat) => {
         // Sin cliente no hay a donde ir; con sesion, el unico camino que queda
         // es comprar (el detalle ya descarto creditos aplicables).
         if (!client) return;
+        setPendingSeat(seat ?? null);
         setStep(isSignedIn ? "checkout" : "auth");
       }}
       onReserved={() => {
@@ -1524,7 +1531,7 @@ function ReservationPreviewModal({
   locationSlug?: string;
   onClose: () => void;
   /** Camino de compra / login: lo maneja el padre (gate o fancy). */
-  onContinue: () => void;
+  onContinue: (seat?: SeatMapObject | null) => void;
   onReserved?: () => void;
 }) {
   const brandSlug = meeting.location?.brand?.slug ?? meeting.brandSlug ?? brandSlugProp;
@@ -1621,7 +1628,7 @@ function ReservationPreviewModal({
 
   function handlePrimary() {
     if (!isSignedIn) {
-      onContinue();
+      onContinue(selectedSeat);
       return;
     }
     if (joinWaitlistNow) {
@@ -1629,22 +1636,23 @@ function ReservationPreviewModal({
       return;
     }
     if (buyToWaitlist || !canReserveNative) {
-      // Compra: el padre abre el fancy con la clase anclada. Tras pagar,
-      // `/reservate` con meetings_id te mete a waitlist y resta el crédito.
-      onContinue();
+      // Compra: el padre abre el fancy con la clase anclada y el lugar
+      // elegido. Tras pagar, `/reservate` manda `map_objectsSelected`.
+      onContinue(selectedSeat);
       return;
     }
     void confirmReservation(needsSeat ? selectedSeat : null);
   }
 
+  // Con mapa vivo (clase no llena / no waitlist) el lugar es obligatorio
+  // también al comprar: si no, Buq crea la reserva sin posición.
+  const seatRequired = needsSeat && !joinWaitlistNow && !buyToWaitlist;
+
   const primaryDisabled =
     step === "processing" ||
     (isSignedIn && contextQuery.isLoading) ||
     classFullNoWaitlist ||
-    // Elegir lugar solo es obligatorio para completar una reserva nativa: si
-    // el boton manda a comprar (sin creditos), el mapa es para explorar, no
-    // hace falta escoger lugar todavia.
-    (canReserveNative && needsSeat && !selectedSeat) ||
+    (seatRequired && !selectedSeat) ||
     (canReserveNative && needsPaymentChoice && !activeOption);
 
   const primaryLabel = !isSignedIn
@@ -1668,7 +1676,11 @@ function ReservationPreviewModal({
                   : activeOption?.kind === "membership"
                     ? "Reservar con mi membresía"
                     : "Reservar con mi paquete"
-              : "Comprar y reservar";
+              : needsSeat
+                ? selectedSeat
+                  ? `Comprar lugar ${selectedSeat.label}`
+                  : "Elige tu lugar en el mapa"
+                : "Comprar y reservar";
 
   return (
     <div
