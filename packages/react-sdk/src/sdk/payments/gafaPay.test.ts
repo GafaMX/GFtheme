@@ -44,6 +44,22 @@ describe("triggerGafaPayConfirm", () => {
     island.remove();
   });
 
+  it("PayPal no dispara un #paypal vacío (eso dejaba Procesando sin abrir nada)", async () => {
+    const host = document.createElement("div");
+    host.id = "paypal";
+    const island = document.createElement("div");
+    island.className = "gafa-checkout-paymount";
+    island.setAttribute("data-method", "paypal");
+    const nest = document.createElement("div");
+    nest.className = "gafa-checkout-paymount__island";
+    nest.appendChild(host);
+    island.appendChild(nest);
+    document.body.appendChild(island);
+
+    await expect(triggerGafaPayConfirm("paypal")).resolves.toBe(false);
+    island.remove();
+  });
+
   it("Recurrente dispara el botón de GafaPayFront (abre la otra ventana)", async () => {
     const button = document.createElement("button");
     button.textContent = "Pago con Tarjeta";

@@ -667,6 +667,94 @@ describe("CheckoutModal Recurrente", () => {
   });
 });
 
+describe("CheckoutModal PayPal CTA", () => {
+  const originalOpen = window.open;
+
+  beforeEach(() => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    mocks.loadGafaPay.mockResolvedValue({
+      React: { createElement: () => null },
+      ReactDOM: { render: () => undefined, unmountComponentAtNode: () => true },
+      elements: { PaypalPayment: function PaypalPayment() {} },
+    });
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container): GafaPayIsland => {
+      if (container instanceof Element) {
+        container.innerHTML = `<div id="paypal"><div class="paypal-button" role="button">PayPal</div></div>`;
+        container.querySelector(".paypal-button")?.addEventListener("click", () => {
+          window.open("https://www.paypal.com/checkoutnow");
+        });
+      }
+      return { update: () => undefined, unmount: () => undefined };
+    });
+    mocks.waitForWidgetContent.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    cleanup();
+    useCartStore.setState({ lines: [], reservation: null });
+    window.open = originalOpen;
+    vi.clearAllMocks();
+  });
+
+  function paypalOnlyClient() {
+    return mockClient({
+      getCheckoutConfig: async () => ({
+        ...checkoutConfig(),
+        paymentMethods: [{ id: 3, name: "PayPal", slug: "paypal", gafapayId: 2, order: 1 }],
+      }),
+    });
+  }
+
+  it("el CTA de la derecha abre PayPal y si se cierra vuelve a Pagar", async () => {
+    const popup = { closed: false };
+    const originalOpen = window.open;
+    window.open = () => popup as Window;
+
+    renderPay(paypalOnlyClient());
+    const pay = await waitFor(() => screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement);
+    await waitFor(() => expect(pay.disabled).toBe(false));
+
+    fireEvent.click(pay);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /esperando paypal/i })).toBeTruthy();
+    });
+
+    popup.closed = true;
+
+    await waitFor(() => {
+      const button = screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+    });
+    expect(screen.queryByText(/esperando paypal/i)).toBeNull();
+    expect(screen.queryByText(/gracias por tu compra/i)).toBeNull();
+
+    window.open = originalOpen;
+  });
+
+  it("si PayPal no abre ventana, no se queda en Procesando", async () => {
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container): GafaPayIsland => {
+      if (container instanceof Element) {
+        container.innerHTML = `<div id="paypal"></div>`;
+      }
+      return { update: () => undefined, unmount: () => undefined };
+    });
+
+    renderPay(paypalOnlyClient());
+    const pay = await waitFor(() => screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement);
+    await waitFor(() => expect(pay.disabled).toBe(false));
+
+    fireEvent.click(pay);
+
+    await waitFor(() => {
+      expect(screen.getByText(/no pudimos abrir paypal/i)).toBeTruthy();
+    });
+    expect(screen.queryByText(/esperando paypal/i)).toBeNull();
+    expect(screen.queryByText(/^procesando/i)).toBeNull();
+    expect((screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
 const membershipLine: CartLine = {
   ...cartLine,
   key: "fitspin:membership:12",

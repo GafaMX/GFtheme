@@ -884,12 +884,20 @@ export function CheckoutModal({
     setPaying(false);
   }
 
-  function startHostedPopupWatch() {
+  function startHostedPopupWatch(kind: "recurrente" | "paypal" = "recurrente") {
     if (stopPopupWatchRef.current) return;
     hostedSettledRef.current = false;
     stopPopupWatchRef.current = watchNextPopup(() => {
       releaseHostedWait();
-    });
+    }, kind === "paypal"
+      ? {
+          missMs: 2500,
+          onMiss: () => {
+            releaseHostedWait();
+            setPayError("No pudimos abrir PayPal. Intenta de nuevo.");
+          },
+        }
+      : undefined);
   }
 
   async function proceedToPay() {
@@ -938,7 +946,9 @@ export function CheckoutModal({
     }
     setPayError(undefined);
     setPaying(true);
-    if (selectedMethod?.slug === "recurrente") startHostedPopupWatch();
+    if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
+      startHostedPopupWatch(selectedMethod.slug);
+    }
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
     try {
       const triggered = await triggerGafaPayConfirm(selectedMethod?.slug ?? "");
@@ -948,7 +958,7 @@ export function CheckoutModal({
         setPaying(false);
         setPayError(
           selectedMethod?.slug === "paypal"
-            ? "Usa el botón de PayPal para completar el pago."
+            ? "No pudimos abrir PayPal. Intenta de nuevo."
             : selectedMethod?.slug === "recurrente"
               ? "No pudimos abrir el pago. Intenta de nuevo."
               : "El procesador de pago aún no está listo. Intenta de nuevo.",
@@ -1221,7 +1231,9 @@ export function CheckoutModal({
                   onHostedClose={releaseHostedWait}
                   onStart={() => {
                     setPaying(true);
-                    if (selectedMethod?.slug === "recurrente") startHostedPopupWatch();
+                    if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
+                      startHostedPopupWatch(selectedMethod.slug);
+                    }
                   }}
                   onReadyChange={setPaymentReady}
                   paypalLocked={selectedMethod?.slug === "paypal" && waitingOnTerms}
@@ -1514,9 +1526,11 @@ export function CheckoutModal({
                   {paying
                     ? selectedMethod?.slug === "recurrente"
                       ? "Esperando el pago…"
-                      : chargeHold
-                        ? "Registrando compra…"
-                        : "Procesando…"
+                      : selectedMethod?.slug === "paypal"
+                        ? "Esperando PayPal…"
+                        : chargeHold
+                          ? "Registrando compra…"
+                          : "Procesando…"
                     : registerOnly
                       ? hostedPendingRef.current?.purchaseId
                         ? "Revisar pago"

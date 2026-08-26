@@ -351,6 +351,31 @@ export function hasGafaPayRuntime(): boolean {
   return typeof window !== "undefined" && Boolean(window.GafaPayElements);
 }
 
+function dispatchActivate(el: HTMLElement): void {
+  el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+  el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+  el.click();
+}
+
+function clickPayPalCheckoutButton(scope: ParentNode): boolean {
+  const mount =
+    scope.querySelector<HTMLElement>(".gafa-checkout-paymount[data-method='paypal']") ??
+    scope.querySelector<HTMLElement>(".gafa-checkout-paymount__island") ??
+    null;
+  const host =
+    mount?.querySelector<HTMLElement>("#paypal") ??
+    scope.querySelector<HTMLElement>(".gafa-pay-native #paypal");
+  if (!host) return false;
+  // No clic al div vacío: eso devolvía true, el CTA se quedaba en Procesando
+  // y PayPal nunca abría. checkout.js pinta `.paypal-button` (a veces sin <button>).
+  const target =
+    host.querySelector<HTMLElement>(".paypal-button, .paypal-button-container") ??
+    host.querySelector<HTMLElement>("button, [role='button']");
+  if (!target) return false;
+  dispatchActivate(target);
+  return true;
+}
+
 /**
  * Dispara la confirmacion del metodo activo. Cada formulario registra su
  * handler global al montarse (mismo contrato que el fancy v1). PayPal y
@@ -379,16 +404,7 @@ export function triggerGafaPayConfirm(slug: string, root?: ParentNode | null): P
     button.click();
     return Promise.resolve(true);
   } else if (slug === "paypal") {
-    // PaypalPayment tampoco registra handler: checkout.js vive en #paypal.
-    const scope = root ?? document;
-    const host = scope.querySelector<HTMLElement>(
-      ".gafa-checkout-paymount__island #paypal, .gafa-pay-native #paypal, #paypal",
-    );
-    if (!host) return Promise.resolve(false);
-    const target =
-      host.querySelector<HTMLElement>("button, .paypal-button, [role='button']") ?? host;
-    target.click();
-    return Promise.resolve(true);
+    return Promise.resolve(clickPayPalCheckoutButton(root ?? document));
   } else {
     return Promise.resolve(false);
   }
