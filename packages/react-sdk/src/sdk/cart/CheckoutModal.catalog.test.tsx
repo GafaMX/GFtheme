@@ -44,7 +44,11 @@ const helipuerto: Meeting = {
   serviceName: "HELIPUERTO BICI 🚲",
 };
 
-function renderShop(client: GafaClient, meeting?: Meeting | null) {
+function renderShop(
+  client: GafaClient,
+  meeting?: Meeting | null,
+  seat?: { seatObjectId?: number; seatLabel?: string },
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
@@ -56,6 +60,8 @@ function renderShop(client: GafaClient, meeting?: Meeting | null) {
         locationSlug="cancun"
         locationName="Polanco"
         meeting={meeting}
+        seatObjectId={seat?.seatObjectId}
+        seatLabel={seat?.seatLabel}
         skipCatalog={false}
         onClose={() => undefined}
       />
@@ -141,6 +147,30 @@ describe("CheckoutModal catalog loading", () => {
       expect(screen.queryByRole("button", { name: /quitar clase/i })).toBeNull();
     });
     expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
+  });
+
+  it("ancla el lugar elegido en el chip de la clase", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    renderShop(mockClient(Promise.resolve([])), helipuerto, { seatObjectId: 35042, seatLabel: "42" });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Lugar 42/)).toBeTruthy();
+    });
+    expect(useCartStore.getState().reservation).toEqual(
+      expect.objectContaining({ meetingId: 99, seatObjectId: 35042, seatLabel: "42" }),
+    );
+  });
+
+  it("sin lugar no inventa posición en la reserva anclada", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    renderShop(mockClient(Promise.resolve([])), helipuerto);
+
+    await waitFor(() => {
+      expect(useCartStore.getState().reservation?.meetingId).toBe(99);
+    });
+    expect(useCartStore.getState().reservation?.seatObjectId).toBeUndefined();
+    expect(useCartStore.getState().reservation?.seatLabel).toBeUndefined();
+    expect(screen.queryByText(/Lugar /)).toBeNull();
   });
 
   it("el carrito arranca colapsado y el toggle lo abre", async () => {
