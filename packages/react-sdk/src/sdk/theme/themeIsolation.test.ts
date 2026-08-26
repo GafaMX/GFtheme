@@ -150,10 +150,16 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(/\.gafa-meeting-desc \{[\s\S]{0,200}white-space:\s*nowrap/);
     expect(widgetsCss).toMatch(/\.gafa-meeting-extra__mark \{[\s\S]{0,480}height:\s*16px/);
     expect(widgetsCss).toMatch(
-      /\.gafa-reservation-hero \.gafa-reservation-notes \{[\s\S]{0,120}text-transform:\s*uppercase/,
+      /\.gafa-reservation-hero \.gafa-reservation-notes \{[\s\S]{0,280}font-size:\s*0\.78rem/,
     );
     expect(widgetsCss).toMatch(
-      /\.gafa-reservation-hero h3,\s*\.gafa-reservation-hero \.gafa-reservation-notes \{[\s\S]{0,400}font-size:\s*1\.2rem/,
+      /\.gafa-reservation-hero \.gafa-reservation-notes \{[\s\S]{0,280}text-transform:\s*uppercase/,
+    );
+    expect(widgetsCss).not.toMatch(
+      /\.gafa-reservation-hero h3,\s*\.gafa-reservation-hero \.gafa-reservation-notes \{/,
+    );
+    expect(themeCss).toMatch(
+      /\.gafa-reservation-hero \.gafa-reservation-notes:not\(\.gafa-pay-native \*\) \{[\s\S]{0,280}font-size:\s*0\.78rem !important/,
     );
   });
 

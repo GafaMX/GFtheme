@@ -1774,13 +1774,10 @@
   padding-right: 44px;
 }
 
-.gafa-reservation-hero h3,
-.gafa-reservation-hero .gafa-reservation-notes {
+.gafa-reservation-hero h3 {
   --gafa-heading-size: 1.2rem;
   --gafa-heading-weight: 700;
   --gafa-heading-leading: 1.25;
-  --gafa-type-size: 1.2rem;
-  --gafa-type-leading: 1.25;
   --gafa-fg: var(--gafa-color-text);
 
   color: var(--gafa-color-text);
@@ -1791,7 +1788,20 @@
   margin: 0;
 }
 
+/* Misma pinta que `.gafa-meeting-desc` en la tarjeta: chica, muted, caps.
+   No comparte el 1.2rem del título. */
 .gafa-reservation-hero .gafa-reservation-notes {
+  --gafa-type-size: 0.78rem;
+  --gafa-type-leading: 1.25;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  background: none;
+  color: var(--gafa-color-muted-text);
+  font-family: var(--gafa-font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
   text-transform: uppercase;
   white-space: normal;
 }
