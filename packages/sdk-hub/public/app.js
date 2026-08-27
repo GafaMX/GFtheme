@@ -12,6 +12,12 @@ const state = {
   events: [],
   funnel: { steps: [], totals: {} },
   widgets: [],
+  ranking: [],
+  ledger: [],
+  rules: { defaults: [], company: [], effective: [] },
+  grantUserId: "",
+  grantPoints: "10",
+  grantReason: "",
 };
 
 async function api(path, options = {}) {
@@ -34,18 +40,24 @@ async function refresh() {
     await api("/v1/admin/me");
     state.me = true;
     state.error = "";
-    const [summary, installations, events, funnel, widgets] = await Promise.all([
+    const [summary, installations, events, funnel, widgets, ranking, ledger, rules] = await Promise.all([
       api("/v1/admin/summary"),
       api(`/v1/admin/installations${qs({ company_id: state.companyId })}`),
       api(`/v1/admin/events${qs({ company_id: state.companyId, event: state.eventName })}`),
       api(`/v1/admin/funnel${qs({ company_id: state.companyId, days: state.days })}`),
       api("/v1/widgets"),
+      api(`/v1/admin/loyalty/ranking${qs({ company_id: state.companyId })}`),
+      api(`/v1/admin/loyalty/ledger${qs({ company_id: state.companyId })}`),
+      api(`/v1/admin/loyalty/rules${qs({ company_id: state.companyId || "0" })}`),
     ]);
     state.summary = summary;
     state.installations = installations.installations ?? [];
     state.events = events.events ?? [];
     state.funnel = funnel;
     state.widgets = widgets.widgets ?? [];
+    state.ranking = ranking.ranking ?? [];
+    state.ledger = ledger.ledger ?? [];
+    state.rules = rules;
   } catch (error) {
     if (error.status === 401) {
       state.me = false;
@@ -144,6 +156,7 @@ function renderApp() {
         navBtn("installations", "Instalaciones"),
         navBtn("usage", "Uso"),
         navBtn("events", "Eventos"),
+        navBtn("loyalty", "Lealtad"),
         navBtn("catalog", "Catálogo"),
       ),
       h(
@@ -160,7 +173,7 @@ function renderApp() {
         "Salir",
       ),
     ),
-    h("main", { class: "main" }, renderFilters(), renderView()),
+    h("main", { class: "main" }, renderFilters(), state.error ? h("p", { class: "error" }, state.error) : null, renderView()),
   );
 }
 
@@ -210,6 +223,7 @@ function titleFor(view) {
     installations: "Dónde está el SDK",
     usage: "Cómo se usa",
     events: "Explorer de eventos",
+    loyalty: "Puntos y niveles",
     catalog: "Catálogo de widgets",
   }[view];
 }
@@ -218,6 +232,7 @@ function renderView() {
   if (state.view === "installations") return renderInstallations();
   if (state.view === "usage") return renderUsage();
   if (state.view === "events") return renderEvents();
+  if (state.view === "loyalty") return renderLoyalty();
   return renderCatalog();
 }
 
@@ -285,6 +300,119 @@ function renderEvents() {
       row.host ?? "—",
       row.user_id ?? "—",
     ]),
+  );
+}
+
+function renderLoyalty() {
+  const rules = state.rules.effective?.length ? state.rules.effective : state.rules.defaults ?? [];
+  return h(
+    "div",
+    { class: "stack" },
+    h(
+      "p",
+      { class: "muted" },
+      "Los puntos viven en el Hub. No se puntúan heartbeats ni vistas de calendario. Sin user_id no hay puntos. Canje a crédito de tienda: después (Laravel).",
+    ),
+    h(
+      "div",
+      { class: "grid" },
+      stat("Socios con puntos", state.ranking.length),
+      stat("Movimientos", state.ledger.length),
+      stat("Reglas", rules.length),
+      stat("Top", state.ranking[0] ? `${state.ranking[0].points} pts · user ${state.ranking[0].user_id}` : "—"),
+    ),
+    h("h3", {}, "Ranking"),
+    table(
+      ["Compañía", "User", "Puntos", "Nivel", "Actualizado"],
+      state.ranking.map((row) => [
+        row.company_id,
+        row.user_id,
+        row.points,
+        h("span", { class: `tag tier-${row.tier?.id ?? "bronze"}` }, row.tier?.label ?? "Bronze"),
+        formatTime(row.updated_at),
+      ]),
+    ),
+    h("h3", {}, "Reglas"),
+    table(
+      ["Evento", "Puntos", "Tope/día", "Una vez", "Etiqueta", "Origen"],
+      rules.map((row) => [
+        h("code", {}, row.event_name),
+        row.points,
+        row.daily_cap || "—",
+        row.once_per_user ? "sí" : "no",
+        row.label ?? "—",
+        Number(row.company_id) === 0 ? "global" : `compañía ${row.company_id}`,
+      ]),
+    ),
+    h("h3", {}, "Ajuste manual"),
+    h(
+      "form",
+      {
+        class: "grant",
+        onSubmit: async (event) => {
+          event.preventDefault();
+          const companyId = Number(state.companyId);
+          const userId = Number(state.grantUserId);
+          const points = Number(state.grantPoints);
+          if (!companyId || !userId || !Number.isFinite(points) || points === 0) {
+            state.error = "Para otorgar puntos filtra company_id y llena user_id y puntos ≠ 0.";
+            render();
+            return;
+          }
+          try {
+            await api("/v1/admin/loyalty/grant", {
+              method: "POST",
+              body: JSON.stringify({
+                company_id: companyId,
+                user_id: userId,
+                points,
+                reason: state.grantReason || "manual",
+              }),
+            });
+            state.grantReason = "";
+            state.error = "";
+            await refresh();
+          } catch (error) {
+            state.error = error.message;
+            render();
+          }
+        },
+      },
+      h("input", {
+        placeholder: "user_id",
+        value: state.grantUserId,
+        onInput: (event) => {
+          state.grantUserId = event.target.value;
+        },
+      }),
+      h("input", {
+        placeholder: "puntos (+/-)",
+        value: state.grantPoints,
+        onInput: (event) => {
+          state.grantPoints = event.target.value;
+        },
+      }),
+      h("input", {
+        placeholder: "motivo",
+        value: state.grantReason,
+        onInput: (event) => {
+          state.grantReason = event.target.value;
+        },
+      }),
+      h("button", { class: "btn", type: "submit" }, "Otorgar"),
+    ),
+    h("h3", {}, "Ledger"),
+    table(
+      ["Cuando", "Compañía", "User", "Evento", "Puntos", "Día"],
+      state.ledger.map((row) => [
+        formatTime(row.ts),
+        row.company_id,
+        row.user_id,
+        h("code", {}, row.event_name),
+        row.points,
+        row.day,
+      ]),
+    ),
   );
 }
 

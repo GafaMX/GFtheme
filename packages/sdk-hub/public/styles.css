@@ -106,7 +106,14 @@ th { color: var(--muted); font-weight: 600; }
   font-size: 12px;
 }
 .tag.preview { color: var(--accent); }
+.tag.tier-gold { color: #f2c545; }
+.tag.tier-silver { color: #c9d4e3; }
+.tag.tier-bronze { color: #d4a574; }
 .empty { padding: 28px; color: var(--muted); }
+.stack { display: grid; gap: 18px; }
+.stack h3 { margin: 8px 0 0; font-size: 16px; }
+.grant { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.grant input { width: 160px; }
 
 @media (max-width: 960px) {
   .app { grid-template-columns: 1fr; }
