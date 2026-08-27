@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { clearSessionCookie, issueSessionCookie, timingSafeEqual, verifySession } from "./auth";
 import { parseAndNormalizeEvents, persistEvents } from "./ingest";
+import { applyLoyalty, d1LoyaltyStore, mergeRules, tierForPoints, type LoyaltyRule } from "./loyalty";
 import { allowRequest } from "./rateLimit";
 
 export type HubEnv = {
@@ -23,6 +24,15 @@ app.use(
     origin: "*",
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
+    maxAge: 86400,
+  }),
+);
+
+app.use(
+  "/v1/loyalty/*",
+  cors({
+    origin: "*",
+    allowMethods: ["GET", "OPTIONS"],
     maxAge: 86400,
   }),
 );
@@ -80,7 +90,13 @@ app.post("/v1/events", async (c) => {
   }
 
   const accepted = await persistEvents(c.env.DB, events);
-  return c.json({ ok: true, accepted });
+  let loyalty = 0;
+  try {
+    loyalty = await applyLoyalty(d1LoyaltyStore(c.env.DB), events);
+  } catch {
+    loyalty = 0;
+  }
+  return c.json({ ok: true, accepted, loyalty_awarded: loyalty });
 });
 
 async function requireAdmin(c: { env: HubEnv; req: { header: (name: string) => string | undefined } }) {
@@ -225,6 +241,42 @@ app.get("/v1/admin/funnel", async (c) => {
   return c.json({ days, since, steps, totals: Object.fromEntries(byName) });
 });
 
+app.get("/v1/loyalty/balance", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  if (!allowRequest(`loyalty:${ip}`, 60)) {
+    return c.json({ ok: false, error: "rate_limited" }, 429);
+  }
+  const companyId = Number(c.req.query("company_id"));
+  const userId = Number(c.req.query("user_id"));
+  if (!Number.isFinite(companyId) || companyId <= 0 || !Number.isFinite(userId) || userId <= 0) {
+    return c.json({ ok: false, error: "missing_ids" }, 400);
+  }
+  const row = await c.env.DB.prepare(
+    "SELECT points, updated_at FROM loyalty_balances WHERE company_id = ? AND user_id = ?",
+  )
+    .bind(companyId, userId)
+    .first<{ points: number; updated_at: string }>();
+  const points = Number(row?.points ?? 0);
+  const ledger = await c.env.DB.prepare(
+    `SELECT event_name, points, ts
+     FROM loyalty_ledger
+     WHERE company_id = ? AND user_id = ?
+     ORDER BY ts DESC
+     LIMIT 8`,
+  )
+    .bind(companyId, userId)
+    .all();
+  return c.json({
+    ok: true,
+    company_id: companyId,
+    user_id: userId,
+    points,
+    tier: tierForPoints(points),
+    updated_at: row?.updated_at ?? null,
+    recent: ledger.results,
+  });
+});
+
 app.get("/v1/admin/summary", async (c) => {
   if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
   const companies = await c.env.DB.prepare(
@@ -236,6 +288,136 @@ app.get("/v1/admin/summary", async (c) => {
     companies: companies.results,
     event_count: events?.count ?? 0,
   });
+});
+
+app.get("/v1/admin/loyalty/rules", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+  const companyId = Number(c.req.query("company_id") ?? 0);
+  const { results } = await c.env.DB.prepare(
+    `SELECT company_id, event_name, points, daily_cap, once_per_user, label
+     FROM loyalty_rules WHERE company_id IN (0, ?) ORDER BY event_name, company_id`,
+  )
+    .bind(Number.isFinite(companyId) ? companyId : 0)
+    .all<LoyaltyRule>();
+  const defaults = results.filter((row) => row.company_id === 0);
+  const company = results.filter((row) => row.company_id === companyId && companyId > 0);
+  const effective = [...mergeRules(defaults, company).values()];
+  return c.json({ defaults, company, effective });
+});
+
+app.put("/v1/admin/loyalty/rules", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+  let body: { company_id?: number; rules?: Array<Record<string, unknown>> } = {};
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    return c.json({ ok: false, error: "invalid_json" }, 400);
+  }
+  const companyId = Number(body.company_id);
+  if (!Number.isFinite(companyId) || companyId <= 0) {
+    return c.json({ ok: false, error: "company_required" }, 400);
+  }
+  const rules = Array.isArray(body.rules) ? body.rules : [];
+  await c.env.DB.prepare("DELETE FROM loyalty_rules WHERE company_id = ?").bind(companyId).run();
+  for (const rule of rules) {
+    const eventName = typeof rule.event_name === "string" ? rule.event_name : "";
+    if (!eventName) continue;
+    await c.env.DB.prepare(
+      `INSERT INTO loyalty_rules (company_id, event_name, points, daily_cap, once_per_user, label)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        companyId,
+        eventName,
+        Number(rule.points) || 0,
+        Number(rule.daily_cap) || 0,
+        rule.once_per_user ? 1 : 0,
+        typeof rule.label === "string" ? rule.label : null,
+      )
+      .run();
+  }
+  return c.json({ ok: true });
+});
+
+app.get("/v1/admin/loyalty/ranking", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+  const companyId = c.req.query("company_id");
+  const clauses = ["1=1"];
+  const binds: unknown[] = [];
+  if (companyId) {
+    clauses.push("company_id = ?");
+    binds.push(Number(companyId));
+  }
+  const { results } = await c.env.DB.prepare(
+    `SELECT company_id, user_id, points, updated_at
+     FROM loyalty_balances
+     WHERE ${clauses.join(" AND ")}
+     ORDER BY points DESC
+     LIMIT 100`,
+  )
+    .bind(...binds)
+    .all();
+  return c.json({
+    ranking: results.map((row) => ({
+      ...row,
+      tier: tierForPoints(Number((row as { points: number }).points)),
+    })),
+  });
+});
+
+app.get("/v1/admin/loyalty/ledger", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+  const companyId = c.req.query("company_id");
+  const userId = c.req.query("user_id");
+  const clauses = ["1=1"];
+  const binds: unknown[] = [];
+  if (companyId) {
+    clauses.push("company_id = ?");
+    binds.push(Number(companyId));
+  }
+  if (userId) {
+    clauses.push("user_id = ?");
+    binds.push(Number(userId));
+  }
+  const { results } = await c.env.DB.prepare(
+    `SELECT idempotency_key, company_id, user_id, event_name, points, day, ts
+     FROM loyalty_ledger
+     WHERE ${clauses.join(" AND ")}
+     ORDER BY ts DESC
+     LIMIT 200`,
+  )
+    .bind(...binds)
+    .all();
+  return c.json({ ledger: results });
+});
+
+app.post("/v1/admin/loyalty/grant", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+  let body: { company_id?: number; user_id?: number; points?: number; reason?: string } = {};
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    return c.json({ ok: false, error: "invalid_json" }, 400);
+  }
+  const companyId = Number(body.company_id);
+  const userId = Number(body.user_id);
+  const points = Number(body.points);
+  if (!companyId || !userId || !Number.isFinite(points) || points === 0) {
+    return c.json({ ok: false, error: "invalid_grant" }, 400);
+  }
+  const ts = new Date().toISOString();
+  const nonce = crypto.randomUUID();
+  await d1LoyaltyStore(c.env.DB).writeAward({
+    key: `c${companyId}:u${userId}:grant:${ts}:${nonce}`,
+    company_id: companyId,
+    user_id: userId,
+    event_name: "admin.grant",
+    points,
+    day: ts.slice(0, 10),
+    ts,
+    props_json: JSON.stringify({ reason: body.reason ?? "manual" }),
+  });
+  return c.json({ ok: true });
 });
 
 app.all("*", async (c) => {
