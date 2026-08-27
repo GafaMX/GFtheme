@@ -7,7 +7,15 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
     async login(credentials) {
       try {
         const result = await client.login(credentials);
-        tracker.track({ event: "auth.login_succeeded", widget: "auth" });
+        let userId: number | null = null;
+        try {
+          const profile = await client.getProfile();
+          userId = profile?.id ?? null;
+        } catch {
+          userId = null;
+        }
+        tracker.setUserId(userId);
+        tracker.track({ event: "auth.login_succeeded", widget: "auth", user_id: userId });
         return result;
       } catch (error) {
         tracker.track({ event: "auth.login_failed", widget: "auth" });
@@ -17,10 +25,19 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
     logout() {
       client.logout();
       tracker.track({ event: "auth.logged_out", widget: "auth" });
+      tracker.setUserId(null);
     },
     async register(payload) {
       const result = await client.register(payload);
-      tracker.track({ event: "auth.registered", widget: "auth" });
+      let userId: number | null = null;
+      try {
+        const profile = await client.getProfile();
+        userId = profile?.id ?? null;
+      } catch {
+        userId = null;
+      }
+      tracker.setUserId(userId);
+      tracker.track({ event: "auth.registered", widget: "auth", user_id: userId });
       return result;
     },
     async cancelReservation(brandSlug, reservationId) {
@@ -40,6 +57,7 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
       tracker.track({
         event: result.isWaitlist ? "reservation.waitlisted" : "reservation.confirmed",
         widget: "calendar",
+        user_id: payload.userProfileId,
         props: { meeting_id: payload.meetingId, reservation_id: result.reservationId },
       });
       return result;
@@ -66,7 +84,10 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
         tracker.track({
           event: "checkout.paid",
           widget: "checkout",
-          props: { reservation_id: result.reservationId, purchase_id: payload.pendingPurchaseId },
+          props: {
+            reservation_id: result.reservationId,
+            purchase_id: payload.pendingPurchaseId,
+          },
         });
       } else if (result.message && result.code !== 0) {
         tracker.track({ event: "checkout.failed", widget: "checkout", props: { message: result.message } });

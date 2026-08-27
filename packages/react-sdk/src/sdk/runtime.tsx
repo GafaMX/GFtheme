@@ -181,7 +181,10 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     },
     mountProfile(target, props = {}) {
       tracker.track({ event: "widget.mounted", widget: "profile" });
-      return mount(target, <ProfileWidget client={client} {...props} />);
+      return mount(
+        target,
+        <ProfileWidget client={client} hubUrl={config.hubUrl} companyId={config.companyId} {...props} />,
+      );
     },
     mountPurchaseButton(target, props = {}) {
       const { comboId, membershipId, productId, locationId, ...rest } = props;
@@ -254,7 +257,15 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
 
       const mounted = mount(
         host,
-        <AccountModal client={client} captcha={captcha} open onClose={close} {...props} />,
+        <AccountModal
+          client={client}
+          captcha={captcha}
+          open
+          onClose={close}
+          hubUrl={config.hubUrl}
+          companyId={config.companyId}
+          {...props}
+        />,
       );
 
       return handle;

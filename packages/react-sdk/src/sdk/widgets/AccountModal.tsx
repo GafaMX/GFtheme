@@ -11,6 +11,8 @@ export type AccountModalProps = {
   client?: GafaClient;
   captcha?: CaptchaProvider;
   brandSlug?: string;
+  hubUrl?: string;
+  companyId?: number;
   open: boolean;
   onClose(): void;
   /** Nombre de la marca para el encabezado del popup. */
@@ -34,6 +36,8 @@ export function AccountModal({
   client,
   captcha,
   brandSlug,
+  hubUrl,
+  companyId,
   open,
   onClose,
   title = "Tu cuenta",
@@ -129,6 +133,8 @@ export function AccountModal({
             client={client}
             brandSlug={brandSlug}
             combineWaitlist={combineWaitlist}
+            hubUrl={hubUrl}
+            companyId={companyId}
             variant="modal"
             onRequestClose={onClose}
             onExploreClasses={() => {

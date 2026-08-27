@@ -14,6 +14,7 @@ import type {
   UserReservation,
 } from "../client/types";
 import { subscribeToAuthChanges } from "../client/tokenStorage";
+import { fetchLoyaltyBalance, type LoyaltyBalance } from "../analytics/loyalty";
 import { RemoteImage } from "../images/ImagesProvider";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CustomFieldInput } from "./CustomFieldInput";
@@ -26,6 +27,8 @@ export type ProfileWidgetProps = {
   client?: GafaClient;
   brandSlug?: string;
   combineWaitlist?: boolean;
+  hubUrl?: string;
+  companyId?: number;
   /** En `modal` el contenedor pone el marco y el boton de cerrar. */
   variant?: "page" | "modal";
   onRequestClose?(): void;
@@ -88,6 +91,8 @@ export function ProfileWidget({
   client,
   brandSlug,
   combineWaitlist = false,
+  hubUrl,
+  companyId,
   variant = "page",
   onRequestClose,
   onExploreClasses,
@@ -147,6 +152,17 @@ export function ProfileWidget({
     queryKey: ["profile", "me"],
     queryFn: () => client!.getProfile(),
     enabled: Boolean(client),
+  });
+
+  const loyaltyQuery = useQuery({
+    queryKey: ["loyalty", hubUrl, companyId, profileQuery.data?.id],
+    queryFn: () =>
+      fetchLoyaltyBalance({
+        hubUrl: hubUrl!,
+        companyId: companyId!,
+        userId: profileQuery.data!.id,
+      }),
+    enabled: Boolean(hubUrl && companyId && profileQuery.data?.id),
   });
 
   const brandsQuery = useQuery({
@@ -390,6 +406,7 @@ export function ProfileWidget({
               waitlistCount={waitlist.length}
               credits={creditsQuery.data ?? []}
               memberships={membershipsQuery.data ?? []}
+              loyalty={loyaltyQuery.data ?? null}
               loadingBalance={creditsQuery.isLoading || membershipsQuery.isLoading}
               loadingNext={futureQuery.isLoading}
               totals={activityQuery.data}
@@ -513,6 +530,7 @@ function OverviewPanel({
   waitlistCount,
   credits,
   memberships,
+  loyalty,
   loadingBalance,
   loadingNext,
   totals,
@@ -531,6 +549,7 @@ function OverviewPanel({
   waitlistCount: number;
   credits: UserCredit[];
   memberships: UserMembership[];
+  loyalty?: LoyaltyBalance | null;
   loadingBalance: boolean;
   loadingNext: boolean;
   totals?: UserActivityTotals;
@@ -694,6 +713,24 @@ function OverviewPanel({
               <span className="gafa-acct-balance__value">{formatWallet(profile.storeCreditTotal)}</span>
               <span className="gafa-acct-balance__label">Crédito en tienda</span>
             </div>
+
+            {loyalty ? (
+              <div className="gafa-acct-balance__card">
+                <span className="gafa-acct-balance__emoji" aria-hidden="true">
+                  ⭐
+                </span>
+                <span className="gafa-acct-balance__value">{loyalty.points}</span>
+                <span className="gafa-acct-balance__label">Puntos {loyalty.tier.label}</span>
+                {loyalty.recent[0] ? (
+                  <span className="gafa-acct-balance__hint">
+                    {loyalty.recent[0].points > 0 ? "+" : ""}
+                    {loyalty.recent[0].points} {loyaltyLabel(loyalty.recent[0].event_name)}
+                  </span>
+                ) : (
+                  <span className="gafa-acct-balance__hint">Reserva o compra para sumar</span>
+                )}
+              </div>
+            ) : null}
           </div>
         )}
       </section>
@@ -1939,6 +1976,19 @@ function relativeDayLabel(value: string, timeZone?: string): string {
       ...parts.options,
     }),
   );
+}
+
+function loyaltyLabel(eventName: string): string {
+  const labels: Record<string, string> = {
+    "auth.registered": "por registrarte",
+    "auth.login_succeeded": "por entrar hoy",
+    "reservation.confirmed": "por reservar",
+    "reservation.waitlisted": "por lista de espera",
+    "reservation.cancelled": "por cancelar",
+    "checkout.paid": "por comprar",
+    "admin.grant": "ajuste del estudio",
+  };
+  return labels[eventName] ?? eventName.replace(/[._]/g, " ");
 }
 
 function formatDate(value?: string): string {

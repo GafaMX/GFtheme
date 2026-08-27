@@ -13,10 +13,12 @@ export type SdkTracker = {
   sessionId: string;
   track(input: TrackInput): void;
   heartbeat(widgets: string[]): void;
+  setUserId(userId: number | null): void;
   flush(): void;
 };
 
 const SESSION_KEY = "gafa-sdk:hub-session";
+const USER_KEY = "gafa-sdk:hub-user";
 
 function readSessionId(): string {
   try {
@@ -47,6 +49,7 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
   const queue: SdkAnalyticsEvent[] = [];
   let timer: ReturnType<typeof setTimeout> | null = null;
   const sdkVersion = config.sdkVersion ?? SDK_VERSION;
+  let userId = readStoredUserId();
 
   function enqueue(input: TrackInput) {
     if (!enabled) return;
@@ -61,7 +64,7 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
       company_id: config.companyId,
       brand_id: input.brand_id ?? config.brandId ?? null,
       location_id: input.location_id ?? null,
-      user_id: input.user_id ?? null,
+      user_id: input.user_id ?? userId,
       widget: input.widget ?? null,
       sdk_version: sdkVersion,
       host: page.host,
@@ -125,6 +128,15 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
       });
       flush();
     },
+    setUserId(next) {
+      userId = next;
+      try {
+        if (next == null) sessionStorage.removeItem(USER_KEY);
+        else sessionStorage.setItem(USER_KEY, String(next));
+      } catch {
+        // ignore
+      }
+    },
     flush,
   };
 }
@@ -133,5 +145,16 @@ export const noopTracker: SdkTracker = {
   sessionId: "noop",
   track() {},
   heartbeat() {},
+  setUserId() {},
   flush() {},
 };
+
+function readStoredUserId(): number | null {
+  try {
+    const raw = sessionStorage.getItem(USER_KEY);
+    const id = raw ? Number(raw) : NaN;
+    return Number.isFinite(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
