@@ -15,7 +15,8 @@ Código: [`packages/sdk-hub`](../../packages/sdk-hub). El SDK emite a `HUB_URL` 
 - Dónde está instalado el V2 (host, compañía, marca, salón, versión, widgets)
 - Cómo se usa (calendario, login, reserva, compra)
 - Catálogo de widgets y snippets
-- Más adelante: remote config y lealtad
+- Más adelante: remote config
+- **Lealtad (puntos y niveles en D1).** Canje a crédito de tienda: después.
 
 ## Local
 
@@ -46,4 +47,5 @@ O `?hub-url=http://127.0.0.1:8787`. `ANALYTICS: false` apaga el tracker.
 - [Instalación del embed](install.md) — el contrato de un script no cambia
 - [Catálogo de widgets](widgets.md)
 - [Contrato de eventos](events.md)
+- [Lealtad](loyalty.md)
 - [Cómo se publica el JS](../v2-lanzamiento.md)
