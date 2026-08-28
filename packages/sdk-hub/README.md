@@ -22,12 +22,13 @@ El SDK apunta aquí con `HUB_URL` / `hubUrl` (no uses `GAFA_FIT_URL`).
 
 ## Deploy
 
-Hace falta una D1 real (`wrangler d1 create sdk-hub`) y poner el `database_id` en `wrangler.jsonc`. Secrets:
+Hace falta un `CLOUDFLARE_API_TOKEN` con Workers + D1 (y zona `buq.partners` en la misma cuenta para el custom domain). **No** pongas el password de admin en `wrangler.jsonc` de production: van por `wrangler secret`.
 
 ```sh
-npx wrangler secret put ADMIN_PASSWORD --env production
-npx wrangler secret put ADMIN_SESSION_SECRET --env production
-npx wrangler deploy --env production
+cd packages/sdk-hub
+CLOUDFLARE_API_TOKEN=… npm run deploy:production
 ```
 
-Luego el hostname `hub.buq.partners` en la zona Cloudflare de `buq.partners` (no un path de Laravel).
+Eso crea D1 `sdk-hub` si no existe, aplica migraciones, sube secrets y hace `wrangler deploy --env production`. Hostname previsto: `https://hub.buq.partners`. Si la zona no está en la cuenta, queda el `*.workers.dev` y el dominio se pega después.
+
+Kill switch en Fitspin (cuando el tracker esté publicado): `"ANALYTICS": false` en `[data-gf-options]`. El Hub no toca Laravel.

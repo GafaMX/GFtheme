@@ -17,6 +17,18 @@ Código: [`packages/sdk-hub`](../../packages/sdk-hub). El SDK emite a `HUB_URL` 
 - Catálogo de widgets y snippets
 - Más adelante: remote config
 - **Lealtad (puntos y niveles en D1).** Canje a crédito de tienda: después.
+- El socio **no** ve puntos todavía (`SHOW_LOYALTY_POINTS` apagado). El admin del Hub sí.
+
+## Production
+
+Token de Cloudflare (Workers + D1) en `CLOUDFLARE_API_TOKEN`:
+
+```sh
+cd packages/sdk-hub
+CLOUDFLARE_API_TOKEN=… npm run deploy:production
+```
+
+No toca Laravel ni WordPress. El JS de Fitspin se publica en un segundo paso (tracker, sin card de puntos).
 
 ## Local
 

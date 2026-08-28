@@ -42,6 +42,9 @@ export type ProfileWidgetProps = {
 
 type ProfileTab = "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
 
+/** Puntos en el Hub sí se pueden acumular; la card del socio se enciende después. */
+const SHOW_LOYALTY_POINTS = false;
+
 const TABS: { id: ProfileTab; label: string; title: string; subtitle: string; icon: ReactNode }[] = [
   {
     id: "overview",
@@ -162,7 +165,7 @@ export function ProfileWidget({
         companyId: companyId!,
         userId: profileQuery.data!.id,
       }),
-    enabled: Boolean(hubUrl && companyId && profileQuery.data?.id),
+    enabled: SHOW_LOYALTY_POINTS && Boolean(hubUrl && companyId && profileQuery.data?.id),
   });
 
   const brandsQuery = useQuery({
@@ -714,7 +717,7 @@ function OverviewPanel({
               <span className="gafa-acct-balance__label">Crédito en tienda</span>
             </div>
 
-            {loyalty ? (
+            {SHOW_LOYALTY_POINTS && loyalty ? (
               <div className="gafa-acct-balance__card">
                 <span className="gafa-acct-balance__emoji" aria-hidden="true">
                   ⭐

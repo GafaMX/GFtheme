@@ -30,18 +30,36 @@
   "env": {
     "staging": {
       "name": "sdk-hub-staging",
+      "workers_dev": true,
       "vars": {
         "ENVIRONMENT": "staging",
         "HUB_PUBLIC_ORIGIN": "https://hub.buq.com.mx"
       },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "sdk-hub-staging",
+          "database_id": "00000000-0000-0000-0000-000000000002",
+          "migrations_dir": "./migrations"
+        }
+      ],
       "routes": [{ "pattern": "hub.buq.com.mx", "custom_domain": true }]
     },
     "production": {
       "name": "sdk-hub",
+      "workers_dev": true,
       "vars": {
         "ENVIRONMENT": "production",
         "HUB_PUBLIC_ORIGIN": "https://hub.buq.partners"
       },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "sdk-hub",
+          "database_id": "00000000-0000-0000-0000-000000000001",
+          "migrations_dir": "./migrations"
+        }
+      ],
       "routes": [{ "pattern": "hub.buq.partners", "custom_domain": true }]
     }
   }
