@@ -401,7 +401,7 @@ function siteCard(row) {
       h(
         "div",
         { class: "chips" },
-        (row.widget_labels?.length ? row.widget_labels : row.widgets ?? []).map((widget) =>
+        [...new Set(row.widget_labels?.length ? row.widget_labels : row.widgets ?? [])].map((widget) =>
           h("span", { class: "chip" }, widget),
         ),
       ),

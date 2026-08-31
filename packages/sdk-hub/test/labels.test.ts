@@ -39,7 +39,7 @@ describe("directory", () => {
       { company_id: 80, host: "fitspin.mx", path: "/reservar", last_seen_at: "2026-08-31T23:10:00Z" },
       { company_id: 80, host: "localhost", path: "/", last_seen_at: "2026-08-31T23:20:00Z" },
     ]);
-    expect(sites[0]?.name).toBe("Fitspin");
+    expect(sites.filter((site) => site.name === "Fitspin")).toHaveLength(1);
     expect(sites.some((site) => site.name === "Local")).toBe(true);
   });
 });

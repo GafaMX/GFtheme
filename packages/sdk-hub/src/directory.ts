@@ -49,18 +49,32 @@ export function siteFromRow(row: {
 }
 
 export function collapseSites(rows: Array<{ company_id: number; host: string; path?: string | null; last_seen_at?: string | null }>): DirectorySite[] {
-  const byKey = new Map<string, DirectorySite>();
+  const byCompany = new Map<number, DirectorySite>();
+  let local: DirectorySite | null = null;
   for (const row of rows) {
     const site = siteFromRow(row);
-    const prev = byKey.get(site.key);
-    if (!prev || (site.last_seen_at ?? "") > (prev.last_seen_at ?? "")) {
-      byKey.set(site.key, site);
+    if (site.name === "Local") {
+      if (!local || (site.last_seen_at ?? "") > (local.last_seen_at ?? "")) local = site;
+      continue;
+    }
+    const prev = byCompany.get(site.company_id);
+    if (!prev) {
+      byCompany.set(site.company_id, site);
+      continue;
+    }
+    const newer = (site.last_seen_at ?? "") > (prev.last_seen_at ?? "");
+    const prevGeneric = prev.host.includes("buq.") || prev.host.includes("replit") || prev.host.includes("workers.dev");
+    const nextBranded = !site.host.includes("buq.") && !site.host.includes("replit") && !site.host.includes("workers.dev");
+    if ((nextBranded && prevGeneric) || (newer && !(prev.host && !prevGeneric && site.host.includes("buq.")))) {
+      byCompany.set(site.company_id, { ...site, name: site.name === "Local" ? prev.name : site.name });
     }
   }
-  return [...byKey.values()].sort((a, b) => {
+  const sites = [...byCompany.values()];
+  if (local) sites.push(local);
+  return sites.sort((a, b) => {
     if (a.name === "Local" && b.name !== "Local") return 1;
     if (b.name === "Local" && a.name !== "Local") return -1;
-    return (b.last_seen_at ?? "").localeCompare(a.last_seen_at ?? "") || a.name.localeCompare(b.name, "es");
+    return a.name.localeCompare(b.name, "es");
   });
 }
 
