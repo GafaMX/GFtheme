@@ -15,7 +15,7 @@
   --gafa-font-family: var(--gafa-font-body);
   --gafa-heading-font-family: var(--gafa-font-heading);
 
-  color-scheme: light;
+  color-scheme: inherit;
   background: transparent;
   color: var(--gafa-color-text);
   font-family: var(--gafa-font-body);
@@ -25,6 +25,7 @@
 /* Las sombras tienen que cambiar con el esquema: una sombra negra sobre fondo
    oscuro no se ve, ahi lo que separa las capas es el borde y el nivel de gris. */
 .gafa-sdk[data-color-scheme="light"] {
+  color-scheme: light;
   --gafa-shadow-card: 0 18px 44px -20px rgb(15 23 42 / 0.28);
   --gafa-shadow-soft: 0 6px 18px -10px rgb(15 23 42 / 0.22);
   --gafa-shadow-pop: 0 24px 60px -24px rgb(15 23 42 / 0.35);
@@ -127,6 +128,61 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout__line-remove:not(.gafa-pay-
   overflow: visible !important;
 }
 
+/*
+ * Carrito del header: círculo de marca + badge del conteo. Sin esto Fitspin
+ * (`.fp-login-slot button { padding: 10px 20px }`) y Elementor lo aplastan
+ * a una pastilla gris sobre el header oscuro.
+ */
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-cart:not(.gafa-pay-native *) {
+  height: 38px !important;
+  max-width: 38px !important;
+  min-height: 38px !important;
+  min-width: 38px !important;
+  overflow: visible !important;
+  width: 38px !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-cart__count:not(.gafa-pay-native *) {
+  background: var(--gafa-color-primary-text) none !important;
+  color: var(--gafa-color-primary) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  padding: 0 4px !important;
+  text-transform: none !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account:not(.gafa-pay-native *) {
+  overflow: visible !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account__dot:not(.gafa-pay-native *) {
+  border: 0 !important;
+  height: 10px !important;
+  right: 3px !important;
+  top: 3px !important;
+  width: 10px !important;
+}
+
+/* Fancy / checkout / cuenta: fondo opaco. En dark el host (Voltio) pinta
+   `--sdk-background-color` con alpha y el calendario se veía a través. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
+  .gafa-checkout,
+  .gafa-account-modal,
+  .gafa-reservation-sheet,
+  .gafa-fancy-sheet
+):not(.gafa-pay-native *) {
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised)) none !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-tabs button[data-active="true"]:not(.gafa-pay-native *) {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary) none !important;
+  color: var(--gafa-color-primary-text) !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
   .gafa-icon-button,
   .gafa-reservation-close,
@@ -195,6 +251,44 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-search input:not(.gafa-pay-
   width: var(--gafa-search-width, 92px) !important;
 }
 
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout__toolbar:not(.gafa-pay-native *) {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 860px) {
+  html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-search:not(.gafa-pay-native *) {
+    max-width: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    width: 32px !important;
+  }
+
+  html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-search:focus-within:not(.gafa-pay-native *) {
+    max-width: 120px !important;
+    min-width: 108px !important;
+    padding: 0 0.45rem !important;
+    width: auto !important;
+  }
+}
+
+/* Código válido / descuento aplicado: Fitspin pinta `p` del aside al tamaño
+   del Total. Mismo 0.8rem que el enlace de promo, con !important. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-checkout-promo__applied:not(.gafa-pay-native *) {
+  --gafa-fg: #15803d;
+  --gafa-type-size: 0.8rem;
+  --gafa-type-leading: 1.35;
+  color: #15803d !important;
+  font-family: var(--gafa-font-body) !important;
+  font-size: 0.8rem !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.35 !important;
+  text-transform: none !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk :is(.gafa-widget-card, .gafa-filterbar-location, .gafa-sdk-panel) {
   border-color: var(--gafa-color-border) !important;
 }
@@ -214,6 +308,16 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk h6 {
   font-weight: var(--gafa-heading-weight, 700) !important;
   line-height: var(--gafa-heading-leading, 1.25) !important;
   padding: 0 !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-reservation-hero .gafa-reservation-notes:not(.gafa-pay-native *) {
+  background: none !important;
+  color: var(--gafa-color-muted-text) !important;
+  font-family: var(--gafa-font-body) !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  text-transform: uppercase !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk {
@@ -323,4 +427,29 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk textarea:-webkit-autofill:not(.gafa-pay-na
   --gafa-control-border: 1px solid var(--gafa-color-primary);
   background: var(--gafa-color-surface-raised);
   border-color: var(--gafa-color-primary);
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-check-box:not(.gafa-pay-native *) {
+  background: var(--gafa-color-surface) none !important;
+  border: 1.5px solid color-mix(in srgb, var(--gafa-color-text) 28%, var(--gafa-color-border)) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  height: 1.2rem !important;
+  max-height: 1.2rem !important;
+  max-width: 1.2rem !important;
+  min-height: 1.2rem !important;
+  min-width: 1.2rem !important;
+  padding: 0 !important;
+  width: 1.2rem !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-check-input:checked + .gafa-check-box:not(.gafa-pay-native *) {
+  background: var(--gafa-color-primary) none !important;
+  border-color: var(--gafa-color-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gafa-color-primary) 22%, transparent) !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-check-input:focus-visible + .gafa-check-box:not(.gafa-pay-native *) {
+  outline: 2px solid var(--gafa-color-accent) !important;
+  outline-offset: 2px !important;
 }

@@ -62,9 +62,17 @@ export function HeaderControls({
   return (
     <div className="gafa-header-controls">
       {showCart && cartCount > 0 ? (
-        <button className="gafa-header-cart" type="button" title="Tu carrito" onClick={onOpenCart}>
+        <button
+          className="gafa-header-cart"
+          type="button"
+          title="Tu carrito"
+          aria-label={cartCount === 1 ? "Tu carrito, 1 artículo" : `Tu carrito, ${cartCount} artículos`}
+          onClick={onOpenCart}
+        >
           <CartIcon />
-          <span className="gafa-header-cart__count">{cartCount}</span>
+          <span className="gafa-header-cart__count" aria-hidden="true">
+            {cartCount}
+          </span>
         </button>
       ) : null}
 

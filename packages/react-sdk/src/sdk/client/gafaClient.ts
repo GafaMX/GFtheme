@@ -232,13 +232,70 @@ export function createMockGafaClient(): GafaClient {
         initialPurchaseStatus: "/demo/initial-purchase-status",
         checkDiscountCode: "/demo/check-discount",
         checkGiftCode: "/demo/check-gift",
+        generateGiftCode: "/demo/generate-gift",
       },
     }),
     checkDiscountCode: async ({ code }) => ({ valid: code.length > 2, code, discountAmount: 50, label: "Promo demo" }),
-    checkGiftCode: async ({ code }) => ({ valid: code.length > 2, code, balance: 200, label: "Gift demo" }),
+    checkGiftCode: async ({ code }) => {
+      const compact = code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      if (compact.includes("TAKEN")) {
+        return {
+          valid: true,
+          code: compact,
+          balance: 200,
+          label: "Gift demo",
+          httpStatus: 200,
+          raw: { id: 1, code: compact, balance: 200, name: "Gift demo" },
+        };
+      }
+      return { valid: false, code: compact, httpStatus: 404, message: "Gift card not found" };
+    },
+    generateGiftCode: async () => "K7M2P9QX",
     reservatePurchase: async () => ({ purchaseId: 1 }),
     initialPurchase: async () => ({ purchaseId: 1, checkoutToken: "demo" }),
     pollInitialPurchaseStatus: async () => ({ code: 1, reservationId: 99 }),
+    getReservationContext: async ({ meetingId, brandSlug, locationSlug }) => {
+      const meeting = demoMeetings().find((item) => Number(item.id) === Number(meetingId));
+      const waitlist = Boolean(meeting && (meeting.available ?? 1) <= 0);
+      const seatMap = {
+        id: 9,
+        name: "Salón demo",
+        rows: 4,
+        columns: 6,
+        capacity: waitlist ? 14 : 18,
+        objects: [
+          {
+            id: 1,
+            row: 1,
+            column: 1,
+            width: 1,
+            height: 1,
+            label: "1",
+            type: "public",
+            isBlocked: false,
+            isOccupied: Boolean(waitlist),
+          },
+        ],
+      };
+      return {
+        meetingId: Number(meetingId),
+        brandSlug: brandSlug ?? meeting?.brandSlug ?? "demo-studio",
+        locationSlug: locationSlug ?? meeting?.location?.slug ?? "roma-norte",
+        userProfileId: 1,
+        seatMap,
+        paymentOptions: waitlist
+          ? []
+          : [{ id: "credits--1--2099-01-01", kind: "credit" as const, name: "10 clases", remaining: 5 }],
+        waitlistAvailable: waitlist,
+      };
+    },
+    createReservation: async ({ meetingId }) => {
+      const meeting = demoMeetings().find((item) => Number(item.id) === Number(meetingId));
+      return {
+        reservationId: 99,
+        isWaitlist: Boolean(meeting && (meeting.available ?? 1) <= 0),
+      };
+    },
   };
 }
 
@@ -265,10 +322,13 @@ function demoMeetings(): Meeting[] {
       durationMinutes: 50,
       staffName: "Coach Demo",
       serviceName: "Training",
+      description:
+        "Trae toalla y zapatos de indoor. Esta clase es de alta intensidad — si es tu primera vez, avísale al coach.",
       availability: "available",
       available: 8,
       capacity: 18,
       isReserved: false,
+      hasSeatMap: true,
       location: {
         id: 1,
         name: "Roma Norte",
@@ -286,7 +346,9 @@ function demoMeetings(): Meeting[] {
       availability: "waitlist",
       available: 0,
       capacity: 14,
+      waitlistAvailable: true,
       isReserved: false,
+      hasSeatMap: true,
       location: {
         id: 2,
         name: "Condesa",

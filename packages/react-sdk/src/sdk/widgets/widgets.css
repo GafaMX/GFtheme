@@ -832,7 +832,7 @@
   top: calc(100% + 8px);
   transform: translateX(-50%);
   width: 264px;
-  z-index: 40;
+  z-index: 9999;
 }
 
 @media (max-width: 480px) {
@@ -967,13 +967,16 @@
   text-align: center;
 }
 
-/* El popup de la cuenta recorta su overflow (esquinas redondeadas) y tiene
-   scroll interno: un position:absolute normal quedaria cortado o desalineado.
-   Este va por portal a document.body con position:fixed calculado en JS
-   (BirthDateField), como un tooltip flotante de verdad. */
+/* El fancy de reserva y Mi cuenta recortan overflow; Elementor a veces pone
+   transform en un ancestro. El calendario sale por portal a document.body
+   (DateField) con z-index por encima del overlay (2147483000). */
+.gafa-datepicker-host {
+  position: static;
+}
+
 .gafa-datepicker--floating {
   position: fixed;
-  z-index: 2147483003;
+  z-index: 2147483646;
 }
 
 .gafa-datepicker__selects {
@@ -1243,7 +1246,7 @@
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  z-index: 30;
+  z-index: 9999;
 }
 
 .gafa-calendar-filter {
@@ -1396,6 +1399,10 @@
   opacity: 0.55;
 }
 
+.gafa-meeting-card[data-waitlist="true"] {
+  opacity: 1;
+}
+
 .gafa-meeting-card[data-compact="true"] .gafa-meeting-name {
   --gafa-type-size: 0.82rem;
   font-size: 0.82rem;
@@ -1495,6 +1502,69 @@
   font-size: 0.78rem;
 }
 
+.gafa-meeting-desc {
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Compact week: no cabe una línea extra. La `i` no es un button (la card ya
+   lo es) — hover muestra el texto; el tap abre el detalle con el texto completo. */
+.gafa-meeting-extra {
+  display: inline-flex;
+  flex-shrink: 0;
+  /* static: el tooltip se ancla a la card (position: relative), no a la i.
+     Si se ancla a la i, overflow-x del week-grid lo recorta. */
+  position: static;
+}
+
+.gafa-meeting-extra__mark {
+  --gafa-type-size: 0.62rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+  align-items: center;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  font-size: 0.62rem;
+  font-style: italic;
+  font-weight: 700;
+  height: 16px;
+  justify-content: center;
+  line-height: 1;
+  /* La i itálica se va a la derecha; un pelín a la izquierda la deja al centro. */
+  padding: 0 2px 0 0;
+  width: 16px;
+}
+
+.gafa-meeting-extra:hover .gafa-meeting-extra__tip,
+.gafa-meeting-card:focus-visible .gafa-meeting-extra__tip {
+  display: block;
+}
+
+.gafa-meeting-extra__tip {
+  --gafa-type-size: 0.75rem;
+  --gafa-fg: var(--gafa-color-surface);
+  background: var(--gafa-color-text);
+  border-radius: 10px;
+  box-shadow: var(--gafa-shadow-pop);
+  color: var(--gafa-color-surface);
+  display: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  left: 0.5rem;
+  line-height: 1.45;
+  padding: 0.55rem 0.7rem;
+  pointer-events: none;
+  position: absolute;
+  right: 0.5rem;
+  top: 2.35rem;
+  white-space: normal;
+  width: auto;
+  z-index: 8;
+}
+
 .gafa-meeting-chip {
   --gafa-type-size: 0.74rem;
   background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
@@ -1532,11 +1602,17 @@
   color: var(--gafa-color-danger);
 }
 
-.gafa-availability-pill--sold-out,
-.gafa-availability-pill--waitlist {
+.gafa-availability-pill--sold-out {
   background: var(--gafa-color-danger-soft);
   --gafa-fg: var(--gafa-color-danger);
   color: var(--gafa-color-danger);
+}
+
+.gafa-availability-pill--waitlist {
+  background: color-mix(in srgb, var(--gafa-color-accent) 22%, transparent);
+  --gafa-fg: var(--gafa-color-accent);
+  color: var(--gafa-color-accent);
+  font-weight: 800;
 }
 
 .gafa-availability-pill--reserved {
@@ -1638,7 +1714,7 @@
 
 .gafa-reservation-sheet,
 .gafa-fancy-sheet {
-  background: var(--gafa-color-surface);
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-lg);
   box-shadow: var(--gafa-shadow-pop);
@@ -1700,8 +1776,34 @@
 
 .gafa-reservation-hero h3 {
   --gafa-heading-size: 1.2rem;
+  --gafa-heading-weight: 700;
+  --gafa-heading-leading: 1.25;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-family: var(--gafa-heading-font-family);
   font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.25;
   margin: 0;
+}
+
+/* Misma pinta que `.gafa-meeting-desc` en la tarjeta: chica, muted, caps.
+   No comparte el 1.2rem del título. */
+.gafa-reservation-hero .gafa-reservation-notes {
+  --gafa-type-size: 0.78rem;
+  --gafa-type-leading: 1.25;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  background: none;
+  color: var(--gafa-color-muted-text);
+  font-family: var(--gafa-font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+  text-transform: uppercase;
+  white-space: normal;
 }
 
 /* Silueta del detalle de la clase mientras se resuelve por id. */
@@ -2486,27 +2588,62 @@
 }
 
 .gafa-header-cart {
-  --gafa-control-padding: 0 0.75rem;
-  --gafa-control-bg: var(--gafa-color-surface);
-  --gafa-control-border: 1px solid var(--gafa-color-border);
-  --gafa-control-fg: var(--gafa-color-text);
-  --gafa-fg: var(--gafa-color-text);
-  --gafa-control-radius: var(--gafa-radius-pill);
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
-  border-radius: var(--gafa-radius-pill);
-  color: var(--gafa-color-text);
-  padding: 0 0.75rem;
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-control-font-size: 0.68rem;
+  --gafa-control-height: 38px;
+  --gafa-control-min-height: 38px;
+  --gafa-control-padding: 0px;
+  --gafa-control-radius: 999px;
+  --gafa-control-tracking: 0;
+  --gafa-control-transform: none;
+  --gafa-control-width: 38px;
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  border: none;
+  border-radius: 999px;
+  color: var(--gafa-color-primary-text);
+  height: 38px;
+  justify-content: center;
+  min-width: 38px;
+  overflow: visible;
+  padding: 0;
+  width: 38px;
 }
 
 .gafa-header-cart:hover {
-  --gafa-control-border: 1px solid var(--gafa-color-primary);
-  border-color: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  filter: brightness(1.06);
+}
+
+.gafa-header-cart svg {
+  display: block;
+  flex: 0 0 18px;
+  height: 18px;
+  width: 18px;
 }
 
 .gafa-header-cart__count {
-  font-size: 0.8rem;
+  align-items: center;
+  background: var(--gafa-color-primary-text);
+  border: 2px solid var(--gafa-color-primary);
+  border-radius: 999px;
+  color: var(--gafa-color-primary);
+  display: inline-flex;
+  font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  height: 18px;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  min-width: 18px;
+  padding: 0 4px;
+  position: absolute;
+  right: -5px;
+  text-transform: none;
+  top: -5px;
 }
 
 .gafa-header-account {
@@ -2520,17 +2657,20 @@
   border: none;
   border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-primary-text);
+  overflow: visible;
   padding: 0 0.9rem;
 }
 
 .gafa-header-account__dot {
   background: var(--gafa-color-success);
+  border: 0;
   border-radius: 50%;
-  height: 8px;
+  box-sizing: border-box;
+  height: 10px;
   position: absolute;
-  right: 4px;
-  top: 4px;
-  width: 8px;
+  right: 3px;
+  top: 3px;
+  width: 10px;
 }
 
 @media (max-width: 620px) {
@@ -2560,7 +2700,7 @@
 }
 
 .gafa-account-modal {
-  background: var(--gafa-color-surface);
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
   border-radius: var(--gafa-radius-lg) var(--gafa-radius-lg) 0 0;
   box-shadow: var(--gafa-shadow-pop);
   display: flex;
@@ -2989,10 +3129,28 @@
 }
 
 .gafa-acct__head {
+  align-items: flex-start;
   border-bottom: 1px solid var(--gafa-color-border);
+  display: flex;
+  gap: var(--gafa-space-3);
+  justify-content: space-between;
   /* padding-right reserva espacio para la X, que es absoluta y flota encima:
      sin esto un titulo largo (el saludo con el nombre) se le mete debajo. */
   padding: var(--gafa-space-4) 52px var(--gafa-space-3) var(--gafa-space-4);
+}
+
+.gafa-acct__head-copy {
+  min-width: 0;
+}
+
+.gafa-acct__buy {
+  --gafa-control-min-height: 32px;
+  --gafa-control-padding: 0.2rem 0.85rem;
+  --gafa-control-font-size: 0.82rem;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  min-height: 32px;
+  padding: 0.2rem 0.85rem;
 }
 
 @media (min-width: 768px) {
@@ -3182,6 +3340,10 @@
   color: var(--gafa-color-muted-text);
   font-size: 0.88rem;
   margin: 0.2rem 0 0;
+}
+
+.gafa-acct-next__what .gafa-meeting-chip {
+  margin-top: 0.45rem;
 }
 
 .gafa-acct-next__actions {
@@ -3857,6 +4019,29 @@
 .gafa-acct-cards {
   display: grid;
   gap: var(--gafa-space-2);
+}
+
+.gafa-acct-more {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0.55rem 1rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-md);
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin-top: var(--gafa-space-2);
+  padding: 0.55rem 1rem;
+  width: 100%;
 }
 
 .gafa-acct-empty {
@@ -4643,8 +4828,14 @@
   position: fixed;
   right: 0;
   top: 0;
-  z-index: 80;
+  /* Mismo techo que cuenta/reserva: en WP/Elementor el header sticky vive
+     en 9999–10000 y z-index 80 dejaba el checkout debajo. */
+  z-index: 2147483000;
   animation: gafa-checkout-fade 0.24s ease;
+}
+
+.gafa-checkout-overlay[data-charge-hold="true"] {
+  cursor: default;
 }
 
 @keyframes gafa-checkout-fade {
@@ -4653,7 +4844,7 @@
 }
 
 .gafa-checkout {
-  background: var(--gafa-color-surface);
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
   border: 1px solid color-mix(in srgb, var(--gafa-color-border) 60%, transparent);
   border-radius: 22px;
   box-shadow: var(--gafa-shadow-pop);
@@ -4790,14 +4981,23 @@
 .gafa-checkout__toolbar {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .gafa-checkout-tabs {
   display: inline-flex;
-  gap: 0.35rem;
+  flex: 1 1 auto;
+  gap: 0.3rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.gafa-checkout-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .gafa-checkout-tabs button {
@@ -4822,6 +5022,8 @@
   gap: 0.4rem;
   padding: 0.42rem 0.85rem;
   transition: background 0.16s ease, color 0.16s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .gafa-checkout-tabs button em {
@@ -4834,16 +5036,18 @@
 }
 
 .gafa-checkout-tabs button[data-active="true"] {
-  --gafa-control-bg: var(--gafa-color-text);
+  --gafa-control-bg: var(--gafa-color-primary);
   --gafa-control-border: 1px solid transparent;
-  --gafa-control-fg: var(--gafa-color-surface);
-  --gafa-fg: var(--gafa-color-surface);
-  background: var(--gafa-color-text);
-  color: var(--gafa-color-surface);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
 }
 
 .gafa-checkout-tabs button[data-active="true"] em {
-  background: color-mix(in srgb, var(--gafa-color-surface) 25%, transparent);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: color-mix(in srgb, var(--gafa-color-primary-text) 18%, transparent);
+  color: var(--gafa-color-primary-text);
 }
 
 .gafa-checkout-search {
@@ -4858,10 +5062,12 @@
   color: var(--gafa-color-muted-text);
   display: inline-flex;
   flex: 0 0 auto;
+  flex-shrink: 0;
   gap: 0.35rem;
   height: 32px;
   max-width: 168px;
   min-height: 32px;
+  min-width: 0;
   padding: 0 0.55rem;
   transition: border-color 0.16s ease;
 }
@@ -5220,10 +5426,10 @@
 .gafa-checkout__extras,
 .gafa-checkout__total,
 .gafa-checkout__cta,
+.gafa-checkout__cta-wrap,
 .gafa-checkout__backlink,
 .gafa-checkout__error,
-.gafa-checkout__env-warn,
-.gafa-checkout__paypal-hint {
+.gafa-checkout__env-warn {
   flex-shrink: 0;
 }
 
@@ -5479,6 +5685,11 @@
   gap: 0.5rem;
 }
 
+.gafa-checkout-promo {
+  --gafa-type-size: 0.8rem;
+  --gafa-type-leading: 1.35;
+}
+
 .gafa-checkout-promo__link {
   --gafa-type-size: 0.8rem;
   --gafa-control-font-size: 0.8rem;
@@ -5540,14 +5751,17 @@
   --gafa-control-fg: var(--gafa-color-surface);
   --gafa-fg: var(--gafa-color-surface);
   --gafa-control-radius: 10px;
+  align-items: center;
   background: var(--gafa-color-text);
   border: 0;
   border-radius: 10px;
   color: var(--gafa-color-surface);
   cursor: pointer;
+  display: inline-flex;
   font: inherit;
   font-size: 0.78rem;
   font-weight: 700;
+  justify-content: center;
   padding: 0.45rem 0.8rem;
 }
 
@@ -5556,20 +5770,97 @@
 }
 
 .gafa-checkout-promo small {
+  --gafa-fg: #b91c1c;
+  --gafa-type-size: 0.74rem;
+  --gafa-type-leading: 1.3;
   color: #b91c1c;
   display: block;
   font-size: 0.74rem;
   margin-top: 0.25rem;
 }
 
+.gafa-checkout-promo small.gafa-checkout-promo__applied,
 .gafa-checkout-promo__applied {
+  --gafa-fg: #15803d;
+  --gafa-type-size: 0.8rem;
+  --gafa-type-leading: 1.35;
   align-items: center;
   color: #15803d;
   display: inline-flex;
+  font-family: var(--gafa-font-body);
   font-size: 0.8rem;
+  font-style: normal;
   font-weight: 600;
+  gap: 0.35rem;
+  letter-spacing: 0;
+  line-height: 1.35;
+  margin: 0.3rem 0 0;
+  text-transform: none;
+}
+
+.gafa-checkout-promo__head {
+  align-items: center;
+  display: flex;
   gap: 0.4rem;
-  margin: 0;
+  width: fit-content;
+}
+
+.gafa-checkout-promo__info {
+  display: inline-flex;
+  position: relative;
+}
+
+.gafa-checkout-promo__info > button {
+  --gafa-type-size: 0.66rem;
+  --gafa-control-font-size: 0.66rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-padding: 0;
+  --gafa-control-radius: 999px;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-muted-text);
+  cursor: help;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 0.66rem;
+  font-style: italic;
+  font-weight: 700;
+  height: 18px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 18px;
+}
+
+.gafa-checkout-promo__info:hover .gafa-checkout-promo__tooltip,
+.gafa-checkout-promo__info > button:focus-visible + .gafa-checkout-promo__tooltip {
+  display: block;
+}
+
+.gafa-checkout-promo__tooltip {
+  --gafa-type-size: 0.75rem;
+  background: var(--gafa-color-text);
+  border-radius: 10px;
+  bottom: calc(100% + 8px);
+  box-shadow: var(--gafa-shadow-pop);
+  --gafa-fg: var(--gafa-color-surface);
+  color: var(--gafa-color-surface);
+  display: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  left: 50%;
+  line-height: 1.45;
+  padding: 0.55rem 0.7rem;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  width: min(220px, 70vw);
+  z-index: 6;
 }
 
 .gafa-checkout__terms {
@@ -5593,9 +5884,8 @@
   padding: 0.5rem 0.6rem;
 }
 
-.gafa-checkout__terms input {
-  accent-color: var(--gafa-color-primary);
-  margin-top: 0.15rem;
+.gafa-checkout__terms .gafa-check-box {
+  margin-top: 0.05rem;
 }
 
 .gafa-checkout__terms a {
@@ -5665,6 +5955,35 @@
 
 .gafa-checkout__cta {
   width: 100%;
+}
+
+.gafa-checkout__cta-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.gafa-checkout__paypal-hit {
+  border-radius: inherit;
+  inset: 0;
+  opacity: 0.001;
+  overflow: hidden;
+  position: absolute;
+  z-index: 2;
+}
+
+.gafa-checkout__cta-wrap[data-paypal-locked="true"] .gafa-checkout__paypal-hit,
+.gafa-checkout__cta-wrap[data-busy="true"] .gafa-checkout__paypal-hit,
+.gafa-checkout__paypal-hit:not(:has(iframe, .paypal-button, .paypal-button-container)) {
+  pointer-events: none;
+}
+
+.gafa-checkout__paypal-hit iframe,
+.gafa-checkout__paypal-hit .paypal-button,
+.gafa-checkout__paypal-hit .paypal-button-container {
+  height: 100% !important;
+  min-height: 100%;
+  min-width: 100%;
+  width: 100% !important;
 }
 
 .gafa-checkout__backlink {
@@ -5807,6 +6126,166 @@
   padding: 1.15rem 1.15rem 1.05rem;
 }
 
+.gafa-checkout-paymount[data-method="paypal"][data-locked="true"] {
+  cursor: pointer;
+}
+
+.gafa-checkout-paymount[data-method="paypal"][data-locked="true"] .gafa-pay-native {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/*
+ * El botón oro vive aquí, en el recuadro del centro. No le pongas width/height
+ * a #paypal: checkout.js mide content-box y logo + “Pagar” se enciman.
+ * El recuadro es más ancho que la columna del total, así el botón sale grande.
+ */
+.gafa-checkout-paymount[data-method="paypal"] .gafa-checkout-paymount__island {
+  width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements,
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__container,
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__section {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="recurrente"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 1rem;
+  justify-items: stretch;
+  min-height: 0;
+  padding: 1.15rem 1.15rem 1.05rem;
+  position: relative;
+}
+
+/* GafaPay pinta "Pago con Tarjeta": lo dejamos oculto y usamos nuestro CTA
+   en el recuadro (más el de la columna derecha). */
+.gafa-checkout-paymount[data-method="recurrente"] .gafapay-recurrente button {
+  height: 1px;
+  left: -9999px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.gafa-checkout-cardpay {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.gafa-checkout-cardpay .gafa-checkout__cta {
+  width: 100%;
+}
+
+/* Fancy v1: #saveCard / #recurringPayment / [name=subscribe] van marcados
+   y ocultos. El socio los ve solo si abre “Opciones de la membresía”. */
+.gafa-checkout-paymount .gafapay-form__group.is-checkbox,
+.gafa-checkout-paymount #saveCard,
+.gafa-checkout-paymount #recurringPayment,
+.gafa-checkout-paymount [name="saveCard"],
+.gafa-checkout-paymount [name="recurringPayment"],
+.gafa-checkout-paymount [name="subscribe"] {
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Oculto por defecto (link + checks). El socio lo enciende con
+   SHOW_MEMBERSHIP_OPTIONS, show-membership-options="true" o:
+   .gafa-checkout-membership[hidden] { display: grid !important; } */
+.gafa-checkout-membership {
+  display: none;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.gafa-checkout-membership[data-visible="true"] {
+  display: grid;
+}
+
+.gafa-checkout-membership__fields {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.gafa-check-row {
+  align-items: flex-start;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: grid;
+  font-size: 0.82rem;
+  gap: 0.55rem;
+  grid-template-columns: auto 1fr;
+  line-height: 1.35;
+  position: relative;
+}
+
+.gafa-check-input {
+  height: 1px;
+  left: 0;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  top: 0.15rem;
+  width: 1px;
+}
+
+.gafa-check-box {
+  background: var(--gafa-color-surface);
+  border: 1.5px solid color-mix(in srgb, var(--gafa-color-text) 28%, var(--gafa-color-border));
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: inline-grid;
+  flex: 0 0 auto;
+  height: 1.2rem;
+  place-items: center;
+  position: relative;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  width: 1.2rem;
+}
+
+.gafa-check-box::after {
+  border: solid var(--gafa-color-primary-text, #111827);
+  border-width: 0 2px 2px 0;
+  content: "";
+  height: 0.48rem;
+  opacity: 0;
+  transform: rotate(45deg) translate(-0.5px, -1px) scale(0.6);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  width: 0.26rem;
+}
+
+.gafa-check-input:checked + .gafa-check-box {
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gafa-color-primary) 22%, transparent);
+}
+
+.gafa-check-input:checked + .gafa-check-box::after {
+  opacity: 1;
+  transform: rotate(45deg) translate(-0.5px, -1px) scale(1);
+}
+
+.gafa-check-input:focus-visible + .gafa-check-box {
+  box-shadow: 0 0 0 3px var(--gafa-color-accent);
+}
+
+.gafa-check-row__text {
+  min-width: 0;
+}
+
 .gafa-checkout-paypal-copy {
   align-items: flex-start;
   display: flex;
@@ -5841,30 +6320,6 @@
   font-size: 0.8rem;
   line-height: 1.4;
   margin: 0.15rem 0 0;
-}
-
-.gafa-checkout-paymount[data-method="paypal"] .gafa-checkout-paymount__island {
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
-  border-radius: 12px;
-  min-height: 52px;
-  padding: 0.65rem 0.75rem;
-}
-
-.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__container,
-.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__section.is-paypal {
-  display: block;
-  justify-items: center;
-  row-gap: 0;
-  width: 100%;
-}
-
-.gafa-checkout-paymount[data-method="paypal"] #paypal,
-.gafa-checkout-paymount[data-method="paypal"] .paypal__btn {
-  margin: 0 auto;
-  max-width: 320px;
-  min-height: 45px;
-  width: 100%;
 }
 
 .gafa-checkout-paymount[data-loading="true"] {
@@ -6059,9 +6514,8 @@
     padding: 0.75rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
   }
 
-  /* El resumen plegable solo tiene sentido mientras eliges: en el paso de pago
-     el carrito ya esta a la vista y repetir el total 3 veces era ruido. */
-  .gafa-checkout[data-step="shop"] .gafa-checkout__cart-toggle {
+  /* El resumen plegable: catalogo y pago. En desktop sigue en display:none. */
+  .gafa-checkout:not([data-step="thanks"]) .gafa-checkout__cart-toggle {
     display: flex;
   }
 
@@ -6082,9 +6536,15 @@
     padding: 0.9rem;
   }
 
-  /* Paso de catalogo: el carrito arranca colapsado y solo se ve el resumen. */
-  .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__lines,
-  .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__empty,
+  /* Catalogo y pago: el detalle de lineas arranca colapsado. */
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__lines,
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__empty,
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout-line-skel {
+    display: none;
+  }
+
+  /* En catalogo el total ya vive en la barra; no lo duplicamos. En pago
+     se deja: ahi acompaña a «Pagar». */
   .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__total {
     display: none;
   }
@@ -6109,11 +6569,52 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 
+  .gafa-checkout__toolbar {
+    gap: 0.3rem;
+  }
+
+  .gafa-checkout-tabs {
+    gap: 0.2rem;
+  }
+
+  .gafa-checkout-tabs button {
+    --gafa-control-font-size: 0.72rem;
+    --gafa-control-padding: 0.28rem 0.5rem;
+    font-size: 0.72rem;
+    padding: 0.28rem 0.5rem;
+  }
+
+  .gafa-checkout-tabs button em {
+    font-size: 0.62rem;
+    padding: 0.16rem 0.32rem;
+  }
+
   .gafa-checkout-search {
-    --gafa-search-width: 72px;
+    --gafa-search-width: 0px;
+    justify-content: center;
+    max-width: 32px;
+    min-width: 32px;
+    overflow: hidden;
+    padding: 0;
+    width: 32px;
   }
 
   .gafa-checkout-search input {
+    opacity: 0;
+    width: 0;
+  }
+
+  .gafa-checkout-search:focus-within {
+    --gafa-search-width: 72px;
+    justify-content: flex-start;
+    max-width: 120px;
+    min-width: 108px;
+    padding: 0 0.45rem;
+    width: auto;
+  }
+
+  .gafa-checkout-search:focus-within input {
+    opacity: 1;
     width: 72px;
   }
 

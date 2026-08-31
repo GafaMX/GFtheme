@@ -46,4 +46,34 @@ describe("reservationShowsSeatMapLayout", () => {
       reservationShowsSeatMapLayout({ hasSeatMap: false, hasLoadedSeatMap: true, contextLoading: false }),
     ).toBe(true);
   });
+
+  it("clase llena / waitlist no abre fancy aunque el listado prometa mapa", () => {
+    expect(
+      reservationShowsSeatMapLayout({
+        hasSeatMap: true,
+        hasLoadedSeatMap: false,
+        contextLoading: true,
+        soldOut: true,
+      }),
+    ).toBe(false);
+    expect(
+      reservationShowsSeatMapLayout({
+        hasSeatMap: true,
+        hasLoadedSeatMap: true,
+        contextLoading: false,
+        soldOut: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("pill de waitlist en el calendario: compacto desde el primer frame", () => {
+    expect(
+      reservationShowsSeatMapLayout({
+        hasSeatMap: true,
+        hasLoadedSeatMap: false,
+        contextLoading: true,
+        waitlist: true,
+      }),
+    ).toBe(false);
+  });
 });

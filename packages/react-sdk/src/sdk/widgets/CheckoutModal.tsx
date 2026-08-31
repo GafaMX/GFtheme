@@ -6,6 +6,7 @@ import type {
   CheckoutConfig,
   DiscountCodeResult,
   GafaClient,
+  InitialPurchasePayload,
   Meeting,
 } from "../client/types";
 import {
@@ -18,12 +19,16 @@ import {
 import { AuthWidget, type AuthStage } from "./AuthWidget";
 import { ConfirmDialog } from "./ConfirmDialog";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
+import { isSoldOut, offersWaitlist } from "../client/meetingAvailability";
 import {
   loadGafaPay,
   mountGafaPayWidget,
   triggerGafaPayConfirm,
   waitForWidgetContent,
   ensureLegacyPaypalCheckout,
+  installPayPalButtonCapture,
+  isPaypalCheckoutCancelMessage,
+  PAYPAL_CTA_HIT_ID,
   type GafaPayIsland,
   type GafaPayLineItem,
   type GafaPaySuccess,
@@ -36,7 +41,30 @@ import {
   fetchCheckoutCatalog,
 } from "../cart/checkoutCatalog";
 import { resolveDiscountAmount } from "../cart/discountCode";
+import {
+  GIFT_CODE_CHECK_DEBOUNCE_MS,
+  formatGiftCodeDisplay,
+  generateShortGiftCode,
+  giftCodeAvailability,
+  isPlausibleGiftCode,
+  normalizeGiftCode,
+  preferShortGeneratedCode,
+} from "../cart/giftCard";
 import { gafaFitProductType } from "../cart/gafaFitCart";
+import { resolveMoneyCurrency } from "../cart/money";
+import {
+  checkoutTokenFromHostedData,
+  HostedCheckoutClosedError,
+  pollRecurrenteUntilDone,
+  watchNextPopup,
+} from "../cart/recurrenteCheckout";
+import { retryReservate } from "../cart/reservateRetry";
+import {
+  cartHasMembership,
+  paymentMethodsForCart,
+  readShowMembershipOptions,
+  syncGafaPayMembershipToggles,
+} from "../cart/membershipPayOptions";
 import { CloseIcon } from "./sdkIcons";
 
 /** GafaPay ya cobró; reintentar "Pagar" haría un segundo cargo. */
@@ -74,6 +102,8 @@ export type CheckoutModalProps = {
    */
   skipCatalog?: boolean;
   gafaPayFrontUrl?: string;
+  /** Default oculto. El embed también lo enciende con SHOW_MEMBERSHIP_OPTIONS. */
+  showMembershipOptions?: boolean;
   onClose: () => void;
   onCompleted?: (result: { purchaseId?: number | null; reservationId?: number }) => void;
 };
@@ -122,9 +152,11 @@ export function CheckoutModal({
   preselect,
   skipCatalog,
   gafaPayFrontUrl,
+  showMembershipOptions: showMembershipOptionsProp,
   onClose,
   onCompleted,
 }: CheckoutModalProps) {
+  const showMembershipOptions = readShowMembershipOptions(undefined, showMembershipOptionsProp);
   const lines = useCartStore((s) => s.lines);
   const reservation = useCartStore((s) => s.reservation);
   const addItem = useCartStore((s) => s.addItem);
@@ -144,7 +176,9 @@ export function CheckoutModal({
   const stayOnPayRef = useRef(wantsDirectPay);
   const [step, setStep] = useState<CheckoutStep>(wantsDirectPay ? "pay" : "shop");
   // Solo aplica en movil (en desktop el carrito siempre esta desplegado).
-  const [cartOpen, setCartOpen] = useState(wantsDirectPay);
+  // Arranca cerrado: en catalogo y en pago el detalle de lineas se asoma
+  // con el chevron, para no comerse la pantalla.
+  const [cartOpen, setCartOpen] = useState(false);
   const [lockedBrandSlug, setLockedBrandSlug] = useState<string | undefined>(
     brandSlugProp ?? persistedCart.lines[0]?.brandSlug,
   );
@@ -162,29 +196,49 @@ export function CheckoutModal({
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCodeResult | null>(null);
   const [discountStatus, setDiscountStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
   const [discountError, setDiscountError] = useState<string>();
-  const [giftOpen, setGiftOpen] = useState(false);
+  const [convertGift, setConvertGift] = useState(false);
   const [giftCode, setGiftCode] = useState("");
   const [giftStatus, setGiftStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
-  const [giftLabel, setGiftLabel] = useState<string>();
+  const [giftHint, setGiftHint] = useState<string>();
   const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
   const [payError, setPayError] = useState<string>();
   // El formulario del proveedor vive fuera de React. Sin el listo, "Pagar"
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
   const [paying, setPaying] = useState(false);
+  /** Membresía: como v1, guardar tarjeta + renovar van ON y ocultos. */
+  const [saveCard, setSaveCard] = useState(true);
+  const [autoRenew, setAutoRenew] = useState(true);
+  const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
+  /** Overlay bloqueado: hay cargo y Buq todavía no confirmó Completada. */
+  const [chargeHold, setChargeHold] = useState(false);
   const chargedRef = useRef(false);
   const pendingRegisterRef = useRef<{
     paymentData: unknown;
     recurring: boolean;
     subscriptionId: string | number | null;
   } | null>(null);
+  const hostedPendingRef = useRef<{
+    checkoutToken: string;
+    purchaseId: number;
+    payload: InitialPurchasePayload;
+  } | null>(null);
+  const hostedAbortRef = useRef<AbortController | null>(null);
+  const hostedSettledRef = useRef(false);
+  const stopPopupWatchRef = useRef<(() => void) | null>(null);
+  const giftCheckSeq = useRef(0);
+  const giftTypingRef = useRef(false);
+  const giftValidateRef = useRef<
+    (code: string, seq: number, options?: { regenerateIfTaken?: boolean }) => Promise<void>
+  >(async () => undefined);
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
     reservationId?: number;
     /** undefined mientras gafa.fit confirma; false si se quedó sin resolver. */
     confirmed?: boolean;
+    isWaitlist?: boolean;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null>(null);
@@ -194,7 +248,6 @@ export function CheckoutModal({
   const brandsQuery = useQuery({
     queryKey: ["checkout", "brands"],
     queryFn: () => client.listBrands(),
-    enabled: !brandSlugProp,
     staleTime: 300_000,
   });
   const brandSlug = lockedBrandSlug ?? brandSlugProp ?? lines[0]?.brandSlug ?? brandsQuery.data?.[0]?.slug;
@@ -218,6 +271,7 @@ export function CheckoutModal({
     locationName ?? locationFromId?.name ?? (locationSlugProp ? undefined : locationsQuery.data?.[0]?.name);
 
   function dropPendingClass() {
+    if (chargeHold) return;
     if (meeting?.id != null) droppedMeetingIdRef.current = Number(meeting.id);
     clearReservation();
   }
@@ -227,6 +281,9 @@ export function CheckoutModal({
   const classAttached =
     Boolean(reservation) ||
     (meeting != null && droppedMeetingIdRef.current !== Number(meeting.id));
+  const waitlistPurchase = Boolean(
+    classAttached && meeting && (offersWaitlist(meeting) || isSoldOut(meeting)),
+  );
 
   // Al abrir desde una clase: anclar el contexto de reserva al carrito.
   useEffect(() => {
@@ -256,6 +313,13 @@ export function CheckoutModal({
     };
   }, []);
 
+  // Al pasar a pago/login, cierra el detalle de lineas. En movil el listado
+  // se come el formulario; en desktop el CSS lo ignora y el carrito sigue
+  // visible.
+  useEffect(() => {
+    if (step !== "shop") setCartOpen(false);
+  }, [step]);
+
   // El catalogo se puede ver SIN sesion: el login se pide al ir a pagar, no
   // al abrir. Comprar desde un boton de la pagina no deberia empezar con un
   // muro de login ni con un error de catalogo.
@@ -268,21 +332,38 @@ export function CheckoutModal({
 
   const configQuery = useQuery({
     queryKey: ["checkout", "config", brandSlug, locationSlug, classAttached ? meeting?.id : undefined],
-    queryFn: () =>
-      client.getCheckoutConfig!({
-        brandSlug: brandSlug!,
-        locationSlug: locationSlug!,
-        meetingId: classAttached ? meeting?.id : undefined,
-      }),
+    queryFn: async () => {
+      try {
+        return await client.getCheckoutConfig!({
+          brandSlug: brandSlug!,
+          locationSlug: locationSlug!,
+          meetingId: classAttached ? meeting?.id : undefined,
+        });
+      } catch (error) {
+        // Clase llena / waitlist: el create-form a veces no arma el fancy y
+        // el catálogo queda vacío. Reintentamos la sede sin anclar la clase.
+        if (classAttached && meeting?.id != null) {
+          return client.getCheckoutConfig!({
+            brandSlug: brandSlug!,
+            locationSlug: locationSlug!,
+          });
+        }
+        throw error;
+      }
+    },
     enabled: Boolean(client.getCheckoutConfig && brandSlug && locationSlug && isSignedIn),
     staleTime: 60_000,
     retry: 1,
   });
 
   const config = configQuery.data;
-  const currency = config?.currency ?? { prefix: "$", suffix: "MXN", code: "MXN" };
-  const paymentMethods = config?.paymentMethods ?? [];
   const hasTerms = Boolean(config?.termsConditionsLink);
+
+  const relevantLines = classAttached
+    ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
+    : lines;
+  const membershipPurchase = cartHasMembership(relevantLines);
+  const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
 
   // Compra suelta: el catalogo de la MARCA (listCombos), no el recorte de la
   // sede en create-form-template. Si no, un paquete de Lomas no aparece cuando
@@ -290,28 +371,44 @@ export function CheckoutModal({
   const catalogQuery = useQuery({
     queryKey: checkoutCatalogQueryKey(brandSlug),
     queryFn: () => fetchCheckoutCatalog(client, brandSlug!),
-    enabled: Boolean(brandSlug) && !classAttached,
+    enabled: Boolean(brandSlug) && (!classAttached || configQuery.isError),
     staleTime: CHECKOUT_CATALOG_STALE_MS,
   });
 
-  const combos = classAttached ? (config?.combos ?? []) : (catalogQuery.data?.combos ?? config?.combos ?? []);
+  const combos = classAttached
+    ? ((config?.combos?.length ? config.combos : catalogQuery.data?.combos) ?? [])
+    : (catalogQuery.data?.combos ?? config?.combos ?? []);
   const memberships = classAttached
-    ? (config?.memberships ?? [])
+    ? ((config?.memberships?.length ? config.memberships : catalogQuery.data?.memberships) ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
   const products = config?.products ?? [];
+  const catalogCurrency = useMemo(() => {
+    for (const item of [...combos, ...memberships, ...products]) {
+      const resolved = resolveMoneyCurrency(item.raw?.currency ?? item.currency);
+      if (resolved) return resolved;
+    }
+    return null;
+  }, [combos, memberships, products]);
+  const brandCurrency = brandsQuery.data?.find((brand) => brand.slug === brandSlug)?.currency;
+  const currency =
+    config?.currency ?? brandCurrency ?? catalogCurrency ?? { prefix: "$", suffix: "MXN", code: "MXN" };
 
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
   // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
   // antes de pedir nada. Skeleton hasta que haya fetch real (exito o error).
   const catalogBusy = classAttached
-    ? !configQuery.isFetched &&
-      !configQuery.isError &&
-      (profileQuery.isPending || Boolean(isSignedIn))
+    ? (!configQuery.isFetched && !configQuery.isError && (profileQuery.isPending || Boolean(isSignedIn))) ||
+      (configQuery.isError && !catalogQuery.isFetched && !catalogQuery.isError)
     : !catalogQuery.isFetched && !catalogQuery.isError;
 
   useEffect(() => {
-    if (selectedMethodId != null) return;
-    if (paymentMethods[0]) setSelectedMethodId(paymentMethods[0].id);
+    if (paymentMethods.length === 0) {
+      if (selectedMethodId != null) setSelectedMethodId(null);
+      return;
+    }
+    const stillValid = paymentMethods.some((method) => method.id === selectedMethodId);
+    if (selectedMethodId != null && stillValid) return;
+    setSelectedMethodId(paymentMethods[0].id);
   }, [paymentMethods, selectedMethodId]);
 
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
@@ -341,9 +438,6 @@ export function CheckoutModal({
 
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
-  const relevantLines = classAttached
-    ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
-    : lines;
   const subtotal = cartSubtotal(relevantLines);
   const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
   const discountLabel = appliedDiscount?.label;
@@ -352,12 +446,19 @@ export function CheckoutModal({
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
   const waitingOnTerms = hasTerms && !termsAccepted;
+  const waitingOnGift = convertGift && giftStatus !== "ok";
   const canPay =
     relevantLines.length > 0 &&
     Boolean(selectedMethod) &&
     paymentReady &&
     !waitingOnTerms &&
+    !waitingOnGift &&
     !paying;
+
+  function resolvedGiftCode(): string | null {
+    if (!convertGift || giftStatus !== "ok") return null;
+    return normalizeGiftCode(giftCode) || null;
+  }
 
   async function applyDiscount() {
     if (!client.checkDiscountCode || !discountCode.trim() || !brandSlug || !locationSlug) return;
@@ -386,26 +487,83 @@ export function CheckoutModal({
     }
   }
 
-  async function applyGift() {
-    if (!client.checkGiftCode || !giftCode.trim() || !brandSlug || !locationSlug) return;
+  giftValidateRef.current = async (code, seq, options) => {
+    const compact = normalizeGiftCode(code);
+    if (!isPlausibleGiftCode(compact)) {
+      if (seq !== giftCheckSeq.current) return;
+      setGiftStatus("error");
+      setGiftHint(compact ? "código no válido" : "escribe un código");
+      return;
+    }
+    if (!client.checkGiftCode || !brandSlug || !locationSlug) {
+      if (seq !== giftCheckSeq.current) return;
+      setGiftStatus("ok");
+      setGiftHint("Código válido");
+      return;
+    }
     setGiftStatus("checking");
+    setGiftHint("revisando…");
     try {
-      const result = await client.checkGiftCode({ brandSlug, locationSlug, code: giftCode.trim() });
-      if (!result.valid) {
-        setGiftStatus("error");
-        setGiftLabel(undefined);
+      const check = async (candidate: string) =>
+        client.checkGiftCode!({
+          brandSlug,
+          locationSlug,
+          code: candidate,
+          urlTemplate: config?.urls.checkGiftCode,
+        });
+
+      let availability = giftCodeAvailability(await check(compact));
+      if (seq !== giftCheckSeq.current) return;
+
+      if (availability.status === "taken" && options?.regenerateIfTaken) {
+        for (let i = 0; i < 4; i += 1) {
+          const next = generateShortGiftCode();
+          setGiftCode(formatGiftCodeDisplay(next));
+          availability = giftCodeAvailability(await check(next));
+          if (seq !== giftCheckSeq.current) return;
+          if (availability.status === "available") {
+            setGiftStatus("ok");
+            setGiftHint("Código válido");
+            return;
+          }
+        }
+      }
+
+      if (availability.status === "available") {
+        setGiftStatus("ok");
+        setGiftHint("Código válido");
         return;
       }
-      setGiftStatus("ok");
-      setGiftLabel(
-        result.label ??
-          (result.balance != null
-            ? `Saldo ${formatMoney(result.balance, currency.prefix, currency.suffix)}`
-            : "Gift card válida"),
-      );
-    } catch {
       setGiftStatus("error");
+      setGiftHint(availability.message);
+    } catch {
+      if (seq !== giftCheckSeq.current) return;
+      setGiftStatus("error");
+      setGiftHint("no pudimos validar el código");
     }
+  };
+
+  async function assignGeneratedGiftCode() {
+    giftTypingRef.current = false;
+    const seq = ++giftCheckSeq.current;
+    setGiftStatus("checking");
+    setGiftHint("generando…");
+    let candidate = generateShortGiftCode();
+    if (client.generateGiftCode && brandSlug && locationSlug) {
+      try {
+        const server = await client.generateGiftCode({
+          brandSlug,
+          locationSlug,
+          urlTemplate: config?.urls.generateGiftCode,
+        });
+        if (seq !== giftCheckSeq.current) return;
+        candidate = preferShortGeneratedCode(server);
+      } catch {
+        if (seq !== giftCheckSeq.current) return;
+      }
+    }
+    setGiftCode(formatGiftCodeDisplay(candidate));
+    await giftValidateRef.current(candidate, seq, { regenerateIfTaken: true });
   }
 
   function handleAdd(item: CatalogItem) {
@@ -418,7 +576,7 @@ export function CheckoutModal({
       type,
       name: item.name,
       price,
-      priceLabel: item.priceLabel ?? formatMoney(price, currency.prefix, ""),
+      priceLabel: formatMoney(price, currency.prefix, ""),
       brandSlug,
       locationSlug,
       expirationLabel: item.expirationDays ? `Expira en ${item.expirationDays} días` : undefined,
@@ -450,7 +608,7 @@ export function CheckoutModal({
         type: match.type,
         name: match.item.name,
         price,
-        priceLabel: match.item.priceLabel ?? formatMoney(price, currency.prefix, ""),
+        priceLabel: formatMoney(price, currency.prefix, ""),
         brandSlug: match.brandSlug,
         locationSlug: locationSlugProp,
         expirationLabel: match.item.expirationDays ? `Expira en ${match.item.expirationDays} días` : undefined,
@@ -465,6 +623,13 @@ export function CheckoutModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preselect, client, brandSlugProp]);
 
+  useEffect(() => {
+    return () => {
+      hostedAbortRef.current?.abort();
+      stopPopupWatchRef.current?.();
+    };
+  }, []);
+
   // Compra directa: login si falta, si no el paso de pago. Si el socio vuelve
   // al catalogo a proposito, ya no lo empujamos otra vez a pagar.
   useEffect(() => {
@@ -474,6 +639,15 @@ export function CheckoutModal({
     const next: CheckoutStep = isSignedIn ? "pay" : "auth";
     if (step !== next) setStep(next);
   }, [isSignedIn, profileQuery.isLoading, step]);
+
+  useEffect(() => {
+    if (!convertGift || !giftTypingRef.current) return;
+    const seq = ++giftCheckSeq.current;
+    const handle = window.setTimeout(() => {
+      void giftValidateRef.current(giftCode, seq);
+    }, GIFT_CODE_CHECK_DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
+  }, [giftCode, convertGift]);
 
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
   async function completePurchase(
@@ -510,30 +684,33 @@ export function CheckoutModal({
       // Fancy v1 (Stripe): GafaPay cobra → BuySystemStep POSTea a `/reservate`.
       // Eso dispara paymentByCard / paymentByToken. `initial-purchase` es Recurrente
       // y en producción cae en unpaidPurchase (TypeError $subscribe null).
-      const purchase = await client.reservatePurchase({
-        brandSlug,
-        locationSlug,
-        userId: config?.userProfileId ?? profile.id,
-        meetingId: reservation?.meetingId,
-        lines: linesSnapshot.map((line) => ({
-          id: line.id,
-          type: line.type,
-          amount: line.amount,
-          name: line.name,
-          price: line.price,
-          companiesId: config?.companiesId,
-          raw: rawFor(line),
-        })),
-        paymentTypeId: selectedMethod.id,
-        paymentData,
-        subscriptionId,
-        csrfToken: config?.csrfToken ?? null,
-        discountCode: discountStatus === "ok" ? discountCode.trim() : null,
-        giftCode: giftStatus === "ok" ? giftCode.trim() : null,
-        subscribe: recurring,
-        setPayment: recurring,
-        seatObjectId: reservation?.seatObjectId,
-      });
+      // 3 intentos: un 500 no debe dejar Pendiente si el back se recupera.
+      const purchase = await retryReservate(() =>
+        client.reservatePurchase!({
+          brandSlug,
+          locationSlug,
+          userId: config?.userProfileId ?? profile.id,
+          meetingId: reservation?.meetingId,
+          lines: linesSnapshot.map((line) => ({
+            id: line.id,
+            type: line.type,
+            amount: line.amount,
+            name: line.name,
+            price: line.price,
+            companiesId: config?.companiesId,
+            raw: rawFor(line),
+          })),
+          paymentTypeId: selectedMethod.id,
+          paymentData,
+          subscriptionId,
+          csrfToken: config?.csrfToken ?? null,
+          discountCode: discountStatus === "ok" ? discountCode.trim() : null,
+          giftCode: resolvedGiftCode(),
+          subscribe: membershipPurchase ? autoRenew : recurring,
+          setPayment: membershipPurchase ? saveCard : recurring,
+          seatObjectId: reservation?.seatObjectId,
+        }),
+      );
 
       const purchaseId = purchase.purchaseId;
       const reservationId = purchase.reservationId;
@@ -541,6 +718,7 @@ export function CheckoutModal({
         purchaseId,
         reservationId,
         confirmed: true,
+        isWaitlist: Boolean(purchase.isWaitlist) || waitlistPurchase,
         reservationSnapshot,
         linesSnapshot,
       });
@@ -564,12 +742,42 @@ export function CheckoutModal({
     }
   }
 
+  function purchaseLinesPayload() {
+    const rawFor = (line: CartLine): Record<string, unknown> | undefined => {
+      if (line.raw) return line.raw;
+      const pools =
+        line.type === "membership"
+          ? [memberships, config?.memberships ?? []]
+          : line.type === "product"
+            ? [products, config?.products ?? []]
+            : [combos, config?.combos ?? []];
+      for (const pool of pools) {
+        const hit = pool.find((item) => sameCatalogId(item.id, line.id));
+        if (hit?.raw) return hit.raw;
+      }
+      return undefined;
+    };
+    return relevantLines.map((line) => ({
+      id: line.id,
+      type: line.type,
+      amount: line.amount,
+      name: line.name,
+      price: line.price,
+      companiesId: config?.companiesId,
+      raw: rawFor(line),
+    }));
+  }
+
   function handleGafaPaySuccess(result: GafaPaySuccess) {
     // Paridad con el fancy v1: `ht.payment_data = e.message` y luego
     // BuySystemStep POSTea a `/reservate` (paymentByCard / paymentByToken).
+    hostedSettledRef.current = true;
+    stopPopupWatchRef.current?.();
+    stopPopupWatchRef.current = null;
     const recurring = Boolean(result.recurringPayment);
     const subscriptionId = result.subscriptionId ?? null;
     chargedRef.current = true;
+    setChargeHold(true);
     pendingRegisterRef.current = {
       paymentData: result.message,
       recurring,
@@ -578,7 +786,159 @@ export function CheckoutModal({
     void completePurchase(result.message, recurring, subscriptionId);
   }
 
+  async function finishHostedPurchase(result: {
+    purchaseId?: number | null;
+    reservationId?: number;
+    isWaitlist?: boolean;
+  }) {
+    hostedPendingRef.current = null;
+    setRegisterOnly(false);
+    setThanks({
+      purchaseId: result.purchaseId,
+      reservationId: result.reservationId,
+      confirmed: true,
+      isWaitlist: Boolean(result.isWaitlist) || waitlistPurchase,
+      reservationSnapshot: reservation,
+      linesSnapshot: relevantLines,
+    });
+    resetAfterPurchase();
+    setStep("thanks");
+    onCompleted?.({ purchaseId: result.purchaseId, reservationId: result.reservationId });
+  }
+
+  async function handleHostedCheckout(data: unknown) {
+    const profile = profileQuery.data;
+    if (!profile || !selectedMethod || !brandSlug || !locationSlug) {
+      setPaying(false);
+      setPayError("No pudimos abrir el pago. Recarga e inténtalo de nuevo.");
+      return;
+    }
+    const checkoutToken = checkoutTokenFromHostedData(data);
+    if (!checkoutToken) {
+      setPaying(false);
+      setPayError("No pudimos iniciar el pago. Intenta de nuevo.");
+      return;
+    }
+
+    const payload: InitialPurchasePayload = {
+      brandSlug,
+      locationSlug,
+      userId: config?.userProfileId ?? profile.id,
+      meetingId: reservation?.meetingId,
+      lines: purchaseLinesPayload(),
+      paymentTypeId: selectedMethod.id,
+      paymentData: data,
+      csrfToken: config?.csrfToken ?? null,
+      discountCode: discountStatus === "ok" ? discountCode.trim() : null,
+      giftCode: resolvedGiftCode(),
+      checkoutToken,
+      seatObjectId: reservation?.seatObjectId,
+      subscribe: membershipPurchase ? autoRenew : false,
+      setPayment: membershipPurchase ? saveCard : false,
+    };
+
+    setPayError(undefined);
+    setPaying(true);
+    hostedAbortRef.current?.abort();
+    const abort = new AbortController();
+    hostedAbortRef.current = abort;
+    hostedSettledRef.current = false;
+    try {
+      if (!client.initialPurchase || !client.pollInitialPurchaseStatus) {
+        throw new Error("Esta marca no tiene configurado el pago con tarjeta.");
+      }
+      const pending = await client.initialPurchase(payload);
+      const purchaseId = pending.purchaseId;
+      const token = pending.checkoutToken?.trim() || checkoutToken;
+      if (purchaseId == null) {
+        throw new Error("No se pudo crear la compra pendiente.");
+      }
+      hostedPendingRef.current = { checkoutToken: token, purchaseId, payload };
+      const done = await pollRecurrenteUntilDone({
+        client,
+        brandSlug,
+        locationSlug,
+        checkoutToken: token,
+        pendingPurchaseId: purchaseId,
+        signal: abort.signal,
+      });
+      hostedSettledRef.current = true;
+      stopPopupWatchRef.current?.();
+      stopPopupWatchRef.current = null;
+      await finishHostedPurchase({ purchaseId, reservationId: done.reservationId });
+    } catch (err) {
+      if (err instanceof HostedCheckoutClosedError) {
+        setPaying(false);
+        return;
+      }
+      const detail = err instanceof Error ? err.message : "No pudimos confirmar el pago.";
+      if (hostedPendingRef.current?.purchaseId) {
+        setRegisterOnly(true);
+      }
+      setPayError(detail);
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  function releaseHostedWait() {
+    if (hostedSettledRef.current) return;
+    hostedAbortRef.current?.abort();
+    hostedAbortRef.current = null;
+    stopPopupWatchRef.current?.();
+    stopPopupWatchRef.current = null;
+    setPaying(false);
+  }
+
+  function startHostedPopupWatch(options?: { missMs?: number; missMessage?: string }) {
+    if (stopPopupWatchRef.current) return;
+    hostedSettledRef.current = false;
+    stopPopupWatchRef.current = watchNextPopup(() => {
+      releaseHostedWait();
+    }, options?.missMs
+      ? {
+          missMs: options.missMs,
+          onMiss: () => {
+            releaseHostedWait();
+            setPayError(options.missMessage ?? "No pudimos abrir el pago. Intenta de nuevo.");
+          },
+        }
+      : undefined);
+  }
+
   async function proceedToPay() {
+    if (registerOnly && hostedPendingRef.current?.purchaseId) {
+      setPayError(undefined);
+      setPaying(true);
+      const pending = hostedPendingRef.current;
+      hostedAbortRef.current?.abort();
+      const abort = new AbortController();
+      hostedAbortRef.current = abort;
+      try {
+        const status = await pollRecurrenteUntilDone({
+          client,
+          brandSlug: pending.payload.brandSlug,
+          locationSlug: pending.payload.locationSlug,
+          checkoutToken: pending.checkoutToken,
+          pendingPurchaseId: pending.purchaseId,
+          signal: abort.signal,
+        });
+        hostedSettledRef.current = true;
+        await finishHostedPurchase({
+          purchaseId: pending.purchaseId,
+          reservationId: status.reservationId,
+        });
+      } catch (err) {
+        if (err instanceof HostedCheckoutClosedError) {
+          setPaying(false);
+          return;
+        }
+        setPayError(err instanceof Error ? err.message : "El pago sigue pendiente.");
+      } finally {
+        setPaying(false);
+      }
+      return;
+    }
     if (registerOnly && pendingRegisterRef.current) {
       setPayError(undefined);
       setPaying(true);
@@ -592,15 +952,27 @@ export function CheckoutModal({
     }
     setPayError(undefined);
     setPaying(true);
+    if (selectedMethod?.slug === "recurrente") {
+      startHostedPopupWatch();
+    } else if (selectedMethod?.slug === "paypal") {
+      startHostedPopupWatch({
+        missMs: 4000,
+        missMessage: "No pudimos abrir PayPal. Intenta de nuevo.",
+      });
+    }
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
     try {
       const triggered = await triggerGafaPayConfirm(selectedMethod?.slug ?? "");
       if (!triggered) {
+        stopPopupWatchRef.current?.();
+        stopPopupWatchRef.current = null;
         setPaying(false);
         setPayError(
           selectedMethod?.slug === "paypal"
-            ? "Usa el botón de PayPal para completar el pago."
-            : "El procesador de pago aún no está listo. Intenta de nuevo.",
+            ? "No pudimos abrir PayPal. Intenta de nuevo."
+            : selectedMethod?.slug === "recurrente"
+              ? "No pudimos abrir el pago. Intenta de nuevo."
+              : "El procesador de pago aún no está listo. Intenta de nuevo.",
         );
       }
     } catch (err) {
@@ -629,6 +1001,10 @@ export function CheckoutModal({
       return;
     }
     if (!canPay) {
+      if (waitingOnGift) {
+        setPayError("Revisa el código de GiftCard.");
+        return;
+      }
       if (!paymentReady) setPayError("El formulario de pago todavía no está listo.");
       return;
     }
@@ -642,6 +1018,13 @@ export function CheckoutModal({
     void proceedToPay();
   }
 
+  const blockDismiss = chargeHold && step !== "thanks";
+
+  function requestClose() {
+    if (blockDismiss) return;
+    onClose();
+  }
+
   return (
     <>
     <div
@@ -649,14 +1032,18 @@ export function CheckoutModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="gafa-checkout-title"
+      data-gafa-membership-options={showMembershipOptions ? "true" : undefined}
+      data-charge-hold={blockDismiss ? "true" : undefined}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && step !== "thanks") onClose();
+        if (event.target === event.currentTarget && step !== "thanks") requestClose();
       }}
     >
       <div className="gafa-checkout" data-step={step}>
-        <button className="gafa-checkout__close" type="button" aria-label="Cerrar" onClick={onClose}>
-          <CloseIcon />
-        </button>
+        {blockDismiss ? null : (
+          <button className="gafa-checkout__close" type="button" aria-label="Cerrar" onClick={requestClose}>
+            <CloseIcon />
+          </button>
+        )}
 
         {step !== "thanks" ? (
           <div className="gafa-checkout__layout">
@@ -668,7 +1055,7 @@ export function CheckoutModal({
                     {reservation.serviceName ?? reservation.meetingName} ·{" "}
                     {formatMeetingWhen(reservation.startsAt, reservation.timezone)}
                   </span>
-                  <RemoveClassButton onClick={dropPendingClass} />
+                  {blockDismiss ? null : <RemoveClassButton onClick={dropPendingClass} />}
                 </div>
               ) : null}
 
@@ -678,7 +1065,9 @@ export function CheckoutModal({
                     ? AUTH_COPY[authStage].title
                     : step === "shop"
                       ? reservation
-                        ? "Compra para reservar"
+                        ? waitlistPurchase
+                          ? "Compra para la lista de espera"
+                          : "Compra para reservar"
                         : "Elige tu plan"
                       : "Pago"}
                 </h2>
@@ -687,7 +1076,9 @@ export function CheckoutModal({
                     ? AUTH_COPY[authStage].description
                     : step === "shop"
                       ? reservation
-                        ? "Estos son los planes que aplican para esta clase."
+                        ? waitlistPurchase
+                          ? "Al pagar te sumamos a la lista de espera y se descuenta el crédito."
+                          : "Estos son los planes que aplican para esta clase."
                         : "Agrega paquetes o membresías."
                       : "Revisa tu pedido y paga de forma segura. Si quieres agregar más, vuelve al paso anterior."}
                 </p>
@@ -775,6 +1166,7 @@ export function CheckoutModal({
                               <ProductCard
                                 key={`${item.type}-${item.id}`}
                                 item={item}
+                                currency={currency}
                                 inCartAmount={amountInCart(relevantLines, item)}
                                 onAdd={() => handleAdd(item)}
                               />
@@ -789,6 +1181,7 @@ export function CheckoutModal({
                         <ProductCard
                           key={`${item.type}-${item.id}`}
                           item={item}
+                          currency={currency}
                           inCartAmount={amountInCart(relevantLines, item)}
                           onAdd={() => handleAdd(item)}
                         />
@@ -797,7 +1190,8 @@ export function CheckoutModal({
                   )}
 
                   {!catalogBusy &&
-                  ((configQuery.isError && !combos.length && !memberships.length) || catalogQuery.isError) ? (
+                  ((configQuery.isError && !combos.length && !memberships.length && catalogQuery.isError) ||
+                    (!classAttached && catalogQuery.isError && !combos.length && !memberships.length)) ? (
                     <p className="gafa-sdk-state gafa-sdk-state--error">
                       No pudimos cargar el catálogo de esta sede.
                     </p>
@@ -844,12 +1238,60 @@ export function CheckoutModal({
                     phone: profileQuery.data?.phone ?? undefined,
                   }}
                   onSuccess={handleGafaPaySuccess}
-                  onStart={() => setPaying(true)}
+                  onHostedCheckout={handleHostedCheckout}
+                  onHostedClose={releaseHostedWait}
+                  onStart={() => {
+                    setPaying(true);
+                    if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
+                      startHostedPopupWatch();
+                    }
+                  }}
                   onReadyChange={setPaymentReady}
+                  paypalLocked={selectedMethod?.slug === "paypal" && waitingOnTerms}
+                  onPaypalLockedClick={() => {
+                    setTermsPromptOpen(true);
+                    setTermsAttention(true);
+                  }}
                   onError={(message) => {
+                    if (isPaypalCheckoutCancelMessage(message)) {
+                      releaseHostedWait();
+                      setPayError(undefined);
+                      return;
+                    }
                     setPaying(false);
                     setPayError(message);
                   }}
+                  membershipOptions={
+                    membershipPurchase
+                      ? {
+                          saveCard,
+                          autoRenew,
+                          open: membershipOptsOpen,
+                          visible: showMembershipOptions,
+                          onToggle: () => setMembershipOptsOpen((current) => !current),
+                          onSaveCard: setSaveCard,
+                          onAutoRenew: setAutoRenew,
+                        }
+                      : undefined
+                  }
+                  payCta={
+                    selectedMethod?.slug === "recurrente"
+                      ? {
+                          label: registerOnly
+                            ? hostedPendingRef.current?.purchaseId
+                              ? "Revisar pago"
+                              : "Registrar compra"
+                            : `Pagar ${formatMoney(total, currency.prefix, "")}`,
+                          busyLabel: "Esperando el pago…",
+                          busy: paying,
+                          disabled:
+                            paying ||
+                            relevantLines.length === 0 ||
+                            (!registerOnly && !waitingOnTerms && !canPay),
+                          onClick: handlePayClick,
+                        }
+                      : undefined
+                  }
                 />
               )}
             </section>
@@ -866,6 +1308,7 @@ export function CheckoutModal({
                 className="gafa-checkout__cart-toggle"
                 type="button"
                 aria-expanded={cartOpen}
+                aria-label={cartOpen ? "Ocultar productos del carrito" : "Ver productos del carrito"}
                 onClick={() => setCartOpen((value) => !value)}
               >
                 <span>
@@ -897,7 +1340,7 @@ export function CheckoutModal({
                       {reservation.seatLabel ? ` · Lugar ${reservation.seatLabel}` : ""}
                     </small>
                   </div>
-                  <RemoveClassButton onClick={dropPendingClass} />
+                  {blockDismiss ? null : <RemoveClassButton onClick={dropPendingClass} />}
                 </div>
               ) : null}
 
@@ -994,45 +1437,56 @@ export function CheckoutModal({
                     />
                   ) : null}
 
-                  {config?.giftCardsEnabled && client.checkGiftCode ? (
+                  {config?.giftCardsEnabled ? (
                     <PromoDisclosure
-                      linkLabel="Canjear gift card"
-                      open={giftOpen}
-                      onToggle={() => setGiftOpen((v) => !v)}
+                      linkLabel="Convertir en GiftCard"
+                      open={convertGift}
+                      onToggle={() => {
+                        const next = !convertGift;
+                        setConvertGift(next);
+                        if (next) {
+                          void assignGeneratedGiftCode();
+                          return;
+                        }
+                        giftTypingRef.current = false;
+                        giftCheckSeq.current += 1;
+                        setGiftCode("");
+                        setGiftStatus("idle");
+                        setGiftHint(undefined);
+                      }}
                       value={giftCode}
-                      onChange={setGiftCode}
-                      onApply={applyGift}
+                      onChange={(value) => {
+                        giftTypingRef.current = true;
+                        setGiftStatus("checking");
+                        setGiftHint("revisando…");
+                        setGiftCode(value.toUpperCase());
+                      }}
+                      onApply={assignGeneratedGiftCode}
                       status={giftStatus}
-                      hint={
-                        giftStatus === "ok"
-                          ? giftLabel
-                          : giftStatus === "error"
-                            ? "Gift card no válida"
-                            : undefined
-                      }
+                      hint={giftHint}
+                      info="Convierte esta compra en una GiftCard para regalar. El código se activa al pagar y se canjea en el estudio."
+                      persistField
+                      inputLabel="Código de GiftCard"
+                      applyAriaLabel="Generar otro código"
+                      applyLabel={<RefreshGiftIcon />}
                     />
                   ) : null}
 
                   {hasTerms ? (
-                    <label
+                    <CheckField
                       className="gafa-checkout__terms"
-                      data-attention={termsAttention || termsPromptOpen ? "true" : undefined}
+                      attention={termsAttention || termsPromptOpen}
+                      checked={termsAccepted}
+                      onChange={(next) => {
+                        setTermsAccepted(next);
+                        if (next) setTermsAttention(false);
+                      }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={termsAccepted}
-                        onChange={(event) => {
-                          setTermsAccepted(event.target.checked);
-                          if (event.target.checked) setTermsAttention(false);
-                        }}
-                      />
-                      <span>
-                        Acepto los{" "}
-                        <a href={config!.termsConditionsLink!} target="_blank" rel="noreferrer">
-                          términos y condiciones
-                        </a>
-                      </span>
-                    </label>
+                      Acepto los{" "}
+                      <a href={config!.termsConditionsLink!} target="_blank" rel="noreferrer">
+                        términos y condiciones
+                      </a>
+                    </CheckField>
                   ) : null}
                 </div>
               ) : null}
@@ -1074,28 +1528,46 @@ export function CheckoutModal({
                 >
                   Ir a pagar
                 </button>
-              ) : selectedMethod?.slug === "paypal" ? (
-                <p className="gafa-checkout__paypal-hint">Completa el pago con el botón de PayPal.</p>
               ) : (
-                <button
-                  className="gafa-sdk-button gafa-checkout__cta"
-                  type="button"
-                  disabled={
-                    paying ||
-                    relevantLines.length === 0 ||
-                    (!registerOnly && !waitingOnTerms && !canPay)
+                <div
+                  className="gafa-checkout__cta-wrap"
+                  data-paypal={selectedMethod?.slug === "paypal" ? "true" : undefined}
+                  data-paypal-locked={
+                    selectedMethod?.slug === "paypal" && waitingOnTerms ? "true" : undefined
                   }
-                  onClick={handlePayClick}
+                  data-busy={paying ? "true" : undefined}
                 >
-                  {paying
-                    ? "Procesando…"
-                    : registerOnly
-                      ? "Registrar compra"
-                      : `Pagar ${formatMoney(total, currency.prefix, "")}`}
-                </button>
+                  <button
+                    className="gafa-sdk-button gafa-checkout__cta"
+                    type="button"
+                    disabled={
+                      paying ||
+                      relevantLines.length === 0 ||
+                      (!registerOnly && !waitingOnTerms && !canPay)
+                    }
+                    onClick={handlePayClick}
+                  >
+                    {paying
+                      ? selectedMethod?.slug === "recurrente"
+                        ? "Esperando el pago…"
+                        : selectedMethod?.slug === "paypal"
+                          ? "Esperando PayPal…"
+                          : chargeHold
+                            ? "Registrando compra…"
+                            : "Procesando…"
+                      : registerOnly
+                        ? hostedPendingRef.current?.purchaseId
+                          ? "Revisar pago"
+                          : "Registrar compra"
+                        : `Pagar ${formatMoney(total, currency.prefix, "")}`}
+                  </button>
+                  {selectedMethod?.slug === "paypal" ? (
+                    <div id={PAYPAL_CTA_HIT_ID} className="gafa-checkout__paypal-hit" aria-hidden="true" />
+                  ) : null}
+                </div>
               )}
 
-              {step === "pay" || step === "auth" ? (
+              {!blockDismiss && (step === "pay" || step === "auth") ? (
                 <button
                   className="gafa-checkout__backlink"
                   type="button"
@@ -1190,13 +1662,20 @@ function PaySkeleton({ withMethods = false, label }: { withMethods?: boolean; la
 
 function ProductCard({
   item,
+  currency,
   inCartAmount,
   onAdd,
 }: {
   item: CatalogItem;
+  currency: { prefix: string; suffix: string; code: string };
   inCartAmount: number;
   onAdd: () => void;
 }) {
+  const price = item.priceFinal ?? item.price ?? 0;
+  const compareAt =
+    item.hasDiscount && item.price != null && item.priceFinal != null && item.price > item.priceFinal
+      ? formatMoney(item.price, currency.prefix, "")
+      : null;
   return (
     <article className="gafa-checkout-product" data-in-cart={inCartAmount > 0 ? "true" : undefined}>
       {item.description ? (
@@ -1211,14 +1690,14 @@ function ProductCard({
       ) : null}
 
       <div className="gafa-checkout-product__price">
-        {item.compareAtPriceLabel ? <s>{item.compareAtPriceLabel}</s> : null}
-        <strong>{item.priceLabel}</strong>
+        {compareAt ? <s>{compareAt}</s> : null}
+        <strong>{formatMoney(price, currency.prefix, "")}</strong>
       </div>
       <h3>{item.name}</h3>
       <p className="gafa-checkout-product__meta">
         {[
           item.expirationDays ? `Vigencia ${item.expirationDays} días` : null,
-          item.subscribable ? "Recurrente" : null,
+          item.subscribable ? "Suscripción" : null,
         ]
           .filter(Boolean)
           .join(" · ") || "\u00A0"}
@@ -1241,9 +1720,15 @@ function PayPanel({
   discountAmount,
   customer,
   onSuccess,
+  onHostedCheckout,
+  onHostedClose,
   onStart,
   onReadyChange,
   onError,
+  payCta,
+  paypalLocked,
+  onPaypalLockedClick,
+  membershipOptions,
 }: {
   methods: CheckoutConfig["paymentMethods"];
   selectedMethodId: number | null;
@@ -1255,9 +1740,29 @@ function PayPanel({
   discountAmount: number;
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
+  onHostedCheckout: (data: unknown) => void;
+  onHostedClose: () => void;
   onStart: () => void;
   onReadyChange: (ready: boolean) => void;
   onError: (message: string) => void;
+  payCta?: {
+    label: string;
+    busyLabel: string;
+    busy: boolean;
+    disabled: boolean;
+    onClick: () => void;
+  };
+  paypalLocked?: boolean;
+  onPaypalLockedClick?: () => void;
+  membershipOptions?: {
+    saveCard: boolean;
+    autoRenew: boolean;
+    open: boolean;
+    visible: boolean;
+    onToggle: () => void;
+    onSaveCard: (value: boolean) => void;
+    onAutoRenew: (value: boolean) => void;
+  };
 }) {
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState<string>();
@@ -1266,8 +1771,24 @@ function PayPanel({
   const islandRef = useRef<GafaPayIsland | null>(null);
   // Los callbacks cambian en cada render; el widget vive fuera de React y no
   // debe re-montarse por eso.
-  const handlersRef = useRef({ onSuccess, onError, onStart });
-  handlersRef.current = { onSuccess, onError, onStart };
+  const handlersRef = useRef({
+    onSuccess,
+    onError,
+    onStart,
+    onHostedCheckout,
+    onHostedClose,
+    onSaveCard: membershipOptions?.onSaveCard,
+    onAutoRenew: membershipOptions?.onAutoRenew,
+  });
+  handlersRef.current = {
+    onSuccess,
+    onError,
+    onStart,
+    onHostedCheckout,
+    onHostedClose,
+    onSaveCard: membershipOptions?.onSaveCard,
+    onAutoRenew: membershipOptions?.onAutoRenew,
+  };
 
   useEffect(() => {
     onReadyChange(loadState === "ready");
@@ -1305,6 +1826,7 @@ function PayPanel({
         customerEmail: customer.email,
         customerPhone: customer.phone,
         lineItems,
+        currency: config?.currency.code,
       },
       generalData: {
         companiesId: config?.companiesId,
@@ -1313,15 +1835,25 @@ function PayPanel({
         usersProfilesId: config?.userProfileId,
         usersId: config?.usersId,
       },
-      termsAndConditions: config?.termsConditionsLink ?? null,
-      hasRecurringPayment: false,
-      // Función siempre: GafaPayFront la invoca sin optional chaining.
+      // GafaPay Recurrente deshabilita su botón si esto es falsy. Los términos
+      // los exigimos en nuestro CTA; aquí hay que dejarlo pasar.
+      termsAndConditions:
+        selected?.slug === "recurrente" || selected?.slug === "paypal"
+          ? true
+          : (config?.termsConditionsLink ?? null),
+      hasRecurringPayment: Boolean(membershipOptions),
       onStartPayAction: () => handlersRef.current.onStart(),
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
       onGafaPayErrAction: ({ message }) =>
         handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
+      onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
+      onCheckoutCloseAction: () => handlersRef.current.onHostedClose(),
+      changePaymentSystemProperties: ({ recurringPayment, saveCard: nextSave }) => {
+        if (typeof nextSave === "boolean") handlersRef.current.onSaveCard?.(nextSave);
+        if (typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
+      },
     }),
-    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.termsConditionsLink, customer.email, customer.firstName, customer.lastName, customer.phone],
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions],
   );
 
   // Cambios de carrito/cliente actualizan props sin re-montar: tirar el iframe
@@ -1337,6 +1869,7 @@ function PayPanel({
   useEffect(() => {
     if (!slug || !clientId || !clientSecret) return;
     let cancelled = false;
+    let stopPaypalCapture: () => void = () => undefined;
     setLoadState("loading");
     setLoadError(undefined);
 
@@ -1347,6 +1880,7 @@ function PayPanel({
         // <div id="paypal">; si no, window.paypal es el DIV y revienta.
         if (slug === "paypal") await ensureLegacyPaypalCheckout();
         if (cancelled || !mountRef.current) return;
+        if (slug === "paypal") stopPaypalCapture = installPayPalButtonCapture();
         const container = mountRef.current;
         islandRef.current?.unmount();
         islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
@@ -1367,14 +1901,25 @@ function PayPanel({
 
     return () => {
       cancelled = true;
+      stopPaypalCapture();
       islandRef.current?.unmount();
       islandRef.current = null;
     };
   }, [slug, clientId, clientSecret, gafaPayFrontUrl]);
 
   useEffect(() => {
-    if (loadState === "ready") islandRef.current?.update(widgetProps);
-  }, [widgetProps, loadState]);
+    // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
+    if (loadState !== "ready" || slug === "paypal") return;
+    islandRef.current?.update(widgetProps);
+  }, [widgetProps, loadState, slug]);
+
+  useEffect(() => {
+    if (loadState !== "ready" || !mountRef.current || !membershipOptions) return;
+    syncGafaPayMembershipToggles(mountRef.current, {
+      saveCard: membershipOptions.saveCard,
+      autoRenew: membershipOptions.autoRenew,
+    });
+  }, [loadState, membershipOptions]);
 
   return (
     <div className="gafa-checkout-pay">
@@ -1391,8 +1936,8 @@ function PayPanel({
               data-active={method.id === selectedMethodId ? "true" : undefined}
               onClick={() => onSelectMethod(method.id)}
             >
-              {method.slug === "stripe" ? <CardIcon /> : method.slug === "paypal" ? <PaypalIcon /> : null}
-              {method.slug === "stripe" ? "Tarjeta" : method.name}
+              {method.slug === "stripe" ? <CardIcon /> : method.slug === "paypal" ? <PaypalIcon /> : method.slug === "recurrente" ? <CardIcon /> : null}
+              {method.slug === "stripe" ? "Tarjeta" : method.slug === "recurrente" ? "Tarjeta" : method.name}
             </button>
           ))}
         </div>
@@ -1404,7 +1949,22 @@ function PayPanel({
 
       {/* GafaPayFront trae su propio React 16: este div es suyo, nuestro React
           nunca toca lo que hay dentro (ver payments/gafaPay.ts). */}
-      <div className="gafa-checkout-paymount" data-state={loadState} data-method={slug || undefined}>
+      <div
+        className="gafa-checkout-paymount"
+        data-state={loadState}
+        data-method={slug || undefined}
+        data-membership={membershipOptions ? "true" : undefined}
+        data-locked={slug === "paypal" && paypalLocked ? "true" : undefined}
+        onClick={
+          slug === "paypal" && paypalLocked
+            ? (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onPaypalLockedClick?.();
+              }
+            : undefined
+        }
+      >
         {slug === "paypal" ? (
           <div className="gafa-checkout-paypal-copy">
             <span className="gafa-checkout-paypal-copy__mark" aria-hidden="true">
@@ -1416,7 +1976,64 @@ function PayPanel({
             </div>
           </div>
         ) : null}
+        {slug === "recurrente" ? (
+          <div className="gafa-checkout-cardpay">
+            <div className="gafa-checkout-paypal-copy">
+              <span className="gafa-checkout-paypal-copy__mark" aria-hidden="true">
+                <CardIcon />
+              </span>
+              <div>
+                <strong>Pagar con tarjeta</strong>
+                <p>Se abre una ventana segura para confirmar tu pago.</p>
+              </div>
+            </div>
+            {payCta ? (
+              <button
+                className="gafa-sdk-button gafa-checkout__cta"
+                type="button"
+                disabled={payCta.disabled}
+                onClick={payCta.onClick}
+              >
+                {payCta.busy ? payCta.busyLabel : payCta.label}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
+
+        {membershipOptions ? (
+          <div
+            className="gafa-checkout-membership"
+            data-open={membershipOptions.open ? "true" : undefined}
+            data-visible={membershipOptions.visible ? "true" : undefined}
+            hidden={!membershipOptions.visible}
+          >
+            <button
+              className="gafa-checkout-promo__link"
+              type="button"
+              aria-expanded={membershipOptions.open}
+              onClick={membershipOptions.onToggle}
+            >
+              Opciones de la membresía
+            </button>
+            {membershipOptions.open ? (
+              <div className="gafa-checkout-membership__fields">
+                <CheckField
+                  checked={membershipOptions.saveCard}
+                  onChange={membershipOptions.onSaveCard}
+                >
+                  Guardar mi tarjeta para la próxima compra
+                </CheckField>
+                <CheckField
+                  checked={membershipOptions.autoRenew}
+                  onChange={membershipOptions.onAutoRenew}
+                >
+                  Renovar automáticamente al vencer
+                </CheckField>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {loadState === "loading" ? (
           <PaySkeleton label="Conectando con el procesador de pago…" />
@@ -1445,6 +2062,11 @@ function PromoDisclosure({
   onApply,
   status,
   hint,
+  info,
+  persistField = false,
+  inputLabel,
+  applyLabel,
+  applyAriaLabel,
 }: {
   linkLabel: string;
   open: boolean;
@@ -1454,29 +2076,50 @@ function PromoDisclosure({
   onApply: () => void | Promise<void>;
   status: "idle" | "checking" | "ok" | "error";
   hint?: string;
+  info?: string;
+  persistField?: boolean;
+  inputLabel?: string;
+  applyLabel?: React.ReactNode;
+  applyAriaLabel?: string;
 }) {
-  if (status === "ok" && hint) {
+  if (status === "ok" && hint && !persistField) {
     return (
-      <p className="gafa-checkout-promo__applied" data-status="ok">
+      <small className="gafa-checkout-promo__applied" data-status="ok">
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M2 7.5L5.5 11L12 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         {hint}
-      </p>
+      </small>
     );
   }
 
   return (
     <div className="gafa-checkout-promo" data-status={status}>
-      <button className="gafa-checkout-promo__link" type="button" aria-expanded={open} onClick={onToggle}>
-        {linkLabel}
-      </button>
+      <div className="gafa-checkout-promo__head">
+        <button className="gafa-checkout-promo__link" type="button" aria-expanded={open} onClick={onToggle}>
+          {linkLabel}
+        </button>
+        {open && info ? (
+          <span className="gafa-checkout-promo__info">
+            <button type="button" aria-label="Más información">
+              i
+            </button>
+            <span role="tooltip" className="gafa-checkout-promo__tooltip">
+              {info}
+            </span>
+          </span>
+        ) : null}
+      </div>
       {open ? (
         <>
           <div className="gafa-checkout-promo__row">
             <input
               value={value}
               autoFocus
+              aria-label={inputLabel}
+              spellCheck={false}
+              autoCapitalize="characters"
+              autoCorrect="off"
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -1486,11 +2129,25 @@ function PromoDisclosure({
               }}
               placeholder="Código"
             />
-            <button type="button" onClick={() => void onApply()} disabled={status === "checking" || !value.trim()}>
-              {status === "checking" ? "…" : "Aplicar"}
+            <button
+              type="button"
+              aria-label={applyAriaLabel}
+              onClick={() => void onApply()}
+              disabled={status === "checking" || (!persistField && !value.trim())}
+            >
+              {status === "checking" ? "…" : (applyLabel ?? "Aplicar")}
             </button>
           </div>
-          {status === "error" && hint ? <small>{hint}</small> : null}
+          {status === "ok" && persistField && hint ? (
+            <small className="gafa-checkout-promo__applied" data-status="ok" aria-live="polite">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M2 7.5L5.5 11L12 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {hint}
+            </small>
+          ) : status === "error" && hint ? (
+            <small>{hint}</small>
+          ) : null}
         </>
       ) : null}
     </div>
@@ -1507,6 +2164,7 @@ function ThanksPanel({
     purchaseId?: number | null;
     reservationId?: number;
     confirmed?: boolean;
+    isWaitlist?: boolean;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null;
@@ -1524,7 +2182,13 @@ function ThanksPanel({
           <path d="M4 12.5L9.5 18L20 6.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
-      <h2 id="gafa-checkout-title">{reservation ? "¡Reserva confirmada!" : "¡Gracias por tu compra!"}</h2>
+      <h2 id="gafa-checkout-title">
+        {thanks?.isWaitlist
+          ? "Estás en la lista de espera"
+          : reservation
+            ? "¡Reserva confirmada!"
+            : "¡Gracias por tu compra!"}
+      </h2>
       <p>
         {firstName ? `${firstName}, tu` : "Tu"} pago quedó registrado
         {thanks?.purchaseId ? ` (orden #${thanks.purchaseId})` : ""}. Te enviamos el detalle por correo.
@@ -1624,6 +2288,69 @@ function PaypalMark() {
         fill="currentColor"
       />
     </svg>
+  );
+}
+
+function RefreshGiftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M13.4 8A5.4 5.4 0 0 1 4.2 11.7"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M2.6 8A5.4 5.4 0 0 1 11.8 4.3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M13.5 3.1v3.3h-3.3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2.5 12.9V9.6h3.3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CheckField({
+  checked,
+  onChange,
+  children,
+  className,
+  attention,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  children: React.ReactNode;
+  className?: string;
+  attention?: boolean;
+}) {
+  return (
+    <label
+      className={["gafa-check-row", className].filter(Boolean).join(" ")}
+      data-attention={attention ? "true" : undefined}
+    >
+      <input
+        className="gafa-check-input"
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="gafa-check-box" aria-hidden="true" />
+      <span className="gafa-check-row__text">{children}</span>
+    </label>
   );
 }
 

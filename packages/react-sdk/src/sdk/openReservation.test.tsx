@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { createGafaSdk, type GafaSdk } from "./runtime";
 import { clearStoredToken, writeStoredToken } from "./client/tokenStorage";
@@ -33,7 +33,14 @@ describe("openReservation", () => {
     await waitFor(() => {
       expect(overlayText()).toContain("Detalle de reserva");
       expect(overlayText()).toContain("Coach Demo");
+      expect(overlayText()).toContain("Trae toalla y zapatos de indoor");
     });
+    const hero = document.querySelector(".gafa-reservation-hero");
+    const title = hero?.querySelector("#reservation-title");
+    const notes = hero?.querySelector(".gafa-reservation-notes");
+    expect(notes?.textContent).toContain("Trae toalla y zapatos de indoor");
+    expect(title?.nextElementSibling).toBe(notes);
+    expect(document.querySelector(".gafa-reservation-summary + .gafa-reservation-notes")).toBeNull();
   });
 
   it("sin sesion pide login antes del detalle, igual que el calendario", async () => {
@@ -95,6 +102,133 @@ describe("openReservation", () => {
     first.close();
     await waitFor(() => {
       expect(document.querySelectorAll(".gafa-reservation-overlay")).toHaveLength(1);
+    });
+  });
+
+  it("en una clase llena sin crédito que aplique lleva a comprar para la waitlist", async () => {
+    writeStoredToken("token-de-prueba");
+    boot().openReservation({ meetingId: 2, brandSlug: "demo-studio", locationSlug: "condesa" });
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Lista de espera");
+      expect(overlayText()).toContain("Comprar y unirme a la lista");
+    });
+
+    const buy = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Comprar y unirme a la lista"),
+    );
+    expect(buy).toBeTruthy();
+    buy?.click();
+
+    await waitFor(() => {
+      const checkout = document.querySelector(".gafa-checkout-overlay")?.textContent ?? "";
+      expect(checkout).toMatch(/lista de espera/i);
+      expect(checkout).toMatch(/Paquetes/);
+    });
+  });
+
+  it("con crédito válido el CTA une a la waitlist y confirma la espera", async () => {
+    writeStoredToken("token-de-prueba");
+    const { createMockGafaClient } = await import("./client/gafaClient");
+    const mock = createMockGafaClient();
+    const client = {
+      ...mock,
+      getReservationContext: async (payload: Parameters<NonNullable<typeof mock.getReservationContext>>[0]) => {
+        const context = await mock.getReservationContext!(payload);
+        return {
+          ...context,
+          waitlistAvailable: true,
+          paymentOptions: [
+            { id: "credits--1--2099-01-01", kind: "credit" as const, name: "10 clases", remaining: 5 },
+          ],
+        };
+      },
+    };
+    sdk = createGafaSdk(CONFIG, { client });
+    sdk.openReservation({ meetingId: 2, brandSlug: "demo-studio", locationSlug: "condesa" });
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Unirme a la lista de espera");
+    });
+
+    const join = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Unirme a la lista de espera"),
+    );
+    join?.click();
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Estás en la lista de espera");
+    });
+  });
+
+  it("sin crédito no deja comprar hasta elegir lugar, y el checkout ancla ese lugar", async () => {
+    writeStoredToken("token-de-prueba");
+    const { createMockGafaClient } = await import("./client/gafaClient");
+    const mock = createMockGafaClient();
+    const client = {
+      ...mock,
+      getReservationContext: async (payload: Parameters<NonNullable<typeof mock.getReservationContext>>[0]) => {
+        const context = await mock.getReservationContext!(payload);
+        return { ...context, paymentOptions: [] };
+      },
+    };
+    sdk = createGafaSdk(CONFIG, { client });
+    sdk.openReservation({ meetingId: 1, brandSlug: "demo-studio", locationSlug: "roma-norte" });
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Elige tu lugar en el mapa");
+    });
+
+    const blocked = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Elige tu lugar en el mapa"),
+    ) as HTMLButtonElement | undefined;
+    expect(blocked?.disabled).toBe(true);
+
+    const seat = document.querySelector('[aria-label="Lugar 1"]') as HTMLButtonElement | null;
+    expect(seat).toBeTruthy();
+    seat?.click();
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Comprar lugar 1");
+    });
+
+    const buy = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Comprar lugar 1"),
+    );
+    buy?.click();
+
+    await waitFor(() => {
+      const checkout = document.querySelector(".gafa-checkout-overlay")?.textContent ?? "";
+      expect(checkout).toMatch(/Lugar 1/);
+    });
+  });
+
+  it("con crédito manda el lugar elegido en createReservation", async () => {
+    writeStoredToken("token-de-prueba");
+    const { createMockGafaClient } = await import("./client/gafaClient");
+    const mock = createMockGafaClient();
+    const createReservation = vi.fn(async () => ({ reservationId: 99, isWaitlist: false }));
+    const client = { ...mock, createReservation };
+    sdk = createGafaSdk(CONFIG, { client });
+    sdk.openReservation({ meetingId: 1, brandSlug: "demo-studio", locationSlug: "roma-norte" });
+
+    await waitFor(() => {
+      expect(document.querySelector('[aria-label="Lugar 1"]')).toBeTruthy();
+    });
+    (document.querySelector('[aria-label="Lugar 1"]') as HTMLButtonElement).click();
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Reservar lugar 1");
+    });
+    const reserve = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Reservar lugar 1"),
+    );
+    reserve?.click();
+
+    await waitFor(() => {
+      expect(createReservation).toHaveBeenCalledWith(
+        expect.objectContaining({ meetingId: 1, seatObjectId: 1 }),
+      );
     });
   });
 });

@@ -47,18 +47,18 @@ El build de librería deja React como peer. Para un sitio WP hace falta el IIFE
 con React dentro, el mismo patrón que `dist/main.min.js` de v1:
 
 ```sh
-npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js
+npm run publish:embed   # → ../../docs/v2-sdk/gafa-sdk.js (loader) + bundle stampado
 ```
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js"></script>
 <script data-gf-options type="application/json">
   { "GAFA_FIT_URL": "...", "COMPANY_ID": 1, "API_CLIENT": "...", "API_SECRET": "..." }
 </script>
 <section data-gf-theme="meetings-calendar"></section>
 ```
 
-No copies `src/` a Replit. Guía: [`docs/v2-lanzamiento.md`](../../docs/v2-lanzamiento.md).
+No copies `src/` a Buq-Webs. Guía: [`docs/v2-lanzamiento.md`](../../docs/v2-lanzamiento.md).
 
 El uso (heartbeats, login, reserva, checkout) se manda al **SDK Hub** (`https://hub.buq.partners`), no a `GAFA_FIT_URL`. Local: `HUB_URL` / `?hub-url=http://127.0.0.1:8787`. Docs: [`docs/v2-hub`](../../docs/v2-hub/README.md).
 

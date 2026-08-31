@@ -37,4 +37,10 @@ describe("toFormBody", () => {
 
     expect(form.get("map_objectsSelected[0][id]")).toBe("42");
   });
+
+  it("indexa el lugar elegido como map_objectsSelected[0][id]", () => {
+    const form = toFormBody({ map_objectsSelected: [{ id: 42 }] });
+
+    expect(form.get("map_objectsSelected[0][id]")).toBe("42");
+  });
 });

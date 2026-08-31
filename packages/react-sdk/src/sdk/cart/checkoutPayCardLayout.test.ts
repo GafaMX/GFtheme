@@ -21,6 +21,12 @@ describe("checkout Stripe saved-card layout", () => {
     );
   });
 
+  it("oculta saveCard y recurringPayment de GafaPay como el fancy v1", () => {
+    expect(payMountCss).toMatch(/#saveCard/);
+    expect(payMountCss).toMatch(/#recurringPayment/);
+    expect(payMountCss).toMatch(/visibility: hidden/);
+  });
+
   it("no deja que la isla desborde el panel de pago", () => {
     expect(payMountCss).toMatch(/\.gafa-checkout-paymount \{[^}]*min-width: 0/);
     expect(payMountCss).toMatch(/\.gafa-checkout-paymount__island \{[^}]*max-width: 100%/);
@@ -37,6 +43,24 @@ describe("checkout Stripe saved-card layout", () => {
     expect(rule).toBeTruthy();
     expect(rule).toContain("box-sizing: border-box");
     expect(payMountCss).not.toMatch(/\[data-method="paypal"\][^{]*\{[^}]*box-sizing: border-box/);
+  });
+
+  it("no mete un recuadro blanco alrededor del botón de PayPal", () => {
+    expect(payMountCss).not.toMatch(
+      /\[data-method="paypal"\] \.gafa-checkout-paymount__island \{[^}]*background:/,
+    );
+    expect(payMountCss).not.toMatch(
+      /\[data-method="paypal"\] #paypal[^{]*\{[^}]*min-height:\s*45px/,
+    );
+  });
+
+  it("no fuerza el ancho de #paypal (checkout.js encima logo y Pagar)", () => {
+    expect(payMountCss).not.toMatch(/#paypal[^{]{0,80}\{[^}]*width:\s*100%/);
+  });
+
+  it("el overlay del CTA cubre el botón amarillo sin mover el oro del centro", () => {
+    expect(widgetsCss).toMatch(/\.gafa-checkout__paypal-hit \{[^}]*position: absolute/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout__paypal-hit \{[^}]*opacity: 0\.001/);
   });
 
   /*

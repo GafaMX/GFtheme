@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CatalogItem, GafaClient } from "../client/types";
+import { formatMoney, resolveMoneyCurrency } from "../cart/money";
 import { WidgetShell } from "./WidgetShell";
 
 export type CatalogKind = "packages" | "memberships" | "services" | "staff";
@@ -37,7 +38,17 @@ export function CatalogWidget({
       const results = await Promise.all(
         visibleBrands.map(async (brand) => {
           const items = await getItemsForType(client, type, brand.slug);
-          return items.map((item) => ({ ...item, brandName: brand.name, brandSlug: brand.slug }));
+          return items.map((item) => {
+            const amount = item.priceFinal ?? item.price;
+            const money = resolveMoneyCurrency(item.raw?.currency ?? item.currency) ?? brand.currency;
+            return {
+              ...item,
+              brandName: brand.name,
+              brandSlug: brand.slug,
+              priceLabel:
+                amount != null ? formatMoney(amount, money?.prefix ?? "$", "") : item.priceLabel,
+            };
+          });
         }),
       );
 

@@ -20,8 +20,8 @@ export type AccountModalProps = {
   combineWaitlist?: boolean;
   /**
    * CTA de los estados vacios (Reservar / Comprar). Opcionales: si el sitio no
-   * los pasa, el popup se cierra y el SDK lleva al calendario o a paquetes
-   * que ya estan en la pagina (Fitspin, Fancy, etc.).
+   * los pasa, el popup se cierra y Reservar va a `/reservar`;
+   * Comprar abre el fancy nativo de paquetes / membresías / productos.
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { GafaBrandTheme } from "./theme/theme";
 import { withBuqEnvironment, type BuqEnvironmentId } from "./config/buqEnvironments";
+import { coerceFlag } from "./cart/membershipPayOptions";
 
 /**
  * Par de llaves reCAPTCHA v3 COMPARTIDO de Buq/gafa.fit. El backend valida el
@@ -76,6 +77,11 @@ export const sdkConfigSchema = z
     hubUrl: z.string().optional(),
     /** Apaga heartbeats y eventos de uso. Default on. */
     analyticsEnabled: z.boolean().optional(),
+    /**
+     * Muestra el link “Opciones de la membresía”. Default oculto: guardar
+     * tarjeta + renovar siguen ON, el socio no los ve.
+     */
+    showMembershipOptions: z.boolean().optional(),
     images: imagesSchema,
     theme: legacyThemeSchema,
   })
@@ -104,6 +110,7 @@ const legacyOptionsSchema = z
     GAFAPAY_FRONT_URL: z.string().optional(),
     HUB_URL: z.string().optional(),
     ANALYTICS: z.union([z.boolean(), z.string()]).optional(),
+    SHOW_MEMBERSHIP_OPTIONS: z.union([z.boolean(), z.string(), z.number()]).optional(),
     IMAGES: imagesSchema,
     THEME: legacyThemeSchema,
   })
@@ -143,6 +150,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL,
     hubUrl: legacyOptions.HUB_URL,
     analyticsEnabled: parseAnalyticsFlag(legacyOptions.ANALYTICS),
+    showMembershipOptions: coerceFlag(legacyOptions.SHOW_MEMBERSHIP_OPTIONS),
     images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
   });

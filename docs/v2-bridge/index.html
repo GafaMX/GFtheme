@@ -214,13 +214,13 @@
       })();
 
       /*
-       * Por default carga la rama `sdk-live`, que siempre apunta a lo último de
-       * v2/main, con un parámetro anti-caché: esta página y el CDN se guardan en
+       * Por default carga la rama `cdn-live` (puntero de producción Buq-Webs),
+       * con un parámetro anti-caché: esta página y el CDN se guardan en
        * el navegador y se estaba probando una versión vieja sin notarlo.
        * Con ?sdk= se fija a un tag, SHA o URL concreta.
        */
       (function () {
-        var LIVE_REF = "sdk-live";
+        var LIVE_REF = "cdn-live";
         var label = document.getElementById("sdk-url");
         var requested = (new URLSearchParams(location.search).get("sdk") || "").trim();
 
@@ -243,7 +243,7 @@
           return;
         }
 
-        load(cdnUrl(LIVE_REF) + "?t=" + Date.now(), "última de v2/main");
+        load(cdnUrl(LIVE_REF) + "?t=" + Date.now(), "cdn-live (producción Buq-Webs)");
       })();
     </script>
   </body>

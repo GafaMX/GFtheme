@@ -10,7 +10,6 @@ import type {
   CreateReservationResult,
   FrontPaymentMethod,
   GafaClient,
-  GiftCodeResult,
   InitialPurchasePayload,
   InitialPurchaseResult,
   InitialPurchaseStatus,
@@ -38,7 +37,15 @@ import type {
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
+import {
+  buildCheckGiftUrl,
+  buildGenerateGiftUrl,
+  extractGeneratedGiftCode,
+  giftCardsEnabledFromUrls,
+  parseGiftCodeCheckResponse,
+} from "../cart/giftCard";
 import { partitionGafaFitCart } from "../cart/gafaFitCart";
+import { formatCatalogAmount, resolveMoneyCurrency } from "../cart/money";
 import { toFormBody } from "./formBody";
 import {
   clearStoredToken,
@@ -47,6 +54,7 @@ import {
   writeStoredToken,
 } from "./tokenStorage";
 import { readHasSeatMap } from "./seatMapHint";
+import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -67,6 +75,7 @@ type RawBrand = {
   gafapay_brand_id?: number | null;
   gafapay_client_id?: string | number | null;
   gafapay_client_secret?: string | null;
+  currency?: { prefijo?: string; sufijo?: string; code3?: string } | string | null;
 };
 
 type RawCatalogItem = {
@@ -81,7 +90,7 @@ type RawCatalogItem = {
   credits?: number | null;
   subscribable?: boolean | number | null;
   hide_in_front?: boolean | number | null;
-  currency?: string;
+  currency?: string | { prefijo?: string; sufijo?: string; code3?: string } | null;
 };
 
 type RawUserProfile = {
@@ -136,24 +145,30 @@ type RawStaff = { name?: string; lastname?: string; job?: string | null };
 
 type RawReservation = {
   id: number;
-  meeting_start: string;
+  meeting_start?: string;
+  start?: string;
   timezone?: string | null;
   hash_qr?: string | null;
   cancelled?: boolean;
   canBeCancelled?: boolean;
   canBeCancelledWithoutCredit?: boolean;
   is_overbooking?: number;
+  is_waitlist?: boolean | number | string;
+  isWaitlist?: boolean | number | string;
+  waitlist_number?: number | string | null;
+  waitlistNumber?: number | string | null;
   meeting_position?: number | string | null;
   credit?: { id?: number; name?: string } | null;
   location?: { name?: string } | string | null;
   brand?: { slug?: string } | string | null;
   staff?: RawStaff;
   substitute_staff?: RawStaff | null;
-  service?: { name?: string } | null;
+  service?: { name?: string } | string | null;
   meetings?: {
     service?: { name?: string };
     staff?: RawStaff;
     substitute_staff?: RawStaff | null;
+    start?: string;
   };
   object?: { position_number?: number; position_text?: string };
 };
@@ -164,6 +179,33 @@ type RawReservationGroup = {
   reservations?: RawReservation[];
   waitlists?: RawReservation[];
 };
+
+function asItemList<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === "object" && Array.isArray((value as { data?: unknown }).data)) {
+    return (value as { data: T[] }).data;
+  }
+  return [];
+}
+
+function truthyFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+/** El v1 marca waitlist por el array `waitlists`; a veces el API las mete en
+ *  `reservations` con `is_waitlist` / `waitlist_number`. */
+function itemIsWaitlist(raw: RawReservation): boolean {
+  if (truthyFlag(raw.is_waitlist) || truthyFlag(raw.isWaitlist)) return true;
+  if (raw.waitlist_number != null && raw.waitlist_number !== "") return true;
+  if (raw.waitlistNumber != null && raw.waitlistNumber !== "") return true;
+  return false;
+}
+
+function waitlistPositionOf(raw: RawReservation): string | undefined {
+  const n = raw.waitlist_number ?? raw.waitlistNumber;
+  if (n == null || n === "") return undefined;
+  return String(n);
+}
 
 type RawPurchase = {
   id: number;
@@ -277,13 +319,14 @@ function parsePurchaseResult(data: Record<string, unknown> | null | undefined): 
 
   const reservation = data?.reservation;
   const first = Array.isArray(reservation) ? reservation[0] : reservation;
-  const reservationId =
-    first && typeof first === "object" ? readNumericId((first as { id?: unknown }).id) : readNumericId(first);
+  const firstRecord = first && typeof first === "object" ? (first as { id?: unknown; is_waitlist?: unknown }) : null;
+  const reservationId = firstRecord ? readNumericId(firstRecord.id) : readNumericId(first);
 
   return {
     purchaseId,
     checkoutToken: typeof data?.checkout_token === "string" ? data.checkout_token : null,
     reservationId: reservationId ?? undefined,
+    isWaitlist: Boolean(firstRecord?.is_waitlist),
     raw: data,
   };
 }
@@ -296,6 +339,15 @@ class GafaApiError extends Error {
   ) {
     super(message);
     this.name = "GafaApiError";
+  }
+}
+
+/** create-form-template respondió HTML de error (clase llena, etc.) sin el
+ *  bloque del meeting. No tiene sentido reintentar: el servidor ya contestó. */
+export class ReservationFormUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ReservationFormUnavailableError";
   }
 }
 
@@ -351,10 +403,15 @@ type RawMeeting = {
   end_date?: string;
   type?: string;
   title?: string;
-  available?: number;
+  /** Nota extra de la clase (la que el admin escribe en el back). */
+  description?: string | null;
+  available?: number | string;
   capacity?: number;
   is_reserved?: number | boolean;
   passed?: boolean;
+  is_valid_for_waitlist?: boolean | number | string;
+  waitlist_available?: boolean | number | string;
+  is_waitlist_available?: boolean | number | string;
   service?: { id: number; name: string };
   staff?: { id: number; name: string; lastname?: string; description?: string; job?: string; picture_web?: string | null };
   room?: { id: number; name: string; maps_id?: number | null; map_id?: number | null; has_map?: boolean | number | null };
@@ -566,13 +623,18 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       raw.object?.position_number ??
       raw.meeting_position ??
       undefined;
-
+    const waitlistPosition = waitlistPositionOf(raw);
     const brandSlugResolved = brandSlugFrom(raw, brandSlug);
+    const service =
+      raw.meetings?.service?.name ??
+      (raw.service && typeof raw.service === "object" ? raw.service.name : undefined) ??
+      (typeof raw.service === "string" ? raw.service : undefined) ??
+      "Reserva";
 
     return {
       id: raw.id,
-      serviceName: raw.meetings?.service?.name ?? raw.service?.name ?? "Reserva",
-      startsAt: raw.meeting_start,
+      serviceName: service,
+      startsAt: raw.meeting_start ?? raw.meetings?.start ?? raw.start ?? "",
       timezone: raw.timezone ?? brandTimeZoneBySlug.get(brandSlugResolved),
       locationName: locationLabel(raw.location),
       staffName: staffLabel(staff),
@@ -584,11 +646,12 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       // que compro el socio: se guarda para poder resolver el paquete por id.
       creditId: raw.credit?.id ?? null,
       creditTypeName: raw.credit ? (raw.credit.name ?? null) : null,
-      waitlistPosition: isWaitlist && seat !== undefined && seat !== null ? String(seat) : undefined,
+      waitlistPosition: isWaitlist ? waitlistPosition : undefined,
       seatLabel: !isWaitlist && seat !== undefined && seat !== null ? String(seat) : undefined,
-      qrHash: raw.hash_qr ?? undefined,
+      qrHash: isWaitlist ? undefined : (raw.hash_qr ?? undefined),
       cancelled: Boolean(raw.cancelled),
-      canCancel: Boolean(raw.canBeCancelled || raw.canBeCancelledWithoutCredit),
+      // v1 siempre deja salir de la lista; el API de waitlist casi nunca manda canBeCancelled.
+      canCancel: isWaitlist ? true : Boolean(raw.canBeCancelled || raw.canBeCancelledWithoutCredit),
     };
   }
 
@@ -598,22 +661,90 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
   /** reservation-future/past: objeto unico, array de grupos, o paginado. */
   function unwrapReservationGroups(response: unknown): RawReservationGroup[] {
-    if (Array.isArray(response)) return response as RawReservationGroup[];
+    if (Array.isArray(response)) {
+      if (response.length === 0) return [];
+      const first = response[0];
+      if (first && typeof first === "object") {
+        const row = first as Record<string, unknown>;
+        if ("reservations" in row || "waitlists" in row || "waitlist" in row) {
+          return response.map((group) => normalizeReservationGroup(group));
+        }
+        if ("meeting_start" in row || "waitlist_number" in row || "is_waitlist" in row) {
+          return splitFlatReservations(response as RawReservation[]);
+        }
+      }
+      return response as RawReservationGroup[];
+    }
     if (response && typeof response === "object") {
       const obj = response as Record<string, unknown>;
-      if (Array.isArray(obj.data)) return obj.data as RawReservationGroup[];
-      if ("reservations" in obj || "waitlists" in obj) return [obj as RawReservationGroup];
+      if (Array.isArray(obj.data)) return unwrapReservationGroups(obj.data);
+      if ("reservations" in obj || "waitlists" in obj || "waitlist" in obj) {
+        return [normalizeReservationGroup(obj)];
+      }
     }
     return [];
   }
 
+  function normalizeReservationGroup(group: unknown): RawReservationGroup {
+    const row = group && typeof group === "object" ? (group as Record<string, unknown>) : {};
+    return {
+      reservations: asItemList<RawReservation>(row.reservations),
+      waitlists: asItemList<RawReservation>(row.waitlists ?? row.waitlist ?? row.waiting_lists),
+    };
+  }
+
+  function splitFlatReservations(items: RawReservation[]): RawReservationGroup[] {
+    return [
+      {
+        reservations: items.filter((item) => !itemIsWaitlist(item)),
+        waitlists: items.filter((item) => itemIsWaitlist(item)),
+      },
+    ];
+  }
+
+  /** Laravel: `{ data, current_page, last_page }` o `meta.current_page`. */
+  function laravelPageMeta(response: unknown): { page: number; lastPage: number } | null {
+    if (!response || typeof response !== "object" || Array.isArray(response)) return null;
+    const obj = response as Record<string, unknown>;
+    const meta = obj.meta && typeof obj.meta === "object" && !Array.isArray(obj.meta)
+      ? (obj.meta as Record<string, unknown>)
+      : obj;
+    const page = Number(meta.current_page ?? obj.current_page);
+    const lastPage = Number(meta.last_page ?? obj.last_page);
+    if (!Number.isFinite(page) || !Number.isFinite(lastPage) || lastPage < 1) return null;
+    return { page, lastPage };
+  }
+
+  function reservationsFromResponse(response: unknown, brandSlug: string): UserReservation[] {
+    return unwrapReservationGroups(response).flatMap((group) => [
+      ...asItemList<RawReservation>(group.reservations).map((raw) =>
+        normalizeReservation(raw, brandSlug, itemIsWaitlist(raw)),
+      ),
+      ...asItemList<RawReservation>(group.waitlists).map((raw) =>
+        normalizeReservation(raw, brandSlug, true),
+      ),
+    ]);
+  }
+
   function normalizeMeeting(raw: RawMeeting, brandSlug: string, location?: Location): Meeting {
+    const available =
+      typeof raw.available === "number"
+        ? raw.available
+        : typeof raw.available === "string" && raw.available.trim() !== ""
+          ? Number(raw.available)
+          : undefined;
+    // El listado de Voltio manda `is_valid_for_waitlist: false` en TODAS las
+    // clases (llenas o no). Ese false no es “el estudio no tiene waitlist”:
+    // solo confiamos en `true`. El `false` de verdad sale del create-form.
+    const waitlistAvailable = readWaitlistAvailable(raw) === true ? true : undefined;
+    const description = typeof raw.description === "string" ? raw.description.replace(/\s+/g, " ").trim() : "";
     return {
       id: raw.id,
       name: raw.service?.name ?? raw.type ?? "Clase",
       startsAt: raw.start ?? raw.start_date ?? "",
       timezone: raw.timezone,
       endsAt: raw.end ?? raw.end_date,
+      description: description || undefined,
       brandSlug,
       service: raw.service,
       serviceId: raw.service?.id,
@@ -631,11 +762,17 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       staffName: raw.staff ? [raw.staff.name, raw.staff.lastname].filter(Boolean).join(" ") : undefined,
       location,
       locationSlug: location?.slug,
-      available: raw.available,
+      available: typeof available === "number" && Number.isFinite(available) ? available : undefined,
       capacity: raw.capacity,
       isReserved: Boolean(raw.is_reserved),
       passed: raw.passed,
       hasSeatMap: readHasSeatMap(raw),
+      waitlistAvailable,
+      availability: availabilityFromCapacity({
+        available: typeof available === "number" && Number.isFinite(available) ? available : undefined,
+        is_reserved: raw.is_reserved,
+        waitlistAvailable,
+      }),
     };
   }
 
@@ -650,6 +787,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       gafapayBrandId: raw.gafapay_brand_id ?? null,
       gafapayClientId: raw.gafapay_client_id != null ? String(raw.gafapay_client_id) : null,
       gafapayClientSecret: raw.gafapay_client_secret ?? null,
+      currency: resolveMoneyCurrency(raw.currency) ?? undefined,
     };
   }
 
@@ -659,13 +797,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return Number.isFinite(n) ? n : undefined;
   }
 
-  function formatCatalogPrice(amount: number | undefined, currency = "MXN"): string | undefined {
-    if (amount == null) return undefined;
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    }).format(amount);
+  function formatCatalogPrice(amount: number | undefined, currencyRaw: unknown): string | undefined {
+    return formatCatalogAmount(amount, currencyRaw);
   }
 
   function normalizeCatalogItem(
@@ -676,17 +809,18 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     if (raw.hide_in_front) return null;
     const price = moneyNumber(raw.price);
     const priceFinal = moneyNumber(raw.price_final) ?? price;
-    const currency = raw.currency ?? "MXN";
+    const money = resolveMoneyCurrency(raw.currency);
+    const currency = money?.code;
     return {
       id: raw.id,
       name: raw.name,
       description: raw.short_description || raw.description || undefined,
       price,
       priceFinal,
-      priceLabel: formatCatalogPrice(priceFinal, currency),
+      priceLabel: formatCatalogPrice(priceFinal, raw.currency ?? money),
       compareAtPriceLabel:
         raw.has_discount && price != null && priceFinal != null && price > priceFinal
-          ? formatCatalogPrice(price, currency)
+          ? formatCatalogPrice(price, raw.currency ?? money)
           : undefined,
       currency,
       type,
@@ -958,16 +1092,28 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (!token || !brandSlug) return [];
 
       const path = when === "past" ? "reservation-past" : "reservation-future";
-      const response = await apiGet<unknown>(`/me/brand/${brandSlug}/${path}`, {
-        reducePopulation: true,
-      });
+      if (when !== "past") {
+        const response = await apiGet<unknown>(`/me/brand/${brandSlug}/${path}`, {
+          reducePopulation: true,
+        });
+        return reservationsFromResponse(response, brandSlug).sort((a, b) =>
+          (a.startsAt || "").localeCompare(b.startsAt || ""),
+        );
+      }
 
-      return unwrapReservationGroups(response)
-        .flatMap((group) => [
-          ...(group.reservations ?? []).map((raw) => normalizeReservation(raw, brandSlug, false)),
-          ...(group.waitlists ?? []).map((raw) => normalizeReservation(raw, brandSlug, true)),
-        ])
-        .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+      // Historial: si Laravel pagina, hay que recorrer; si no, un solo GET basta.
+      const acc: UserReservation[] = [];
+      for (let page = 1; page <= 20; page += 1) {
+        const response = await apiGet<unknown>(`/me/brand/${brandSlug}/${path}`, {
+          reducePopulation: true,
+          per_page: 50,
+          page,
+        });
+        acc.push(...reservationsFromResponse(response, brandSlug));
+        const meta = laravelPageMeta(response);
+        if (!meta || page >= meta.lastPage) break;
+      }
+      return acc.sort((a, b) => (a.startsAt || "").localeCompare(b.startsAt || ""));
     },
 
     async listUserPurchases(brandSlug) {
@@ -1099,7 +1245,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const meetingRaw = readBlock("meeting");
       if (!meetingRaw) {
         const serverError = errorList?.textContent?.trim();
-        throw new Error(serverError || "El servidor no devolvio la informacion de la reserva.");
+        throw new ReservationFormUnavailableError(
+          serverError || "El servidor no devolvio la informacion de la reserva.",
+        );
       }
 
       const meetingData = JSON.parse(meetingRaw) as {
@@ -1252,7 +1400,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         userProfileId,
         seatMap,
         paymentOptions,
-        waitlistAvailable: Boolean(meetingData.is_valid_for_waitlist),
+        waitlistAvailable: readWaitlistAvailable(meetingData) === true,
       };
     },
 
@@ -1439,23 +1587,29 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const canRedeem = readFancyBlock(doc, "canRedeemStoreCredit");
 
       if (!urlReservation) {
-        throw new Error("No encontramos la configuración de pago para esta sede.");
+        throw new ReservationFormUnavailableError(
+          "No encontramos la configuración de pago para esta sede.",
+        );
       }
 
       const config: CheckoutConfig = {
         brandSlug: payload.brandSlug,
         locationSlug: payload.locationSlug,
         meetingId: payload.meetingId != null ? Number(payload.meetingId) : undefined,
-        currency: {
-          prefix: currencyRaw?.prefijo ?? "$",
-          suffix: currencyRaw?.sufijo ?? currencyRaw?.code3 ?? "MXN",
-          code: currencyRaw?.code3 ?? "MXN",
-        },
+        currency:
+          resolveMoneyCurrency(currencyRaw) ?? {
+            prefix: currencyRaw?.prefijo ?? "$",
+            suffix: currencyRaw?.sufijo ?? currencyRaw?.code3 ?? "MXN",
+            code: currencyRaw?.code3 ?? "MXN",
+          },
         paymentMethods,
         termsConditionsLink: brand?.termsConditionsLink ?? null,
         gafapayClientId: brand?.gafapayClientId ?? null,
         gafapayClientSecret: brand?.gafapayClientSecret ?? null,
-        giftCardsEnabled: Boolean(urlCheckGiftCode),
+        giftCardsEnabled: giftCardsEnabledFromUrls({
+          checkGiftCode: urlCheckGiftCode,
+          generateGiftCode: urlGenerateGiftCode,
+        }),
         discountCodesEnabled: Boolean(urlCheckDiscountCode),
         canRedeemStoreCredit: canRedeem === "1" || canRedeem === "true",
         combos: validCombos,
@@ -1494,19 +1648,39 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async checkGiftCode(payload) {
-      const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/check-gift-code/${encodeURIComponent(payload.code)}`;
-      const response = await fetch(url, { headers: authHeaders() });
-      if (!response.ok) {
-        return { valid: false, code: payload.code } satisfies GiftCodeResult;
-      }
-      const data = (await response.json()) as Record<string, unknown>;
-      return {
-        valid: true,
+      const url = buildCheckGiftUrl({
+        apiBaseUrl: baseUrl,
+        brandSlug: payload.brandSlug,
+        locationSlug: payload.locationSlug,
         code: payload.code,
-        label: typeof data.name === "string" ? data.name : undefined,
-        balance: typeof data.balance === "number" ? data.balance : typeof data.amount === "number" ? data.amount : undefined,
-        raw: data,
-      } satisfies GiftCodeResult;
+        urlTemplate: payload.urlTemplate,
+      });
+      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const data: unknown = await response.json().catch(() => null);
+      return parseGiftCodeCheckResponse(payload.code, response.ok, response.status, data);
+    },
+
+    async generateGiftCode(payload) {
+      const url = buildGenerateGiftUrl({
+        apiBaseUrl: baseUrl,
+        brandSlug: payload.brandSlug,
+        locationSlug: payload.locationSlug,
+        urlTemplate: payload.urlTemplate,
+      });
+      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const data: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const body = data as { message?: string; errors?: Record<string, string[]> } | null;
+        const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined;
+        throw new GafaApiError(
+          firstFieldError ?? body?.message ?? `gafa.fit API ${response.status}`,
+          response.status,
+          body?.errors,
+        );
+      }
+      const code = extractGeneratedGiftCode(data);
+      if (!code) throw new Error("El servidor no devolvió un código de GiftCard.");
+      return code;
     },
 
     /**

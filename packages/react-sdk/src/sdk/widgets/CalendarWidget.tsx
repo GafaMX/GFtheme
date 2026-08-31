@@ -9,6 +9,7 @@ import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import { reservationShowsSeatMapLayout } from "../client/seatMapHint";
+import { fullClassAction, getAvailabilityText, isSoldOut, offersWaitlist, showsWaitlistPill } from "../client/meetingAvailability";
 import type {
   Brand,
   CreateReservationResult,
@@ -62,6 +63,11 @@ export type CalendarWidgetProps = {
   /** Vista inicial. El usuario puede cambiarla si `allowViewChange` esta activo. */
   view?: CalendarView;
   allowViewChange?: boolean;
+  /**
+   * Legacy: `data-bq-show-description`. La nota extra de la clase se pinta
+   * siempre que la API la mande (una línea en día, `i` en semana, texto
+   * completo en el popup). El atributo se acepta para no romper embeds.
+   */
   showDescription?: boolean;
   title?: string;
   description?: string;
@@ -78,17 +84,18 @@ type CalendarFiltersState = {
 export function CalendarWidget({
   client,
   captcha,
-  filters = {},
+  filters: filtersProp = {},
   limit,
   view: initialView = "day",
   allowViewChange = true,
-  showDescription = false,
+  showDescription: _showDescription = false,
   // El calendario embebido ya vive dentro del sitio del socio: no repetimos
   // "Reservas / Reserva tu lugar / ..." arriba. title/description se ignoran
   // a proposito para dejar el chrome en dos lineas compactas.
   title: _title,
   description: _description,
 }: CalendarWidgetProps) {
+  const filters = { service: true, staff: true, ...filtersProp };
   const queryClient = useQueryClient();
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>(() => ({
     locationId: readCalendarLocationIdFromWindow() ?? filters.locationId,
@@ -632,7 +639,6 @@ export function CalendarWidget({
             loading={isUpdating}
             meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
             onSelect={openMeeting}
-            showDescription={showDescription}
           />
         </div>
       ) : (
@@ -645,7 +651,6 @@ export function CalendarWidget({
               loading={isUpdating}
               meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
               onSelect={openMeeting}
-              showDescription={showDescription}
             />
           ))}
         </div>
@@ -859,7 +864,6 @@ function DayColumn({
   meetings,
   onSelect,
   compact = false,
-  showDescription = false,
   emptyLabel = "Sin horarios",
   loading = false,
 }: {
@@ -867,7 +871,6 @@ function DayColumn({
   meetings: Meeting[];
   onSelect(meeting: Meeting): void;
   compact?: boolean;
-  showDescription?: boolean;
   emptyLabel?: string;
   loading?: boolean;
 }) {
@@ -913,12 +916,11 @@ function DayColumn({
               compact={compact}
               meeting={meeting}
               onSelect={onSelect}
-              showDescription={showDescription}
             />
           ))}
         </div>
       ) : (
-        <StandaloneDaySections meetings={meetings} onSelect={onSelect} showDescription={showDescription} />
+        <StandaloneDaySections meetings={meetings} onSelect={onSelect} />
       )}
     </section>
   );
@@ -936,11 +938,9 @@ function DayColumn({
 function StandaloneDaySections({
   meetings,
   onSelect,
-  showDescription,
 }: {
   meetings: Meeting[];
   onSelect(meeting: Meeting): void;
-  showDescription: boolean;
 }) {
   const upcoming = meetings.filter((meeting) => !meeting.passed);
   const finished = meetings.filter((meeting) => meeting.passed);
@@ -968,7 +968,6 @@ function StandaloneDaySections({
                 compact={false}
                 meeting={meeting}
                 onSelect={onSelect}
-                showDescription={showDescription}
               />
             ))}
           </div>
@@ -989,18 +988,22 @@ function groupByTimeOfDay(meetings: Meeting[]): Array<[Exclude<TimeOfDay, "all">
     .filter(([, slotMeetings]) => slotMeetings.length > 0);
 }
 
+function meetingClassNotes(meeting: Meeting): string | undefined {
+  const text = meeting.description?.replace(/\s+/g, " ").trim();
+  return text || undefined;
+}
+
 function MeetingCard({
   meeting,
   onSelect,
   compact,
-  showDescription,
 }: {
   meeting: Meeting;
   onSelect(meeting: Meeting): void;
   compact: boolean;
-  showDescription: boolean;
 }) {
   const soldOut = isSoldOut(meeting);
+  const waitlist = showsWaitlistPill(meeting);
   const duration = getDurationMinutes(meeting);
   // El legacy directamente oculta las clases que ya pasaron; aqui se dejan
   // visibles pero apagadas, para que el dia se entienda completo.
@@ -1011,11 +1014,13 @@ function MeetingCard({
   // circulo de 36 px, asi que sin transformaciones no se pinta.
   const staffPhoto = meeting.staff?.photoUrl;
   const showsPhoto = useRemoteImageEnabled(staffPhoto);
+  const notes = meetingClassNotes(meeting);
 
   return (
     <button
       className="gafa-meeting-card"
-      data-sold-out={soldOut ? "true" : undefined}
+      data-sold-out={soldOut && !waitlist ? "true" : undefined}
+      data-waitlist={waitlist ? "true" : undefined}
       data-passed={passed ? "true" : undefined}
       data-compact={compact ? "true" : undefined}
       data-has-photo={showsPhoto ? "true" : undefined}
@@ -1033,10 +1038,12 @@ function MeetingCard({
       />
       <span className="gafa-meeting-card__top">
         <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
+        {compact && notes ? <MeetingExtraHint text={notes} /> : null}
         {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
       </span>
 
       <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
+      {!compact && notes ? <span className="gafa-meeting-desc">{notes}</span> : null}
 
       <span className="gafa-meeting-detail">
         <PersonIcon />
@@ -1048,7 +1055,6 @@ function MeetingCard({
           {meeting.location.name}
         </span>
       ) : null}
-      {showDescription && meeting.description ? <span className="gafa-meeting-desc">{meeting.description}</span> : null}
 
       {passed ? (
         <span className="gafa-availability-pill gafa-availability-pill--passed">Finalizada</span>
@@ -1056,6 +1062,20 @@ function MeetingCard({
         <AvailabilityPill meeting={meeting} compact={compact} />
       )}
     </button>
+  );
+}
+
+function MeetingExtraHint({ text }: { text: string }) {
+  return (
+    <span className="gafa-meeting-extra">
+      <span className="gafa-sr-only">{text}</span>
+      <span className="gafa-meeting-extra__mark" aria-hidden="true">
+        i
+      </span>
+      <span className="gafa-meeting-extra__tip" aria-hidden="true">
+        {text}
+      </span>
+    </span>
   );
 }
 
@@ -1419,6 +1439,10 @@ export function ReservationFlow({
   const [step, setStep] = useState<"auth" | "detail" | "checkout">(() =>
     client && !readStoredToken() ? "auth" : "detail",
   );
+  // El preview se desmonta al pasar a pagar: si no levantamos el lugar acá,
+  // `/reservate` nace sin `map_objectsSelected` y la reserva sale en la lista
+  // sin posición (el mapa no la ve → se sobrevende el mismo lugar).
+  const [pendingSeat, setPendingSeat] = useState<SeatMapObject | null>(null);
 
   // Login desde cualquier otra parte de la pagina mientras el gate esta
   // abierto: seguir al detalle en vez de dejarlo pidiendo sesion.
@@ -1451,6 +1475,8 @@ export function ReservationFlow({
         locationSlug={locationSlug}
         locationName={locationName ?? meeting.location?.name}
         meeting={meeting}
+        seatObjectId={pendingSeat?.id}
+        seatLabel={pendingSeat?.label}
         onClose={onClose}
         onCompleted={() => {
           queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
@@ -1470,10 +1496,11 @@ export function ReservationFlow({
       brandSlug={brandSlug}
       locationSlug={locationSlug}
       onClose={onClose}
-      onContinue={() => {
+      onContinue={(seat) => {
         // Sin cliente no hay a donde ir; con sesion, el unico camino que queda
         // es comprar (el detalle ya descarto creditos aplicables).
         if (!client) return;
+        setPendingSeat(seat ?? null);
         setStep(isSignedIn ? "checkout" : "auth");
       }}
       onReserved={() => {
@@ -1504,7 +1531,7 @@ function ReservationPreviewModal({
   locationSlug?: string;
   onClose: () => void;
   /** Camino de compra / login: lo maneja el padre (gate o fancy). */
-  onContinue: () => void;
+  onContinue: (seat?: SeatMapObject | null) => void;
   onReserved?: () => void;
 }) {
   const brandSlug = meeting.location?.brand?.slug ?? meeting.brandSlug ?? brandSlugProp;
@@ -1527,10 +1554,12 @@ function ReservationPreviewModal({
       }),
     enabled: Boolean(client?.getReservationContext && brandSlug && locationSlug && isSignedIn),
     staleTime: 30_000,
-    // Igual que sessionQuery: sin reintentos, un hipo de red al pedir el mapa
-    // se veia igual que "no tienes mapa para esta clase".
-    retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
+    retry: (count, error) => {
+      if (error instanceof Error && error.name === "ReservationFormUnavailableError") return false;
+      if (isSoldOut(meeting)) return false;
+      return count < 1;
+    },
+    retryDelay: (attempt) => Math.min(800 * 2 ** attempt, 2500),
   });
 
   const context = contextQuery.data;
@@ -1544,20 +1573,33 @@ function ReservationPreviewModal({
     : (paymentOptions[0] ?? null);
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const soldOut = isSoldOut(meeting);
-  // Clase llena: nada de mapa; el boton se convierte en "unirme a la lista".
-  const waitlistMode = Boolean(canReserveNative && soldOut && context?.waitlistAvailable);
+  const waitlistCard = showsWaitlistPill(meeting);
+  const notes = meetingClassNotes(meeting);
+  const contextFailed = contextQuery.isError;
+  // Fuente de verdad: `is_valid_for_waitlist` del create-form-template (v1).
+  // Si el template ni siquiera arma el form (clase llena → “no hay lugar”),
+  // no apagamos la waitlist: el listado de Voltio manda false en todas.
+  const classAction = fullClassAction({
+    soldOut,
+    waitlistEnabled: contextFailed ? waitlistCard || soldOut : context?.waitlistAvailable,
+    hasPaymentOption: paymentOptions.length > 0,
+    contextReady: Boolean(context) || contextFailed,
+  });
+  const joinWaitlistNow = classAction === "join-waitlist";
+  const buyToWaitlist = classAction === "buy-to-waitlist";
+  const classFullNoWaitlist = classAction === "full";
   // El mapa se muestra SIEMPRE que exista, tengas o no creditos aplicables:
   // antes, sin creditos, ni siquiera se pintaba y se saltaba directo a "debes
-  // comprar" sin dejar ver el salon ni elegir lugar.
-  const needsSeat = Boolean(context && seatMap && !waitlistMode);
-  // El listado ya suele decir si hay mapa (`maps_id` / `has_map`). Si no hay,
-  // el modal sencillo abre de una: no se infla a fancy con skeleton y luego
-  // se encoge. Si el listado promete mapa, sí abrimos ancho con skeleton.
-  const contextLoading = isSignedIn && contextQuery.isLoading;
+  // comprar" sin dejar ver el salon ni elegir lugar. En clase llena / waitlist
+  // no hay lugar que elegir: el modal nace compacto, aunque el salón tenga mapa.
+  const needsSeat = Boolean(context && seatMap && !soldOut && !waitlistCard);
+  const contextLoading = isSignedIn && (contextQuery.isPending || contextQuery.isFetching) && !context;
   const wideLayout = reservationShowsSeatMapLayout({
     hasSeatMap: meeting.hasSeatMap,
     hasLoadedSeatMap: needsSeat,
     contextLoading,
+    soldOut,
+    waitlist: waitlistCard || joinWaitlistNow || buyToWaitlist || classFullNoWaitlist,
   });
 
   async function confirmReservation(seat: SeatMapObject | null) {
@@ -1585,41 +1627,60 @@ function ReservationPreviewModal({
   }
 
   function handlePrimary() {
-    if (!isSignedIn || !canReserveNative) {
-      // Login o compra: los resuelve el padre (gate de auth o fancy).
-      onContinue();
+    if (!isSignedIn) {
+      onContinue(selectedSeat);
+      return;
+    }
+    if (joinWaitlistNow) {
+      void confirmReservation(null);
+      return;
+    }
+    if (buyToWaitlist || !canReserveNative) {
+      // Compra: el padre abre el fancy con la clase anclada y el lugar
+      // elegido. Tras pagar, `/reservate` manda `map_objectsSelected`.
+      onContinue(selectedSeat);
       return;
     }
     void confirmReservation(needsSeat ? selectedSeat : null);
   }
 
+  // Con mapa vivo (clase no llena / no waitlist) el lugar es obligatorio
+  // también al comprar: si no, Buq crea la reserva sin posición.
+  const seatRequired = needsSeat && !joinWaitlistNow && !buyToWaitlist;
+
   const primaryDisabled =
     step === "processing" ||
     (isSignedIn && contextQuery.isLoading) ||
-    // Elegir lugar solo es obligatorio para completar una reserva nativa: si
-    // el boton manda a comprar (sin creditos), el mapa es para explorar, no
-    // hace falta escoger lugar todavia.
-    (canReserveNative && needsSeat && !selectedSeat) ||
-    (needsPaymentChoice && !activeOption);
+    classFullNoWaitlist ||
+    (seatRequired && !selectedSeat) ||
+    (canReserveNative && needsPaymentChoice && !activeOption);
 
   const primaryLabel = !isSignedIn
     ? "Continuar reserva"
     : contextQuery.isLoading
       ? // El "revisando..." ya vive en la columna izquierda; el CTA no lo repite.
         "Reservar"
-      : canReserveNative
-        ? needsPaymentChoice && !activeOption
-          ? "Elige cómo reservar"
-          : waitlistMode
-            ? "Unirme a la lista de espera"
-            : needsSeat
-              ? selectedSeat
-                ? `Reservar lugar ${selectedSeat.label}`
-                : "Elige tu lugar en el mapa"
-              : activeOption?.kind === "membership"
-                ? "Reservar con mi membresía"
-                : "Reservar con mi paquete"
-        : "Comprar y reservar";
+      : joinWaitlistNow
+        ? "Unirme a la lista de espera"
+        : buyToWaitlist
+          ? "Comprar y unirme a la lista"
+          : classFullNoWaitlist
+            ? "Clase llena"
+            : canReserveNative
+              ? needsPaymentChoice && !activeOption
+                ? "Elige cómo reservar"
+                : needsSeat
+                  ? selectedSeat
+                    ? `Reservar lugar ${selectedSeat.label}`
+                    : "Elige tu lugar en el mapa"
+                  : activeOption?.kind === "membership"
+                    ? "Reservar con mi membresía"
+                    : "Reservar con mi paquete"
+              : needsSeat
+                ? selectedSeat
+                  ? `Comprar lugar ${selectedSeat.label}`
+                  : "Elige tu lugar en el mapa"
+                : "Comprar y reservar";
 
   return (
     <div
@@ -1645,6 +1706,7 @@ function ReservationPreviewModal({
             <div className="gafa-reservation-hero">
               <span className="gafa-eyebrow">Detalle de reserva</span>
               <h3 id="reservation-title">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</h3>
+              {notes ? <p className="gafa-reservation-notes">{notes}</p> : null}
             </div>
 
             <div className="gafa-reservation-body">
@@ -1724,7 +1786,16 @@ function ReservationPreviewModal({
                         </>
                       )}
                     </p>
-                  ) : contextQuery.isError ? (
+                  ) : buyToWaitlist ? (
+                    <p className="gafa-reservation-hint">
+                      La clase está llena y no tienes un paquete o membresía que aplique. Cómpralo y te
+                      sumamos a la lista de espera; se descuenta el crédito como en una reserva.
+                    </p>
+                  ) : classFullNoWaitlist ? (
+                    <p className="gafa-reservation-hint">
+                      Esta clase está llena y el estudio no tiene lista de espera.
+                    </p>
+                  ) : contextQuery.isError && !soldOut ? (
                     <p className="gafa-reservation-hint">
                       {contextQuery.error instanceof Error
                         ? contextQuery.error.message
@@ -1758,9 +1829,10 @@ function ReservationPreviewModal({
                 </div>
               ) : null}
 
-              {waitlistMode ? (
+              {joinWaitlistNow ? (
                 <p className="gafa-reservation-hint">
-                  La clase está llena. Únete a la lista de espera y te avisamos si se libera un lugar.
+                  La clase está llena. Únete a la lista de espera: se usa un crédito de tu paquete y te
+                  avisamos si se libera un lugar.
                 </p>
               ) : null}
             </div>
@@ -1769,7 +1841,11 @@ function ReservationPreviewModal({
 
             <div className="gafa-reservation-actions">
               <button className="gafa-sdk-button" type="button" disabled={primaryDisabled} onClick={handlePrimary}>
-                {step === "processing" ? "Reservando…" : primaryLabel}
+                {step === "processing"
+                  ? joinWaitlistNow
+                    ? "Uniendo…"
+                    : "Reservando…"
+                  : primaryLabel}
               </button>
               <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
                 Seguir viendo horarios
@@ -2282,27 +2358,6 @@ function getMeetingLocationSlug(meeting: Meeting, activeLocation?: Location): st
   return locationSlug;
 }
 
-function isSoldOut(meeting: Meeting): boolean {
-  if (meeting.availability === "sold-out") return true;
-  if (typeof meeting.available === "number") return meeting.available <= 0 && !meeting.isReserved;
-  if (typeof meeting.availability === "object" && meeting.availability.capacity) {
-    return (meeting.availability.reserved ?? 0) >= meeting.availability.capacity;
-  }
-
-  return false;
-}
-
-function getAvailabilityText(meeting: Meeting): string {
-  if (meeting.isReserved) return "Ya reservado";
-  if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {
-    return `${meeting.available}/${meeting.capacity} lugares`;
-  }
-  if (meeting.availability === "waitlist") return "Lista de espera";
-  if (isSoldOut(meeting)) return "Sin lugares";
-  return "Disponible";
-}
-
-/** Semaforo: verde 70%+ libre, amarillo 30–69%, rojo menos del 30%. */
 function availabilityLevel(available: number, capacity: number): "green" | "yellow" | "red" {
   if (capacity <= 0) return "red";
   const freeRatio = available / capacity;
@@ -2316,17 +2371,17 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
     return <span className="gafa-availability-pill gafa-availability-pill--reserved">Reservado</span>;
   }
 
-  if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {
+  if (showsWaitlistPill(meeting)) {
+    return <span className="gafa-availability-pill gafa-availability-pill--waitlist">Waitlist</span>;
+  }
+
+  if (typeof meeting.available === "number" && meeting.available > 0 && typeof meeting.capacity === "number") {
     return (
       <span className="gafa-availability-pill" data-level={availabilityLevel(meeting.available, meeting.capacity)}>
         {meeting.available}/{meeting.capacity}
         {compact ? "" : " lugares"}
       </span>
     );
-  }
-
-  if (meeting.availability === "waitlist") {
-    return <span className="gafa-availability-pill gafa-availability-pill--waitlist">Waitlist</span>;
   }
 
   if (isSoldOut(meeting)) {
@@ -2429,6 +2484,8 @@ function demoMeetings(range: DateRange): Meeting[] {
       location: demoLocations()[0],
       staff: { id: 1, name: "Coach Demo" },
       service: { id: 1, name: "Training" },
+      description:
+        "Trae toalla y zapatos de indoor. Esta clase es de alta intensidad — si es tu primera vez, avísale al coach.",
       availability: "available",
     },
     {
@@ -2442,6 +2499,7 @@ function demoMeetings(range: DateRange): Meeting[] {
       staff: { id: 2, name: "Coach Wellness" },
       service: { id: 2, name: "Yoga" },
       availability: "waitlist",
+      waitlistAvailable: true,
     },
   ];
 }

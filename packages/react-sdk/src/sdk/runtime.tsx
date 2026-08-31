@@ -181,9 +181,23 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     },
     mountProfile(target, props = {}) {
       tracker.track({ event: "widget.mounted", widget: "profile" });
+      const { onExplorePackages, ...rest } = props;
       return mount(
         target,
-        <ProfileWidget client={client} hubUrl={config.hubUrl} companyId={config.companyId} {...props} />,
+        <ProfileWidget
+          client={client}
+          hubUrl={config.hubUrl}
+          companyId={config.companyId}
+          onExplorePackages={
+            onExplorePackages ??
+            (() =>
+              sdk.openCheckout({
+                brandSlug: rest.brandSlug,
+                skipCatalog: false,
+              }))
+          }
+          {...rest}
+        />,
       );
     },
     mountPurchaseButton(target, props = {}) {
@@ -255,6 +269,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       const handle = { close };
       activeAccount = handle;
 
+      const { onExplorePackages, ...rest } = props;
       const mounted = mount(
         host,
         <AccountModal
@@ -264,7 +279,15 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           onClose={close}
           hubUrl={config.hubUrl}
           companyId={config.companyId}
-          {...props}
+          onExplorePackages={
+            onExplorePackages ??
+            (() =>
+              sdk.openCheckout({
+                brandSlug: rest.brandSlug,
+                skipCatalog: false,
+              }))
+          }
+          {...rest}
         />,
       );
 
@@ -298,6 +321,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           {...props}
           onClose={close}
           gafaPayFrontUrl={props.gafaPayFrontUrl ?? config.gafaPayFrontUrl}
+          showMembershipOptions={props.showMembershipOptions ?? config.showMembershipOptions}
         />,
       );
 

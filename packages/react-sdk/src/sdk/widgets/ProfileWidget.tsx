@@ -19,6 +19,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { CustomFieldInput } from "./CustomFieldInput";
 import { DateField } from "./DateField";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
+import { ACCOUNT_HISTORY_CHUNK, remainingAccountHistory, visibleAccountHistory } from "../account/accountHistory";
 import { WidgetShell } from "./WidgetShell";
 
 export type ProfileWidgetProps = {
@@ -31,8 +32,9 @@ export type ProfileWidgetProps = {
   variant?: "page" | "modal";
   onRequestClose?(): void;
   /**
-   * CTA de los estados vacios: Reservar (calendario) y Comprar (paquetes).
-   * Si el sitio no los pasa, el SDK navega solo al calendario / #paquetes.
+   * CTA de los estados vacios: Reservar (`/reservar`) y Comprar (paquetes).
+   * Si el sitio no los pasa, Reservar navega a `/reservar`. Comprar abre el
+   * fancy nativo de paquetes / membresías / productos.
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
@@ -103,6 +105,7 @@ export function ProfileWidget({
   const goToPackages = onExplorePackages ?? defaultExplorePackages;
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>("overview");
+  const [classScope, setClassScope] = useState<"upcoming" | "history">("upcoming");
   const [menuOpen, setMenuOpen] = useState(false);
   const [qrReservation, setQrReservation] = useState<UserReservation | null>(null);
   const [pendingCancel, setPendingCancel] = useState<UserReservation | null>(null);
@@ -144,6 +147,10 @@ export function ProfileWidget({
     return () => media.removeEventListener("change", onChange);
   }, []);
 
+  useEffect(() => {
+    if (tab !== "classes") setClassScope("upcoming");
+  }, [tab]);
+
   useEffect(
     () => subscribeToAuthChanges(() => queryClient.invalidateQueries({ queryKey: ["profile"] })),
     [queryClient],
@@ -184,9 +191,11 @@ export function ProfileWidget({
     queryKey: ["profile", "reservations", "future", brandSlugs.join(",")],
     queryFn: async () => {
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserReservations(slug, "future")));
-      return batches.flat().sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+      return batches.flat().sort((a, b) => (a.startsAt || "").localeCompare(b.startsAt || ""));
     },
     enabled: canQueryBrandData,
+    // Tras unirse a waitlist hay que verla al abrir Mi cuenta, no el cache de 60s.
+    staleTime: 0,
   });
 
   const pastQuery = useQuery({
@@ -195,7 +204,7 @@ export function ProfileWidget({
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserReservations(slug, "past")));
       return batches.flat().sort((a, b) => b.startsAt.localeCompare(a.startsAt));
     },
-    enabled: canQueryBrandData && tab === "classes",
+    enabled: canQueryBrandData && tab === "classes" && classScope === "history",
   });
 
   const creditsQuery = useQuery({
@@ -393,26 +402,38 @@ export function ProfileWidget({
 
       <section className="gafa-acct__main" inert={menuOpen ? true : undefined}>
         <header className="gafa-acct__head">
-          <h2>
-            {tab === "overview" ? (
-              <>
-                ¡Hola, {firstNameOf(profile)}!{" "}
-                <span className="gafa-acct__wave" aria-hidden="true">
-                  👋
-                </span>
-              </>
-            ) : (
-              section.title
-            )}
-          </h2>
-          <p>{section.subtitle}</p>
+          <div className="gafa-acct__head-copy">
+            <h2>
+              {tab === "overview" ? (
+                <>
+                  ¡Hola, {firstNameOf(profile)}!{" "}
+                  <span className="gafa-acct__wave" aria-hidden="true">
+                    👋
+                  </span>
+                </>
+              ) : (
+                section.title
+              )}
+            </h2>
+            <p>{section.subtitle}</p>
+          </div>
+          {tab === "purchases" ? (
+            <button
+              type="button"
+              className="gafa-sdk-button gafa-acct__buy"
+              aria-label="Comprar paquetes"
+              onClick={goToPackages}
+            >
+              Comprar
+            </button>
+          ) : null}
         </header>
 
         <div className="gafa-acct__body">
           {tab === "overview" ? (
             <OverviewPanel
               profile={profile}
-              nextClass={upcoming[0]}
+              nextClass={upcoming[0] ?? waitlist[0]}
               upcomingCount={upcoming.length}
               waitlistCount={waitlist.length}
               credits={creditsQuery.data ?? []}
@@ -434,6 +455,8 @@ export function ProfileWidget({
 
           {tab === "classes" ? (
             <ClassesPanel
+              scope={classScope}
+              onScopeChange={setClassScope}
               upcoming={upcoming}
               waitlist={waitlist}
               cancelled={cancelledUpcoming}
@@ -599,7 +622,7 @@ function OverviewPanel({
         <div className="gafa-acct-next__label">
           <span className="gafa-acct-next__label-text">
             <span className="gafa-acct-dot" aria-hidden="true" />
-            Tu próxima clase
+            {nextClass?.isWaitlist ? "En lista de espera" : "Tu próxima clase"}
           </span>
           {nextClass ? (
             <span className="gafa-acct-next__countdown">{countdownLabel(nextClass.startsAt)}</span>
@@ -611,7 +634,7 @@ function OverviewPanel({
             <span className="gafa-skeleton gafa-acct__boot-bar" />
           </div>
         ) : nextClass ? (
-          <div className="gafa-acct-next__body">
+          <div className="gafa-acct-next__body" data-waitlist={nextClass.isWaitlist ? "true" : undefined}>
             <div className="gafa-acct-next__when">
               <strong>{relativeDayLabel(nextClass.startsAt, nextClass.timezone)}</strong>
               <span>{formatTime(nextClass.startsAt, nextClass.timezone)}</span>
@@ -619,9 +642,14 @@ function OverviewPanel({
             <div className="gafa-acct-next__what">
               <h3>{nextClass.serviceName}</h3>
               <p>{describeReservation(nextClass)}</p>
+              {nextClass.isWaitlist ? (
+                <span className="gafa-meeting-chip">
+                  En espera{nextClass.waitlistPosition ? ` · lugar ${nextClass.waitlistPosition}` : ""}
+                </span>
+              ) : null}
             </div>
             <div className="gafa-acct-next__actions">
-              {nextClass.qrHash ? (
+              {nextClass.qrHash && !nextClass.isWaitlist ? (
                 <button className="gafa-sdk-button" type="button" onClick={() => onShowQr(nextClass)}>
                   Ver mi QR
                 </button>
@@ -633,7 +661,13 @@ function OverviewPanel({
                   disabled={cancelPendingId === nextClass.id}
                   onClick={() => onCancel(nextClass)}
                 >
-                  {cancelPendingId === nextClass.id ? "Cancelando…" : "Cancelar"}
+                  {cancelPendingId === nextClass.id
+                    ? nextClass.isWaitlist
+                      ? "Saliendo…"
+                      : "Cancelando…"
+                    : nextClass.isWaitlist
+                      ? "Salir"
+                      : "Cancelar"}
                 </button>
               ) : null}
             </div>
@@ -915,6 +949,8 @@ function BalanceCard({
 /* ------------------------------------------------------------------- clases */
 
 function ClassesPanel({
+  scope,
+  onScopeChange,
   upcoming,
   waitlist,
   cancelled,
@@ -929,6 +965,8 @@ function ClassesPanel({
   onShowQr,
   onExploreClasses,
 }: {
+  scope: "upcoming" | "history";
+  onScopeChange(next: "upcoming" | "history"): void;
   upcoming: UserReservation[];
   waitlist: UserReservation[];
   cancelled: UserReservation[];
@@ -943,15 +981,21 @@ function ClassesPanel({
   onShowQr(reservation: UserReservation): void;
   onExploreClasses(): void;
 }) {
-  const [scope, setScope] = useState<"upcoming" | "history">("upcoming");
+  const [historyShown, setHistoryShown] = useState(ACCOUNT_HISTORY_CHUNK);
+  const visibleHistory = visibleAccountHistory(history, historyShown);
+  const historyLeft = remainingAccountHistory(history.length, historyShown);
+
+  useEffect(() => {
+    setHistoryShown(ACCOUNT_HISTORY_CHUNK);
+  }, [history.length, history[0]?.id]);
 
   return (
     <div className="gafa-acct-classes">
       <div className="gafa-acct-switch" role="tablist" aria-label="Próximas o historial">
-        <button type="button" role="tab" aria-selected={scope === "upcoming"} onClick={() => setScope("upcoming")}>
+        <button type="button" role="tab" aria-selected={scope === "upcoming"} onClick={() => onScopeChange("upcoming")}>
           Próximas
         </button>
-        <button type="button" role="tab" aria-selected={scope === "history"} onClick={() => setScope("history")}>
+        <button type="button" role="tab" aria-selected={scope === "history"} onClick={() => onScopeChange("history")}>
           Historial
         </button>
       </div>
@@ -1018,22 +1062,33 @@ function ClassesPanel({
           ) : null}
         </>
       ) : (
-        <ClassGroup
-          title="Historial"
-          loading={loadingPast}
-          error={errorPast}
-          empty="Aún no hay clases en tu historial."
-          count={history.length}
-        >
-          {history.map((reservation) => (
-            <ReservationCard
-              key={`past-${reservation.id}`}
-              reservation={reservation}
-              paymentLabel={paymentLabel(reservation)}
-              historic
-            />
-          ))}
-        </ClassGroup>
+        <>
+          <ClassGroup
+            title="Historial"
+            loading={loadingPast}
+            error={errorPast}
+            empty="Aún no hay clases en tu historial."
+            count={history.length}
+          >
+            {visibleHistory.map((reservation) => (
+              <ReservationCard
+                key={`past-${reservation.id}`}
+                reservation={reservation}
+                paymentLabel={paymentLabel(reservation)}
+                historic
+              />
+            ))}
+          </ClassGroup>
+          {historyLeft > 0 && !loadingPast && !errorPast ? (
+            <button
+              className="gafa-acct-more"
+              type="button"
+              onClick={() => setHistoryShown((n) => n + ACCOUNT_HISTORY_CHUNK)}
+            >
+              Ver más ({historyLeft})
+            </button>
+          ) : null}
+        </>
       )}
     </div>
   );
@@ -1125,6 +1180,8 @@ function ReservationCard({
       className="gafa-acct-class"
       data-cancelled={reservation.cancelled ? "true" : undefined}
       data-historic={historic ? "true" : undefined}
+      data-overbooking={reservation.isOverbooking ? "true" : undefined}
+      data-waitlist={reservation.isWaitlist ? "true" : undefined}
     >
       <div className="gafa-acct-class__date" aria-hidden="true">
         <strong>{formatDayNumber(reservation.startsAt, reservation.timezone)}</strong>

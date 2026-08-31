@@ -121,4 +121,20 @@ describe("perfil: paquetes por compra, no por tipo de credito", () => {
     expect(document.querySelector('[data-carousel="true"]')).toBeNull();
     expect(screen.getByText("1")).toBeTruthy();
   });
+
+  it("en Mis compras muestra un CTA Comprar arriba a la derecha", async () => {
+    renderProfile();
+
+    await waitFor(() => {
+      expect(screen.getByText("4")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Compras" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Mis compras" })).toBeTruthy();
+    });
+
+    expect(screen.getByRole("button", { name: "Comprar paquetes" })).toBeTruthy();
+  });
 });

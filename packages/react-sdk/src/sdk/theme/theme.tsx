@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { buildPalette, type BrandBaseColors, type ColorScheme } from "./palette";
+import { readHostColorScheme, resolveActiveColorScheme, watchHostColorScheme, withHostSurfaceVars } from "./hostColorScheme";
 
-export type ColorSchemePreference = ColorScheme | "system";
+export type ColorSchemePreference = ColorScheme | "system" | "host";
 
 export type GafaThemeRadius = {
   sm: string;
@@ -24,7 +25,12 @@ export type GafaBrandTheme = {
     heroBackgroundUrl?: string;
     loginBackgroundUrl?: string;
   };
-  /** Esquema inicial. `system` sigue la preferencia del sistema operativo. */
+  /**
+   * Esquema inicial si la página no declara uno.
+   * Esquema si la página no declara uno. Fitspin (`html.fitspin-dark`,
+   * `fitspin-theme` y `--sdk-*` del overlay) le gana: la muralla anti-Elementor
+   * no deja que el CSS del sitio pinte `--gafa-color-*` directo.
+   */
   colorScheme?: ColorSchemePreference;
   /** Si el usuario final puede cambiar entre claro y oscuro. */
   allowUserColorScheme?: boolean;
@@ -108,7 +114,7 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
   const resolved = resolveTheme(theme);
   const palette = buildPalette(resolved.colors, scheme);
 
-  return {
+  return withHostSurfaceVars({
     "--gafa-color-primary": palette.brand,
     "--gafa-color-primary-text": palette.brandContrast,
     "--gafa-color-accent": palette.accent,
@@ -126,6 +132,10 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
     "--gafa-color-danger": palette.danger,
     "--gafa-color-danger-soft": palette.dangerSoft,
     "--gafa-color-overlay": palette.overlay,
+    // Superficie de modales: NO sigue `--sdk-background-color` del host.
+    // En Voltio/Fitspin dark ese token llega transparente o con alpha y el
+    // fancy deja ver el calendario. El carrito ya usa surface-raised (opaco).
+    "--gafa-color-modal": palette.surface,
     "--gafa-font-body": resolved.typography.fontFamily,
     "--gafa-font-heading": resolved.typography.headingFontFamily,
     "--gafa-radius-sm": resolved.radius.sm,
@@ -138,7 +148,7 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
     "--gafa-asset-login-background": resolved.assets.loginBackgroundUrl
       ? `url("${resolved.assets.loginBackgroundUrl}")`
       : "none",
-  };
+  });
 }
 
 type ThemeContextValue = {
@@ -167,7 +177,22 @@ function systemScheme(): ColorScheme {
 function readStoredPreference(): ColorSchemePreference | null {
   if (typeof localStorage === "undefined") return null;
   const value = localStorage.getItem(STORAGE_KEY);
-  return value === "light" || value === "dark" || value === "system" ? value : null;
+  return value === "light" || value === "dark" || value === "system" || value === "host" ? value : null;
+}
+
+function useHostColorScheme(): ColorScheme | null {
+  const [scheme, setScheme] = useState<ColorScheme | null>(() =>
+    typeof document === "undefined" ? null : readHostColorScheme(document),
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const sync = () => setScheme(readHostColorScheme(document));
+    sync();
+    return watchHostColorScheme(sync);
+  }, []);
+
+  return scheme;
 }
 
 export function ThemeProvider({ children, theme }: { children: React.ReactNode; theme?: GafaBrandTheme }) {
@@ -179,6 +204,7 @@ export function ThemeProvider({ children, theme }: { children: React.ReactNode; 
     () => (resolved.allowUserColorScheme ? readStoredPreference() : null) ?? resolved.colorScheme,
   );
   const [osScheme, setOsScheme] = useState<ColorScheme>(systemScheme);
+  const hostScheme = useHostColorScheme();
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -193,7 +219,11 @@ export function ThemeProvider({ children, theme }: { children: React.ReactNode; 
     if (typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, next);
   }, []);
 
-  const scheme: ColorScheme = preference === "system" ? osScheme : preference;
+  const scheme: ColorScheme = resolveActiveColorScheme({
+    hostScheme,
+    preference,
+    osScheme,
+  });
   const variables = useMemo(() => themeToCssVariables(theme, scheme), [theme, scheme]);
 
   const value = useMemo<ThemeContextValue>(

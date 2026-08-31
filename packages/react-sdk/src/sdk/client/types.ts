@@ -10,6 +10,8 @@ export type Brand = {
   gafapayClientId?: string | null;
   /** La API lo expone en el payload publico de marca; el fancy v1 lo usa igual. */
   gafapayClientSecret?: string | null;
+  /** Prefijo/código de la marca (Q/GTQ, €/EUR, $/MXN). */
+  currency?: { prefix: string; suffix: string; code: string };
 };
 
 export type Location = {
@@ -69,6 +71,12 @@ export type Meeting = {
    * no se abre “fancy” hasta que el contexto confirme el mapa.
    */
   hasSeatMap?: boolean;
+  /**
+   * Si el listado o el create-form-template dicen que esta clase acepta
+   * lista de espera. `undefined` = no lo dijeron; el calendario asume waitlist
+   * cuando está llena.
+   */
+  waitlistAvailable?: boolean;
   availability?:
     | "available"
     | "waitlist"
@@ -381,10 +389,16 @@ export type DiscountCodeResult = {
 };
 
 export type GiftCodeResult = {
+  /**
+   * `true` si el código YA existe como gift card.
+   * En checkout v1 eso significa ocupado: Convertir en GiftCard necesita uno libre.
+   */
   valid: boolean;
   code: string;
   label?: string;
   balance?: number;
+  message?: string;
+  httpStatus?: number;
   raw?: unknown;
 };
 
@@ -438,6 +452,8 @@ export type InitialPurchaseResult = {
   checkoutToken?: string | null;
   /** Lo que `reservate` devuelve en `reservation[0].id` (compra + clase). */
   reservationId?: number;
+  /** Si el servidor metió la clase en waitlist (`reservation[0].is_waitlist`). */
+  isWaitlist?: boolean;
   raw?: unknown;
 };
 
@@ -599,7 +615,18 @@ export type GafaClient = {
     brandSlug: string;
     locationSlug: string;
     code: string;
+    /** `urlCheckGiftCode` del create-form-template (`_|_` = código). */
+    urlTemplate?: string;
   }): Promise<GiftCodeResult>;
+  /**
+   * GET `urlGenerateCode`. El fancy lo usa para "Convertir en GiftCard";
+   * si el código sale largo, el checkout lo sustituye por uno corto.
+   */
+  generateGiftCode?(payload: {
+    brandSlug: string;
+    locationSlug: string;
+    urlTemplate?: string;
+  }): Promise<string>;
   /**
    * Compra directa (Stripe/PayPal/Conekta): el mismo POST que
    * `BuySystemStep.sendForm` del fancy v1 a `urlReservation` (`/reservate`).

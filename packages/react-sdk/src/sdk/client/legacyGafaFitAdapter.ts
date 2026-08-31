@@ -11,6 +11,7 @@ import type {
 import type { GafaSdkConfig } from "../config";
 import { readStoredToken } from "./tokenStorage";
 import { readHasSeatMap } from "./seatMapHint";
+import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
 
 type LegacyCallback<T> = (error: unknown, result: T) => void;
 
@@ -263,6 +264,7 @@ async function getLegacyUserId(sdk: LegacyGafaFitSdk): Promise<string | number |
 
 function normalizeLegacyMeeting(meeting: Meeting): Meeting {
   const startsAt = meeting.startsAt ?? meeting.start ?? meeting.start_date;
+  const waitlistAvailable = meeting.waitlistAvailable ?? readWaitlistAvailable(meeting);
 
   return {
     ...meeting,
@@ -273,5 +275,13 @@ function normalizeLegacyMeeting(meeting: Meeting): Meeting {
       [meeting.staff?.name, meeting.staff?.lastname].filter(Boolean).join(" ") ??
       undefined,
     hasSeatMap: meeting.hasSeatMap ?? readHasSeatMap(meeting),
+    waitlistAvailable,
+    availability:
+      meeting.availability ??
+      availabilityFromCapacity({
+        available: meeting.available,
+        is_reserved: meeting.isReserved,
+        waitlistAvailable,
+      }),
   };
 }

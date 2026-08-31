@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { toIsoDate } from "./calendarRange";
 import { MonthCalendar } from "./MonthCalendar";
@@ -39,10 +39,26 @@ function formatDate(value: string): string {
   return date.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function copySdkSkin(from: Element | null): { scheme: string; style?: CSSProperties } {
+  const scheme = from?.getAttribute("data-color-scheme") ?? "dark";
+  if (!(from instanceof HTMLElement) || from.style.length === 0) {
+    return { scheme };
+  }
+  const style: Record<string, string> = {};
+  for (const prop of from.style) {
+    style[prop] = from.style.getPropertyValue(prop);
+  }
+  return { scheme, style: style as CSSProperties };
+}
+
 /**
  * Campo de fecha con el calendario mensual del SDK. No usamos
  * `input[type=date]`: el nativo cambia por OS, no respeta el tema y tapa el
  * formulario.
+ *
+ * El popup SIEMPRE va a `document.body`. El fancy de reserva y Mi cuenta
+ * recortan overflow; Elementor a veces pone `transform` en un ancestro y
+ * entonces `position:fixed` dentro de `.gafa-sdk` se va fuera de pantalla.
  */
 export function DateField({
   label,
@@ -60,7 +76,7 @@ export function DateField({
   const [rect, setRect] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(
     null,
   );
-  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
+  const [skin, setSkin] = useState<{ scheme: string; style?: CSSProperties }>({ scheme: "dark" });
 
   const maxIso = mode === "birth" ? toIsoDate(new Date()) : yearsAhead(5);
   const minIso = yearsAgo(120);
@@ -68,7 +84,7 @@ export function DateField({
 
   useLayoutEffect(() => {
     if (!open) return;
-    setPortalTarget(buttonRef.current?.closest(".gafa-sdk") ?? document.body);
+    setSkin(copySdkSkin(buttonRef.current?.closest(".gafa-sdk") ?? null));
 
     const reposition = () => {
       const anchor = buttonRef.current?.getBoundingClientRect();
@@ -129,43 +145,45 @@ export function DateField({
       </button>
       {helpText ? <span className="gafa-sdk-field-help">{helpText}</span> : null}
 
-      {open && rect && portalTarget
+      {open && rect && typeof document !== "undefined"
         ? createPortal(
-            <div
-              ref={popoverRef}
-              className="gafa-datepicker gafa-datepicker--floating"
-              style={{ top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width }}
-            >
-              <MonthCalendar
-                selectedIso={value || undefined}
-                initialMonth={
-                  value ? undefined : mode === "birth" ? new Date(new Date().getFullYear() - 25, 0, 1) : new Date()
-                }
-                minIso={minIso}
-                maxIso={maxIso}
-                navigation="select"
-                onPick={(iso) => {
-                  onChange(iso);
-                  setOpen(false);
-                }}
-              />
-              <div className="gafa-datepicker__footer">
-                <button
-                  type="button"
-                  className="gafa-acct-link"
-                  onClick={() => {
-                    onChange("");
+            <div className="gafa-sdk gafa-datepicker-host" data-color-scheme={skin.scheme} style={skin.style}>
+              <div
+                ref={popoverRef}
+                className="gafa-datepicker gafa-datepicker--floating"
+                style={{ top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width }}
+              >
+                <MonthCalendar
+                  selectedIso={value || undefined}
+                  initialMonth={
+                    value ? undefined : mode === "birth" ? new Date(new Date().getFullYear() - 25, 0, 1) : new Date()
+                  }
+                  minIso={minIso}
+                  maxIso={maxIso}
+                  navigation="select"
+                  onPick={(iso) => {
+                    onChange(iso);
                     setOpen(false);
                   }}
-                >
-                  Limpiar
-                </button>
-                <button type="button" className="gafa-acct-link" onClick={() => setOpen(false)}>
-                  Cerrar
-                </button>
+                />
+                <div className="gafa-datepicker__footer">
+                  <button
+                    type="button"
+                    className="gafa-acct-link"
+                    onClick={() => {
+                      onChange("");
+                      setOpen(false);
+                    }}
+                  >
+                    Limpiar
+                  </button>
+                  <button type="button" className="gafa-acct-link" onClick={() => setOpen(false)}>
+                    Cerrar
+                  </button>
+                </div>
               </div>
             </div>,
-            portalTarget,
+            document.body,
           )
         : null}
     </div>

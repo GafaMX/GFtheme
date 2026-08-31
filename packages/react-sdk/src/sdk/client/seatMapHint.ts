@@ -69,12 +69,18 @@ export function readHasSeatMap(raw: unknown): boolean | undefined {
   return undefined;
 }
 
-/** El sheet ancho (info + mapa) solo si ya hay mapa o el listado prometió uno. */
+/** El sheet ancho (info + mapa) solo si ya hay mapa o el listado prometió uno.
+ *  En clase llena / waitlist el mapa no aplica: si abrimos ancho y luego
+ *  encogemos, el fancy “brinca”. El calendario ya lo sabe (pill 0/N o
+ *  “Lista de espera”) antes de que llegue el create-form-template. */
 export function reservationShowsSeatMapLayout(opts: {
   hasSeatMap?: boolean;
   hasLoadedSeatMap: boolean;
   contextLoading: boolean;
+  soldOut?: boolean;
+  waitlist?: boolean;
 }): boolean {
+  if (opts.soldOut || opts.waitlist) return false;
   if (opts.hasLoadedSeatMap) return true;
   return Boolean(opts.contextLoading && opts.hasSeatMap === true);
 }

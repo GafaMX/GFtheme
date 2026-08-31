@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider, ColorSchemeToggle } from "./sdk/theme/theme";
 import { AccountModal } from "./sdk/widgets/AccountModal";
+import { CheckoutModal } from "./sdk/widgets/CheckoutModal";
+import { HeaderControls } from "./sdk/widgets/HeaderControls";
+import { useCartStore } from "./sdk/cart/cartStore";
 import type { GafaClient } from "./sdk/client/types";
 import "./sdk/theme/theme.css";
 import "./sdk/widgets/widgets.css";
@@ -79,30 +82,19 @@ const futureReservations = [
   },
 ];
 
-const pastReservations = [
-  {
-    id: 11,
-    serviceName: "Bici AM",
-    startsAt: inDays(-2, 6),
-    locationName: "Lomas",
-    staffName: "Pau J",
-    brandSlug: "fitspin",
-    isWaitlist: false,
-    isOverbooking: false,
-    creditId: 2,
-    creditTypeName: "CDMXnew",
-  },
-  {
-    id: 12,
-    serviceName: "Fuerza",
-    startsAt: inDays(-6, 7),
-    locationName: "Lomas",
-    staffName: "ISA",
-    brandSlug: "fitspin",
-    isWaitlist: false,
-    isOverbooking: false,
-  },
-];
+const pastReservations = Array.from({ length: 16 }, (_, i) => ({
+  id: 20 + i,
+  serviceName: i % 3 === 0 ? "Fuerza" : "Bici AM",
+  startsAt: inDays(-(i + 1), 7),
+  locationName: i % 2 ? "Cancún" : "Lomas",
+  staffName: i % 2 ? "ISA" : "Pau J",
+  brandSlug: "fitspin",
+  isWaitlist: false,
+  isOverbooking: false,
+  creditId: 2,
+  creditTypeName: "CDMXnew",
+  cancelled: i < 3,
+}));
 
 const client = {
   getProfile: async () => ({
@@ -117,6 +109,17 @@ const client = {
     customFields: { 47: { 21272: "5522334455" } },
   }),
   listBrands: async () => [{ id: 1, name: "Fitspin", slug: "fitspin" }],
+  listLocations: async () => [{ id: 122, name: "Lomas", slug: "lomas", brandSlug: "fitspin" }],
+  listCombos: async () => [
+    { id: 1, name: "SCULPT", type: "combo" as const, price: 275, priceFinal: 275, priceLabel: "$275", expirationDays: 30 },
+    { id: 2, name: "5 Clases Pop Up Reforma", type: "combo" as const, price: 2500, priceFinal: 2500, priceLabel: "$2,500", expirationDays: 60 },
+    { id: 3, name: "1 clase", type: "combo" as const, price: 280.5, priceFinal: 280.5, priceLabel: "$280.50", expirationDays: 30 },
+    { id: 4, name: "10 clases", type: "combo" as const, price: 2400, priceFinal: 2400, priceLabel: "$2,400", expirationDays: 90 },
+  ],
+  listMemberships: async () => [
+    { id: 9, name: "Ilimitada mensual", type: "membership" as const, price: 1899, priceFinal: 1899, priceLabel: "$1,899", expirationDays: 30 },
+    { id: 10, name: "Trimestral", type: "membership" as const, price: 4999, priceFinal: 4999, priceLabel: "$4,999", expirationDays: 90 },
+  ],
   listRegistrationFields: async () => [
     {
       id: 47,
@@ -214,12 +217,79 @@ const client = {
   },
   updateProfile: async () => ({ id: 1, name: "Gabriel Arrechea", email: "gabriel+fitspin@buq.mx" }),
   logout: async () => undefined,
+  getCheckoutConfig: async () => ({
+    brandSlug: "fitspin",
+    locationSlug: "lomas",
+    currency: { prefix: "$", suffix: "MXN", code: "MXN" },
+    paymentMethods: [{ id: 3, name: "Tarjeta", slug: "stripe" }],
+    giftCardsEnabled: true,
+    discountCodesEnabled: true,
+    canRedeemStoreCredit: false,
+    combos: [],
+    memberships: [],
+    products: [
+      { id: 50, name: "Botella", type: "product" as const, price: 350, priceFinal: 350, priceLabel: "$350" },
+    ],
+    gafapayClientId: "1",
+    gafapayClientSecret: "x",
+    companiesId: 1,
+    locationId: 122,
+    urls: {
+      reservation: "https://example.test/reservate",
+      initialPurchase: "https://example.test/purchase",
+      initialPurchaseStatus: "https://example.test/status",
+    },
+  }),
 } as unknown as GafaClient;
 
 function Preview() {
   const params = new URLSearchParams(window.location.search);
-  const [open, setOpen] = useState(params.get("closed") !== "1");
+  const checkoutMode = params.get("checkout");
+  const [open, setOpen] = useState(params.get("closed") !== "1" && !checkoutMode);
+  const [checkoutOpen, setCheckoutOpen] = useState(Boolean(checkoutMode));
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } });
+
+  useEffect(() => {
+    if (isEmptyMode) return;
+    useCartStore.setState({
+      lines: [
+        {
+          key: "fitspin:combo:971",
+          id: 971,
+          type: "combo",
+          name: "1 clase",
+          price: 280.5,
+          priceLabel: "$280.50",
+          amount: 1,
+          brandSlug: "fitspin",
+          expirationLabel: "Expira en 30 días",
+        },
+        {
+          key: "fitspin:combo:972",
+          id: 972,
+          type: "combo",
+          name: "1 Clase Cancún",
+          price: 280.5,
+          priceLabel: "$280.50",
+          amount: 1,
+          brandSlug: "fitspin",
+          expirationLabel: "Expira en 30 días",
+        },
+        {
+          key: "fitspin:combo:973",
+          id: 973,
+          type: "combo",
+          name: "10 clases",
+          price: 782,
+          priceLabel: "$782",
+          amount: 1,
+          brandSlug: "fitspin",
+          expirationLabel: "Expira en 90 días",
+        },
+      ],
+      reservation: null,
+    });
+  }, []);
 
   return (
     <ThemeProvider
@@ -234,9 +304,11 @@ function Preview() {
             <div className="demo-header__inner">
               <span className="demo-logo">Fitspin</span>
               <ColorSchemeToggle />
-              <button className="demo-account" type="button" onClick={() => setOpen(true)}>
-                Mi cuenta
-              </button>
+              <HeaderControls
+                client={client}
+                onOpenAccount={() => setOpen(true)}
+                onOpenCart={() => undefined}
+              />
             </div>
           </header>
           <main className="demo-main" style={{ minHeight: "70vh" }} />
@@ -245,9 +317,18 @@ function Preview() {
             open={open}
             onClose={() => setOpen(false)}
             title="Fitspin"
-            onExploreClasses={() => window.alert("Ir al calendario (demo)")}
             onExplorePackages={() => window.alert("Ir a paquetes (demo)")}
           />
+          {checkoutOpen ? (
+            <CheckoutModal
+              client={client}
+              brandSlug="fitspin"
+              locationSlug="lomas"
+              locationName="Lomas"
+              skipCatalog={checkoutMode === "pay"}
+              onClose={() => setCheckoutOpen(false)}
+            />
+          ) : null}
         </div>
       </QueryClientProvider>
     </ThemeProvider>
