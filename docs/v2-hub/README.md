@@ -5,7 +5,7 @@ Control plane del SDK V2. **No es Laravel.**
 | Host | Qué es |
 | --- | --- |
 | `buq.partners` | API de reservas, pagos, catálogo (gafa.fit). No se toca. |
-| **`hub.buq.partners`** | Hub: admin, ingest, catálogo, versiones. |
+| **`hub.buq.partners`** | Hub live: admin, ingest, catálogo. |
 | `hub.buq.com.mx` | Staging del Hub. |
 
 Código: [`packages/sdk-hub`](../../packages/sdk-hub). El SDK emite a `HUB_URL` (default del entorno), **nunca** a `GAFA_FIT_URL`.

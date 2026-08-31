@@ -29,6 +29,11 @@ cd packages/sdk-hub
 CLOUDFLARE_API_TOKEN=… npm run deploy:production
 ```
 
-Eso crea D1 `sdk-hub` si no existe, aplica migraciones, sube secrets y hace `wrangler deploy --env production`. Hostname previsto: `https://hub.buq.partners`. Si la zona no está en la cuenta, queda el `*.workers.dev` y el dominio se pega después.
+Eso crea D1 `sdk-hub` si no existe, aplica migraciones, sube secrets y hace `wrangler deploy --env production`.
+
+Live:
+
+- Admin / ingest: `https://hub.buq.partners`
+- Fallback: `https://sdk-hub.i-f47.workers.dev`
 
 Kill switch en Fitspin (cuando el tracker esté publicado): `"ANALYTICS": false` en `[data-gf-options]`. El Hub no toca Laravel.
