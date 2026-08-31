@@ -8,6 +8,9 @@
     "enabled": true,
     "head_sampling_rate": 1
   },
+  "triggers": {
+    "crons": ["15 5 * * *"]
+  },
   "vars": {
     "ENVIRONMENT": "development",
     "HUB_PUBLIC_ORIGIN": "http://127.0.0.1:8787",

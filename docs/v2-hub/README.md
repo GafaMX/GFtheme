@@ -54,6 +54,14 @@ En el sitio / demo del SDK:
 
 O `?hub-url=http://127.0.0.1:8787`. `ANALYTICS: false` apaga el tracker.
 
+## Escala
+
+- **Eventos crudos** en D1 (`events`). El admin pagina de 25 en 25; nunca se baja la tabla entera.
+- **Totales diarios** en `daily_rollups`: funnel y capacidad leen esto, no la bitácora.
+- **Directorio** (`studios`, `people`): nombres de estudio y alias de cuenta. El admin no muestra `company_id` / `user_id`.
+- **Retención:** un cron diario borra eventos crudos de más de 90 días. Los rollups se quedan.
+- D1 aguanta millones de filas. Si el volumen se dispara, el siguiente corte es exportar rollups a R2/analytics, no agrandar el admin.
+
 ## Docs
 
 - [Instalación del embed](install.md) — el contrato de un script no cambia

@@ -1,8 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { mountAdmin } from "./admin";
 import { clearSessionCookie, issueSessionCookie, timingSafeEqual, verifySession } from "./auth";
+import { pruneOldEvents } from "./cleanup";
 import { parseAndNormalizeEvents, persistEvents } from "./ingest";
-import { applyLoyalty, d1LoyaltyStore, mergeRules, tierForPoints, type LoyaltyRule } from "./loyalty";
+import { applyLoyalty, d1LoyaltyStore, tierForPoints } from "./loyalty";
 import { allowRequest } from "./rateLimit";
 
 export type HubEnv = {
@@ -140,102 +142,7 @@ app.get("/v1/admin/me", async (c) => {
   return c.json({ ok: true, role: "admin" });
 });
 
-app.get("/v1/admin/installations", async (c) => {
-  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
-  const companyId = c.req.query("company_id");
-  const brandId = c.req.query("brand_id");
-  const locationId = c.req.query("location_id");
-  const clauses = ["1=1"];
-  const binds: unknown[] = [];
-  if (companyId) {
-    clauses.push("company_id = ?");
-    binds.push(Number(companyId));
-  }
-  if (brandId) {
-    clauses.push("brand_id = ?");
-    binds.push(Number(brandId));
-  }
-  if (locationId) {
-    clauses.push("location_id = ?");
-    binds.push(Number(locationId));
-  }
-  const { results } = await c.env.DB.prepare(
-    `SELECT installation_key, company_id, brand_id, location_id, host, path,
-            sdk_version, widgets_json, last_seen_at
-     FROM installations
-     WHERE ${clauses.join(" AND ")}
-     ORDER BY last_seen_at DESC
-     LIMIT 500`,
-  )
-    .bind(...binds)
-    .all();
-  return c.json({
-    installations: results.map((row) => ({
-      ...row,
-      widgets: safeJsonArray((row as { widgets_json?: string }).widgets_json),
-    })),
-  });
-});
-
-app.get("/v1/admin/events", async (c) => {
-  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
-  const companyId = c.req.query("company_id");
-  const name = c.req.query("event");
-  const clauses = ["1=1"];
-  const binds: unknown[] = [];
-  if (companyId) {
-    clauses.push("company_id = ?");
-    binds.push(Number(companyId));
-  }
-  if (name) {
-    clauses.push("name = ?");
-    binds.push(name);
-  }
-  const { results } = await c.env.DB.prepare(
-    `SELECT id, name, ts, session_id, company_id, brand_id, location_id, user_id,
-            widget, sdk_version, host, path, props_json
-     FROM events
-     WHERE ${clauses.join(" AND ")}
-     ORDER BY ts DESC
-     LIMIT 200`,
-  )
-    .bind(...binds)
-    .all();
-  return c.json({ events: results });
-});
-
-app.get("/v1/admin/funnel", async (c) => {
-  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
-  const days = Math.min(90, Math.max(1, Number(c.req.query("days") ?? 7) || 7));
-  const companyId = c.req.query("company_id");
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const clauses = ["day >= ?"];
-  const binds: unknown[] = [since];
-  if (companyId) {
-    clauses.push("company_id = ?");
-    binds.push(Number(companyId));
-  }
-  const { results } = await c.env.DB.prepare(
-    `SELECT event_name, SUM(count) AS count
-     FROM daily_rollups
-     WHERE ${clauses.join(" AND ")}
-     GROUP BY event_name
-     ORDER BY count DESC`,
-  )
-    .bind(...binds)
-    .all<{ event_name: string; count: number }>();
-
-  const byName = new Map(results.map((row) => [row.event_name, Number(row.count)]));
-  const steps = [
-    { event: "calendar.viewed", label: "Calendario visto" },
-    { event: "calendar.meeting_opened", label: "Clase abierta" },
-    { event: "auth.login_succeeded", label: "Login" },
-    { event: "reservation.confirmed", label: "Reserva" },
-    { event: "checkout.paid", label: "Compra" },
-  ].map((step) => ({ ...step, count: byName.get(step.event) ?? 0 }));
-
-  return c.json({ days, since, steps, totals: Object.fromEntries(byName) });
-});
+mountAdmin(app, requireAdmin);
 
 app.get("/v1/loyalty/balance", async (c) => {
   const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
@@ -286,21 +193,6 @@ app.get("/v1/admin/summary", async (c) => {
   });
 });
 
-app.get("/v1/admin/loyalty/rules", async (c) => {
-  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
-  const companyId = Number(c.req.query("company_id") ?? 0);
-  const { results } = await c.env.DB.prepare(
-    `SELECT company_id, event_name, points, daily_cap, once_per_user, label
-     FROM loyalty_rules WHERE company_id IN (0, ?) ORDER BY event_name, company_id`,
-  )
-    .bind(Number.isFinite(companyId) ? companyId : 0)
-    .all<LoyaltyRule>();
-  const defaults = results.filter((row) => row.company_id === 0);
-  const company = results.filter((row) => row.company_id === companyId && companyId > 0);
-  const effective = [...mergeRules(defaults, company).values()];
-  return c.json({ defaults, company, effective });
-});
-
 app.put("/v1/admin/loyalty/rules", async (c) => {
   if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
   let body: { company_id?: number; rules?: Array<Record<string, unknown>> } = {};
@@ -335,87 +227,6 @@ app.put("/v1/admin/loyalty/rules", async (c) => {
   return c.json({ ok: true });
 });
 
-app.get("/v1/admin/loyalty/ranking", async (c) => {
-  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
-  const companyId = c.req.query("company_id");
-  const clauses = ["1=1"];
-  const binds: unknown[] = [];
-  if (companyId) {
-    clauses.push("company_id = ?");
-    binds.push(Number(companyId));
-  }
-  const { results } = await c.env.DB.prepare(
-    `SELECT company_id, user_id, points, updated_at
-     FROM loyalty_balances
-     WHERE ${clauses.join(" AND ")}
-     ORDER BY points DESC
-     LIMIT 100`,
-  )
-    .bind(...binds)
-    .all();
-  return c.json({
-    ranking: results.map((row) => ({
-      ...row,
-      tier: tierForPoints(Number((row as { points: number }).points)),
-    })),
-  });
-});
-
-app.get("/v1/admin/loyalty/ledger", async (c) => {
-  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
-  const companyId = c.req.query("company_id");
-  const userId = c.req.query("user_id");
-  const clauses = ["1=1"];
-  const binds: unknown[] = [];
-  if (companyId) {
-    clauses.push("company_id = ?");
-    binds.push(Number(companyId));
-  }
-  if (userId) {
-    clauses.push("user_id = ?");
-    binds.push(Number(userId));
-  }
-  const { results } = await c.env.DB.prepare(
-    `SELECT idempotency_key, company_id, user_id, event_name, points, day, ts
-     FROM loyalty_ledger
-     WHERE ${clauses.join(" AND ")}
-     ORDER BY ts DESC
-     LIMIT 200`,
-  )
-    .bind(...binds)
-    .all();
-  return c.json({ ledger: results });
-});
-
-app.post("/v1/admin/loyalty/grant", async (c) => {
-  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
-  let body: { company_id?: number; user_id?: number; points?: number; reason?: string } = {};
-  try {
-    body = (await c.req.json()) as typeof body;
-  } catch {
-    return c.json({ ok: false, error: "invalid_json" }, 400);
-  }
-  const companyId = Number(body.company_id);
-  const userId = Number(body.user_id);
-  const points = Number(body.points);
-  if (!companyId || !userId || !Number.isFinite(points) || points === 0) {
-    return c.json({ ok: false, error: "invalid_grant" }, 400);
-  }
-  const ts = new Date().toISOString();
-  const nonce = crypto.randomUUID();
-  await d1LoyaltyStore(c.env.DB).writeAward({
-    key: `c${companyId}:u${userId}:grant:${ts}:${nonce}`,
-    company_id: companyId,
-    user_id: userId,
-    event_name: "admin.grant",
-    points,
-    day: ts.slice(0, 10),
-    ts,
-    props_json: JSON.stringify({ reason: body.reason ?? "manual" }),
-  });
-  return c.json({ ok: true });
-});
-
 app.all("*", async (c) => {
   if (c.req.path.startsWith("/v1/")) {
     return c.json({ ok: false, error: "not_found" }, 404);
@@ -427,14 +238,7 @@ export default {
   fetch(request: Request, env: HubEnv, ctx: ExecutionContext) {
     return app.fetch(request, env, ctx);
   },
+  async scheduled(_event: ScheduledEvent, env: HubEnv, ctx: ExecutionContext) {
+    ctx.waitUntil(pruneOldEvents(env.DB));
+  },
 };
-
-function safeJsonArray(raw: string | undefined): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
-  } catch {
-    return [];
-  }
-}

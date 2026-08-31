@@ -1,23 +1,36 @@
 const root = document.getElementById("root");
+
 const state = {
-  view: "installations",
+  view: "sites",
   me: false,
-  password: "",
+  loading: false,
   error: "",
-  companyId: "",
-  days: "7",
+  env: "",
+  siteKey: "",
   eventName: "",
-  summary: { companies: [], event_count: 0 },
-  installations: [],
-  events: [],
-  funnel: { steps: [], totals: {} },
+  q: "",
+  days: "7",
+  pages: { sites: 1, events: 1, ranking: 1, ledger: 1 },
+  directory: { sites: [], people: [], events: [] },
+  stats: null,
+  sites: { items: [], total: 0, page: 1, pages: 1, per_page: 24 },
+  events: { items: [], total: 0, page: 1, pages: 1, per_page: 25 },
+  funnel: { steps: [], days: 7 },
+  ranking: { items: [], total: 0, page: 1, pages: 1 },
+  ledger: { items: [], total: 0, page: 1, pages: 1 },
+  rules: [],
   widgets: [],
-  ranking: [],
-  ledger: [],
-  rules: { defaults: [], company: [], effective: [] },
-  grantUserId: "",
+  grantPerson: "",
   grantPoints: "10",
   grantReason: "",
+};
+
+const TITLES = {
+  sites: ["Sitios", "Dónde está vivo el SDK, con el nombre del estudio. No hace falta memorizar números."],
+  usage: ["Actividad", "El pulso del negocio. Los gráficos salen de totales diarios, no de bajar toda la bitácora."],
+  events: ["Bitácora", "Cada gesto del SDK. 25 por página. Los crudos se guardan 90 días; los totales se quedan."],
+  loyalty: ["Lealtad", "Puntos en el Hub. Las cuentas se ven por estudio y alias, no por user_id."],
+  catalog: ["Widgets", "Lo que un sitio puede montar. El shortcode queda detrás del nombre."],
 };
 
 async function api(path, options = {}) {
@@ -35,52 +48,86 @@ async function api(path, options = {}) {
   return data;
 }
 
+function qs(params) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null && value !== "") search.set(key, String(value));
+  }
+  const out = search.toString();
+  return out ? `?${out}` : "";
+}
+
+function selectedSite() {
+  return state.directory.sites.find((site) => site.key === state.siteKey) ?? null;
+}
+
+function siteParams() {
+  const site = selectedSite();
+  return {
+    company_id: site?.company_id ?? "",
+    host: site?.host ?? "",
+    q: state.q,
+    event: state.eventName,
+    days: state.days,
+  };
+}
+
+async function boot() {
+  try {
+    const health = await fetch("/v1/health").then((r) => r.json()).catch(() => ({}));
+    state.env = health.environment ?? "";
+  } catch {
+    state.env = "";
+  }
+  await refresh();
+}
+
 async function refresh() {
   try {
     await api("/v1/admin/me");
     state.me = true;
     state.error = "";
-    const [summary, installations, events, funnel, widgets, ranking, ledger, rules] = await Promise.all([
-      api("/v1/admin/summary"),
-      api(`/v1/admin/installations${qs({ company_id: state.companyId })}`),
-      api(`/v1/admin/events${qs({ company_id: state.companyId, event: state.eventName })}`),
-      api(`/v1/admin/funnel${qs({ company_id: state.companyId, days: state.days })}`),
-      api("/v1/widgets"),
-      api(`/v1/admin/loyalty/ranking${qs({ company_id: state.companyId })}`),
-      api(`/v1/admin/loyalty/ledger${qs({ company_id: state.companyId })}`),
-      api(`/v1/admin/loyalty/rules${qs({ company_id: state.companyId || "0" })}`),
-    ]);
-    state.summary = summary;
-    state.installations = installations.installations ?? [];
-    state.events = events.events ?? [];
-    state.funnel = funnel;
-    state.widgets = widgets.widgets ?? [];
-    state.ranking = ranking.ranking ?? [];
-    state.ledger = ledger.ledger ?? [];
-    state.rules = rules;
-  } catch (error) {
-    if (error.status === 401) {
-      state.me = false;
+    state.loading = true;
+    render();
+    const params = siteParams();
+    const [directory, stats] = await Promise.all([api("/v1/admin/directory"), api("/v1/admin/stats")]);
+    state.directory = directory;
+    state.stats = stats;
+    if (state.view === "sites") {
+      state.sites = await api(
+        `/v1/admin/installations${qs({ ...params, page: state.pages.sites, per_page: 24 })}`,
+      );
+    } else if (state.view === "usage") {
+      state.funnel = await api(`/v1/admin/funnel${qs({ company_id: params.company_id, days: state.days })}`);
+    } else if (state.view === "events") {
+      state.events = await api(`/v1/admin/events${qs({ ...params, page: state.pages.events, per_page: 25 })}`);
+    } else if (state.view === "loyalty") {
+      const [ranking, ledger, rules] = await Promise.all([
+        api(`/v1/admin/loyalty/ranking${qs({ company_id: params.company_id, page: state.pages.ranking, per_page: 20 })}`),
+        api(`/v1/admin/loyalty/ledger${qs({ company_id: params.company_id, page: state.pages.ledger, per_page: 25 })}`),
+        api(`/v1/admin/loyalty/rules${qs({ company_id: params.company_id || "0" })}`),
+      ]);
+      state.ranking = ranking;
+      state.ledger = ledger;
+      state.rules = rules.effective ?? [];
     } else {
-      state.error = error.message;
+      const widgets = await api("/v1/widgets");
+      state.widgets = widgets.widgets ?? [];
     }
+    state.loading = false;
+  } catch (error) {
+    state.loading = false;
+    if (error.status === 401) state.me = false;
+    else state.error = error.message;
   }
   render();
-}
-
-function qs(params) {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value) search.set(key, String(value));
-  }
-  const out = search.toString();
-  return out ? `?${out}` : "";
 }
 
 function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
   for (const [key, value] of Object.entries(props)) {
     if (key === "class") el.className = value;
+    else if (key === "html") el.innerHTML = value;
     else if (key.startsWith("on") && typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
     else if (value != null && value !== false) el.setAttribute(key, value === true ? "" : String(value));
   }
@@ -105,182 +152,316 @@ function renderLogin() {
         class: "login-card",
         onSubmit: async (event) => {
           event.preventDefault();
-          const form = event.currentTarget;
-          const password = new FormData(form).get("password");
-          state.password = typeof password === "string" ? password : "";
+          const password = new FormData(event.currentTarget).get("password");
           try {
-            await api("/v1/admin/login", { method: "POST", body: JSON.stringify({ password: state.password }) });
+            await api("/v1/admin/login", {
+              method: "POST",
+              body: JSON.stringify({ password: typeof password === "string" ? password : "" }),
+            });
             await refresh();
-            if (!state.me) {
-              state.error = "Entró el login pero la sesión no quedó. Recarga e intenta de nuevo.";
-              render();
-            }
           } catch (error) {
             state.error =
               error.message === "missing_admin_password"
-                ? "Falta ADMIN_PASSWORD. Copia .dev.vars.example a .dev.vars y reinicia wrangler."
-                : "Password incorrecto. Local: buq-hub-dev";
+                ? "Falta la contraseña del Hub en este entorno."
+                : "Esa contraseña no entra.";
             render();
           }
         },
       },
-      h("small", { class: "muted" }, "hub.buq.partners"),
-      h("h1", {}, "SDK Hub"),
-      h("p", { class: "muted" }, "Control plane del SDK V2: instalaciones, uso y catálogo. Independiente de Laravel."),
-      h("label", { for: "admin-password" }, "Password de admin"),
+      h("div", { class: "login-kicker" }, "Buq"),
+      h("h1", {}, "Hub"),
+      h("p", {}, "El tablero de lo que está pasando en el SDK. Sitios, reservas, compras — con nombres, no con IDs."),
+      h("label", { for: "admin-password" }, "Contraseña"),
       h("input", {
         id: "admin-password",
         name: "password",
         type: "password",
         autocomplete: "current-password",
-        placeholder: "buq-hub-dev",
+        placeholder: "Tu llave de operación",
       }),
-      h("p", { class: "muted" }, "Local: ", h("code", {}, "buq-hub-dev")),
+      state.env && state.env !== "production" ? h("p", { class: "muted" }, "Local: buq-hub-dev") : null,
       h("p", { class: "error" }, state.error),
       h("button", { class: "btn wide", type: "submit" }, "Entrar"),
     ),
   );
 }
 
+function icon(path) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", path);
+  svg.append(p);
+  return svg;
+}
+
 function renderApp() {
+  const [title, lede] = TITLES[state.view];
   return h(
     "div",
     { class: "app" },
     h(
       "aside",
       { class: "side" },
-      h("div", { class: "brand" }, h("small", {}, "Buq"), h("h1", {}, "SDK Hub")),
+      h("div", { class: "brand" }, h("small", {}, "Buq"), h("h1", {}, "Hub")),
       h(
         "nav",
         {},
-        navBtn("installations", "Instalaciones"),
-        navBtn("usage", "Uso"),
-        navBtn("events", "Eventos"),
-        navBtn("loyalty", "Lealtad"),
-        navBtn("catalog", "Catálogo"),
+        navBtn("sites", "Sitios", "M4 7h16M4 12h10M4 17h16"),
+        navBtn("usage", "Actividad", "M4 19V5m4 14V9m4 10V7m4 12v-6m4 6V8"),
+        navBtn("events", "Bitácora", "M5 5h14v14H5zM8 9h8M8 13h5"),
+        navBtn("loyalty", "Lealtad", "M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"),
+        navBtn("catalog", "Widgets", "M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"),
       ),
       h(
-        "button",
-        {
-          class: "btn ghost",
-          style: "margin-top:32px;width:100%",
-          onClick: async () => {
-            await api("/v1/admin/logout", { method: "POST" });
-            state.me = false;
-            render();
+        "div",
+        { class: "side-foot" },
+        h(
+          "p",
+          { class: "muted" },
+          state.stats
+            ? `${fmt(state.stats.sites)} sitios · ${fmt(state.stats.events)} eventos guardados`
+            : "Cargando el pulso…",
+        ),
+        h(
+          "button",
+          {
+            class: "btn ghost",
+            style: "width:100%;margin-top:14px",
+            onClick: async () => {
+              await api("/v1/admin/logout", { method: "POST" });
+              state.me = false;
+              render();
+            },
           },
-        },
-        "Salir",
+          "Salir",
+        ),
       ),
     ),
-    h("main", { class: "main" }, renderFilters(), state.error ? h("p", { class: "error" }, state.error) : null, renderView()),
+    h(
+      "main",
+      { class: "main" },
+      h("div", { class: "top" }, h("div", {}, h("h2", {}, title), h("p", { class: "lede muted" }, lede))),
+      renderFilters(),
+      state.error ? h("p", { class: "error" }, state.error) : null,
+      state.loading ? h("p", { class: "loading" }, "Cargando…") : renderView(),
+    ),
   );
 }
 
-function navBtn(view, label) {
+function navBtn(view, label, d) {
   return h(
     "button",
-    { class: state.view === view ? "active" : "", onClick: () => { state.view = view; render(); } },
+    {
+      class: `nav-btn${state.view === view ? " active" : ""}`,
+      onClick: () => {
+        state.view = view;
+        refresh();
+      },
+    },
+    icon(d),
     label,
   );
 }
 
 function renderFilters() {
+  const sites = [
+    h("option", { value: "" }, "Todos los estudios"),
+    ...state.directory.sites.map((site) => h("option", { value: site.key }, site.name)),
+  ];
+  const events = [
+    h("option", { value: "" }, "Todos los gestos"),
+    ...(state.directory.events ?? []).map((event) => h("option", { value: event.name }, event.label)),
+  ];
   return h(
     "div",
-    { class: "top" },
-    h("div", {}, h("h2", {}, titleFor(state.view)), h("p", { class: "muted" }, "Compañía → marca → salón. Los IDs vienen del SDK, no de Laravel.")),
+    { class: "filters" },
     h(
-      "div",
-      { class: "filters" },
-      h("input", {
-        placeholder: "company_id",
-        value: state.companyId,
-        onChange: (event) => { state.companyId = event.target.value; },
-      }),
-      state.view === "usage"
-        ? h(
-            "select",
-            { value: state.days, onChange: (event) => { state.days = event.target.value; } },
-            h("option", { value: "7" }, "7 días"),
-            h("option", { value: "30" }, "30 días"),
-          )
-        : null,
-      state.view === "events"
-        ? h("input", {
-            placeholder: "evento",
+      "select",
+      {
+        value: state.siteKey,
+        onChange: (event) => {
+          state.siteKey = event.target.value;
+          resetPages();
+        },
+      },
+      ...sites,
+    ),
+    state.view === "events"
+      ? h(
+          "select",
+          {
             value: state.eventName,
-            onChange: (event) => { state.eventName = event.target.value; },
-          })
-        : null,
-      h("button", { class: "btn", onClick: () => refresh() }, "Filtrar"),
+            onChange: (event) => {
+              state.eventName = event.target.value;
+              state.pages.events = 1;
+            },
+          },
+          ...events,
+        )
+      : null,
+    state.view === "usage"
+      ? h(
+          "div",
+          { class: "seg" },
+          ["7", "30", "90"].map((days) =>
+            h(
+              "button",
+              {
+                type: "button",
+                class: state.days === days ? "active" : "",
+                onClick: () => {
+                  state.days = days;
+                  refresh();
+                },
+              },
+              `${days} días`,
+            ),
+          ),
+        )
+      : null,
+    state.view === "sites" || state.view === "events"
+      ? h("input", {
+          placeholder: "Buscar sitio o página",
+          value: state.q,
+          onChange: (event) => {
+            state.q = event.target.value;
+          },
+        })
+      : null,
+    h(
+      "button",
+      {
+        class: "btn",
+        onClick: () => {
+          resetPages();
+          refresh();
+        },
+      },
+      "Ver",
     ),
   );
 }
 
-function titleFor(view) {
-  return {
-    installations: "Dónde está el SDK",
-    usage: "Cómo se usa",
-    events: "Explorer de eventos",
-    loyalty: "Puntos y niveles",
-    catalog: "Catálogo de widgets",
-  }[view];
+function resetPages() {
+  state.pages = { sites: 1, events: 1, ranking: 1, ledger: 1 };
 }
 
 function renderView() {
-  if (state.view === "installations") return renderInstallations();
+  if (state.view === "sites") return renderSites();
   if (state.view === "usage") return renderUsage();
   if (state.view === "events") return renderEvents();
   if (state.view === "loyalty") return renderLoyalty();
   return renderCatalog();
 }
 
-function renderInstallations() {
-  const live = state.installations.length;
+function renderSites() {
+  const items = state.sites.items ?? state.sites.installations ?? [];
+  const live = items.filter((row) => minutesAgo(row.last_seen_at) < 15).length;
   return h(
     "div",
     {},
     h(
       "div",
       { class: "grid" },
-      stat("Instalaciones", live),
-      stat("Compañías", state.summary.companies?.length ?? 0),
-      stat("Eventos", state.summary.event_count ?? 0),
-      stat("Versiones", new Set(state.installations.map((row) => row.sdk_version).filter(Boolean)).size),
+      stat("En vivo", live, "vistos en 15 min"),
+      stat("Estudios", state.stats?.studios ?? 0, "compañías distintas"),
+      stat("Sitios", state.stats?.sites ?? 0, "páginas con el SDK"),
+      stat("Eventos", state.stats?.events ?? 0, "en la bitácora"),
     ),
-    table(
-      ["Compañía", "Marca", "Salón", "Host", "Página", "Versión", "Widgets", "Visto"],
-      state.installations.map((row) => [
-        row.company_id,
-        row.brand_id ?? "—",
-        row.location_id ?? "—",
-        row.host,
-        row.path,
-        row.sdk_version ?? "—",
-        (row.widgets ?? []).map((widget) => h("span", { class: "tag" }, widget)),
-        formatTime(row.last_seen_at),
-      ]),
+    items.length
+      ? h(
+          "div",
+          { class: "sites" },
+          items.map((row) => siteCard(row)),
+        )
+      : empty("Todavía no hay sitios", "En cuanto un estudio cargue el SDK, aparece aquí con su nombre."),
+    pager(state.sites, (page) => {
+      state.pages.sites = page;
+      refresh();
+    }),
+  );
+}
+
+function siteCard(row) {
+  const name = row.studio || row.host;
+  const live = minutesAgo(row.last_seen_at) < 15;
+  return h(
+    "article",
+    { class: "site-card" },
+    avatar(name),
+    h(
+      "div",
+      {},
+      h("h3", {}, name),
+      h("div", { class: "where" }, `${row.host}${row.path === "/" ? "" : row.path}`),
+      h(
+        "div",
+        { class: "chips" },
+        (row.widget_labels?.length ? row.widget_labels : row.widgets ?? []).map((widget) =>
+          h("span", { class: "chip" }, widget),
+        ),
+      ),
+    ),
+    h(
+      "div",
+      {},
+      live
+        ? h("div", { class: "pulse" }, h("i"), "En vivo")
+        : h("div", { class: "muted", style: "font-size:12px" }, relTime(row.last_seen_at)),
     ),
   );
 }
 
 function renderUsage() {
-  const max = Math.max(1, ...state.funnel.steps.map((step) => step.count));
+  const steps = state.funnel.steps ?? [];
+  const max = Math.max(1, ...steps.map((step) => step.count));
   return h(
     "div",
-    { class: "panel", style: "padding:20px" },
-    h("p", { class: "muted" }, `Funnel de ${state.funnel.days ?? state.days} días. Heartbeats y UI no sustituyen la caja de Laravel.`),
+    { class: "stack" },
     h(
       "div",
-      { class: "funnel" },
-      (state.funnel.steps ?? []).map((step) =>
+      { class: "health" },
+      h(
+        "div",
+        { class: "panel", style: "padding:22px" },
+        h("h3", {}, "Cómo se guarda"),
         h(
-          "div",
-          { class: "funnel-row" },
-          h("div", {}, step.label),
-          h("div", { class: "bar" }, h("span", { style: `width:${Math.round((step.count / max) * 100)}%` })),
-          h("b", {}, step.count),
+          "p",
+          { class: "muted" },
+          "Cada gesto entra a D1. El admin nunca baja más de 25 filas. Los gráficos leen totales diarios (rollups), así que el funnel sigue rápido aunque la bitácora crezca. A los 90 días se limpian eventos crudos; los totales se quedan.",
+        ),
+      ),
+      h(
+        "div",
+        { class: "panel", style: "padding:22px" },
+        h("h3", {}, "Capacidad"),
+        h(
+          "p",
+          { class: "muted" },
+          `${fmt(state.stats?.events ?? 0)} eventos crudos · ${fmt(state.stats?.rollup_days ?? 0)} días agregados · ${fmt(state.stats?.people ?? 0)} cuentas vistas. D1 aguanta millones de filas; esto está pensado para mucho movimiento.`,
+        ),
+      ),
+    ),
+    h(
+      "div",
+      { class: "panel", style: "padding:22px" },
+      h("h3", {}, `Embudo · ${state.funnel.days ?? state.days} días`),
+      h(
+        "div",
+        { class: "funnel" },
+        steps.map((step) =>
+          h(
+            "div",
+            { class: "funnel-row" },
+            h("div", {}, step.label),
+            h("div", { class: "bar" }, h("span", { style: `width:${Math.round((step.count / max) * 100)}%` })),
+            h("b", {}, fmt(step.count)),
+            h("div", { class: "conv" }, step.conversion ? `${step.conversion}%` : "—"),
+          ),
         ),
       ),
     ),
@@ -288,155 +469,198 @@ function renderUsage() {
 }
 
 function renderEvents() {
-  return table(
-    ["Cuando", "Evento", "Compañía", "Marca", "Salón", "Widget", "Host", "User"],
-    state.events.map((row) => [
-      formatTime(row.ts),
-      row.name,
-      row.company_id,
-      row.brand_id ?? "—",
-      row.location_id ?? "—",
-      row.widget ?? "—",
-      row.host ?? "—",
-      row.user_id ?? "—",
-    ]),
+  const items = state.events.items ?? state.events.events ?? [];
+  return h(
+    "div",
+    {},
+    table(
+      ["Cuándo", "Qué pasó", "Dónde", "Quién"],
+      items.map((row) => [
+        h("div", {}, relTime(row.ts), h("span", { class: "sub" }, absTime(row.ts))),
+        h("div", {}, h("div", { class: "what" }, row.event_label || row.name), row.widget_label ? h("span", { class: "sub" }, row.widget_label) : null),
+        h("div", {}, row.studio || "—", h("span", { class: "sub" }, `${row.host ?? ""}${row.path && row.path !== "/" ? row.path : ""}`)),
+        row.person || "Visitante",
+      ]),
+      "Nadie ha usado el SDK con estos filtros.",
+    ),
+    pager(state.events, (page) => {
+      state.pages.events = page;
+      refresh();
+    }),
   );
 }
 
 function renderLoyalty() {
-  const rules = state.rules.effective?.length ? state.rules.effective : state.rules.defaults ?? [];
+  const ranking = state.ranking.items ?? state.ranking.ranking ?? [];
+  const ledger = state.ledger.items ?? state.ledger.ledger ?? [];
+  const people = ranking.map((row) =>
+    h("option", { value: `${row.company_id}:${row.user_id}` }, `${row.name} · ${fmt(row.points)} pts`),
+  );
   return h(
     "div",
     { class: "stack" },
     h(
-      "p",
-      { class: "muted" },
-      "Los puntos viven en el Hub. No se puntúan heartbeats ni vistas de calendario. Sin user_id no hay puntos. Canje a crédito de tienda: después (Laravel).",
-    ),
-    h(
       "div",
       { class: "grid" },
-      stat("Socios con puntos", state.ranking.length),
-      stat("Movimientos", state.ledger.length),
-      stat("Reglas", rules.length),
-      stat("Top", state.ranking[0] ? `${state.ranking[0].points} pts · user ${state.ranking[0].user_id}` : "—"),
+      stat("Cuentas", state.ranking.total ?? ranking.length, "con puntos"),
+      stat("Movimientos", state.ledger.total ?? ledger.length, "en el ledger"),
+      stat("Reglas", state.rules.length, "qué suma y qué resta"),
+      stat("Top", ranking[0] ? `${fmt(ranking[0].points)} pts` : "—", ranking[0]?.name ?? "sin ranking"),
     ),
     h("h3", {}, "Ranking"),
-    table(
-      ["Compañía", "User", "Puntos", "Nivel", "Actualizado"],
-      state.ranking.map((row) => [
-        row.company_id,
-        row.user_id,
-        row.points,
-        h("span", { class: `tag tier-${row.tier?.id ?? "bronze"}` }, row.tier?.label ?? "Bronze"),
-        formatTime(row.updated_at),
-      ]),
-    ),
-    h("h3", {}, "Reglas"),
-    table(
-      ["Evento", "Puntos", "Tope/día", "Una vez", "Etiqueta", "Origen"],
-      rules.map((row) => [
-        h("code", {}, row.event_name),
-        row.points,
-        row.daily_cap || "—",
-        row.once_per_user ? "sí" : "no",
-        row.label ?? "—",
-        Number(row.company_id) === 0 ? "global" : `compañía ${row.company_id}`,
-      ]),
-    ),
-    h("h3", {}, "Ajuste manual"),
+    ranking.length
+      ? h(
+          "div",
+          { class: "stack" },
+          ranking.map((row, index) =>
+            h(
+              "div",
+              { class: "leader" },
+              h("div", { class: "rank" }, rankLabel(state.ranking, index)),
+              avatar(row.name),
+              h("div", {}, h("b", {}, row.name), h("span", { class: "sub" }, row.tier?.label ?? "Bronze")),
+              h("div", { class: `pts tier-${row.tier?.id ?? "bronze"}` }, fmt(row.points)),
+            ),
+          ),
+        )
+      : empty("Nadie tiene puntos todavía", "Cuando alguien se registre o reserve con cuenta, aparece aquí."),
+    pager(state.ranking, (page) => {
+      state.pages.ranking = page;
+      refresh();
+    }),
+    h("h3", {}, "Ajuste"),
     h(
       "form",
       {
         class: "grant",
-        onSubmit: async (event) => {
-          event.preventDefault();
-          const companyId = Number(state.companyId);
-          const userId = Number(state.grantUserId);
-          const points = Number(state.grantPoints);
-          if (!companyId || !userId || !Number.isFinite(points) || points === 0) {
-            state.error = "Para otorgar puntos filtra company_id y llena user_id y puntos ≠ 0.";
-            render();
-            return;
-          }
-          try {
-            await api("/v1/admin/loyalty/grant", {
-              method: "POST",
-              body: JSON.stringify({
-                company_id: companyId,
-                user_id: userId,
-                points,
-                reason: state.grantReason || "manual",
-              }),
-            });
-            state.grantReason = "";
-            state.error = "";
-            await refresh();
-          } catch (error) {
-            state.error = error.message;
-            render();
-          }
-        },
+        onSubmit: onGrant,
       },
-      h("input", {
-        placeholder: "user_id",
-        value: state.grantUserId,
-        onInput: (event) => {
-          state.grantUserId = event.target.value;
-        },
-      }),
-      h("input", {
-        placeholder: "puntos (+/-)",
-        value: state.grantPoints,
-        onInput: (event) => {
-          state.grantPoints = event.target.value;
-        },
-      }),
-      h("input", {
-        placeholder: "motivo",
-        value: state.grantReason,
-        onInput: (event) => {
-          state.grantReason = event.target.value;
-        },
-      }),
-      h("button", { class: "btn", type: "submit" }, "Otorgar"),
+      h(
+        "label",
+        {},
+        "Cuenta",
+        h(
+          "select",
+          {
+            value: state.grantPerson,
+            onChange: (event) => {
+              state.grantPerson = event.target.value;
+            },
+          },
+          h("option", { value: "" }, ranking.length ? "Elige a alguien del ranking" : "No hay cuentas aún"),
+          ...people,
+        ),
+      ),
+      h(
+        "label",
+        {},
+        "Puntos",
+        h("input", {
+          value: state.grantPoints,
+          onInput: (event) => {
+            state.grantPoints = event.target.value;
+          },
+        }),
+      ),
+      h(
+        "label",
+        {},
+        "Motivo",
+        h("input", {
+          placeholder: "Cortesía, corrección…",
+          value: state.grantReason,
+          onInput: (event) => {
+            state.grantReason = event.target.value;
+          },
+        }),
+      ),
+      h("button", { class: "btn", type: "submit" }, "Sumar"),
     ),
-    h("h3", {}, "Ledger"),
+    h("h3", {}, "Cómo se ganan"),
+    h(
+      "div",
+      { class: "rules" },
+      state.rules.map((row) =>
+        h(
+          "div",
+          { class: "rule" },
+          h("div", { class: "muted" }, row.event_label || row.label || row.event_name),
+          h("b", {}, `${row.points > 0 ? "+" : ""}${row.points} pts`),
+          h("div", { class: "muted" }, row.once_per_user ? "Una vez por cuenta" : row.daily_cap ? `Hasta ${row.daily_cap} al día` : row.scope),
+        ),
+      ),
+    ),
+    h("h3", {}, "Movimientos"),
     table(
-      ["Cuando", "Compañía", "User", "Evento", "Puntos", "Día"],
-      state.ledger.map((row) => [
-        formatTime(row.ts),
-        row.company_id,
-        row.user_id,
-        h("code", {}, row.event_name),
-        row.points,
-        row.day,
+      ["Cuándo", "Quién", "Qué", "Puntos"],
+      ledger.map((row) => [
+        relTime(row.ts),
+        row.person || row.studio,
+        row.event_label || row.event_name,
+        h("b", { class: Number(row.points) < 0 ? "tier-bronze" : "tier-gold" }, `${Number(row.points) > 0 ? "+" : ""}${row.points}`),
       ]),
+      "El ledger está quieto.",
     ),
+    pager(state.ledger, (page) => {
+      state.pages.ledger = page;
+      refresh();
+    }),
   );
+}
+
+async function onGrant(event) {
+  event.preventDefault();
+  const [company, user] = state.grantPerson.split(":");
+  const points = Number(state.grantPoints);
+  if (!company || !user || !points) {
+    state.error = "Elige una cuenta del ranking y una cantidad distinta de cero.";
+    render();
+    return;
+  }
+  try {
+    await api("/v1/admin/loyalty/grant", {
+      method: "POST",
+      body: JSON.stringify({
+        company_id: Number(company),
+        user_id: Number(user),
+        points,
+        reason: state.grantReason || "ajuste",
+      }),
+    });
+    state.grantReason = "";
+    state.error = "";
+    await refresh();
+  } catch (error) {
+    state.error = error.message;
+    render();
+  }
 }
 
 function renderCatalog() {
-  return table(
-    ["Widget", "Shortcode", "Estado", "Descripción"],
-    state.widgets.map((row) => [
-      row.title,
-      h("code", {}, row.shortcode),
-      h("span", { class: `tag ${row.status}` }, row.status),
-      row.description ?? "",
-    ]),
+  return h(
+    "div",
+    { class: "widgets" },
+    state.widgets.map((row) =>
+      h(
+        "article",
+        { class: "panel widget-card" },
+        h("span", { class: `tag ${row.status}` }, row.status === "stable" ? "Listo" : "En preview"),
+        h("h3", {}, row.title),
+        h("p", { class: "muted" }, row.description ?? ""),
+      ),
+    ),
   );
 }
 
-function stat(label, value) {
-  return h("div", { class: "panel stat" }, h("span", { class: "muted" }, label), h("b", {}, value));
+function stat(label, value, hint) {
+  return h("div", { class: "stat" }, h("span", { class: "muted" }, label), h("b", {}, fmt(value)), hint ? h("span", { class: "hint" }, hint) : null);
 }
 
-function table(headers, rows) {
-  if (!rows.length) return h("div", { class: "panel empty" }, "Sin datos todavía. Arranca el SDK contra este Hub y van a aparecer heartbeats.");
+function table(headers, rows, emptyText) {
+  if (!rows.length) return empty("Nada por aquí", emptyText);
   return h(
     "div",
-    { class: "panel", style: "padding:8px 12px; overflow:auto" },
+    { class: "panel table-wrap" },
     h(
       "table",
       {},
@@ -450,11 +674,88 @@ function table(headers, rows) {
   );
 }
 
-function formatTime(value) {
+function pager(meta, onPage) {
+  const total = Number(meta?.total ?? 0);
+  const page = Number(meta?.page ?? 1);
+  const pages = Number(meta?.pages ?? 1);
+  const per = Number(meta?.per_page ?? 25);
+  if (total <= per && pages <= 1) return null;
+  const from = (page - 1) * per + 1;
+  const to = Math.min(total, page * per);
+  return h(
+    "div",
+    { class: "pager" },
+    h("span", { class: "muted" }, `${fmt(from)}–${fmt(to)} de ${fmt(total)}`),
+    h(
+      "div",
+      { class: "pager-btns" },
+      h(
+        "button",
+        {
+          disabled: page <= 1,
+          onClick: () => onPage(page - 1),
+        },
+        "Anterior",
+      ),
+      h(
+        "button",
+        {
+          disabled: page >= pages,
+          onClick: () => onPage(page + 1),
+        },
+        "Siguiente",
+      ),
+    ),
+  );
+}
+
+function empty(title, text) {
+  return h("div", { class: "empty" }, h("b", {}, title), text);
+}
+
+function avatar(name) {
+  const label = (name || "?").trim();
+  const letter = label.charAt(0).toUpperCase();
+  const hue = [...label].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360;
+  const el = h("div", { class: "avatar" }, letter);
+  el.style.background = `hsl(${hue} 55% 62%)`;
+  return el;
+}
+
+function rankLabel(meta, index) {
+  return (Number(meta.page ?? 1) - 1) * Number(meta.per_page ?? 20) + index + 1;
+}
+
+function minutesAgo(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 9999;
+  return (Date.now() - date.getTime()) / 60000;
+}
+
+function relTime(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("es-MX");
+  const mins = Math.round((Date.now() - date.getTime()) / 60000);
+  if (mins < 1) return "ahora";
+  if (mins < 60) return `hace ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.round(hours / 24);
+  if (days < 14) return `hace ${days} d`;
+  return date.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
 }
 
-refresh();
+function absTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function fmt(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return value ?? "—";
+  return n.toLocaleString("es-MX");
+}
+
+boot();
