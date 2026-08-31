@@ -91,14 +91,8 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
     const events = queue.splice(0, queue.length);
     const url = `${normalizeHubUrl(config.hubUrl)}/v1/events`;
     const payload = JSON.stringify({ events });
-    try {
-      if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-        const blob = new Blob([payload], { type: "application/json" });
-        if (navigator.sendBeacon(url, blob)) return;
-      }
-    } catch {
-      // El Hub no puede romper una reserva.
-    }
+    // sendBeacon usa credentials:include. No lo usamos: un Hub con ACAO *
+    // lo bloquea, y si el beacon “hace queue” el fetch de respaldo no corre.
     if (typeof fetch === "function") {
       void fetch(url, {
         method: "POST",
@@ -106,6 +100,7 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
         body: payload,
         keepalive: true,
         mode: "cors",
+        credentials: "omit",
       }).catch(() => undefined);
     }
   }

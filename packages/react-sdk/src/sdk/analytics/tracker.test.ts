@@ -10,8 +10,8 @@ describe("sdk tracker", () => {
   });
 
   it("manda un batch al Hub y nunca tira", () => {
-    const sendBeacon = vi.fn(() => true);
-    Object.defineProperty(navigator, "sendBeacon", { configurable: true, value: sendBeacon });
+    const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    vi.stubGlobal("fetch", fetchMock);
 
     const tracker = createSdkTracker({
       hubUrl: "https://hub.buq.partners",
@@ -20,23 +20,25 @@ describe("sdk tracker", () => {
     tracker.track({ event: "auth.login_succeeded", widget: "auth" });
     tracker.flush();
 
-    expect(sendBeacon).toHaveBeenCalledTimes(1);
-    const [url, blob] = sendBeacon.mock.calls[0];
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://hub.buq.partners/v1/events");
-    expect(blob).toBeInstanceOf(Blob);
+    expect(init.method).toBe("POST");
+    expect(init.credentials).toBe("omit");
+    expect(init.keepalive).toBe(true);
   });
 
   it("no pega si analytics está apagado", () => {
-    const sendBeacon = vi.fn(() => true);
-    Object.defineProperty(navigator, "sendBeacon", { configurable: true, value: sendBeacon });
+    const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    vi.stubGlobal("fetch", fetchMock);
     const tracker = createSdkTracker({ hubUrl: "https://hub.buq.partners", companyId: 80, enabled: false });
     tracker.heartbeat(["meetings-calendar"]);
-    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("incluye user_id persistido en el batch", async () => {
-    const sendBeacon = vi.fn(() => true);
-    Object.defineProperty(navigator, "sendBeacon", { configurable: true, value: sendBeacon });
+    const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    vi.stubGlobal("fetch", fetchMock);
 
     const tracker = createSdkTracker({
       hubUrl: "https://hub.buq.partners",
@@ -46,8 +48,8 @@ describe("sdk tracker", () => {
     tracker.track({ event: "checkout.paid", widget: "checkout", props: { purchase_id: 12 } });
     tracker.flush();
 
-    const blob = sendBeacon.mock.calls[0][1] as Blob;
-    const body = JSON.parse(await blob.text()) as { events: Array<{ user_id: number; event: string }> };
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const body = JSON.parse(String(init.body)) as { events: Array<{ user_id: number; event: string }> };
     expect(body.events[0]).toMatchObject({ event: "checkout.paid", user_id: 44 });
   });
 

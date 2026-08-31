@@ -18,24 +18,20 @@ type AppEnv = { Bindings: HubEnv };
 
 const app = new Hono<AppEnv>();
 
-app.use(
-  "/v1/events",
-  cors({
-    origin: "*",
-    allowMethods: ["POST", "OPTIONS"],
-    allowHeaders: ["Content-Type"],
-    maxAge: 86400,
-  }),
-);
+/**
+ * sendBeacon (y algunos fetch del socio) van con credentials:include.
+ * ACAO * es ilegal en ese modo; hay que devolver el Origin exacto.
+ */
+const embedCors = cors({
+  origin: (origin) => origin,
+  allowMethods: ["GET", "POST", "OPTIONS"],
+  allowHeaders: ["Content-Type"],
+  credentials: true,
+  maxAge: 86400,
+});
 
-app.use(
-  "/v1/loyalty/*",
-  cors({
-    origin: "*",
-    allowMethods: ["GET", "OPTIONS"],
-    maxAge: 86400,
-  }),
-);
+app.use("/v1/events", embedCors);
+app.use("/v1/loyalty/*", embedCors);
 
 app.get("/v1/health", (c) =>
   c.json({
