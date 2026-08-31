@@ -30,6 +30,7 @@ const checkoutConfig: CheckoutConfig = {
   memberships: [],
   products: [],
   urls: {
+    reservation: "/reservate",
     initialPurchase: "/buy",
     initialPurchaseStatus: "/buy-status",
   },

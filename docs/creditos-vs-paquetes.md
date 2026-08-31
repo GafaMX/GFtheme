@@ -18,10 +18,12 @@ Un mismo paquete de 10 clases puede otorgar créditos de tipo `CDMXnew`. El soci
 ## Cómo lo resuelve el SDK
 
 - `listUserCredits()` ya devuelve el nombre bueno: `purchase_item.item_name || credit.name`.
+- Cada fila de `/me/credits` es **una compra**. El id de UI es `purchase_items_id`, no `credit.id`. Tres "1 clase" del mismo tipo interno (`CDMXnew`) son tres paquetes: el perfil los lista por separado, con el total arriba y un slider en "Mi actividad".
 - `listUserReservations()` **solo** trae el tipo (`credit.name`) y su id. Por eso
   `UserReservation` expone `creditId` + `creditTypeName`, y quien pinta la reserva
-  resuelve el nombre del paquete cruzando `creditId` contra los créditos del usuario
-  (`ProfileWidget` lo hace así). Si no hay cruce, se pinta "Paquete", nunca el tipo.
+  resuelve el nombre del paquete cruzando `creditId` contra `creditTypeId` de los
+  créditos del usuario (`ProfileWidget` lo hace así). Si no hay cruce, se pinta
+  "Paquete", nunca el tipo.
 - El checkout del calendario ya seguía esta regla al listar formas de pago
   (`httpGafaClient.ts`, armado de `paymentOptions`).
 

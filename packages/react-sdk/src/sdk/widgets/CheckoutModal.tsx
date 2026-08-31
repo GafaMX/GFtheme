@@ -36,6 +36,21 @@ import {
   fetchCheckoutCatalog,
 } from "../cart/checkoutCatalog";
 import { resolveDiscountAmount } from "../cart/discountCode";
+import { gafaFitProductType } from "../cart/gafaFitCart";
+import { CloseIcon } from "./sdkIcons";
+
+/** GafaPay ya cobró; reintentar "Pagar" haría un segundo cargo. */
+export const CHARGED_BUT_NOT_RECORDED =
+  "Tu tarjeta ya fue cobrada, pero Buq no registró la compra. No vuelvas a pagar. Pulsa «Registrar compra» para reintentar el registro sin otro cargo.";
+
+function stagingPayWarning(): string | null {
+  if (typeof window === "undefined") return null;
+  const env = new URLSearchParams(window.location.search).get("buq-env");
+  if (env === "staging" || env === "dev" || env === "development") {
+    return "Estás en staging: GafaPay puede cobrar en el Stripe de producción. No uses una tarjeta real.";
+  }
+  return null;
+}
 
 export type CheckoutModalProps = {
   client: GafaClient;
@@ -157,6 +172,14 @@ export function CheckoutModal({
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
   const [paying, setPaying] = useState(false);
+  /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
+  const [registerOnly, setRegisterOnly] = useState(false);
+  const chargedRef = useRef(false);
+  const pendingRegisterRef = useRef<{
+    paymentData: unknown;
+    recurring: boolean;
+    subscriptionId: string | number | null;
+  } | null>(null);
   const [thanks, setThanks] = useState<{
     purchaseId?: number | null;
     reservationId?: number;
@@ -325,6 +348,7 @@ export function CheckoutModal({
   const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
   const discountLabel = appliedDiscount?.label;
   const total = Math.max(0, subtotal - discountAmount);
+  const envWarning = step === "pay" ? stagingPayWarning() : null;
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
   const waitingOnTerms = hasTerms && !termsAccepted;
@@ -398,6 +422,7 @@ export function CheckoutModal({
       brandSlug,
       locationSlug,
       expirationLabel: item.expirationDays ? `Expira en ${item.expirationDays} días` : undefined,
+      raw: item.raw,
     });
   }
 
@@ -429,6 +454,7 @@ export function CheckoutModal({
         brandSlug: match.brandSlug,
         locationSlug: locationSlugProp,
         expirationLabel: match.item.expirationDays ? `Expira en ${match.item.expirationDays} días` : undefined,
+        raw: match.item.raw,
       });
       setPreselectStatus("ready");
     });
@@ -450,24 +476,58 @@ export function CheckoutModal({
   }, [isSignedIn, profileQuery.isLoading, step]);
 
   /** Segunda mitad del pago: con payment_data ya tokenizado por GafaPay. */
-  async function completePurchase(paymentData: unknown, recurring = false) {
+  async function completePurchase(
+    paymentData: unknown,
+    recurring = false,
+    subscriptionId: string | number | null = null,
+  ) {
     const profile = profileQuery.data;
     const reservationSnapshot = reservation;
     const linesSnapshot = relevantLines;
 
+    // Carritos guardados antes de que las líneas cargaran `raw` (localStorage)
+    // no traen el JSON del API: se resuelve del catálogo de la sede al pagar.
+    const rawFor = (line: CartLine): Record<string, unknown> | undefined => {
+      if (line.raw) return line.raw;
+      const pools =
+        line.type === "membership"
+          ? [memberships, config?.memberships ?? []]
+          : line.type === "product"
+            ? [products, config?.products ?? []]
+            : [combos, config?.combos ?? []];
+      for (const pool of pools) {
+        const hit = pool.find((item) => sameCatalogId(item.id, line.id));
+        if (hit?.raw) return hit.raw;
+      }
+      return undefined;
+    };
+
     try {
-      if (!profile || !client.initialPurchase || !selectedMethod || !brandSlug || !locationSlug) {
+      if (!profile || !client.reservatePurchase || !selectedMethod || !brandSlug || !locationSlug) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
 
-      const purchase = await client.initialPurchase({
+      // Fancy v1 (Stripe): GafaPay cobra → BuySystemStep POSTea a `/reservate`.
+      // Eso dispara paymentByCard / paymentByToken. `initial-purchase` es Recurrente
+      // y en producción cae en unpaidPurchase (TypeError $subscribe null).
+      const purchase = await client.reservatePurchase({
         brandSlug,
         locationSlug,
         userId: config?.userProfileId ?? profile.id,
         meetingId: reservation?.meetingId,
-        lines: linesSnapshot.map((line) => ({ id: line.id, type: line.type, amount: line.amount })),
+        lines: linesSnapshot.map((line) => ({
+          id: line.id,
+          type: line.type,
+          amount: line.amount,
+          name: line.name,
+          price: line.price,
+          companiesId: config?.companiesId,
+          raw: rawFor(line),
+        })),
         paymentTypeId: selectedMethod.id,
         paymentData,
+        subscriptionId,
+        csrfToken: config?.csrfToken ?? null,
         discountCode: discountStatus === "ok" ? discountCode.trim() : null,
         giftCode: giftStatus === "ok" ? giftCode.trim() : null,
         subscribe: recurring,
@@ -476,51 +536,56 @@ export function CheckoutModal({
       });
 
       const purchaseId = purchase.purchaseId;
+      const reservationId = purchase.reservationId;
       setThanks({
         purchaseId,
+        reservationId,
+        confirmed: true,
         reservationSnapshot,
         linesSnapshot,
       });
       resetAfterPurchase();
       setStep("thanks");
-      onCompleted?.({ purchaseId });
-
-      // Solo el checkout alojado (Recurrente) queda pendiente y se confirma por
-      // status; ahí gafa.fit devuelve el checkout_token. Con Stripe/PayPal la
-      // compra ya viene resuelta en initial-purchase.
-      const checkoutToken = purchase.checkoutToken;
-      if (purchaseId && checkoutToken && client.pollInitialPurchaseStatus) {
-        void waitForPurchase(client, {
-          brandSlug,
-          locationSlug,
-          checkoutToken,
-          pendingPurchaseId: purchaseId,
-        })
-          .then((reservationId) => {
-            setThanks((current) =>
-              current ? { ...current, reservationId, confirmed: true } : current,
-            );
-            onCompleted?.({ purchaseId, reservationId });
-          })
-          .catch(() => {
-            setThanks((current) => (current ? { ...current, confirmed: false } : current));
-          });
-      }
+      onCompleted?.({ purchaseId, reservationId });
     } catch (err) {
-      setPayError(err instanceof Error ? err.message : "No pudimos completar el pago.");
+      const detail = err instanceof Error ? err.message : "No pudimos completar el pago.";
+      if (chargedRef.current) {
+        setRegisterOnly(true);
+        setPayError(
+          detail && detail !== CHARGED_BUT_NOT_RECORDED
+            ? `${CHARGED_BUT_NOT_RECORDED} (${detail})`
+            : CHARGED_BUT_NOT_RECORDED,
+        );
+      } else {
+        setPayError(detail);
+      }
     } finally {
       setPaying(false);
     }
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
-    // Mismo contrato que el fancy v1 (`ht.payment_data = e.message`): el recibo
-    // va tal cual. Si GafaPay manda texto viaja como `payment_data=…`; envolverlo
-    // en `{token}` lo dejaba en `payment_data[token]` y gafa.fit no lo reconocía.
-    void completePurchase(result.message, Boolean(result.recurringPayment));
+    // Paridad con el fancy v1: `ht.payment_data = e.message` y luego
+    // BuySystemStep POSTea a `/reservate` (paymentByCard / paymentByToken).
+    const recurring = Boolean(result.recurringPayment);
+    const subscriptionId = result.subscriptionId ?? null;
+    chargedRef.current = true;
+    pendingRegisterRef.current = {
+      paymentData: result.message,
+      recurring,
+      subscriptionId,
+    };
+    void completePurchase(result.message, recurring, subscriptionId);
   }
 
   async function proceedToPay() {
+    if (registerOnly && pendingRegisterRef.current) {
+      setPayError(undefined);
+      setPaying(true);
+      const pending = pendingRegisterRef.current;
+      await completePurchase(pending.paymentData, pending.recurring, pending.subscriptionId);
+      return;
+    }
     if (!paymentReady) {
       setPayError("El formulario de pago todavía no está listo.");
       return;
@@ -555,6 +620,10 @@ export function CheckoutModal({
       setPayError("Agrega un paquete o membresía para continuar.");
       return;
     }
+    if (registerOnly) {
+      void proceedToPay();
+      return;
+    }
     if (waitingOnTerms) {
       setTermsPromptOpen(true);
       return;
@@ -586,9 +655,7 @@ export function CheckoutModal({
     >
       <div className="gafa-checkout" data-step={step}>
         <button className="gafa-checkout__close" type="button" aria-label="Cerrar" onClick={onClose}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
+          <CloseIcon />
         </button>
 
         {step !== "thanks" ? (
@@ -756,7 +823,7 @@ export function CheckoutModal({
                   ) : null}
                 </>
               ) : preselectStatus === "loading" ? (
-                <p className="gafa-sdk-state">Preparando tu compra…</p>
+                <PaySkeleton withMethods label="Preparando tu compra…" />
               ) : (
                 <PayPanel
                   methods={paymentMethods}
@@ -835,9 +902,11 @@ export function CheckoutModal({
               ) : null}
 
               {preselectStatus === "loading" ? (
-                <div className="gafa-checkout__empty">
-                  <p>Agregando tu plan…</p>
-                  <small>Un segundo, estamos cargando el producto.</small>
+                <div className="gafa-checkout-line-skel" aria-busy="true" aria-live="polite">
+                  <span className="gafa-sr-only">Agregando tu plan…</span>
+                  <span className="gafa-skeleton gafa-checkout-line-skel__name" aria-hidden="true" />
+                  <span className="gafa-skeleton gafa-checkout-line-skel__meta" aria-hidden="true" />
+                  <span className="gafa-skeleton gafa-checkout-line-skel__controls" aria-hidden="true" />
                 </div>
               ) : relevantLines.length === 0 ? (
                 <div className="gafa-checkout__empty">
@@ -890,9 +959,7 @@ export function CheckoutModal({
                           aria-label={`Eliminar ${line.name}`}
                           onClick={() => removeItem(line.key)}
                         >
-                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          </svg>
+                          <CloseIcon size={11} strokeWidth={1.5} />
                         </button>
                       </div>
                     </li>
@@ -992,6 +1059,8 @@ export function CheckoutModal({
                 </div>
               </div>
 
+              {envWarning ? <p className="gafa-checkout__env-warn">{envWarning}</p> : null}
+
               {payError ? <p className="gafa-checkout__error">{payError}</p> : null}
 
               {/* En el paso de login la accion es "Entrar" del propio formulario:
@@ -1011,10 +1080,18 @@ export function CheckoutModal({
                 <button
                   className="gafa-sdk-button gafa-checkout__cta"
                   type="button"
-                  disabled={paying || relevantLines.length === 0 || (!waitingOnTerms && !canPay)}
+                  disabled={
+                    paying ||
+                    relevantLines.length === 0 ||
+                    (!registerOnly && !waitingOnTerms && !canPay)
+                  }
                   onClick={handlePayClick}
                 >
-                  {paying ? "Procesando…" : `Pagar ${formatMoney(total, currency.prefix, "")}`}
+                  {paying
+                    ? "Procesando…"
+                    : registerOnly
+                      ? "Registrar compra"
+                      : `Pagar ${formatMoney(total, currency.prefix, "")}`}
                 </button>
               )}
 
@@ -1082,7 +1159,31 @@ function CatalogSkeleton() {
           </div>
         ))}
       </div>
-      <p className="gafa-sdk-state">Cargando catálogo…</p>
+      <p className="gafa-sr-only">Cargando catálogo…</p>
+    </div>
+  );
+}
+
+/* Loader del paso de pago: las mismas cajas que va a pintar GafaPay (tarjeta
+   guardada + tarjeta nueva), no un texto gris que nadie lee. */
+function PaySkeleton({ withMethods = false, label }: { withMethods?: boolean; label: string }) {
+  return (
+    <div className="gafa-checkout-pay-skel" aria-busy="true" aria-live="polite">
+      <span className="gafa-sr-only">{label}</span>
+      {withMethods ? (
+        <div className="gafa-checkout-pay-skel__methods" aria-hidden="true">
+          <span className="gafa-skeleton gafa-checkout-pay-skel__pill" />
+          <span className="gafa-skeleton gafa-checkout-pay-skel__pill" />
+        </div>
+      ) : null}
+      <div className="gafa-checkout-pay-skel__card" aria-hidden="true">
+        <span className="gafa-skeleton gafa-checkout-pay-skel__brand" />
+        <span className="gafa-skeleton gafa-checkout-pay-skel__number" />
+      </div>
+      <div className="gafa-checkout-pay-skel__card" aria-hidden="true">
+        <span className="gafa-skeleton gafa-checkout-pay-skel__brand" />
+        <span className="gafa-skeleton gafa-checkout-pay-skel__number" />
+      </div>
     </div>
   );
 }
@@ -1187,7 +1288,7 @@ function PayPanel({
         name: line.name,
         unitPrice: Math.max(0, unit - perUnitDiscount),
         quantity: line.amount,
-        product_type: line.type,
+        product_type: gafaFitProductType(line.type),
         product_id: line.id,
         height: 1,
         length: 1,
@@ -1277,7 +1378,7 @@ function PayPanel({
 
   return (
     <div className="gafa-checkout-pay">
-      {configLoading ? <p className="gafa-sdk-state">Cargando métodos de pago…</p> : null}
+      {configLoading ? <PaySkeleton withMethods label="Cargando métodos de pago…" /> : null}
 
       {methods.length > 1 ? (
         <div className="gafa-checkout-methods" role="tablist" aria-label="Método de pago">
@@ -1318,7 +1419,7 @@ function PayPanel({
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
 
         {loadState === "loading" ? (
-          <p className="gafa-sdk-state">Conectando con el procesador de pago…</p>
+          <PaySkeleton label="Conectando con el procesador de pago…" />
         ) : null}
         {loadState === "error" ? (
           <p className="gafa-sdk-state gafa-sdk-state--error">
@@ -1488,9 +1589,7 @@ function RemoveClassButton({ onClick }: { onClick: () => void }) {
       aria-label="Quitar clase"
       onClick={onClick}
     >
-      <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
+      <CloseIcon size={11} strokeWidth={1.5} />
     </button>
   );
 }
@@ -1526,42 +1625,6 @@ function PaypalMark() {
       />
     </svg>
   );
-}
-
-/**
- * `initial-purchase-status` es lo que cierra la compra en gafa.fit: mientras
- * nadie lo consulte hasta `code = 1`, la orden queda como "Checkout no
- * resuelto" en el admin aunque Stripe ya haya cobrado.
- *
- * La conciliación tarda bastante más que los 20s que esperábamos antes; como
- * el poll corre en segundo plano (el thank you ya está en pantalla) se le da
- * una ventana larga, espaciando los intentos.
- */
-const PURCHASE_CONFIRM_TIMEOUT_MS = 5 * 60_000;
-
-async function waitForPurchase(
-  client: GafaClient,
-  payload: {
-    brandSlug: string;
-    locationSlug: string;
-    checkoutToken: string;
-    pendingPurchaseId: number;
-  },
-): Promise<number | undefined> {
-  if (!client.pollInitialPurchaseStatus) throw new Error("Sin confirmación de pago disponible.");
-  const deadline = Date.now() + PURCHASE_CONFIRM_TIMEOUT_MS;
-  let attempt = 0;
-
-  while (Date.now() < deadline) {
-    const status = await client.pollInitialPurchaseStatus(payload);
-    if (status.code === 1) return status.reservationId;
-    if (status.code === -1) throw new Error(status.message || "El pago no se pudo confirmar.");
-    attempt += 1;
-    // Rápido al principio (la mayoría resuelve ahí), luego cada 3s.
-    await new Promise((resolve) => setTimeout(resolve, attempt <= 20 ? 1000 : 3000));
-  }
-
-  throw new Error("La confirmación del pago está tardando más de lo normal.");
 }
 
 function formatMeetingWhen(value: string, timeZone?: string) {

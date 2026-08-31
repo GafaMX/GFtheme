@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
+import { CloseIcon } from "./sdkIcons";
 import { MonthCalendar } from "./MonthCalendar";
 import { CheckoutModal } from "./CheckoutModal";
 import { AuthWidget, type AuthStage } from "./AuthWidget";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
+import { reservationShowsSeatMapLayout } from "../client/seatMapHint";
 import type {
   Brand,
   CreateReservationResult,
@@ -627,7 +629,7 @@ export function CalendarWidget({
         <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
           <DayColumn
             date={anchor}
-            emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
+            loading={isUpdating}
             meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
             onSelect={openMeeting}
             showDescription={showDescription}
@@ -640,7 +642,7 @@ export function CalendarWidget({
               key={toIsoDate(day)}
               compact
               date={day}
-              emptyLabel={isUpdating ? "Cargando..." : "Sin horarios"}
+              loading={isUpdating}
               meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
               onSelect={openMeeting}
               showDescription={showDescription}
@@ -859,6 +861,7 @@ function DayColumn({
   compact = false,
   showDescription = false,
   emptyLabel = "Sin horarios",
+  loading = false,
 }: {
   date: Date;
   meetings: Meeting[];
@@ -866,6 +869,7 @@ function DayColumn({
   compact?: boolean;
   showDescription?: boolean;
   emptyLabel?: string;
+  loading?: boolean;
 }) {
   const weekday = new Intl.DateTimeFormat("es-MX", { weekday: compact ? "short" : "long" }).format(date);
 
@@ -891,7 +895,16 @@ function DayColumn({
       ) : null}
 
       {meetings.length === 0 ? (
-        <p className="gafa-day-column__empty">{emptyLabel}</p>
+        loading ? (
+          <div className="gafa-day-column__list" aria-busy="true" aria-live="polite">
+            <span className="gafa-sr-only">Cargando horarios…</span>
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+          </div>
+        ) : (
+          <p className="gafa-day-column__empty">{emptyLabel}</p>
+        )
       ) : compact ? (
         <div className="gafa-day-column__list">
           {orderedMeetings.map((meeting) => (
@@ -1048,7 +1061,7 @@ function MeetingCard({
 
 function PersonIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="8" r="3.4" stroke="currentColor" strokeWidth="2" />
       <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
@@ -1537,12 +1550,15 @@ function ReservationPreviewModal({
   // antes, sin creditos, ni siquiera se pintaba y se saltaba directo a "debes
   // comprar" sin dejar ver el salon ni elegir lugar.
   const needsSeat = Boolean(context && seatMap && !waitlistMode);
-  // Con sesion, el modal abre DIRECTO en layout ancho con un skeleton del mapa
-  // mientras carga el contexto: nada de "doble pantalla" (una angosta de
-  // "revisando..." y luego el salto al mapa). El estado de carga vive inline
-  // en la columna izquierda, donde despues aparecen paquetes/membresias.
+  // El listado ya suele decir si hay mapa (`maps_id` / `has_map`). Si no hay,
+  // el modal sencillo abre de una: no se infla a fancy con skeleton y luego
+  // se encoge. Si el listado promete mapa, sí abrimos ancho con skeleton.
   const contextLoading = isSignedIn && contextQuery.isLoading;
-  const wideLayout = needsSeat || contextLoading;
+  const wideLayout = reservationShowsSeatMapLayout({
+    hasSeatMap: meeting.hasSeatMap,
+    hasLoadedSeatMap: needsSeat,
+    contextLoading,
+  });
 
   async function confirmReservation(seat: SeatMapObject | null) {
     if (!client?.createReservation || !context) return;
@@ -1621,7 +1637,7 @@ function ReservationPreviewModal({
         data-has-map={wideLayout && step !== "done" ? "true" : undefined}
       >
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar reserva" onClick={onClose}>
-          x
+          <CloseIcon />
         </button>
 
         {step !== "done" ? (
@@ -1662,9 +1678,10 @@ function ReservationPreviewModal({
 
                 {isSignedIn ? (
                   contextQuery.isLoading ? (
-                    <div className="gafa-reservation-hint gafa-reservation-hint--loading" aria-live="polite">
-                      <span className="gafa-reservation-spinner" aria-hidden="true" />
-                      Revisando tus paquetes…
+                    <div className="gafa-payment-choice-skel" aria-busy="true" aria-live="polite">
+                      <span className="gafa-sr-only">Revisando tus paquetes…</span>
+                      <span className="gafa-skeleton gafa-payment-choice-skel__bar" aria-hidden="true" />
+                      <span className="gafa-skeleton gafa-payment-choice-skel__bar" aria-hidden="true" />
                     </div>
                   ) : needsPaymentChoice ? (
                     <div className="gafa-payment-choice" role="radiogroup" aria-label="¿Con qué quieres reservar?">
@@ -1715,8 +1732,10 @@ function ReservationPreviewModal({
                     </p>
                   ) : (
                     <p className="gafa-reservation-hint">
-                      No tienes créditos ni membresía para esta clase. Puedes elegir tu lugar y comprar lo que aplique
-                      para reservarlo.
+                      No tienes créditos ni membresía para esta clase.
+                      {wideLayout
+                        ? " Puedes elegir tu lugar y comprar lo que aplique para reservarlo."
+                        : " Compra lo que aplique para reservarla."}
                     </p>
                   )
                 ) : null}
@@ -1724,7 +1743,7 @@ function ReservationPreviewModal({
 
               {needsSeat && seatMap ? (
                 <SeatMapInline map={seatMap} selected={selectedSeat} onSelect={setSelectedSeat} />
-              ) : contextLoading ? (
+              ) : wideLayout && contextLoading ? (
                 <div className="gafa-seatmap-skeleton" aria-hidden="true">
                   <div className="gafa-seatmap-skeleton__legend">
                     <span />
@@ -2156,7 +2175,7 @@ function ReservationAuthGate({
     >
       <div className="gafa-reservation-sheet">
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar" onClick={onClose}>
-          x
+          <CloseIcon />
         </button>
 
         <div className="gafa-reservation-hero">

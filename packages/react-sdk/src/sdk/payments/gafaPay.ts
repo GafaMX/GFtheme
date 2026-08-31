@@ -47,9 +47,9 @@ export type GafaPayGeneralData = {
 
 /**
  * Lo que GafaPayFront entrega al confirmar. El cobro ya ocurrió: lo hace el
- * navegador contra `gafapay-api` (`stripe.process.clientpaymentbycard`), no
- * gafa.fit. Este objeto COMPLETO es el `payment_data` con el que gafa.fit
- * concilia el cargo; recortarlo deja la compra en "Checkout no resuelto".
+ * navegador contra `gafapay-api` (`stripe.process.clientpaymentbycard`).
+ * El fancy v1 guarda `e.message` en `payment_data` y lo manda a `/reservate`
+ * (paymentByCard / paymentByToken). Recortarlo deja la compra sin créditos.
  */
 export type GafaPaySuccess = {
   message: unknown;

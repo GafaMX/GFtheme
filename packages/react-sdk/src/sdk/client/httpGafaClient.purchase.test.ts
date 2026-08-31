@@ -67,6 +67,129 @@ describe("initialPurchase", () => {
     expect(body.get("combos_amounts[0]")).toBe("1");
     expect(body.get("checkout_token")).toBe("chk_1");
   });
+
+  /* jQuery ($.param) manda `clave=` vacía cuando el valor es null; si la
+     clave falta, Laravel convierte "Undefined array key" en excepción y el
+     500 llega con el cargo ya hecho. */
+  it("manda TODAS las claves del fancy v1, vacías si no aplican", async () => {
+    const body = await purchaseWith("NDk0…recibo");
+
+    expect(body.get("payment_data")).toBe("NDk0…recibo");
+    expect(body.get("_token")).toBe("");
+    expect(body.get("meeting_data")).toBe("");
+    expect(body.get("invited_data")).toBe("");
+    expect(body.get("signature")).toBe("");
+    expect(body.get("subscriptionId")).toBe("");
+    expect(body.get("selected_credit")).toBe("");
+    expect(body.get("discountCode")).toBe("");
+    expect(body.get("giftCode")).toBe("");
+    // Booleanos como los serializa jQuery en v1.
+    expect(body.get("subscribe")).toBe("false");
+    expect(body.get("set_payment")).toBe("false");
+    expect(body.get("test")).toBe("false");
+    // Sin meeting: la clave viaja vacía, no ausente.
+    expect(body.get("meetings_id")).toBe("");
+  });
+
+  it("manda cart/combo con product_type Eloquent, como el fancy v1", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase_id: 88 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().initialPurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+      userId: 4412,
+      lines: [{ id: 971, type: "combo", amount: 1, name: "1 clase", price: 330, companiesId: 80 }],
+      paymentTypeId: 6,
+      paymentData: { id: "ch_123" },
+      discountCode: "buqmx",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+
+    expect(body.get("discountCode")).toBe("buqmx");
+    expect(body.get("cart[0][id]")).toBe("971");
+    expect(body.get("cart[0][type]")).toBe("combo");
+    expect(body.get("cart[0][amount]")).toBe("1");
+    expect(body.get("cart[0][name]")).toBe("1 clase");
+    expect(body.get("cart[0][price_final]")).toBe("330");
+    expect(body.get("cart[0][product_type]")).toBe("App\\Models\\Combos\\Combos");
+    expect(body.get("cart[0][companies_id]")).toBe("80");
+    expect(body.get("combo[0][id]")).toBe("971");
+    expect(body.get("combo[0][product_type]")).toBe("App\\Models\\Combos\\Combos");
+    expect(body.get("memberships_id[0]")).toBeNull();
+  });
+});
+
+describe("reservatePurchase", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("POSTea a /reservate, no a initial-purchase", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase: { id: 88 } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: "NDk0MTE4X3x8X2NoXzNVNXJZ",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      "https://buq.partners/api/brand/fitspin/location/fitspin-polanco/reservation/reservate",
+    );
+    expect(url).not.toContain("initial-purchase");
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("payment_data")).toBe("NDk0MTE4X3x8X2NoXzNVNXJZ");
+    expect(body.get("users_id")).toBe("370466");
+    expect(body.get("payment_types_id")).toBe("6");
+  });
+
+  it("lee purchase.id y reservation[0].id como el fancy v1", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({
+          purchase: { id: 494780 },
+          reservation: [{ id: 9001, meeting_position: 12 }],
+        }),
+      ),
+    );
+
+    const result = await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      meetingId: 849768,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: "recibo",
+    });
+
+    expect(result?.purchaseId).toBe(494780);
+    expect(result?.reservationId).toBe(9001);
+  });
+
+  it("falla si Buq responde 200 sin compra ni reserva", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({})));
+
+    await expect(
+      client().reservatePurchase?.({
+        brandSlug: "fitspin",
+        locationSlug: "fitspin-polanco",
+        userId: 370466,
+        lines: [{ id: 971, type: "combo", amount: 1 }],
+        paymentTypeId: 6,
+        paymentData: "recibo",
+      }),
+    ).rejects.toThrow(/no confirmó la compra/i);
+  });
 });
 
 describe("pollInitialPurchaseStatus", () => {

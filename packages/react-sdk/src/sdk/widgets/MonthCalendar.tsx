@@ -172,7 +172,7 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
       <path
         d={direction === "left" ? "m15 6-6 6 6 6" : "m9 6 6 6-6 6"}
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

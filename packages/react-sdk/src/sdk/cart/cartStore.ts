@@ -14,6 +14,9 @@ export type CartLine = {
   brandSlug: string;
   locationSlug?: string;
   expirationLabel?: string;
+  /** JSON original del item de gafa.fit: `/reservate` manda el combo
+   *  entero en el cart, como el fancy v1. */
+  raw?: Record<string, unknown>;
 };
 
 /** Contexto de reserva pendiente cuando el checkout nace del calendario. */

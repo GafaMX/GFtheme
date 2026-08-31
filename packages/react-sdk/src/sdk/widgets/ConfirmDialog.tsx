@@ -49,7 +49,7 @@ export function ConfirmDialog({
     >
       <div className="gafa-confirm" role="alertdialog" aria-modal="true" aria-label={title} data-tone={tone}>
         <span className="gafa-confirm__mark" aria-hidden="true">
-          {tone === "danger" ? "!" : "?"}
+          {tone === "danger" ? <DangerMarkIcon /> : <HelpMarkIcon />}
         </span>
         <h3 className="gafa-confirm__title">{title}</h3>
         {description ? <p className="gafa-confirm__text">{description}</p> : null}
@@ -75,5 +75,28 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
+  );
+}
+
+function HelpMarkIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M8.7 9.2a3.3 3.3 0 1 1 4.6 3c-.9.5-1.4 1.1-1.4 2.2"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <path d="M12 17.4h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DangerMarkIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 7.2v6.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M12 17.4h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
   );
 }

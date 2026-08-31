@@ -38,6 +38,7 @@ import type {
 } from "./types";
 import type { GafaSdkConfig } from "../config";
 import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
+import { partitionGafaFitCart } from "../cart/gafaFitCart";
 import { toFormBody } from "./formBody";
 import {
   clearStoredToken,
@@ -45,6 +46,7 @@ import {
   subscribeToAuthChanges,
   writeStoredToken,
 } from "./tokenStorage";
+import { readHasSeatMap } from "./seatMapHint";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -114,10 +116,13 @@ type RawUserProfile = {
 };
 
 type RawUserCredit = {
+  id?: number;
   total: number;
   expiration_date?: string;
+  credits_id?: number;
+  purchase_items_id?: number;
   credit: { id: number; name: string };
-  purchase_item?: { item_name?: string | null } | null;
+  purchase_item?: { id?: number; item_name?: string | null } | null;
 };
 
 type RawUserMembership = {
@@ -207,6 +212,82 @@ type ApiErrorBody = {
   errors?: Record<string, string[]>;
 };
 
+/**
+ * Cuerpo de `BuySystemStep.sendForm` / `sendInitialPurchaseForm` del fancy v1.
+ * Stripe cobra y otorga créditos en `reservate` (`paymentByCard` / `paymentByToken`);
+ * `initial-purchase` es solo Recurrente.
+ */
+function buildPurchaseFormBody(payload: InitialPurchasePayload): Record<string, unknown> {
+  const partitioned = partitionGafaFitCart(payload.lines);
+  const body: Record<string, unknown> = {
+    _token: payload.csrfToken ?? "",
+    users_id: payload.userId,
+    meetings_id: payload.meetingId ?? "",
+    meeting_data: "",
+    payment_types_id: payload.paymentTypeId,
+    discountCode: payload.discountCode ?? "",
+    giftCode: payload.giftCode ?? "",
+    selected_credit: payload.selectedCredit ?? "",
+    invited_data: "",
+    signature: "",
+    subscriptionId: payload.subscriptionId ?? "",
+    subscribe: payload.subscribe ? "true" : "false",
+    set_payment: payload.setPayment ? "true" : "false",
+    test: "false",
+    combos_id: partitioned.combosId,
+    combos_amounts: partitioned.combosAmounts,
+    memberships_id: partitioned.membershipsId,
+    memberships_amounts: partitioned.membershipsAmounts,
+    products_id: partitioned.productsId,
+    products_amounts: partitioned.productsAmounts,
+    cart: partitioned.cart,
+    combo: partitioned.combo,
+    membership: partitioned.membership,
+    product: partitioned.product,
+    pending_purchase_id: "",
+  };
+
+  if (payload.checkoutToken) {
+    body.checkout_token = payload.checkoutToken;
+  }
+  if (payload.seatObjectId != null) {
+    body.map_objectsSelected = [{ id: payload.seatObjectId }];
+  }
+  if (payload.paymentData != null) {
+    body.payment_data = payload.paymentData;
+  }
+  return body;
+}
+
+function readNumericId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function parsePurchaseResult(data: Record<string, unknown> | null | undefined): InitialPurchaseResult {
+  const purchase = data?.purchase;
+  const purchaseId =
+    readNumericId(data?.purchase_id) ??
+    readNumericId(purchase) ??
+    (purchase && typeof purchase === "object" ? readNumericId((purchase as { id?: unknown }).id) : null);
+
+  const reservation = data?.reservation;
+  const first = Array.isArray(reservation) ? reservation[0] : reservation;
+  const reservationId =
+    first && typeof first === "object" ? readNumericId((first as { id?: unknown }).id) : readNumericId(first);
+
+  return {
+    purchaseId,
+    checkoutToken: typeof data?.checkout_token === "string" ? data.checkout_token : null,
+    reservationId: reservationId ?? undefined,
+    raw: data,
+  };
+}
+
 class GafaApiError extends Error {
   constructor(
     message: string,
@@ -238,6 +319,29 @@ function translateApiMessage(message: string): string {
   return API_MESSAGE_TRANSLATIONS[message.trim()] ?? message;
 }
 
+/**
+ * Cada compra es un paquete distinto aunque el tipo interno (`CDMXnew`) se
+ * repita. El id de UI es el `purchase_items_id`; `creditTypeId` queda para
+ * cruzar reservas. Sin purchase_item se fabrica un id que no colisione entre
+ * filas de la misma respuesta.
+ */
+function mapUserCredit(raw: RawUserCredit, index: number): UserCredit {
+  const purchaseItemId = raw.purchase_items_id ?? raw.purchase_item?.id;
+  const creditTypeId = raw.credit?.id ?? raw.credits_id;
+  const uniqueId =
+    purchaseItemId ??
+    (raw.id && raw.id !== creditTypeId ? raw.id : undefined) ??
+    1_000_000_000 + (creditTypeId ?? 0) * 10_000 + index;
+
+  return {
+    id: uniqueId,
+    creditTypeId,
+    name: raw.purchase_item?.item_name || raw.credit?.name || "Paquete",
+    total: Number(raw.total) || 0,
+    expiresAt: raw.expiration_date,
+  };
+}
+
 type RawMeeting = {
   id: number;
   start?: string;
@@ -253,7 +357,12 @@ type RawMeeting = {
   passed?: boolean;
   service?: { id: number; name: string };
   staff?: { id: number; name: string; lastname?: string; description?: string; job?: string; picture_web?: string | null };
-  room?: { id: number; name: string };
+  room?: { id: number; name: string; maps_id?: number | null; map_id?: number | null; has_map?: boolean | number | null };
+  rooms_id?: number | null;
+  maps_id?: number | null;
+  map_id?: number | null;
+  has_map?: boolean | number | null;
+  map?: unknown;
   location?: { id: number; name: string };
 };
 
@@ -526,6 +635,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       capacity: raw.capacity,
       isReserved: Boolean(raw.is_reserved),
       passed: raw.passed,
+      hasSeatMap: readHasSeatMap(raw),
     };
   }
 
@@ -585,6 +695,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       credits: raw.credits ?? undefined,
       subscribable: Boolean(raw.subscribable),
       ctaLabel: "Agregar",
+      // El JSON íntegro: v1 manda el combo entero en el cart de
+      // `/reservate` y gafa.fit puede leer claves que no normalizamos.
+      raw: { ...(raw as Record<string, unknown>) },
     };
   }
 
@@ -821,13 +934,13 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async listUserCredits(brandSlug) {
       if (!token || !brandSlug) return [];
-      const response = await apiGet<PaginatedResponse<RawUserCredit>>(`/me/brand/${brandSlug}/credits`);
-      return unwrap(response).map((raw) => ({
-        id: raw.credit.id,
-        name: raw.purchase_item?.item_name || raw.credit.name,
-        total: raw.total,
-        expiresAt: raw.expiration_date,
-      }));
+      const response = await apiGet<PaginatedResponse<RawUserCredit>>(`/me/brand/${brandSlug}/credits`, {
+        per_page: 100,
+      });
+      return unwrap(response)
+        .filter((raw) => (Number(raw.total) || 0) > 0)
+        .map((raw, index) => mapUserCredit(raw, index))
+        .sort((a, b) => (a.expiresAt ?? "").localeCompare(b.expiresAt ?? ""));
     },
 
     async listUserMemberships(brandSlug) {
@@ -1071,9 +1184,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             try {
               const response = await apiGet<PaginatedResponse<RawUserCredit>>(
                 `/me/brand/${payload.brandSlug}/credits`,
+                { per_page: 100 },
               );
               for (const raw of unwrap(response)) {
-                const itemId = (raw as { purchase_items_id?: number }).purchase_items_id;
+                const itemId = raw.purchase_items_id ?? raw.purchase_item?.id;
                 const itemName = raw.purchase_item?.item_name;
                 if (itemId && itemName) packageNameByPurchaseItem.set(itemId, itemName);
               }
@@ -1315,14 +1429,16 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         }))
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
+      const urlReservation = readFancyBlock(doc, "urlReservation");
       const urlInitialPurchase = readFancyBlock(doc, "urlInitialPurchase");
       const urlInitialPurchaseStatus = readFancyBlock(doc, "urlInitialPurchaseStatus");
+      const csrfToken = readFancyBlock(doc, "csrf");
       const urlCheckDiscountCode = readFancyBlock(doc, "urlCheckDiscountCode");
       const urlCheckGiftCode = readFancyBlock(doc, "urlCheckGiftCode");
       const urlGenerateGiftCode = readFancyBlock(doc, "urlGenerateCode");
       const canRedeem = readFancyBlock(doc, "canRedeemStoreCredit");
 
-      if (!urlInitialPurchase || !urlInitialPurchaseStatus) {
+      if (!urlReservation) {
         throw new Error("No encontramos la configuración de pago para esta sede.");
       }
 
@@ -1349,9 +1465,11 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         locationId: locationBlock?.id,
         userProfileId: userBlock?.id ?? profile.id,
         usersId: userBlock?.users_id,
+        csrfToken: csrfToken ?? undefined,
         urls: {
-          initialPurchase: urlInitialPurchase,
-          initialPurchaseStatus: urlInitialPurchaseStatus,
+          reservation: urlReservation,
+          initialPurchase: urlInitialPurchase ?? "",
+          initialPurchaseStatus: urlInitialPurchaseStatus ?? "",
           checkDiscountCode: urlCheckDiscountCode ?? undefined,
           checkGiftCode: urlCheckGiftCode ?? undefined,
           generateGiftCode: urlGenerateGiftCode ?? undefined,
@@ -1391,54 +1509,26 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       } satisfies GiftCodeResult;
     },
 
+    /**
+     * Stripe/PayPal: paridad con `BuySystemStep.sendForm` del fancy v1.
+     * POST a `/reservation/reservate` → Stripe::paymentByCard o paymentByToken.
+     * `initial-purchase` (abajo) es SOLO Recurrente y cae en unpaidPurchase,
+     * que en producción truena: `$subscribe` null.
+     */
+    async reservatePurchase(payload: InitialPurchasePayload) {
+      const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/reservate`;
+      const data = await apiPostFormUrl<Record<string, unknown>>(url, buildPurchaseFormBody(payload));
+      const result = parsePurchaseResult(data);
+      if (result.purchaseId == null && result.reservationId == null) {
+        throw new Error("El servidor no confirmó la compra.");
+      }
+      return result;
+    },
+
     async initialPurchase(payload: InitialPurchasePayload) {
-      const combos = payload.lines.filter((line) => line.type === "combo");
-      const memberships = payload.lines.filter((line) => line.type === "membership");
-      const products = payload.lines.filter((line) => line.type === "product");
-
-      const body: Record<string, unknown> = {
-        users_id: payload.userId,
-        meetings_id: payload.meetingId,
-        payment_types_id: payload.paymentTypeId,
-        discountCode: payload.discountCode ?? undefined,
-        giftCode: payload.giftCode ?? undefined,
-        checkout_token: payload.checkoutToken ?? undefined,
-        selected_credit: payload.selectedCredit,
-        subscribe: payload.subscribe ? 1 : 0,
-        set_payment: payload.setPayment ? 1 : 0,
-      };
-
-      // Arrays al estilo PHP que espera gafa.fit
-      combos.forEach((line, index) => {
-        body[`combos_id[${index}]`] = line.id;
-        body[`combos_amounts[${index}]`] = line.amount;
-      });
-      memberships.forEach((line, index) => {
-        body[`memberships_id[${index}]`] = line.id;
-        body[`memberships_amounts[${index}]`] = line.amount;
-      });
-      products.forEach((line, index) => {
-        body[`products_id[${index}]`] = line.id;
-        body[`products_amounts[${index}]`] = line.amount;
-      });
-
-      if (payload.seatObjectId != null) {
-        body["map_objectsSelected[0][id]"] = payload.seatObjectId;
-      }
-
-      if (payload.paymentData != null) {
-        // Igual que `$.param` del fancy v1: objeto → array PHP anidado,
-        // texto → `payment_data=…` tal cual.
-        body.payment_data = payload.paymentData;
-      }
-
       const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase`;
-      const data = await apiPostFormUrl<{ purchase_id?: number; checkout_token?: string }>(url, body);
-      return {
-        purchaseId: data?.purchase_id ?? null,
-        checkoutToken: data?.checkout_token ?? null,
-        raw: data,
-      } satisfies InitialPurchaseResult;
+      const data = await apiPostFormUrl<Record<string, unknown>>(url, buildPurchaseFormBody(payload));
+      return parsePurchaseResult(data);
     },
 
     async pollInitialPurchaseStatus(payload) {
