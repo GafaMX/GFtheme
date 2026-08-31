@@ -1,4 +1,5 @@
 import type { GafaSdk } from "../runtime";
+import { readFilterFlag } from "../bootstrap/legacyFilterFlag";
 import type { CalendarView } from "./calendarRange";
 import { readCalendarLocationIdFromWindow } from "./calendarLocationQuery";
 
@@ -161,8 +162,8 @@ function mountCalendar(runtime: GafaSdk, element: HTMLElement) {
     filters: {
       brand: element.hasAttribute("filter-bq-brand"),
       location: element.hasAttribute("filter-bq-location"),
-      service: element.hasAttribute("filter-bq-service"),
-      staff: element.hasAttribute("filter-bq-staff"),
+      service: readFilterFlag(element, "filter-bq-service", true),
+      staff: readFilterFlag(element, "filter-bq-staff", true),
       room: element.hasAttribute("filter-bq-room"),
       brandId: toNumber(element.getAttribute("filter-bq-brand-default")),
       locationId: readCalendarLocationIdFromWindow() ?? toNumber(element.getAttribute("filter-bq-location-default")),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFilterFlag } from "./legacyBootstrap";
+import { readFilterFlag } from "./legacyFilterFlag";
 
 function el(html: string): HTMLElement {
   const wrap = document.createElement("div");

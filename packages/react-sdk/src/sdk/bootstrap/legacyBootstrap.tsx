@@ -1,6 +1,8 @@
 import type { GafaSdk } from "../runtime";
 import { bootstrapableWidgets, mountRegisteredWidget } from "../widgets/registry";
 
+export { readFilterFlag } from "./legacyFilterFlag";
+
 export type LegacyBootstrapResult = {
   mounted: number;
   widgets: string[];
