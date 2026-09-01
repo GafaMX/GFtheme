@@ -176,16 +176,19 @@ async function refresh() {
 
 function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
+  let selected = null;
   for (const [key, value] of Object.entries(props)) {
     if (key === "class") el.className = value;
     else if (key === "html") el.innerHTML = value;
     else if (key.startsWith("on") && typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
+    else if (key === "value" && (tag === "select" || tag === "textarea")) selected = value == null ? "" : String(value);
     else if (value != null && value !== false) el.setAttribute(key, value === true ? "" : String(value));
   }
   for (const child of children.flat()) {
     if (child == null || child === false) continue;
     el.append(child.nodeType ? child : document.createTextNode(String(child)));
   }
+  if (selected != null) el.value = selected;
   return el;
 }
 
@@ -560,7 +563,7 @@ function renderUsage() {
         h(
       "p",
       { class: "muted" },
-      "Cloudflare D1 (SQLite). Cada gesto es una fila de ~400 bytes. El admin pide 25. El embudo lee totales diarios, no la bitácora. A los 90 días se borran crudos; los rollups se quedan para siempre.",
+      "Cloudflare D1 (SQLite). Cada gesto es una fila de ~400 bytes. El admin pide 25. El embudo lee la bitácora de estos días (así puede ocultar Replit). A los 90 días se borran crudos; los rollups se quedan para siempre.",
     ),
       ),
       h(
