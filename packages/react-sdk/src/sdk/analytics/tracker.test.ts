@@ -104,6 +104,34 @@ describe("sdk tracker", () => {
     expect(userIds).toEqual([44]);
   });
 
+  it("marca checkout.paid cuando el pago cierra, aunque no haya reserva", async () => {
+    const events: string[] = [];
+    const tracker = {
+      sessionId: "t",
+      track: (input: { event: string }) => events.push(input.event),
+      heartbeat() {},
+      setUserId() {},
+      setUser() {},
+      flush() {},
+    };
+    const client = {
+      login: vi.fn(),
+      logout: vi.fn(),
+      register: vi.fn(),
+      cancelReservation: vi.fn(),
+      pollInitialPurchaseStatus: vi.fn(async () => ({ code: 1, purchaseId: 88 })),
+    } as unknown as GafaClient;
+
+    const wrapped = instrumentClient(client, tracker);
+    await wrapped.pollInitialPurchaseStatus?.({
+      brandSlug: "fitspin",
+      locationSlug: "lomas",
+      checkoutToken: "chk",
+      pendingPurchaseId: 88,
+    });
+    expect(events).toEqual(["checkout.paid"]);
+  });
+
   it("login fallido emite auth.login_failed y relanza", async () => {
     const events: string[] = [];
     const tracker = {
