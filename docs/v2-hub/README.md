@@ -54,6 +54,15 @@ En el sitio / demo del SDK:
 
 O `?hub-url=http://127.0.0.1:8787`. `ANALYTICS: false` apaga el tracker.
 
+## Escala
+
+- **Eventos crudos** en D1 (`events`). El admin pagina de 25 en 25; nunca se baja la tabla entera.
+- **Totales diarios** en `daily_rollups`: funnel y capacidad leen esto, no la bitácora.
+- **Directorio** (`studios`, `people`): nombres de estudio y alias de cuenta. El admin no muestra `company_id` / `user_id`.
+- **Retención:** un cron diario borra eventos crudos de más de 90 días. Los rollups se quedan.
+- D1 = 10 GB. Un evento ≈ 400 bytes → 1 millón ≈ 400 MB. Hoy estamos en cientos, no en millones.
+- Si todos los socios disparan a la vez: acortar retención a 30 días o dejar de persistir cada heartbeat. El admin no es el cuello.
+
 ## Docs
 
 - [Instalación del embed](install.md) — el contrato de un script no cambia

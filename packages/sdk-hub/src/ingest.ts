@@ -1,3 +1,5 @@
+import { identityFromProps } from "./directory";
+import { studioName } from "./labels";
 import {
   installationKey,
   parseEventBatch,
@@ -71,6 +73,49 @@ export async function persistEvents(db: D1Like, events: NormalizedHubEvent[]): P
         )
         .bind(key, day, event.company_id, event.brand_id ?? 0, event.location_id ?? 0, event.event),
     );
+
+    if (event.host) {
+      const studioLabel = studioName(event.host, event.path);
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO studios (company_id, display_name, primary_host, primary_path, last_seen_at)
+             VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT(company_id) DO UPDATE SET
+               display_name = CASE
+                 WHEN excluded.primary_host IN ('localhost', '127.0.0.1') THEN studios.display_name
+                 ELSE excluded.display_name
+               END,
+               primary_host = CASE
+                 WHEN excluded.primary_host IN ('localhost', '127.0.0.1') THEN studios.primary_host
+                 ELSE excluded.primary_host
+               END,
+               primary_path = CASE
+                 WHEN excluded.primary_host IN ('localhost', '127.0.0.1') THEN studios.primary_path
+                 ELSE excluded.primary_path
+               END,
+               last_seen_at = excluded.last_seen_at`,
+          )
+          .bind(event.company_id, studioLabel, event.host, event.path ?? "/", event.ts),
+      );
+    }
+
+    if (event.user_id && event.user_id > 0) {
+      const identity = identityFromProps(event.props_json);
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO people (company_id, user_id, display_name, email, last_host, last_seen_at)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON CONFLICT(company_id, user_id) DO UPDATE SET
+               display_name = COALESCE(excluded.display_name, people.display_name),
+               email = COALESCE(excluded.email, people.email),
+               last_host = COALESCE(excluded.last_host, people.last_host),
+               last_seen_at = excluded.last_seen_at`,
+          )
+          .bind(event.company_id, event.user_id, identity.name, identity.email, event.host, event.ts),
+      );
+    }
 
     if (event.event === "sdk.heartbeat" && event.host) {
       const widgets = widgetsFromHeartbeat(event);

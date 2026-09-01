@@ -11,10 +11,11 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
         try {
           const profile = await client.getProfile();
           userId = profile?.id ?? null;
+          tracker.setUser({ id: userId, name: profile?.name ?? null, email: profile?.email ?? null });
         } catch {
           userId = null;
+          tracker.setUserId(null);
         }
-        tracker.setUserId(userId);
         tracker.track({ event: "auth.login_succeeded", widget: "auth", user_id: userId });
         return result;
       } catch (error) {
@@ -33,10 +34,11 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
       try {
         const profile = await client.getProfile();
         userId = profile?.id ?? null;
+        tracker.setUser({ id: userId, name: profile?.name ?? null, email: profile?.email ?? null });
       } catch {
         userId = null;
+        tracker.setUserId(null);
       }
-      tracker.setUserId(userId);
       tracker.track({ event: "auth.registered", widget: "auth", user_id: userId });
       return result;
     },
@@ -80,7 +82,7 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
     const poll = client.pollInitialPurchaseStatus.bind(client);
     next.pollInitialPurchaseStatus = async (payload) => {
       const result = await poll(payload);
-      if (result.reservationId) {
+      if (result.code === 1) {
         tracker.track({
           event: "checkout.paid",
           widget: "checkout",
@@ -89,7 +91,7 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
             purchase_id: payload.pendingPurchaseId,
           },
         });
-      } else if (result.message && result.code !== 0) {
+      } else if (result.code === -1 || (result.message && result.code !== 0)) {
         tracker.track({ event: "checkout.failed", widget: "checkout", props: { message: result.message } });
       }
       return result;
