@@ -671,8 +671,12 @@ function renderBuqLoyalty() {
           ["Estudio", "Socios", "Puntos", "Emitidos", "Niveles", ""],
           studios.map((row) => [
             h(
-              "div",
-              { class: "who" },
+              "button",
+              {
+                class: "linkish",
+                type: "button",
+                onClick: () => openStudio(row.company_id),
+              },
               h("div", { class: "what" }, row.name, row.env === "dev" ? h("span", { class: "tag dev" }, "Pruebas") : null),
               h("span", { class: "sub" }, row.host || "sin sitio público"),
             ),
