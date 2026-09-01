@@ -52,6 +52,28 @@ const GlobalStorage = {
     get(property) {
         return this[property];
     },
+    resetValues() {
+        this.me = null;
+        this.wallet = null;
+        this.brands = [];
+        this.currentBrand = null;
+        this.locations = [];
+        this.combos = [];
+        this.memberships = [];
+        this.staff = [];
+        this.services = [];
+        this.rooms = [];
+        this.ConektaPaymentInfo = null;
+        this.ConektaPaymentNotification = null;
+        this.ConektaPaymentError = null;
+        this.filter_location = '';
+        this.filter_brand = '';
+        this.future_classes = null;
+        this.past_classes = null;
+        this.purchase = null;
+        this.special_texts_register = [];
+        this.block_after_login = false;
+    },
     /**
      *
      * @param brand

@@ -33,8 +33,9 @@ class CalendarBody extends React.Component {
 
         this.getMeetingsToShow = this.getMeetingsToShow.bind(this);
         this.hasNextPrev = this.hasNextPrev.bind(this);
+        this.startDateListener = this.updateStart.bind(this);
 
-        CalendarStorage.addSegmentedListener(['start_date'], this.updateStart.bind(this));
+        CalendarStorage.addSegmentedListener(['start_date'], this.startDateListener);
     }
 
     componentDidMount() {
@@ -57,6 +58,10 @@ class CalendarBody extends React.Component {
             start,
             end
         });
+    }
+
+    componentWillUnmount() {
+        CalendarStorage.removeSegmentedListener(['start_date'], this.startDateListener);
     }
 
 
