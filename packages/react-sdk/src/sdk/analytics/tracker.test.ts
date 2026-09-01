@@ -53,6 +53,20 @@ describe("sdk tracker", () => {
     expect(body.events[0]).toMatchObject({ event: "checkout.paid", user_id: 44 });
   });
 
+  it("manda nombre y correo en el batch cuando hay perfil", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    vi.stubGlobal("fetch", fetchMock);
+    const tracker = createSdkTracker({ hubUrl: "https://hub.buq.partners", companyId: 80 });
+    tracker.setUser({ id: 44, name: "Ana Ruiz", email: "ana@fitspin.mx" });
+    tracker.track({ event: "auth.login_succeeded", widget: "auth" });
+    tracker.flush();
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const body = JSON.parse(String(init.body)) as {
+      events: Array<{ props?: { user_name?: string; user_email?: string } }>;
+    };
+    expect(body.events[0].props).toMatchObject({ user_name: "Ana Ruiz", user_email: "ana@fitspin.mx" });
+  });
+
   it("envuelve login y reserva sin cambiar el resultado", async () => {
     const events: string[] = [];
     const userIds: Array<number | null> = [];
@@ -62,6 +76,9 @@ describe("sdk tracker", () => {
       heartbeat() {},
       setUserId(id: number | null) {
         userIds.push(id);
+      },
+      setUser(user: { id: number | null }) {
+        userIds.push(user.id);
       },
       flush() {},
     };
@@ -94,6 +111,7 @@ describe("sdk tracker", () => {
       track: (input: { event: string }) => events.push(input.event),
       heartbeat() {},
       setUserId() {},
+      setUser() {},
       flush() {},
     };
     const client = {

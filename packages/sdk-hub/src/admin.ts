@@ -1,6 +1,6 @@
 import type { Context, Hono } from "hono";
-import { collapseSites, presentPerson } from "./directory";
-import { EVENT_OPTIONS, eventLabel, personLabel, studioName, widgetLabel } from "./labels";
+import { collapseSites, groupInstallations, presentPerson, siteHref } from "./directory";
+import { EVENT_OPTIONS, eventLabel, studioName, widgetLabel } from "./labels";
 import { d1LoyaltyStore, mergeRules, tierForPoints, type LoyaltyRule } from "./loyalty";
 import { pageMeta, readPage } from "./page";
 
@@ -35,12 +35,13 @@ export function mountAdmin(
       `SELECT company_id, host, path, last_seen_at FROM installations ORDER BY last_seen_at DESC LIMIT 1000`,
     ).all<{ company_id: number; host: string; path: string; last_seen_at: string }>();
     const people = await c.env.DB.prepare(
-      `SELECT company_id, user_id, display_name, last_host, last_seen_at
+      `SELECT company_id, user_id, display_name, email, last_host, last_seen_at
        FROM people ORDER BY last_seen_at DESC LIMIT 400`,
     ).all<{
       company_id: number;
       user_id: number;
       display_name: string | null;
+      email: string | null;
       last_host: string | null;
       last_seen_at: string | null;
     }>();
@@ -74,6 +75,8 @@ export function mountAdmin(
       rollup_days: Number(rollups?.days ?? 0),
       rollup_total: Number(rollups?.total ?? 0),
       retention_days: 90,
+      event_bytes_est: Number(events?.count ?? 0) * 400,
+      d1_soft_limit_bytes: 10 * 1024 * 1024 * 1024,
     });
   });
 
@@ -98,42 +101,32 @@ export function mountAdmin(
       binds.push(like(q), like(q));
     }
     const where = clauses.join(" AND ");
-    const total =
-      Number(
-        (
-          await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM installations WHERE ${where}`)
-            .bind(...binds)
-            .first<{ n: number }>()
-        )?.n ?? 0,
-      ) || 0;
-    const meta = pageMeta(total, page, perPage);
     const { results } = await c.env.DB.prepare(
       `SELECT installation_key, company_id, brand_id, location_id, host, path,
               sdk_version, widgets_json, last_seen_at
        FROM installations
        WHERE ${where}
        ORDER BY last_seen_at DESC
-       LIMIT ? OFFSET ?`,
+       LIMIT 1000`,
     )
-      .bind(...binds, meta.per_page, meta.offset)
+      .bind(...binds)
       .all();
-    const items = results.map((row) => {
-      const rec = row as {
-        company_id: number;
-        host: string;
-        path: string;
-        widgets_json?: string;
-        last_seen_at: string;
-        sdk_version?: string;
-      };
-      const widgets = safeJsonArray(rec.widgets_json);
-      return {
-        ...row,
-        studio: studioName(rec.host, rec.path),
-        widgets,
-        widget_labels: widgets.map((widget) => widgetLabel(widget)),
-      };
-    });
+    const grouped = groupInstallations(
+      results.map((row) => {
+        const rec = row as { company_id: number; host: string; path: string; last_seen_at: string; widgets_json?: string };
+        const widgets = safeJsonArray(rec.widgets_json);
+        return {
+          company_id: rec.company_id,
+          host: rec.host,
+          path: rec.path,
+          last_seen_at: rec.last_seen_at,
+          widgets,
+          widget_labels: widgets.map((widget) => widgetLabel(widget)),
+        };
+      }),
+    );
+    const meta = pageMeta(grouped.length, page, perPage);
+    const items = grouped.slice(meta.offset, meta.offset + meta.per_page);
     return c.json({ installations: items, items, ...meta });
   });
 
@@ -147,37 +140,41 @@ export function mountAdmin(
     const clauses = ["1=1"];
     const binds: unknown[] = [];
     if (companyId) {
-      clauses.push("company_id = ?");
+      clauses.push("e.company_id = ?");
       binds.push(companyId);
     }
     if (host) {
-      clauses.push("host = ?");
+      clauses.push("e.host = ?");
       binds.push(host);
     }
     if (name) {
-      clauses.push("name = ?");
+      clauses.push("e.name = ?");
       binds.push(name);
     }
     if (q) {
-      clauses.push("(host LIKE ? OR path LIKE ? OR name LIKE ?)");
-      binds.push(like(q), like(q), like(q));
+      clauses.push("(e.host LIKE ? OR e.path LIKE ? OR e.name LIKE ? OR p.display_name LIKE ? OR p.email LIKE ?)");
+      binds.push(like(q), like(q), like(q), like(q), like(q));
     }
     const where = clauses.join(" AND ");
     const total =
       Number(
         (
-          await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM events WHERE ${where}`)
+          await c.env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM events e LEFT JOIN people p ON p.company_id = e.company_id AND p.user_id = e.user_id WHERE ${where}`,
+          )
             .bind(...binds)
             .first<{ n: number }>()
         )?.n ?? 0,
       ) || 0;
     const meta = pageMeta(total, page, perPage);
     const { results } = await c.env.DB.prepare(
-      `SELECT id, name, ts, session_id, company_id, brand_id, location_id, user_id,
-              widget, sdk_version, host, path, props_json
-       FROM events
+      `SELECT e.id, e.name, e.ts, e.session_id, e.company_id, e.brand_id, e.location_id, e.user_id,
+              e.widget, e.sdk_version, e.host, e.path, e.props_json,
+              p.display_name, p.email
+       FROM events e
+       LEFT JOIN people p ON p.company_id = e.company_id AND p.user_id = e.user_id
        WHERE ${where}
-       ORDER BY ts DESC
+       ORDER BY e.ts DESC
        LIMIT ? OFFSET ?`,
     )
       .bind(...binds, meta.per_page, meta.offset)
@@ -190,18 +187,28 @@ export function mountAdmin(
         host: string | null;
         path: string | null;
         widget: string | null;
+        display_name?: string | null;
+        email?: string | null;
       };
+      const person = rec.user_id
+        ? presentPerson({
+            company_id: rec.company_id,
+            user_id: rec.user_id,
+            display_name: rec.display_name,
+            email: rec.email,
+            last_host: rec.host,
+            path: rec.path,
+          })
+        : null;
       return {
         ...row,
         studio: studioName(rec.host, rec.path),
+        site: siteHref(rec.host, rec.path),
         event_label: eventLabel(rec.name),
         widget_label: rec.widget ? widgetLabel(rec.widget) : null,
-        person: personLabel({
-          companyId: rec.company_id,
-          userId: rec.user_id,
-          host: rec.host,
-          path: rec.path,
-        }),
+        person: person?.name ?? "Visitante",
+        person_name: person?.name ?? "Visitante",
+        person_email: person?.email ?? null,
       };
     });
     return c.json({ events: items, items, ...meta });
@@ -269,7 +276,7 @@ export function mountAdmin(
       ) || 0;
     const meta = pageMeta(total, page, perPage);
     const { results } = await c.env.DB.prepare(
-      `SELECT b.company_id, b.user_id, b.points, b.updated_at, p.display_name, p.last_host
+      `SELECT b.company_id, b.user_id, b.points, b.updated_at, p.display_name, p.email, p.last_host
        FROM loyalty_balances b
        LEFT JOIN people p ON p.company_id = b.company_id AND p.user_id = b.user_id
        WHERE ${where}
@@ -285,12 +292,14 @@ export function mountAdmin(
         points: number;
         updated_at: string;
         display_name?: string | null;
+        email?: string | null;
         last_host?: string | null;
       };
       const person = presentPerson({
         company_id: rec.company_id,
         user_id: rec.user_id,
         display_name: rec.display_name,
+        email: rec.email,
         last_host: rec.last_host,
         last_seen_at: rec.updated_at,
       });
@@ -299,6 +308,7 @@ export function mountAdmin(
         points: rec.points,
         updated_at: rec.updated_at,
         studio: studioName(rec.last_host),
+        site: rec.last_host ?? null,
         tier: tierForPoints(Number(rec.points)),
       };
     });
@@ -332,7 +342,7 @@ export function mountAdmin(
     const meta = pageMeta(total, page, perPage);
     const { results } = await c.env.DB.prepare(
       `SELECT l.idempotency_key, l.company_id, l.user_id, l.event_name, l.points, l.day, l.ts,
-              p.display_name, p.last_host
+              p.display_name, p.email, p.last_host
        FROM loyalty_ledger l
        LEFT JOIN people p ON p.company_id = l.company_id AND p.user_id = l.user_id
        WHERE ${where}
@@ -347,17 +357,22 @@ export function mountAdmin(
         user_id: number;
         event_name: string;
         display_name?: string | null;
+        email?: string | null;
         last_host?: string | null;
       };
+      const person = presentPerson({
+        company_id: rec.company_id,
+        user_id: rec.user_id,
+        display_name: rec.display_name,
+        email: rec.email,
+        last_host: rec.last_host,
+      });
       return {
         ...row,
         event_label: eventLabel(rec.event_name),
-        person: presentPerson({
-          company_id: rec.company_id,
-          user_id: rec.user_id,
-          display_name: rec.display_name,
-          last_host: rec.last_host,
-        }).name,
+        person: person.name,
+        person_email: person.email,
+        site: rec.last_host ?? null,
         studio: studioName(rec.last_host),
       };
     });

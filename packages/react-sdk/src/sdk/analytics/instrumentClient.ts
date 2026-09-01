@@ -11,10 +11,11 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
         try {
           const profile = await client.getProfile();
           userId = profile?.id ?? null;
+          tracker.setUser({ id: userId, name: profile?.name ?? null, email: profile?.email ?? null });
         } catch {
           userId = null;
+          tracker.setUserId(null);
         }
-        tracker.setUserId(userId);
         tracker.track({ event: "auth.login_succeeded", widget: "auth", user_id: userId });
         return result;
       } catch (error) {
@@ -33,10 +34,11 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
       try {
         const profile = await client.getProfile();
         userId = profile?.id ?? null;
+        tracker.setUser({ id: userId, name: profile?.name ?? null, email: profile?.email ?? null });
       } catch {
         userId = null;
+        tracker.setUserId(null);
       }
-      tracker.setUserId(userId);
       tracker.track({ event: "auth.registered", widget: "auth", user_id: userId });
       return result;
     },

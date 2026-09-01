@@ -325,7 +325,7 @@ function renderFilters() {
       : null,
     state.view === "sites" || state.view === "events"
       ? h("input", {
-          placeholder: "Buscar sitio o página",
+          placeholder: state.view === "events" ? "Sitio, nombre o correo" : "Buscar sitio o página",
           value: state.q,
           onChange: (event) => {
             state.q = event.target.value;
@@ -367,9 +367,9 @@ function renderSites() {
     h(
       "div",
       { class: "grid" },
-      stat("En vivo", live, "vistos en 15 min"),
-      stat("Estudios", state.stats?.studios ?? 0, "compañías distintas"),
-      stat("Sitios", state.stats?.sites ?? 0, "páginas con el SDK"),
+      stat("En vivo", live, "estudios activos"),
+      stat("Estudios", items.length || state.stats?.studios || 0, "un card por marca"),
+      stat("Páginas", state.stats?.sites ?? 0, "rutas con el SDK"),
       stat("Eventos", state.stats?.events ?? 0, "en la bitácora"),
     ),
     items.length
@@ -387,8 +387,10 @@ function renderSites() {
 }
 
 function siteCard(row) {
-  const name = row.studio || row.host;
+  const name = row.name || row.studio || row.host;
   const live = minutesAgo(row.last_seen_at) < 15;
+  const pages = row.pages ?? [];
+  const extra = Math.max(0, pages.length - 4);
   return h(
     "article",
     { class: "site-card" },
@@ -397,7 +399,7 @@ function siteCard(row) {
       "div",
       {},
       h("h3", {}, name),
-      h("div", { class: "where" }, `${row.host}${row.path === "/" ? "" : row.path}`),
+      h("div", { class: "where" }, `${row.host} · ${pages.length || 1} ${pages.length === 1 ? "página" : "páginas"}`),
       h(
         "div",
         { class: "chips" },
@@ -405,6 +407,16 @@ function siteCard(row) {
           h("span", { class: "chip" }, widget),
         ),
       ),
+      pages.length
+        ? h(
+            "ul",
+            { class: "pages" },
+            pages.slice(0, 4).map((page) =>
+              h("li", {}, h("code", {}, page.path || "/"), h("span", { class: "muted" }, relTime(page.last_seen_at))),
+            ),
+            extra ? h("li", { class: "muted" }, `+${extra} más`) : null,
+          )
+        : null,
     ),
     h(
       "div",
@@ -430,19 +442,19 @@ function renderUsage() {
         { class: "panel", style: "padding:22px" },
         h("h3", {}, "Cómo se guarda"),
         h(
-          "p",
-          { class: "muted" },
-          "Cada gesto entra a D1. El admin nunca baja más de 25 filas. Los gráficos leen totales diarios (rollups), así que el funnel sigue rápido aunque la bitácora crezca. A los 90 días se limpian eventos crudos; los totales se quedan.",
-        ),
+      "p",
+      { class: "muted" },
+      "Cloudflare D1 (SQLite). Cada gesto es una fila de ~400 bytes. El admin pide 25. El embudo lee totales diarios, no la bitácora. A los 90 días se borran crudos; los rollups se quedan para siempre.",
+    ),
       ),
       h(
         "div",
         { class: "panel", style: "padding:22px" },
-        h("h3", {}, "Capacidad"),
+        h("h3", {}, "Capacidad ahora"),
         h(
           "p",
           { class: "muted" },
-          `${fmt(state.stats?.events ?? 0)} eventos crudos · ${fmt(state.stats?.rollup_days ?? 0)} días agregados · ${fmt(state.stats?.people ?? 0)} cuentas vistas. D1 aguanta millones de filas; esto está pensado para mucho movimiento.`,
+          `${fmt(state.stats?.events ?? 0)} eventos ≈ ${fmtBytes(state.stats?.event_bytes_est)} de 10 GB. ${fmt(state.stats?.sites ?? 0)} páginas · ${fmt(state.stats?.studios ?? 0)} estudios. Un millón de gestos son ~400 MB. Si todos los socios de Buq disparan a la vez, acortamos retención a 30 días o dejamos de guardar cada pulso. Hoy no hay tema.`,
         ),
       ),
     ),
@@ -474,12 +486,17 @@ function renderEvents() {
     "div",
     {},
     table(
-      ["Cuándo", "Qué pasó", "Dónde", "Quién"],
+      ["Cuándo", "Qué pasó", "Sitio", "Quién"],
       items.map((row) => [
         h("div", {}, relTime(row.ts), h("span", { class: "sub" }, absTime(row.ts))),
         h("div", {}, h("div", { class: "what" }, row.event_label || row.name), row.widget_label ? h("span", { class: "sub" }, row.widget_label) : null),
-        h("div", {}, row.studio || "—", h("span", { class: "sub" }, `${row.host ?? ""}${row.path && row.path !== "/" ? row.path : ""}`)),
-        row.person || "Visitante",
+        h("div", {}, row.site || row.host || "—"),
+        h(
+          "div",
+          {},
+          h("div", { class: "what" }, row.person_name || row.person || "Visitante"),
+          row.person_email ? h("span", { class: "sub" }, row.person_email) : null,
+        ),
       ]),
       "Nadie ha usado el SDK con estos filtros.",
     ),
@@ -494,7 +511,11 @@ function renderLoyalty() {
   const ranking = state.ranking.items ?? state.ranking.ranking ?? [];
   const ledger = state.ledger.items ?? state.ledger.ledger ?? [];
   const people = ranking.map((row) =>
-    h("option", { value: `${row.company_id}:${row.user_id}` }, `${row.name} · ${fmt(row.points)} pts`),
+    h(
+      "option",
+      { value: `${row.company_id}:${row.user_id}` },
+      `${row.name}${row.email ? ` · ${row.email}` : ""} · ${fmt(row.points)} pts`,
+    ),
   );
   return h(
     "div",
@@ -518,7 +539,12 @@ function renderLoyalty() {
               { class: "leader" },
               h("div", { class: "rank" }, rankLabel(state.ranking, index)),
               avatar(row.name),
-              h("div", {}, h("b", {}, row.name), h("span", { class: "sub" }, row.tier?.label ?? "Bronze")),
+              h(
+                "div",
+                {},
+                h("b", {}, row.name),
+                h("span", { class: "sub" }, [row.email, row.site, row.tier?.label].filter(Boolean).join(" · ")),
+              ),
               h("div", { class: `pts tier-${row.tier?.id ?? "bronze"}` }, fmt(row.points)),
             ),
           ),
@@ -592,10 +618,11 @@ function renderLoyalty() {
     ),
     h("h3", {}, "Movimientos"),
     table(
-      ["Cuándo", "Quién", "Qué", "Puntos"],
+      ["Cuándo", "Quién", "Sitio", "Qué", "Puntos"],
       ledger.map((row) => [
         relTime(row.ts),
-        row.person || row.studio,
+        h("div", {}, row.person || "Cuenta", row.person_email ? h("span", { class: "sub" }, row.person_email) : null),
+        row.site || row.studio || "—",
         row.event_label || row.event_name,
         h("b", { class: Number(row.points) < 0 ? "tier-bronze" : "tier-gold" }, `${Number(row.points) > 0 ? "+" : ""}${row.points}`),
       ]),
@@ -756,6 +783,15 @@ function fmt(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return value ?? "—";
   return n.toLocaleString("es-MX");
+}
+
+function fmtBytes(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "0 KB";
+  if (n < 1024) return `${Math.round(n)} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 boot();

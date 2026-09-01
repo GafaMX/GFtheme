@@ -1,3 +1,4 @@
+import { identityFromProps } from "./directory";
 import { studioName } from "./labels";
 import {
   installationKey,
@@ -100,16 +101,19 @@ export async function persistEvents(db: D1Like, events: NormalizedHubEvent[]): P
     }
 
     if (event.user_id && event.user_id > 0) {
+      const identity = identityFromProps(event.props_json);
       statements.push(
         db
           .prepare(
-            `INSERT INTO people (company_id, user_id, last_host, last_seen_at)
-             VALUES (?, ?, ?, ?)
+            `INSERT INTO people (company_id, user_id, display_name, email, last_host, last_seen_at)
+             VALUES (?, ?, ?, ?, ?, ?)
              ON CONFLICT(company_id, user_id) DO UPDATE SET
+               display_name = COALESCE(excluded.display_name, people.display_name),
+               email = COALESCE(excluded.email, people.email),
                last_host = COALESCE(excluded.last_host, people.last_host),
                last_seen_at = excluded.last_seen_at`,
           )
-          .bind(event.company_id, event.user_id, event.host, event.ts),
+          .bind(event.company_id, event.user_id, identity.name, identity.email, event.host, event.ts),
       );
     }
 

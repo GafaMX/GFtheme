@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collapseSites, preferPublicHost } from "../src/directory";
+import { collapseSites, groupInstallations, identityFromProps, preferPublicHost, presentPerson } from "../src/directory";
 import { eventLabel, personAlias, personLabel, studioName, widgetLabel } from "../src/labels";
 import { pageMeta, readPage } from "../src/page";
 
@@ -41,6 +41,27 @@ describe("directory", () => {
     ]);
     expect(sites.filter((site) => site.name === "Fitspin")).toHaveLength(1);
     expect(sites.some((site) => site.name === "Local")).toBe(true);
+  });
+
+  it("agrupa páginas de un mismo estudio", () => {
+    const groups = groupInstallations([
+      { company_id: 80, host: "fitspin.mx", path: "/", last_seen_at: "2026-08-31T23:00:00Z", widgets: ["login-register"] },
+      { company_id: 80, host: "fitspin.mx", path: "/reservar", last_seen_at: "2026-08-31T23:10:00Z", widgets: ["meetings-calendar"] },
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.name).toBe("Fitspin");
+    expect(groups[0]?.pages).toHaveLength(2);
+  });
+
+  it("lee nombre y correo del perfil sin inventarlos", () => {
+    expect(identityFromProps(JSON.stringify({ user_name: "Ana Ruiz", user_email: "ana@fitspin.mx" }))).toEqual({
+      name: "Ana Ruiz",
+      email: "ana@fitspin.mx",
+    });
+    expect(presentPerson({ company_id: 80, user_id: 44, display_name: "Ana Ruiz", email: "ana@fitspin.mx" })).toMatchObject({
+      name: "Ana Ruiz",
+      email: "ana@fitspin.mx",
+    });
   });
 });
 

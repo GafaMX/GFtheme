@@ -9,16 +9,24 @@ export type TrackerConfig = {
   enabled?: boolean;
 };
 
+export type HubUser = {
+  id: number | null;
+  name?: string | null;
+  email?: string | null;
+};
+
 export type SdkTracker = {
   sessionId: string;
   track(input: TrackInput): void;
   heartbeat(widgets: string[]): void;
   setUserId(userId: number | null): void;
+  setUser(user: HubUser): void;
   flush(): void;
 };
 
 const SESSION_KEY = "gafa-sdk:hub-session";
 const USER_KEY = "gafa-sdk:hub-user";
+const USER_PROFILE_KEY = "gafa-sdk:hub-profile";
 
 function readSessionId(): string {
   try {
@@ -50,6 +58,8 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const sdkVersion = config.sdkVersion ?? SDK_VERSION;
   let userId = readStoredUserId();
+  let userName = readStoredProfile().name;
+  let userEmail = readStoredProfile().email;
 
   function enqueue(input: TrackInput) {
     if (!enabled) return;
@@ -57,6 +67,9 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
       typeof window !== "undefined"
         ? { host: window.location.hostname, path: window.location.pathname }
         : { host: null, path: null };
+    const props = { ...(input.props ?? {}) };
+    if (userName) props.user_name = userName;
+    if (userEmail) props.user_email = userEmail;
     queue.push({
       event: input.event,
       ts: new Date().toISOString(),
@@ -69,7 +82,7 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
       sdk_version: sdkVersion,
       host: page.host,
       path: page.path,
-      props: input.props,
+      props: Object.keys(props).length ? props : input.props,
     });
     if (queue.length >= 8) {
       flush();
@@ -112,6 +125,25 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
     });
   }
 
+  function applyUser(next: HubUser) {
+    userId = next.id;
+    if (next.name !== undefined) userName = next.name?.trim() || null;
+    if (next.email !== undefined) userEmail = next.email?.trim() || null;
+    try {
+      if (next.id == null) {
+        sessionStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(USER_PROFILE_KEY);
+        userName = null;
+        userEmail = null;
+      } else {
+        sessionStorage.setItem(USER_KEY, String(next.id));
+        sessionStorage.setItem(USER_PROFILE_KEY, JSON.stringify({ name: userName, email: userEmail }));
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return {
     sessionId,
     track: enqueue,
@@ -124,14 +156,9 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
       flush();
     },
     setUserId(next) {
-      userId = next;
-      try {
-        if (next == null) sessionStorage.removeItem(USER_KEY);
-        else sessionStorage.setItem(USER_KEY, String(next));
-      } catch {
-        // ignore
-      }
+      applyUser({ id: next });
     },
+    setUser: applyUser,
     flush,
   };
 }
@@ -141,6 +168,7 @@ export const noopTracker: SdkTracker = {
   track() {},
   heartbeat() {},
   setUserId() {},
+  setUser() {},
   flush() {},
 };
 
@@ -151,5 +179,19 @@ function readStoredUserId(): number | null {
     return Number.isFinite(id) && id > 0 ? id : null;
   } catch {
     return null;
+  }
+}
+
+function readStoredProfile(): { name: string | null; email: string | null } {
+  try {
+    const raw = sessionStorage.getItem(USER_PROFILE_KEY);
+    if (!raw) return { name: null, email: null };
+    const parsed = JSON.parse(raw) as { name?: unknown; email?: unknown };
+    return {
+      name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : null,
+      email: typeof parsed.email === "string" && parsed.email.trim() ? parsed.email.trim() : null,
+    };
+  } catch {
+    return { name: null, email: null };
   }
 }
