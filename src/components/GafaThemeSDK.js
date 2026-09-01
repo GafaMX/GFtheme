@@ -20,6 +20,8 @@ import LoginRegister from "./menu/LoginRegister";
 import LoginRegisterPages from "./menu/LoginRegisterPages";
 
 import moment from "moment";
+import StringStore from "./utils/Strings/StringStore";
+import CheckoutController from "./checkout/CheckoutController";
 
 import "../styles/newlook/reset.scss";
 import "../styles/newlook/fancy.scss";
@@ -29,6 +31,303 @@ class GafaThemeSDK extends React.Component {
     constructor(props) {
         super(props);
 
+    }
+
+    static emit(eventName, detail) {
+        if (typeof window === 'undefined' || typeof document === 'undefined') {
+            return;
+        }
+
+        let event;
+        if (typeof window.CustomEvent === 'function') {
+            event = new window.CustomEvent(eventName, {detail: detail});
+        } else {
+            event = document.createEvent('CustomEvent');
+            event.initCustomEvent(eventName, false, false, detail);
+        }
+
+        window.dispatchEvent(event);
+    }
+
+    static on(eventName, callback) {
+        if (typeof window === 'undefined' || !eventName || !callback) {
+            return function () {};
+        }
+
+        window.addEventListener(eventName, callback);
+
+        return function unsubscribe() {
+            window.removeEventListener(eventName, callback);
+        };
+    }
+
+    static init(config, options, callback) {
+        if (typeof window === 'undefined') {
+            return Promise.reject(new Error('GafaThemeSDK.init requires a browser runtime'));
+        }
+
+        if (typeof config === 'function') {
+            callback = config;
+            config = null;
+            options = {};
+        } else if (typeof options === 'function') {
+            callback = options;
+            options = {};
+        }
+
+        options = options || {};
+
+        if (config) {
+            window.GFThemeOptions = config;
+        }
+
+        return new Promise(function (resolve, reject) {
+            try {
+                GafaFitSDKWrapper.initValues(function () {
+                    StringStore.initLang();
+
+                    if (options.autoRender !== false) {
+                        GafaThemeSDK.renderDefaultComponents();
+                    }
+
+                    GafaThemeSDK.emit('buq:sdk:ready', {
+                        autoRender: options.autoRender !== false,
+                    });
+
+                    if (callback) {
+                        callback(GafaThemeSDK);
+                    }
+
+                    resolve(GafaThemeSDK);
+                });
+            } catch (error) {
+                GafaThemeSDK.emit('buq:sdk:error', {error: error});
+                reject(error);
+            }
+        });
+    }
+
+    static reinit(config, options) {
+        GlobalStorage.resetValues();
+        CalendarStorage.resetValues();
+
+        return GafaThemeSDK.init(config, options);
+    }
+
+    static renderDefaultComponents() {
+        GafaThemeSDK.renderLogin('[data-gf-theme="login"]');
+        GafaThemeSDK.renderRegister('[data-gf-theme="register"]');
+        GafaThemeSDK.renderPasswordRecovery('[data-gf-theme="password-recovery"]');
+        GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
+        GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
+        GafaThemeSDK.renderLoginRegisterPages('[data-gf-theme="login-register-pages"]');
+        GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');
+        GafaThemeSDK.renderServiceList('[data-gf-theme="service-list"]');
+        GafaThemeSDK.renderComboList('[data-gf-theme="combo-list"]');
+        GafaThemeSDK.renderMembershipList('[data-gf-theme="membership-list"]');
+        GafaThemeSDK.renderMeetingsCalendar('[data-gf-theme="meetings-calendar"]');
+        GafaThemeSDK.renderPurchaseBtton('[data-gf-theme="purchase-button"]');
+        GafaThemeSDK.ensureFancyContainer();
+    }
+
+    static mount(capability, selector, options) {
+        const capabilities = {
+            calendar: 'renderMeetingsCalendar',
+            profile: 'renderProfileUserInfo',
+            account: 'renderLoginRegister',
+            accountPages: 'renderLoginRegisterPages',
+            login: 'renderLogin',
+            register: 'renderRegister',
+            passwordRecovery: 'renderPasswordRecovery',
+            staff: 'renderStaffList',
+            services: 'renderServiceList',
+            combos: 'renderComboList',
+            memberships: 'renderMembershipList',
+            purchaseButton: 'renderPurchaseBtton',
+        };
+
+        const method = capabilities[capability];
+
+        if (!method || typeof GafaThemeSDK[method] !== 'function') {
+            throw new Error(`Unsupported SDK capability: ${capability}`);
+        }
+
+        if (options) {
+            GafaThemeSDK.applyMountOptions(selector, options);
+        }
+
+        GafaThemeSDK[method](selector);
+
+        const handle = {
+            capability: capability,
+            selector: selector,
+            unmount: function () {
+                return GafaThemeSDK.unmount(selector);
+            },
+        };
+
+        GafaThemeSDK.emit('buq:sdk:mounted', {
+            capability: capability,
+            selector: selector,
+        });
+
+        return handle;
+    }
+
+    static unmount(target) {
+        if (!target) {
+            return 0;
+        }
+
+        const selector = typeof target === 'string' ? target : target.selector;
+        const domContainers = GafaThemeSDK.getContainers(selector);
+        let unmounted = 0;
+
+        domContainers.forEach(function (domContainer) {
+            if (ReactDOM.unmountComponentAtNode(domContainer)) {
+                unmounted++;
+            }
+        });
+
+        GafaThemeSDK.emit('buq:sdk:unmounted', {
+            selector: selector,
+            count: unmounted,
+        });
+
+        return unmounted;
+    }
+
+    static destroy(target) {
+        return GafaThemeSDK.unmount(target);
+    }
+
+    static getSessionStatus() {
+        return new Promise(function (resolve) {
+            GafaFitSDKWrapper.getMe(function (me) {
+                resolve({
+                    authenticated: me !== null,
+                    user: me,
+                });
+            });
+        });
+    }
+
+    static openAccount(options) {
+        options = options || {};
+        const container = options.container || GafaThemeSDK.ensureAccountContainer();
+        const initial = options.initial || 'login';
+
+        if (!container) {
+            throw new Error('GafaThemeSDK.openAccount requires a browser container');
+        }
+
+        GafaThemeSDK.renderElementIntoContainer(container, LoginRegister, {
+            initial: initial,
+            setShowLogin: initial !== 'register' ? function () {} : null,
+            setShowRegister: initial === 'register' ? function () {} : null,
+            combineWaitlist: options.combineWaitlist === true,
+        });
+
+        return {
+            container: container,
+            close: function () {
+                ReactDOM.unmountComponentAtNode(container);
+            },
+        };
+    }
+
+    static openReservationCheckout(params) {
+        return CheckoutController.openReservationCheckout(params);
+    }
+
+    static openComboCheckout(params) {
+        return CheckoutController.openComboCheckout(params);
+    }
+
+    static openMembershipCheckout(params) {
+        return CheckoutController.openMembershipCheckout(params);
+    }
+
+    static openProductCheckout(params) {
+        return CheckoutController.openProductCheckout(params);
+    }
+
+    static openStoreCheckout(params) {
+        return CheckoutController.openStoreCheckout(params);
+    }
+
+    static getCheckoutEvents() {
+        return CheckoutController.events;
+    }
+
+    static applyMountOptions(selector, options) {
+        const domContainers = GafaThemeSDK.getContainers(selector);
+
+        domContainers.forEach(function (domContainer) {
+            Object.keys(options).forEach(function (key) {
+                if (options[key] !== undefined && options[key] !== null) {
+                    domContainer.setAttribute(key, options[key]);
+                }
+            });
+        });
+    }
+
+    static getContainers(selector) {
+        if (typeof document === 'undefined') {
+            return [];
+        }
+
+        if (!selector) {
+            return [];
+        }
+
+        if (typeof selector === 'string') {
+            return Array.prototype.slice.call(document.querySelectorAll(selector));
+        }
+
+        if (selector.nodeType === 1) {
+            return [selector];
+        }
+
+        if (selector.length) {
+            return Array.prototype.slice.call(selector);
+        }
+
+        return [];
+    }
+
+    static ensureFancyContainer() {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+
+        let fancy = document.querySelector('[data-gf-theme="fancy"]');
+
+        if (!fancy) {
+            return null;
+        }
+
+        if (fancy.innerHTML === '') {
+            fancy.innerHTML = '<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+        }
+
+        return fancy;
+    }
+
+    static ensureAccountContainer() {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+
+        let container = document.querySelector('[data-gf-theme-runtime="account"]');
+
+        if (!container) {
+            container = document.createElement('div');
+            container.setAttribute('data-gf-theme-runtime', 'account');
+            document.body.appendChild(container);
+        }
+
+        return container;
     }
 
     static propsForPagedListComponent(result) {
@@ -417,9 +716,11 @@ class GafaThemeSDK extends React.Component {
     static renderProfileUserInfo(selector) {
         let domContainers = document.querySelectorAll(selector);
         if (domContainers.length > 0) {
-            let combineWaitlist = domContainer.getAttribute("data-bq-combine-waitlist") ? domContainer.getAttribute("data-bq-combine-waitlist") === 'true' : false;
-            GafaThemeSDK.renderElementIntoContainers(domContainers, ProfileUserInfo, {
-                combineWaitlist: combineWaitlist
+            domContainers.forEach(function (domContainer) {
+                let combineWaitlist = domContainer.getAttribute("data-bq-combine-waitlist") ? domContainer.getAttribute("data-bq-combine-waitlist") === 'true' : false;
+                GafaThemeSDK.renderElementIntoContainer(domContainer, ProfileUserInfo, {
+                    combineWaitlist: combineWaitlist
+                });
             });
         }
     };

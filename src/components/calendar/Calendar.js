@@ -68,6 +68,8 @@ class Calendar extends React.Component {
         this.setInitialValues = this.setInitialValues.bind(this);
         this.debouncedSetInitialValues = debounce(this.setInitialValues, 150);
         this.updateIsLoadingMore = this.updateIsLoadingMore.bind(this);
+        this.meetingsListener = this.debouncedSetInitialValues;
+        this.pendingMeetingRequestsListener = this.updateIsLoadingMore;
 
         CalendarStorage.set('visualization', props.visualization);
         CalendarStorage.set('show_login', this.setShowLogin.bind(this));
@@ -75,18 +77,20 @@ class Calendar extends React.Component {
         CalendarStorage.set('show_description', props.show_description);
         GlobalStorage.set('block_after_login', props.block_after_login);
         CalendarStorage.set('show_parent', props.show_parent);
-        CalendarStorage.addSegmentedListener(['meetings'], this.debouncedSetInitialValues);
+        CalendarStorage.addSegmentedListener(['meetings'], this.meetingsListener);
         // La primera semana ya llega rapido y se muestra real; mientras el
         // resto del rango sigue llegando en segundo plano, se muestra un
         // indicador chico y discreto en vez de dejar al usuario sin ninguna
         // senal de que todavia hay mas dias por cargar.
-        CalendarStorage.addSegmentedListener(['pendingMeetingRequests'], this.updateIsLoadingMore);
+        CalendarStorage.addSegmentedListener(['pendingMeetingRequests'], this.pendingMeetingRequestsListener);
     }
 
     componentWillUnmount() {
         if (this.debouncedSetInitialValues && this.debouncedSetInitialValues.cancel) {
             this.debouncedSetInitialValues.cancel();
         }
+        CalendarStorage.removeSegmentedListener(['meetings'], this.meetingsListener);
+        CalendarStorage.removeSegmentedListener(['pendingMeetingRequests'], this.pendingMeetingRequestsListener);
     }
 
     updateIsLoadingMore() {

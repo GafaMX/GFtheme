@@ -40,6 +40,28 @@ const CalendarStorage = {
     get(property) {
         return this[property];
     },
+    resetValues() {
+        this.locations = [];
+        this.services = [];
+        this.staff = [];
+        this.show_login = null;
+        this.show_register = null;
+        this.rooms = [];
+        this.meetings = [];
+        this.currentLocation = null;
+        this.filter_location = null;
+        this.filter_room = null;
+        this.filter_service = null;
+        this.filter_staff = null;
+        this.start_date = null;
+        this.filter_time_of_day = null;
+        this.calendarHeight = null;
+        this.calendarWidth = null;
+        this.show_description = false;
+        this.visualization = false;
+        this.show_parent = false;
+        this.pendingMeetingRequests = 0;
+    },
     find(property, id) {
         if (Array.isArray(this[property])) {
             return this[property].find(o => o.id === parseInt(id));
@@ -119,6 +141,25 @@ const CalendarStorage = {
             this.segmentedListeners[segment] = [];
         }
         this.segmentedListeners[segment].push(callback);
+    },
+    removeSegmentedListener(segment, callback) {
+        if (segment && callback) {
+            if (segment.length) {
+                segment.forEach(function (singleSegment) {
+                    CalendarStorage.unsubscribeFromSegment(singleSegment, callback)
+                })
+            } else {
+                CalendarStorage.unsubscribeFromSegment(segment, callback)
+            }
+        }
+    },
+    unsubscribeFromSegment(segment, callback) {
+        if (this.segmentedListeners.hasOwnProperty(segment)) {
+            const index = this.segmentedListeners[segment].indexOf(callback);
+            if (index > -1) {
+                this.segmentedListeners[segment].splice(index, 1);
+            }
+        }
     },
     /**
      *
