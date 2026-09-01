@@ -262,7 +262,7 @@ export function mountAdmin(
       since,
       steps,
       totals: Object.fromEntries(byName),
-      note: "Cada barra es un conteo independiente, no las mismas personas. Por eso un paso puede ser más alto que el anterior.",
+      note: "Cada barra es un conteo independiente, no las mismas personas. El % es sobre quienes vieron el calendario. Un paso puede ser más alto que el anterior. Las compras solo cuentan cuando el SDK confirma el pago; un paquete sin reserva también suma.",
     });
   });
 

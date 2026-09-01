@@ -1,8 +1,8 @@
 export const FUNNEL_STEPS = [
   { event: "calendar.viewed", label: "Vieron el calendario" },
-  { event: "calendar.meeting_opened", label: "Abrieron una clase" },
   { event: "auth.login_succeeded", label: "Entraron a su cuenta" },
   { event: "reservation.confirmed", label: "Reservaron" },
+  { event: "checkout.opened", label: "Abrieron el pago" },
   { event: "checkout.paid", label: "Compraron" },
 ] as const;
 

@@ -25,13 +25,13 @@ describe("funnel", () => {
     const steps = buildFunnelSteps(
       new Map([
         ["calendar.viewed", 100],
-        ["calendar.meeting_opened", 40],
         ["auth.login_succeeded", 20],
         ["reservation.confirmed", 15],
-        ["checkout.paid", 20],
+        ["checkout.opened", 12],
+        ["checkout.paid", 16],
       ]),
     );
     expect(steps[0]).toMatchObject({ share: 100, from_previous: null });
-    expect(steps[4]).toMatchObject({ count: 20, share: 20, from_previous: 133 });
+    expect(steps[4]).toMatchObject({ count: 16, share: 16, from_previous: 133 });
   });
 });
