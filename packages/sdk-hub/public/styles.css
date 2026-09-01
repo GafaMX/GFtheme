@@ -172,6 +172,60 @@ nav { display: grid; gap: 6px; margin-top: 32px; }
   padding: 8px 12px;
 }
 .seg button.active { background: var(--panel-2); color: var(--text); }
+.seg.mode button { min-width: 92px; font-weight: 600; }
+.seg.tabs { margin: 4px 0 8px; width: fit-content; }
+
+.btn.compact { padding: 8px 12px; border-radius: 10px; font-size: 13px; }
+.kicker {
+  color: var(--gold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+}
+.op-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+}
+.op-title {
+  margin: 4px 0 0;
+  font-family: var(--serif);
+  font-size: 26px;
+  letter-spacing: -0.03em;
+  text-transform: none;
+  color: var(--text);
+}
+.studio-pick {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.studio-pick-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.studio-pick-card:hover { border-color: rgba(228, 184, 74, 0.35); }
+.tag.dev { color: var(--warn); margin-left: 8px; }
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--panel-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.funnel-note { max-width: 72ch; line-height: 1.5; margin: 8px 0 16px; }
+.conv.over { color: var(--warn); }
+.who .what { display: flex; align-items: center; gap: 8px; }
 
 .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
 .stat, .panel, .site-card, .empty, .leader, .rule {
@@ -328,7 +382,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.015); }
 
 @media (max-width: 1100px) {
   .grid, .widgets { grid-template-columns: 1fr 1fr; }
-  .sites, .rules, .health { grid-template-columns: 1fr; }
+  .sites, .rules, .health, .studio-pick { grid-template-columns: 1fr; }
   .funnel-row { grid-template-columns: 1fr; }
   .grant { grid-template-columns: 1fr; }
 }

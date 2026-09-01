@@ -1,6 +1,9 @@
 import type { Context, Hono } from "hono";
 import { collapseSites, groupInstallations, presentPerson, siteHref } from "./directory";
+import { buildFunnelSteps } from "./funnel";
+import { envFromQuery, hostKind, hostScopeSql, type TrafficEnv } from "./hosts";
 import { EVENT_OPTIONS, eventLabel, studioName, widgetLabel } from "./labels";
+import { buildLoyaltyOverview } from "./loyaltyOverview";
 import { d1LoyaltyStore, mergeRules, tierForPoints, type LoyaltyRule } from "./loyalty";
 import { pageMeta, readPage } from "./page";
 
@@ -25,6 +28,15 @@ function like(value: string): string {
   return `%${value.replace(/[%_]/g, "")}%`;
 }
 
+function trafficOf(c: Context<AppEnv>): TrafficEnv {
+  return envFromQuery(c.req.query("env"));
+}
+
+function pushHostScope(clauses: string[], column: string, env: TrafficEnv) {
+  const sql = hostScopeSql(column, env);
+  if (sql) clauses.push(sql);
+}
+
 export function mountAdmin(
   app: Hono<AppEnv>,
   requireAdmin: (c: Context<AppEnv>) => Promise<boolean>,
@@ -45,8 +57,13 @@ export function mountAdmin(
       last_host: string | null;
       last_seen_at: string | null;
     }>();
+    const env = trafficOf(c);
+    const sites = collapseSites(installs.results ?? []).map((site) => ({
+      ...site,
+      env: hostKind(site.host),
+    }));
     return c.json({
-      sites: collapseSites(installs.results ?? []),
+      sites: env === "all" ? sites : sites.filter((site) => site.env === env),
       people: (people.results ?? []).map((row) => presentPerson(row)),
       events: EVENT_OPTIONS,
     });
@@ -100,6 +117,7 @@ export function mountAdmin(
       clauses.push("(host LIKE ? OR path LIKE ?)");
       binds.push(like(q), like(q));
     }
+    pushHostScope(clauses, "host", trafficOf(c));
     const where = clauses.join(" AND ");
     const { results } = await c.env.DB.prepare(
       `SELECT installation_key, company_id, brand_id, location_id, host, path,
@@ -124,7 +142,7 @@ export function mountAdmin(
           widget_labels: widgets.map((widget) => widgetLabel(widget)),
         };
       }),
-    );
+    ).map((group) => ({ ...group, env: hostKind(group.host) }));
     const meta = pageMeta(grouped.length, page, perPage);
     const items = grouped.slice(meta.offset, meta.offset + meta.per_page);
     return c.json({ installations: items, items, ...meta });
@@ -155,6 +173,7 @@ export function mountAdmin(
       clauses.push("(e.host LIKE ? OR e.path LIKE ? OR e.name LIKE ? OR p.display_name LIKE ? OR p.email LIKE ?)");
       binds.push(like(q), like(q), like(q), like(q), like(q));
     }
+    pushHostScope(clauses, "e.host", trafficOf(c));
     const where = clauses.join(" AND ");
     const total =
       Number(
@@ -218,58 +237,86 @@ export function mountAdmin(
     if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
     const days = Math.min(90, Math.max(1, Number(c.req.query("days") ?? 7) || 7));
     const companyId = numQuery(c.req.query("company_id"));
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const clauses = ["day >= ?"];
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const clauses = ["ts >= ?"];
     const binds: unknown[] = [since];
     if (companyId) {
       clauses.push("company_id = ?");
       binds.push(companyId);
     }
+    pushHostScope(clauses, "host", trafficOf(c));
     const { results } = await c.env.DB.prepare(
-      `SELECT event_name, SUM(count) AS count
-       FROM daily_rollups
+      `SELECT name AS event_name, COUNT(*) AS count
+       FROM events
        WHERE ${clauses.join(" AND ")}
-       GROUP BY event_name
+       GROUP BY name
        ORDER BY count DESC`,
     )
       .bind(...binds)
       .all<{ event_name: string; count: number }>();
 
     const byName = new Map(results.map((row) => [row.event_name, Number(row.count)]));
-    const steps = [
-      { event: "calendar.viewed", label: "Vieron el calendario" },
-      { event: "calendar.meeting_opened", label: "Abrieron una clase" },
-      { event: "auth.login_succeeded", label: "Entraron a su cuenta" },
-      { event: "reservation.confirmed", label: "Reservaron" },
-      { event: "checkout.paid", label: "Compraron" },
-    ].map((step, index, list) => {
-      const count = byName.get(step.event) ?? 0;
-      const prev = index === 0 ? count : (byName.get(list[index - 1]?.event ?? "") ?? 0);
-      return {
-        ...step,
-        count,
-        conversion: prev > 0 ? Math.round((count / prev) * 100) : 0,
-      };
+    const steps = buildFunnelSteps(byName);
+    return c.json({
+      days,
+      since,
+      steps,
+      totals: Object.fromEntries(byName),
+      note: "Cada barra es un conteo independiente, no las mismas personas. Por eso un paso puede ser más alto que el anterior.",
     });
+  });
 
-    return c.json({ days, since, steps, totals: Object.fromEntries(byName) });
+  app.get("/v1/admin/loyalty/overview", async (c) => {
+    if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+    const [balances, ledgers, installs] = await Promise.all([
+      c.env.DB.prepare(`SELECT company_id, points, updated_at FROM loyalty_balances`).all<{
+        company_id: number;
+        points: number;
+        updated_at: string;
+      }>(),
+      c.env.DB.prepare(`SELECT company_id, points FROM loyalty_ledger`).all<{ company_id: number; points: number }>(),
+      c.env.DB.prepare(`SELECT company_id, host, path, last_seen_at FROM installations`).all<{
+        company_id: number;
+        host: string;
+        path: string;
+        last_seen_at: string;
+      }>(),
+    ]);
+    return c.json(
+      buildLoyaltyOverview({
+        balances: balances.results ?? [],
+        ledgers: ledgers.results ?? [],
+        sites: installs.results ?? [],
+        env: trafficOf(c),
+      }),
+    );
   });
 
   app.get("/v1/admin/loyalty/ranking", async (c) => {
     if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
     const { page, perPage } = readPage(c.req.query(), 20);
     const companyId = numQuery(c.req.query("company_id"));
+    const q = c.req.query("q")?.trim();
     const clauses = ["1=1"];
     const binds: unknown[] = [];
     if (companyId) {
       clauses.push("b.company_id = ?");
       binds.push(companyId);
     }
+    if (q) {
+      clauses.push("(p.display_name LIKE ? OR p.email LIKE ?)");
+      binds.push(like(q), like(q));
+    }
     const where = clauses.join(" AND ");
     const total =
       Number(
         (
-          await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM loyalty_balances b WHERE ${where}`)
+          await c.env.DB.prepare(
+            `SELECT COUNT(*) AS n
+             FROM loyalty_balances b
+             LEFT JOIN people p ON p.company_id = b.company_id AND p.user_id = b.user_id
+             WHERE ${where}`,
+          )
             .bind(...binds)
             .first<{ n: number }>()
         )?.n ?? 0,

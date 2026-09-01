@@ -6,6 +6,7 @@ const state = {
   loading: false,
   error: "",
   env: "",
+  traffic: "prod",
   siteKey: "",
   eventName: "",
   q: "",
@@ -15,7 +16,10 @@ const state = {
   stats: null,
   sites: { items: [], total: 0, page: 1, pages: 1, per_page: 24 },
   events: { items: [], total: 0, page: 1, pages: 1, per_page: 25 },
-  funnel: { steps: [], days: 7 },
+  funnel: { steps: [], days: 7, note: "" },
+  loyaltyMode: "buq",
+  loyaltyTab: "clients",
+  loyaltyOverview: { studios: [], totals: { studios: 0, members: 0, points: 0, issued: 0, movements: 0 } },
   ranking: { items: [], total: 0, page: 1, pages: 1 },
   ledger: { items: [], total: 0, page: 1, pages: 1 },
   rules: [],
@@ -25,13 +29,29 @@ const state = {
   grantReason: "",
 };
 
-const TITLES = {
-  sites: ["Sitios", "Dónde está vivo el SDK, con el nombre del estudio. No hace falta memorizar números."],
-  usage: ["Actividad", "El pulso del negocio. Los gráficos salen de totales diarios, no de bajar toda la bitácora."],
-  events: ["Bitácora", "Cada gesto del SDK. 25 por página. Los crudos se guardan 90 días; los totales se quedan."],
-  loyalty: ["Lealtad", "Puntos en el Hub. Las cuentas se ven por estudio y alias, no por user_id."],
-  catalog: ["Widgets", "Lo que un sitio puede montar. El shortcode queda detrás del nombre."],
-};
+function pageCopy() {
+  if (state.view === "loyalty" && state.loyaltyMode === "studio") {
+    const name = selectedSite()?.name ?? "un estudio";
+    return [
+      `Lealtad · ${selectedSite()?.name ?? "Estudio"}`,
+      `Lo que vería el operador de ${name}: clientes, movimientos y cómo se ganan los puntos.`,
+    ];
+  }
+  if (state.view === "loyalty") {
+    return [
+      "Lealtad · Buq",
+      "La red. Estudios con programa, socios y puntos en circulación. Abre un estudio para ver la consola del operador.",
+    ];
+  }
+  return (
+    {
+      sites: ["Sitios", "Dónde está vivo el SDK, con el nombre del estudio. No hace falta memorizar números."],
+      usage: ["Actividad", "El pulso del negocio. Cada barra es un conteo aparte, no las mismas personas. Por defecto sin Replit ni localhost."],
+      events: ["Bitácora", "Cada gesto del SDK. 25 por página. Los crudos se guardan 90 días; los totales se quedan."],
+      catalog: ["Widgets", "Lo que un sitio puede montar. El shortcode queda detrás del nombre."],
+    }[state.view] ?? ["Hub", ""]
+  );
+}
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -61,14 +81,22 @@ function selectedSite() {
   return state.directory.sites.find((site) => site.key === state.siteKey) ?? null;
 }
 
+function siteForCompany(companyId) {
+  const matches = state.directory.sites.filter((site) => Number(site.company_id) === Number(companyId));
+  return matches.find((site) => site.env !== "dev") ?? matches[0] ?? null;
+}
+
 function siteParams() {
   const site = selectedSite();
+  const studioLocked = state.view === "loyalty" && state.loyaltyMode === "studio";
+  const network = state.view === "loyalty" && state.loyaltyMode === "buq";
   return {
-    company_id: site?.company_id ?? "",
-    host: site?.host ?? "",
+    company_id: network ? "" : site?.company_id ?? "",
+    host: network || studioLocked ? "" : site?.host ?? "",
     q: state.q,
     event: state.eventName,
     days: state.days,
+    env: state.traffic,
   };
 }
 
@@ -90,26 +118,49 @@ async function refresh() {
     state.loading = true;
     render();
     const params = siteParams();
-    const [directory, stats] = await Promise.all([api("/v1/admin/directory"), api("/v1/admin/stats")]);
+    const [directory, stats] = await Promise.all([
+      api(`/v1/admin/directory${qs({ env: state.traffic })}`),
+      api("/v1/admin/stats"),
+    ]);
     state.directory = directory;
     state.stats = stats;
+    if (state.siteKey && !selectedSite()) state.siteKey = "";
     if (state.view === "sites") {
       state.sites = await api(
         `/v1/admin/installations${qs({ ...params, page: state.pages.sites, per_page: 24 })}`,
       );
     } else if (state.view === "usage") {
-      state.funnel = await api(`/v1/admin/funnel${qs({ company_id: params.company_id, days: state.days })}`);
+      state.funnel = await api(
+        `/v1/admin/funnel${qs({ company_id: params.company_id, days: state.days, env: state.traffic })}`,
+      );
     } else if (state.view === "events") {
       state.events = await api(`/v1/admin/events${qs({ ...params, page: state.pages.events, per_page: 25 })}`);
     } else if (state.view === "loyalty") {
-      const [ranking, ledger, rules] = await Promise.all([
-        api(`/v1/admin/loyalty/ranking${qs({ company_id: params.company_id, page: state.pages.ranking, per_page: 20 })}`),
-        api(`/v1/admin/loyalty/ledger${qs({ company_id: params.company_id, page: state.pages.ledger, per_page: 25 })}`),
-        api(`/v1/admin/loyalty/rules${qs({ company_id: params.company_id || "0" })}`),
-      ]);
-      state.ranking = ranking;
-      state.ledger = ledger;
-      state.rules = rules.effective ?? [];
+      const overview = await api(`/v1/admin/loyalty/overview${qs({ env: state.traffic })}`);
+      state.loyaltyOverview = overview;
+      const studio = state.loyaltyMode === "studio" ? selectedSite() : null;
+      if (state.loyaltyMode === "studio" && !studio) {
+        state.ranking = { items: [], total: 0, page: 1, pages: 1 };
+        state.ledger = { items: [], total: 0, page: 1, pages: 1 };
+        state.rules = [];
+      } else {
+        const companyId = studio?.company_id ?? "";
+        const [ranking, ledger, rules] = await Promise.all([
+          api(
+            `/v1/admin/loyalty/ranking${qs({
+              company_id: companyId,
+              q: state.loyaltyMode === "studio" ? state.q : "",
+              page: state.pages.ranking,
+              per_page: state.loyaltyMode === "buq" ? 8 : 20,
+            })}`,
+          ),
+          api(`/v1/admin/loyalty/ledger${qs({ company_id: companyId, page: state.pages.ledger, per_page: 25 })}`),
+          api(`/v1/admin/loyalty/rules${qs({ company_id: companyId || "0" })}`),
+        ]);
+        state.ranking = ranking;
+        state.ledger = ledger;
+        state.rules = rules.effective ?? [];
+      }
     } else {
       const widgets = await api("/v1/widgets");
       state.widgets = widgets.widgets ?? [];
@@ -199,7 +250,7 @@ function icon(path) {
 }
 
 function renderApp() {
-  const [title, lede] = TITLES[state.view];
+  const [title, lede] = pageCopy();
   return h(
     "div",
     { class: "app" },
@@ -268,28 +319,63 @@ function navBtn(view, label, d) {
 }
 
 function renderFilters() {
-  const sites = [
-    h("option", { value: "" }, "Todos los estudios"),
-    ...state.directory.sites.map((site) => h("option", { value: site.key }, site.name)),
+  const studioOptions = [
+    h("option", { value: "" }, state.view === "loyalty" && state.loyaltyMode === "studio" ? "Elige un estudio" : "Todos los estudios"),
+    ...state.directory.sites.map((site) => h("option", { value: site.key }, site.env === "dev" ? `${site.name} · pruebas` : site.name)),
   ];
   const events = [
     h("option", { value: "" }, "Todos los gestos"),
     ...(state.directory.events ?? []).map((event) => h("option", { value: event.name }, event.label)),
   ];
+  const showStudio =
+    state.view !== "catalog" &&
+    !(state.view === "loyalty" && state.loyaltyMode === "buq");
+  const showSearch =
+    state.view === "sites" ||
+    state.view === "events" ||
+    (state.view === "loyalty" && state.loyaltyMode === "studio" && state.loyaltyTab === "clients");
   return h(
     "div",
     { class: "filters" },
-    h(
-      "select",
-      {
-        value: state.siteKey,
-        onChange: (event) => {
-          state.siteKey = event.target.value;
-          resetPages();
-        },
-      },
-      ...sites,
-    ),
+    state.view === "loyalty"
+      ? h(
+          "div",
+          { class: "seg mode" },
+          [
+            ["buq", "Buq"],
+            ["studio", "Estudio"],
+          ].map(([mode, label]) =>
+            h(
+              "button",
+              {
+                type: "button",
+                class: state.loyaltyMode === mode ? "active" : "",
+                onClick: () => {
+                  state.loyaltyMode = mode;
+                  state.loyaltyTab = "clients";
+                  resetPages();
+                  refresh();
+                },
+              },
+              label,
+            ),
+          ),
+        )
+      : null,
+    showStudio
+      ? h(
+          "select",
+          {
+            value: state.siteKey,
+            onChange: (event) => {
+              state.siteKey = event.target.value;
+              resetPages();
+              if (state.view === "loyalty") refresh();
+            },
+          },
+          ...studioOptions,
+        )
+      : null,
     state.view === "events"
       ? h(
           "select",
@@ -323,14 +409,44 @@ function renderFilters() {
           ),
         )
       : null,
-    state.view === "sites" || state.view === "events"
+    showSearch
       ? h("input", {
-          placeholder: state.view === "events" ? "Sitio, nombre o correo" : "Buscar sitio o página",
+          placeholder:
+            state.view === "loyalty"
+              ? "Nombre o correo"
+              : state.view === "events"
+                ? "Sitio, nombre o correo"
+                : "Buscar sitio o página",
           value: state.q,
           onChange: (event) => {
             state.q = event.target.value;
           },
         })
+      : null,
+    state.view !== "catalog"
+      ? h(
+          "div",
+          { class: "seg" },
+          [
+            ["prod", "Producción"],
+            ["dev", "Pruebas"],
+            ["all", "Todo"],
+          ].map(([value, label]) =>
+            h(
+              "button",
+              {
+                type: "button",
+                class: state.traffic === value ? "active" : "",
+                onClick: () => {
+                  state.traffic = value;
+                  resetPages();
+                  refresh();
+                },
+              },
+              label,
+            ),
+          ),
+        )
       : null,
     h(
       "button",
@@ -398,7 +514,7 @@ function siteCard(row) {
     h(
       "div",
       {},
-      h("h3", {}, name),
+      h("h3", {}, name, row.env === "dev" ? h("span", { class: "tag dev" }, "Pruebas") : null),
       h("div", { class: "where" }, `${row.host} · ${pages.length || 1} ${pages.length === 1 ? "página" : "páginas"}`),
       h(
         "div",
@@ -463,16 +579,29 @@ function renderUsage() {
       { class: "panel", style: "padding:22px" },
       h("h3", {}, `Embudo · ${state.funnel.days ?? state.days} días`),
       h(
+        "p",
+        { class: "muted funnel-note" },
+        state.funnel.note ||
+          "Cada barra es un conteo independiente, no las mismas personas. El % es sobre quienes vieron el calendario. Un paso puede ser más alto que el anterior (por eso a veces ves más de 100%).",
+      ),
+      h(
         "div",
         { class: "funnel" },
-        steps.map((step) =>
+        steps.map((step, index) =>
           h(
             "div",
             { class: "funnel-row" },
             h("div", {}, step.label),
             h("div", { class: "bar" }, h("span", { style: `width:${Math.round((step.count / max) * 100)}%` })),
             h("b", {}, fmt(step.count)),
-            h("div", { class: "conv" }, step.conversion ? `${step.conversion}%` : "—"),
+            h(
+              "div",
+              { class: `conv${step.from_previous > 100 ? " over" : ""}` },
+              index === 0 ? "base" : step.share != null ? `${step.share}%` : "—",
+              step.from_previous > 100
+                ? h("span", { class: "sub" }, `${step.from_previous}% vs anterior`)
+                : null,
+            ),
           ),
         ),
       ),
@@ -508,8 +637,192 @@ function renderEvents() {
 }
 
 function renderLoyalty() {
+  return state.loyaltyMode === "studio" ? renderStudioLoyalty() : renderBuqLoyalty();
+}
+
+function openStudio(companyId) {
+  const site = siteForCompany(companyId);
+  state.loyaltyMode = "studio";
+  state.loyaltyTab = "clients";
+  state.siteKey = site?.key ?? "";
+  state.q = "";
+  resetPages();
+  refresh();
+}
+
+function renderBuqLoyalty() {
+  const totals = state.loyaltyOverview.totals ?? {};
+  const studios = state.loyaltyOverview.studios ?? [];
+  const ranking = state.ranking.items ?? state.ranking.ranking ?? [];
+  return h(
+    "div",
+    { class: "stack" },
+    h(
+      "div",
+      { class: "grid" },
+      stat("Estudios", totals.studios ?? studios.length, "con programa"),
+      stat("Socios", totals.members ?? 0, "cuentas con puntos"),
+      stat("En circulación", `${fmt(totals.points ?? 0)} pts`, "saldo vivo de la red"),
+      stat("Movimientos", totals.movements ?? 0, "en el ledger"),
+    ),
+    h("h3", {}, "Por estudio"),
+    studios.length
+      ? table(
+          ["Estudio", "Socios", "Puntos", "Emitidos", "Niveles", ""],
+          studios.map((row) => [
+            h(
+              "div",
+              { class: "who" },
+              h("div", { class: "what" }, row.name, row.env === "dev" ? h("span", { class: "tag dev" }, "Pruebas") : null),
+              h("span", { class: "sub" }, row.host || "sin sitio público"),
+            ),
+            fmt(row.members),
+            h("b", { class: "tier-gold" }, fmt(row.points)),
+            fmt(row.issued),
+            h("span", { class: "sub" }, `${row.gold} Gold · ${row.silver} Silver · ${row.bronze} Bronze`),
+            h(
+              "button",
+              {
+                class: "btn ghost compact",
+                type: "button",
+                onClick: () => openStudio(row.company_id),
+              },
+              "Abrir",
+            ),
+          ]),
+        )
+      : empty("Nadie tiene programa todavía", "Cuando un estudio sume puntos, aparece aquí para que lo abras."),
+    ranking.length
+      ? h(
+          "div",
+          { class: "stack" },
+          h("h3", {}, "Top de la red"),
+          ranking.slice(0, 8).map((row, index) =>
+            h(
+              "div",
+              { class: "leader" },
+              h("div", { class: "rank" }, index + 1),
+              avatar(row.name),
+              h(
+                "div",
+                {},
+                h("b", {}, row.name),
+                h("span", { class: "sub" }, [row.email, row.studio || row.site, row.tier?.label].filter(Boolean).join(" · ")),
+              ),
+              h("div", { class: `pts tier-${row.tier?.id ?? "bronze"}` }, fmt(row.points)),
+            ),
+          ),
+        )
+      : null,
+    h("h3", {}, "Programa de la red"),
+    renderRules("Así ganan puntos los clientes en cualquier estudio, salvo que el operador ponga las suyas."),
+  );
+}
+
+function renderStudioLoyalty() {
+  const site = selectedSite();
+  if (!site) {
+    const studios = state.loyaltyOverview.studios ?? [];
+    return h(
+      "div",
+      { class: "stack" },
+      empty("Elige el estudio", "Esta consola es la de un operador: clientes, ledger y reglas de su marca. No es la vista de toda la red."),
+      studios.length
+        ? h(
+            "div",
+            { class: "studio-pick" },
+            studios.map((row) =>
+              h(
+                "button",
+                {
+                  class: "studio-pick-card",
+                  type: "button",
+                  onClick: () => openStudio(row.company_id),
+                },
+                avatar(row.name),
+                h(
+                  "div",
+                  {},
+                  h("b", {}, row.name),
+                  h("span", { class: "sub" }, `${fmt(row.members)} socios · ${fmt(row.points)} pts`),
+                ),
+              ),
+            ),
+          )
+        : null,
+    );
+  }
+
   const ranking = state.ranking.items ?? state.ranking.ranking ?? [];
   const ledger = state.ledger.items ?? state.ledger.ledger ?? [];
+  const studioRow = (state.loyaltyOverview.studios ?? []).find(
+    (row) => Number(row.company_id) === Number(site.company_id),
+  );
+  const top = ranking[0];
+  return h(
+    "div",
+    { class: "stack" },
+    h(
+      "div",
+      { class: "op-head" },
+      h(
+        "div",
+        {},
+        h("div", { class: "kicker" }, site.host || "estudio"),
+        h("h3", { class: "op-title" }, `Clientes de ${site.name}`),
+      ),
+      h(
+        "button",
+        {
+          class: "btn ghost compact",
+          type: "button",
+          onClick: () => {
+            state.loyaltyMode = "buq";
+            refresh();
+          },
+        },
+        "Volver a la red",
+      ),
+    ),
+    h(
+      "div",
+      { class: "grid" },
+      stat("Socios", state.ranking.total ?? ranking.length, "con puntos"),
+      stat("Puntos", `${fmt(studioRow?.points ?? ranking.reduce((sum, row) => sum + Number(row.points || 0), 0))} pts`, "en circulación"),
+      stat("Movimientos", state.ledger.total ?? ledger.length, "en el ledger"),
+      stat("Top", top ? `${fmt(top.points)} pts` : "—", top?.name ?? "sin ranking"),
+    ),
+    h(
+      "div",
+      { class: "seg tabs" },
+      [
+        ["clients", "Clientes"],
+        ["ledger", "Movimientos"],
+        ["program", "Programa"],
+      ].map(([tab, label]) =>
+        h(
+          "button",
+          {
+            type: "button",
+            class: state.loyaltyTab === tab ? "active" : "",
+            onClick: () => {
+              state.loyaltyTab = tab;
+              render();
+            },
+          },
+          label,
+        ),
+      ),
+    ),
+    state.loyaltyTab === "clients"
+      ? renderStudioClients(ranking)
+      : state.loyaltyTab === "ledger"
+        ? renderStudioLedger(ledger)
+        : renderStudioProgram(),
+  );
+}
+
+function renderStudioClients(ranking) {
   const people = ranking.map((row) =>
     h(
       "option",
@@ -520,51 +833,34 @@ function renderLoyalty() {
   return h(
     "div",
     { class: "stack" },
-    h(
-      "div",
-      { class: "grid" },
-      stat("Cuentas", state.ranking.total ?? ranking.length, "con puntos"),
-      stat("Movimientos", state.ledger.total ?? ledger.length, "en el ledger"),
-      stat("Reglas", state.rules.length, "qué suma y qué resta"),
-      stat("Top", ranking[0] ? `${fmt(ranking[0].points)} pts` : "—", ranking[0]?.name ?? "sin ranking"),
-    ),
-    h("h3", {}, "Ranking"),
-    ranking.length
-      ? h(
+    table(
+      ["Cliente", "Sitio", "Nivel", "Puntos", "Actividad"],
+      ranking.map((row) => [
+        h(
           "div",
-          { class: "stack" },
-          ranking.map((row, index) =>
-            h(
-              "div",
-              { class: "leader" },
-              h("div", { class: "rank" }, rankLabel(state.ranking, index)),
-              avatar(row.name),
-              h(
-                "div",
-                {},
-                h("b", {}, row.name),
-                h("span", { class: "sub" }, [row.email, row.site, row.tier?.label].filter(Boolean).join(" · ")),
-              ),
-              h("div", { class: `pts tier-${row.tier?.id ?? "bronze"}` }, fmt(row.points)),
-            ),
-          ),
-        )
-      : empty("Nadie tiene puntos todavía", "Cuando alguien se registre o reserve con cuenta, aparece aquí."),
+          { class: "who" },
+          h("div", { class: "what" }, row.name),
+          h("span", { class: "sub" }, row.email || `Alias ${row.alias || ""}`.trim()),
+        ),
+        row.site || row.host || selectedSite()?.host || "—",
+        h("span", { class: `pill tier-${row.tier?.id ?? "bronze"}` }, row.tier?.label ?? "Bronze"),
+        h("b", { class: `tier-${row.tier?.id ?? "bronze"}` }, fmt(row.points)),
+        relTime(row.updated_at || row.last_seen_at),
+      ]),
+      "Nadie de este estudio tiene puntos todavía.",
+    ),
     pager(state.ranking, (page) => {
       state.pages.ranking = page;
       refresh();
     }),
-    h("h3", {}, "Ajuste"),
+    h("h3", {}, "Ajuste del operador"),
     h(
       "form",
-      {
-        class: "grant",
-        onSubmit: onGrant,
-      },
+      { class: "grant", onSubmit: onGrant },
       h(
         "label",
         {},
-        "Cuenta",
+        "Cliente",
         h(
           "select",
           {
@@ -573,7 +869,7 @@ function renderLoyalty() {
               state.grantPerson = event.target.value;
             },
           },
-          h("option", { value: "" }, ranking.length ? "Elige a alguien del ranking" : "No hay cuentas aún"),
+          h("option", { value: "" }, ranking.length ? "Elige un cliente" : "No hay clientes aún"),
           ...people,
         ),
       ),
@@ -602,7 +898,45 @@ function renderLoyalty() {
       ),
       h("button", { class: "btn", type: "submit" }, "Sumar"),
     ),
-    h("h3", {}, "Cómo se ganan"),
+  );
+}
+
+function renderStudioLedger(ledger) {
+  return h(
+    "div",
+    { class: "stack" },
+    table(
+      ["Cuándo", "Cliente", "Qué", "Puntos"],
+      ledger.map((row) => [
+        h("div", {}, relTime(row.ts), h("span", { class: "sub" }, absTime(row.ts))),
+        h("div", {}, row.person || "Cuenta", row.person_email ? h("span", { class: "sub" }, row.person_email) : null),
+        row.event_label || row.event_name,
+        h("b", { class: Number(row.points) < 0 ? "tier-bronze" : "tier-gold" }, `${Number(row.points) > 0 ? "+" : ""}${row.points}`),
+      ]),
+      "El ledger de este estudio está quieto.",
+    ),
+    pager(state.ledger, (page) => {
+      state.pages.ledger = page;
+      refresh();
+    }),
+  );
+}
+
+function renderStudioProgram() {
+  return h(
+    "div",
+    { class: "stack" },
+    h("p", { class: "muted" }, "Así ganan o pierden puntos los clientes de este estudio. Las reglas de la red aplican si el estudio no puso las suyas."),
+    renderRules(),
+  );
+}
+
+function renderRules(note) {
+  if (!state.rules.length) return empty("Sin reglas", "El programa todavía no tiene eventos que sumen o resten.");
+  return h(
+    "div",
+    { class: "stack" },
+    note ? h("p", { class: "muted" }, note) : null,
     h(
       "div",
       { class: "rules" },
@@ -612,26 +946,14 @@ function renderLoyalty() {
           { class: "rule" },
           h("div", { class: "muted" }, row.event_label || row.label || row.event_name),
           h("b", {}, `${row.points > 0 ? "+" : ""}${row.points} pts`),
-          h("div", { class: "muted" }, row.once_per_user ? "Una vez por cuenta" : row.daily_cap ? `Hasta ${row.daily_cap} al día` : row.scope),
+          h(
+            "div",
+            { class: "muted" },
+            row.once_per_user ? "Una vez por cuenta" : row.daily_cap ? `Hasta ${row.daily_cap} al día` : row.scope,
+          ),
         ),
       ),
     ),
-    h("h3", {}, "Movimientos"),
-    table(
-      ["Cuándo", "Quién", "Sitio", "Qué", "Puntos"],
-      ledger.map((row) => [
-        relTime(row.ts),
-        h("div", {}, row.person || "Cuenta", row.person_email ? h("span", { class: "sub" }, row.person_email) : null),
-        row.site || row.studio || "—",
-        row.event_label || row.event_name,
-        h("b", { class: Number(row.points) < 0 ? "tier-bronze" : "tier-gold" }, `${Number(row.points) > 0 ? "+" : ""}${row.points}`),
-      ]),
-      "El ledger está quieto.",
-    ),
-    pager(state.ledger, (page) => {
-      state.pages.ledger = page;
-      refresh();
-    }),
   );
 }
 
