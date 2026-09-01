@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CheckoutConfig, GafaClient, Meeting } from "../client/types";
 import type { GafaPayIsland, GafaPayWidgetProps } from "../payments/gafaPay";
-import { CheckoutModal } from "../widgets/CheckoutModal";
+import { CheckoutModal, PAYPAL_CLOSE_HOLD_MS } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
 import { reservateRetryWait } from "./reservateRetry";
 
@@ -734,7 +734,7 @@ describe("CheckoutModal PayPal CTA", () => {
     });
   }
 
-  it("el CTA de la derecha abre PayPal y si se cierra vuelve a Pagar", async () => {
+  it("cerrar la ventana de PayPal no suelta Pagar: espera a GafaPay", async () => {
     const popup = { closed: false };
     const originalOpen = window.open;
     window.open = () => popup as Window;
@@ -750,6 +750,12 @@ describe("CheckoutModal PayPal CTA", () => {
     });
 
     popup.closed = true;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(screen.getByRole("button", { name: /esperando paypal/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /pagar \$/i })).toBeNull();
+
+    lastPaypalProps?.onGafaPayErrAction({ message: "Se canceló el pago con PayPal." });
 
     await waitFor(() => {
       const button = screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement;
@@ -759,6 +765,95 @@ describe("CheckoutModal PayPal CTA", () => {
     expect(screen.queryByText(/gracias por tu compra/i)).toBeNull();
 
     window.open = originalOpen;
+  });
+
+  it("durante el hold, un segundo clic no abre otro PayPal", async () => {
+    const popup = { closed: false };
+    const originalOpen = window.open;
+    window.open = () => popup as Window;
+    const initXO = (window as unknown as { paypal: { checkout: { initXO: ReturnType<typeof vi.fn> } } })
+      .paypal.checkout.initXO;
+
+    renderPay(paypalOnlyClient());
+    const pay = await waitFor(() => screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement);
+    await waitFor(() => expect(pay.disabled).toBe(false));
+
+    fireEvent.click(pay);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /esperando paypal/i })).toBeTruthy();
+    });
+    expect(initXO).toHaveBeenCalledTimes(1);
+
+    popup.closed = true;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(document.querySelector(".gafa-checkout-paymount")?.getAttribute("data-busy")).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: /esperando paypal/i }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(initXO).toHaveBeenCalledTimes(1);
+
+    window.open = originalOpen;
+  });
+
+  it("si PayPal cierra y GafaPay confirma, registra una sola compra", async () => {
+    const popup = { closed: false };
+    const originalOpen = window.open;
+    window.open = () => popup as Window;
+    const client = paypalOnlyClient();
+
+    renderPay(client);
+    const pay = await waitFor(() => screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement);
+    await waitFor(() => expect(pay.disabled).toBe(false));
+
+    fireEvent.click(pay);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /esperando paypal/i })).toBeTruthy();
+    });
+
+    popup.closed = true;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(screen.getByRole("button", { name: /esperando paypal/i })).toBeTruthy();
+
+    lastPaypalProps?.onGafaPaySuccessAction({ message: "NDk0MTE4X3x8X2NoXzNVNXJZ" });
+
+    await waitFor(() => {
+      expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    });
+    expect(client.reservatePurchase).toHaveBeenCalledTimes(1);
+
+    window.open = originalOpen;
+  });
+
+  it("si GafaPay no contesta, el hold suelta Pagar sin otro cargo", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const popup = { closed: false };
+    const originalOpen = window.open;
+    window.open = () => popup as Window;
+
+    try {
+      renderPay(paypalOnlyClient());
+      const pay = await waitFor(() => screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement);
+      await waitFor(() => expect(pay.disabled).toBe(false));
+
+      fireEvent.click(pay);
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /esperando paypal/i })).toBeTruthy();
+      });
+
+      popup.closed = true;
+      await vi.advanceTimersByTimeAsync(400);
+      expect(screen.getByRole("button", { name: /esperando paypal/i })).toBeTruthy();
+
+      await vi.advanceTimersByTimeAsync(PAYPAL_CLOSE_HOLD_MS);
+      await waitFor(() => {
+        const button = screen.getByRole("button", { name: /pagar \$/i }) as HTMLButtonElement;
+        expect(button.disabled).toBe(false);
+      });
+      expect(screen.queryByText(/gracias por tu compra/i)).toBeNull();
+    } finally {
+      window.open = originalOpen;
+      vi.useRealTimers();
+    }
   });
 
   it("si GafaPay cancela PayPal, el CTA vuelve a Pagar", async () => {

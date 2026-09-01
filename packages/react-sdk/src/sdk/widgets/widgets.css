@@ -6130,7 +6130,8 @@
   cursor: pointer;
 }
 
-.gafa-checkout-paymount[data-method="paypal"][data-locked="true"] .gafa-pay-native {
+.gafa-checkout-paymount[data-method="paypal"][data-locked="true"] .gafa-pay-native,
+.gafa-checkout-paymount[data-method="paypal"][data-busy="true"] .gafa-pay-native {
   opacity: 0.45;
   pointer-events: none;
 }

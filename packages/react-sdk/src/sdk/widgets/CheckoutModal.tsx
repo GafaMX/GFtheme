@@ -67,6 +67,12 @@ import {
 } from "../cart/membershipPayOptions";
 import { CloseIcon } from "./sdkIcons";
 
+/**
+ * PayPal cierra la ventana tanto al pagar como al cancelar. Si soltamos el CTA
+ * al instante, el socio pica otra vez y salen ráfagas de compras Pendiente.
+ */
+export const PAYPAL_CLOSE_HOLD_MS = 8_000;
+
 /** GafaPay ya cobró; reintentar "Pagar" haría un segundo cargo. */
 export const CHARGED_BUT_NOT_RECORDED =
   "Tu tarjeta ya fue cobrada, pero Buq no registró la compra. No vuelvas a pagar. Pulsa «Registrar compra» para reintentar el registro sin otro cargo.";
@@ -228,6 +234,8 @@ export function CheckoutModal({
   const hostedAbortRef = useRef<AbortController | null>(null);
   const hostedSettledRef = useRef(false);
   const stopPopupWatchRef = useRef<(() => void) | null>(null);
+  const paypalFlowRef = useRef(false);
+  const paypalHoldTimerRef = useRef(0);
   const giftCheckSeq = useRef(0);
   const giftTypingRef = useRef(false);
   const giftValidateRef = useRef<
@@ -627,6 +635,7 @@ export function CheckoutModal({
     return () => {
       hostedAbortRef.current?.abort();
       stopPopupWatchRef.current?.();
+      if (paypalHoldTimerRef.current) window.clearTimeout(paypalHoldTimerRef.current);
     };
   }, []);
 
@@ -772,6 +781,11 @@ export function CheckoutModal({
     // Paridad con el fancy v1: `ht.payment_data = e.message` y luego
     // BuySystemStep POSTea a `/reservate` (paymentByCard / paymentByToken).
     hostedSettledRef.current = true;
+    paypalFlowRef.current = false;
+    if (paypalHoldTimerRef.current) {
+      window.clearTimeout(paypalHoldTimerRef.current);
+      paypalHoldTimerRef.current = 0;
+    }
     stopPopupWatchRef.current?.();
     stopPopupWatchRef.current = null;
     const recurring = Boolean(result.recurringPayment);
@@ -883,6 +897,11 @@ export function CheckoutModal({
 
   function releaseHostedWait() {
     if (hostedSettledRef.current) return;
+    if (paypalHoldTimerRef.current) {
+      window.clearTimeout(paypalHoldTimerRef.current);
+      paypalHoldTimerRef.current = 0;
+    }
+    paypalFlowRef.current = false;
     hostedAbortRef.current?.abort();
     hostedAbortRef.current = null;
     stopPopupWatchRef.current?.();
@@ -890,11 +909,26 @@ export function CheckoutModal({
     setPaying(false);
   }
 
+  function onHostedPopupClosed() {
+    if (hostedSettledRef.current) return;
+    // PayPal: la ventana se cierra al pagar. Esperamos onAuthorize/onCancel.
+    if (paypalFlowRef.current) {
+      if (paypalHoldTimerRef.current) window.clearTimeout(paypalHoldTimerRef.current);
+      paypalHoldTimerRef.current = window.setTimeout(() => {
+        paypalHoldTimerRef.current = 0;
+        if (hostedSettledRef.current || chargedRef.current) return;
+        releaseHostedWait();
+      }, PAYPAL_CLOSE_HOLD_MS);
+      return;
+    }
+    releaseHostedWait();
+  }
+
   function startHostedPopupWatch(options?: { missMs?: number; missMessage?: string }) {
     if (stopPopupWatchRef.current) return;
     hostedSettledRef.current = false;
     stopPopupWatchRef.current = watchNextPopup(() => {
-      releaseHostedWait();
+      onHostedPopupClosed();
     }, options?.missMs
       ? {
           missMs: options.missMs,
@@ -950,11 +984,15 @@ export function CheckoutModal({
       setPayError("El formulario de pago todavía no está listo.");
       return;
     }
+    if (paypalFlowRef.current && selectedMethod?.slug === "paypal" && !registerOnly) {
+      return;
+    }
     setPayError(undefined);
     setPaying(true);
     if (selectedMethod?.slug === "recurrente") {
       startHostedPopupWatch();
     } else if (selectedMethod?.slug === "paypal") {
+      paypalFlowRef.current = true;
       startHostedPopupWatch({
         missMs: 4000,
         missMessage: "No pudimos abrir PayPal. Intenta de nuevo.",
@@ -964,6 +1002,7 @@ export function CheckoutModal({
     try {
       const triggered = await triggerGafaPayConfirm(selectedMethod?.slug ?? "");
       if (!triggered) {
+        paypalFlowRef.current = false;
         stopPopupWatchRef.current?.();
         stopPopupWatchRef.current = null;
         setPaying(false);
@@ -976,6 +1015,7 @@ export function CheckoutModal({
         );
       }
     } catch (err) {
+      paypalFlowRef.current = false;
       setPaying(false);
       const raw = err instanceof Error ? err.message : "";
       setPayError(
@@ -1242,11 +1282,13 @@ export function CheckoutModal({
                   onHostedClose={releaseHostedWait}
                   onStart={() => {
                     setPaying(true);
+                    if (selectedMethod?.slug === "paypal") paypalFlowRef.current = true;
                     if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
                       startHostedPopupWatch();
                     }
                   }}
                   onReadyChange={setPaymentReady}
+                  paypalBusy={selectedMethod?.slug === "paypal" && paying}
                   paypalLocked={selectedMethod?.slug === "paypal" && waitingOnTerms}
                   onPaypalLockedClick={() => {
                     setTermsPromptOpen(true);
@@ -1257,6 +1299,11 @@ export function CheckoutModal({
                       releaseHostedWait();
                       setPayError(undefined);
                       return;
+                    }
+                    paypalFlowRef.current = false;
+                    if (paypalHoldTimerRef.current) {
+                      window.clearTimeout(paypalHoldTimerRef.current);
+                      paypalHoldTimerRef.current = 0;
                     }
                     setPaying(false);
                     setPayError(message);
@@ -1726,6 +1773,7 @@ function PayPanel({
   onReadyChange,
   onError,
   payCta,
+  paypalBusy,
   paypalLocked,
   onPaypalLockedClick,
   membershipOptions,
@@ -1752,6 +1800,7 @@ function PayPanel({
     disabled: boolean;
     onClick: () => void;
   };
+  paypalBusy?: boolean;
   paypalLocked?: boolean;
   onPaypalLockedClick?: () => void;
   membershipOptions?: {
@@ -1954,6 +2003,7 @@ function PayPanel({
         data-state={loadState}
         data-method={slug || undefined}
         data-membership={membershipOptions ? "true" : undefined}
+        data-busy={slug === "paypal" && paypalBusy ? "true" : undefined}
         data-locked={slug === "paypal" && paypalLocked ? "true" : undefined}
         onClick={
           slug === "paypal" && paypalLocked
