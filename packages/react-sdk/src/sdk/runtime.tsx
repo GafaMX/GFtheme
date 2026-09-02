@@ -23,8 +23,17 @@ import { useCartStore } from "./cart/cartStore";
 import { prefetchCheckoutCatalog } from "./cart/checkoutCatalog";
 import { setGafaPayFrontUrl } from "./payments/gafaPay";
 import { ImagesProvider } from "./images/ImagesProvider";
+import { ensureFancySibling } from "./concierge/adapter";
+import {
+  ConciergeHost,
+  createConciergeController,
+  resolveConciergeConfig,
+  type ConciergeHandle,
+  type ConciergeMountOptions,
+} from "./concierge/mount";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
+import "./concierge/concierge.css";
 
 export type GafaSdk = {
   config: GafaSdkConfig;
@@ -59,8 +68,15 @@ export type GafaSdk = {
    * data-gf-combo-id / data-gf-membership-id / data-gf-product-id).
    */
   enablePurchaseButtons(root?: Document | Element): () => void;
+  /** Monta Concierge como capability nativa: command bar + chat, aislado por socio. */
+  mountConcierge(options: ConciergeMountOptions): ConciergeHandle;
+  concierge: {
+    mount(options: ConciergeMountOptions): ConciergeHandle;
+  };
   unmountAll(): void;
 };
+
+export type { ConciergeHandle, ConciergeMountOptions };
 
 export type AccountModalOptions = Omit<AccountModalProps, "client" | "captcha" | "open" | "onClose">;
 export type CheckoutOptions = Omit<CheckoutModalProps, "client" | "onClose">;
@@ -194,6 +210,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   // con la sesion, y pueden haberse cacheado antes de autenticar.
   subscribeToAuthChanges(() => queryClient.invalidateQueries());
   const mounts = new Set<MountedWidget>();
+  const conciergeHosts = new Set<HTMLElement>();
   prefetchCheckoutCatalog(queryClient, client);
   const unsubCartWarm = useCartStore.subscribe(() => {
     prefetchCheckoutCatalog(queryClient, client);
@@ -429,6 +446,55 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         }
       });
     },
+    mountConcierge(options) {
+      return sdk.concierge.mount(options);
+    },
+    concierge: {
+      mount(options) {
+        const config = resolveConciergeConfig(options);
+        const parent = options.container ? resolveTarget(options.container) : document.body;
+        const host = document.createElement("div");
+        host.setAttribute("data-gafa-concierge", config.id);
+        parent.appendChild(host);
+        conciergeHosts.add(host);
+        ensureFancySibling();
+
+        const controller = createConciergeController();
+        const mounted = mount(
+          host,
+          <ConciergeHost
+            config={config}
+            sdk={sdk}
+            controller={controller}
+            webview={options.webview}
+            navigate={options.navigate}
+            resolveHardPath={options.resolveHardPath}
+            ask={options.ask}
+            apiBaseUrl={options.apiBaseUrl}
+            collapsedByDefault={options.collapsedByDefault}
+            extraAction={options.extraAction}
+          />,
+        );
+        events.emit("buq:sdk:mounted", { widget: "concierge", partnerId: config.id });
+
+        const handle: ConciergeHandle = {
+          open() {
+            controller.open();
+          },
+          close() {
+            controller.close();
+          },
+          destroy() {
+            handle.close();
+            mounted.unmount();
+            host.remove();
+            conciergeHosts.delete(host);
+            events.emit("buq:sdk:unmounted", { widget: "concierge", partnerId: config.id });
+          },
+        };
+        return handle;
+      },
+    },
     enablePurchaseButtons(root) {
       purchaseButtonsStop?.();
 
@@ -470,6 +536,8 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       activeAccount = null;
       activeReservation = null;
       Array.from(mounts).forEach((mounted) => mounted.unmount());
+      conciergeHosts.forEach((host) => host.remove());
+      conciergeHosts.clear();
       queryClient.clear();
     }
   };

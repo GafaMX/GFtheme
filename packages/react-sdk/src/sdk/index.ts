@@ -12,6 +12,8 @@ export type {
   MountedWidget,
   ReservationOptions,
   RuntimeOptions,
+  ConciergeHandle,
+  ConciergeMountOptions,
 } from "./runtime";
 export { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 export type { PurchaseIntent, ReserveIntent } from "./cart/purchaseButtons";
