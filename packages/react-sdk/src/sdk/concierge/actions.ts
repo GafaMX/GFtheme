@@ -168,9 +168,10 @@ export async function executeConciergeAction(
       };
 
     default:
+      const unsupported = action as unknown as { type: ConciergeAction["type"] };
       return {
         status: "blocked",
-        action: action.type,
+        action: unsupported.type,
         error: fail("unsupported_action", `Unsupported action ${(action as { type: string }).type}`),
       };
   }
