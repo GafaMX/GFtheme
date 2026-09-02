@@ -2,7 +2,12 @@ export { createGafaSdk } from "./runtime";
 export type {
   AccountModalOptions,
   CheckoutOptions,
+  CheckoutOpenContext,
+  CheckoutOpenHandle,
   GafaSdk,
+  GafaSdkEvent,
+  GafaSdkEventListener,
+  GafaSdkEventName,
   HeaderControlsMountProps,
   MountedWidget,
   ReservationOptions,

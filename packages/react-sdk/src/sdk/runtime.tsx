@@ -29,6 +29,8 @@ import "./widgets/widgets.css";
 export type GafaSdk = {
   config: GafaSdkConfig;
   client: GafaClient;
+  on(eventName: GafaSdkEventName | string, listener: GafaSdkEventListener): () => void;
+  emit(eventName: GafaSdkEventName | string, detail?: unknown): void;
   mountCalendar(target: string | Element, props?: CalendarWidgetProps): MountedWidget;
   mountAuth(target: string | Element, props?: AuthWidgetProps): MountedWidget;
   mountCatalog(target: string | Element, props?: CatalogWidgetProps): MountedWidget;
@@ -43,13 +45,15 @@ export type GafaSdk = {
   /** Abre la cuenta (login o perfil) en un popup sobre la pagina actual. */
   openAccount(props?: AccountModalOptions): { close(): void };
   /** Abre el checkout (carrito + pago) sobre la pagina actual. */
-  openCheckout(props?: CheckoutOptions): { close(): void };
+  openCheckout(props?: CheckoutOptions): CheckoutOpenHandle;
   /**
    * Abre la reserva de UNA clase por id, igual que un clic en el calendario:
    * login si hace falta, detalle con mapa y creditos, y checkout si no hay con
    * que pagarla.
    */
-  openReservation(props: ReservationOptions): { close(): void };
+  openReservation(props: ReservationOptions): CheckoutOpenHandle;
+  /** Variante promise-friendly para integraciones externas como Concierge. */
+  openReservationCheckout(props: ReservationOptions): Promise<CheckoutOpenHandle>;
   /**
    * Activa los botones de compra en HTML plano ([data-gf-buy] con
    * data-gf-combo-id / data-gf-membership-id / data-gf-product-id).
@@ -76,12 +80,83 @@ export type RuntimeOptions = {
   useMockClient?: boolean;
 };
 
+export type GafaSdkEventName =
+  | "buq:sdk:mounted"
+  | "buq:sdk:unmounted"
+  | "buq:checkout:opening"
+  | "buq:checkout:opened"
+  | "buq:checkout:closed"
+  | "buq:checkout:error";
+
+export type GafaSdkEvent<TDetail = unknown> = {
+  type: GafaSdkEventName | string;
+  detail: TDetail;
+};
+
+export type GafaSdkEventListener<TDetail = unknown> = (event: GafaSdkEvent<TDetail>) => void;
+
+export type CheckoutOpenContext = {
+  kind: "checkout" | "reservation";
+  brandSlug?: string;
+  locationSlug?: string;
+  locationId?: string | number;
+  meetingId?: string | number;
+  preselect?: CheckoutOptions["preselect"];
+};
+
+export type CheckoutOpenHandle = {
+  type: CheckoutOpenContext["kind"];
+  context: CheckoutOpenContext;
+  close(): void;
+};
+
 /** Un solo fancy a la vez: dos instancias del SDK (React StrictMode, cambio
  *  de tema) no deben apilar overlays oscuros. */
 let activeCheckout: { close(): void } | null = null;
 let activeAccount: { close(): void } | null = null;
 let activeReservation: { close(): void } | null = null;
 let purchaseButtonsStop: (() => void) | null = null;
+
+function createEventBus() {
+  const listeners = new Map<string, Set<GafaSdkEventListener>>();
+
+  return {
+    on(eventName: string, listener: GafaSdkEventListener) {
+      const bucket = listeners.get(eventName) ?? new Set<GafaSdkEventListener>();
+      bucket.add(listener);
+      listeners.set(eventName, bucket);
+
+      return () => {
+        bucket.delete(listener);
+        if (bucket.size === 0) listeners.delete(eventName);
+      };
+    },
+    emit(eventName: string, detail?: unknown) {
+      const event = { type: eventName, detail };
+      listeners.get(eventName)?.forEach((listener) => listener(event));
+
+      if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+        if (typeof window.CustomEvent === "function") {
+          window.dispatchEvent(new window.CustomEvent(eventName, { detail }));
+          return;
+        }
+
+        const domEvent = document.createEvent("CustomEvent");
+        domEvent.initCustomEvent(eventName, false, false, detail);
+        window.dispatchEvent(domEvent);
+      }
+    },
+  };
+}
+
+function afterOverlayPaint(callback: () => void) {
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => callback());
+    return;
+  }
+
+  queueMicrotask(callback);
+}
 
 function checkoutFromCart(): CheckoutOptions {
   const { lines } = useCartStore.getState();
@@ -102,6 +177,7 @@ function silenceLegacyFancy() {
 
 export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions = {}): GafaSdk {
   const config = parseSdkConfig(input);
+  const events = createEventBus();
   configureTokenStorage(config.apiBaseUrl);
   setGafaPayFrontUrl(config.gafaPayFrontUrl);
   const client = options.client ?? createClient(config, options);
@@ -154,17 +230,31 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   const sdk: GafaSdk = {
     config,
     client,
+    on(eventName, listener) {
+      return events.on(eventName, listener);
+    },
+    emit(eventName, detail) {
+      events.emit(eventName, detail);
+    },
     mountCalendar(target, props = {}) {
-      return mount(target, <CalendarWidget client={client} captcha={captcha} {...props} />);
+      const mounted = mount(target, <CalendarWidget client={client} captcha={captcha} {...props} />);
+      events.emit("buq:sdk:mounted", { widget: "calendar" });
+      return mounted;
     },
     mountAuth(target, props = {}) {
-      return mount(target, <AuthWidget client={client} captcha={captcha} {...props} />);
+      const mounted = mount(target, <AuthWidget client={client} captcha={captcha} {...props} />);
+      events.emit("buq:sdk:mounted", { widget: "auth" });
+      return mounted;
     },
     mountCatalog(target, props = {}) {
-      return mount(target, <CatalogWidget client={client} {...props} />);
+      const mounted = mount(target, <CatalogWidget client={client} {...props} />);
+      events.emit("buq:sdk:mounted", { widget: "catalog" });
+      return mounted;
     },
     mountProfile(target, props = {}) {
-      return mount(target, <ProfileWidget client={client} {...props} />);
+      const mounted = mount(target, <ProfileWidget client={client} {...props} />);
+      events.emit("buq:sdk:mounted", { widget: "profile" });
+      return mounted;
     },
     mountPurchaseButton(target, props = {}) {
       const { comboId, membershipId, productId, locationId, ...rest } = props;
@@ -243,6 +333,14 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       return handle;
     },
     openCheckout(props = {}) {
+      const context: CheckoutOpenContext = {
+        kind: "checkout",
+        brandSlug: props.brandSlug,
+        locationSlug: props.locationSlug,
+        locationId: props.locationId,
+        preselect: props.preselect,
+      };
+      events.emit("buq:checkout:opening", context);
       silenceLegacyFancy();
       prefetchCheckoutCatalog(queryClient, client, props.brandSlug);
       const host = document.createElement("div");
@@ -255,11 +353,12 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         queueMicrotask(() => {
           mounted.unmount();
           host.remove();
+          events.emit("buq:checkout:closed", context);
         });
       };
 
       activeCheckout?.close();
-      const handle = { close };
+      const handle: CheckoutOpenHandle = { type: "checkout", context, close };
       activeCheckout = handle;
 
       const mounted = mount(
@@ -272,9 +371,18 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         />,
       );
 
+      afterOverlayPaint(() => events.emit("buq:checkout:opened", { context, handle }));
       return handle;
     },
     openReservation({ onClose, ...props }) {
+      const context: CheckoutOpenContext = {
+        kind: "reservation",
+        brandSlug: props.brandSlug,
+        locationSlug: props.locationSlug,
+        locationId: props.locationId,
+        meetingId: props.meetingId,
+      };
+      events.emit("buq:checkout:opening", context);
       silenceLegacyFancy();
       const host = document.createElement("div");
       document.body.appendChild(host);
@@ -286,12 +394,13 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         queueMicrotask(() => {
           mounted.unmount();
           host.remove();
+          events.emit("buq:checkout:closed", context);
         });
         onClose?.();
       };
 
       activeReservation?.close();
-      const handle = { close };
+      const handle: CheckoutOpenHandle = { type: "reservation", context, close };
       activeReservation = handle;
 
       const mounted = mount(
@@ -299,7 +408,26 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         <ReservationLauncher client={client} captcha={captcha} {...props} onClose={close} />,
       );
 
+      afterOverlayPaint(() => events.emit("buq:checkout:opened", { context, handle }));
       return handle;
+    },
+    openReservationCheckout(props) {
+      return new Promise((resolve, reject) => {
+        try {
+          const handle = sdk.openReservation(props);
+          afterOverlayPaint(() => resolve(handle));
+        } catch (error) {
+          const context: CheckoutOpenContext = {
+            kind: "reservation",
+            brandSlug: props.brandSlug,
+            locationSlug: props.locationSlug,
+            locationId: props.locationId,
+            meetingId: props.meetingId,
+          };
+          events.emit("buq:checkout:error", { context, error });
+          reject(error);
+        }
+      });
     },
     enablePurchaseButtons(root) {
       purchaseButtonsStop?.();
