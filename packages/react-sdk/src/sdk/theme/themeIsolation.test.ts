@@ -59,8 +59,9 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
   });
 
   it("el login del checkout llena la columna, no se queda en 26rem", () => {
-    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,120}max-width:\s*none/);
-    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,160}width:\s*100%/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,160}max-width:\s*none/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,200}width:\s*100%/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,200}padding-inline:\s*1\.5rem/);
     expect(widgetsCss).not.toMatch(/\.gafa-checkout-auth \{\s*max-width:\s*26rem/);
   });
 

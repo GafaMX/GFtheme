@@ -6711,7 +6711,14 @@
 }
 
 /* Login dentro del checkout: llena la columna izquierda. El carrito se
-   queda a la derecha. El tope de 26rem dejaba un hueco blanco al lado. */
+   queda a la derecha. Un poco de padding a los lados para que tabs,
+   campos y botón no se peguen al divisor y se vean alargados. */
+.gafa-checkout[data-step="auth"] .gafa-checkout__hero,
+.gafa-checkout-auth {
+  box-sizing: border-box;
+  padding-inline: 1.5rem;
+}
+
 .gafa-checkout-auth {
   max-width: none;
   width: 100%;
