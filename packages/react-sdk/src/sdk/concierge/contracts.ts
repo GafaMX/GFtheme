@@ -68,10 +68,12 @@ export const ConciergePartnerConfig = z.object({
       )
       .min(1),
   }),
-  studios: z.array(ConciergeStudio).min(1),
+  studios: z.array(ConciergeStudio).default([]),
   catalog: z.object({
     version: z.string().min(1).max(120),
-    products: z.array(ConciergeProduct),
+    products: z.array(ConciergeProduct).default([]),
+    /** Si es true, el SDK completa sedes/productos desde el cliente BUQ. */
+    live: z.boolean().optional(),
   }),
   routes: z.object({
     web: z.object({ home: z.string(), calendar: z.string(), packages: z.string() }),

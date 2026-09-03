@@ -15,6 +15,8 @@ export type ConciergeSdkBridge = {
       location?: { slug?: string };
     }>>;
     getProfile(): Promise<{ firstName?: string } | null>;
+    listCombos?(brand: string): Promise<Array<{ id: number; name: string; description?: string; price?: number; priceLabel?: string }>>;
+    listMemberships?(brand: string): Promise<Array<{ id: number; name: string; description?: string; price?: number; priceLabel?: string }>>;
     openReservationCheckout?(opts: {
       meetingId: number;
       brandSlug: string;

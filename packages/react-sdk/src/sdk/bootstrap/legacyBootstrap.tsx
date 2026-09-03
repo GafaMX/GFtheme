@@ -1,6 +1,7 @@
 import type { GafaSdk } from "../runtime";
 import type { CalendarView } from "../widgets/calendarRange";
 import { readCalendarLocationIdFromWindow } from "../widgets/calendarLocationQuery";
+import { readConciergeConfigFromDom } from "../concierge/domConfig";
 
 type LegacyWidgetName =
   | "login"
@@ -15,7 +16,8 @@ type LegacyWidgetName =
   | "membership-list"
   | "meetings-calendar"
   | "purchase-button"
-  | "fancy";
+  | "fancy"
+  | "concierge";
 
 const LEGACY_WIDGETS: LegacyWidgetName[] = [
   "login",
@@ -31,6 +33,7 @@ const LEGACY_WIDGETS: LegacyWidgetName[] = [
   "meetings-calendar",
   "purchase-button",
   "fancy",
+  "concierge",
 ];
 
 export type LegacyBootstrapResult = {
@@ -194,7 +197,24 @@ function mountLegacyWidget(runtime: GafaSdk, widgetName: LegacyWidgetName, eleme
     case "fancy":
       element.dataset.gafaCheckoutHost = "true";
       return;
+
+    case "concierge": {
+      const { config } = readConciergeConfigFromDom(element.ownerDocument ?? document, element);
+      runtime.concierge.mount({
+        config,
+        container: element,
+        webview: element.getAttribute("data-gafa-webview") === "true" || element.getAttribute("data-gf-webview") === "true",
+        hydrateFromClient: readLiveFlag(element),
+      });
+      return;
+    }
   }
+}
+
+function readLiveFlag(element: HTMLElement): boolean | undefined {
+  const live = element.getAttribute("data-gafa-concierge-live") ?? element.getAttribute("data-gf-concierge-live");
+  if (live == null) return undefined;
+  return live !== "false";
 }
 
 function readAuthInitialView(element: HTMLElement): "login" | "register" | "password-recovery" | "profile" {

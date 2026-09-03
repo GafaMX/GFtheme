@@ -473,6 +473,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
             apiBaseUrl={options.apiBaseUrl}
             collapsedByDefault={options.collapsedByDefault}
             extraAction={options.extraAction}
+            hydrateFromClient={options.hydrateFromClient}
           />,
         );
         events.emit("buq:sdk:mounted", { widget: "concierge", partnerId: config.id });

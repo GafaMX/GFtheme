@@ -63,10 +63,18 @@ const partnerConfigs: Record<"fitspin" | "demo-studio", ConciergePartnerConfig> 
   "demo-studio": DEMO_CONCIERGE_CONFIG,
 };
 
+function withLiveCatalog(config: ConciergePartnerConfig): ConciergePartnerConfig {
+  return {
+    ...config,
+    catalog: { ...config.catalog, live: true },
+  };
+}
+
 function mountConcierge(partnerId: "fitspin" | "demo-studio"): ConciergeHandle {
   return sdk.concierge.mount({
     partnerId,
-    config: partnerConfigs[partnerId],
+    config: withLiveCatalog(partnerConfigs[partnerId]),
+    hydrateFromClient: true,
     navigate(path) {
       const target = path.includes("paquete") || path.includes("package") || path.includes("#")
         ? document.querySelector("#packages-demo")

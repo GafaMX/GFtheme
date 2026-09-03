@@ -7,6 +7,8 @@ import {
   type ConciergeSdkBridge,
 } from "./adapter";
 import { createHttpConciergeAsk, createLocalConciergeAsk, type ConciergeAskFn } from "./ask";
+import { assertConciergeOriginAllowed } from "./domConfig";
+import { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
 
 export type ConciergeHandle = {
   open(): void;
@@ -25,6 +27,8 @@ export type ConciergeMountOptions = {
   resolveHardPath?: (path: string) => string;
   collapsedByDefault?: boolean;
   extraAction?: ReactNode;
+  /** Completa catálogo/sedes desde el cliente BUQ. Default: config.catalog.live. */
+  hydrateFromClient?: boolean;
 };
 
 export type ConciergeController = {
@@ -62,11 +66,12 @@ export function resolveConciergeConfig(options: ConciergeMountOptions): Concierg
   if (options.partnerId && options.partnerId !== config.id) {
     throw new Error(`Concierge partner ${options.partnerId} does not match config ${config.id}`);
   }
+  assertConciergeOriginAllowed(config);
   return config;
 }
 
 export function ConciergeHost({
-  config,
+  config: initialConfig,
   sdk,
   controller,
   webview,
@@ -76,6 +81,7 @@ export function ConciergeHost({
   apiBaseUrl,
   collapsedByDefault,
   extraAction,
+  hydrateFromClient,
 }: {
   config: ConciergePartnerConfig;
   sdk?: ConciergeSdkBridge | null;
@@ -87,7 +93,9 @@ export function ConciergeHost({
   apiBaseUrl?: string;
   collapsedByDefault?: boolean;
   extraAction?: ReactNode;
+  hydrateFromClient?: boolean;
 }) {
+  const [config, setConfig] = useState(initialConfig);
   const [open, setOpen] = useState(false);
   const go = useCallback((path: string) => {
     if (navigate) {
@@ -111,6 +119,26 @@ export function ConciergeHost({
   useEffect(() => {
     ensureFancySibling();
   }, []);
+
+  useEffect(() => {
+    setConfig(initialConfig);
+    const client = sdk?.client;
+    if (!shouldHydrateConcierge(initialConfig, hydrateFromClient) || !client?.listCombos || !client.listMemberships) {
+      return;
+    }
+    const hydrateClient = {
+      listLocations: (brand?: string) => client.listLocations(brand ?? ""),
+      listCombos: client.listCombos,
+      listMemberships: client.listMemberships,
+    };
+    let cancelled = false;
+    void hydrateConciergeCatalog(initialConfig, hydrateClient).then((next) => {
+      if (!cancelled) setConfig(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrateFromClient, initialConfig, sdk]);
 
   return (
     <>
