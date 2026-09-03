@@ -44,6 +44,20 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(themeCss).toContain("max-width: var(--gafa-img-max-width, none) !important");
   });
 
+  it("el logo del estudio no lo infla Elementor a width 100%", () => {
+    expect(themeCss).toMatch(
+      /img\.gafa-studio-logo \{[\s\S]{0,280}max-height:\s*40px !important/,
+    );
+    expect(themeCss).toMatch(
+      /img\.gafa-studio-logo \{[\s\S]{0,280}max-width:\s*120px !important/,
+    );
+    expect(themeCss).toMatch(
+      /img\.gafa-studio-logo \{[\s\S]{0,280}width:\s*auto !important/,
+    );
+    expect(widgetsCss).toMatch(/\.gafa-studio-logo \{[\s\S]{0,280}max-height:\s*40px/);
+    expect(widgetsCss).toMatch(/\.gafa-studio-logo \{[\s\S]{0,280}max-width:\s*120px/);
+  });
+
   it("pinta el focus del SDK, no el outline naranja de WP", () => {
     expect(themeCss).toContain("outline: 2px solid var(--gafa-color-accent) !important");
   });
