@@ -27,8 +27,16 @@ function readScriptConfig(root: ParentNode, host?: Element): unknown {
   return parseJson(globalScript?.textContent);
 }
 
+/** Loopback plus Cloudflare Quick Tunnels used for Cloud Agent / remote previews. */
+const TRUSTED_PREVIEW_ORIGIN =
+  /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$|^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/i;
+
+export function isTrustedConciergePreviewOrigin(origin: string): boolean {
+  return TRUSTED_PREVIEW_ORIGIN.test(origin);
+}
+
 export function assertConciergeOriginAllowed(config: ConciergePartnerConfig, origin = typeof window === "undefined" ? "" : window.location.origin): void {
-  if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(origin)) return;
+  if (!origin || isTrustedConciergePreviewOrigin(origin)) return;
   if (!config.security.allowedOrigins.length) return;
   if (!config.security.allowedOrigins.includes(origin)) {
     throw new Error(`Concierge origin ${origin} is not allowed for ${config.id}`);
