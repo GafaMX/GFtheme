@@ -18,6 +18,16 @@ function productKey(product: ConciergeProduct): string {
   return `${product.type}:${product.id}:${product.brandSlug}`;
 }
 
+function dedupeByTypeId(products: ConciergeProduct[]): ConciergeProduct[] {
+  const seen = new Set<string>();
+  return products.filter((product) => {
+    const key = `${product.type}:${product.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function locationAllowed(
   brandLocationIds: string[],
   location: { id: number | string },
@@ -130,11 +140,12 @@ export async function hydrateConciergeCatalog(
   }
 
   const allow = new Set(config.catalog.products.map(productKey));
-  const allowlisted = allow.size ? liveProducts.filter((product) => allow.has(productKey(product))) : liveProducts;
+  const allowlisted = allow.size ? liveProducts.filter((product) => allow.has(productKey(product))) : [];
+  const uniqueLive = dedupeByTypeId(liveProducts);
   const products = allowlisted.length
     ? allowlisted
-    : liveProducts.length
-      ? liveProducts
+    : uniqueLive.length
+      ? uniqueLive
       : config.catalog.products;
   const studios = config.studios.length ? [...config.studios, ...liveStudios.filter((studio) => {
     return !config.studios.some((known) => known.locationId === studio.locationId && known.brandSlug === studio.brandSlug);

@@ -32,7 +32,7 @@ describe("hydrateConciergeCatalog", () => {
       ...DEMO_CONCIERGE_CONFIG,
       catalog: { ...DEMO_CONCIERGE_CONFIG.catalog, live: true },
     }, client);
-    expect(next.catalog.products.map((product) => product.id)).toEqual(["1"]);
+    expect(next.catalog.products.map((product) => `${product.type}:${product.id}`)).toEqual(["combo:1"]);
     expect(next.catalog.products[0]?.name).toBe("10 clases");
     expect(client.listMemberships).not.toHaveBeenCalled();
   });
@@ -58,6 +58,18 @@ describe("hydrateConciergeCatalog", () => {
     }, client);
     expect(next.catalog.products).toEqual([
       expect.objectContaining({ type: "combo", id: "1", brandSlug: "fitspin", name: "10 clases" }),
+    ]);
+  });
+
+  it("no duplica el mismo combo si varias marcas ven el mismo catalogo live", async () => {
+    const client = clientMock();
+    const next = await hydrateConciergeCatalog({
+      ...FITSPIN_CONCIERGE_CONFIG,
+      catalog: { ...FITSPIN_CONCIERGE_CONFIG.catalog, live: true },
+    }, client);
+    expect(next.catalog.products.map((product) => `${product.type}:${product.id}`)).toEqual([
+      "combo:1",
+      "membership:2",
     ]);
   });
 
