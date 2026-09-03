@@ -1768,10 +1768,35 @@
   width: 32px;
 }
 
+.gafa-studio-logo {
+  --gafa-img-fit: contain;
+  --gafa-img-height: 56px;
+  --gafa-img-width: 200px;
+  --gafa-img-radius: 0;
+  display: block;
+  height: auto;
+  justify-self: center;
+  margin: 0 auto 0.35rem;
+  max-height: 56px;
+  max-width: min(200px, 72%);
+  object-fit: contain;
+  width: auto;
+}
+
+.gafa-account-modal__auth .gafa-studio-logo,
+.gafa-checkout__hero .gafa-studio-logo {
+  margin-bottom: 0.75rem;
+}
+
 .gafa-reservation-hero {
   display: grid;
   gap: var(--gafa-space-1);
   padding-right: 44px;
+}
+
+.gafa-reservation-hero[data-auth="true"] {
+  justify-items: center;
+  text-align: center;
 }
 
 .gafa-reservation-hero h3 {
@@ -7010,6 +7035,17 @@ html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-form_
 
 .gafa-checkout-paymount .card-list__item > .last4 p {
   font-size: 0.95rem;
+}
+
+/* GafaPay pinta labels/checks en negro. En dark el chrome de Stripe tiene
+   que leer el texto del SDK; el iframe lo pinta stripeCardStyle.ts. */
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"],
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"] .gafapay-form,
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"] .gafapay-form label,
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"] .card-list__item,
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"] .form-check-label {
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
 }
 
 /* Resultados de busqueda: agrupados por tipo, porque el buscador mira todo el

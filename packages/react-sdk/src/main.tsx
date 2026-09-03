@@ -12,6 +12,11 @@ const sdk = createGafaSdk(
     publicClientId: "demo-client",
     theme: {
       preset: "boutique",
+      logoUrl:
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#16110f">DEMO STUDIO</text></svg>',
+        ),
       colors: {
         primary: "#16110f",
         primaryText: "#fffaf4",

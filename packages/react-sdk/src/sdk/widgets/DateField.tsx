@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { copySdkSkin, type SdkSkin } from "../theme/sdkSkin";
 import { toIsoDate } from "./calendarRange";
 import { MonthCalendar } from "./MonthCalendar";
 
@@ -39,18 +40,6 @@ function formatDate(value: string): string {
   return date.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
 }
 
-function copySdkSkin(from: Element | null): { scheme: string; style?: CSSProperties } {
-  const scheme = from?.getAttribute("data-color-scheme") ?? "dark";
-  if (!(from instanceof HTMLElement) || from.style.length === 0) {
-    return { scheme };
-  }
-  const style: Record<string, string> = {};
-  for (const prop of from.style) {
-    style[prop] = from.style.getPropertyValue(prop);
-  }
-  return { scheme, style: style as CSSProperties };
-}
-
 /**
  * Campo de fecha con el calendario mensual del SDK. No usamos
  * `input[type=date]`: el nativo cambia por OS, no respeta el tema y tapa el
@@ -76,7 +65,7 @@ export function DateField({
   const [rect, setRect] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(
     null,
   );
-  const [skin, setSkin] = useState<{ scheme: string; style?: CSSProperties }>({ scheme: "dark" });
+  const [skin, setSkin] = useState<SdkSkin>({ scheme: "dark" });
 
   const maxIso = mode === "birth" ? toIsoDate(new Date()) : yearsAhead(5);
   const minIso = yearsAgo(120);

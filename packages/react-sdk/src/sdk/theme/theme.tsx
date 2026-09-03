@@ -169,6 +169,11 @@ export function useGafaTheme(): ThemeContextValue {
   return context;
 }
 
+/** Tests y overlays sueltos: si no hay provider, no hay logo ni scheme. */
+export function useGafaThemeOptional(): ThemeContextValue | null {
+  return useContext(ThemeContext);
+}
+
 function systemScheme(): ColorScheme {
   if (typeof window === "undefined" || !window.matchMedia) return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";

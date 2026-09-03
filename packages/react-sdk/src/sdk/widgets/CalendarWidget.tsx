@@ -5,6 +5,8 @@ import { CloseIcon } from "./sdkIcons";
 import { MonthCalendar } from "./MonthCalendar";
 import { CheckoutModal } from "./CheckoutModal";
 import { AuthWidget, type AuthStage } from "./AuthWidget";
+import { SdkBodyOverlay } from "./SdkBodyOverlay";
+import { StudioLogo } from "./StudioLogo";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
@@ -1683,7 +1685,7 @@ function ReservationPreviewModal({
                 : "Comprar y reservar";
 
   return (
-    <div
+    <SdkBodyOverlay
       className="gafa-reservation-overlay"
       role="dialog"
       aria-modal="true"
@@ -1906,7 +1908,7 @@ function ReservationPreviewModal({
           </div>
         ) : null}
       </div>
-    </div>
+    </SdkBodyOverlay>
   );
 }
 
@@ -2218,9 +2220,9 @@ function SeatMapInline({
 }
 
 /**
- * Login/registro DENTRO del flujo de reserva: aparece sobre el calendario, y al
- * autenticarse el componente padre continua solo hacia el checkout. Asi el
- * usuario nunca "sale" de la clase que estaba reservando.
+ * Login/registro DENTRO del flujo de reserva. El overlay vive en
+ * `document.body` (no en el calendario): si no, Elementor lo centra solo
+ * en la seccion de horarios.
  */
 function ReservationAuthGate({
   client,
@@ -2240,7 +2242,7 @@ function ReservationAuthGate({
   const [authStage, setAuthStage] = useState<AuthStage>("login");
 
   return (
-    <div
+    <SdkBodyOverlay
       className="gafa-reservation-overlay"
       role="dialog"
       aria-modal="true"
@@ -2254,7 +2256,8 @@ function ReservationAuthGate({
           <CloseIcon />
         </button>
 
-        <div className="gafa-reservation-hero">
+        <div className="gafa-reservation-hero" data-auth="true">
+          <StudioLogo client={client} brandSlug={brandSlug} alt="" />
           <span className="gafa-eyebrow">Casi listo</span>
           <h3 id="reservation-auth-title">{RESERVATION_AUTH_TITLES[authStage]}</h3>
           <p>
@@ -2274,7 +2277,7 @@ function ReservationAuthGate({
           onAuthenticated={onAuthenticated}
         />
       </div>
-    </div>
+    </SdkBodyOverlay>
   );
 }
 

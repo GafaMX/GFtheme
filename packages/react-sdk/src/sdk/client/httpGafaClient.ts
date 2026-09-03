@@ -69,6 +69,10 @@ type RawBrand = {
   id: number;
   name: string;
   slug: string;
+  /** Logo del estudio. La API lo llama `pic`. */
+  pic?: string | null;
+  logo?: string | null;
+  picture?: string | null;
   /** Fitspin vende Cancún (UTC-5) desde una marca con horario propio. */
   time_zone?: string | null;
   terms_conditions_link?: string | null;
@@ -782,6 +786,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       id: raw.id,
       name: raw.name,
       slug: raw.slug,
+      logoUrl: raw.pic || raw.logo || raw.picture || undefined,
       timeZone: raw.time_zone ?? undefined,
       termsConditionsLink: raw.terms_conditions_link ?? null,
       gafapayBrandId: raw.gafapay_brand_id ?? null,

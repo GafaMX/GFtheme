@@ -61,6 +61,7 @@ describe("CheckoutModal auth step", () => {
     expect(screen.queryByRole("heading", { name: "Inicia sesión" })).toBeNull();
     expect(screen.queryByText("Cuenta")).toBeNull();
     expect(screen.getByRole("button", { name: "Entrar" })).toBeTruthy();
+    expect(document.body.querySelector(":scope > .gafa-checkout-overlay")).toBeTruthy();
   });
 
   it("el título del hero sigue al formulario visible (crear cuenta / recuperar contraseña)", async () => {

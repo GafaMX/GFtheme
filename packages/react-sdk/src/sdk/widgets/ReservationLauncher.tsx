@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ReservationFlow } from "./CalendarWidget";
 import { CloseIcon } from "./sdkIcons";
+import { SdkBodyOverlay } from "./SdkBodyOverlay";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import type { GafaClient, Meeting } from "../client/types";
 
@@ -72,7 +73,7 @@ export function ReservationLauncher({
   const failed = unsupported || meetingQuery.isError || meetingQuery.isFetched;
 
   return (
-    <div
+    <SdkBodyOverlay
       className="gafa-reservation-overlay"
       role="dialog"
       aria-modal="true"
@@ -104,6 +105,6 @@ export function ReservationLauncher({
           </div>
         )}
       </div>
-    </div>
+    </SdkBodyOverlay>
   );
 }

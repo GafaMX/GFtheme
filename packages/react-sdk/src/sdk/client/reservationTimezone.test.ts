@@ -23,7 +23,13 @@ describe("zona horaria de las reservas", () => {
       if (url.includes("/api/brand?") || url.endsWith("/api/brand")) {
         return jsonResponse({
           data: [
-            { id: 125, name: "Fitspin Cancún", slug: "fitspin-cancun", time_zone: "America/Cancun" },
+            {
+              id: 125,
+              name: "Fitspin Cancún",
+              slug: "fitspin-cancun",
+              time_zone: "America/Cancun",
+              pic: "https://cdn.example/fitspin.png",
+            },
             { id: 86, name: "Fitspin Cdmx", slug: "fitspin", time_zone: "America/Mexico_City" },
           ],
         });
@@ -44,7 +50,10 @@ describe("zona horaria de las reservas", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const client = createHttpGafaClient({ apiBaseUrl: "https://buq.partners", companyId: 80 });
-    await client.listBrands();
+    const brands = await client.listBrands();
+    expect(brands.find((brand) => brand.slug === "fitspin-cancun")?.logoUrl).toBe(
+      "https://cdn.example/fitspin.png",
+    );
     const reservations = await client.listUserReservations("fitspin-cancun");
 
     expect(reservations[0].timezone).toBe("America/Cancun");

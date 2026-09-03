@@ -52,6 +52,26 @@ describe("openReservation", () => {
     });
   });
 
+  it("el fancy de login sale en document.body y pinta el logo del estudio", async () => {
+    const trap = document.createElement("section");
+    trap.style.transform = "translateZ(0)";
+    document.body.appendChild(trap);
+
+    boot().openReservation({ meetingId: 1 });
+
+    await waitFor(() => {
+      const overlay = document.querySelector(".gafa-reservation-overlay");
+      expect(overlay?.parentElement).toBe(document.body);
+      expect(overlayText()).toContain("Inicia sesión para reservar");
+    });
+    await waitFor(() => {
+      expect(document.querySelector(".gafa-studio-logo")?.getAttribute("src") ?? "").toContain(
+        "demo-studio-logo",
+      );
+    });
+    trap.remove();
+  });
+
   it("el contrato viejo client.openReservationCheckout abre el mismo modal", async () => {
     writeStoredToken("token-de-prueba");
     await boot().client.openReservationCheckout({

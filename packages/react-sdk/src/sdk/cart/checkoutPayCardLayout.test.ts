@@ -141,4 +141,10 @@ describe("checkout Stripe saved-card layout", () => {
     expect(stripeGroup).toBeTruthy();
     expect(stripeGroup).not.toContain("display: flex");
   });
+
+  it("en dark el chrome de Stripe lee el texto del SDK", () => {
+    expect(payMountCss).toMatch(
+      /\[data-color-scheme="dark"\] \.gafa-checkout-paymount\[data-method="stripe"\][\s\S]{0,280}color:\s*var\(--gafa-color-text\)/,
+    );
+  });
 });

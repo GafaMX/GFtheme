@@ -18,6 +18,8 @@ import {
 } from "../cart/cartStore";
 import { AuthWidget, type AuthStage } from "./AuthWidget";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { SdkBodyOverlay } from "./SdkBodyOverlay";
+import { StudioLogo } from "./StudioLogo";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { isSoldOut, offersWaitlist } from "../client/meetingAvailability";
 import {
@@ -35,6 +37,8 @@ import {
   type GafaPayWidgetProps,
 } from "../payments/gafaPay";
 import { findPurchasableItem, sameCatalogId } from "../cart/findPurchasable";
+import { installStripeCardTheme } from "../payments/stripeCardStyle";
+import { useGafaThemeOptional } from "../theme/theme";
 import {
   CHECKOUT_CATALOG_STALE_MS,
   checkoutCatalogQueryKey,
@@ -312,14 +316,6 @@ export function CheckoutModal({
       seatLabel,
     });
   }, [meeting, brandSlug, locationSlug, locationName, seatObjectId, seatLabel, setReservation]);
-
-  useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, []);
 
   // Al pasar a pago/login, cierra el detalle de lineas. En movil el listado
   // se come el formulario; en desktop el CSS lo ignora y el carrito sigue
@@ -1067,7 +1063,7 @@ export function CheckoutModal({
 
   return (
     <>
-    <div
+    <SdkBodyOverlay
       className="gafa-checkout-overlay"
       role="dialog"
       aria-modal="true"
@@ -1100,6 +1096,7 @@ export function CheckoutModal({
               ) : null}
 
               <header className="gafa-checkout__hero">
+                {step === "auth" ? <StudioLogo client={client} brandSlug={brandSlug} alt="" /> : null}
                 <h2 id="gafa-checkout-title">
                   {step === "auth"
                     ? AUTH_COPY[authStage].title
@@ -1632,7 +1629,7 @@ export function CheckoutModal({
           <ThanksPanel thanks={thanks} firstName={profileQuery.data?.firstName} currency={currency} onClose={onClose} />
         )}
       </div>
-    </div>
+    </SdkBodyOverlay>
     {termsPromptOpen && config?.termsConditionsLink ? (
       <ConfirmDialog
         title="Acepta los términos"
@@ -1913,12 +1910,14 @@ function PayPanel({
   const clientId = config?.gafapayClientId;
   const clientSecret = config?.gafapayClientSecret;
   const slug = selected?.slug;
+  const colorScheme = useGafaThemeOptional()?.scheme ?? "light";
 
   // Monta la isla: se re-monta solo si cambia el proveedor o las credenciales.
   useEffect(() => {
     if (!slug || !clientId || !clientSecret) return;
     let cancelled = false;
     let stopPaypalCapture: () => void = () => undefined;
+    const stopStripeTheme = slug === "stripe" ? installStripeCardTheme(colorScheme) : () => undefined;
     setLoadState("loading");
     setLoadError(undefined);
 
@@ -1951,10 +1950,11 @@ function PayPanel({
     return () => {
       cancelled = true;
       stopPaypalCapture();
+      stopStripeTheme();
       islandRef.current?.unmount();
       islandRef.current = null;
     };
-  }, [slug, clientId, clientSecret, gafaPayFrontUrl]);
+  }, [slug, clientId, clientSecret, gafaPayFrontUrl, colorScheme]);
 
   useEffect(() => {
     // checkout.js no tolera un segundo render: el botón se duplica / parpadea.

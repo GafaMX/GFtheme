@@ -6,6 +6,8 @@ import { subscribeToAuthChanges } from "../client/tokenStorage";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { AuthWidget } from "./AuthWidget";
 import { ProfileWidget } from "./ProfileWidget";
+import { SdkBodyOverlay } from "./SdkBodyOverlay";
+import { StudioLogo } from "./StudioLogo";
 
 export type AccountModalProps = {
   client?: GafaClient;
@@ -87,23 +89,17 @@ export function AccountModal({
     };
     document.addEventListener("keydown", onKeyDown);
 
-    // El popup ya tiene su propio scroll: dejar el de la pagina activo hace que
-    // el fondo se mueva debajo del overlay al llegar al final de la lista.
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
     sheetRef.current?.focus({ preventScroll: true });
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
     };
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div
+    <SdkBodyOverlay
       className="gafa-account-overlay"
       role="presentation"
       onMouseDown={(event) => {
@@ -148,11 +144,12 @@ export function AccountModal({
           />
         ) : (
           <div className="gafa-account-modal__auth">
+            <StudioLogo client={client} brandSlug={brandSlug} alt="" />
             <AuthWidget client={client} captcha={captcha} brandSlug={brandSlug} initialView="login" />
           </div>
         )}
       </div>
-    </div>
+    </SdkBodyOverlay>
   );
 }
 

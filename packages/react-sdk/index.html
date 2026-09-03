@@ -133,6 +133,12 @@
         padding: 10px 16px;
       }
 
+      #calendar-demo {
+        /* Replica Elementor: `transform` hace que position:fixed se ancle
+           al calendario, no a la pagina. El overlay tiene que salir a body. */
+        transform: translateZ(0);
+      }
+
       @media (min-width: 760px) {
         .demo-shell {
           gap: 22px;

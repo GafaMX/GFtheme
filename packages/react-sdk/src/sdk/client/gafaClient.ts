@@ -13,6 +13,7 @@ export function createMockGafaClient(): GafaClient {
         id: 1,
         name: "Demo Studio",
         slug: "demo-studio",
+        logoUrl: "https://example.com/demo-studio-logo.png",
       },
     ],
     listLocations: async () => [

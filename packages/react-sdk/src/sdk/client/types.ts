@@ -2,6 +2,8 @@ export type Brand = {
   id: number;
   name: string;
   slug: string;
+  /** `pic` publico de la marca (logo del estudio). */
+  logoUrl?: string;
   /** `America/Cancun`, `America/Mexico_City`… */
   timeZone?: string;
   /** Link a terminos y condiciones (admin de la marca). */
