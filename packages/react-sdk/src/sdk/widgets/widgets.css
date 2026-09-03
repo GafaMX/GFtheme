@@ -1770,15 +1770,15 @@
 
 .gafa-studio-logo {
   --gafa-img-fit: contain;
-  --gafa-img-height: 56px;
-  --gafa-img-width: 200px;
+  --gafa-img-max-height: 40px;
+  --gafa-img-max-width: 120px;
   --gafa-img-radius: 0;
   display: block;
   height: auto;
   justify-self: center;
   margin: 0 auto 0.35rem;
-  max-height: 56px;
-  max-width: min(200px, 72%);
+  max-height: 40px;
+  max-width: 120px;
   object-fit: contain;
   width: auto;
 }
