@@ -1770,15 +1770,15 @@
 
 .gafa-studio-logo {
   --gafa-img-fit: contain;
-  --gafa-img-height: 56px;
-  --gafa-img-width: 200px;
+  --gafa-img-max-height: 40px;
+  --gafa-img-max-width: 120px;
   --gafa-img-radius: 0;
   display: block;
   height: auto;
   justify-self: center;
   margin: 0 auto 0.35rem;
-  max-height: 56px;
-  max-width: min(200px, 72%);
+  max-height: 40px;
+  max-width: 120px;
   object-fit: contain;
   width: auto;
 }
@@ -6710,9 +6710,18 @@
   50% { opacity: 1; }
 }
 
-/* Login dentro del checkout (compra suelta sin sesion). */
+/* Login dentro del checkout: llena la columna izquierda. El carrito se
+   queda a la derecha. Un poco de padding a los lados para que tabs,
+   campos y botón no se peguen al divisor y se vean alargados. */
+.gafa-checkout[data-step="auth"] .gafa-checkout__hero,
 .gafa-checkout-auth {
-  max-width: 26rem;
+  box-sizing: border-box;
+  padding-inline: 1.5rem;
+}
+
+.gafa-checkout-auth {
+  max-width: none;
+  width: 100%;
 }
 
 /* El hero del contenedor ya es el encabezado del paso de cuenta: la tarjeta del
@@ -6724,6 +6733,12 @@
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+.gafa-checkout-auth .gafa-widget-card {
+  max-width: none;
+  padding-inline: 0;
+  width: 100%;
 }
 
 .gafa-checkout-auth .gafa-sdk-form {

@@ -31,6 +31,7 @@ const legacyThemeSchema = z
   .object({
     preset: z.string().optional(),
     logoUrl: z.string().optional(),
+    logoUrlDark: z.string().optional(),
     colors: z.record(z.string(), z.string()).optional(),
     typography: z
       .object({

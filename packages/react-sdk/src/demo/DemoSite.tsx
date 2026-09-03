@@ -53,7 +53,20 @@ const BRANDS: Record<string, BrandConfig> = {
     // Mismas credenciales publicas que fitspin.mx expone en GFThemeOptions.
     apiClient: "74",
     apiSecret: "hI8M3iAEVlWIIfxBLesaxhtEIVpEEPwRyHyxw523",
-    theme: { colors: { brand: "#f2b705", accent: "#111827" }, colorScheme: "light" },
+    theme: {
+      colors: { brand: "#f2b705", accent: "#111827" },
+      colorScheme: "light",
+      logoUrl:
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#111827">FITSPIN</text></svg>',
+        ),
+      logoUrlDark:
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#fffaf4">FITSPIN</text></svg>',
+        ),
+    },
     // Fitspin abre en semana a proposito: demuestra que la vista inicial es
     // configuracion por socio, no un comportamiento fijo del SDK.
     calendar: { view: "week", filters: { location: true, service: true, staff: true } },

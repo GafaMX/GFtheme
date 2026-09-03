@@ -358,6 +358,19 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct__avatar {
   width: var(--gafa-img-width, 36px) !important;
 }
 
+/* Wordmark del estudio: Elementor/Hello pone img{width:100%} y la aislación
+   default (max-width:none) deja el PNG intrínseco (cientos de px) a todo el
+   modal. Tope tipo v1, no círculo. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-studio-logo {
+  border-radius: 0 !important;
+  display: block !important;
+  height: auto !important;
+  max-height: 40px !important;
+  max-width: 120px !important;
+  object-fit: contain !important;
+  width: auto !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct-qr__image {
   background: #fff !important;
   height: 240px !important;

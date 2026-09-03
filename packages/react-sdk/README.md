@@ -28,6 +28,7 @@ const sdk = createGafaSdk({
   theme: {
     preset: "boutique",
     logoUrl: "https://example.com/logo.svg",
+    logoUrlDark: "https://example.com/logo-dark.svg",
     colors: {
       primary: "#111827",
       accent: "#f97316",
