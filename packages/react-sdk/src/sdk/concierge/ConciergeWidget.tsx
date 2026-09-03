@@ -61,6 +61,12 @@ type ChatMessage = {
 
 let messageId = 0;
 
+function personalizeGreeting(greeting: string, firstName?: string): string {
+  if (!firstName) return greeting;
+  if (greeting.includes("{name}")) return greeting.replace(/\{name\}/g, firstName);
+  return greeting.replace(/^(¡?Hola!?)\s*/i, `¡Hola, ${firstName}! `);
+}
+
 function packageFor(
   config: ConciergePartnerConfig,
   action: Extract<ConciergeActionData, { kind: "buy_package" }>,
@@ -251,8 +257,11 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
   useEffect(() => {
     if (!open || messages.length) return;
     void adapter.getProfile().then((profile) => {
-      const suffix = profile?.firstName ? `, ${profile.firstName}` : "";
-      setMessages([{ id: ++messageId, role: "assistant", text: `${config.copy.greeting}${suffix}` }]);
+      setMessages([{
+        id: ++messageId,
+        role: "assistant",
+        text: personalizeGreeting(config.copy.greeting, profile?.firstName),
+      }]);
     });
   }, [adapter, config.copy.greeting, messages.length, open]);
 
@@ -379,22 +388,23 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
       {open && (
         <motion.section
           ref={dialog}
-          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          initial={{ opacity: 0, y: 24, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 30, scale: 0.98, transition: { duration: 0 } }}
+          exit={{ opacity: 0, y: 24, scale: 0.98, transition: { duration: 0.12 } }}
           style={variables}
-          className={`gafa-concierge fixed inset-x-3 top-[10vh] z-50 flex max-h-[78vh] flex-col overflow-hidden rounded-[24px] border border-[var(--concierge-line)] bg-[var(--concierge-bg)] text-[var(--concierge-ink)] shadow-2xl sm:inset-x-auto sm:right-6 sm:top-auto sm:h-[620px] sm:w-[400px] ${webview ? "bottom-[calc(env(safe-area-inset-bottom)+148px)]" : "bottom-[86px]"}`}
+          className={`gafa-concierge gafa-concierge-dialog border border-[var(--concierge-line)] bg-[var(--concierge-bg)] text-[var(--concierge-ink)] shadow-2xl${webview ? " is-webview" : ""}`}
+          data-gafa-concierge-dialog={config.id}
           role="dialog"
           aria-modal="true"
           aria-labelledby={`concierge-title-${config.id}`}
         >
-          <header className="flex items-center gap-3 border-b border-[var(--concierge-line)] p-4">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--concierge-accent)] text-[var(--concierge-accent-ink)]"><Sparkles className="h-4 w-4" /></span>
+          <header className="flex items-center gap-3 p-4" style={{ background: "var(--concierge-accent)", color: "var(--concierge-accent-ink)" }}>
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-black/5"><Sparkles className="h-4 w-4" /></span>
             <span className="min-w-0 flex-1">
               <strong id={`concierge-title-${config.id}`} className="block truncate text-[14px]">{config.copy.title}</strong>
-              <span className="block truncate text-[11px] opacity-60">{config.copy.subtitle}</span>
+              <span className="block truncate text-[11px] opacity-70">{config.copy.subtitle}</span>
             </span>
-            <button type="button" onClick={onClose} aria-label="Cerrar concierge" className="grid h-9 w-9 place-items-center rounded-full hover:bg-[var(--concierge-soft)]"><X className="h-4 w-4" /></button>
+            <button type="button" onClick={onClose} aria-label="Cerrar concierge" className="grid h-9 w-9 place-items-center rounded-full hover:bg-black/5"><X className="h-4 w-4" /></button>
           </header>
           <div ref={scroll} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
             {messages.map((message) => (
@@ -449,7 +459,7 @@ export function ConciergeCommandBar({
   collapsedByDefault?: boolean;
   extraAction?: ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(Boolean(webview || collapsedByDefault));
+  const [collapsed, setCollapsed] = useState(Boolean(collapsedByDefault));
   const routes = webview ? config.routes.webview : config.routes.web;
   const variables = {
     "--concierge-accent": config.theme.accent,
@@ -457,23 +467,21 @@ export function ConciergeCommandBar({
   } as CSSProperties;
   return (
     <div
-      className={`gafa-concierge pointer-events-none fixed z-40 flex ${webview ? "right-4" : "inset-x-0 justify-center"}`}
-      style={{
-        ...variables,
-        bottom: webview ? "calc(env(safe-area-inset-bottom) + 88px)" : "max(14px, env(safe-area-inset-bottom))",
-      }}
+      className={`gafa-concierge gafa-concierge-bar${webview ? " is-webview" : ""}`}
+      data-gafa-concierge-bar={config.id}
+      style={variables}
     >
       <AnimatePresence mode="wait" initial={false}>
         {collapsed ? (
-          <motion.button key="compact" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} type="button" onClick={() => setCollapsed(false)} aria-label="Mostrar acciones" className="pointer-events-auto grid h-12 w-12 place-items-center rounded-full border border-black/10 bg-white/90 text-black shadow-xl backdrop-blur-xl">
+          <motion.button key="compact" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} type="button" onClick={() => setCollapsed(false)} aria-label="Mostrar acciones" className="gafa-concierge-bar-inner" style={{ width: 48, height: 48, justifyContent: "center", padding: 0 }}>
             <Sparkles className="h-4 w-4" style={{ color: config.theme.accent }} />
           </motion.button>
         ) : (
-          <motion.div key="bar" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="pointer-events-auto flex items-center gap-1 rounded-full border border-black/10 bg-white/90 p-2 text-black shadow-xl backdrop-blur-xl">
+          <motion.div key="bar" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="gafa-concierge-bar-inner">
             {config.capabilities.whatsapp && <button type="button" onClick={() => window.open(`https://wa.me/${config.contact.whatsapp}`, "_blank", "noopener,noreferrer")} aria-label="WhatsApp" className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5"><MessageCircle className="h-4 w-4 text-[#25D366]" /></button>}
-            {config.capabilities.schedule && config.fallbacks.calendar && <button type="button" onClick={() => navigate(routes.calendar)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><CalendarDays className="h-4 w-4" style={{ color: config.theme.accent }} /><span className="hidden sm:inline">Reservar</span></button>}
-            {config.capabilities.packages && config.fallbacks.packages && <button type="button" onClick={() => navigate(routes.packages)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><ShoppingBag className="h-4 w-4" style={{ color: config.theme.accent }} /><span className="hidden sm:inline">Comprar</span></button>}
-            <button type="button" onClick={() => setOpen(!open)} className="flex h-10 items-center gap-2 rounded-full px-4 text-[11px] font-bold uppercase" style={{ background: config.theme.accent, color: config.theme.foreground }}><Sparkles className="h-4 w-4" />{open ? "Cerrar" : config.copy.assistantName}</button>
+            {config.capabilities.schedule && config.fallbacks.calendar && <button type="button" onClick={() => navigate(routes.calendar)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><CalendarDays className="h-4 w-4" style={{ color: config.theme.accent }} /><span>Reservar</span></button>}
+            {config.capabilities.packages && config.fallbacks.packages && <button type="button" onClick={() => navigate(routes.packages)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><ShoppingBag className="h-4 w-4" style={{ color: config.theme.accent }} /><span>Comprar</span></button>}
+            <button type="button" onClick={() => setOpen(!open)} className="flex h-10 items-center gap-2 rounded-full px-4 text-[11px] font-bold uppercase" style={{ background: config.theme.accent, color: config.theme.foreground }}><Sparkles className="h-4 w-4" />{open ? "Cerrar" : "Concierge"}</button>
             {extraAction}
             <button type="button" onClick={() => setCollapsed(true)} aria-label="Minimizar acciones" className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5"><ChevronDown className="h-4 w-4" /></button>
           </motion.div>

@@ -82,9 +82,9 @@ export const FITSPIN_CONCIERGE_CONFIG: ConciergePartnerConfig = {
   contact: { whatsapp: "5215500000000" },
   copy: {
     assistantName: "Concierge",
-    greeting: "¡Hola! Soy tu concierge de FITSPIN.",
+    greeting: "¡Hola! 👋 Soy el concierge de FITSPIN. Puedo ayudarte a reservar, comprar clases o resolver tus dudas. ¿Qué necesitas hoy?",
     title: "FITSPIN Concierge",
-    subtitle: "Clases, horarios y paquetes en un solo lugar.",
+    subtitle: "Tu asistente personal (beta)",
     fallback: "Puedo ayudarte con clases, paquetes, sedes y reservas.",
     scope: "Solo puedo ayudar con clases, reservas, paquetes, sedes y preguntas de FITSPIN.",
   },

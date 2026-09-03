@@ -20,6 +20,38 @@ afterEach(() => {
 });
 
 describe("sdk.concierge.mount", () => {
+  it("fija la barra al viewport y abre el chat encima, como Fitspin", async () => {
+    const handle = boot().concierge.mount({ config: DEMO_CONCIERGE_CONFIG });
+    const bar = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>("[data-gafa-concierge-bar]");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(bar.className).toContain("gafa-concierge-bar");
+    expect(document.body.textContent).toMatch(/Concierge/i);
+    expect(document.body.textContent).toMatch(/Reservar/i);
+    expect(document.body.textContent).toMatch(/Comprar/i);
+
+    handle.open();
+    await waitFor(() => {
+      const dialog = document.querySelector<HTMLElement>("[data-gafa-concierge-dialog]");
+      expect(dialog).toBeTruthy();
+      expect(dialog?.className).toContain("gafa-concierge-dialog");
+    });
+    expect(Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.trim() === "Cerrar")).toBe(true);
+    handle.close();
+  });
+
+  it("personaliza el saludo sin pegar el nombre al final", async () => {
+    const handle = boot().concierge.mount({ config: FITSPIN_CONCIERGE_CONFIG });
+    handle.open();
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("¡Hola, Demo! 👋 Soy el concierge de FITSPIN.");
+    });
+    expect(document.body.textContent).not.toMatch(/FITSPIN\., Demo/);
+    handle.close();
+  });
+
   it("abre, cierra y destruye el widget sin mezclar partners", async () => {
     const handle = boot().concierge.mount({ config: DEMO_CONCIERGE_CONFIG });
     expect(document.querySelector("[data-gafa-concierge='demo-studio']")).toBeTruthy();
