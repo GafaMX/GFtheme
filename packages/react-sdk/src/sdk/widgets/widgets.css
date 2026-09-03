@@ -6710,9 +6710,11 @@
   50% { opacity: 1; }
 }
 
-/* Login dentro del checkout (compra suelta sin sesion). */
+/* Login dentro del checkout: llena la columna izquierda. El carrito se
+   queda a la derecha. El tope de 26rem dejaba un hueco blanco al lado. */
 .gafa-checkout-auth {
-  max-width: 26rem;
+  max-width: none;
+  width: 100%;
 }
 
 /* El hero del contenedor ya es el encabezado del paso de cuenta: la tarjeta del
@@ -6724,6 +6726,12 @@
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+.gafa-checkout-auth .gafa-widget-card {
+  max-width: none;
+  padding-inline: 0;
+  width: 100%;
 }
 
 .gafa-checkout-auth .gafa-sdk-form {

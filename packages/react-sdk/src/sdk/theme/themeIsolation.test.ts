@@ -58,6 +58,12 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(/\.gafa-studio-logo \{[\s\S]{0,280}max-width:\s*120px/);
   });
 
+  it("el login del checkout llena la columna, no se queda en 26rem", () => {
+    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,120}max-width:\s*none/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,160}width:\s*100%/);
+    expect(widgetsCss).not.toMatch(/\.gafa-checkout-auth \{\s*max-width:\s*26rem/);
+  });
+
   it("pinta el focus del SDK, no el outline naranja de WP", () => {
     expect(themeCss).toContain("outline: 2px solid var(--gafa-color-accent) !important");
   });
