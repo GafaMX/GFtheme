@@ -14,6 +14,8 @@ export type GafaThemeRadius = {
 export type GafaBrandTheme = {
   preset?: string;
   logoUrl?: string;
+  /** Wordmark claro para dark. Si no viene, se usa `logoUrl` (Fitspin hoy). */
+  logoUrlDark?: string;
   /** Los pocos colores que define el socio. El resto se deriva. */
   colors?: Partial<BrandBaseColors>;
   typography?: {
@@ -88,6 +90,7 @@ export function resolveTheme(theme?: GafaBrandTheme) {
   return {
     preset: theme?.preset ?? "default",
     logoUrl: theme?.logoUrl ?? preset.logoUrl ?? "",
+    logoUrlDark: theme?.logoUrlDark ?? preset.logoUrlDark ?? "",
     colors: { ...defaultBase, ...preset.colors, ...theme?.colors } as BrandBaseColors,
     typography: {
       // Por defecto se hereda la tipografia del sitio del socio: el SDK no
@@ -157,6 +160,7 @@ type ThemeContextValue = {
   setPreference(preference: ColorSchemePreference): void;
   allowUserColorScheme: boolean;
   logoUrl: string;
+  logoUrlDark: string;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -238,8 +242,16 @@ export function ThemeProvider({ children, theme }: { children: React.ReactNode; 
       setPreference,
       allowUserColorScheme: resolved.allowUserColorScheme,
       logoUrl: resolved.logoUrl,
+      logoUrlDark: resolved.logoUrlDark,
     }),
-    [preference, resolved.allowUserColorScheme, resolved.logoUrl, scheme, setPreference],
+    [
+      preference,
+      resolved.allowUserColorScheme,
+      resolved.logoUrl,
+      resolved.logoUrlDark,
+      scheme,
+      setPreference,
+    ],
   );
 
   return (
