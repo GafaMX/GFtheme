@@ -5,6 +5,7 @@ import {
   type ConciergeResponseData,
 } from "./contracts";
 import type { ConciergeBrowserAdapter } from "./adapter";
+import { whatsappAvailable } from "./experience";
 import { conciergeProducts } from "./products";
 
 export type ConciergeAskOptions = {
@@ -146,7 +147,7 @@ export function createLocalConciergeAsk(options: {
       chips: [
         ...(config.fallbacks.calendar ? [{ label: "Abrir calendario", action: { kind: "reservar" as const } }] : []),
         ...(config.fallbacks.packages ? [{ label: "Ver paquetes", action: { kind: "comprar" as const } }] : []),
-        ...(config.fallbacks.whatsapp ? [{ label: "WhatsApp", action: { kind: "whatsapp" as const } }] : []),
+        ...(config.fallbacks.whatsapp && whatsappAvailable(config) ? [{ label: "WhatsApp", action: { kind: "whatsapp" as const } }] : []),
       ],
     } satisfies ConciergeResponseData);
   };

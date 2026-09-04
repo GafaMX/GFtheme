@@ -16,6 +16,18 @@ describe("concierge contracts", () => {
     expect(demo.studios.some((studio) => fitspin.studios.some((other) => other.locationId === studio.locationId))).toBe(false);
   });
 
+  it("acepta config sin WhatsApp: el teléfono es opcional", () => {
+    const parsed = ConciergePartnerConfig.parse({
+      ...DEMO_CONCIERGE_CONFIG,
+      contact: {},
+    });
+    expect(parsed.contact.whatsapp).toBeUndefined();
+    expect(ConciergePartnerConfig.parse({
+      ...DEMO_CONCIERGE_CONFIG,
+      contact: { whatsapp: "" },
+    }).contact.whatsapp).toBe("");
+  });
+
   it("permite catalogo vacio cuando el socio hidrata desde BUQ", () => {
     const parsed = ConciergePartnerConfig.parse({
       ...DEMO_CONCIERGE_CONFIG,

@@ -38,6 +38,8 @@ export {
   showLocationSwitcher,
   todayIntro,
   todayIso,
+  whatsappAvailable,
+  whatsappNumber,
 } from "./experience";
 export type { CatalogFilter, OpeningChip } from "./experience";
 export {

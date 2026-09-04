@@ -79,9 +79,12 @@ export const ConciergePartnerConfig = z.object({
     web: z.object({ home: z.string(), calendar: z.string(), packages: z.string() }),
     webview: z.object({ home: z.string(), calendar: z.string(), packages: z.string() }),
   }),
-  contact: z.object({
-    whatsapp: z.string().regex(/^[0-9]{8,20}$/),
-  }),
+  contact: z
+    .object({
+      /** Vacío u omitido = sin botón de WhatsApp. */
+      whatsapp: z.union([z.string().regex(/^[0-9]{8,20}$/), z.literal("")]).optional(),
+    })
+    .default({}),
   copy: z.object({
     assistantName: z.string().min(1).max(80),
     greeting: z.string().min(1).max(400),

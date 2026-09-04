@@ -5,6 +5,7 @@ import {
   filterCatalogProducts,
   openingChips,
   showLocationSwitcher,
+  whatsappAvailable,
 } from "./experience";
 import { DEMO_CONCIERGE_CONFIG, FITSPIN_CONCIERGE_CONFIG } from "./fixtures";
 
@@ -42,6 +43,13 @@ describe("concierge experience", () => {
     expect(openingChips(disabled)).toEqual([]);
     expect(actionAllowed(disabled, { kind: "comprar" })).toBe(false);
     expect(actionAllowed(disabled, { kind: "horarios_hoy" })).toBe(false);
+  });
+
+  it("sin teléfono no hay WhatsApp aunque la capability esté encendida", () => {
+    const noPhone = { ...DEMO_CONCIERGE_CONFIG, contact: {} };
+    expect(whatsappAvailable(noPhone)).toBe(false);
+    expect(actionAllowed(noPhone, { kind: "whatsapp" })).toBe(false);
+    expect(whatsappAvailable(DEMO_CONCIERGE_CONFIG)).toBe(true);
   });
 
   it("infiere grupos desde el catálogo cuando no hay experience", () => {

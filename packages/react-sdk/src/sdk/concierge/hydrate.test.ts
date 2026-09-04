@@ -26,6 +26,19 @@ describe("hydrateConciergeCatalog", () => {
     expect(shouldHydrateConcierge({ ...DEMO_CONCIERGE_CONFIG, catalog: { ...DEMO_CONCIERGE_CONFIG.catalog, live: true } }, false)).toBe(false);
   });
 
+  it("products vacio + live trae todos los paquetes/membresías de la compañía", async () => {
+    const client = clientMock();
+    const next = await hydrateConciergeCatalog({
+      ...DEMO_CONCIERGE_CONFIG,
+      capabilities: { ...DEMO_CONCIERGE_CONFIG.capabilities, memberships: true },
+      catalog: { version: "live", products: [], live: true },
+    }, client);
+    expect(next.catalog.products.map((product) => `${product.type}:${product.id}`)).toEqual([
+      "combo:1",
+      "membership:2",
+    ]);
+  });
+
   it("si el allowlist no existe en BUQ, usa el catalogo live del cliente", async () => {
     const client = clientMock();
     const next = await hydrateConciergeCatalog({

@@ -31,7 +31,7 @@ export function createLiveConciergeConfig(input: LiveConciergeConfigInput): Conc
       web: { home: "/", calendar: "/", packages: "/paquetes" },
       webview: { home: "/", calendar: "/", packages: "/paquetes" },
     },
-    contact: { whatsapp: input.whatsapp ?? "5215500000000" },
+    contact: input.whatsapp ? { whatsapp: input.whatsapp } : {},
     copy: {
       assistantName: "Concierge",
       greeting: `¡Hola! Soy el concierge de ${input.displayName}. Puedo ayudarte a reservar, comprar o resolver tus dudas.`,
@@ -46,7 +46,7 @@ export function createLiveConciergeConfig(input: LiveConciergeConfigInput): Conc
       memberships: true,
       account: true,
       directReservation: true,
-      whatsapp: true,
+      whatsapp: Boolean(input.whatsapp),
     },
     theme: {
       mode: input.theme.mode,
@@ -54,7 +54,7 @@ export function createLiveConciergeConfig(input: LiveConciergeConfigInput): Conc
       foreground: input.theme.foreground,
       icon: "sparkles",
     },
-    fallbacks: { calendar: true, packages: true, account: true, whatsapp: true },
+    fallbacks: { calendar: true, packages: true, account: true, whatsapp: Boolean(input.whatsapp) },
     security: { allowedOrigins: [] },
     experience: {
       locationSwitcher: true,

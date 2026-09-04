@@ -48,6 +48,8 @@ import {
   packagesIntro,
   showLocationSwitcher,
   todayIntro,
+  whatsappAvailable,
+  whatsappNumber,
   todayIso,
 } from "./experience";
 import "./concierge.css";
@@ -418,7 +420,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
       setInput(action.text);
       return;
     }
-    if (!actionAllowed(config, action) && action.kind !== "whatsapp") {
+    if (!actionAllowed(config, action)) {
       appendAssistant("Esa acción no está disponible para esta compañía.");
       return;
     }
@@ -535,7 +537,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
         text: config.copy.fallback,
         chips: [
           ...(config.fallbacks.calendar ? [{ label: "Abrir calendario", action: { kind: "reservar" as const } }] : []),
-          ...(config.fallbacks.whatsapp ? [{ label: "WhatsApp", action: { kind: "whatsapp" as const } }] : []),
+          ...(config.fallbacks.whatsapp && whatsappAvailable(config) ? [{ label: "WhatsApp", action: { kind: "whatsapp" as const } }] : []),
         ],
       }]);
     } finally {
@@ -711,10 +713,10 @@ export function ConciergeCommandBar({
             exit={{ y: 50, opacity: 0 }}
             className="gafa-concierge-bar-inner"
           >
-            {config.capabilities.whatsapp && (
+            {whatsappAvailable(config) && (
               <button
                 type="button"
-                onClick={() => window.open(`https://wa.me/${config.contact.whatsapp}`, "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(`https://wa.me/${whatsappNumber(config)}`, "_blank", "noopener,noreferrer")}
                 aria-label="WhatsApp"
                 className="gafa-concierge-bar-icon is-whatsapp"
               >

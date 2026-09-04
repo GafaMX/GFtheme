@@ -1,4 +1,5 @@
 import type { ConciergePartnerConfig, ConciergeProduct, ConciergeScheduleItem } from "./contracts";
+import { whatsappNumber } from "./experience";
 
 export type ConciergeSdkBridge = {
   client: {
@@ -289,7 +290,9 @@ export function createConciergeBrowserAdapter(options: ConciergeAdapterOptions):
       navigate(route(config, webview, "packages"));
     },
     openWhatsapp() {
-      const url = `https://wa.me/${config.contact.whatsapp}`;
+      const number = whatsappNumber(config);
+      if (!number) return;
+      const url = `https://wa.me/${number}`;
       if (typeof window !== "undefined") {
         window.open(url, "_blank", "noopener,noreferrer");
         return;

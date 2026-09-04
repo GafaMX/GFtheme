@@ -32,6 +32,16 @@ export function todayIso(timezone: string, now = new Date()): string {
   }).format(now);
 }
 
+export function whatsappNumber(config: ConciergePartnerConfig): string | undefined {
+  const value = config.contact?.whatsapp?.trim();
+  return value && /^[0-9]{8,20}$/.test(value) ? value : undefined;
+}
+
+/** Hay botón/chip de WhatsApp solo si hay número válido. Sin teléfono = no se muestra. */
+export function whatsappAvailable(config: ConciergePartnerConfig): boolean {
+  return Boolean(whatsappNumber(config)) && config.capabilities.whatsapp;
+}
+
 export function actionAllowed(config: ConciergePartnerConfig, action: ConciergeActionData): boolean {
   if (action.kind === "reservar" || action.kind === "horarios_hoy") {
     return config.capabilities.schedule;
@@ -40,7 +50,7 @@ export function actionAllowed(config: ConciergePartnerConfig, action: ConciergeA
     return config.capabilities.packages;
   }
   if (action.kind === "cuenta") return config.capabilities.account;
-  if (action.kind === "whatsapp") return config.capabilities.whatsapp;
+  if (action.kind === "whatsapp") return whatsappAvailable(config);
   return true;
 }
 

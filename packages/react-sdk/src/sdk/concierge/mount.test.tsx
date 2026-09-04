@@ -243,4 +243,15 @@ describe("sdk.concierge.mount", () => {
     expect(Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("Buy a pass"))).toBe(false);
     expect(Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("Account"))).toBe(false);
   });
+
+  it("sin teléfono no pinta el botón de WhatsApp y el resto sí monta", async () => {
+    boot().concierge.mount({
+      config: { ...DEMO_CONCIERGE_CONFIG, contact: {} },
+    });
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-concierge-bar]")).toBeTruthy();
+    });
+    expect(document.querySelector('[aria-label="WhatsApp"]')).toBeNull();
+    expect(document.querySelector("[data-gafa-concierge-cta]")).toBeTruthy();
+  });
 });
