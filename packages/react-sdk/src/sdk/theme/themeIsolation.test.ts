@@ -46,16 +46,25 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
 
   it("el logo del estudio no lo infla Elementor a width 100%", () => {
     expect(themeCss).toMatch(
-      /img\.gafa-studio-logo \{[\s\S]{0,280}max-height:\s*40px !important/,
+      /img\.gafa-studio-logo \{[\s\S]{0,320}max-height:\s*var\(--gafa-logo-max-height, 64px\) !important/,
     );
     expect(themeCss).toMatch(
-      /img\.gafa-studio-logo \{[\s\S]{0,280}max-width:\s*120px !important/,
+      /img\.gafa-studio-logo \{[\s\S]{0,320}max-width:\s*min\(var\(--gafa-logo-max-width, 180px\), 60vw\) !important/,
     );
     expect(themeCss).toMatch(
-      /img\.gafa-studio-logo \{[\s\S]{0,280}width:\s*auto !important/,
+      /img\.gafa-studio-logo \{[\s\S]{0,320}width:\s*auto !important/,
     );
-    expect(widgetsCss).toMatch(/\.gafa-studio-logo \{[\s\S]{0,280}max-height:\s*40px/);
-    expect(widgetsCss).toMatch(/\.gafa-studio-logo \{[\s\S]{0,280}max-width:\s*120px/);
+    expect(themeCss).toMatch(
+      /img\.gafa-studio-logo \{[\s\S]{0,320}height:\s*auto !important/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-studio-logo \{[\s\S]{0,400}max-height:\s*var\(--gafa-logo-max-height, 64px\)/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-studio-logo \{[\s\S]{0,400}max-width:\s*min\(var\(--gafa-logo-max-width, 180px\), 60vw\)/,
+    );
+    expect(themeCss).not.toMatch(/img\.gafa-studio-logo \{[\s\S]{0,200}max-height:\s*40px !important/);
+    expect(widgetsCss).not.toMatch(/\.gafa-studio-logo \{[\s\S]{0,200}max-height:\s*40px;/);
   });
 
   it("el login del checkout llena la columna, no se queda en 26rem", () => {

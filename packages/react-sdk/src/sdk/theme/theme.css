@@ -366,9 +366,10 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-studio-logo {
   border-radius: 0 !important;
   display: block !important;
   height: auto !important;
-  max-height: 40px !important;
-  max-width: 120px !important;
+  max-height: var(--gafa-logo-max-height, 64px) !important;
+  max-width: min(var(--gafa-logo-max-width, 180px), 60vw) !important;
   object-fit: contain !important;
+  object-position: center !important;
   width: auto !important;
 }
 

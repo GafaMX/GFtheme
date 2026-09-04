@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { copySdkSkin, type SdkSkin } from "../theme/sdkSkin";
+import { useGafaThemeOptional } from "../theme/theme";
 import { dismissToast, getToasts, subscribeToasts } from "./toastStore";
 
 const AUTO_DISMISS_MS = 4800;
@@ -19,7 +20,11 @@ export function resetToastHostForTests() {
 export function ToastHost() {
   const [owned, setOwned] = useState(false);
   const toasts = useSyncExternalStore(subscribeToasts, getToasts, getToasts);
-  const [skin, setSkin] = useState<SdkSkin>({ scheme: "dark" });
+  const theme = useGafaThemeOptional();
+  const [copied, setCopied] = useState<SdkSkin>({ scheme: "dark" });
+  const skin = theme
+    ? { scheme: theme.scheme, style: theme.variables }
+    : copied;
 
   useEffect(() => {
     if (hostClaimed) return;
@@ -31,10 +36,10 @@ export function ToastHost() {
   }, []);
 
   useLayoutEffect(() => {
-    if (!owned) return;
+    if (!owned || theme) return;
     const root = document.querySelector(".gafa-sdk");
-    setSkin(copySdkSkin(root));
-  }, [owned, toasts]);
+    setCopied(copySdkSkin(root));
+  }, [owned, theme, toasts]);
 
   useEffect(() => {
     if (!owned || toasts.length === 0) return;

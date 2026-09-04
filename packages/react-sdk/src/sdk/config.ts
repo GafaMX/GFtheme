@@ -32,6 +32,10 @@ const legacyThemeSchema = z
     preset: z.string().optional(),
     logoUrl: z.string().optional(),
     logoUrlDark: z.string().optional(),
+    logoMaxWidth: z.union([z.number(), z.string()]).optional(),
+    logoMaxHeight: z.union([z.number(), z.string()]).optional(),
+    colorScheme: z.enum(["light", "dark", "system", "host"]).optional(),
+    allowUserColorScheme: z.boolean().optional(),
     colors: z.record(z.string(), z.string()).optional(),
     typography: z
       .object({
