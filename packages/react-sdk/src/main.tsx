@@ -15,7 +15,12 @@ const sdk = createGafaSdk(
       logoUrl:
         "data:image/svg+xml," +
         encodeURIComponent(
-          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#16110f">DEMO STUDIO</text></svg>',
+          '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><circle cx="256" cy="256" r="256" fill="#f2c545"/><text x="256" y="330" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="260" font-weight="800" fill="#16110f">S</text></svg>',
+        ),
+      logoUrlDark:
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#fffaf4">DEMO STUDIO</text></svg>',
         ),
       colors: {
         primary: "#16110f",
