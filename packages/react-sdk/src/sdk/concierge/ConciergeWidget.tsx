@@ -584,6 +584,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
           style={variables}
           className={`gafa-concierge gafa-concierge-dialog border border-[var(--concierge-line)] bg-[var(--concierge-bg)] text-[var(--concierge-ink)] shadow-2xl${webview ? " is-webview" : ""}`}
           data-gafa-concierge-dialog={config.id}
+          id={`concierge-dialog-${config.id}`}
           role="dialog"
           aria-modal="true"
           aria-labelledby={`concierge-title-${config.id}`}
@@ -690,17 +691,67 @@ export function ConciergeCommandBar({
     >
       <AnimatePresence mode="wait" initial={false}>
         {collapsed ? (
-          <motion.button key="compact" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} type="button" onClick={() => setCollapsed(false)} aria-label="Mostrar acciones" className="gafa-concierge-bar-inner" style={{ width: 48, height: 48, justifyContent: "center", padding: 0 }}>
-            <Sparkles className="h-4 w-4" style={{ color: config.theme.accent }} />
+          <motion.button
+            key="compact"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 30, opacity: 0 }}
+            type="button"
+            onClick={() => setCollapsed(false)}
+            aria-label="Mostrar acciones"
+            className="gafa-concierge-bar-inner is-compact"
+          >
+            <Sparkles />
           </motion.button>
         ) : (
-          <motion.div key="bar" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="gafa-concierge-bar-inner">
-            {config.capabilities.whatsapp && <button type="button" onClick={() => window.open(`https://wa.me/${config.contact.whatsapp}`, "_blank", "noopener,noreferrer")} aria-label="WhatsApp" className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5"><MessageCircle className="h-4 w-4 text-[#25D366]" /></button>}
-            {config.capabilities.schedule && config.fallbacks.calendar && <button type="button" onClick={() => navigate(routes.calendar)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><CalendarDays className="h-4 w-4" style={{ color: config.theme.accent }} /><span>Reservar</span></button>}
-            {config.capabilities.packages && config.fallbacks.packages && <button type="button" onClick={() => onOpenCatalog ? onOpenCatalog() : setOpen(true)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><ShoppingBag className="h-4 w-4" style={{ color: config.theme.accent }} /><span>Comprar</span></button>}
-            <button type="button" onClick={() => setOpen(!open)} className="flex h-10 items-center gap-2 rounded-full px-4 text-[11px] font-bold uppercase" style={{ background: config.theme.accent, color: config.theme.foreground }}><Sparkles className="h-4 w-4" />{open ? "Cerrar" : "Concierge"}</button>
-            {extraAction}
-            <button type="button" onClick={() => setCollapsed(true)} aria-label="Minimizar acciones" className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5"><ChevronDown className="h-4 w-4" /></button>
+          <motion.div
+            key="bar"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 50, opacity: 0 }}
+            className="gafa-concierge-bar-inner"
+          >
+            {config.capabilities.whatsapp && (
+              <button
+                type="button"
+                onClick={() => window.open(`https://wa.me/${config.contact.whatsapp}`, "_blank", "noopener,noreferrer")}
+                aria-label="WhatsApp"
+                className="gafa-concierge-bar-icon is-whatsapp"
+              >
+                <MessageCircle />
+              </button>
+            )}
+            {config.capabilities.schedule && config.fallbacks.calendar && (
+              <button type="button" onClick={() => navigate(routes.calendar)} className="gafa-concierge-bar-action">
+                <CalendarDays />
+                <span>Reservar</span>
+              </button>
+            )}
+            {config.capabilities.packages && config.fallbacks.packages && (
+              <button
+                type="button"
+                onClick={() => onOpenCatalog ? onOpenCatalog() : setOpen(true)}
+                className="gafa-concierge-bar-action"
+              >
+                <ShoppingBag />
+                <span>Comprar</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpen(!open)}
+              className="gafa-concierge-bar-cta"
+              data-gafa-concierge-cta=""
+              aria-expanded={open}
+              aria-controls={`concierge-dialog-${config.id}`}
+            >
+              <Sparkles />
+              <span>{open ? "Cerrar" : "Concierge"}</span>
+            </button>
+            {extraAction ? <span className="gafa-concierge-bar-extra">{extraAction}</span> : null}
+            <button type="button" onClick={() => setCollapsed(true)} aria-label="Minimizar acciones" className="gafa-concierge-bar-icon">
+              <ChevronDown />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

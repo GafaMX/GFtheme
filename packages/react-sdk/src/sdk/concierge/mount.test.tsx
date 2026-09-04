@@ -28,7 +28,11 @@ describe("sdk.concierge.mount", () => {
       return node!;
     });
     expect(bar.className).toContain("gafa-concierge-bar");
-    expect(document.body.textContent).toMatch(/Concierge/i);
+    const inner = bar.querySelector<HTMLElement>(".gafa-concierge-bar-inner");
+    const cta = bar.querySelector<HTMLElement>("[data-gafa-concierge-cta]");
+    expect(inner).toBeTruthy();
+    expect(cta?.className).toContain("gafa-concierge-bar-cta");
+    expect(cta?.textContent).toMatch(/Concierge/i);
     expect(document.body.textContent).toMatch(/Reservar/i);
     expect(document.body.textContent).toMatch(/Comprar/i);
 

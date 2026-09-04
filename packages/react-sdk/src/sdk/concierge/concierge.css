@@ -71,15 +71,138 @@
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  width: min(540px, calc(100vw - 20px));
-  padding: 0.4rem;
-  border: 1px solid rgb(0 0 0 / 0.1);
+  justify-content: center;
+  gap: 2px;
+  width: max-content;
+  max-width: calc(100vw - 20px);
+  height: 56px;
+  padding: 6px;
+  overflow-x: auto;
+  border: 1px solid rgb(17 17 17 / 0.08);
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.94);
+  background: rgb(255 255 255 / 0.96);
   color: #111111;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.16);
   backdrop-filter: blur(20px);
+}
+
+.gafa-concierge-bar-inner.is-compact {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  justify-content: center;
+  background: var(--concierge-accent, #ffd420);
+  color: var(--concierge-accent-ink, #111111);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--concierge-accent, #ffd420) 40%, rgb(0 0 0 / 0.18));
+}
+
+.gafa-concierge-bar-inner.is-compact svg {
+  width: 20px;
+  height: 20px;
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: 999px;
+  color: #111111;
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-icon:hover,
+.gafa-concierge-bar button.gafa-concierge-bar-action:hover {
+  background: rgb(17 17 17 / 0.05);
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-icon.is-whatsapp {
+  color: #25d366;
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #111111;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-action svg {
+  width: 16px;
+  height: 16px;
+  color: var(--concierge-accent, #ffd420);
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  margin: 0 4px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--concierge-accent, #ffd420);
+  color: var(--concierge-accent-ink, #111111);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--concierge-accent, #ffd420) 45%, transparent);
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-cta:hover {
+  filter: brightness(0.96);
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-cta[aria-expanded="true"] {
+  box-shadow: inset 0 0 0 1px rgb(17 17 17 / 0.08);
+}
+
+.gafa-concierge-bar button.gafa-concierge-bar-cta svg {
+  width: 16px;
+  height: 16px;
+}
+
+.gafa-concierge-bar-extra {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 420px) {
+  .gafa-concierge-bar button.gafa-concierge-bar-action {
+    padding: 0 8px;
+  }
+
+  .gafa-concierge-bar button.gafa-concierge-bar-action span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .gafa-concierge-bar button.gafa-concierge-bar-cta {
+    margin: 0 2px;
+    padding: 0 14px;
+  }
 }
 
 .gafa-concierge-dialog {
