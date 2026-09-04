@@ -3,14 +3,18 @@ import type { GafaClient } from "../client/types";
 import { useGafaThemeOptional } from "../theme/theme";
 
 /**
- * Logo de la marca para login/registro. Orden: `THEME.logoUrl` del embed, si
- * no el `pic` publico de gafa.fit. Si no hay ninguno, no se pinta nada.
+ * Logo de la marca para login/registro. Orden: `THEME.logoUrl` / `logoUrlDark`
+ * del embed según el esquema, si no el `pic` publico de gafa.fit. Si no hay
+ * ninguno, no se pinta nada.
  *
  * Va en `<img>` directo: son wordmarks chicos, no las fotos de 15 MB de coach
  * que sí pasan por Cloudflare Transformations.
  */
 export function useStudioLogo(client?: GafaClient, brandSlug?: string): string | undefined {
-  const themeLogo = useGafaThemeOptional()?.logoUrl?.trim() || undefined;
+  const theme = useGafaThemeOptional();
+  const lightLogo = theme?.logoUrl?.trim() || undefined;
+  const darkLogo = theme?.logoUrlDark?.trim() || undefined;
+  const themeLogo = theme?.scheme === "dark" ? darkLogo || lightLogo : lightLogo;
   const brandsQuery = useQuery({
     queryKey: ["studio-logo", brandSlug || "*"],
     queryFn: () => client!.listBrands(),

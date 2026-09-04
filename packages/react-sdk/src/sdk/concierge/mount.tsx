@@ -9,6 +9,7 @@ import {
 import { createHttpConciergeAsk, createLocalConciergeAsk, type ConciergeAskFn } from "./ask";
 import { assertConciergeOriginAllowed } from "./domConfig";
 import { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
+import { ColorSchemeToggle } from "../theme/theme";
 
 export type ConciergeHandle = {
   open(): void;
@@ -166,7 +167,7 @@ export function ConciergeHost({
         setOpen={setOpen}
         webview={webview}
         collapsedByDefault={collapsedByDefault}
-        extraAction={extraAction}
+        extraAction={extraAction ?? <ColorSchemeToggle className="gafa-concierge-scheme-toggle" />}
         onOpenCatalog={openCatalog}
       />
     </>

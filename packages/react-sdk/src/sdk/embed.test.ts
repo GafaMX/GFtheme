@@ -113,7 +113,9 @@ describe("embed drop-in", () => {
 
   it("exige config declarativa y no usa Fitspin como default", () => {
     mountHost(`<section data-gafa-v2="concierge"></section>`);
-    expect(() => bootGafaSdkFromDom(document, window, { useMockClient: true })).toThrow(/Concierge config was not found/);
+    expect(() => bootGafaSdkFromDom(document, window, { useMockClient: true })).not.toThrow();
+    expect(document.querySelector("[data-gafa-concierge]")).toBeNull();
+    expect(document.body.textContent).not.toContain("FITSPIN Concierge");
   });
 
   it("acepta un fixture solo si el socio lo pide explicitamente", async () => {
@@ -135,5 +137,32 @@ describe("embed drop-in", () => {
     await waitFor(() => {
       expect(document.querySelector("[data-gafa-v2]")?.childElementCount).toBeGreaterThan(0);
     });
+  });
+
+  it("login-register y mountHeaderControls aplican THEME.headerControls", async () => {
+    document.body.innerHTML = `
+      <script data-gf-options type="application/json">${JSON.stringify({
+        GAFA_FIT_URL: "https://example.gafa.fit",
+        COMPANY_ID: 80,
+        API_CLIENT: "demo-client",
+        THEME: { headerControls: { background: "#8D6363", fontSize: "11px" } },
+      })}</script>
+      <section data-gf-theme="login-register"></section>
+      <div id="header-js"></div>
+    `;
+    const sdk = bootGafaSdkFromDom(document, window, { useMockClient: true });
+    await waitFor(() => {
+      expect(document.querySelector("[data-gf-theme='login-register'] .gafa-header-account")).toBeTruthy();
+    });
+    const declared = document.querySelector<HTMLElement>("[data-gf-theme='login-register'] .gafa-sdk");
+    expect(declared?.style.getPropertyValue("--gafa-header-account-background")).toBe("#8D6363");
+    expect(declared?.style.getPropertyValue("--gafa-header-account-font-size")).toBe("11px");
+    sdk.mountHeaderControls("#header-js");
+    await waitFor(() => {
+      expect(document.querySelector("#header-js .gafa-header-account")).toBeTruthy();
+    });
+    const mounted = document.querySelector<HTMLElement>("#header-js .gafa-sdk");
+    expect(mounted?.style.getPropertyValue("--gafa-header-account-background")).toBe("#8D6363");
+    expect(document.querySelector(".gafa-header-cart")).toBeNull();
   });
 });

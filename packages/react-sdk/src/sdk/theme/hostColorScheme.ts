@@ -147,6 +147,31 @@ export function resolveActiveColorScheme(input: {
   return input.preference;
 }
 
+/**
+ * Fuente de verdad del SDK.
+ *
+ * Lock (`allowUserColorScheme: false` + light/dark): solo THEME. Ni host,
+ * ni localStorage, ni prefers-color-scheme. ATLIC / The Base.
+ *
+ * Sin lock: el host gana (Fitspin: `html.fitspin-dark` + `--sdk-*`).
+ */
+export function resolveSdkColorScheme(input: {
+  colorScheme: ColorScheme | "system" | "host";
+  allowUserColorScheme: boolean;
+  storedPreference: ColorScheme | "system" | "host" | null;
+  hostScheme: ColorScheme | null;
+  osScheme: ColorScheme;
+}): ColorScheme {
+  if (!input.allowUserColorScheme && (input.colorScheme === "light" || input.colorScheme === "dark")) {
+    return input.colorScheme;
+  }
+  return resolveActiveColorScheme({
+    hostScheme: input.hostScheme,
+    preference: input.storedPreference ?? input.colorScheme,
+    osScheme: input.osScheme,
+  });
+}
+
 /** El overlay de Fitspin pinta `--sdk-*`; el SDK V2 lee `--gafa-color-*`. */
 export function withHostSurfaceVars(variables: Record<string, string>): Record<string, string> {
   const wrap = (sdkVar: string, fallback: string) => `var(${sdkVar}, ${fallback})`;
@@ -161,6 +186,12 @@ export function withHostSurfaceVars(variables: Record<string, string>): Record<s
     ),
     "--gafa-color-border": wrap(HOST_SDK_VARS.border, variables["--gafa-color-border"] ?? ""),
     "--gafa-color-overlay": wrap(HOST_SDK_VARS.overlay, variables["--gafa-color-overlay"] ?? ""),
+    "--gafa-color-input-background": wrap(
+      HOST_SDK_VARS.surfaceRaised,
+      variables["--gafa-color-input-background"] ?? variables["--gafa-color-surface"] ?? "",
+    ),
+    "--gafa-color-input-text": wrap(HOST_SDK_VARS.text, variables["--gafa-color-input-text"] ?? ""),
+    "--gafa-color-input-border": wrap(HOST_SDK_VARS.border, variables["--gafa-color-input-border"] ?? ""),
   };
 }
 

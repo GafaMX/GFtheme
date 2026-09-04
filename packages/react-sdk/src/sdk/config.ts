@@ -31,11 +31,32 @@ const legacyThemeSchema = z
   .object({
     preset: z.string().optional(),
     logoUrl: z.string().optional(),
+    logoUrlDark: z.string().optional(),
+    logoMaxWidth: z.union([z.number(), z.string()]).optional(),
+    logoMaxHeight: z.union([z.number(), z.string()]).optional(),
+    colorScheme: z.enum(["light", "dark", "system", "host"]).optional(),
+    allowUserColorScheme: z.boolean().optional(),
     colors: z.record(z.string(), z.string()).optional(),
     typography: z
       .object({
         fontFamily: z.string().optional(),
         headingFontFamily: z.string().optional(),
+      })
+      .optional(),
+    headerControls: z
+      .object({
+        fontFamily: z.string().optional(),
+        fontSize: z.string().optional(),
+        fontWeight: z.union([z.number(), z.string()]).optional(),
+        letterSpacing: z.string().optional(),
+        textTransform: z.enum(["none", "uppercase", "lowercase", "capitalize"]).optional(),
+        lineHeight: z.string().optional(),
+        height: z.union([z.number(), z.string()]).optional(),
+        padding: z.string().optional(),
+        background: z.string().optional(),
+        color: z.string().optional(),
+        border: z.string().optional(),
+        borderRadius: z.string().optional(),
       })
       .optional(),
     radius: z.record(z.string(), z.string()).optional(),

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   readHostColorScheme,
   resolveActiveColorScheme,
+  resolveSdkColorScheme,
   schemeFromCssColor,
   schemeFromToken,
   withHostSurfaceVars,
@@ -68,6 +69,42 @@ describe("hostColorScheme", () => {
     ).toBe("light");
   });
 
+  it("con THEME locked dark ignora host light y prefers-color-scheme", () => {
+    expect(
+      resolveSdkColorScheme({
+        colorScheme: "dark",
+        allowUserColorScheme: false,
+        storedPreference: "light",
+        hostScheme: "light",
+        osScheme: "light",
+      }),
+    ).toBe("dark");
+  });
+
+  it("con THEME locked light ignora host dark y preferencia guardada", () => {
+    expect(
+      resolveSdkColorScheme({
+        colorScheme: "light",
+        allowUserColorScheme: false,
+        storedPreference: "dark",
+        hostScheme: "dark",
+        osScheme: "dark",
+      }),
+    ).toBe("light");
+  });
+
+  it("sin lock el host sigue ganando (Fitspin)", () => {
+    expect(
+      resolveSdkColorScheme({
+        colorScheme: "light",
+        allowUserColorScheme: true,
+        storedPreference: "light",
+        hostScheme: "dark",
+        osScheme: "light",
+      }),
+    ).toBe("dark");
+  });
+
   it("las superficies del SDK delegan en --sdk-* del overlay de Fitspin", () => {
     const vars = withHostSurfaceVars({
       "--gafa-color-text": "#111111",
@@ -76,9 +113,15 @@ describe("hostColorScheme", () => {
       "--gafa-color-surface-raised": "#f6f6f4",
       "--gafa-color-border": "#eee",
       "--gafa-color-overlay": "hsl(0 0% 0% / 0.7)",
+      "--gafa-color-input-background": "#ffffff",
+      "--gafa-color-input-text": "#111111",
+      "--gafa-color-input-border": "#eee",
     });
     expect(vars["--gafa-color-text"]).toBe("var(--sdk-text-color, #111111)");
     expect(vars["--gafa-color-surface"]).toBe("var(--sdk-background-color, #ffffff)");
     expect(vars["--gafa-color-background"]).toBe("var(--sdk-modal-bg, #fafafa)");
+    expect(vars["--gafa-color-input-background"]).toBe("var(--sdk-input-bg, #ffffff)");
+    expect(vars["--gafa-color-input-text"]).toBe("var(--sdk-text-color, #111111)");
+    expect(vars["--gafa-color-input-border"]).toBe("var(--sdk-border-color, #eee)");
   });
 });

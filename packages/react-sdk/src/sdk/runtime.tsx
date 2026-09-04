@@ -244,7 +244,10 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       <React.StrictMode>
         <QueryClientProvider client={queryClient}>
           <ImagesProvider images={config.images} apiBaseUrl={config.apiBaseUrl}>
-            <ThemeProvider theme={config.theme}>
+            <ThemeProvider
+              theme={config.theme}
+              storageScope={`${config.companyId}:${config.publicClientId ?? "x"}`}
+            >
               {node}
             </ThemeProvider>
           </ImagesProvider>
