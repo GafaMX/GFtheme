@@ -20,7 +20,7 @@
   --gafa-field-radius: 999px;
   --gafa-field-font-size: 13px;
   color: var(--concierge-ink, #111111);
-  font-family: var(--gafa-font-body, inherit);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 13px;
   line-height: 1.4;
 }
@@ -530,15 +530,43 @@
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge {
+  font-family: ui-sans-serif, system-ui, sans-serif !important;
   font-size: 13px !important;
   line-height: 1.4 !important;
 }
 
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-dialog {
+  color-scheme: light;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-dialog[data-color-scheme="dark"] {
+  color-scheme: dark;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-bubble {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1.45 !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-title {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-subtitle {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-chip {
+  border-radius: 999px !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
+  text-transform: none !important;
   white-space: nowrap !important;
 }
 
@@ -549,10 +577,15 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-chip svg {
   width: 14px !important;
 }
 
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge input.gafa-concierge-input,
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-input {
+  appearance: none !important;
+  -webkit-appearance: none !important;
   background: var(--concierge-field-bg, #ffffff) none !important;
+  background-color: var(--concierge-field-bg, #ffffff) !important;
   border: 1.5px solid var(--concierge-accent, #ffd420) !important;
   border-radius: 999px !important;
+  box-shadow: none !important;
   color: var(--concierge-ink, #111111) !important;
   font-size: 13px !important;
   min-height: 40px !important;

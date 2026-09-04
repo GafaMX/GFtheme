@@ -17,6 +17,6 @@ describe("Concierge isolation vs muralla .gafa-sdk / Elementor", () => {
     expect(css).toContain("--gafa-control-padding: 7px 12px");
     expect(css).toContain("html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-chip");
     expect(css).toContain("html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-input");
-    expect(css).toContain("background: var(--concierge-field-bg, #ffffff) none !important");
+    expect(css).toContain("background-color: var(--concierge-field-bg, #ffffff) !important");
   });
 });

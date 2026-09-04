@@ -52,7 +52,6 @@ import {
   whatsappNumber,
   todayIso,
 } from "./experience";
-import { ColorSchemeToggle, useGafaThemeOptional } from "../theme/theme";
 import "./concierge.css";
 
 export type ConciergeWidgetProps = {
@@ -387,8 +386,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
   const restoreFocus = useRef<HTMLElement | null>(null);
   const suppressFocusRestore = useRef(false);
   const shownCatalogNonce = useRef(0);
-  const theme = useGafaThemeOptional();
-  const scheme = theme?.scheme ?? (config.theme.mode === "dark" ? "dark" : "light");
+  const [scheme, setScheme] = useState<"light" | "dark">(config.theme.mode === "dark" ? "dark" : "light");
 
   useEffect(() => {
     if (!open) return;
@@ -642,7 +640,15 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
               <strong id={`concierge-title-${config.id}`} className="gafa-concierge-title block truncate">{config.copy.title}</strong>
               <span className="gafa-concierge-subtitle block truncate opacity-70">{config.copy.subtitle}</span>
             </span>
-            <ColorSchemeToggle className="gafa-concierge-scheme-toggle" />
+            <button
+              type="button"
+              className="gafa-concierge-scheme-toggle"
+              aria-label={scheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+              title={scheme === "dark" ? "Tema claro" : "Tema oscuro"}
+              onClick={() => setScheme(scheme === "dark" ? "light" : "dark")}
+            >
+              {scheme === "dark" ? "☀" : "☾"}
+            </button>
             <button type="button" onClick={onClose} aria-label="Cerrar concierge" className="gafa-concierge-icon-btn grid h-9 w-9 place-items-center"><X /></button>
           </header>
           <div ref={scroll} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
