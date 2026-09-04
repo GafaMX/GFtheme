@@ -2,11 +2,18 @@ export { createGafaSdk } from "./runtime";
 export type {
   AccountModalOptions,
   CheckoutOptions,
+  CheckoutOpenContext,
+  CheckoutOpenHandle,
   GafaSdk,
+  GafaSdkEvent,
+  GafaSdkEventListener,
+  GafaSdkEventName,
   HeaderControlsMountProps,
   MountedWidget,
   ReservationOptions,
   RuntimeOptions,
+  ConciergeHandle,
+  ConciergeMountOptions,
 } from "./runtime";
 export { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 export type { PurchaseIntent, ReserveIntent } from "./cart/purchaseButtons";
@@ -38,3 +45,4 @@ export type { GafaClient } from "./client/types";
 export { buildThumbnailUrl, resolveImagesConfig } from "./images/imageProxy";
 export type { ImagesConfig, ThumbnailOptions } from "./images/imageProxy";
 export { RemoteImage } from "./images/ImagesProvider";
+export * from "./concierge";

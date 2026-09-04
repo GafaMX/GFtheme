@@ -5,8 +5,9 @@ cualquier sitio. Si eres un agente (Cursor, Replit, WP), lee esto entero
 antes de tocar HTML o CSS.
 
 El SDK **no se copia**. Se carga con un `<script>`. Pinta calendario, login,
-cuenta, reserva, carrito y checkout. Los datos salen de gafa.fit. Los
-colores salen de `THEME`. No tiene backend propio.
+cuenta, reserva, carrito y checkout. Concierge solo si el socio lo activa
+(§11). Los datos salen de gafa.fit. Los colores salen de `THEME`. No tiene
+backend propio.
 
 **Contratos cortos:** colores → [`v2-theme-colors.md`](v2-theme-colors.md) ·
 botones HTML → [`botones-de-compra.md`](botones-de-compra.md) · reservar por
@@ -31,8 +32,10 @@ publicar bundle → [`v2-lanzamiento.md`](v2-lanzamiento.md).
    le enseña el **paquete** o la **membresía**. Ver [`creditos-vs-paquetes.md`](creditos-vs-paquetes.md).
 7. **No pidas otro `src` al socio.** Un publish actualiza el loader; hard
    refresh basta.
-8. **Concierge y cross-sell aún no montan UI.** Reserva el markup (abajo).
-   No inventes un widget paralelo.
+8. **Concierge está apagado por default.** No monta solo por cargar el script.
+   Hace falta el nodo `data-gf-theme="concierge"` (o `data-gafa-v2`) **y**
+   una config `CONCIERGE`. Ver §11. No inventes un chat paralelo.
+   **Cross-sell** sigue reservado: hoy no pinta.
 
 ---
 
@@ -106,6 +109,7 @@ VITE_GAFA_SDK_V2_URL=https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2
 | Tienda | `data-gf-buy` + `data-gf-product-id` |
 | “Reservar esta clase” en una landing | `data-gf-reserve` + `data-gf-meeting-id` |
 | Perfil | lo abre el header; `profile-info` solo si quieres la página entera |
+| Concierge (barra + chat) | `concierge` — **opt-in**. Nodo + `CONCIERGE`. Ver §11 |
 
 Checkout, login popup y detalle de reserva **no se pegan a mano**: el SDK
 los abre en `document.body`.
@@ -171,6 +175,7 @@ del socio (así lo exige gafa.fit hoy, igual que v1).
 | `CAPTCHA_PUBLIC_KEY` / `CAPTCHA_SECRET_KEY` | no | Default: par compartido de Buq |
 | `TOKENMOVIL` | no | SSO app |
 | `IMAGES` | no | `{ "provider": "cloudflare" \| "none" }` |
+| `CONCIERGE` | no | Config del asistente. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Ver §11 |
 
 Query string de prueba (no uses en producción):
 
@@ -276,7 +281,7 @@ Un shortcode = un contenedor. El registry está en
 | `profile-info` | stable | Perfil (reservas, créditos, compras) |
 | `purchase-button` | stable | Botón / ancla de compra |
 | `fancy` | stable | Host legacy. V2 **no lo necesita** |
-| `concierge` | **preview** | Reservado. Hoy **no pinta nada** |
+| `concierge` | **opt-in** | Barra + chat. **Off** si no hay nodo **y** `CONCIERGE`. Ver §11 |
 | `cross-sell` | **preview** | Reservado. Hoy **no pinta nada** |
 
 `data-gafa-v2="meetings-calendar"` es el mismo shortcode.
@@ -304,7 +309,8 @@ Van en el `<section data-gf-theme="meetings-calendar">`.
 | `data-gf-limit` | — | Tope de clases (número) |
 | `data-bq-show-description` | — | Se acepta; la nota de clase se pinta si la API la manda |
 
-La URL también arranca la sede: `?location=235` (o `location_id` / `locationId`).
+La URL también arranca la sede: `?location=235` (o `location_id` / `locationId`)
+y el servicio: `?service=123` (o `service_id` / `filter_service`).
 Si el usuario elige “Todos”, no se vuelve a aplicar.
 
 Los ids son los de **gafa.fit**, no ids del builder.
@@ -410,32 +416,152 @@ abren los modales nativos. Código nuevo: los métodos del `sdk`.
 
 ---
 
-## 11. Concierge — preview, contrato listo
+## 11. Concierge — opt-in (apagado por default)
 
-**Estado:** shortcode registrado, **sin `mount`**. Poner el HTML no rompe
-nada y no pinta nada.
+Mismo script, mismas options, mismo `THEME`. No es un bundle aparte ni un
+iframe. **Cargar `gafa-sdk.js` no lo enciende.**
 
-Cuando salga de preview se instala **igual** que el calendario: mismo
-script, mismas options, mismo `THEME`. No será un bundle aparte ni un
-iframe de otro dominio.
+Hacen falta **las dos** piezas. Si pones el nodo y olvidas la config, el
+SDK **no monta** Concierge y deja un `console.warn` (`Concierge config was
+not found`). El calendario y el checkout siguen.
+
+### 11.1 Cómo se activa
+
+**1. Nodo HTML** (una vez por página, donde quieras la barra):
 
 ```html
-<section
-  data-gf-theme="concierge"
-  data-bq-brand="the-base"
-></section>
+<section data-gf-theme="concierge"></section>
 ```
 
-| Hoy | Mañana (sin cambiar el `src`) |
+Si el theme v1 sigue cargado, usa el alias para no pelear el shortcode viejo:
+
+```html
+<section data-gafa-v2="concierge"></section>
+```
+
+**2. Config declarativa.** El SDK busca, en este orden:
+
+| Prioridad | Fuente | Cuándo |
+| --- | --- | --- |
+| 1 | `data-gafa-concierge-fixture` / `data-gf-concierge-fixture` en el nodo | Solo demos. Valores: `fitspin`, `demo-studio`. **Nunca** se asume solo. |
+| 2 | `<script data-gafa-concierge-config type="application/json">` (en el nodo o global) | Config suelta, fuera de options |
+| 3 | `CONCIERGE` (o `concierge`) dentro de `[data-gf-options]` | **Camino de producción** |
+
+Sin esas tres: no hay Concierge. Fitspin **no** es el default del registry.
+
+Opcional en el nodo: `data-gafa-concierge-live` / `data-gf-concierge-live`
+fuerza hidratar sedes/paquetes desde el cliente BUQ (equivalente a
+`catalog.live: true`). `="false"` lo apaga aunque el JSON traiga `live`.
+
+Apps React: `sdk.concierge.mount({ partnerId, config, container })`.
+Mismo objeto `CONCIERGE`, no un fixture implícito.
+
+### 11.2 WhatsApp — opcional
+
+**No se lee de gafa.fit.** Si no pones teléfono, **no sale el botón**. El resto
+del Concierge monta igual.
+
+| Qué pones | Qué pasa |
 | --- | --- |
-| El nodo existe y el Hub ya reserva eventos `concierge.opened` / `concierge.message_sent` | El registry le pone `mount` y pinta el asistente |
-| La rama `cursor/sdk-public-facade-v2-*` **no se mezcla** en Buq-Webs | El publish va por `cdn-live` como todo lo demás |
+| Omites `contact.whatsapp` o lo dejas `""` | Sin icono, sin chip. Listo. |
+| `"5215512345678"` (dígitos, con lada, sin `+`) | Icono en la barra. Clic → `https://wa.me/5215512345678` |
+
+México (móvil): `52` + `1` + 10 dígitos. USA: `1` + 10 dígitos.
+Un `+52 55 …` o un string raro **sí** tira la config. Vacío no.
+
+`capabilities.whatsapp: false` oculta el botón aunque haya número.
+
+### 11.3 Catálogo — `products: []` + `live: true`
+
+Sí: en producción **siempre** deja `products` vacío y `live: true`. El SDK
+pide a BUQ **todos** los paquetes y membresías de **esta** `COMPANY_ID`
+(según `capabilities.packages` / `memberships`). No hay que listarlos.
+
+| `catalog` | Qué pasa |
+| --- | --- |
+| `{ "live": true, "products": [] }` | **Default de socio.** Trae todo lo de la compañía. |
+| `{ "live": true, "products": [ { "type": "combo", "id": "680", … } ] }` | Allowlist: si esos IDs existen en BUQ, solo esos. Si no matchean, cae a todo lo live. Casi nunca lo necesitas. |
+| `{ "live": false, "products": [ … ] }` | Catálogo fijo a mano. Fixtures / demos. |
+
+`experience` (chips, grupos, switcher de sede) solo **presenta**. No trae
+precios ni IDs.
+
+### 11.4 Ejemplo mínimo de producción
+
+Mismo `[data-gf-options]` de siempre. Añade `CONCIERGE` y el nodo.
+
+```html
+<script data-gf-options type="application/json">
+  {
+    "GAFA_FIT_URL": "https://buq.partners",
+    "COMPANY_ID": 190,
+    "API_CLIENT": "…",
+    "API_SECRET": "…",
+    "THEME": { "colorScheme": "dark", "allowUserColorScheme": false },
+    "CONCIERGE": {
+      "id": "bunker",
+      "displayName": "Bunker Indoor Golf",
+      "locale": "es-MX",
+      "timezone": "America/Mexico_City",
+      "buq": {
+        "companyId": 190,
+        "brands": [{ "slug": "bunker", "name": "Bunker Indoor Golf", "locationIds": ["pending"] }]
+      },
+      "studios": [],
+      "catalog": { "version": "live", "products": [], "live": true },
+      "routes": {
+        "web": { "home": "/", "calendar": "/", "packages": "/paquetes" },
+        "webview": { "home": "/", "calendar": "/", "packages": "/paquetes" }
+      },
+      "contact": { "whatsapp": "5215512345678" },
+      "copy": {
+        "assistantName": "Concierge",
+        "greeting": "¡Hola! Soy el concierge de Bunker. ¿Reservamos o vemos paquetes?",
+        "title": "Bunker Concierge",
+        "subtitle": "Tu asistente personal",
+        "fallback": "Puedo ayudarte con horarios, paquetes, sedes y reservas.",
+        "scope": "Solo puedo ayudar con Bunker Indoor Golf."
+      },
+      "capabilities": {
+        "schedule": true,
+        "packages": true,
+        "memberships": true,
+        "account": true,
+        "directReservation": true,
+        "whatsapp": true
+      },
+      "theme": { "mode": "dark", "accent": "#F3D15E", "foreground": "#111111", "icon": "sparkles" },
+      "fallbacks": { "calendar": true, "packages": true, "account": true, "whatsapp": true },
+      "security": { "allowedOrigins": ["https://web.buq.mx"] },
+      "experience": {
+        "locationSwitcher": true,
+        "openingActions": [
+          { "label": "Reservar", "action": { "kind": "reservar" } },
+          { "label": "Comprar paquetes", "action": { "kind": "comprar" } },
+          { "label": "Mi cuenta", "action": { "kind": "cuenta" } },
+          { "label": "Horarios de hoy", "action": { "kind": "horarios_hoy" } }
+        ],
+        "groups": [
+          { "id": "paquetes", "label": "Paquetes", "match": { "types": ["combo"] } },
+          { "id": "membresias", "label": "Membresías", "match": { "types": ["membership"] } }
+        ]
+      }
+    }
+  }
+</script>
+
+<section data-gafa-v2="concierge"></section>
+```
+
+`security.allowedOrigins`: orígenes extra del socio. Vacío `[]` no bloquea.
+`localhost` y `*.trycloudflare.com` ya son de confianza (previews).
+
+`id` = slug corto (`^[a-z0-9][a-z0-9-]{1,62}$`). Una config por marca /
+página. Si no hay WhatsApp, quita `contact.whatsapp` (o déjalo `""`):
+el botón no sale. `products: []` + `live: true` trae todo el catálogo.
 
 **Agente: no implementes Concierge con chat custom, Intercom ni CSS encima
-del calendario.** Deja el contenedor si el diseño lo pide; no simules el UI.
-
-Atributos previstos (se ignoran hasta que haya mount): `data-bq-brand`,
-`data-gf-limit`.
+del calendario.** Si la marca no lo pidió, **no pongas el nodo**.
 
 ---
 
@@ -540,8 +666,11 @@ Instala el SDK v2 de Buq. Guía: docs/v2-agente.md del repo GafaMX/GFtheme.
    Reservar clase: data-gf-reserve + data-gf-meeting-id. Ids de gafa.fit.
 
 5. No CSS de overlays, no MutationObserver, no selectores internos del SDK.
-   Concierge (data-gf-theme=concierge) y cross-sell están reservados: no pintan aún.
-   No implementes un chat ni un carrusel paralelo.
+   Concierge está APAGADO salvo nodo data-gf-theme=concierge (o data-gafa-v2)
+   + CONCIERGE en options. WhatsApp es opcional: sin teléfono no hay botón.
+   catalog.live true + products [] = todos los paquetes de ESTA compañía.
+   No inventes un chat. Cross-sell sigue reservado: no pinta.
+   No implementes un carrusel paralelo.
 
 6. Nunca muestres credit.name interno. Hard refresh para ver el bundle nuevo.
 ```
@@ -560,6 +689,10 @@ Después de pegar options + widgets:
    desde el primer frame. Sin flash blanco.
 6. Fitspin (si aplica) sigue el toggle del sitio.
 7. Consola: cero 401 por `COMPANY_ID` / llaves ajenas.
+8. Si hay Concierge: barra visible. Sin `contact.whatsapp`, no hay icono WA.
+   Con número, abre `wa.me/<dígitos de ESTA marca>`. “Comprar” hidrata **toda**
+   la compañía (`products: []` + `live`), no Demo Studio / Fitspin.
+   Sin nodo o sin `CONCIERGE`: no hay barra. Eso es correcto.
 
 Si el color no cambia: el `THEME` no está llegando al JSON, o hay CSS del
 sitio encima. Quita el CSS. No subas especificidad.
