@@ -82,6 +82,46 @@ describe("sdk.concierge.mount", () => {
     expect(document.querySelector("[data-gafa-concierge='demo-studio']")).toBeNull();
   });
 
+  it("pinta pastillas con icono, input propio y sigue el scheme del SDK", async () => {
+    sdk = createGafaSdk(
+      { ...CONFIG, companyId: 8801, theme: { colorScheme: "dark", allowUserColorScheme: false } },
+      { useMockClient: true },
+    );
+    const handle = sdk.concierge.mount({ config: DEMO_CONCIERGE_CONFIG });
+    handle.open();
+    const dialog = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>("[data-gafa-concierge-dialog]");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(dialog.getAttribute("data-color-scheme")).toBe("dark");
+    expect(dialog.style.getPropertyValue("--concierge-field-bg")).toBe("#2a2a2a");
+    expect(dialog.style.getPropertyValue("--concierge-bg")).toBe("#141414");
+    const chips = dialog.querySelectorAll(".gafa-concierge-chip");
+    expect(chips.length).toBeGreaterThan(0);
+    expect(chips[0]?.querySelector("svg")).toBeTruthy();
+    expect(dialog.querySelector(".gafa-concierge-input")).toBeTruthy();
+    handle.destroy();
+  });
+
+  it("en light el input no hereda el negro del THEME", async () => {
+    sdk = createGafaSdk(
+      { ...CONFIG, companyId: 8802, theme: { colorScheme: "light", allowUserColorScheme: true } },
+      { useMockClient: true },
+    );
+    const handle = sdk.concierge.mount({ config: FITSPIN_CONCIERGE_CONFIG });
+    handle.open();
+    const dialog = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>("[data-gafa-concierge-dialog]");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(dialog.getAttribute("data-color-scheme")).toBe("light");
+    expect(dialog.style.getPropertyValue("--concierge-field-bg")).toBe("#ffffff");
+    expect(dialog.querySelector(".gafa-concierge-scheme-toggle")).toBeTruthy();
+    handle.destroy();
+  });
+
   it("rechaza un partnerId que no coincide con la config", () => {
     expect(() =>
       resolveConciergeConfig({

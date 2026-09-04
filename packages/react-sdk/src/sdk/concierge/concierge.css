@@ -4,8 +4,24 @@
 }
 
 .gafa-concierge {
-  color: inherit;
-  font-family: inherit;
+  /* La muralla de .gafa-sdk pinta button/span/input con --gafa-control-* /
+     --gafa-type-* / --gafa-field-*. Sin estos, Fitspin/Elementor hereda
+     tipografías enormes, pastillas planas y el input negro del THEME dark. */
+  --gafa-type-size: 13px;
+  --gafa-type-leading: 1.4;
+  --gafa-heading-size: 14px;
+  --gafa-control-font-size: 12px;
+  --gafa-control-line-height: 1.2;
+  --gafa-control-padding: 0px;
+  --gafa-control-min-height: 0px;
+  --gafa-field-bg: var(--concierge-field-bg, #ffffff);
+  --gafa-field-fg: var(--concierge-ink, #111111);
+  --gafa-field-border: 1.5px solid var(--concierge-accent, #ffd420);
+  --gafa-field-radius: 999px;
+  --gafa-field-font-size: 13px;
+  color: var(--concierge-ink, #111111);
+  font-family: var(--gafa-font-body, inherit);
+  font-size: 13px;
   line-height: 1.4;
 }
 
@@ -108,6 +124,11 @@
   --gafa-control-bg: transparent;
   --gafa-control-fg: #111111;
   --gafa-control-radius: 999px;
+  --gafa-control-font-size: 12px;
+  --gafa-control-padding: 0px;
+  --gafa-control-min-height: 40px;
+  --gafa-control-width: 40px;
+  --gafa-control-height: 40px;
   display: grid;
   width: 40px;
   height: 40px;
@@ -137,6 +158,10 @@
   --gafa-control-radius: 999px;
   --gafa-control-tracking: 0.04em;
   --gafa-control-transform: uppercase;
+  --gafa-control-font-size: 11px;
+  --gafa-control-line-height: 1;
+  --gafa-control-padding: 0 10px;
+  --gafa-control-min-height: 40px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -169,6 +194,9 @@
   --gafa-control-min-height: 44px;
   --gafa-control-tracking: 0.05em;
   --gafa-control-transform: uppercase;
+  --gafa-control-font-size: 12px;
+  --gafa-control-line-height: 1;
+  --gafa-control-padding: 0 18px;
   --gafa-control-shadow: 0 6px 16px color-mix(in srgb, var(--concierge-accent, #ffd420) 45%, transparent);
   display: inline-flex;
   align-items: center;
@@ -405,4 +433,135 @@
   .gafa-concierge .sm\:h-\[620px\] { height: 620px; }
   .gafa-concierge .sm\:w-\[400px\] { width: 400px; }
   .gafa-concierge .sm\:inline { display: inline; }
+}
+
+/* Pastillas del chat: icono + label. Tokens para que la muralla no las deje planas. */
+.gafa-concierge-chip {
+  --gafa-control-bg: var(--concierge-bg, #ffffff);
+  --gafa-control-fg: var(--concierge-ink, #111111);
+  --gafa-control-border: 1px solid var(--concierge-line, #e5e5e5);
+  --gafa-control-radius: 999px;
+  --gafa-control-padding: 7px 12px;
+  --gafa-control-font-size: 12px;
+  --gafa-control-line-height: 1.2;
+  --gafa-control-min-height: 32px;
+  --gafa-control-tracking: 0;
+  --gafa-control-transform: none;
+  --gafa-icon-size: 14px;
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gafa-concierge-chip.is-on,
+.gafa-concierge-chip.chip-on {
+  --gafa-control-bg: var(--concierge-accent, #ffd420);
+  --gafa-control-fg: var(--concierge-accent-ink, #111111);
+  --gafa-control-border: 1px solid var(--concierge-accent, #ffd420);
+}
+
+.gafa-concierge-chip.is-footer {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-padding: 6px 10px;
+}
+
+.gafa-concierge-buy {
+  --gafa-control-bg: var(--concierge-accent, #ffd420);
+  --gafa-control-fg: var(--concierge-accent-ink, #111111);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-radius: 999px;
+  --gafa-control-padding: 6px 12px;
+  --gafa-control-font-size: 10px;
+  --gafa-control-min-height: 28px;
+  --gafa-control-tracking: 0.04em;
+  --gafa-control-transform: uppercase;
+}
+
+.gafa-concierge-icon-btn {
+  --gafa-control-bg: transparent;
+  --gafa-control-fg: inherit;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-radius: 999px;
+  --gafa-control-padding: 0px;
+  --gafa-control-min-height: 36px;
+  --gafa-control-width: 36px;
+  --gafa-control-height: 36px;
+  --gafa-icon-size: 16px;
+}
+
+.gafa-concierge-send {
+  --gafa-control-bg: var(--concierge-accent, #ffd420);
+  --gafa-control-fg: var(--concierge-accent-ink, #111111);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-radius: 999px;
+  --gafa-control-padding: 0px;
+  --gafa-control-min-height: 40px;
+  --gafa-control-width: 40px;
+  --gafa-control-height: 40px;
+  --gafa-icon-size: 16px;
+}
+
+.gafa-concierge-input {
+  --gafa-field-bg: var(--concierge-field-bg, #ffffff);
+  --gafa-field-fg: var(--concierge-ink, #111111);
+  --gafa-field-border: 1.5px solid var(--concierge-accent, #ffd420);
+  --gafa-field-radius: 999px;
+  --gafa-field-font-size: 13px;
+}
+
+.gafa-concierge-title { --gafa-type-size: 14px; }
+.gafa-concierge-subtitle { --gafa-type-size: 11px; }
+.gafa-concierge-bubble { --gafa-type-size: 13px; }
+
+.gafa-concierge-scheme-toggle {
+  --gafa-control-bg: rgb(0 0 0 / 0.08);
+  --gafa-control-fg: inherit;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-radius: 999px;
+  --gafa-control-min-height: 36px;
+  --gafa-control-padding: 0px;
+  --gafa-control-font-size: 16px;
+  width: 36px;
+  height: 36px;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-chip svg {
+  display: block !important;
+  flex-shrink: 0 !important;
+  height: 14px !important;
+  width: 14px !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-input {
+  background: var(--concierge-field-bg, #ffffff) none !important;
+  border: 1.5px solid var(--concierge-accent, #ffd420) !important;
+  border-radius: 999px !important;
+  color: var(--concierge-ink, #111111) !important;
+  font-size: 13px !important;
+  min-height: 40px !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-concierge-bar button.gafa-concierge-bar-icon {
+  height: 40px !important;
+  max-width: 40px !important;
+  min-width: 40px !important;
+  padding: 0 !important;
+  width: 40px !important;
 }
