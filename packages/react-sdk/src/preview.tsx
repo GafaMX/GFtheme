@@ -300,6 +300,9 @@ function Preview() {
       theme={{
         colors: { brand: "#f2b705", accent: "#111827" },
         colorScheme: params.get("dark") === "1" ? "dark" : "light",
+        allowUserColorScheme: false,
+        logoMaxWidth: 220,
+        logoMaxHeight: 110,
         logoUrl:
           "data:image/svg+xml," +
           encodeURIComponent(
