@@ -4,7 +4,7 @@ Cada elemento se instala igual: un `<section data-gf-theme="SHORTCODE">`. El reg
 
 | Shortcode | Estado | Qué es |
 | --- | --- | --- |
-| `meetings-calendar` | stable | Calendario |
+| `meetings-calendar` | stable | Calendario. Servicio: `?service=123` o `?filter_service=Nombre` (v1); HTML `filter-bq-service-default` |
 | `combo-list` | stable | Paquetes |
 | `membership-list` | stable | Membresías |
 | `staff-list` | stable | Coaches |
