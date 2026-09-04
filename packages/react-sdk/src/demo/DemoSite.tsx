@@ -16,7 +16,7 @@ import { CheckoutModal } from "../sdk/widgets/CheckoutModal";
 import { useCartStore } from "../sdk/cart/cartStore";
 import { prefetchCheckoutCatalog } from "../sdk/cart/checkoutCatalog";
 import type { CartLineType } from "../sdk/client/types";
-import { DEMO_CONCIERGE_CONFIG, FITSPIN_CONCIERGE_CONFIG, type ConciergePartnerConfig } from "../sdk/concierge";
+import { createLiveConciergeConfig, FITSPIN_CONCIERGE_CONFIG, type ConciergePartnerConfig } from "../sdk/concierge";
 import "../sdk/theme/theme.css";
 import "../sdk/widgets/widgets.css";
 import "./demo.css";
@@ -313,8 +313,21 @@ function useDemoClient(brand: BrandConfig, environment: BuqEnvironmentId) {
 }
 
 function conciergeConfigFor(brandKey: keyof typeof BRANDS): ConciergePartnerConfig {
-  const base = brandKey === "fitspin" ? FITSPIN_CONCIERGE_CONFIG : DEMO_CONCIERGE_CONFIG;
-  return { ...base, catalog: { ...base.catalog, live: true } };
+  if (brandKey === "fitspin") {
+    return { ...FITSPIN_CONCIERGE_CONFIG, catalog: { ...FITSPIN_CONCIERGE_CONFIG.catalog, live: true } };
+  }
+  const brand = BRANDS[brandKey];
+  const accent = brand.theme.colors?.accent ?? "#111111";
+  return createLiveConciergeConfig({
+    id: brandKey,
+    displayName: brand.label,
+    companyId: brand.companyId,
+    theme: {
+      mode: brand.theme.colorScheme === "dark" ? "dark" : "light",
+      accent,
+      foreground: "#111111",
+    },
+  });
 }
 
 function createDemoClient(brand: BrandConfig, environment: BuqEnvironmentId) {

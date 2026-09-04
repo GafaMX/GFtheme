@@ -2,6 +2,7 @@ import type { ConciergePartnerConfig, ConciergeProduct, ConciergeScheduleItem } 
 
 export type ConciergeSdkBridge = {
   client: {
+    listBrands?(): Promise<Array<{ slug: string; name: string }>>;
     listLocations(brand: string): Promise<unknown[]>;
     listMeetings(opts: { locationId: string; from: string; to: string }): Promise<Array<{
       id?: number;

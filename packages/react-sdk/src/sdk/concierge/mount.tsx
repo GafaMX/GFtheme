@@ -132,6 +132,7 @@ export function ConciergeHost({
       return;
     }
     const hydrateClient = {
+      listBrands: client.listBrands ? () => client.listBrands!() : undefined,
       listLocations: (brand?: string) => client.listLocations(brand ?? ""),
       listCombos: client.listCombos,
       listMemberships: client.listMemberships,

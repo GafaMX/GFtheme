@@ -69,6 +69,8 @@ export type { ConciergeController, ConciergeHandle, ConciergeMountOptions } from
 export { createHttpConciergeAsk, createLocalConciergeAsk, timeoutSignal } from "./ask";
 export type { ConciergeAskFn, ConciergeAskOptions } from "./ask";
 export { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
+export { createLiveConciergeConfig } from "./liveConfig";
+export type { LiveConciergeConfigInput } from "./liveConfig";
 export { assertConciergeOriginAllowed, isTrustedConciergePreviewOrigin, readConciergeConfigFromDom } from "./domConfig";
 export type { ConciergeDomConfigSource } from "./domConfig";
 export type { ConciergeHydrateClient } from "./hydrate";

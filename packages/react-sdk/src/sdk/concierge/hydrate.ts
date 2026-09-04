@@ -2,10 +2,30 @@ import type { CatalogItem, Location } from "../client/types";
 import type { ConciergePartnerConfig, ConciergeProduct, ConciergeStudio } from "./contracts";
 
 export type ConciergeHydrateClient = {
+  listBrands?(): Promise<Array<{ slug: string; name: string }>>;
   listLocations(brand?: string): Promise<unknown[]>;
   listCombos(brand: string): Promise<CatalogItem[]>;
   listMemberships(brand: string): Promise<CatalogItem[]>;
 };
+
+type HydrateBrand = ConciergePartnerConfig["buq"]["brands"][number];
+
+async function resolveHydrateBrands(
+  config: ConciergePartnerConfig,
+  client: ConciergeHydrateClient,
+): Promise<HydrateBrand[]> {
+  if (!client.listBrands) return config.buq.brands;
+  let live: Array<{ slug: string; name: string }> = [];
+  try {
+    live = await client.listBrands();
+  } catch {
+    return config.buq.brands;
+  }
+  if (!live.length) return config.buq.brands;
+  const matched = config.buq.brands.filter((brand) => live.some((item) => item.slug === brand.slug));
+  if (matched.length) return matched;
+  return live.map((item) => ({ slug: item.slug, name: item.name, locationIds: [] }));
+}
 
 function asLocation(value: unknown): (Partial<Location> & { id: number | string }) | null {
   if (!value || typeof value !== "object") return null;
@@ -84,8 +104,9 @@ export async function hydrateConciergeCatalog(
   const liveStudios: ConciergeStudio[] = [];
   const seenStudios = new Set(config.studios.map((studio) => `${studio.brandSlug}:${studio.locationId}`));
   const seenProducts = new Set<string>();
+  const brands = await resolveHydrateBrands(config, client);
 
-  for (const brand of config.buq.brands) {
+  for (const brand of brands) {
     let locations: Array<Partial<Location> & { id: number | string }> = [];
     try {
       locations = (await client.listLocations(brand.slug)).flatMap((value) => {
@@ -153,6 +174,17 @@ export async function hydrateConciergeCatalog(
 
   return {
     ...config,
+    buq: {
+      ...config.buq,
+      brands: brands.map((brand) => {
+        if (brand.locationIds.length) return brand;
+        const fromStudios = studios
+          .filter((studio) => studio.brandSlug === brand.slug)
+          .map((studio) => studio.locationId)
+          .slice(0, 20);
+        return { ...brand, locationIds: fromStudios.length ? fromStudios : ["live"] };
+      }),
+    },
     studios,
     catalog: {
       ...config.catalog,

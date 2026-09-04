@@ -83,4 +83,31 @@ describe("hydrateConciergeCatalog", () => {
     expect(client.listLocations).not.toHaveBeenCalledWith("fitspin");
     expect(client.listCombos).toHaveBeenCalledWith("demo");
   });
+
+  it("si el slug del fixture no existe en BUQ, usa las marcas live de la compañía", async () => {
+    const client: ConciergeHydrateClient = {
+      listBrands: vi.fn(async () => [{ slug: "bunker-indoor", name: "Bunker Indoor Golf" }]),
+      listLocations: vi.fn(async (brand?: string) => {
+        if (brand !== "bunker-indoor") return [];
+        return [{ id: 10, name: "Polanco", slug: "polanco", brandSlug: "bunker-indoor" }];
+      }),
+      listCombos: vi.fn(async (brand: string) => {
+        if (brand !== "bunker-indoor") return [];
+        return [{ id: 680, name: "PROMOCION DE APERTURA", description: "", priceLabel: "$680" }];
+      }),
+      listMemberships: vi.fn(async () => []),
+    };
+    const next = await hydrateConciergeCatalog({
+      ...DEMO_CONCIERGE_CONFIG,
+      capabilities: { ...DEMO_CONCIERGE_CONFIG.capabilities, memberships: true },
+      catalog: { ...DEMO_CONCIERGE_CONFIG.catalog, live: true },
+    }, client);
+    expect(client.listBrands).toHaveBeenCalled();
+    expect(client.listCombos).toHaveBeenCalledWith("bunker-indoor");
+    expect(client.listCombos).not.toHaveBeenCalledWith("demo");
+    expect(next.catalog.products.map((product) => `${product.id}:${product.name}`)).toEqual([
+      "680:PROMOCION DE APERTURA",
+    ]);
+    expect(next.catalog.products.some((product) => product.id === "demo-combo")).toBe(false);
+  });
 });
