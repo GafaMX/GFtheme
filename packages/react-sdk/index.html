@@ -139,6 +139,14 @@
         transform: translateZ(0);
       }
 
+      /* Replica Hello/Elementor: las img del sitio van al 100%. Sin el tope
+         de .gafa-studio-logo el PNG del estudio se come el login. */
+      img {
+        height: auto;
+        max-width: 100%;
+        width: 100%;
+      }
+
       @media (min-width: 760px) {
         .demo-shell {
           gap: 22px;

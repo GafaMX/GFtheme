@@ -109,8 +109,17 @@ declare global {
 }
 
 export const DEFAULT_GAFAPAY_FRONT_URL = "https://frontpay.buq.partners/main.js";
-const REACT16_URL = "https://unpkg.com/react@16.8.6/umd/react.production.min.js";
-const REACT_DOM16_URL = "https://unpkg.com/react-dom@16.8.6/umd/react-dom.production.min.js";
+const PAY_FORM_LOAD_ERROR = "No se pudo cargar el formulario de pago. Inténtalo de nuevo.";
+const REACT16_SOURCES = [
+  {
+    react: "https://unpkg.com/react@16.8.6/umd/react.production.min.js",
+    reactDom: "https://unpkg.com/react-dom@16.8.6/umd/react-dom.production.min.js",
+  },
+  {
+    react: "https://cdn.jsdelivr.net/npm/react@16.8.6/umd/react.production.min.js",
+    reactDom: "https://cdn.jsdelivr.net/npm/react-dom@16.8.6/umd/react-dom.production.min.js",
+  },
+] as const;
 /** API clasica que GafaPayFront.PaypalPayment llama (`paypal.Button.render`). */
 const PAYPAL_CHECKOUT_JS = "https://www.paypalobjects.com/api/checkout.min.js";
 
@@ -180,6 +189,31 @@ function ensureConfigElement(credentials: GafaPayCredentials): void {
 
 function isReact16(candidate?: ReactLike): boolean {
   return Boolean(candidate?.version && candidate.version.startsWith("16"));
+}
+
+function readReact16(): { React: ReactLike; ReactDOM: ReactDomLike } | null {
+  const react = window.React;
+  const reactDom = window.ReactDOM;
+  if (!isReact16(react) || !reactDom?.render) return null;
+  return { React: react, ReactDOM: reactDom };
+}
+
+async function loadReact16(): Promise<{ React: ReactLike; ReactDOM: ReactDomLike }> {
+  const already = readReact16();
+  if (already) return already;
+
+  let lastError: unknown;
+  for (const source of REACT16_SOURCES) {
+    try {
+      await loadScript(source.react);
+      await loadScript(source.reactDom);
+      const loaded = readReact16();
+      if (loaded) return loaded;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? new Error(PAY_FORM_LOAD_ERROR) : new Error(PAY_FORM_LOAD_ERROR);
 }
 
 export const PAYPAL_CTA_HIT_ID = "gafa-paypal-cta-hit";
@@ -345,18 +379,9 @@ export function loadGafaPay(credentials: GafaPayCredentials): Promise<Runtime> {
 
     const hostReact = window.React;
     const hostReactDom = window.ReactDOM;
-    const reuseHostReact = isReact16(hostReact) && Boolean(hostReactDom?.render);
+    const reuseHostReact = Boolean(readReact16());
 
-    if (!reuseHostReact) {
-      await loadScript(REACT16_URL);
-      await loadScript(REACT_DOM16_URL);
-    }
-
-    const react = window.React;
-    const reactDom = window.ReactDOM;
-    if (!react || !reactDom?.render) {
-      throw new Error("No se pudo preparar el runtime de pago.");
-    }
+    const react16 = reuseHostReact ? readReact16()! : await loadReact16();
 
     // Devolver los globales como estaban: el sitio del socio puede tener su
     // propio React y no queremos pisarselo por haber cargado el nuestro.
@@ -374,10 +399,10 @@ export function loadGafaPay(credentials: GafaPayCredentials): Promise<Runtime> {
 
     const elements = window.GafaPayElements;
     if (!elements) {
-      throw new Error("GafaPay cargó pero no expuso sus formularios de pago.");
+      throw new Error(PAY_FORM_LOAD_ERROR);
     }
 
-    return { React: react, ReactDOM: reactDom, elements };
+    return { React: react16.React, ReactDOM: react16.ReactDOM, elements };
   })().catch((error: unknown) => {
     // Sin reset, un fallo de red dejaba el checkout muerto hasta recargar.
     runtimePromise = null;
@@ -422,11 +447,7 @@ export function waitForWidgetContent(container: Element, timeoutMs = 9000): Prom
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       observer.disconnect();
-      reject(
-        new Error(
-          "El formulario de pago no cargó. Revisa que la marca tenga bien configurado GafaPay.",
-        ),
-      );
+      reject(new Error(PAY_FORM_LOAD_ERROR));
     }, timeoutMs);
 
     const observer = new MutationObserver(() => {

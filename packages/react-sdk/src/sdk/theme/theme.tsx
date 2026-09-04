@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { buildPalette, type BrandBaseColors, type ColorScheme } from "./palette";
-import { readHostColorScheme, resolveActiveColorScheme, watchHostColorScheme, withHostSurfaceVars } from "./hostColorScheme";
+import { buildPalette, definedColor, type BrandBaseColors, type ColorScheme } from "./palette";
+import { readHostColorScheme, resolveSdkColorScheme, watchHostColorScheme, withHostSurfaceVars } from "./hostColorScheme";
 
 export type ColorSchemePreference = ColorScheme | "system" | "host";
 
@@ -14,6 +14,11 @@ export type GafaThemeRadius = {
 export type GafaBrandTheme = {
   preset?: string;
   logoUrl?: string;
+  /** Wordmark claro para dark. Si no viene, se usa `logoUrl` (Fitspin hoy). */
+  logoUrlDark?: string;
+  /** Tope del wordmark. Default 180×64; ATLIC puede mandar 220×110. */
+  logoMaxWidth?: number | string;
+  logoMaxHeight?: number | string;
   /** Los pocos colores que define el socio. El resto se deriva. */
   colors?: Partial<BrandBaseColors>;
   typography?: {
@@ -66,7 +71,24 @@ const presets: Record<string, GafaBrandTheme> = {
   },
 };
 
-const STORAGE_KEY = "gafa-sdk-color-scheme";
+export const DEFAULT_LOGO_MAX_WIDTH_PX = 180;
+export const DEFAULT_LOGO_MAX_HEIGHT_PX = 64;
+
+/** Preferencia del usuario, namespaced por compañía/cliente. Nunca una key global. */
+export function themePreferenceStorageKey(scope?: string): string {
+  const safe = String(scope ?? "anon")
+    .trim()
+    .replace(/[^\w.:-]+/g, "-") || "anon";
+  return `gafa-sdk:color-scheme:${safe}`;
+}
+
+export function cssLength(value: number | string | undefined, fallbackPx: number): string {
+  if (typeof value === "number" && Number.isFinite(value)) return `${value}px`;
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return `${fallbackPx}px`;
+  if (/^\d+(\.\d+)?$/.test(trimmed)) return `${trimmed}px`;
+  return trimmed;
+}
 
 /**
  * Por defecto los widgets HEREDAN la tipografia del sitio donde se montan: el
@@ -82,13 +104,24 @@ const DEFAULT_FONT_STACK = "inherit";
 export const NEUTRAL_FONT_STACK =
   'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
+function resolveBrandColors(theme?: GafaBrandTheme, presetColors?: Partial<BrandBaseColors>): BrandBaseColors {
+  const incoming = { ...presetColors, ...theme?.colors } as Partial<BrandBaseColors> & {
+    primary?: string;
+  };
+  const brand = definedColor(incoming.brand) ?? definedColor(incoming.primary) ?? defaultBase.brand;
+  return { ...defaultBase, ...incoming, brand };
+}
+
 export function resolveTheme(theme?: GafaBrandTheme) {
   const preset = presets[theme?.preset ?? "default"] ?? presets.default;
 
   return {
     preset: theme?.preset ?? "default",
     logoUrl: theme?.logoUrl ?? preset.logoUrl ?? "",
-    colors: { ...defaultBase, ...preset.colors, ...theme?.colors } as BrandBaseColors,
+    logoUrlDark: theme?.logoUrlDark ?? preset.logoUrlDark ?? "",
+    logoMaxWidth: theme?.logoMaxWidth ?? preset.logoMaxWidth,
+    logoMaxHeight: theme?.logoMaxHeight ?? preset.logoMaxHeight,
+    colors: resolveBrandColors(theme, preset.colors),
     typography: {
       // Por defecto se hereda la tipografia del sitio del socio: el SDK no
       // impone (ni descarga) una fuente propia. El fallback es la del sistema
@@ -110,13 +143,39 @@ export function resolveTheme(theme?: GafaBrandTheme) {
   };
 }
 
-export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: ColorScheme): Record<string, string> {
+/** Tokens semánticos que `THEME.colors` pinta. `--gafa-color-brand` es alias de primary. */
+export const THEME_COLOR_CSS_VARS = [
+  "--gafa-color-brand",
+  "--gafa-color-primary",
+  "--gafa-color-accent",
+  "--gafa-color-background",
+  "--gafa-color-surface",
+  "--gafa-color-surface-raised",
+  "--gafa-color-text",
+  "--gafa-color-muted-text",
+  "--gafa-color-border",
+  "--gafa-color-input-background",
+  "--gafa-color-input-text",
+  "--gafa-color-input-border",
+  "--gafa-color-success",
+  "--gafa-color-warning",
+  "--gafa-color-danger",
+] as const;
+
+export function themeToCssVariables(
+  theme: GafaBrandTheme | undefined,
+  scheme: ColorScheme,
+  options?: { followHostSurface?: boolean },
+): Record<string, string> {
   const resolved = resolveTheme(theme);
   const palette = buildPalette(resolved.colors, scheme);
 
-  return withHostSurfaceVars({
+  const variables = {
     "--gafa-color-primary": palette.brand,
     "--gafa-color-primary-text": palette.brandContrast,
+    /** Alias estable para socios: `colors.brand` → primary. No renombrar primary. */
+    "--gafa-color-brand": palette.brand,
+    "--gafa-color-brand-text": palette.brandContrast,
     "--gafa-color-accent": palette.accent,
     "--gafa-color-accent-text": palette.accentContrast,
     "--gafa-color-background": palette.background,
@@ -125,6 +184,9 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
     "--gafa-color-text": palette.text,
     "--gafa-color-muted-text": palette.mutedText,
     "--gafa-color-border": palette.border,
+    "--gafa-color-input-background": palette.inputBackground,
+    "--gafa-color-input-text": palette.inputText,
+    "--gafa-color-input-border": palette.inputBorder,
     "--gafa-color-success": palette.success,
     "--gafa-color-success-soft": palette.successSoft,
     "--gafa-color-warning": palette.warning,
@@ -148,7 +210,11 @@ export function themeToCssVariables(theme: GafaBrandTheme | undefined, scheme: C
     "--gafa-asset-login-background": resolved.assets.loginBackgroundUrl
       ? `url("${resolved.assets.loginBackgroundUrl}")`
       : "none",
-  });
+    "--gafa-logo-max-width": cssLength(resolved.logoMaxWidth, DEFAULT_LOGO_MAX_WIDTH_PX),
+    "--gafa-logo-max-height": cssLength(resolved.logoMaxHeight, DEFAULT_LOGO_MAX_HEIGHT_PX),
+  };
+  if (options?.followHostSurface === false) return variables;
+  return withHostSurfaceVars(variables);
 }
 
 type ThemeContextValue = {
@@ -157,6 +223,9 @@ type ThemeContextValue = {
   setPreference(preference: ColorSchemePreference): void;
   allowUserColorScheme: boolean;
   logoUrl: string;
+  logoUrlDark: string;
+  /** Mapa listo para el portal: no heredar del widget (el overlay va a body). */
+  variables: Record<string, string>;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -179,9 +248,9 @@ function systemScheme(): ColorScheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function readStoredPreference(): ColorSchemePreference | null {
+function readStoredPreference(scope?: string): ColorSchemePreference | null {
   if (typeof localStorage === "undefined") return null;
-  const value = localStorage.getItem(STORAGE_KEY);
+  const value = localStorage.getItem(themePreferenceStorageKey(scope));
   return value === "light" || value === "dark" || value === "system" || value === "host" ? value : null;
 }
 
@@ -200,13 +269,23 @@ function useHostColorScheme(): ColorScheme | null {
   return scheme;
 }
 
-export function ThemeProvider({ children, theme }: { children: React.ReactNode; theme?: GafaBrandTheme }) {
+export function ThemeProvider({
+  children,
+  theme,
+  storageScope,
+}: {
+  children: React.ReactNode;
+  theme?: GafaBrandTheme;
+  /** `companyId:apiClient` para no contaminar marcas en el mismo dominio. */
+  storageScope?: string;
+}) {
   const resolved = useMemo(() => resolveTheme(theme), [theme]);
+  const locked =
+    resolved.allowUserColorScheme === false &&
+    (resolved.colorScheme === "light" || resolved.colorScheme === "dark");
 
-  // La eleccion del usuario gana sobre el default del socio, pero solo si el socio
-  // dejo activada la opcion.
   const [preference, setPreferenceState] = useState<ColorSchemePreference>(
-    () => (resolved.allowUserColorScheme ? readStoredPreference() : null) ?? resolved.colorScheme,
+    () => (resolved.allowUserColorScheme ? readStoredPreference(storageScope) : null) ?? resolved.colorScheme,
   );
   const [osScheme, setOsScheme] = useState<ColorScheme>(systemScheme);
   const hostScheme = useHostColorScheme();
@@ -219,17 +298,26 @@ export function ThemeProvider({ children, theme }: { children: React.ReactNode; 
     return () => query.removeEventListener("change", listener);
   }, []);
 
-  const setPreference = useCallback((next: ColorSchemePreference) => {
-    setPreferenceState(next);
-    if (typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, next);
-  }, []);
+  const setPreference = useCallback(
+    (next: ColorSchemePreference) => {
+      setPreferenceState(next);
+      if (!resolved.allowUserColorScheme || typeof localStorage === "undefined") return;
+      localStorage.setItem(themePreferenceStorageKey(storageScope), next);
+    },
+    [resolved.allowUserColorScheme, storageScope],
+  );
 
-  const scheme: ColorScheme = resolveActiveColorScheme({
-    hostScheme,
-    preference,
+  const scheme: ColorScheme = resolveSdkColorScheme({
+    colorScheme: resolved.colorScheme,
+    allowUserColorScheme: resolved.allowUserColorScheme,
+    storedPreference: resolved.allowUserColorScheme ? preference : null,
+    hostScheme: locked ? null : hostScheme,
     osScheme,
   });
-  const variables = useMemo(() => themeToCssVariables(theme, scheme), [theme, scheme]);
+  const variables = useMemo(
+    () => themeToCssVariables(theme, scheme, { followHostSurface: !locked }),
+    [locked, scheme, theme],
+  );
 
   const value = useMemo<ThemeContextValue>(
     () => ({
@@ -238,8 +326,18 @@ export function ThemeProvider({ children, theme }: { children: React.ReactNode; 
       setPreference,
       allowUserColorScheme: resolved.allowUserColorScheme,
       logoUrl: resolved.logoUrl,
+      logoUrlDark: resolved.logoUrlDark,
+      variables,
     }),
-    [preference, resolved.allowUserColorScheme, resolved.logoUrl, scheme, setPreference],
+    [
+      preference,
+      resolved.allowUserColorScheme,
+      resolved.logoUrl,
+      resolved.logoUrlDark,
+      scheme,
+      setPreference,
+      variables,
+    ],
   );
 
   return (

@@ -19,6 +19,7 @@ const inDays = (days: number, hour = 7) => {
 };
 
 const isEmptyMode = new URLSearchParams(window.location.search).get("empty") === "1";
+const isGuestMode = new URLSearchParams(window.location.search).get("guest") === "1";
 
 // Mutables a proposito: cancelar/salir de lista de espera modifica estos
 // arrays de verdad, para que el preview se comporte como el SDK real en vez
@@ -97,17 +98,20 @@ const pastReservations = Array.from({ length: 16 }, (_, i) => ({
 }));
 
 const client = {
-  getProfile: async () => ({
-    id: 1,
-    name: "Gabriel Arrechea",
-    email: "gabriel+fitspin@buq.mx",
-    firstName: "Gabriel",
-    lastName: "Arrechea",
-    storeCreditTotal: isEmptyMode ? "0" : "350",
-    memberSince: inDays(-370),
-    phone: "5511223344",
-    customFields: { 47: { 21272: "5522334455" } },
-  }),
+  getProfile: async () => {
+    if (isGuestMode) throw new Error("Sin sesión");
+    return {
+      id: 1,
+      name: "Gabriel Arrechea",
+      email: "gabriel+fitspin@buq.mx",
+      firstName: "Gabriel",
+      lastName: "Arrechea",
+      storeCreditTotal: isEmptyMode ? "0" : "350",
+      memberSince: inDays(-370),
+      phone: "5511223344",
+      customFields: { 47: { 21272: "5522334455" } },
+    };
+  },
   listBrands: async () => [{ id: 1, name: "Fitspin", slug: "fitspin" }],
   listLocations: async () => [{ id: 122, name: "Lomas", slug: "lomas", brandSlug: "fitspin" }],
   listCombos: async () => [
@@ -238,13 +242,46 @@ const client = {
       reservation: "https://example.test/reservate",
       initialPurchase: "https://example.test/purchase",
       initialPurchaseStatus: "https://example.test/status",
+      checkDiscountCode: "https://example.test/check-discount",
     },
   }),
+  checkDiscountCode: async ({ code }: { code: string }) => {
+    const normalized = code.trim().toUpperCase();
+    if (normalized === "GRATIS" || normalized === "FREE") {
+      return {
+        valid: true,
+        code,
+        discountType: "percent",
+        discountNumber: 100,
+        label: "Pedido cubierto",
+      };
+    }
+    return { valid: code.length > 2, code, discountAmount: 50, label: "Promo demo" };
+  },
+  reservatePurchase: async () => ({ purchaseId: 88 }),
 } as unknown as GafaClient;
 
 function Preview() {
   const params = new URLSearchParams(window.location.search);
   const checkoutMode = params.get("checkout");
+  const isBaseTheme = params.get("theme") === "base";
+  const previewColors = isBaseTheme
+    ? {
+        brand: "#F3D15E",
+        accent: "#F3D15E",
+        background: "#171C35",
+        surface: "#1E2444",
+        surfaceRaised: "#252C50",
+        text: "#FFFFFF",
+        mutedText: "#AEB4CB",
+        border: "#394165",
+        inputBackground: "#171C35",
+        inputText: "#FFFFFF",
+        inputBorder: "#394165",
+      }
+    : { brand: "#f2b705", accent: "#111827" };
+  const previewScheme =
+    params.get("light") === "1" ? "light" : params.get("dark") === "1" || isBaseTheme ? "dark" : "light";
   const [open, setOpen] = useState(params.get("closed") !== "1" && !checkoutMode);
   const [checkoutOpen, setCheckoutOpen] = useState(Boolean(checkoutMode));
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } });
@@ -294,8 +331,21 @@ function Preview() {
   return (
     <ThemeProvider
       theme={{
-        colors: { brand: "#f2b705", accent: "#111827" },
-        colorScheme: params.get("dark") === "1" ? "dark" : "light",
+        colors: previewColors,
+        colorScheme: previewScheme,
+        allowUserColorScheme: false,
+        logoMaxWidth: 220,
+        logoMaxHeight: 110,
+        logoUrl:
+          "data:image/svg+xml," +
+          encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#111827">FITSPIN</text></svg>',
+          ),
+        logoUrlDark:
+          "data:image/svg+xml," +
+          encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#fffaf4">FITSPIN</text></svg>',
+          ),
       }}
     >
       <QueryClientProvider client={queryClient}>

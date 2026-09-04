@@ -274,16 +274,16 @@
 
 .gafa-float input,
 .gafa-float select {
-  --gafa-field-bg: var(--gafa-color-surface);
-  --gafa-field-border: 1px solid var(--gafa-color-border);
-  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-bg: var(--gafa-color-input-background, var(--gafa-color-surface));
+  --gafa-field-border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  --gafa-field-fg: var(--gafa-color-input-text, var(--gafa-color-text));
   --gafa-field-font-size: 0.9rem;
   --gafa-field-radius: var(--gafa-radius-md);
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
   border-radius: var(--gafa-radius-md);
-  --gafa-fg: var(--gafa-color-text);
-  color: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-input-text, var(--gafa-color-text));
+  color: var(--gafa-color-input-text, var(--gafa-color-text));
   font: inherit;
   min-height: 44px;
   padding: 1.05rem 0.85rem 0.3rem;
@@ -588,15 +588,15 @@
 .gafa-sdk-field select,
 .gafa-sdk-field textarea,
 .gafa-calendar-filter select {
-  --gafa-field-bg: var(--gafa-color-surface);
-  --gafa-field-border: 1px solid var(--gafa-color-border);
-  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-bg: var(--gafa-color-input-background, var(--gafa-color-surface));
+  --gafa-field-border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  --gafa-field-fg: var(--gafa-color-input-text, var(--gafa-color-text));
   --gafa-field-radius: var(--gafa-radius-md);
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
   border-radius: var(--gafa-radius-md);
-  --gafa-fg: var(--gafa-color-text);
-  color: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-input-text, var(--gafa-color-text));
+  color: var(--gafa-color-input-text, var(--gafa-color-text));
   font: inherit;
   min-height: 42px;
   padding: 0.5rem 0.8rem;
@@ -1770,16 +1770,17 @@
 
 .gafa-studio-logo {
   --gafa-img-fit: contain;
-  --gafa-img-height: 56px;
-  --gafa-img-width: 200px;
+  --gafa-img-max-height: var(--gafa-logo-max-height, 64px);
+  --gafa-img-max-width: min(var(--gafa-logo-max-width, 180px), 60vw);
   --gafa-img-radius: 0;
   display: block;
   height: auto;
   justify-self: center;
   margin: 0 auto 0.35rem;
-  max-height: 56px;
-  max-width: min(200px, 72%);
+  max-height: var(--gafa-logo-max-height, 64px);
+  max-width: min(var(--gafa-logo-max-width, 180px), 60vw);
   object-fit: contain;
+  object-position: center;
   width: auto;
 }
 
@@ -5754,12 +5755,12 @@
 }
 
 .gafa-checkout-promo input {
-  --gafa-field-bg: var(--gafa-color-surface);
-  --gafa-field-border: 1px solid var(--gafa-color-border);
-  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-bg: var(--gafa-color-input-background, var(--gafa-color-surface));
+  --gafa-field-border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  --gafa-field-fg: var(--gafa-color-input-text, var(--gafa-color-text));
   --gafa-field-radius: 10px;
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
   border-radius: 10px;
   color: inherit;
   font: inherit;
@@ -6312,6 +6313,45 @@
   min-width: 0;
 }
 
+.gafa-checkout-free {
+  align-items: flex-start;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+}
+
+.gafa-checkout-free__mark {
+  align-items: center;
+  background: var(--gafa-color-success-soft);
+  border-radius: 12px;
+  --gafa-fg: var(--gafa-color-success);
+  color: var(--gafa-color-success);
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.gafa-checkout-free strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.gafa-checkout-free p {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0.15rem 0 0;
+}
+
 .gafa-checkout-paypal-copy {
   align-items: flex-start;
   display: flex;
@@ -6710,9 +6750,18 @@
   50% { opacity: 1; }
 }
 
-/* Login dentro del checkout (compra suelta sin sesion). */
+/* Login dentro del checkout: llena la columna izquierda. El carrito se
+   queda a la derecha. Un poco de padding a los lados para que tabs,
+   campos y botón no se peguen al divisor y se vean alargados. */
+.gafa-checkout[data-step="auth"] .gafa-checkout__hero,
 .gafa-checkout-auth {
-  max-width: 26rem;
+  box-sizing: border-box;
+  padding-inline: 1.5rem;
+}
+
+.gafa-checkout-auth {
+  max-width: none;
+  width: 100%;
 }
 
 /* El hero del contenedor ya es el encabezado del paso de cuenta: la tarjeta del
@@ -6724,6 +6773,12 @@
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+.gafa-checkout-auth .gafa-widget-card {
+  max-width: none;
+  padding-inline: 0;
+  width: 100%;
 }
 
 .gafa-checkout-auth .gafa-sdk-form {
@@ -7075,4 +7130,106 @@ html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-metho
   font-size: 0.68rem;
   letter-spacing: 0;
   padding: 0.1rem 0.4rem;
+}
+
+/* ------------------------------------------------------------------ toasts
+ * Prueba: solo login/registro. Encima del confirm (2147483002) y del
+ * checkout. El host se porta a body con la piel de `.gafa-sdk`. */
+.gafa-toast-stack {
+  display: grid;
+  gap: 0.55rem;
+  pointer-events: none;
+  position: fixed;
+  right: 1rem;
+  top: 1rem;
+  width: min(22rem, calc(100vw - 2rem));
+  z-index: 2147483003;
+}
+
+.gafa-toast {
+  --gafa-toast-accent: var(--gafa-color-danger);
+  align-items: start;
+  animation: gafa-toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--gafa-color-surface-raised, var(--gafa-color-surface)) 86%, transparent);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 14px;
+  box-shadow: var(--gafa-shadow-pop);
+  color: var(--gafa-color-text);
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 4px minmax(0, 1fr) auto;
+  padding: 0.8rem 0.7rem 0.8rem 0.65rem;
+  pointer-events: auto;
+}
+
+.gafa-toast[data-tone="error"] {
+  --gafa-toast-accent: var(--gafa-color-danger);
+}
+
+.gafa-toast[data-tone="success"] {
+  --gafa-toast-accent: var(--gafa-color-success);
+}
+
+.gafa-toast[data-tone="warning"] {
+  --gafa-toast-accent: var(--gafa-color-warning, #eab308);
+}
+
+.gafa-toast[data-tone="info"] {
+  --gafa-toast-accent: var(--gafa-color-primary);
+}
+
+.gafa-toast__bar {
+  align-self: stretch;
+  background: var(--gafa-toast-accent);
+  border-radius: 99px;
+  width: 4px;
+}
+
+.gafa-toast__message {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.gafa-toast__close {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-control-font-size: 1.15rem;
+  --gafa-control-height: 28px;
+  --gafa-control-min-height: 28px;
+  --gafa-control-padding: 0;
+  --gafa-control-radius: 8px;
+  --gafa-control-width: 28px;
+  --gafa-fg: var(--gafa-color-muted-text);
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1.15rem;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 28px;
+}
+
+@keyframes gafa-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

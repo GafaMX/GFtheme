@@ -29,6 +29,10 @@ export type BrandBaseColors = {
   text?: string;
   mutedText?: string;
   border?: string;
+  /** Campos. Si no vienen, copian surface / text / border. */
+  inputBackground?: string;
+  inputText?: string;
+  inputBorder?: string;
 };
 
 export type ResolvedPalette = {
@@ -42,6 +46,9 @@ export type ResolvedPalette = {
   text: string;
   mutedText: string;
   border: string;
+  inputBackground: string;
+  inputText: string;
+  inputBorder: string;
   success: string;
   successSoft: string;
   warning: string;
@@ -114,15 +121,30 @@ function parseHslString(value: string): Hsl {
   return { h: Number(match[1]), s: Number(match[2]), l: Number(match[3]) };
 }
 
+/** Vacío o solo espacios: no pinta transparente, se cae al default del scheme. */
+export function definedColor(value?: string): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function applySurfaceOverrides(base: BrandBaseColors, palette: ResolvedPalette): ResolvedPalette {
+  const background = definedColor(base.background) ?? palette.background;
+  const surface = definedColor(base.surface) ?? palette.surface;
+  const text = definedColor(base.text) ?? palette.text;
+  const border = definedColor(base.border) ?? palette.border;
+
   return {
     ...palette,
-    background: base.background ?? palette.background,
-    surface: base.surface ?? palette.surface,
-    surfaceRaised: base.surfaceRaised ?? palette.surfaceRaised,
-    text: base.text ?? palette.text,
-    mutedText: base.mutedText ?? palette.mutedText,
-    border: base.border ?? palette.border,
+    background,
+    surface,
+    surfaceRaised: definedColor(base.surfaceRaised) ?? palette.surfaceRaised,
+    text,
+    mutedText: definedColor(base.mutedText) ?? palette.mutedText,
+    border,
+    inputBackground: definedColor(base.inputBackground) ?? surface,
+    inputText: definedColor(base.inputText) ?? text,
+    inputBorder: definedColor(base.inputBorder) ?? border,
   };
 }
 
@@ -170,6 +192,9 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
       text: hsl({ h: neutralHue, s: Math.min(neutralSat, 4), l: 96 }),
       mutedText: hsl({ h: neutralHue, s: Math.min(neutralSat, 6), l: 78 }),
       border: hsl({ h: neutralHue, s: Math.min(neutralSat, 8), l: 34 }),
+      inputBackground: hsl({ h: neutralHue, s: Math.min(neutralSat, 7), l: 13 }),
+      inputText: hsl({ h: neutralHue, s: Math.min(neutralSat, 4), l: 96 }),
+      inputBorder: hsl({ h: neutralHue, s: Math.min(neutralSat, 8), l: 34 }),
       success: hsl({ h: successHsl.h, s: 55, l: 62 }),
       successSoft: hsl({ h: successHsl.h, s: 40, l: 26 }),
       warning: hsl({ h: warningHsl.h, s: 70, l: 64 }),
@@ -194,6 +219,9 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
     text: hsl({ h: neutralHue, s: neutralSat, l: 11 }),
     mutedText: hsl({ h: neutralHue, s: neutralSat * 0.7, l: 44 }),
     border: hsl({ h: neutralHue, s: neutralSat, l: 89 }),
+    inputBackground: "#ffffff",
+    inputText: hsl({ h: neutralHue, s: neutralSat, l: 11 }),
+    inputBorder: hsl({ h: neutralHue, s: neutralSat, l: 89 }),
     success: hsl({ h: successHsl.h, s: successHsl.s, l: 34 }),
     successSoft: hsl({ h: successHsl.h, s: 60, l: 94 }),
     warning: hsl({ h: warningHsl.h, s: warningHsl.s, l: 38 }),
