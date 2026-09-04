@@ -138,6 +138,13 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     status: "preview",
     description: "Asistente. Se instala igual que el calendario cuando salga de preview.",
   },
+  {
+    id: "cross-sell",
+    shortcode: "cross-sell",
+    title: "Cross-sell",
+    status: "preview",
+    description: "Sugerencias en carrito / gracias / página. Reservado; aún no monta UI.",
+  },
 ];
 
 export const WIDGET_BY_SHORTCODE = new Map(WIDGET_CATALOG.map((widget) => [widget.shortcode, widget]));

@@ -274,16 +274,16 @@
 
 .gafa-float input,
 .gafa-float select {
-  --gafa-field-bg: var(--gafa-color-surface);
-  --gafa-field-border: 1px solid var(--gafa-color-border);
-  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-bg: var(--gafa-color-input-background, var(--gafa-color-surface));
+  --gafa-field-border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  --gafa-field-fg: var(--gafa-color-input-text, var(--gafa-color-text));
   --gafa-field-font-size: 0.9rem;
   --gafa-field-radius: var(--gafa-radius-md);
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
   border-radius: var(--gafa-radius-md);
-  --gafa-fg: var(--gafa-color-text);
-  color: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-input-text, var(--gafa-color-text));
+  color: var(--gafa-color-input-text, var(--gafa-color-text));
   font: inherit;
   min-height: 44px;
   padding: 1.05rem 0.85rem 0.3rem;
@@ -588,15 +588,15 @@
 .gafa-sdk-field select,
 .gafa-sdk-field textarea,
 .gafa-calendar-filter select {
-  --gafa-field-bg: var(--gafa-color-surface);
-  --gafa-field-border: 1px solid var(--gafa-color-border);
-  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-bg: var(--gafa-color-input-background, var(--gafa-color-surface));
+  --gafa-field-border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  --gafa-field-fg: var(--gafa-color-input-text, var(--gafa-color-text));
   --gafa-field-radius: var(--gafa-radius-md);
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
   border-radius: var(--gafa-radius-md);
-  --gafa-fg: var(--gafa-color-text);
-  color: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-input-text, var(--gafa-color-text));
+  color: var(--gafa-color-input-text, var(--gafa-color-text));
   font: inherit;
   min-height: 42px;
   padding: 0.5rem 0.8rem;
@@ -5755,12 +5755,12 @@
 }
 
 .gafa-checkout-promo input {
-  --gafa-field-bg: var(--gafa-color-surface);
-  --gafa-field-border: 1px solid var(--gafa-color-border);
-  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-bg: var(--gafa-color-input-background, var(--gafa-color-surface));
+  --gafa-field-border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  --gafa-field-fg: var(--gafa-color-input-text, var(--gafa-color-text));
   --gafa-field-radius: 10px;
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
   border-radius: 10px;
   color: inherit;
   font: inherit;

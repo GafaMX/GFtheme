@@ -16,5 +16,6 @@ Cada elemento se instala igual: un `<section data-gf-theme="SHORTCODE">`. El reg
 | `purchase-button` | stable | Botón de compra |
 | `fancy` | stable | Host legacy de checkout |
 | `concierge` | preview | Hueco. Mismo contrato; aún no monta UI |
+| `cross-sell` | preview | Sugerencias en carrito / gracias / página. Aún no monta UI |
 
 Un widget nuevo (Concierge, un template, un tipo de elemento) es **una entrada en el registry**, no un bundle aparte.
