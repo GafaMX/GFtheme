@@ -223,6 +223,21 @@ describe("THEME.colors: defaults y personalización", () => {
     expect(vars["--gafa-color-surface"]).toBe("#ffffff");
     expect(vars["--gafa-color-input-background"]).toBe(vars["--gafa-color-surface"]);
   });
+
+  it("colors.primary se acepta como alias de brand", () => {
+    const withPrimary = themeToCssVariables(
+      { colors: { primary: "#dae343" } } as unknown as GafaBrandTheme,
+      "light",
+      { followHostSurface: false },
+    );
+    const withBrand = themeToCssVariables(
+      { colors: { brand: "#dae343" } },
+      "light",
+      { followHostSurface: false },
+    );
+    expect(withPrimary["--gafa-color-primary"]).toBe(withBrand["--gafa-color-primary"]);
+    expect(withPrimary["--gafa-color-brand"]).toBe(withBrand["--gafa-color-brand"]);
+  });
 });
 
 describe("THEME.colors: fallbacks y contrato", () => {

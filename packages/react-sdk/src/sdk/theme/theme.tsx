@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { buildPalette, type BrandBaseColors, type ColorScheme } from "./palette";
+import { buildPalette, definedColor, type BrandBaseColors, type ColorScheme } from "./palette";
 import { readHostColorScheme, resolveSdkColorScheme, watchHostColorScheme, withHostSurfaceVars } from "./hostColorScheme";
 
 export type ColorSchemePreference = ColorScheme | "system" | "host";
@@ -104,6 +104,14 @@ const DEFAULT_FONT_STACK = "inherit";
 export const NEUTRAL_FONT_STACK =
   'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
+function resolveBrandColors(theme?: GafaBrandTheme, presetColors?: Partial<BrandBaseColors>): BrandBaseColors {
+  const incoming = { ...presetColors, ...theme?.colors } as Partial<BrandBaseColors> & {
+    primary?: string;
+  };
+  const brand = definedColor(incoming.brand) ?? definedColor(incoming.primary) ?? defaultBase.brand;
+  return { ...defaultBase, ...incoming, brand };
+}
+
 export function resolveTheme(theme?: GafaBrandTheme) {
   const preset = presets[theme?.preset ?? "default"] ?? presets.default;
 
@@ -113,7 +121,7 @@ export function resolveTheme(theme?: GafaBrandTheme) {
     logoUrlDark: theme?.logoUrlDark ?? preset.logoUrlDark ?? "",
     logoMaxWidth: theme?.logoMaxWidth ?? preset.logoMaxWidth,
     logoMaxHeight: theme?.logoMaxHeight ?? preset.logoMaxHeight,
-    colors: { ...defaultBase, ...preset.colors, ...theme?.colors } as BrandBaseColors,
+    colors: resolveBrandColors(theme, preset.colors),
     typography: {
       // Por defecto se hereda la tipografia del sitio del socio: el SDK no
       // impone (ni descarga) una fuente propia. El fallback es la del sistema

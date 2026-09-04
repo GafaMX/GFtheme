@@ -53,6 +53,7 @@ Vacío (`""`) también. Nunca quedan `undefined` ni transparentes.
 | `success` / `warning` / `danger` | `--gafa-color-success` etc. | Estados (si no van, se derivan) |
 
 `--gafa-color-primary` **no se renombra**. `brand` es el valor de config y el alias CSS.
+`colors.primary` (nombre viejo del demo) se acepta si no viene `brand`.
 
 ## Lock vs Fitspin
 
