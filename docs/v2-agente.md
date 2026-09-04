@@ -454,49 +454,35 @@ fuerza hidratar sedes/paquetes desde el cliente BUQ (equivalente a
 Apps React: `sdk.concierge.mount({ partnerId, config, container })`.
 Mismo objeto `CONCIERGE`, no un fixture implícito.
 
-### 11.2 WhatsApp — un número por compañía
+### 11.2 WhatsApp — opcional
 
-**No se lee de gafa.fit.** Cada sitio lo declara en su config.
+**No se lee de gafa.fit.** Si no pones teléfono, **no sale el botón**. El resto
+del Concierge monta igual.
 
-| Campo | Qué es |
+| Qué pones | Qué pasa |
 | --- | --- |
-| `contact.whatsapp` | Dígitos **solo**. 8–20 caracteres. Código de país + número. Sin `+`, espacios ni guiones. |
-| `capabilities.whatsapp` | `true` = icono de WhatsApp en la barra. `false` = no se muestra. |
-| `fallbacks.whatsapp` | `true` = chip “WhatsApp” cuando el asistente no resuelve. |
+| Omites `contact.whatsapp` o lo dejas `""` | Sin icono, sin chip. Listo. |
+| `"5215512345678"` (dígitos, con lada, sin `+`) | Icono en la barra. Clic → `https://wa.me/5215512345678` |
 
-El clic abre `https://wa.me/<contact.whatsapp>` en una pestaña nueva.
+México (móvil): `52` + `1` + 10 dígitos. USA: `1` + 10 dígitos.
+Un `+52 55 …` o un string raro **sí** tira la config. Vacío no.
 
-México (móvil): `52` + `1` + 10 dígitos → `5215512345678`.
-USA: `1` + 10 dígitos → `15551234567`.
+`capabilities.whatsapp: false` oculta el botón aunque haya número.
 
-Ejemplo en options (Bunker u otra marca — **cambia el número**):
+### 11.3 Catálogo — `products: []` + `live: true`
 
-```json
-"CONCIERGE": {
-  "contact": { "whatsapp": "5215512345678" },
-  "capabilities": { "whatsapp": true },
-  "fallbacks": { "whatsapp": true }
-}
-```
+Sí: en producción **siempre** deja `products` vacío y `live: true`. El SDK
+pide a BUQ **todos** los paquetes y membresías de **esta** `COMPANY_ID`
+(según `capabilities.packages` / `memberships`). No hay que listarlos.
 
-Eso **no basta solo**: el objeto `CONCIERGE` es un schema completo (abajo).
-Si omites `contact.whatsapp` o pones `+52 55 …`, Zod rechaza la config y
-el widget no monta.
-
-El helper JS `createLiveConciergeConfig({ whatsapp })` (DemoSite / apps)
-usa `5215500000000` **solo si no pasas número**. Ese placeholder no es el
-teléfono real de nadie. En HTML de socio **escribe el de esa marca**.
-
-### 11.3 Catálogo live vs fixture
-
-| Modo | Qué pasa |
+| `catalog` | Qué pasa |
 | --- | --- |
-| `catalog.live: true` (recomendado en producción) | Sedes y paquetes salen del cliente BUQ (`COMPANY_ID` + llaves de **esta** marca). `catalog.products` puede ir `[]`. |
-| Fixture `fitspin` / `demo-studio` | Catálogo de juguete. **Solo** si el socio lo pide en el atributo. |
-| `catalog.products` a mano | IDs de gafa.fit. Útil si no quieres hidratar. |
+| `{ "live": true, "products": [] }` | **Default de socio.** Trae todo lo de la compañía. |
+| `{ "live": true, "products": [ { "type": "combo", "id": "680", … } ] }` | Allowlist: si esos IDs existen en BUQ, solo esos. Si no matchean, cae a todo lo live. Casi nunca lo necesitas. |
+| `{ "live": false, "products": [ … ] }` | Catálogo fijo a mano. Fixtures / demos. |
 
-`experience` (chips de apertura, grupos “Paquetes / Membresías”, switcher
-de sede) solo **presenta**. No trae precios ni IDs.
+`experience` (chips, grupos, switcher de sede) solo **presenta**. No trae
+precios ni IDs.
 
 ### 11.4 Ejemplo mínimo de producción
 
@@ -569,7 +555,8 @@ Mismo `[data-gf-options]` de siempre. Añade `CONCIERGE` y el nodo.
 `localhost` y `*.trycloudflare.com` ya son de confianza (previews).
 
 `id` = slug corto (`^[a-z0-9][a-z0-9-]{1,62}$`). Una config por marca /
-página; no hay un número de WhatsApp global del SDK.
+página. Si no hay WhatsApp, quita `contact.whatsapp` (o déjalo `""`):
+el botón no sale. `products: []` + `live: true` trae todo el catálogo.
 
 **Agente: no implementes Concierge con chat custom, Intercom ni CSS encima
 del calendario.** Si la marca no lo pidió, **no pongas el nodo**.
@@ -678,7 +665,8 @@ Instala el SDK v2 de Buq. Guía: docs/v2-agente.md del repo GafaMX/GFtheme.
 
 5. No CSS de overlays, no MutationObserver, no selectores internos del SDK.
    Concierge está APAGADO salvo nodo data-gf-theme=concierge (o data-gafa-v2)
-   + CONCIERGE en options (contact.whatsapp = dígitos con lada, sin +).
+   + CONCIERGE en options. WhatsApp es opcional: sin teléfono no hay botón.
+   catalog.live true + products [] = todos los paquetes de ESTA compañía.
    No inventes un chat. Cross-sell sigue reservado: no pinta.
    No implementes un carrusel paralelo.
 
@@ -699,8 +687,9 @@ Después de pegar options + widgets:
    desde el primer frame. Sin flash blanco.
 6. Fitspin (si aplica) sigue el toggle del sitio.
 7. Consola: cero 401 por `COMPANY_ID` / llaves ajenas.
-8. Si hay Concierge: barra visible, icono WA abre `wa.me/<dígitos de ESTA marca>`,
-   y “Comprar” hidrata el catálogo de **esta** compañía (no Demo Studio / Fitspin).
+8. Si hay Concierge: barra visible. Sin `contact.whatsapp`, no hay icono WA.
+   Con número, abre `wa.me/<dígitos de ESTA marca>`. “Comprar” hidrata **toda**
+   la compañía (`products: []` + `live`), no Demo Studio / Fitspin.
    Sin nodo o sin `CONCIERGE`: no hay barra. Eso es correcto.
 
 Si el color no cambia: el `THEME` no está llegando al JSON, o hay CSS del
