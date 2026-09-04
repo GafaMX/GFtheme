@@ -1,5 +1,7 @@
 # THEME.colors — paleta oficial del SDK v2
 
+Instalación completa (Buq-Webs / WordPress): [`v2-agente.md`](v2-agente.md).
+
 El SDK es la única fuente de color de calendario, login, cuenta, reserva,
 carrito y checkout. **No** hace falta CSS de overlays, `MutationObserver`,
 selectores internos ni pelear especificidad.

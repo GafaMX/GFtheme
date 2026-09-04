@@ -1,7 +1,11 @@
 # Cómo montar el SDK v2 en cualquier web
 
-Receta para **cualquier agente** (Cursor, Replit, WP, HTML estático, Webflow, etc.).
-El SDK no se copia ni se transpila en el sitio del socio. Se carga con **un script**.
+**Guía completa para agentes (Buq-Webs + WordPress):**
+[`docs/v2-agente.md`](../v2-agente.md). Options, THEME, filtros, botones,
+Concierge y cross-sell.
+
+Receta corta: el SDK no se copia ni se transpila en el sitio del socio. Se
+carga con **un script**.
 
 La URL pública es siempre `docs/v2-sdk/gafa-sdk.js` (loader). El IIFE con React
 y CSS va en `gafa-sdk.bundle.<stamp>.js`. **No cambies el `src` de los sitios.**
