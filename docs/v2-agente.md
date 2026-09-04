@@ -309,7 +309,8 @@ Van en el `<section data-gf-theme="meetings-calendar">`.
 | `data-gf-limit` | — | Tope de clases (número) |
 | `data-bq-show-description` | — | Se acepta; la nota de clase se pinta si la API la manda |
 
-La URL también arranca la sede: `?location=235` (o `location_id` / `locationId`).
+La URL también arranca la sede: `?location=235` (o `location_id` / `locationId`)
+y el servicio: `?service=123` (o `service_id` / `filter_service`).
 Si el usuario elige “Todos”, no se vuelve a aplicar.
 
 Los ids son los de **gafa.fit**, no ids del builder.
@@ -421,7 +422,8 @@ Mismo script, mismas options, mismo `THEME`. No es un bundle aparte ni un
 iframe. **Cargar `gafa-sdk.js` no lo enciende.**
 
 Hacen falta **las dos** piezas. Si pones el nodo y olvidas la config, el
-bootstrap **tira**: `Concierge config was not found`.
+SDK **no monta** Concierge y deja un `console.warn` (`Concierge config was
+not found`). El calendario y el checkout siguen.
 
 ### 11.1 Cómo se activa
 
