@@ -2,6 +2,7 @@ import type { GafaSdk } from "../runtime";
 import { readFilterFlag } from "../bootstrap/legacyFilterFlag";
 import type { CalendarView } from "./calendarRange";
 import { readCalendarLocationIdFromWindow } from "./calendarLocationQuery";
+import { resolveCalendarServiceQuery } from "./calendarServiceQuery";
 
 export type WidgetStatus = "stable" | "beta" | "preview";
 
@@ -174,7 +175,7 @@ function mountCalendar(runtime: GafaSdk, element: HTMLElement) {
       room: element.hasAttribute("filter-bq-room"),
       brandId: toNumber(element.getAttribute("filter-bq-brand-default")),
       locationId: readCalendarLocationIdFromWindow() ?? toNumber(element.getAttribute("filter-bq-location-default")),
-      serviceId: toNumber(element.getAttribute("filter-bq-service-default")),
+      ...readCalendarServiceFilters(element),
       staffId: toNumber(element.getAttribute("filter-bq-staff-default")),
     },
   });
@@ -252,6 +253,11 @@ function toNumber(value: string | null): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
   return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function readCalendarServiceFilters(element: HTMLElement) {
+  const search = typeof window === "undefined" ? "" : window.location.search;
+  return resolveCalendarServiceQuery(search, element.getAttribute("filter-bq-service-default"));
 }
 
 function readCalendarView(element: HTMLElement): CalendarView | undefined {
