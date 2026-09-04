@@ -242,8 +242,23 @@ const client = {
       reservation: "https://example.test/reservate",
       initialPurchase: "https://example.test/purchase",
       initialPurchaseStatus: "https://example.test/status",
+      checkDiscountCode: "https://example.test/check-discount",
     },
   }),
+  checkDiscountCode: async ({ code }: { code: string }) => {
+    const normalized = code.trim().toUpperCase();
+    if (normalized === "GRATIS" || normalized === "FREE") {
+      return {
+        valid: true,
+        code,
+        discountType: "percent",
+        discountNumber: 100,
+        label: "Pedido cubierto",
+      };
+    }
+    return { valid: code.length > 2, code, discountAmount: 50, label: "Promo demo" };
+  },
+  reservatePurchase: async () => ({ purchaseId: 88 }),
 } as unknown as GafaClient;
 
 function Preview() {

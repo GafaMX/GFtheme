@@ -256,6 +256,7 @@ export function CheckoutModal({
     /** undefined mientras gafa.fit confirma; false si se quedó sin resolver. */
     confirmed?: boolean;
     isWaitlist?: boolean;
+    paidTotal: number;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null>(null);
@@ -451,18 +452,19 @@ export function CheckoutModal({
   const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
   const discountLabel = appliedDiscount?.label;
   const total = Math.max(0, subtotal - discountAmount);
-  const envWarning = step === "pay" ? stagingPayWarning() : null;
+  const isFreeTotal = relevantLines.length > 0 && total <= 0;
+  const envWarning = step === "pay" && !isFreeTotal ? stagingPayWarning() : null;
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
   const waitingOnTerms = hasTerms && !termsAccepted;
   const waitingOnGift = convertGift && giftStatus !== "ok";
   const canPay =
     relevantLines.length > 0 &&
-    Boolean(selectedMethod) &&
-    paymentReady &&
+    Boolean(profileQuery.data) &&
     !waitingOnTerms &&
     !waitingOnGift &&
-    !paying;
+    !paying &&
+    (isFreeTotal ? Boolean(config) : Boolean(selectedMethod) && paymentReady);
 
   function resolvedGiftCode(): string | null {
     if (!convertGift || giftStatus !== "ok") return null;
@@ -687,7 +689,11 @@ export function CheckoutModal({
     };
 
     try {
-      if (!profile || !client.reservatePurchase || !selectedMethod || !brandSlug || !locationSlug) {
+      const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
+      if (!profile || !client.reservatePurchase || !brandSlug || !locationSlug) {
+        throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
+      }
+      if (!isFreeTotal && !selectedMethod) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
 
@@ -695,6 +701,7 @@ export function CheckoutModal({
       // Eso dispara paymentByCard / paymentByToken. `initial-purchase` es Recurrente
       // y en producción cae en unpaidPurchase (TypeError $subscribe null).
       // 3 intentos: un 500 no debe dejar Pendiente si el back se recupera.
+      // Total $0 (descuento 100% / precio 0): no hay cobro; /reservate sin payment_data.
       const purchase = await retryReservate(() =>
         client.reservatePurchase!({
           brandSlug,
@@ -710,8 +717,8 @@ export function CheckoutModal({
             companiesId: config?.companiesId,
             raw: rawFor(line),
           })),
-          paymentTypeId: selectedMethod.id,
-          paymentData,
+          paymentTypeId,
+          paymentData: isFreeTotal ? undefined : paymentData,
           subscriptionId,
           csrfToken: config?.csrfToken ?? null,
           discountCode: discountStatus === "ok" ? discountCode.trim() : null,
@@ -729,6 +736,7 @@ export function CheckoutModal({
         reservationId,
         confirmed: true,
         isWaitlist: Boolean(purchase.isWaitlist) || waitlistPurchase,
+        paidTotal: total,
         reservationSnapshot,
         linesSnapshot,
       });
@@ -813,6 +821,7 @@ export function CheckoutModal({
       reservationId: result.reservationId,
       confirmed: true,
       isWaitlist: Boolean(result.isWaitlist) || waitlistPurchase,
+      paidTotal: total,
       reservationSnapshot: reservation,
       linesSnapshot: relevantLines,
     });
@@ -978,6 +987,11 @@ export function CheckoutModal({
       await completePurchase(pending.paymentData, pending.recurring, pending.subscriptionId);
       return;
     }
+    if (isFreeTotal) {
+      setPaying(true);
+      await completePurchase(undefined);
+      return;
+    }
     if (!paymentReady) {
       reportPayError("El formulario de pago todavía no está listo.");
       return;
@@ -1041,7 +1055,9 @@ export function CheckoutModal({
         reportPayError("Revisa el código de GiftCard.");
         return;
       }
-      if (!paymentReady) reportPayError("El formulario de pago todavía no está listo.");
+      if (!isFreeTotal && !paymentReady) {
+        reportPayError("El formulario de pago todavía no está listo.");
+      }
       return;
     }
     void proceedToPay();
@@ -1118,7 +1134,9 @@ export function CheckoutModal({
                           ? "Al pagar te sumamos a la lista de espera y se descuenta el crédito."
                           : "Estos son los planes que aplican para esta clase."
                         : "Agrega paquetes o membresías."
-                      : "Revisa tu pedido y paga de forma segura. Si quieres agregar más, vuelve al paso anterior."}
+                      : isFreeTotal
+                        ? "El total es $0. Confirma el pedido."
+                        : "Revisa tu pedido y paga de forma segura. Si quieres agregar más, vuelve al paso anterior."}
                 </p>
               </header>
 
@@ -1254,6 +1272,24 @@ export function CheckoutModal({
                     </p>
                   ) : null}
                 </>
+              ) : isFreeTotal ? (
+                <div className="gafa-checkout-free" role="status">
+                  <span className="gafa-checkout-free__mark" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                      <path
+                        d="M2 7.5L5.5 11L12 3.5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong>Pedido cubierto</strong>
+                    <p>No hace falta tarjeta ni PayPal.</p>
+                  </div>
+                </div>
               ) : preselectStatus === "loading" ? (
                 <PaySkeleton withMethods label="Preparando tu compra…" />
               ) : (
@@ -1567,7 +1603,7 @@ export function CheckoutModal({
                   disabled={!relevantLines.length}
                   onClick={() => setStep(isSignedIn ? "pay" : "auth")}
                 >
-                  Ir a pagar
+                  {isFreeTotal ? "Continuar" : "Ir a pagar"}
                 </button>
               ) : (
                 <div
@@ -1600,7 +1636,9 @@ export function CheckoutModal({
                         ? hostedPendingRef.current?.purchaseId
                           ? "Revisar pago"
                           : "Registrar compra"
-                        : `Pagar ${formatMoney(total, currency.prefix, "")}`}
+                        : isFreeTotal
+                          ? "Confirmar pedido"
+                          : `Pagar ${formatMoney(total, currency.prefix, "")}`}
                   </button>
                   {selectedMethod?.slug === "paypal" ? (
                     <div id={PAYPAL_CTA_HIT_ID} className="gafa-checkout__paypal-hit" aria-hidden="true" />
@@ -2208,6 +2246,7 @@ function ThanksPanel({
     reservationId?: number;
     confirmed?: boolean;
     isWaitlist?: boolean;
+    paidTotal: number;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null;
@@ -2217,6 +2256,8 @@ function ThanksPanel({
 }) {
   const reservation = thanks?.reservationSnapshot;
   const lines = thanks?.linesSnapshot ?? [];
+  const paidTotal = thanks?.paidTotal ?? lines.reduce((sum, line) => sum + line.price * line.amount, 0);
+  const isFreeOrder = paidTotal <= 0;
 
   return (
     <div className="gafa-checkout-thanks">
@@ -2233,7 +2274,7 @@ function ThanksPanel({
             : "¡Gracias por tu compra!"}
       </h2>
       <p>
-        {firstName ? `${firstName}, tu` : "Tu"} pago quedó registrado
+        {firstName ? `${firstName}, tu` : "Tu"} {isFreeOrder ? "pedido" : "pago"} quedó registrado
         {thanks?.purchaseId ? ` (orden #${thanks.purchaseId})` : ""}. Te enviamos el detalle por correo.
       </p>
 
@@ -2269,13 +2310,9 @@ function ThanksPanel({
             </li>
           ))}
           <li className="gafa-checkout-thanks__total">
-            <span>Total pagado</span>
+            <span>{isFreeOrder ? "Total" : "Total pagado"}</span>
             <strong>
-              {formatMoney(
-                lines.reduce((sum, line) => sum + line.price * line.amount, 0),
-                currency.prefix,
-                currency.suffix,
-              )}
+              {formatMoney(paidTotal, currency.prefix, currency.suffix)}
             </strong>
           </li>
         </ul>

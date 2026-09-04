@@ -236,7 +236,19 @@ export function createMockGafaClient(): GafaClient {
         generateGiftCode: "/demo/generate-gift",
       },
     }),
-    checkDiscountCode: async ({ code }) => ({ valid: code.length > 2, code, discountAmount: 50, label: "Promo demo" }),
+    checkDiscountCode: async ({ code }) => {
+      const normalized = code.trim().toUpperCase();
+      if (normalized === "GRATIS" || normalized === "FREE") {
+        return {
+          valid: true,
+          code,
+          discountType: "percent",
+          discountNumber: 100,
+          label: "Pedido cubierto",
+        };
+      }
+      return { valid: code.length > 2, code, discountAmount: 50, label: "Promo demo" };
+    },
     checkGiftCode: async ({ code }) => {
       const compact = code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
       if (compact.includes("TAKEN")) {

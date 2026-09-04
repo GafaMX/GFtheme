@@ -6313,6 +6313,45 @@
   min-width: 0;
 }
 
+.gafa-checkout-free {
+  align-items: flex-start;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+}
+
+.gafa-checkout-free__mark {
+  align-items: center;
+  background: var(--gafa-color-success-soft);
+  border-radius: 12px;
+  --gafa-fg: var(--gafa-color-success);
+  color: var(--gafa-color-success);
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.gafa-checkout-free strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.gafa-checkout-free p {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0.15rem 0 0;
+}
+
 .gafa-checkout-paypal-copy {
   align-items: flex-start;
   display: flex;
