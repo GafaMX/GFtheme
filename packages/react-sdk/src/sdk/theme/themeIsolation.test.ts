@@ -150,7 +150,7 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
 
   it("el puntito de conectado se asoma un poco en el borde, sin flotar fuera del círculo", () => {
     expect(widgetsCss).toMatch(
-      /\.gafa-header-account \{\n  --gafa-control-padding:[\s\S]{0,500}overflow:\s*visible/,
+      /\.gafa-header-account \{\n  --gafa-control-padding:[\s\S]{0,800}overflow:\s*visible/,
     );
     expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}top:\s*3px/);
     expect(widgetsCss).toMatch(/\.gafa-header-account__dot \{[\s\S]{0,280}right:\s*3px/);

@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "./theme";
 
 describe("ThemeProvider sigue el theme de la página", () => {
   afterEach(() => {
+    cleanup();
     document.documentElement.className = "";
     document.documentElement.style.removeProperty("--sdk-background-color");
     localStorage.removeItem("gafa-sdk-color-scheme");

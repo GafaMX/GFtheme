@@ -20,6 +20,7 @@ describe("docs/v2-agente.md", () => {
     expect(guide).toContain("@cdn-live/docs/v2-sdk/gafa-sdk.js");
     expect(guide).toContain("No pulses Republish");
     expect(guide).toContain("THEME");
+    expect(guide).toContain("headerControls");
     expect(guide).toContain("filter-bq-location");
     expect(guide).toContain("data-gf-buy");
     expect(guide).toContain("allowUserColorScheme");

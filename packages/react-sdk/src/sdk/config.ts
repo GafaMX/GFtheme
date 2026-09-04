@@ -43,6 +43,22 @@ const legacyThemeSchema = z
         headingFontFamily: z.string().optional(),
       })
       .optional(),
+    headerControls: z
+      .object({
+        fontFamily: z.string().optional(),
+        fontSize: z.string().optional(),
+        fontWeight: z.union([z.number(), z.string()]).optional(),
+        letterSpacing: z.string().optional(),
+        textTransform: z.enum(["none", "uppercase", "lowercase", "capitalize"]).optional(),
+        lineHeight: z.string().optional(),
+        height: z.union([z.number(), z.string()]).optional(),
+        padding: z.string().optional(),
+        background: z.string().optional(),
+        color: z.string().optional(),
+        border: z.string().optional(),
+        borderRadius: z.string().optional(),
+      })
+      .optional(),
     radius: z.record(z.string(), z.string()).optional(),
     assets: z.record(z.string(), z.string()).optional(),
   })

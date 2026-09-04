@@ -40,7 +40,7 @@ export type { SdkTracker, TrackerConfig } from "./analytics/tracker";
 export { SDK_ANALYTICS_EVENTS } from "./analytics/events";
 export type { SdkAnalyticsEventName } from "./analytics/events";
 export { SDK_VERSION } from "./version";
-export type { GafaBrandTheme } from "./theme/theme";
+export type { GafaBrandTheme, GafaHeaderControlsTheme } from "./theme/theme";
 export type { GafaClient } from "./client/types";
 export { buildThumbnailUrl, resolveImagesConfig } from "./images/imageProxy";
 export type { ImagesConfig, ThumbnailOptions } from "./images/imageProxy";

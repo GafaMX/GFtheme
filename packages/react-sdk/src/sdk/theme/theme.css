@@ -159,6 +159,17 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-cart__count:not(.gafa-pay-nat
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account:not(.gafa-pay-native *) {
   overflow: visible !important;
+  font-family: var(--gafa-header-account-font-family, inherit) !important;
+  font-weight: var(--gafa-header-account-font-weight, 700) !important;
+  letter-spacing: var(--gafa-header-account-letter-spacing, normal) !important;
+  height: var(--gafa-header-account-height, 36px) !important;
+}
+
+@media (max-width: 620px) {
+  html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account:not(.gafa-pay-native *) {
+    height: var(--gafa-header-account-height, 38px) !important;
+    width: var(--gafa-header-account-height, 38px) !important;
+  }
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-header-account__dot:not(.gafa-pay-native *) {

@@ -27,7 +27,9 @@ publicar bundle → [`v2-lanzamiento.md`](v2-lanzamiento.md).
    Eso reinicia **todas** las marcas. El JS ya viene de jsDelivr.
 5. **No pelees el CSS del SDK.** Nada de `MutationObserver`, selectores
    internos (`.gafa-sdk.gafa-sdk…`), estilos post-mount ni reordenar
-   stylesheets. Si un color no pinta, falta `THEME.colors`.
+   stylesheets. Si un color no pinta, falta `THEME.colors`. Si `Entrar` /
+   `Mi cuenta` no coinciden con el CTA del header, usa `THEME.headerControls`
+   (§5.1), no CSS externo.
 6. **No muestres tipos de crédito internos** (`CDMXnew`, etc.). Al socio se
    le enseña el **paquete** o la **membresía**. Ver [`creditos-vs-paquetes.md`](creditos-vs-paquetes.md).
 7. **No pidas otro `src` al socio.** Un publish actualiza el loader; hard
@@ -252,11 +254,65 @@ Opcional, no mezclar en un ticket solo de color:
 - `typography.fontFamily` / `headingFontFamily` (default: hereda el sitio)
 - `radius.sm|md|lg|pill`
 - `assets.heroBackgroundUrl` / `loginBackgroundUrl`
+- `headerControls` — botón `Entrar` / `Mi cuenta`. Ver §5.1
+
+### 5.1 `THEME.headerControls` — botón Entrar / Mi cuenta
+
+Contrato oficial del control `[data-gf-theme="login-register"]` (también
+`runtime.mountHeaderControls()`). **Reemplaza** CSS externo, selectores
+`.gafa-header-account` y observers post-mount.
+
+Sin `headerControls` el botón queda exactamente como hoy (primary + pastilla).
+El carrito circular **no** usa estos tokens. El icono, el puntito de sesión y
+el popup se conservan. `Entrar` → `Mi cuenta` al iniciar sesión, mismo chrome.
+
+| Propiedad | CSS | Default si se omite |
+| --- | --- | --- |
+| `fontFamily` | `--gafa-header-account-font-family` | hereda el sitio |
+| `fontSize` | `--gafa-header-account-font-size` | `0.84rem` |
+| `fontWeight` | `--gafa-header-account-font-weight` | `700` |
+| `letterSpacing` | `--gafa-header-account-letter-spacing` | `normal` |
+| `textTransform` | `--gafa-header-account-text-transform` | `none` |
+| `lineHeight` | `--gafa-header-account-line-height` | `inherit` |
+| `height` | `--gafa-header-account-height` | `36px` (`38px` icono en mobile) |
+| `padding` | `--gafa-header-account-padding` | `0 0.9rem` (`0` en mobile) |
+| `background` | `--gafa-header-account-background` | `--gafa-color-primary` |
+| `color` | `--gafa-header-account-color` | `--gafa-color-primary-text` |
+| `border` | `--gafa-header-account-border` | `none` |
+| `borderRadius` | `--gafa-header-account-border-radius` | `--gafa-radius-pill` |
+
+`""` o espacios → default. `height: 48` = `48px`. Light y dark usan los mismos
+valores explícitos (no se recortan por scheme). En mobile el label se oculta;
+si mandas `height` / `padding`, esos ganan al círculo 38×38.
+
+Para que `Entrar` coincida con un CTA `Reservar` del header:
+
+```json
+{
+  "THEME": {
+    "typography": {
+      "fontFamily": "Inter, sans-serif"
+    },
+    "headerControls": {
+      "fontSize": "11px",
+      "fontWeight": 500,
+      "letterSpacing": "0.22em",
+      "textTransform": "uppercase",
+      "height": "48px",
+      "padding": "0 28px",
+      "background": "#8D6363",
+      "color": "#FFFFFF",
+      "border": "0",
+      "borderRadius": "999px"
+    }
+  }
+}
+```
 
 ### Qué no pinta THEME
 
 - Iframe de Stripe / GafaPay (el Card Element es de ellos).
-- Tipografía ni layout, salvo que los declares.
+- Tipografía ni layout, salvo que los declares (`typography`, `headerControls`).
 - El sitio alrededor del SDK (hero del host, footer, Elementor).
 
 ---

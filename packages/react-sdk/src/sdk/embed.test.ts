@@ -138,4 +138,31 @@ describe("embed drop-in", () => {
       expect(document.querySelector("[data-gafa-v2]")?.childElementCount).toBeGreaterThan(0);
     });
   });
+
+  it("login-register y mountHeaderControls aplican THEME.headerControls", async () => {
+    document.body.innerHTML = `
+      <script data-gf-options type="application/json">${JSON.stringify({
+        GAFA_FIT_URL: "https://example.gafa.fit",
+        COMPANY_ID: 80,
+        API_CLIENT: "demo-client",
+        THEME: { headerControls: { background: "#8D6363", fontSize: "11px" } },
+      })}</script>
+      <section data-gf-theme="login-register"></section>
+      <div id="header-js"></div>
+    `;
+    const sdk = bootGafaSdkFromDom(document, window, { useMockClient: true });
+    await waitFor(() => {
+      expect(document.querySelector("[data-gf-theme='login-register'] .gafa-header-account")).toBeTruthy();
+    });
+    const declared = document.querySelector<HTMLElement>("[data-gf-theme='login-register'] .gafa-sdk");
+    expect(declared?.style.getPropertyValue("--gafa-header-account-background")).toBe("#8D6363");
+    expect(declared?.style.getPropertyValue("--gafa-header-account-font-size")).toBe("11px");
+    sdk.mountHeaderControls("#header-js");
+    await waitFor(() => {
+      expect(document.querySelector("#header-js .gafa-header-account")).toBeTruthy();
+    });
+    const mounted = document.querySelector<HTMLElement>("#header-js .gafa-sdk");
+    expect(mounted?.style.getPropertyValue("--gafa-header-account-background")).toBe("#8D6363");
+    expect(document.querySelector(".gafa-header-cart")).toBeNull();
+  });
 });

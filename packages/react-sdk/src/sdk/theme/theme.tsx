@@ -11,6 +11,21 @@ export type GafaThemeRadius = {
   pill: string;
 };
 
+export type GafaHeaderControlsTheme = {
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: number | string;
+  letterSpacing?: string;
+  textTransform?: "none" | "uppercase" | "lowercase" | "capitalize";
+  lineHeight?: string;
+  height?: string | number;
+  padding?: string;
+  background?: string;
+  color?: string;
+  border?: string;
+  borderRadius?: string;
+};
+
 export type GafaBrandTheme = {
   preset?: string;
   logoUrl?: string;
@@ -25,6 +40,8 @@ export type GafaBrandTheme = {
     fontFamily?: string;
     headingFontFamily?: string;
   };
+  /** Botón Entrar / Mi cuenta. Sin esto, el control conserva el diseño actual. */
+  headerControls?: GafaHeaderControlsTheme;
   radius?: Partial<GafaThemeRadius>;
   assets?: {
     heroBackgroundUrl?: string;
@@ -90,6 +107,75 @@ export function cssLength(value: number | string | undefined, fallbackPx: number
   return trimmed;
 }
 
+const HEADER_TEXT_TRANSFORMS = new Set(["none", "uppercase", "lowercase", "capitalize"]);
+
+function definedCssToken(value: unknown): string | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  const trimmed = String(value ?? "").trim();
+  return trimmed || undefined;
+}
+
+export const HEADER_ACCOUNT_CSS_VARS = [
+  "--gafa-header-account-font-family",
+  "--gafa-header-account-font-size",
+  "--gafa-header-account-font-weight",
+  "--gafa-header-account-letter-spacing",
+  "--gafa-header-account-text-transform",
+  "--gafa-header-account-line-height",
+  "--gafa-header-account-height",
+  "--gafa-header-account-padding",
+  "--gafa-header-account-background",
+  "--gafa-header-account-color",
+  "--gafa-header-account-border",
+  "--gafa-header-account-border-radius",
+] as const;
+
+export function resolveHeaderControls(
+  theme?: GafaBrandTheme,
+  preset?: GafaBrandTheme,
+): GafaHeaderControlsTheme {
+  const incoming = { ...preset?.headerControls, ...theme?.headerControls };
+  const textTransform = definedCssToken(incoming.textTransform);
+  const height = incoming.height;
+  return {
+    fontFamily: definedCssToken(incoming.fontFamily),
+    fontSize: definedCssToken(incoming.fontSize),
+    fontWeight: definedCssToken(incoming.fontWeight),
+    letterSpacing: definedCssToken(incoming.letterSpacing),
+    textTransform:
+      textTransform && HEADER_TEXT_TRANSFORMS.has(textTransform)
+        ? (textTransform as GafaHeaderControlsTheme["textTransform"])
+        : undefined,
+    lineHeight: definedCssToken(incoming.lineHeight),
+    height:
+      height === undefined || height === null || String(height).trim() === ""
+        ? undefined
+        : cssLength(height, 36),
+    padding: definedCssToken(incoming.padding),
+    background: definedCssToken(incoming.background),
+    color: definedCssToken(incoming.color),
+    border: definedCssToken(incoming.border),
+    borderRadius: definedCssToken(incoming.borderRadius),
+  };
+}
+
+function headerControlsToCssVariables(controls: GafaHeaderControlsTheme): Record<string, string> {
+  const vars: Record<string, string> = {};
+  if (controls.fontFamily) vars["--gafa-header-account-font-family"] = controls.fontFamily;
+  if (controls.fontSize) vars["--gafa-header-account-font-size"] = controls.fontSize;
+  if (controls.fontWeight) vars["--gafa-header-account-font-weight"] = String(controls.fontWeight);
+  if (controls.letterSpacing) vars["--gafa-header-account-letter-spacing"] = controls.letterSpacing;
+  if (controls.textTransform) vars["--gafa-header-account-text-transform"] = controls.textTransform;
+  if (controls.lineHeight) vars["--gafa-header-account-line-height"] = controls.lineHeight;
+  if (controls.height) vars["--gafa-header-account-height"] = String(controls.height);
+  if (controls.padding) vars["--gafa-header-account-padding"] = controls.padding;
+  if (controls.background) vars["--gafa-header-account-background"] = controls.background;
+  if (controls.color) vars["--gafa-header-account-color"] = controls.color;
+  if (controls.border) vars["--gafa-header-account-border"] = controls.border;
+  if (controls.borderRadius) vars["--gafa-header-account-border-radius"] = controls.borderRadius;
+  return vars;
+}
+
 /**
  * Por defecto los widgets HEREDAN la tipografia del sitio donde se montan: el
  * SDK no impone ni descarga fuentes (un @import de Google Fonts obligaria a
@@ -138,6 +224,7 @@ export function resolveTheme(theme?: GafaBrandTheme) {
     },
     radius: { ...defaultRadius, ...preset.radius, ...theme?.radius },
     assets: { ...preset.assets, ...theme?.assets },
+    headerControls: resolveHeaderControls(theme, preset),
     colorScheme: theme?.colorScheme ?? preset.colorScheme ?? "light",
     allowUserColorScheme: theme?.allowUserColorScheme ?? preset.allowUserColorScheme ?? true,
   };
@@ -212,6 +299,7 @@ export function themeToCssVariables(
       : "none",
     "--gafa-logo-max-width": cssLength(resolved.logoMaxWidth, DEFAULT_LOGO_MAX_WIDTH_PX),
     "--gafa-logo-max-height": cssLength(resolved.logoMaxHeight, DEFAULT_LOGO_MAX_HEIGHT_PX),
+    ...headerControlsToCssVariables(resolved.headerControls),
   };
   if (options?.followHostSurface === false) return variables;
   return withHostSurfaceVars(variables);

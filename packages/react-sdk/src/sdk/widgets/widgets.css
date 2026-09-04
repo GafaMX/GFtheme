@@ -2673,18 +2673,32 @@
 }
 
 .gafa-header-account {
-  --gafa-control-padding: 0 0.9rem;
-  --gafa-control-bg: var(--gafa-color-primary);
-  --gafa-control-border: 0 solid transparent;
-  --gafa-control-fg: var(--gafa-color-primary-text);
-  --gafa-fg: var(--gafa-color-primary-text);
-  --gafa-control-radius: var(--gafa-radius-pill);
-  background: var(--gafa-color-primary);
-  border: none;
-  border-radius: var(--gafa-radius-pill);
-  color: var(--gafa-color-primary-text);
+  --gafa-control-padding: var(--gafa-header-account-padding, 0 0.9rem);
   overflow: visible;
-  padding: 0 0.9rem;
+  --gafa-control-bg: var(--gafa-header-account-background, var(--gafa-color-primary));
+  --gafa-control-border: var(--gafa-header-account-border, 0 solid transparent);
+  --gafa-control-fg: var(--gafa-header-account-color, var(--gafa-color-primary-text));
+  --gafa-fg: var(--gafa-header-account-color, var(--gafa-color-primary-text));
+  --gafa-control-radius: var(--gafa-header-account-border-radius, var(--gafa-radius-pill));
+  --gafa-control-font-size: var(--gafa-header-account-font-size, 0.84rem);
+  --gafa-control-line-height: var(--gafa-header-account-line-height, inherit);
+  --gafa-control-min-height: var(--gafa-header-account-height, 36px);
+  --gafa-control-tracking: var(--gafa-header-account-letter-spacing, normal);
+  --gafa-control-transform: var(--gafa-header-account-text-transform, none);
+  --gafa-type-size: var(--gafa-header-account-font-size, 0.84rem);
+  --gafa-type-leading: var(--gafa-header-account-line-height, inherit);
+  background: var(--gafa-header-account-background, var(--gafa-color-primary));
+  border: var(--gafa-header-account-border, none);
+  border-radius: var(--gafa-header-account-border-radius, var(--gafa-radius-pill));
+  color: var(--gafa-header-account-color, var(--gafa-color-primary-text));
+  font-family: var(--gafa-header-account-font-family, inherit);
+  font-size: var(--gafa-header-account-font-size, 0.84rem);
+  font-weight: var(--gafa-header-account-font-weight, 700);
+  height: var(--gafa-header-account-height, 36px);
+  letter-spacing: var(--gafa-header-account-letter-spacing, normal);
+  line-height: var(--gafa-header-account-line-height, inherit);
+  padding: var(--gafa-header-account-padding, 0 0.9rem);
+  text-transform: var(--gafa-header-account-text-transform, none);
 }
 
 .gafa-header-account__dot {
@@ -2705,10 +2719,12 @@
   }
 
   .gafa-header-account {
-    height: 38px;
+    --gafa-control-padding: var(--gafa-header-account-padding, 0);
+    --gafa-control-min-height: var(--gafa-header-account-height, 38px);
+    height: var(--gafa-header-account-height, 38px);
     justify-content: center;
-    padding: 0;
-    width: 38px;
+    padding: var(--gafa-header-account-padding, 0);
+    width: var(--gafa-header-account-height, 38px);
   }
 }
 

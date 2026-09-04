@@ -6,6 +6,9 @@ El SDK es la única fuente de color de calendario, login, cuenta, reserva,
 carrito y checkout. **No** hace falta CSS de overlays, `MutationObserver`,
 selectores internos ni pelear especificidad.
 
+El botón `Entrar` / `Mi cuenta` se personaliza con `THEME.headerControls`
+(tipografía, alto, padding, fondo, borde). Contrato: [`v2-agente.md`](v2-agente.md) §5.1.
+
 ## Contrato
 
 ```json
