@@ -1,185 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GFTheme React SDK Preview</title>
-    <style>
-      :root {
-        color-scheme: light;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        background:
-          radial-gradient(circle at top left, rgba(249, 115, 22, 0.18), transparent 32rem),
-          linear-gradient(180deg, #fff7ed 0%, #f8fafc 42%, #eef2ff 100%);
-        color: #111827;
-        margin: 0;
-        min-height: 100vh;
-      }
-
-      .demo-shell {
-        display: grid;
-        gap: 18px;
-        margin: 0 auto;
-        max-width: 760px;
-        padding: 18px 14px 36px;
-      }
-
-      .demo-hero {
-        background:
-          radial-gradient(circle at 82% 16%, rgba(255, 255, 255, 0.32), transparent 9rem),
-          linear-gradient(135deg, #111827 0%, #1f2937 42%, #f97316 100%);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 34px;
-        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
-        color: #ffffff;
-        display: grid;
-        gap: 16px;
-        overflow: hidden;
-        padding: 26px 22px;
-        position: relative;
-      }
-
-      .demo-hero p,
-      .demo-hero h1 {
-        margin: 0;
-      }
-
-      .demo-hero h1 {
-        font-size: clamp(2.4rem, 12vw, 4.5rem);
-        letter-spacing: -0.07em;
-        line-height: 0.95;
-      }
-
-      .demo-hero p {
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 1rem;
-        line-height: 1.45;
-      }
-
-      .demo-hero__eyebrow {
-        align-items: center;
-        display: flex;
-        font-size: 0.78rem;
-        font-weight: 800;
-        gap: 8px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .demo-hero__eyebrow::before {
-        background: #f97316;
-        border-radius: 999px;
-        content: "";
-        height: 9px;
-        width: 9px;
-      }
-
-      .demo-hero__chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .demo-hero__chips span {
-        background: rgba(255, 255, 255, 0.14);
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        border-radius: 999px;
-        color: rgba(255, 255, 255, 0.88);
-        font-size: 0.78rem;
-        font-weight: 750;
-        padding: 7px 11px;
-      }
-
-      .demo-grid {
-        display: grid;
-        gap: 18px;
-      }
-
-      .demo-reserve {
-        background: #fffaf4;
-        border: 1px solid #eadfd4;
-        border-radius: 18px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 16px;
-      }
-
-      .demo-section-label {
-        color: #766b63;
-        font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        margin: 0;
-        text-transform: uppercase;
-        width: 100%;
-      }
-
-      .demo-reserve button {
-        background: #16110f;
-        border: 0;
-        border-radius: 999px;
-        color: #fffaf4;
-        cursor: pointer;
-        font: inherit;
-        font-weight: 700;
-        padding: 10px 16px;
-      }
-
-      #calendar-demo {
-        /* Replica Elementor: `transform` hace que position:fixed se ancle
-           al calendario, no a la pagina. El overlay tiene que salir a body. */
-        transform: translateZ(0);
-      }
-
-      @media (min-width: 760px) {
-        .demo-shell {
-          gap: 22px;
-          padding: 28px;
-        }
-
-        .demo-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-    </style>
+    <title>Buq SDK v2 — sitio de prueba</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <main class="demo-shell">
-      <section class="demo-hero">
-        <p class="demo-hero__eyebrow">GFTheme React SDK</p>
-        <h1>Reserva y compra en minutos</h1>
-        <p>Una experiencia mobile-first para clases, paquetes, cuenta y perfil con branding configurable.</p>
-        <div class="demo-hero__chips" aria-label="Caracteristicas">
-          <span>Mobile-first</span>
-          <span>Branding editable</span>
-          <span>Checkout ready</span>
-        </div>
-      </section>
-
-      <section class="demo-reserve">
-        <p class="demo-section-label">Reservar una clase sin calendario</p>
-        <button type="button" data-gf-reserve data-gf-meeting-id="1">
-          Reservar Functional Training (id 1)
-        </button>
-        <button type="button" id="reserve-by-js">openReservation({ meetingId: 2 })</button>
-      </section>
-
-      <section id="calendar-demo"></section>
-      <div class="demo-grid">
-        <section id="packages-demo"></section>
-        <section id="auth-demo"></section>
-      </div>
-      <section id="profile-demo"></section>
-    </main>
-
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="app"></div>
+    <!-- jQuery global: los scripts inline del template del checkout (mapa de
+         salón, cerrar, pagar) usan $; en los sitios WordPress ya existe. -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- SDK legacy externo: el checkout y la reserva ya son nativos, queda para
+         probar que convivir con el script viejo no rompe nada. -->
+    <script src="https://buq.partners/sdk/dist/main.js"></script>
+    <script type="module" src="/src/main.demo.tsx"></script>
   </body>
 </html>

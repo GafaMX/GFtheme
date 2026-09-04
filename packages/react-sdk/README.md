@@ -39,7 +39,35 @@ sdk.mountCalendar("#calendar");
 sdk.mountCatalog("#packages", { type: "packages" });
 sdk.mountAuth("#auth", { initialView: "login" });
 sdk.mountProfile("#profile");
+sdk.concierge.mount({ config: partnerConfig });
 ```
+
+## Concierge
+
+Capability nativa, no una app cliente. El socio activa con config declarativa. Fitspin es solo un fixture de prueba.
+
+```ts
+sdk.concierge.mount({
+  partnerId: "mi-estudio",
+  config,
+  apiBaseUrl: "https://api.example.com", // opcional; el proveedor de IA no se expone
+});
+```
+
+En HTML, igual que calendario y perfil:
+
+```html
+<script data-gf-options type="application/json">
+  {
+    "COMPANY_ID": 80,
+    "API_CLIENT": "...",
+    "CONCIERGE": { }
+  }
+</script>
+<section data-gafa-v2="concierge" data-gafa-concierge-live="true"></section>
+```
+
+`CONCIERGE` es el contrato Zod del socio. `catalog.live` (o `data-gafa-concierge-live`) completa paquetes y sedes desde el cliente BUQ, filtrados por las marcas/locationIds declarados. El checkout y el mapa de asientos siguen siendo del SDK.
 
 ## WordPress / CDN (sin Replit)
 

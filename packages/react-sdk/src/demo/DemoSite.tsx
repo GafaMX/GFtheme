@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createGafaSdk } from "../sdk";
 import { createHttpGafaClient } from "../sdk/client/httpGafaClient";
 import { createLegacyGafaFitAdapter } from "../sdk/client/legacyGafaFitAdapter";
 import { createCaptchaProvider } from "../sdk/captcha/CaptchaProvider";
@@ -15,6 +16,7 @@ import { CheckoutModal } from "../sdk/widgets/CheckoutModal";
 import { useCartStore } from "../sdk/cart/cartStore";
 import { prefetchCheckoutCatalog } from "../sdk/cart/checkoutCatalog";
 import type { CartLineType } from "../sdk/client/types";
+import { createLiveConciergeConfig, FITSPIN_CONCIERGE_CONFIG, type ConciergePartnerConfig } from "../sdk/concierge";
 import "../sdk/theme/theme.css";
 import "../sdk/widgets/widgets.css";
 import "./demo.css";
@@ -63,7 +65,7 @@ const BRANDS: Record<string, BrandConfig> = {
 export function DemoSite() {
   const [brandKey, setBrandKey] = useState<keyof typeof BRANDS>(() => {
     const q = new URLSearchParams(window.location.search).get("brand");
-    return q && q in BRANDS ? (q as keyof typeof BRANDS) : "bunker";
+    return q && q in BRANDS ? (q as keyof typeof BRANDS) : "fitspin";
   });
   const brand = BRANDS[brandKey];
 
@@ -131,6 +133,28 @@ function DemoShell({
   useEffect(() => {
     prefetchCheckoutCatalog(queryClient, client);
   }, [client, queryClient, cartCount]);
+
+  useEffect(() => {
+    const sdk = createGafaSdk(
+      {
+        environment,
+        companyId: brand.companyId,
+        publicClientId: brand.apiClient,
+        clientSecret: brand.apiSecret,
+      },
+      { client },
+    );
+    const handle = sdk.concierge.mount({
+      config: conciergeConfigFor(brandKey),
+      hydrateFromClient: true,
+      navigate(path) {
+        setPage(path.includes("paquete") || path.includes("package") ? "paquetes" : "calendario");
+      },
+    });
+    return () => {
+      handle.destroy();
+    };
+  }, [brand.apiClient, brand.apiSecret, brand.companyId, brandKey, client, environment]);
 
   // El fondo de la pagina lo pone el demo, no el SDK: en un sitio real es el
   // propio sitio el que lo define.
@@ -289,6 +313,24 @@ function useDemoClient(brand: BrandConfig, environment: BuqEnvironmentId) {
   }, [brand, environment, identity]);
 
   return current;
+}
+
+function conciergeConfigFor(brandKey: keyof typeof BRANDS): ConciergePartnerConfig {
+  if (brandKey === "fitspin") {
+    return { ...FITSPIN_CONCIERGE_CONFIG, catalog: { ...FITSPIN_CONCIERGE_CONFIG.catalog, live: true } };
+  }
+  const brand = BRANDS[brandKey];
+  const accent = brand.theme.colors?.accent ?? "#111111";
+  return createLiveConciergeConfig({
+    id: brandKey,
+    displayName: brand.label,
+    companyId: brand.companyId,
+    theme: {
+      mode: brand.theme.colorScheme === "dark" ? "dark" : "light",
+      accent,
+      foreground: "#111111",
+    },
+  });
 }
 
 function createDemoClient(brand: BrandConfig, environment: BuqEnvironmentId) {

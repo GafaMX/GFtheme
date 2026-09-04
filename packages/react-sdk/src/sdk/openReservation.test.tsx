@@ -125,6 +125,49 @@ describe("openReservation", () => {
     });
   });
 
+  it("openReservationCheckout resuelve handle y emite eventos de lifecycle", async () => {
+    writeStoredToken("token-de-prueba");
+    const instance = boot();
+    const events: string[] = [];
+    const unsubscribeOpened = instance.on("buq:checkout:opened", (event) => {
+      const detail = event.detail as { context: { kind: string; meetingId?: string | number } };
+      events.push(`${detail.context.kind}:${detail.context.meetingId}`);
+    });
+    const unsubscribeClosed = instance.on("buq:checkout:closed", (event) => {
+      const detail = event.detail as { kind: string; meetingId?: string | number };
+      events.push(`closed:${detail.kind}:${detail.meetingId}`);
+    });
+
+    const handle = await instance.openReservationCheckout({
+      meetingId: 2,
+      brandSlug: "demo-studio",
+      locationSlug: "condesa",
+    });
+
+    expect(handle.type).toBe("reservation");
+    expect(handle.context).toMatchObject({
+      kind: "reservation",
+      meetingId: 2,
+      brandSlug: "demo-studio",
+      locationSlug: "condesa",
+    });
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Coach Ana");
+      expect(events).toContain("reservation:2");
+    });
+
+    handle.close();
+
+    await waitFor(() => {
+      expect(document.querySelectorAll(".gafa-reservation-overlay")).toHaveLength(0);
+      expect(events).toContain("closed:reservation:2");
+    });
+
+    unsubscribeOpened();
+    unsubscribeClosed();
+  });
+
   it("en una clase llena sin crédito que aplique lleva a comprar para la waitlist", async () => {
     writeStoredToken("token-de-prueba");
     boot().openReservation({ meetingId: 2, brandSlug: "demo-studio", locationSlug: "condesa" });

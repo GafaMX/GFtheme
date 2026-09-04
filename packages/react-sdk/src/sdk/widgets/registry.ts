@@ -1,5 +1,6 @@
 import type { GafaSdk } from "../runtime";
 import { readFilterFlag } from "../bootstrap/legacyFilterFlag";
+import { readConciergeConfigFromDom } from "../concierge/domConfig";
 import type { CalendarView } from "./calendarRange";
 import { readCalendarLocationIdFromWindow } from "./calendarLocationQuery";
 
@@ -135,8 +136,9 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     id: "concierge",
     shortcode: "concierge",
     title: "Concierge",
-    status: "preview",
-    description: "Asistente. Se instala igual que el calendario cuando salga de preview.",
+    status: "stable",
+    description: "Barra + chat. Off salvo nodo HTML y CONCIERGE en options.",
+    mount: mountConcierge,
   },
 ];
 
@@ -151,6 +153,22 @@ export function mountRegisteredWidget(runtime: GafaSdk, shortcode: string, eleme
   if (!widget?.mount) return false;
   widget.mount(runtime, element);
   return true;
+}
+
+function mountConcierge(runtime: GafaSdk, element: HTMLElement) {
+  const { config } = readConciergeConfigFromDom(element.ownerDocument ?? document, element);
+  runtime.concierge.mount({
+    config,
+    container: element,
+    webview: element.getAttribute("data-gafa-webview") === "true" || element.getAttribute("data-gf-webview") === "true",
+    hydrateFromClient: readLiveFlag(element),
+  });
+}
+
+function readLiveFlag(element: HTMLElement): boolean | undefined {
+  const live = element.getAttribute("data-gafa-concierge-live") ?? element.getAttribute("data-gf-concierge-live");
+  if (live == null) return undefined;
+  return live !== "false";
 }
 
 function mountCalendar(runtime: GafaSdk, element: HTMLElement) {

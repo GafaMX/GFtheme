@@ -82,6 +82,7 @@ export function createMockGafaClient(): GafaClient {
       id: 1,
       name: "Usuario Demo",
       email: "demo@gafa.fit",
+      firstName: "Demo",
       creditsLabel: "5 creditos disponibles",
     }),
     listRegistrationFields: async () => [
