@@ -214,6 +214,16 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     );
   });
 
+  it("los campos leen tokens de input, no hex hardcodeados", () => {
+    expect(themeCss).toContain("--gafa-field-bg: var(--gafa-color-input-background, var(--gafa-color-surface))");
+    expect(themeCss).toContain(
+      "background: var(--gafa-field-bg, var(--gafa-color-input-background, var(--gafa-color-surface))) none !important",
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-float input,[\s\S]{0,80}\.gafa-float select \{[\s\S]{0,200}--gafa-field-bg:\s*var\(--gafa-color-input-background/,
+    );
+  });
+
   it("asigna borde de control en las cards y el Hoy del calendario", () => {
     expect(widgetsCss).toContain(".gafa-meeting-card");
     expect(widgetsCss).toMatch(/\.gafa-meeting-card[\s\S]{0,280}--gafa-control-border:\s*1px solid var\(--gafa-color-border\)/);

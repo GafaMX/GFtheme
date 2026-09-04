@@ -66,6 +66,10 @@ siguen ON). Para mostrarlas, en `data-gf-options`:
 es el piloto; el publish llega a todas las páginas v2. Receta:
 [`docs/v2-lanzamiento.md`](../v2-lanzamiento.md).
 
+Colores de marca: `THEME.colors` en `data-gf-options` (fondos, superficies,
+inputs). Contrato: [`docs/v2-theme-colors.md`](../v2-theme-colors.md). No CSS
+de overlays ni `MutationObserver`.
+
 **HTML / Webflow / otro:** el mismo `<script src>` + `data-gf-options` + contenedores.
 
 ## Entornos de API

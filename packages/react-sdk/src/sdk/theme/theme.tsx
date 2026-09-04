@@ -135,6 +135,25 @@ export function resolveTheme(theme?: GafaBrandTheme) {
   };
 }
 
+/** Tokens semánticos que `THEME.colors` pinta. `--gafa-color-brand` es alias de primary. */
+export const THEME_COLOR_CSS_VARS = [
+  "--gafa-color-brand",
+  "--gafa-color-primary",
+  "--gafa-color-accent",
+  "--gafa-color-background",
+  "--gafa-color-surface",
+  "--gafa-color-surface-raised",
+  "--gafa-color-text",
+  "--gafa-color-muted-text",
+  "--gafa-color-border",
+  "--gafa-color-input-background",
+  "--gafa-color-input-text",
+  "--gafa-color-input-border",
+  "--gafa-color-success",
+  "--gafa-color-warning",
+  "--gafa-color-danger",
+] as const;
+
 export function themeToCssVariables(
   theme: GafaBrandTheme | undefined,
   scheme: ColorScheme,
@@ -146,6 +165,9 @@ export function themeToCssVariables(
   const variables = {
     "--gafa-color-primary": palette.brand,
     "--gafa-color-primary-text": palette.brandContrast,
+    /** Alias estable para socios: `colors.brand` → primary. No renombrar primary. */
+    "--gafa-color-brand": palette.brand,
+    "--gafa-color-brand-text": palette.brandContrast,
     "--gafa-color-accent": palette.accent,
     "--gafa-color-accent-text": palette.accentContrast,
     "--gafa-color-background": palette.background,
@@ -154,6 +176,9 @@ export function themeToCssVariables(
     "--gafa-color-text": palette.text,
     "--gafa-color-muted-text": palette.mutedText,
     "--gafa-color-border": palette.border,
+    "--gafa-color-input-background": palette.inputBackground,
+    "--gafa-color-input-text": palette.inputText,
+    "--gafa-color-input-border": palette.inputBorder,
     "--gafa-color-success": palette.success,
     "--gafa-color-success-soft": palette.successSoft,
     "--gafa-color-warning": palette.warning,

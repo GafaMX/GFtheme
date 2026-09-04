@@ -249,6 +249,24 @@ const client = {
 function Preview() {
   const params = new URLSearchParams(window.location.search);
   const checkoutMode = params.get("checkout");
+  const isBaseTheme = params.get("theme") === "base";
+  const previewColors = isBaseTheme
+    ? {
+        brand: "#F3D15E",
+        accent: "#F3D15E",
+        background: "#171C35",
+        surface: "#1E2444",
+        surfaceRaised: "#252C50",
+        text: "#FFFFFF",
+        mutedText: "#AEB4CB",
+        border: "#394165",
+        inputBackground: "#171C35",
+        inputText: "#FFFFFF",
+        inputBorder: "#394165",
+      }
+    : { brand: "#f2b705", accent: "#111827" };
+  const previewScheme =
+    params.get("light") === "1" ? "light" : params.get("dark") === "1" || isBaseTheme ? "dark" : "light";
   const [open, setOpen] = useState(params.get("closed") !== "1" && !checkoutMode);
   const [checkoutOpen, setCheckoutOpen] = useState(Boolean(checkoutMode));
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } });
@@ -298,8 +316,8 @@ function Preview() {
   return (
     <ThemeProvider
       theme={{
-        colors: { brand: "#f2b705", accent: "#111827" },
-        colorScheme: params.get("dark") === "1" ? "dark" : "light",
+        colors: previewColors,
+        colorScheme: previewScheme,
         allowUserColorScheme: false,
         logoMaxWidth: 220,
         logoMaxHeight: 110,

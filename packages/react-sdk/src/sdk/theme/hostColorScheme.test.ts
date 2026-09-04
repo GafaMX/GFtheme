@@ -113,9 +113,15 @@ describe("hostColorScheme", () => {
       "--gafa-color-surface-raised": "#f6f6f4",
       "--gafa-color-border": "#eee",
       "--gafa-color-overlay": "hsl(0 0% 0% / 0.7)",
+      "--gafa-color-input-background": "#ffffff",
+      "--gafa-color-input-text": "#111111",
+      "--gafa-color-input-border": "#eee",
     });
     expect(vars["--gafa-color-text"]).toBe("var(--sdk-text-color, #111111)");
     expect(vars["--gafa-color-surface"]).toBe("var(--sdk-background-color, #ffffff)");
     expect(vars["--gafa-color-background"]).toBe("var(--sdk-modal-bg, #fafafa)");
+    expect(vars["--gafa-color-input-background"]).toBe("var(--sdk-input-bg, #ffffff)");
+    expect(vars["--gafa-color-input-text"]).toBe("var(--sdk-text-color, #111111)");
+    expect(vars["--gafa-color-input-border"]).toBe("var(--sdk-border-color, #eee)");
   });
 });

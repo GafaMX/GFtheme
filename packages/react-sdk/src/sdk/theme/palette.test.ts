@@ -44,5 +44,27 @@ describe("buildPalette surface overrides", () => {
     const palette = buildPalette({ brand: "#dae343" }, "dark");
     expect(palette.surface).toMatch(/^hsl\(/);
     expect(palette.background).toMatch(/^hsl\(/);
+    expect(palette.inputBackground).toBe(palette.surface);
+    expect(palette.inputText).toBe(palette.text);
+    expect(palette.inputBorder).toBe(palette.border);
+  });
+
+  it("los tokens de input se pueden pisar aparte de la superficie", () => {
+    const palette = buildPalette(
+      {
+        brand: "#F3D15E",
+        surface: "#1E2444",
+        text: "#FFFFFF",
+        border: "#394165",
+        inputBackground: "#171C35",
+        inputText: "#AEB4CB",
+        inputBorder: "#252C50",
+      },
+      "dark",
+    );
+    expect(palette.surface).toBe("#1E2444");
+    expect(palette.inputBackground).toBe("#171C35");
+    expect(palette.inputText).toBe("#AEB4CB");
+    expect(palette.inputBorder).toBe("#252C50");
   });
 });

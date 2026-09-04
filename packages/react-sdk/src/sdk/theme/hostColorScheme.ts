@@ -186,6 +186,12 @@ export function withHostSurfaceVars(variables: Record<string, string>): Record<s
     ),
     "--gafa-color-border": wrap(HOST_SDK_VARS.border, variables["--gafa-color-border"] ?? ""),
     "--gafa-color-overlay": wrap(HOST_SDK_VARS.overlay, variables["--gafa-color-overlay"] ?? ""),
+    "--gafa-color-input-background": wrap(
+      HOST_SDK_VARS.surfaceRaised,
+      variables["--gafa-color-input-background"] ?? variables["--gafa-color-surface"] ?? "",
+    ),
+    "--gafa-color-input-text": wrap(HOST_SDK_VARS.text, variables["--gafa-color-input-text"] ?? ""),
+    "--gafa-color-input-border": wrap(HOST_SDK_VARS.border, variables["--gafa-color-input-border"] ?? ""),
   };
 }
 
