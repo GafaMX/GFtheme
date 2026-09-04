@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   readHostColorScheme,
   resolveActiveColorScheme,
+  resolveSdkColorScheme,
   schemeFromCssColor,
   schemeFromToken,
   withHostSurfaceVars,
@@ -66,6 +67,42 @@ describe("hostColorScheme", () => {
         osScheme: "dark",
       }),
     ).toBe("light");
+  });
+
+  it("con THEME locked dark ignora host light y prefers-color-scheme", () => {
+    expect(
+      resolveSdkColorScheme({
+        colorScheme: "dark",
+        allowUserColorScheme: false,
+        storedPreference: "light",
+        hostScheme: "light",
+        osScheme: "light",
+      }),
+    ).toBe("dark");
+  });
+
+  it("con THEME locked light ignora host dark y preferencia guardada", () => {
+    expect(
+      resolveSdkColorScheme({
+        colorScheme: "light",
+        allowUserColorScheme: false,
+        storedPreference: "dark",
+        hostScheme: "dark",
+        osScheme: "dark",
+      }),
+    ).toBe("light");
+  });
+
+  it("sin lock el host sigue ganando (Fitspin)", () => {
+    expect(
+      resolveSdkColorScheme({
+        colorScheme: "light",
+        allowUserColorScheme: true,
+        storedPreference: "light",
+        hostScheme: "dark",
+        osScheme: "light",
+      }),
+    ).toBe("dark");
   });
 
   it("las superficies del SDK delegan en --sdk-* del overlay de Fitspin", () => {

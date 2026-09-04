@@ -44,6 +44,36 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(themeCss).toContain("max-width: var(--gafa-img-max-width, none) !important");
   });
 
+  it("el logo del estudio no lo infla Elementor a width 100%", () => {
+    expect(themeCss).toMatch(
+      /img\.gafa-studio-logo \{[\s\S]{0,320}max-height:\s*var\(--gafa-logo-max-height, 64px\) !important/,
+    );
+    expect(themeCss).toMatch(
+      /img\.gafa-studio-logo \{[\s\S]{0,320}max-width:\s*min\(var\(--gafa-logo-max-width, 180px\), 60vw\) !important/,
+    );
+    expect(themeCss).toMatch(
+      /img\.gafa-studio-logo \{[\s\S]{0,320}width:\s*auto !important/,
+    );
+    expect(themeCss).toMatch(
+      /img\.gafa-studio-logo \{[\s\S]{0,320}height:\s*auto !important/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-studio-logo \{[\s\S]{0,400}max-height:\s*var\(--gafa-logo-max-height, 64px\)/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-studio-logo \{[\s\S]{0,400}max-width:\s*min\(var\(--gafa-logo-max-width, 180px\), 60vw\)/,
+    );
+    expect(themeCss).not.toMatch(/img\.gafa-studio-logo \{[\s\S]{0,200}max-height:\s*40px !important/);
+    expect(widgetsCss).not.toMatch(/\.gafa-studio-logo \{[\s\S]{0,200}max-height:\s*40px;/);
+  });
+
+  it("el login del checkout llena la columna, no se queda en 26rem", () => {
+    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,160}max-width:\s*none/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,200}width:\s*100%/);
+    expect(widgetsCss).toMatch(/\.gafa-checkout-auth \{[\s\S]{0,200}padding-inline:\s*1\.5rem/);
+    expect(widgetsCss).not.toMatch(/\.gafa-checkout-auth \{\s*max-width:\s*26rem/);
+  });
+
   it("pinta el focus del SDK, no el outline naranja de WP", () => {
     expect(themeCss).toContain("outline: 2px solid var(--gafa-color-accent) !important");
   });

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 import { copySdkSkin } from "../theme/sdkSkin";
+import { useGafaThemeOptional } from "../theme/theme";
 
 type SdkBodyOverlayProps = HTMLAttributes<HTMLDivElement> & {
   /** Default on: el fondo de la pagina no debe scrollear debajo del fancy. */
@@ -9,9 +10,8 @@ type SdkBodyOverlayProps = HTMLAttributes<HTMLDivElement> & {
 
 /**
  * Overlay de reserva / login / checkout / cuenta. Siempre va a
- * `document.body` con la piel del `.gafa-sdk` mas cercano: si se queda
- * dentro del calendario, Elementor o un `transform` del host lo centran
- * solo en esa seccion.
+ * `document.body`. El scheme y las variables salen del ThemeProvider en el
+ * primer render (el portal no hereda CSS del widget).
  */
 export function SdkBodyOverlay({
   className,
@@ -20,14 +20,19 @@ export function SdkBodyOverlay({
   style,
   ...rest
 }: SdkBodyOverlayProps) {
+  const theme = useGafaThemeOptional();
+  const themeSkin = theme
+    ? { scheme: theme.scheme, style: theme.variables as CSSProperties }
+    : null;
   const anchorRef = useRef<HTMLSpanElement | null>(null);
-  const [skin, setSkin] = useState<SdkSkinState>({ scheme: "dark" });
+  const [copied, setCopied] = useState<SdkSkinState | null>(null);
 
   useLayoutEffect(() => {
+    if (themeSkin) return;
     const root =
       anchorRef.current?.closest(".gafa-sdk") ?? document.querySelector(".gafa-sdk");
-    setSkin(copySdkSkin(root));
-  }, []);
+    setCopied(copySdkSkin(root));
+  }, [themeSkin]);
 
   useEffect(() => {
     if (!lockScroll) return;
@@ -37,6 +42,8 @@ export function SdkBodyOverlay({
       document.body.style.overflow = previous;
     };
   }, [lockScroll]);
+
+  const skin = themeSkin ?? copied ?? { scheme: "dark" };
 
   const node = (
     <div
