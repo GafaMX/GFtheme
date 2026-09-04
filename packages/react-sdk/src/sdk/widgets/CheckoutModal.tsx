@@ -1135,7 +1135,7 @@ export function CheckoutModal({
                           : "Estos son los planes que aplican para esta clase."
                         : "Agrega paquetes o membresías."
                       : isFreeTotal
-                        ? "El total es $0. Confirma el pedido: no se pide ni se cobra tarjeta."
+                        ? "El total es $0. Confirma el pedido."
                         : "Revisa tu pedido y paga de forma segura. Si quieres agregar más, vuelve al paso anterior."}
                 </p>
               </header>
@@ -1273,9 +1273,23 @@ export function CheckoutModal({
                   ) : null}
                 </>
               ) : isFreeTotal ? (
-                <p className="gafa-sdk-state gafa-sdk-state--success">
-                  Pedido cubierto. No hace falta tarjeta ni PayPal.
-                </p>
+                <div className="gafa-checkout-free" role="status">
+                  <span className="gafa-checkout-free__mark" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                      <path
+                        d="M2 7.5L5.5 11L12 3.5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong>Pedido cubierto</strong>
+                    <p>No hace falta tarjeta ni PayPal.</p>
+                  </div>
+                </div>
               ) : preselectStatus === "loading" ? (
                 <PaySkeleton withMethods label="Preparando tu compra…" />
               ) : (
