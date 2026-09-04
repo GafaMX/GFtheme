@@ -108,6 +108,7 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk :is(
   .gafa-fancy-close,
   .gafa-account-modal__close,
   .gafa-checkout__close,
+  .gafa-toast__close,
   .gafa-checkout__line-remove,
   .gafa-checkout__stepper button,
   .gafa-datepicker__day
