@@ -256,6 +256,7 @@ export function CheckoutModal({
     /** undefined mientras gafa.fit confirma; false si se quedó sin resolver. */
     confirmed?: boolean;
     isWaitlist?: boolean;
+    paidTotal: number;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null>(null);
@@ -735,6 +736,7 @@ export function CheckoutModal({
         reservationId,
         confirmed: true,
         isWaitlist: Boolean(purchase.isWaitlist) || waitlistPurchase,
+        paidTotal: total,
         reservationSnapshot,
         linesSnapshot,
       });
@@ -819,6 +821,7 @@ export function CheckoutModal({
       reservationId: result.reservationId,
       confirmed: true,
       isWaitlist: Boolean(result.isWaitlist) || waitlistPurchase,
+      paidTotal: total,
       reservationSnapshot: reservation,
       linesSnapshot: relevantLines,
     });
@@ -2229,6 +2232,7 @@ function ThanksPanel({
     reservationId?: number;
     confirmed?: boolean;
     isWaitlist?: boolean;
+    paidTotal: number;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null;
@@ -2238,6 +2242,8 @@ function ThanksPanel({
 }) {
   const reservation = thanks?.reservationSnapshot;
   const lines = thanks?.linesSnapshot ?? [];
+  const paidTotal = thanks?.paidTotal ?? lines.reduce((sum, line) => sum + line.price * line.amount, 0);
+  const isFreeOrder = paidTotal <= 0;
 
   return (
     <div className="gafa-checkout-thanks">
@@ -2254,7 +2260,7 @@ function ThanksPanel({
             : "¡Gracias por tu compra!"}
       </h2>
       <p>
-        {firstName ? `${firstName}, tu` : "Tu"} pago quedó registrado
+        {firstName ? `${firstName}, tu` : "Tu"} {isFreeOrder ? "pedido" : "pago"} quedó registrado
         {thanks?.purchaseId ? ` (orden #${thanks.purchaseId})` : ""}. Te enviamos el detalle por correo.
       </p>
 
@@ -2290,13 +2296,9 @@ function ThanksPanel({
             </li>
           ))}
           <li className="gafa-checkout-thanks__total">
-            <span>Total pagado</span>
+            <span>{isFreeOrder ? "Total" : "Total pagado"}</span>
             <strong>
-              {formatMoney(
-                lines.reduce((sum, line) => sum + line.price * line.amount, 0),
-                currency.prefix,
-                currency.suffix,
-              )}
+              {formatMoney(paidTotal, currency.prefix, currency.suffix)}
             </strong>
           </li>
         </ul>

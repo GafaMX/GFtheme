@@ -184,6 +184,8 @@ describe("CheckoutModal total $0 (sin tarjeta)", () => {
     );
     expect(client.initialPurchase).not.toHaveBeenCalled();
     expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    expect(screen.getByText(/pedido quedó registrado/i)).toBeTruthy();
+    expect(screen.getByText(/\$0\s*MXN/)).toBeTruthy();
   });
 
   it("con descuento 100% quita la tarjeta y reserva sin payment_data", async () => {
@@ -219,5 +221,7 @@ describe("CheckoutModal total $0 (sin tarjeta)", () => {
       }),
     );
     expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    expect(screen.getByText(/pedido quedó registrado/i)).toBeTruthy();
+    expect(screen.getByText(/\$0\s*MXN/)).toBeTruthy();
   });
 });

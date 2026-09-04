@@ -245,7 +245,7 @@ const client = {
       checkDiscountCode: "https://example.test/check-discount",
     },
   }),
-  checkDiscountCode: async ({ code }) => {
+  checkDiscountCode: async ({ code }: { code: string }) => {
     const normalized = code.trim().toUpperCase();
     if (normalized === "GRATIS" || normalized === "FREE") {
       return {
