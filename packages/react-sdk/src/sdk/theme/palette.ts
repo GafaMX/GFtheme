@@ -22,6 +22,13 @@ export type BrandBaseColors = {
   danger?: string;
   /** Tono del gris: por defecto se saca del color de marca para que "combine". */
   neutralHue?: number;
+  /** Fondos y texto: si el socio los manda (WP oscuro, etc.), no se derivan. */
+  background?: string;
+  surface?: string;
+  surfaceRaised?: string;
+  text?: string;
+  mutedText?: string;
+  border?: string;
 };
 
 export type ResolvedPalette = {
@@ -107,6 +114,18 @@ function parseHslString(value: string): Hsl {
   return { h: Number(match[1]), s: Number(match[2]), l: Number(match[3]) };
 }
 
+function applySurfaceOverrides(base: BrandBaseColors, palette: ResolvedPalette): ResolvedPalette {
+  return {
+    ...palette,
+    background: base.background ?? palette.background,
+    surface: base.surface ?? palette.surface,
+    surfaceRaised: base.surfaceRaised ?? palette.surfaceRaised,
+    text: base.text ?? palette.text,
+    mutedText: base.mutedText ?? palette.mutedText,
+    border: base.border ?? palette.border,
+  };
+}
+
 export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): ResolvedPalette {
   const brandHsl = hexToHsl(base.brand);
   const accentHsl = base.accent ? hexToHsl(base.accent) : brandHsl;
@@ -137,31 +156,34 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
       l: isAchromatic(accentHsl) ? 88 : Math.max(accentHsl.l, 62),
     });
 
-    return {
+    return applySurfaceOverrides(base, {
       brand,
       brandContrast: readableTextOn(brand),
       accent,
       accentContrast: readableTextOn(accent),
-      background: hsl({ h: neutralHue, s: neutralSat, l: 7 }),
-      surface: hsl({ h: neutralHue, s: neutralSat, l: 11 }),
-      surfaceRaised: hsl({ h: neutralHue, s: neutralSat, l: 15 }),
-      text: hsl({ h: neutralHue, s: neutralSat * 0.5, l: 96 }),
-      mutedText: hsl({ h: neutralHue, s: neutralSat * 0.6, l: 66 }),
-      border: hsl({ h: neutralHue, s: neutralSat, l: 22 }),
-      success: hsl({ h: successHsl.h, s: 55, l: 60 }),
-      successSoft: hsl({ h: successHsl.h, s: 40, l: 18 }),
-      warning: hsl({ h: warningHsl.h, s: 70, l: 62 }),
-      warningSoft: hsl({ h: warningHsl.h, s: 45, l: 18 }),
+      // Neutrales menos saturados: un brand lima no debe teñir de oliva el
+      // texto secundario. Y el muted va mas claro: 66% sobre superficie 11%
+      // se leia como "oscuro sobre oscuro" en sitios dark (Voltio).
+      background: hsl({ h: neutralHue, s: Math.min(neutralSat, 6), l: 8 }),
+      surface: hsl({ h: neutralHue, s: Math.min(neutralSat, 7), l: 13 }),
+      surfaceRaised: hsl({ h: neutralHue, s: Math.min(neutralSat, 8), l: 20 }),
+      text: hsl({ h: neutralHue, s: Math.min(neutralSat, 4), l: 96 }),
+      mutedText: hsl({ h: neutralHue, s: Math.min(neutralSat, 6), l: 78 }),
+      border: hsl({ h: neutralHue, s: Math.min(neutralSat, 8), l: 34 }),
+      success: hsl({ h: successHsl.h, s: 55, l: 62 }),
+      successSoft: hsl({ h: successHsl.h, s: 40, l: 26 }),
+      warning: hsl({ h: warningHsl.h, s: 70, l: 64 }),
+      warningSoft: hsl({ h: warningHsl.h, s: 45, l: 24 }),
       danger: hsl({ h: dangerHsl.h, s: 70, l: 65 }),
       dangerSoft: hsl({ h: dangerHsl.h, s: 45, l: 20 }),
       overlay: "hsl(0 0% 0% / 0.72)",
-    };
+    });
   }
 
   const brand = hsl({ h: brandHsl.h, s: brandHsl.s, l: Math.min(brandHsl.l, 52) });
   const accent = hsl(accentHsl);
 
-  return {
+  return applySurfaceOverrides(base, {
     brand,
     brandContrast: readableTextOn(brand),
     accent,
@@ -179,5 +201,5 @@ export function buildPalette(base: BrandBaseColors, scheme: ColorScheme): Resolv
     danger: hsl({ h: dangerHsl.h, s: dangerHsl.s, l: 46 }),
     dangerSoft: hsl({ h: dangerHsl.h, s: 75, l: 96 }),
     overlay: "hsl(0 0% 8% / 0.55)",
-  };
+  });
 }

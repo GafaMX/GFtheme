@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CloseIcon } from "./sdkIcons";
 
 export type FancyOverlayProps = {
   title: string;
@@ -63,7 +64,7 @@ export function FancyOverlay({ title, description, run, onClose }: FancyOverlayP
           de salon necesita espacio real, no una columna de 520px. */}
       <div className="gafa-reservation-sheet" data-fancy-ready={status === "ready" ? "true" : undefined}>
         <button className="gafa-reservation-close" type="button" aria-label="Cerrar checkout" onClick={onClose}>
-          x
+          <CloseIcon />
         </button>
 
         {status !== "ready" ? (
@@ -74,7 +75,14 @@ export function FancyOverlay({ title, description, run, onClose }: FancyOverlayP
           </div>
         ) : null}
 
-        {status === "opening" ? <p className="gafa-sdk-state">Abriendo checkout...</p> : null}
+        {status === "opening" ? (
+          <div className="gafa-fancy-skel" aria-busy="true" aria-live="polite">
+            <span className="gafa-sr-only">Abriendo checkout...</span>
+            <span className="gafa-skeleton gafa-skeleton--line" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+            <span className="gafa-skeleton gafa-skeleton--card" aria-hidden="true" />
+          </div>
+        ) : null}
 
         {status === "error" ? (
           <div className="gafa-sdk-state gafa-sdk-state--error">

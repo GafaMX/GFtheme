@@ -2,6 +2,8 @@ export type Brand = {
   id: number;
   name: string;
   slug: string;
+  /** `pic` publico de la marca (logo del estudio). */
+  logoUrl?: string;
   /** `America/Cancun`, `America/Mexico_City`… */
   timeZone?: string;
   /** Link a terminos y condiciones (admin de la marca). */
@@ -10,6 +12,8 @@ export type Brand = {
   gafapayClientId?: string | null;
   /** La API lo expone en el payload publico de marca; el fancy v1 lo usa igual. */
   gafapayClientSecret?: string | null;
+  /** Prefijo/código de la marca (Q/GTQ, €/EUR, $/MXN). */
+  currency?: { prefix: string; suffix: string; code: string };
 };
 
 export type Location = {
@@ -63,6 +67,18 @@ export type Meeting = {
   capacity?: number;
   isReserved?: boolean;
   passed?: boolean;
+  /**
+   * Si la clase usa mapa de salón. Viene del listado (`maps_id`, `has_map`,
+   * `room.maps_id`…). `undefined` = el listado no lo dijo; el modal sencillo
+   * no se abre “fancy” hasta que el contexto confirme el mapa.
+   */
+  hasSeatMap?: boolean;
+  /**
+   * Si el listado o el create-form-template dicen que esta clase acepta
+   * lista de espera. `undefined` = no lo dijeron; el calendario asume waitlist
+   * cuando está llena.
+   */
+  waitlistAvailable?: boolean;
   availability?:
     | "available"
     | "waitlist"
@@ -93,6 +109,12 @@ export type CatalogItem = {
   credits?: number;
   /** Membresia / paquete suscribible (pago recurrente). */
   subscribable?: boolean;
+  /**
+   * JSON original del item tal como lo entrega gafa.fit. El fancy v1 manda el
+   * objeto COMPLETO en `cart`/`combo` (con credits, expiration_days, etc.);
+   * `/reservate` puede tronar si le faltan claves.
+   */
+  raw?: Record<string, unknown>;
 };
 
 export type UserProfile = {
@@ -123,7 +145,14 @@ export type UserProfile = {
 };
 
 export type UserCredit = {
+  /**
+   * Identificador unico del paquete comprado (`purchase_items_id`).
+   * Varias compras del mismo tipo interno (`CDMXnew`) tienen el mismo
+   * `creditTypeId` pero ids distintos: el perfil debe pintarlas por separado.
+   */
   id: number;
+  /** `credits.id` interno del estudio. Sirve para cruzar reservas, no para agrupar la UI. */
+  creditTypeId?: number;
   name: string;
   total: number;
   expiresAt?: string;
@@ -331,7 +360,15 @@ export type CheckoutConfig = {
   locationId?: number;
   userProfileId?: number;
   usersId?: number;
+  /** CSRF del create-form-template; v1 lo manda como `_token`. */
+  csrfToken?: string;
   urls: {
+    /**
+     * `urlReservation` del fancy: POST `/reservation/reservate`.
+     * Con Stripe/PayPal, BuySystemStep manda el carrito aquí (paymentByCard /
+     * paymentByToken). `initial-purchase` es solo el checkout alojado (Recurrente).
+     */
+    reservation: string;
     initialPurchase: string;
     initialPurchaseStatus: string;
     checkDiscountCode?: string;
@@ -354,10 +391,16 @@ export type DiscountCodeResult = {
 };
 
 export type GiftCodeResult = {
+  /**
+   * `true` si el código YA existe como gift card.
+   * En checkout v1 eso significa ocupado: Convertir en GiftCard necesita uno libre.
+   */
   valid: boolean;
   code: string;
   label?: string;
   balance?: number;
+  message?: string;
+  httpStatus?: number;
   raw?: unknown;
 };
 
@@ -368,11 +411,29 @@ export type InitialPurchasePayload = {
   locationSlug: string;
   userId: number;
   meetingId?: number;
-  /** Lineas del carrito (combos / membresias / productos). */
-  lines: Array<{ id: number; type: CartLineType; amount: number }>;
+  /**
+   * Lineas del carrito. El fancy v1 manda cada item completo en `cart` /
+   * `combo` / `membership` / `product` (id, amount, name, price_final,
+   * product_type Eloquent). Sin eso gafa.fit puede responder 500 después de
+   * que Stripe ya cobró.
+   */
+  lines: Array<{
+    id: number;
+    type: CartLineType;
+    amount: number;
+    name?: string;
+    price?: number;
+    companiesId?: number;
+    /** JSON original del item (v1 manda el combo entero en el cart). */
+    raw?: Record<string, unknown>;
+  }>;
   paymentTypeId: number;
   /** Lo que GafaPay entrega en `message`: objeto o texto, sin envolver. */
   paymentData?: unknown;
+  /** Id de suscripción de GafaPay (Recurrente); v1 lo manda top-level. */
+  subscriptionId?: string | number | null;
+  /** CSRF del create-form-template (`_token` en v1). */
+  csrfToken?: string | null;
   discountCode?: string | null;
   giftCode?: string | null;
   /**
@@ -391,6 +452,10 @@ export type InitialPurchasePayload = {
 export type InitialPurchaseResult = {
   purchaseId?: number | null;
   checkoutToken?: string | null;
+  /** Lo que `reservate` devuelve en `reservation[0].id` (compra + clase). */
+  reservationId?: number;
+  /** Si el servidor metió la clase en waitlist (`reservation[0].is_waitlist`). */
+  isWaitlist?: boolean;
   raw?: unknown;
 };
 
@@ -552,7 +617,25 @@ export type GafaClient = {
     brandSlug: string;
     locationSlug: string;
     code: string;
+    /** `urlCheckGiftCode` del create-form-template (`_|_` = código). */
+    urlTemplate?: string;
   }): Promise<GiftCodeResult>;
+  /**
+   * GET `urlGenerateCode`. El fancy lo usa para "Convertir en GiftCard";
+   * si el código sale largo, el checkout lo sustituye por uno corto.
+   */
+  generateGiftCode?(payload: {
+    brandSlug: string;
+    locationSlug: string;
+    urlTemplate?: string;
+  }): Promise<string>;
+  /**
+   * Compra directa (Stripe/PayPal/Conekta): el mismo POST que
+   * `BuySystemStep.sendForm` del fancy v1 a `urlReservation` (`/reservate`).
+   * En el back dispara `paymentByCard` o `paymentByToken` del Stripe viejo.
+   */
+  reservatePurchase?(payload: InitialPurchasePayload): Promise<InitialPurchaseResult>;
+  /** Solo Recurrente / checkout alojado: crea la compra pendiente. */
   initialPurchase?(payload: InitialPurchasePayload): Promise<InitialPurchaseResult>;
   pollInitialPurchaseStatus?(payload: {
     brandSlug: string;

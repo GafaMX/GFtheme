@@ -27,6 +27,8 @@ export type BuqEnvironment = {
    * aca o se pisa con GAFAPAY_FRONT_URL.
    */
   gafaPayFrontUrl: string;
+  /** Control plane del SDK (ingest + admin). Nunca es el apex de Laravel. */
+  hubUrl: string;
 };
 
 export const BUQ_ENVIRONMENTS: Record<BuqEnvironmentId, BuqEnvironment> = {
@@ -36,6 +38,7 @@ export const BUQ_ENVIRONMENTS: Record<BuqEnvironmentId, BuqEnvironment> = {
     apiBaseUrl: "https://buq.partners/",
     gafaFitSdkUrl: "https://buq.partners/sdk/dist/main.js",
     gafaPayFrontUrl: "https://frontpay.buq.partners/main.js",
+    hubUrl: "https://hub.buq.partners",
   },
   staging: {
     id: "staging",
@@ -43,6 +46,7 @@ export const BUQ_ENVIRONMENTS: Record<BuqEnvironmentId, BuqEnvironment> = {
     apiBaseUrl: "https://buq.com.mx/",
     gafaFitSdkUrl: "https://buq.com.mx/sdk/dist/main.js",
     gafaPayFrontUrl: "https://frontpay.buq.partners/main.js",
+    hubUrl: "https://hub.buq.com.mx",
   },
   development: {
     id: "development",
@@ -50,6 +54,7 @@ export const BUQ_ENVIRONMENTS: Record<BuqEnvironmentId, BuqEnvironment> = {
     apiBaseUrl: "https://buq.technology/",
     gafaFitSdkUrl: "https://buq.technology/sdk/dist/main.js",
     gafaPayFrontUrl: "https://frontpay.buq.partners/main.js",
+    hubUrl: "https://hub.buq.technology",
   },
 };
 
@@ -118,10 +123,9 @@ export function resolveBuqEnvironment(input: {
   return BUQ_ENVIRONMENTS[id];
 }
 
-export function withBuqEnvironment<T extends { apiBaseUrl?: string; gafaPayFrontUrl?: string; environment?: unknown }>(
-  input: T,
-  search?: string,
-): T & { apiBaseUrl: string; gafaPayFrontUrl: string; environment: BuqEnvironmentId } {
+export function withBuqEnvironment<
+  T extends { apiBaseUrl?: string; gafaPayFrontUrl?: string; hubUrl?: string; environment?: unknown },
+>(input: T, search?: string): T & { apiBaseUrl: string; gafaPayFrontUrl: string; hubUrl: string; environment: BuqEnvironmentId } {
   const env = resolveBuqEnvironment({
     environment: input.environment,
     apiBaseUrl: input.apiBaseUrl,
@@ -132,5 +136,6 @@ export function withBuqEnvironment<T extends { apiBaseUrl?: string; gafaPayFront
     environment: env.id,
     apiBaseUrl: input.apiBaseUrl || env.apiBaseUrl,
     gafaPayFrontUrl: input.gafaPayFrontUrl || env.gafaPayFrontUrl,
+    hubUrl: input.hubUrl || env.hubUrl,
   };
 }

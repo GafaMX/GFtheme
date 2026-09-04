@@ -43,7 +43,8 @@ export function bootGafaSdkFromDom(
   const options = readLegacyOptionsFromDom(documentRef);
   const sdk = createGafaSdk(options, runtimeOptions);
   aliasV2Shortcodes(documentRef);
-  bootstrapLegacyWidgets(sdk, documentRef);
+  const mounted = bootstrapLegacyWidgets(sdk, documentRef);
+  sdk.heartbeat(mounted.widgets);
   win.GafaThemeSDK = sdk;
   win.GafaSdk = sdk;
   return sdk;

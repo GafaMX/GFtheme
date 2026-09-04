@@ -6,11 +6,15 @@ import { subscribeToAuthChanges } from "../client/tokenStorage";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { AuthWidget } from "./AuthWidget";
 import { ProfileWidget } from "./ProfileWidget";
+import { SdkBodyOverlay } from "./SdkBodyOverlay";
+import { StudioLogo } from "./StudioLogo";
 
 export type AccountModalProps = {
   client?: GafaClient;
   captcha?: CaptchaProvider;
   brandSlug?: string;
+  hubUrl?: string;
+  companyId?: number;
   open: boolean;
   onClose(): void;
   /** Nombre de la marca para el encabezado del popup. */
@@ -18,8 +22,8 @@ export type AccountModalProps = {
   combineWaitlist?: boolean;
   /**
    * CTA de los estados vacios (Reservar / Comprar). Opcionales: si el sitio no
-   * los pasa, el popup se cierra y el SDK lleva al calendario o a paquetes
-   * que ya estan en la pagina (Fitspin, Fancy, etc.).
+   * los pasa, el popup se cierra y Reservar va a `/reservar`;
+   * Comprar abre el fancy nativo de paquetes / membresías / productos.
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
@@ -34,6 +38,8 @@ export function AccountModal({
   client,
   captcha,
   brandSlug,
+  hubUrl,
+  companyId,
   open,
   onClose,
   title = "Tu cuenta",
@@ -83,23 +89,17 @@ export function AccountModal({
     };
     document.addEventListener("keydown", onKeyDown);
 
-    // El popup ya tiene su propio scroll: dejar el de la pagina activo hace que
-    // el fondo se mueva debajo del overlay al llegar al final de la lista.
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
     sheetRef.current?.focus({ preventScroll: true });
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
     };
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div
+    <SdkBodyOverlay
       className="gafa-account-overlay"
       role="presentation"
       onMouseDown={(event) => {
@@ -129,6 +129,8 @@ export function AccountModal({
             client={client}
             brandSlug={brandSlug}
             combineWaitlist={combineWaitlist}
+            hubUrl={hubUrl}
+            companyId={companyId}
             variant="modal"
             onRequestClose={onClose}
             onExploreClasses={() => {
@@ -142,11 +144,12 @@ export function AccountModal({
           />
         ) : (
           <div className="gafa-account-modal__auth">
+            <StudioLogo client={client} brandSlug={brandSlug} alt="" />
             <AuthWidget client={client} captcha={captcha} brandSlug={brandSlug} initialView="login" />
           </div>
         )}
       </div>
-    </div>
+    </SdkBodyOverlay>
   );
 }
 

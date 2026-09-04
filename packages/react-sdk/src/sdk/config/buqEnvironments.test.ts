@@ -69,9 +69,31 @@ describe("buq environments", () => {
     });
     expect(config.environment).toBe("production");
     expect(config.gafaPayFrontUrl).toBe(BUQ_ENVIRONMENTS.production.gafaPayFrontUrl);
+    expect(config.hubUrl).toBe("https://hub.buq.partners");
+    expect(config.analyticsEnabled).toBe(true);
+  });
+
+  it("HUB_URL pisa el default y ANALYTICS=false apaga el tracker", () => {
+    const config = legacyOptionsToConfig({
+      COMPANY_ID: 80,
+      HUB_URL: "http://127.0.0.1:8787",
+      ANALYTICS: "false",
+    });
+    expect(config.hubUrl).toBe("http://127.0.0.1:8787");
+    expect(config.analyticsEnabled).toBe(false);
   });
 
   it("lee ?buq-env de la URL", () => {
     expect(readBuqEnvironmentFromLocation("?foo=1&buq-env=dev")).toBe("development");
+  });
+
+  it("SHOW_MEMBERSHIP_OPTIONS del embed llega al config", () => {
+    const on = legacyOptionsToConfig({
+      COMPANY_ID: 1,
+      SHOW_MEMBERSHIP_OPTIONS: "true",
+    });
+    expect(on.showMembershipOptions).toBe(true);
+    const off = legacyOptionsToConfig({ COMPANY_ID: 1 });
+    expect(off.showMembershipOptions).toBeUndefined();
   });
 });

@@ -3,7 +3,8 @@
 Receta para **cualquier agente** (Cursor, Replit, WP, HTML estático, Webflow, etc.).
 El SDK no se copia ni se transpila en el sitio del socio. Se carga con **un script**.
 
-El artefacto estable es `docs/v2-sdk/gafa-sdk.js` (React y CSS van adentro).
+La URL pública es siempre `docs/v2-sdk/gafa-sdk.js` (loader). El IIFE con React
+y CSS va en `gafa-sdk.bundle.<stamp>.js`. **No cambies el `src` de los sitios.**
 
 ```bash
 cd packages/react-sdk && npm run publish:embed
@@ -20,7 +21,7 @@ Publicar el JS: `docs/v2-lanzamiento.md`. Este archivo es **cómo se pega en una
    nodos v2 usen `data-gafa-v2` (el header viejo puede seguir en v1).
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js"></script>
 <script data-gf-options type="application/json">
   { "GAFA_FIT_URL": "https://buq.partners", "COMPANY_ID": 1, "API_CLIENT": "...", "API_SECRET": "..." }
 </script>
@@ -30,8 +31,9 @@ Publicar el JS: `docs/v2-lanzamiento.md`. Este archivo es **cómo se pega en una
 `data-gafa-v2` es el mismo shortcode que `data-gf-theme`, para no pelear con el v1.
 
 jsDelivr con `@v2/main` **404** (el `/` de la rama se parte). `@v2` lo trata
-como versión `2` y la **congela**: no sirve el tag git aunque lo muevas.
-La URL pública actual es `@v2.0.0-rc.11` (arriba). Azure cuando exista:
+como versión `2` y la **congela**. Tags `v2.0.0-rc.N` también son inmutables.
+**No** uses `cdn-live-2` ni pines un SHA en producción: el loader en `@cdn-live`
+trae solo el bundle nuevo. Azure cuando exista:
 `https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js`.
 
 ## Dos URLs
@@ -47,12 +49,22 @@ lo alcanza WordPress ni Replit.
 
 ## Por tipo de host
 
-**WordPress / Elementor:** una línea en el header o un HTML widget. No se toca
-el theme PHP en cada deploy v2: se reemplaza `gafa-sdk.js` en git.
+**WordPress / Elementor:** una línea en el header o un HTML widget, **una vez**.
+No se toca el `src` ni el theme PHP en cada deploy v2: se reemplaza el bundle
+en git y el loader lo recoge. El CSS de Hello/Elementor lo bloquea el propio
+SDK (muralla en `theme.css`). No hace falta CSS extra por marca.
 
-**Replit (app multi-sitio):** no copies a `lib/gafa-react-sdk` y no relances
-toda la app. Solo las páginas v2 cambian el `src`. Los sitios que siguen en v1
-no se tocan. Si usas env, `VITE_GAFA_SDK_V2_URL` apunta al IIFE (`@v2.0.0-rc.11`).
+Las “Opciones de la membresía” van **ocultas** (guardar tarjeta + renovar
+siguen ON). Para mostrarlas, en `data-gf-options`:
+`{ "SHOW_MEMBERSHIP_OPTIONS": true }` o el atributo
+`show-membership-options="true"` en el shortcode. Por CSS:
+`.gafa-checkout-membership[hidden] { display: grid !important; }`.
+
+**Buq-Webs (Replit, todas las marcas en `web.buq.mx/<marca>`):** no copies a
+`lib/gafa-react-sdk` y **no pulses Republish**. Un secreto
+`VITE_GAFA_SDK_V2_URL` ya apunta a `@cdn-live` para **toda** la app. Fitspin
+es el piloto; el publish llega a todas las páginas v2. Receta:
+[`docs/v2-lanzamiento.md`](../v2-lanzamiento.md).
 
 **HTML / Webflow / otro:** el mismo `<script src>` + `data-gf-options` + contenedores.
 
@@ -74,8 +86,8 @@ El SDK v2 de Buq se monta con UN script remoto. No copies packages/react-sdk.
 1. Deja data-gf-options y los contenedores (data-gf-theme o data-gafa-v2).
 2. Quita main.min.js del theme v1 en esas páginas (o usa data-gafa-v2 si el header sigue en v1).
 3. Agrega:
-   <script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@v2.0.0-rc.11/docs/v2-sdk/gafa-sdk.js"></script>
-   No uses @v2/main (404) ni @v2 (jsDelivr lo congela). Tag `v2.0.0-rc.11`.
+   <script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js"></script>
+   No uses @v2/main (404), @v2 (jsDelivr lo congela), ni tags rc.* (inmutables).
 4. No cargues v1 y v2 sobre los mismos nodos.
-5. No relances una app entera (Replit multi-sitio) por un cambio del SDK.
+5. No pulses Republish en Buq-Webs (cae todas las marcas). Publica en cdn-live.
 ```

@@ -31,6 +31,8 @@ import {
   type ConciergeHandle,
   type ConciergeMountOptions,
 } from "./concierge/mount";
+import { createSdkTracker, type SdkTracker } from "./analytics/tracker";
+import { instrumentClient } from "./analytics/instrumentClient";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
 import "./concierge/concierge.css";
@@ -73,6 +75,9 @@ export type GafaSdk = {
   concierge: {
     mount(options: ConciergeMountOptions): ConciergeHandle;
   };
+  /** Eventos de uso hacia el SDK Hub. Nunca tira si el Hub está caído. */
+  track: SdkTracker["track"];
+  heartbeat(widgets: string[]): void;
   unmountAll(): void;
 };
 
@@ -196,7 +201,14 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   const events = createEventBus();
   configureTokenStorage(config.apiBaseUrl);
   setGafaPayFrontUrl(config.gafaPayFrontUrl);
-  const client = options.client ?? createClient(config, options);
+  const tracker = createSdkTracker({
+    hubUrl: config.hubUrl,
+    companyId: config.companyId,
+    brandId: config.brandId,
+    enabled: config.analyticsEnabled,
+  });
+  const rawClient = options.client ?? createClient(config, options);
+  const client = instrumentClient(rawClient, tracker);
   const captcha = createCaptchaProvider(config.captchaProvider, config.captchaPublicKey);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -254,22 +266,44 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       events.emit(eventName, detail);
     },
     mountCalendar(target, props = {}) {
+      tracker.track({ event: "widget.mounted", widget: "meetings-calendar" });
+      tracker.track({ event: "calendar.viewed", widget: "meetings-calendar" });
       const mounted = mount(target, <CalendarWidget client={client} captcha={captcha} {...props} />);
       events.emit("buq:sdk:mounted", { widget: "calendar" });
       return mounted;
     },
     mountAuth(target, props = {}) {
+      tracker.track({ event: "widget.mounted", widget: "auth" });
       const mounted = mount(target, <AuthWidget client={client} captcha={captcha} {...props} />);
       events.emit("buq:sdk:mounted", { widget: "auth" });
       return mounted;
     },
     mountCatalog(target, props = {}) {
+      tracker.track({ event: "widget.mounted", widget: "catalog" });
       const mounted = mount(target, <CatalogWidget client={client} {...props} />);
       events.emit("buq:sdk:mounted", { widget: "catalog" });
       return mounted;
     },
     mountProfile(target, props = {}) {
-      const mounted = mount(target, <ProfileWidget client={client} {...props} />);
+      tracker.track({ event: "widget.mounted", widget: "profile" });
+      const { onExplorePackages, ...rest } = props;
+      const mounted = mount(
+        target,
+        <ProfileWidget
+          client={client}
+          hubUrl={config.hubUrl}
+          companyId={config.companyId}
+          onExplorePackages={
+            onExplorePackages ??
+            (() =>
+              sdk.openCheckout({
+                brandSlug: rest.brandSlug,
+                skipCatalog: false,
+              }))
+          }
+          {...rest}
+        />,
+      );
       events.emit("buq:sdk:mounted", { widget: "profile" });
       return mounted;
     },
@@ -342,9 +376,26 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       const handle = { close };
       activeAccount = handle;
 
+      const { onExplorePackages, ...rest } = props;
       const mounted = mount(
         host,
-        <AccountModal client={client} captcha={captcha} open onClose={close} {...props} />,
+        <AccountModal
+          client={client}
+          captcha={captcha}
+          open
+          onClose={close}
+          hubUrl={config.hubUrl}
+          companyId={config.companyId}
+          onExplorePackages={
+            onExplorePackages ??
+            (() =>
+              sdk.openCheckout({
+                brandSlug: rest.brandSlug,
+                skipCatalog: false,
+              }))
+          }
+          {...rest}
+        />,
       );
 
       return handle;
@@ -358,6 +409,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         preselect: props.preselect,
       };
       events.emit("buq:checkout:opening", context);
+      tracker.track({ event: "checkout.opened", widget: "checkout" });
       silenceLegacyFancy();
       prefetchCheckoutCatalog(queryClient, client, props.brandSlug);
       const host = document.createElement("div");
@@ -385,6 +437,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           {...props}
           onClose={close}
           gafaPayFrontUrl={props.gafaPayFrontUrl ?? config.gafaPayFrontUrl}
+          showMembershipOptions={props.showMembershipOptions ?? config.showMembershipOptions}
         />,
       );
 
@@ -400,6 +453,11 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         meetingId: props.meetingId,
       };
       events.emit("buq:checkout:opening", context);
+      tracker.track({
+        event: "calendar.meeting_opened",
+        widget: "calendar",
+        props: { meeting_id: props.meetingId },
+      });
       silenceLegacyFancy();
       const host = document.createElement("div");
       document.body.appendChild(host);
@@ -501,14 +559,20 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
 
       const stop = bootstrapPurchaseButtons({
         root,
-        onPurchase: (intent) =>
+        onPurchase: (intent) => {
+          tracker.track({
+            event: "purchase_button.clicked",
+            widget: "purchase-button",
+            props: { type: intent.type, id: intent.id },
+          });
           sdk.openCheckout({
             brandSlug: intent.brandSlug,
             locationSlug: intent.locationSlug,
             locationId: intent.locationId,
             preselect: { type: intent.type, id: intent.id },
             skipCatalog: true,
-          }),
+          });
+        },
         onReserve: (intent) => {
           sdk.openReservation({
             meetingId: intent.meetingId,
@@ -529,6 +593,10 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         if (purchaseButtonsStop === stop) purchaseButtonsStop = null;
       };
     },
+    track: tracker.track,
+    heartbeat(widgets) {
+      tracker.heartbeat(widgets);
+    },
     unmountAll() {
       purchaseButtonsStop?.();
       purchaseButtonsStop = null;
@@ -540,6 +608,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       conciergeHosts.forEach((host) => host.remove());
       conciergeHosts.clear();
       queryClient.clear();
+      tracker.flush();
     }
   };
 

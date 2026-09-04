@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CustomFieldGroup,
@@ -14,30 +13,37 @@ import type {
   UserReservation,
 } from "../client/types";
 import { subscribeToAuthChanges } from "../client/tokenStorage";
+import { fetchLoyaltyBalance, type LoyaltyBalance } from "../analytics/loyalty";
 import { RemoteImage } from "../images/ImagesProvider";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CustomFieldInput } from "./CustomFieldInput";
-import { MonthCalendar } from "./MonthCalendar";
-import { toIsoDate } from "./calendarRange";
+import { DateField } from "./DateField";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
+import { ACCOUNT_HISTORY_CHUNK, remainingAccountHistory, visibleAccountHistory } from "../account/accountHistory";
 import { WidgetShell } from "./WidgetShell";
 
 export type ProfileWidgetProps = {
   client?: GafaClient;
   brandSlug?: string;
   combineWaitlist?: boolean;
+  hubUrl?: string;
+  companyId?: number;
   /** En `modal` el contenedor pone el marco y el boton de cerrar. */
   variant?: "page" | "modal";
   onRequestClose?(): void;
   /**
-   * CTA de los estados vacios: Reservar (calendario) y Comprar (paquetes).
-   * Si el sitio no los pasa, el SDK navega solo al calendario / #paquetes.
+   * CTA de los estados vacios: Reservar (`/reservar`) y Comprar (paquetes).
+   * Si el sitio no los pasa, Reservar navega a `/reservar`. Comprar abre el
+   * fancy nativo de paquetes / membresías / productos.
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
 };
 
 type ProfileTab = "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
+
+/** Puntos en el Hub sí se pueden acumular; la card del socio se enciende después. */
+const SHOW_LOYALTY_POINTS = false;
 
 const TABS: { id: ProfileTab; label: string; title: string; subtitle: string; icon: ReactNode }[] = [
   {
@@ -88,6 +94,8 @@ export function ProfileWidget({
   client,
   brandSlug,
   combineWaitlist = false,
+  hubUrl,
+  companyId,
   variant = "page",
   onRequestClose,
   onExploreClasses,
@@ -97,6 +105,7 @@ export function ProfileWidget({
   const goToPackages = onExplorePackages ?? defaultExplorePackages;
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>("overview");
+  const [classScope, setClassScope] = useState<"upcoming" | "history">("upcoming");
   const [menuOpen, setMenuOpen] = useState(false);
   const [qrReservation, setQrReservation] = useState<UserReservation | null>(null);
   const [pendingCancel, setPendingCancel] = useState<UserReservation | null>(null);
@@ -138,6 +147,10 @@ export function ProfileWidget({
     return () => media.removeEventListener("change", onChange);
   }, []);
 
+  useEffect(() => {
+    if (tab !== "classes") setClassScope("upcoming");
+  }, [tab]);
+
   useEffect(
     () => subscribeToAuthChanges(() => queryClient.invalidateQueries({ queryKey: ["profile"] })),
     [queryClient],
@@ -147,6 +160,17 @@ export function ProfileWidget({
     queryKey: ["profile", "me"],
     queryFn: () => client!.getProfile(),
     enabled: Boolean(client),
+  });
+
+  const loyaltyQuery = useQuery({
+    queryKey: ["loyalty", hubUrl, companyId, profileQuery.data?.id],
+    queryFn: () =>
+      fetchLoyaltyBalance({
+        hubUrl: hubUrl!,
+        companyId: companyId!,
+        userId: profileQuery.data!.id,
+      }),
+    enabled: SHOW_LOYALTY_POINTS && Boolean(hubUrl && companyId && profileQuery.data?.id),
   });
 
   const brandsQuery = useQuery({
@@ -167,9 +191,11 @@ export function ProfileWidget({
     queryKey: ["profile", "reservations", "future", brandSlugs.join(",")],
     queryFn: async () => {
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserReservations(slug, "future")));
-      return batches.flat().sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+      return batches.flat().sort((a, b) => (a.startsAt || "").localeCompare(b.startsAt || ""));
     },
     enabled: canQueryBrandData,
+    // Tras unirse a waitlist hay que verla al abrir Mi cuenta, no el cache de 60s.
+    staleTime: 0,
   });
 
   const pastQuery = useQuery({
@@ -178,14 +204,16 @@ export function ProfileWidget({
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserReservations(slug, "past")));
       return batches.flat().sort((a, b) => b.startsAt.localeCompare(a.startsAt));
     },
-    enabled: canQueryBrandData && tab === "classes",
+    enabled: canQueryBrandData && tab === "classes" && classScope === "history",
   });
 
   const creditsQuery = useQuery({
     queryKey: ["profile", "credits", brandSlugs.join(",")],
     queryFn: async () => {
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserCredits(slug)));
-      return dedupeById(batches.flat());
+      // Dedupe por compra (`purchase_items_id`), no por tipo interno de credito:
+      // tres "1 clase" de CDMXnew son tres paquetes, no uno.
+      return dedupeById(batches.flat()).sort((a, b) => (a.expiresAt ?? "").localeCompare(b.expiresAt ?? ""));
     },
     enabled: canQueryBrandData,
   });
@@ -261,7 +289,10 @@ export function ProfileWidget({
   // docs/creditos-vs-paquetes.md.
   const packageNameByCreditId = useMemo(() => {
     const map = new Map<number, string>();
-    (creditsQuery.data ?? []).forEach((credit) => map.set(credit.id, credit.name));
+    (creditsQuery.data ?? []).forEach((credit) => {
+      const typeId = credit.creditTypeId ?? credit.id;
+      if (!map.has(typeId)) map.set(typeId, credit.name);
+    });
     return map;
   }, [creditsQuery.data]);
 
@@ -280,7 +311,12 @@ export function ProfileWidget({
       </div>
     ) : (
       <WidgetShell eyebrow="Perfil" title="Tu cuenta">
-        <p className="gafa-sdk-state">Cargando tu perfil…</p>
+        <div className="gafa-acct__boot" aria-busy="true" aria-live="polite">
+          <span className="gafa-sr-only">Cargando tu perfil…</span>
+          <span className="gafa-skeleton gafa-acct__boot-bar" />
+          <span className="gafa-skeleton gafa-acct__boot-bar" />
+          <span className="gafa-skeleton gafa-acct__boot-bar" />
+        </div>
       </WidgetShell>
     );
   }
@@ -366,30 +402,43 @@ export function ProfileWidget({
 
       <section className="gafa-acct__main" inert={menuOpen ? true : undefined}>
         <header className="gafa-acct__head">
-          <h2>
-            {tab === "overview" ? (
-              <>
-                ¡Hola, {firstNameOf(profile)}!{" "}
-                <span className="gafa-acct__wave" aria-hidden="true">
-                  👋
-                </span>
-              </>
-            ) : (
-              section.title
-            )}
-          </h2>
-          <p>{section.subtitle}</p>
+          <div className="gafa-acct__head-copy">
+            <h2>
+              {tab === "overview" ? (
+                <>
+                  ¡Hola, {firstNameOf(profile)}!{" "}
+                  <span className="gafa-acct__wave" aria-hidden="true">
+                    👋
+                  </span>
+                </>
+              ) : (
+                section.title
+              )}
+            </h2>
+            <p>{section.subtitle}</p>
+          </div>
+          {tab === "purchases" ? (
+            <button
+              type="button"
+              className="gafa-sdk-button gafa-acct__buy"
+              aria-label="Comprar paquetes"
+              onClick={goToPackages}
+            >
+              Comprar
+            </button>
+          ) : null}
         </header>
 
         <div className="gafa-acct__body">
           {tab === "overview" ? (
             <OverviewPanel
               profile={profile}
-              nextClass={upcoming[0]}
+              nextClass={upcoming[0] ?? waitlist[0]}
               upcomingCount={upcoming.length}
               waitlistCount={waitlist.length}
               credits={creditsQuery.data ?? []}
               memberships={membershipsQuery.data ?? []}
+              loyalty={loyaltyQuery.data ?? null}
               loadingBalance={creditsQuery.isLoading || membershipsQuery.isLoading}
               loadingNext={futureQuery.isLoading}
               totals={activityQuery.data}
@@ -406,6 +455,8 @@ export function ProfileWidget({
 
           {tab === "classes" ? (
             <ClassesPanel
+              scope={classScope}
+              onScopeChange={setClassScope}
               upcoming={upcoming}
               waitlist={waitlist}
               cancelled={cancelledUpcoming}
@@ -513,6 +564,7 @@ function OverviewPanel({
   waitlistCount,
   credits,
   memberships,
+  loyalty,
   loadingBalance,
   loadingNext,
   totals,
@@ -531,6 +583,7 @@ function OverviewPanel({
   waitlistCount: number;
   credits: UserCredit[];
   memberships: UserMembership[];
+  loyalty?: LoyaltyBalance | null;
   loadingBalance: boolean;
   loadingNext: boolean;
   totals?: UserActivityTotals;
@@ -545,24 +598,19 @@ function OverviewPanel({
 }) {
   const creditTotal = credits.reduce((sum, credit) => sum + (Number(credit.total) || 0), 0);
 
-  // Con un solo paquete, el numero grande ya es todo el saldo: no hace falta
-  // nombrarlo. Con mas de uno, la suma escondia cual vence primero, asi que
-  // cada paquete se ve por separado y se navega con el mini slider.
+  // El numero grande es SIEMPRE el total. Con mas de un paquete, el mini
+  // slider recorre cada compra (nombre + vencimiento) sin esconder el saldo.
   const creditSlides: BalanceSlide[] =
     credits.length > 1
       ? credits.map((credit) => ({
-          value: credit.total,
-          label: credit.total === 1 ? "Clase disponible" : "Clases disponibles",
           title: credit.name,
-          hint: expirationLabel(credit.expiresAt),
+          hint: `${credit.total === 1 ? "1 crédito" : `${credit.total} créditos`} · ${expirationLabel(credit.expiresAt)}`,
         }))
       : [];
 
   const membershipSlides: BalanceSlide[] =
     memberships.length > 1
       ? memberships.map((membership) => ({
-          value: "∞",
-          label: "Membresía activa",
           title: membership.name,
           hint: expirationLabel(membership.expiresAt),
         }))
@@ -574,7 +622,7 @@ function OverviewPanel({
         <div className="gafa-acct-next__label">
           <span className="gafa-acct-next__label-text">
             <span className="gafa-acct-dot" aria-hidden="true" />
-            Tu próxima clase
+            {nextClass?.isWaitlist ? "En lista de espera" : "Tu próxima clase"}
           </span>
           {nextClass ? (
             <span className="gafa-acct-next__countdown">{countdownLabel(nextClass.startsAt)}</span>
@@ -586,7 +634,7 @@ function OverviewPanel({
             <span className="gafa-skeleton gafa-acct__boot-bar" />
           </div>
         ) : nextClass ? (
-          <div className="gafa-acct-next__body">
+          <div className="gafa-acct-next__body" data-waitlist={nextClass.isWaitlist ? "true" : undefined}>
             <div className="gafa-acct-next__when">
               <strong>{relativeDayLabel(nextClass.startsAt, nextClass.timezone)}</strong>
               <span>{formatTime(nextClass.startsAt, nextClass.timezone)}</span>
@@ -594,9 +642,14 @@ function OverviewPanel({
             <div className="gafa-acct-next__what">
               <h3>{nextClass.serviceName}</h3>
               <p>{describeReservation(nextClass)}</p>
+              {nextClass.isWaitlist ? (
+                <span className="gafa-meeting-chip">
+                  En espera{nextClass.waitlistPosition ? ` · lugar ${nextClass.waitlistPosition}` : ""}
+                </span>
+              ) : null}
             </div>
             <div className="gafa-acct-next__actions">
-              {nextClass.qrHash ? (
+              {nextClass.qrHash && !nextClass.isWaitlist ? (
                 <button className="gafa-sdk-button" type="button" onClick={() => onShowQr(nextClass)}>
                   Ver mi QR
                 </button>
@@ -608,7 +661,13 @@ function OverviewPanel({
                   disabled={cancelPendingId === nextClass.id}
                   onClick={() => onCancel(nextClass)}
                 >
-                  {cancelPendingId === nextClass.id ? "Cancelando…" : "Cancelar"}
+                  {cancelPendingId === nextClass.id
+                    ? nextClass.isWaitlist
+                      ? "Saliendo…"
+                      : "Cancelando…"
+                    : nextClass.isWaitlist
+                      ? "Salir"
+                      : "Cancelar"}
                 </button>
               ) : null}
             </div>
@@ -656,7 +715,12 @@ function OverviewPanel({
         ) : (
           <div className="gafa-acct-balance">
             {creditSlides.length > 0 ? (
-              <BalanceCard emoji="🎟️" slides={creditSlides} />
+              <BalanceCard
+                emoji="🎟️"
+                value={creditTotal}
+                label={creditTotal === 1 ? "Clase disponible" : "Clases disponibles"}
+                slides={creditSlides}
+              />
             ) : (
               <div className="gafa-acct-balance__card">
                 <span className="gafa-acct-balance__emoji" aria-hidden="true">
@@ -673,7 +737,12 @@ function OverviewPanel({
             )}
 
             {membershipSlides.length > 0 ? (
-              <BalanceCard emoji="♾️" slides={membershipSlides} />
+              <BalanceCard
+                emoji="♾️"
+                value={memberships.length}
+                label={memberships.length === 1 ? "Membresía activa" : "Membresías activas"}
+                slides={membershipSlides}
+              />
             ) : (
               <div className="gafa-acct-balance__card">
                 <span className="gafa-acct-balance__emoji" aria-hidden="true">
@@ -694,6 +763,24 @@ function OverviewPanel({
               <span className="gafa-acct-balance__value">{formatWallet(profile.storeCreditTotal)}</span>
               <span className="gafa-acct-balance__label">Crédito en tienda</span>
             </div>
+
+            {SHOW_LOYALTY_POINTS && loyalty ? (
+              <div className="gafa-acct-balance__card">
+                <span className="gafa-acct-balance__emoji" aria-hidden="true">
+                  ⭐
+                </span>
+                <span className="gafa-acct-balance__value">{loyalty.points}</span>
+                <span className="gafa-acct-balance__label">Puntos {loyalty.tier.label}</span>
+                {loyalty.recent[0] ? (
+                  <span className="gafa-acct-balance__hint">
+                    {loyalty.recent[0].points > 0 ? "+" : ""}
+                    {loyalty.recent[0].points} {loyaltyLabel(loyalty.recent[0].event_name)}
+                  </span>
+                ) : (
+                  <span className="gafa-acct-balance__hint">Reserva o compra para sumar</span>
+                )}
+              </div>
+            ) : null}
           </div>
         )}
       </section>
@@ -747,7 +834,7 @@ function OverviewPanel({
                     ))}
                   </div>
                 ) : (
-                  <p className="gafa-muted">Cuando tomes clases, aquí verás con quién entrenas más.</p>
+                  <p className="gafa-muted">Aparecerán con tus primeras clases.</p>
                 )}
               </div>
               <div>
@@ -761,7 +848,7 @@ function OverviewPanel({
                     ))}
                   </div>
                 ) : (
-                  <p className="gafa-muted">Aún no tenemos suficientes clases para calcularlo.</p>
+                  <p className="gafa-muted">Se calculan con tus clases.</p>
                 )}
               </div>
             </div>
@@ -795,19 +882,25 @@ function Stat({
 }
 
 type BalanceSlide = {
-  value: ReactNode;
-  label: string;
   title?: string;
   hint?: string;
 };
 
 /**
- * La tarjeta de saldo de "Tu saldo" cuando hay mas de un paquete/membresia
- * activo: un mini slider (flechas + puntos) en vez de sumar todo en un solo
- * numero, que escondia cual paquete vence primero. El detalle completo, sin
- * navegar, sigue viviendo en la pestaña "Creditos".
+ * "Tu saldo" con varios paquetes: el numero grande es el total; el mini
+ * slider recorre cada compra. El detalle completo sigue en "Creditos".
  */
-function BalanceCard({ emoji, slides }: { emoji: string; slides: BalanceSlide[] }) {
+function BalanceCard({
+  emoji,
+  value,
+  label,
+  slides,
+}: {
+  emoji: string;
+  value: ReactNode;
+  label: string;
+  slides: BalanceSlide[];
+}) {
   const [index, setIndex] = useState(0);
   const current = slides[Math.min(index, slides.length - 1)];
   const multiple = slides.length > 1;
@@ -817,10 +910,14 @@ function BalanceCard({ emoji, slides }: { emoji: string; slides: BalanceSlide[] 
       <span className="gafa-acct-balance__emoji" aria-hidden="true">
         {emoji}
       </span>
-      <span className="gafa-acct-balance__value">{current.value}</span>
-      <span className="gafa-acct-balance__label">{current.label}</span>
-      {current.title ? <span className="gafa-acct-balance__title">{current.title}</span> : null}
-      {current.hint ? <span className="gafa-acct-balance__hint">{current.hint}</span> : null}
+      <span className="gafa-acct-balance__value">{value}</span>
+      <span className="gafa-acct-balance__label">{label}</span>
+      {current?.title ? (
+        <span className="gafa-acct-balance__title" aria-live="polite">
+          {current.title}
+        </span>
+      ) : null}
+      {current?.hint ? <span className="gafa-acct-balance__hint">{current.hint}</span> : null}
 
       {multiple ? (
         <div className="gafa-acct-balance__nav" aria-label="Elegir paquete">
@@ -852,6 +949,8 @@ function BalanceCard({ emoji, slides }: { emoji: string; slides: BalanceSlide[] 
 /* ------------------------------------------------------------------- clases */
 
 function ClassesPanel({
+  scope,
+  onScopeChange,
   upcoming,
   waitlist,
   cancelled,
@@ -866,6 +965,8 @@ function ClassesPanel({
   onShowQr,
   onExploreClasses,
 }: {
+  scope: "upcoming" | "history";
+  onScopeChange(next: "upcoming" | "history"): void;
   upcoming: UserReservation[];
   waitlist: UserReservation[];
   cancelled: UserReservation[];
@@ -880,15 +981,21 @@ function ClassesPanel({
   onShowQr(reservation: UserReservation): void;
   onExploreClasses(): void;
 }) {
-  const [scope, setScope] = useState<"upcoming" | "history">("upcoming");
+  const [historyShown, setHistoryShown] = useState(ACCOUNT_HISTORY_CHUNK);
+  const visibleHistory = visibleAccountHistory(history, historyShown);
+  const historyLeft = remainingAccountHistory(history.length, historyShown);
+
+  useEffect(() => {
+    setHistoryShown(ACCOUNT_HISTORY_CHUNK);
+  }, [history.length, history[0]?.id]);
 
   return (
     <div className="gafa-acct-classes">
       <div className="gafa-acct-switch" role="tablist" aria-label="Próximas o historial">
-        <button type="button" role="tab" aria-selected={scope === "upcoming"} onClick={() => setScope("upcoming")}>
+        <button type="button" role="tab" aria-selected={scope === "upcoming"} onClick={() => onScopeChange("upcoming")}>
           Próximas
         </button>
-        <button type="button" role="tab" aria-selected={scope === "history"} onClick={() => setScope("history")}>
+        <button type="button" role="tab" aria-selected={scope === "history"} onClick={() => onScopeChange("history")}>
           Historial
         </button>
       </div>
@@ -955,22 +1062,33 @@ function ClassesPanel({
           ) : null}
         </>
       ) : (
-        <ClassGroup
-          title="Historial"
-          loading={loadingPast}
-          error={errorPast}
-          empty="Aún no hay clases en tu historial."
-          count={history.length}
-        >
-          {history.map((reservation) => (
-            <ReservationCard
-              key={`past-${reservation.id}`}
-              reservation={reservation}
-              paymentLabel={paymentLabel(reservation)}
-              historic
-            />
-          ))}
-        </ClassGroup>
+        <>
+          <ClassGroup
+            title="Historial"
+            loading={loadingPast}
+            error={errorPast}
+            empty="Aún no hay clases en tu historial."
+            count={history.length}
+          >
+            {visibleHistory.map((reservation) => (
+              <ReservationCard
+                key={`past-${reservation.id}`}
+                reservation={reservation}
+                paymentLabel={paymentLabel(reservation)}
+                historic
+              />
+            ))}
+          </ClassGroup>
+          {historyLeft > 0 && !loadingPast && !errorPast ? (
+            <button
+              className="gafa-acct-more"
+              type="button"
+              onClick={() => setHistoryShown((n) => n + ACCOUNT_HISTORY_CHUNK)}
+            >
+              Ver más ({historyLeft})
+            </button>
+          ) : null}
+        </>
       )}
     </div>
   );
@@ -1062,6 +1180,8 @@ function ReservationCard({
       className="gafa-acct-class"
       data-cancelled={reservation.cancelled ? "true" : undefined}
       data-historic={historic ? "true" : undefined}
+      data-overbooking={reservation.isOverbooking ? "true" : undefined}
+      data-waitlist={reservation.isWaitlist ? "true" : undefined}
     >
       <div className="gafa-acct-class__date" aria-hidden="true">
         <strong>{formatDayNumber(reservation.startsAt, reservation.timezone)}</strong>
@@ -1145,8 +1265,27 @@ function BalancePanel({
     );
   }
 
+  const creditTotal = credits.reduce((sum, credit) => sum + (Number(credit.total) || 0), 0);
+
   return (
     <div className="gafa-acct-cards">
+      {credits.length > 0 ? (
+        <article className="gafa-acct-row gafa-acct-row--hero" aria-label="Total de clases disponibles">
+          <div className="gafa-acct-row__icon">
+            <TicketIcon />
+          </div>
+          <div className="gafa-acct-row__info">
+            <h4>Total disponible</h4>
+            <p>
+              {credits.length === 1
+                ? "1 paquete activo"
+                : `${credits.length} paquetes activos`}
+            </p>
+          </div>
+          <strong className="gafa-acct-row__value">{creditTotal}</strong>
+        </article>
+      ) : null}
+
       {credits.map((credit) => (
         <article className="gafa-acct-row" key={`credit-${credit.id}`}>
           <div className="gafa-acct-row__icon">
@@ -1335,7 +1474,7 @@ function ProfileForm({
         </div>
 
         <div className="gafa-field-row">
-          <BirthDateField value={birthDate} onChange={setBirthDate} />
+          <DateField label="Fecha de nacimiento" value={birthDate} onChange={setBirthDate} mode="birth" />
           <div className="gafa-acct-choice">
             <span className="gafa-acct-choice__legend">Género</span>
             <div className="gafa-acct-choice__options">
@@ -1423,129 +1562,6 @@ function ProfileForm({
         </button>
       </div>
     </form>
-  );
-}
-
-/**
- * Fecha de nacimiento con el calendario del SDK en vez del `input[type=date]`
- * del navegador: ese cambia de pinta en cada sistema operativo, no respeta el
- * tema del socio y obliga a teclear el formato en el orden que le toque.
- */
-function BirthDateField({ value, onChange }: { value: string; onChange(value: string): void }) {
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
-  const [rect, setRect] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
-  // Los colores del popover vienen de variables CSS que ThemeProvider pone en
-  // .gafa-sdk (no en :root): portalear a document.body se saldria de ese
-  // scope y el calendario quedaria sin fondo/bordes/sombra.
-  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
-  const maxIso = toIsoDate(new Date());
-  const minIso = `${new Date().getFullYear() - 100}-01-01`;
-
-  // El popup de la cuenta recorta su overflow (para las esquinas redondeadas) y
-  // ademas tiene scroll interno: un popover con position:absolute quedaria
-  // cortado o desalineado. Se posiciona con position:fixed via portal, como un
-  // tooltip flotante de verdad, y se recalcula al abrir/hacer scroll/resize.
-  useLayoutEffect(() => {
-    if (!open) return;
-    setPortalTarget(buttonRef.current?.closest(".gafa-sdk") ?? document.body);
-
-    const reposition = () => {
-      const anchor = buttonRef.current?.getBoundingClientRect();
-      if (!anchor) return;
-      const width = Math.max(anchor.width, 300);
-      const left = Math.min(Math.max(anchor.left, 12), window.innerWidth - width - 12);
-      const spaceBelow = window.innerHeight - anchor.bottom;
-      const openUpward = spaceBelow < 360 && anchor.top > spaceBelow;
-      setRect({
-        top: openUpward ? undefined : anchor.bottom + 6,
-        bottom: openUpward ? window.innerHeight - anchor.top + 6 : undefined,
-        left,
-        width,
-      });
-    };
-
-    reposition();
-    window.addEventListener("resize", reposition);
-    window.addEventListener("scroll", reposition, true);
-    return () => {
-      window.removeEventListener("resize", reposition);
-      window.removeEventListener("scroll", reposition, true);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  return (
-    <div className="gafa-acct-datefield">
-      <button
-        ref={buttonRef}
-        className="gafa-acct-datefield__button"
-        type="button"
-        aria-expanded={open}
-        data-filled={value ? "true" : undefined}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span className="gafa-acct-datefield__label">Fecha de nacimiento</span>
-        <span className="gafa-acct-datefield__value">{value ? formatDate(value) : "Elegir fecha"}</span>
-        <CalendarIcon />
-      </button>
-
-      {open && rect && portalTarget
-        ? createPortal(
-            <div
-              ref={popoverRef}
-              className="gafa-datepicker gafa-datepicker--floating"
-              style={{ top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width }}
-            >
-              <MonthCalendar
-                selectedIso={value || undefined}
-                initialMonth={value ? undefined : new Date(new Date().getFullYear() - 25, 0, 1)}
-                minIso={minIso}
-                maxIso={maxIso}
-                navigation="select"
-                onPick={(iso) => {
-                  onChange(iso);
-                  setOpen(false);
-                }}
-              />
-              <div className="gafa-datepicker__footer">
-                <button
-                  type="button"
-                  className="gafa-acct-link"
-                  onClick={() => {
-                    onChange("");
-                    setOpen(false);
-                  }}
-                >
-                  Limpiar
-                </button>
-                <button type="button" className="gafa-acct-link" onClick={() => setOpen(false)}>
-                  Cerrar
-                </button>
-              </div>
-            </div>,
-            portalTarget,
-          )
-        : null}
-    </div>
   );
 }
 
@@ -1939,6 +1955,19 @@ function relativeDayLabel(value: string, timeZone?: string): string {
       ...parts.options,
     }),
   );
+}
+
+function loyaltyLabel(eventName: string): string {
+  const labels: Record<string, string> = {
+    "auth.registered": "por registrarte",
+    "auth.login_succeeded": "por entrar hoy",
+    "reservation.confirmed": "por reservar",
+    "reservation.waitlisted": "por lista de espera",
+    "reservation.cancelled": "por cancelar",
+    "checkout.paid": "por comprar",
+    "admin.grant": "ajuste del estudio",
+  };
+  return labels[eventName] ?? eventName.replace(/[._]/g, " ");
 }
 
 function formatDate(value?: string): string {

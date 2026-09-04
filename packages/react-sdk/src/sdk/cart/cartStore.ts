@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type { CartLineType } from "../client/types";
 
+export { formatMoney } from "./money";
+
 const STORAGE_KEY = "gafa-sdk:cart-v1";
 
 export type CartLine = {
@@ -14,6 +16,9 @@ export type CartLine = {
   brandSlug: string;
   locationSlug?: string;
   expirationLabel?: string;
+  /** JSON original del item de gafa.fit: `/reservate` manda el combo
+   *  entero en el cart, como el fancy v1. */
+  raw?: Record<string, unknown>;
 };
 
 /** Contexto de reserva pendiente cuando el checkout nace del calendario. */
@@ -141,12 +146,4 @@ export const useCartStore = create<CartState>((set, get) => ({
 
 export function cartSubtotal(lines: CartLine[]): number {
   return lines.reduce((sum, line) => sum + line.price * line.amount, 0);
-}
-
-export function formatMoney(amount: number, prefix = "$", suffix = "MXN"): string {
-  const formatted = new Intl.NumberFormat("es-MX", {
-    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-  return suffix ? `${prefix}${formatted} ${suffix}` : `${prefix}${formatted}`;
 }

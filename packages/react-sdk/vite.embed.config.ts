@@ -6,7 +6,7 @@ import react from "@vitejs/plugin-react";
  * El socio cambia el <script src> del theme; no copia TypeScript a Replit.
  *
  *   npm run build:embed   →  dist-embed/gafa-sdk.js
- *   npm run publish:embed →  docs/v2-sdk/gafa-sdk.js
+ *   npm run publish:embed →  docs/v2-sdk/gafa-sdk.js (loader) + gafa-sdk.bundle*.js
  */
 
 /** Un solo <script>, como v1: el CSS viaja inyectado en el JS. */
