@@ -32,7 +32,4 @@ El shortcode es `data-gf-theme` (o `data-gafa-v2`). Concierge, cuando exista:
 <section data-gf-theme="cross-sell" data-gf-limit="3"></section>
 ```
 
-Hoy no pintan UI. Contrato: [v2-agente](../v2-agente.md).
-
-Lista: [widgets.md](widgets.md). Guía de agentes: [v2-agente](../v2-agente.md).
-Receta de hosts: [v2-embed](../v2-embed/README.md).
+Hoy no pintan UI. Guía: [v2-agente](../v2-agente.md). Lista: [widgets.md](widgets.md).
