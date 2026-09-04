@@ -113,7 +113,9 @@ describe("embed drop-in", () => {
 
   it("exige config declarativa y no usa Fitspin como default", () => {
     mountHost(`<section data-gafa-v2="concierge"></section>`);
-    expect(() => bootGafaSdkFromDom(document, window, { useMockClient: true })).toThrow(/Concierge config was not found/);
+    expect(() => bootGafaSdkFromDom(document, window, { useMockClient: true })).not.toThrow();
+    expect(document.querySelector("[data-gafa-concierge]")).toBeNull();
+    expect(document.body.textContent).not.toContain("FITSPIN Concierge");
   });
 
   it("acepta un fixture solo si el socio lo pide explicitamente", async () => {
