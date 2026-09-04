@@ -1,0 +1,7078 @@
+/*
+ * Estilos de los widgets. Regla dura: NINGUN color literal aqui.
+ * Todo sale de las variables que inyecta ThemeProvider, para que el mismo CSS
+ * funcione con cualquier marca y en claro u oscuro. Antes habia blancos y grises
+ * escritos a mano (rgba(255,255,255,...)), que era justo lo que impedia tener
+ * tema oscuro y lo que obligaba a tocar CSS por cada socio.
+ */
+
+/* ---------------------------------------------------------------- superficie */
+
+.gafa-widget-card {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  box-shadow: var(--gafa-shadow-card);
+  display: grid;
+  gap: var(--gafa-space-3);
+  overflow: hidden;
+  padding: var(--gafa-space-4);
+  position: relative;
+}
+
+.gafa-widget-header {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gafa-space-3);
+  justify-content: space-between;
+}
+
+.gafa-widget-heading {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-widget-logo {
+  --gafa-img-fit: cover;
+  --gafa-img-height: 44px;
+  --gafa-img-radius: var(--gafa-radius-pill);
+  --gafa-img-width: 44px;
+  border-radius: var(--gafa-radius-pill);
+  height: 44px;
+  object-fit: cover;
+  width: 44px;
+}
+
+.gafa-widget-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-eyebrow,
+.gafa-sdk-label {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0 0 2px;
+  text-transform: uppercase;
+}
+
+.gafa-widget-card h2,
+.gafa-widget-card h3,
+.gafa-widget-card h4 {
+  background: none;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-family: var(--gafa-font-heading);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.gafa-widget-card h2 {
+  --gafa-heading-size: 1.22rem;
+  font-size: 1.22rem;
+  font-weight: 800;
+}
+
+.gafa-widget-card h3 {
+  --gafa-heading-size: 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.gafa-muted,
+.gafa-widget-card p {
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  margin: 0;
+}
+
+.gafa-sdk-panel {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-2);
+  padding: var(--gafa-space-4);
+}
+
+.gafa-sdk-grid,
+.gafa-sdk-profile-grid {
+  display: grid;
+  gap: var(--gafa-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* ----------------------------------------------------------------- controles */
+
+.gafa-sdk-button {
+  --gafa-type-size: 0.86rem;
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  --gafa-control-min-height: 40px;
+  --gafa-control-padding: 0.45rem 1rem;
+  --gafa-control-font-size: 0.86rem;
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-tracking: normal;
+  --gafa-control-transform: none;
+  background: var(--gafa-color-primary);
+  border: 1px solid transparent;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-primary-text);
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+  min-height: 40px;
+  padding: 0.45rem 1rem;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.gafa-sdk-button:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.gafa-sdk-button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.gafa-sdk-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.gafa-sdk-button--secondary {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  background: transparent;
+  border-color: var(--gafa-color-border);
+  color: var(--gafa-color-text);
+}
+
+.gafa-sdk-button--secondary:not(:disabled):hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  background: var(--gafa-color-surface-raised);
+  border-color: var(--gafa-color-primary);
+  filter: none;
+}
+
+.gafa-icon-button {
+  --gafa-type-size: 0;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  --gafa-control-min-height: 32px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 16px;
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0;
+  height: 32px;
+  justify-content: center;
+  line-height: 1;
+  overflow: hidden;
+  padding: 0;
+  width: 32px;
+}
+
+.gafa-icon-button svg {
+  display: block;
+  height: 16px;
+  width: 16px;
+}
+
+.gafa-icon-button:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  background: var(--gafa-color-surface-raised);
+  border-color: var(--gafa-color-primary);
+}
+
+/* Grupo de botones tipo pestaña, usado por la vista dia/semana y por auth. */
+.gafa-segmented,
+.gafa-sdk-auth-tabs {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+}
+
+.gafa-segmented button,
+.gafa-sdk-auth-tabs button {
+  --gafa-type-size: 0.8rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0.34rem 0.75rem;
+  --gafa-control-font-size: 0.8rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.34rem 0.75rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gafa-segmented button[aria-pressed="true"],
+.gafa-sdk-auth-tabs button[aria-pressed="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+/* Las dos pestanas de cuenta reparten el ancho a partes iguales. */
+.gafa-sdk-auth-tabs {
+  width: 100%;
+}
+
+.gafa-sdk-auth-tabs button {
+  flex: 1;
+}
+
+/* ---------------------------------------------------- campos con label flotante */
+
+.gafa-float {
+  /* start: cuando el campo vecino de la fila muestra error y la fila crece,
+     el sobrante NO debe estirar este input (se deformaba a 77px). */
+  align-content: start;
+  display: grid;
+  position: relative;
+}
+
+.gafa-float input,
+.gafa-float select {
+  --gafa-field-bg: var(--gafa-color-surface);
+  --gafa-field-border: 1px solid var(--gafa-color-border);
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-font-size: 0.9rem;
+  --gafa-field-radius: var(--gafa-radius-md);
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font: inherit;
+  min-height: 44px;
+  padding: 1.05rem 0.85rem 0.3rem;
+  width: 100%;
+}
+
+.gafa-float input:focus,
+.gafa-float select:focus {
+  --gafa-field-border: 1px solid var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  outline: none;
+}
+
+/* El label vive dentro del campo... */
+.gafa-float > span:first-of-type,
+.gafa-float input + span {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.8rem;
+
+  color: var(--gafa-color-muted-text);
+  /* Chico desde el reposo: el salto de tamano al flotar era lo que se veia raro. */
+  font-size: 0.8rem;
+  left: 1.05rem;
+  /* En una sola linea SIEMPRE: partido en dos hacia un efecto horrible. */
+  max-width: calc(100% - 1.8rem);
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  text-overflow: ellipsis;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: top 0.14s ease, transform 0.14s ease, font-size 0.14s ease;
+  white-space: nowrap;
+}
+
+/* ...y al enfocar o tener valor flota a la esquina. */
+.gafa-float input:focus + span,
+.gafa-float input:not(:placeholder-shown) + span,
+.gafa-float--select > span:first-of-type {
+  --gafa-type-size: 0.6rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  top: 0.55rem;
+  transform: none;
+}
+
+.gafa-float .gafa-sdk-field-help {
+  position: static;
+  transform: none;
+}
+
+/* Campo invalido: SOLO se marca en rojo (borde + label). El mensaje sale una
+   sola vez arriba del formulario; nada de textos por campo ni cambios de tamano. */
+.gafa-float[data-invalid="true"] input,
+.gafa-float[data-invalid="true"] select {
+  --gafa-field-border: 1px solid var(--gafa-color-danger);
+  border-color: var(--gafa-color-danger);
+}
+
+.gafa-float[data-invalid="true"] > span:first-of-type,
+.gafa-float[data-invalid="true"] input + span {
+  --gafa-fg: var(--gafa-color-danger);
+
+  color: var(--gafa-color-danger);
+}
+
+/* Dos campos por fila SOLO cuando hay ancho real (desktop). En movil se
+   apilan: dos columnas apretadas se veian horribles. */
+.gafa-field-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 560px) {
+  .gafa-field-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+/* Login social (por ahora solo posicion/diseno). */
+.gafa-social {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-social__divider {
+  --gafa-type-size: 0.78rem;
+  align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.78rem;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-social__divider::before,
+.gafa-social__divider::after {
+  background: var(--gafa-color-border);
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+
+.gafa-social__row {
+  display: flex;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-social__button {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0 0.5rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 42px;
+  --gafa-control-radius: var(--gafa-radius-pill);
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 1;
+  font-size: 0.84rem;
+  font-weight: 600;
+  gap: 7px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 0.5rem;
+  transition: border-color 0.12s ease;
+}
+
+.gafa-social__button:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-social__button svg {
+  flex-shrink: 0;
+}
+
+/* Movil: los tres proveedores en UNA sola fila, como circulos de icono.
+   Antes se apilaban en tres renglones y comian toda la pantalla del login. */
+@media (max-width: 520px) {
+  .gafa-social__row {
+    gap: var(--gafa-space-3);
+    justify-content: center;
+  }
+
+  .gafa-social__button {
+    --gafa-control-radius: 999px;
+    --gafa-control-min-height: 0;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    height: 44px;
+    min-height: 0;
+    padding: 0;
+    width: 44px;
+  }
+
+  .gafa-social__button > span {
+    /* Solo para lectores de pantalla: el icono ya identifica al proveedor. */
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
+  .gafa-social__button svg {
+    height: 19px;
+    width: 19px;
+  }
+}
+
+/* Links discretos bajo los formularios de cuenta. */
+.gafa-auth-links {
+  --gafa-type-size: 0.84rem;
+  align-items: center;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+  gap: var(--gafa-space-2);
+  justify-content: space-between;
+  margin: 0;
+}
+
+.gafa-auth-links:has(> :only-child) {
+  justify-content: center;
+}
+
+.gafa-auth-link {
+  --gafa-control-padding: 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
+  background: none;
+  border: none;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.gafa-auth-link:hover {
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-auth-link--strong {
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+  font-weight: 700;
+}
+
+.gafa-chip-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+/* Dentro del panel de filtros los chips caben SIEMPRE en una fila. */
+.gafa-filterbar-panel .gafa-chip {
+  flex-shrink: 1;
+  font-size: 0.78rem;
+  padding: 0.34rem 0.6rem;
+  white-space: nowrap;
+}
+
+.gafa-chip {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0.38rem 0.85rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  background: transparent;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.38rem 0.85rem;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.gafa-chip[aria-pressed="true"] {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
+  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+/* ----------------------------------------------------------------- formularios */
+
+.gafa-sdk-form {
+  display: grid;
+  gap: 14px;
+}
+
+.gafa-sdk-field {
+  display: grid;
+  gap: var(--gafa-space-1);
+}
+
+.gafa-sdk-field > span,
+.gafa-calendar-filter > span {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.gafa-sdk-field input,
+.gafa-sdk-field select,
+.gafa-sdk-field textarea,
+.gafa-calendar-filter select {
+  --gafa-field-bg: var(--gafa-color-surface);
+  --gafa-field-border: 1px solid var(--gafa-color-border);
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-radius: var(--gafa-radius-md);
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font: inherit;
+  min-height: 42px;
+  padding: 0.5rem 0.8rem;
+  width: 100%;
+}
+
+.gafa-sdk-field input::placeholder,
+.gafa-sdk-field textarea::placeholder {
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  opacity: 0.7;
+}
+
+.gafa-sdk-field input:focus,
+.gafa-sdk-field select:focus,
+.gafa-calendar-filter select:focus {
+  --gafa-field-border: 1px solid var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  outline: none;
+}
+
+.gafa-sdk-field--invalid input {
+  --gafa-field-border: 1px solid var(--gafa-color-danger);
+  border-color: var(--gafa-color-danger);
+}
+
+.gafa-sdk-field-help {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+}
+
+/* Blindaje de iconos: el reset de theme.css cubre todo .gafa-sdk (cuenta,
+   checkout, calendario). Se deja tambien el ancla historica de la tarjeta. */
+.gafa-widget-card svg [stroke]:not([fill]) {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+.gafa-sdk-state {
+  --gafa-type-size: 0.92rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.gafa-sdk-state--error {
+  --gafa-type-size: 0.8rem;
+  background: var(--gafa-color-danger-soft);
+  border-left: 3px solid var(--gafa-color-danger);
+  border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-danger);
+  color: var(--gafa-color-danger);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.55rem 0.8rem;
+}
+
+/* En movil aun mas chico para que el mensaje quepa en UNA linea. */
+@media (max-width: 480px) {
+  .gafa-sdk-state--error {
+    font-size: 0.72rem;
+    padding: 0.5rem 0.7rem;
+  }
+}
+
+.gafa-sdk-state--success {
+  background: var(--gafa-color-success-soft);
+  border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-success);
+  color: var(--gafa-color-success);
+  padding: 0.7rem 0.9rem;
+}
+
+/* ------------------------------------------------------------------ calendario */
+
+/* Chrome del calendario.
+   Movil (default): dos filas — [vista ... filtros] / [flechas Hoy fecha].
+   Desktop: una fila — vista | navegacion centrada | filtros. */
+.gafa-calendar-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gafa-space-2);
+  min-width: 0;
+}
+
+.gafa-calendar-toolbar__view {
+  flex-shrink: 0;
+  order: 1;
+}
+
+.gafa-calendar-toolbar__filters {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: auto;
+  min-width: 0;
+  order: 2;
+}
+
+.gafa-calendar-toolbar__nav-group {
+  align-items: center;
+  display: flex;
+  flex: 1 1 100%;
+  gap: var(--gafa-space-2);
+  /* Movil: flechas+Hoy pegados a la izquierda, fecha pegada a la derecha. */
+  justify-content: space-between;
+  min-width: 0;
+  order: 3;
+}
+
+@media (min-width: 900px) {
+  /* Grid de 3 columnas 1fr|auto|1fr: el centro esta anclado MATEMATICAMENTE,
+     da igual cuanto midan la vista o los filtros (o sus skeletons): la
+     columna central no se mueve ni un pixel cuando cargan. */
+  .gafa-calendar-toolbar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .gafa-calendar-toolbar__view {
+    justify-self: start;
+    order: 1;
+  }
+
+  .gafa-calendar-toolbar__nav-group {
+    flex: 0 1 auto;
+    justify-content: center;
+    justify-self: center;
+    margin-inline: 0;
+    order: 2;
+  }
+
+  .gafa-calendar-toolbar__filters {
+    justify-self: end;
+    margin-left: 0;
+    order: 3;
+  }
+}
+
+.gafa-calendar-toolbar__nav {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.gafa-calendar-toolbar__label {
+  align-items: center;
+  display: flex;
+  flex: 0 1 auto;
+  gap: var(--gafa-space-2);
+  min-width: 0;
+  /* overflow visible: el date-picker se ancla aqui y no debe recortarse. */
+}
+
+@media (min-width: 900px) {
+  .gafa-calendar-toolbar__nav-group {
+    justify-content: center;
+  }
+}
+
+.gafa-calendar-toolbar__label {
+  position: relative;
+}
+
+/* La fecha ES un boton: abre el mini calendario para saltar a otro dia. */
+.gafa-calendar-date-button {
+  --gafa-control-padding: 0 0.65rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-min-height: 36px;
+  --gafa-control-radius: var(--gafa-radius-pill);
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 7px;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 0.65rem;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.gafa-calendar-date-button:hover,
+.gafa-calendar-date-button[aria-expanded="true"] {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
+  background: var(--gafa-color-surface);
+  border-color: var(--gafa-color-border);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-calendar-date-button strong {
+  --gafa-type-size: 0.92rem;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-size: 0.92rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- date picker */
+
+.gafa-datepicker {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  box-shadow: var(--gafa-shadow-pop);
+  display: grid;
+  gap: var(--gafa-space-2);
+  left: 50%;
+  max-width: min(264px, calc(100vw - 24px));
+  min-width: 240px;
+  padding: 0.7rem;
+  position: absolute;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  width: 264px;
+  z-index: 9999;
+}
+
+@media (max-width: 480px) {
+  .gafa-datepicker {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+}
+
+.gafa-datepicker__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.gafa-datepicker__header strong {
+  --gafa-type-size: 0.92rem;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-size: 0.92rem;
+  text-transform: capitalize;
+}
+
+.gafa-datepicker__header .gafa-icon-button {
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  height: 32px;
+  width: 32px;
+}
+
+.gafa-datepicker__header .gafa-icon-button svg {
+  height: 16px;
+  width: 16px;
+}
+
+.gafa-datepicker__weekdays {
+  --gafa-type-size: 0.7rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  display: grid;
+  font-size: 0.7rem;
+  font-weight: 700;
+  grid-template-columns: repeat(7, 1fr);
+  justify-items: center;
+  letter-spacing: 0.04em;
+}
+
+.gafa-datepicker__grid {
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(7, 1fr);
+  justify-items: center;
+}
+
+.gafa-datepicker__day {
+  --gafa-type-size: 0.78rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1.5px solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 30px;
+  --gafa-control-height: 30px;
+  --gafa-control-width: 30px;
+  --gafa-control-padding: 0px;
+  --gafa-control-font-size: 0.78rem;
+  --gafa-control-radius: 50%;
+  align-items: center;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 600;
+  height: 30px;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0;
+  width: 30px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+/* Con clases: se nota que es elegible. */
+.gafa-datepicker__day[data-has-classes="true"]:not(:disabled) {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, transparent);
+}
+
+.gafa-datepicker__day:not(:disabled):hover {
+  --gafa-control-border: 1.5px solid var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-datepicker__day:disabled {
+  --gafa-control-fg: color-mix(in srgb, var(--gafa-color-text) 55%, var(--gafa-color-surface));
+  --gafa-fg: color-mix(in srgb, var(--gafa-color-text) 55%, var(--gafa-color-surface));
+  color: color-mix(in srgb, var(--gafa-color-text) 55%, var(--gafa-color-surface));
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.gafa-datepicker__day[data-today="true"] {
+  --gafa-control-border: 1.5px solid var(--gafa-color-muted-text);
+  border-color: var(--gafa-color-muted-text);
+}
+
+/* El dia que estas viendo SIEMPRE relleno con el color de marca. Con :not(:disabled)
+   para ganarle a la regla de "dias con clases" (que tiene mas especificidad). */
+.gafa-datepicker__day[data-selected="true"],
+.gafa-datepicker__day[data-selected="true"]:not(:disabled),
+.gafa-datepicker__day[data-selected="true"]:not(:disabled):hover {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1.5px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-datepicker__hint {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  margin: 0;
+  text-align: center;
+}
+
+/* El fancy de reserva y Mi cuenta recortan overflow; Elementor a veces pone
+   transform en un ancestro. El calendario sale por portal a document.body
+   (DateField) con z-index por encima del overlay (2147483000). */
+.gafa-datepicker-host {
+  position: static;
+}
+
+.gafa-datepicker--floating {
+  position: fixed;
+  z-index: 2147483646;
+}
+
+.gafa-datepicker__selects {
+  display: flex;
+  gap: 6px;
+}
+
+.gafa-datepicker__select {
+  --gafa-type-size: 0.85rem;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-sm);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 0.4rem;
+  text-transform: capitalize;
+}
+
+.gafa-datepicker__footer {
+  border-top: 1px solid var(--gafa-color-border);
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--gafa-space-2);
+}
+
+.gafa-calendar-toolbar__hint {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  flex-shrink: 0;
+  font-size: 0.72rem;
+}
+
+.gafa-toolbar-spinner {
+  animation: gafa-spin 0.8s linear infinite;
+  border: 2px solid var(--gafa-color-border);
+  border-radius: 50%;
+  border-top-color: var(--gafa-color-primary);
+  flex-shrink: 0;
+  height: 14px;
+  width: 14px;
+}
+
+@keyframes gafa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* La fila de navegacion nunca se parte: flechas+Hoy+fecha caben siempre. */
+.gafa-calendar-toolbar__row--nav {
+  flex-wrap: nowrap;
+}
+
+/* "Hoy": botón propio con estado. Seleccionado = estás viendo hoy;
+   si no, hover/active invitan a volver. */
+.gafa-calendar-today {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0 0.85rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-min-height: 36px;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  min-height: 36px;
+  padding: 0 0.85rem;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.gafa-calendar-today[aria-pressed="false"]:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-calendar-today[aria-pressed="false"]:active {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--gafa-color-primary) 14%, transparent);
+}
+
+.gafa-calendar-today[aria-pressed="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+  cursor: default;
+}
+
+.gafa-segmented--compact {
+  flex-shrink: 0;
+}
+
+.gafa-segmented--compact button {
+  font-size: 0.78rem;
+  padding: 0.34rem 0.62rem;
+  white-space: nowrap;
+}
+
+.gafa-widget-card[data-header="false"] {
+  /* Sin titulo: menos padding arriba para ganar viewport en movil. */
+  padding-top: var(--gafa-space-3);
+}
+
+.gafa-calendar-toolbar .gafa-icon-button {
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  height: 32px;
+  width: 32px;
+}
+
+/* Barra compacta: la sede a la vista, el resto detras del boton "Filtros". */
+.gafa-filterbar {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-2);
+  min-width: 0;
+  position: relative;
+}
+
+.gafa-filterbar-location {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  flex: 0 1 auto;
+  gap: 6px;
+  height: 36px;
+  min-width: 68px;
+  overflow: hidden;
+  padding: 0 0.45rem 0 0.7rem;
+}
+
+.gafa-filterbar-location svg {
+  flex-shrink: 0;
+}
+
+.gafa-filterbar-location select {
+  --gafa-type-size: 0.82rem;
+  --gafa-field-bg: transparent;
+  --gafa-field-border: 0 solid transparent;
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-radius: 0px;
+  appearance: none;
+  background: transparent;
+  border: none;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  max-width: 100%;
+  min-width: 0;
+  outline: none;
+  overflow: hidden;
+  padding-right: 0.3rem;
+  text-overflow: ellipsis;
+}
+
+.gafa-filterbar-toggle {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0 0.75rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  gap: 6px;
+  height: 36px;
+  padding: 0 0.75rem;
+}
+
+.gafa-filterbar-toggle:hover,
+.gafa-filterbar-toggle[aria-expanded="true"] {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+/* Placeholders con las MISMAS medidas de los filtros reales. */
+.gafa-filterbar-skeleton {
+  border-radius: var(--gafa-radius-pill);
+  height: 36px;
+}
+
+.gafa-filterbar-skeleton--location {
+  width: 108px;
+}
+
+.gafa-filterbar-skeleton--toggle {
+  width: 92px;
+}
+
+@media (max-width: 480px) {
+  .gafa-filterbar-skeleton--toggle {
+    width: 42px;
+  }
+}
+
+.gafa-filterbar-count {
+  --gafa-type-size: 0.7rem;
+  background: var(--gafa-color-primary);
+  border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-primary-text);
+  color: var(--gafa-color-primary-text);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 18px;
+  padding: 4px 5px;
+  text-align: center;
+}
+
+/* En pantallas angostas el boton de filtros queda solo con el icono. */
+@media (max-width: 480px) {
+  .gafa-filterbar-toggle__label {
+    display: none;
+  }
+
+  .gafa-filterbar-toggle {
+    padding: 0 0.6rem;
+  }
+}
+
+.gafa-filterbar-panel {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  box-shadow: var(--gafa-shadow-pop);
+  display: grid;
+  gap: var(--gafa-space-3);
+  min-width: 270px;
+  padding: var(--gafa-space-3);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 9999;
+}
+
+.gafa-calendar-filter {
+  display: grid;
+  gap: var(--gafa-space-1);
+}
+
+/* La rejilla de semana scrollea en horizontal en movil: 7 columnas no caben en
+   una pantalla de telefono sin volverlas ilegibles. */
+/* El cuerpo del calendario mantiene un alto minimo constante entre cargas,
+   vistas y estados vacios: sin esto la pagina "brinca" con cada navegacion. */
+.gafa-week-grid,
+.gafa-day-column[data-standalone="true"],
+.gafa-empty-state--calendar {
+  min-height: 420px;
+}
+
+.gafa-week-grid {
+  display: grid;
+  gap: var(--gafa-space-2);
+  grid-auto-columns: minmax(150px, 1fr);
+  grid-auto-flow: column;
+  overflow-x: auto;
+  padding-bottom: var(--gafa-space-2);
+  scroll-snap-type: x mandatory;
+}
+
+/* En movil: el dia actual casi a ancho completo y el siguiente asomando,
+   para que se entienda que hay scroll horizontal. */
+@media (max-width: 640px) {
+  .gafa-week-grid {
+    grid-auto-columns: 82%;
+  }
+}
+
+.gafa-week-grid > * {
+  scroll-snap-align: start;
+}
+
+.gafa-day-column {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-2);
+  padding: var(--gafa-space-2);
+  /* Sin esto, cuando una columna es mas baja que sus hermanas el alto sobrante
+     se reparte entre las filas y las tarjetas "flotan" a media columna. Los
+     meetings siempre empiezan arriba, sin importar la hora del primero. */
+  align-content: start;
+}
+
+.gafa-day-column[data-today="true"] {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-day-column__header {
+  align-items: baseline;
+  border-bottom: 1px solid var(--gafa-color-border);
+  display: flex;
+  gap: var(--gafa-space-2);
+  padding-bottom: var(--gafa-space-2);
+}
+
+.gafa-day-column__weekday {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gafa-day-column__number {
+  --gafa-type-size: 1.1rem;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.gafa-day-column[data-today="true"] .gafa-day-column__number {
+  --gafa-fg: var(--gafa-color-primary);
+
+  color: var(--gafa-color-primary);
+}
+
+.gafa-day-column__list {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+/* En la vista de un solo dia las tarjetas fluyen en columnas: una lista de una
+   sola columna a ancho completo desperdicia toda la pantalla. */
+.gafa-day-column[data-standalone="true"] {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.gafa-day-column[data-standalone="true"] .gafa-day-column__list {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--gafa-space-3);
+}
+
+.gafa-day-column__empty {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  padding: var(--gafa-space-3) 0;
+  text-align: center;
+}
+
+.gafa-meeting-card {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-padding: 0.55rem 0.65rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-radius: var(--gafa-radius-sm);
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-sm);
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  padding: 0.55rem 0.65rem;
+  /* Ancla de la foto del coach (absolute, arriba a la derecha). */
+  position: relative;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+  width: 100%;
+}
+
+.gafa-meeting-card:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-meeting-card:active {
+  transform: translateY(1px);
+}
+
+.gafa-meeting-card[data-sold-out="true"] {
+  opacity: 0.55;
+}
+
+.gafa-meeting-card[data-waitlist="true"] {
+  opacity: 1;
+}
+
+.gafa-meeting-card[data-compact="true"] .gafa-meeting-name {
+  --gafa-type-size: 0.82rem;
+  font-size: 0.82rem;
+}
+
+/* Foto del coach: ABAJO a la derecha, solo cuando la marca la trae. */
+.gafa-meeting-staff-photo {
+  --gafa-img-fit: cover;
+  --gafa-img-height: 36px;
+  --gafa-img-radius: var(--gafa-radius-pill);
+  --gafa-img-width: 36px;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  bottom: 10px;
+  height: 36px;
+  object-fit: cover;
+  position: absolute;
+  right: 10px;
+  width: 36px;
+}
+
+.gafa-meeting-card[data-passed="true"] .gafa-meeting-staff-photo {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+.gafa-meeting-card[data-compact="true"] .gafa-meeting-staff-photo {
+  --gafa-img-height: 34px;
+  --gafa-img-width: 34px;
+  height: 34px;
+  width: 34px;
+}
+
+/* En tarjetas compactas solo el pill (la fila de abajo) esquiva la foto;
+   el resto del contenido usa el ancho completo. */
+.gafa-meeting-card[data-compact="true"][data-has-photo="true"] .gafa-availability-pill {
+  max-width: calc(100% - 40px);
+  white-space: nowrap;
+}
+
+.gafa-meeting-card__top {
+  align-items: baseline;
+  display: flex;
+  gap: var(--gafa-space-2);
+  justify-content: space-between;
+}
+
+.gafa-meeting-time {
+  --gafa-type-size: 0.84rem;
+  --gafa-fg: var(--gafa-color-primary);
+
+  color: var(--gafa-color-primary);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.gafa-meeting-duration {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.gafa-meeting-detail {
+  --gafa-type-size: 0.78rem;
+  align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  font-size: 0.78rem;
+  gap: 5px;
+}
+
+.gafa-meeting-detail svg {
+  flex-shrink: 0;
+  opacity: 1;
+}
+
+.gafa-meeting-name {
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-type-size: 0.86rem;
+
+  color: var(--gafa-color-text);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.gafa-meeting-staff,
+.gafa-meeting-desc {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+}
+
+.gafa-meeting-desc {
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Compact week: no cabe una línea extra. La `i` no es un button (la card ya
+   lo es) — hover muestra el texto; el tap abre el detalle con el texto completo. */
+.gafa-meeting-extra {
+  display: inline-flex;
+  flex-shrink: 0;
+  /* static: el tooltip se ancla a la card (position: relative), no a la i.
+     Si se ancla a la i, overflow-x del week-grid lo recorta. */
+  position: static;
+}
+
+.gafa-meeting-extra__mark {
+  --gafa-type-size: 0.62rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+  align-items: center;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  font-size: 0.62rem;
+  font-style: italic;
+  font-weight: 700;
+  height: 16px;
+  justify-content: center;
+  line-height: 1;
+  /* La i itálica se va a la derecha; un pelín a la izquierda la deja al centro. */
+  padding: 0 2px 0 0;
+  width: 16px;
+}
+
+.gafa-meeting-extra:hover .gafa-meeting-extra__tip,
+.gafa-meeting-card:focus-visible .gafa-meeting-extra__tip {
+  display: block;
+}
+
+.gafa-meeting-extra__tip {
+  --gafa-type-size: 0.75rem;
+  --gafa-fg: var(--gafa-color-surface);
+  background: var(--gafa-color-text);
+  border-radius: 10px;
+  box-shadow: var(--gafa-shadow-pop);
+  color: var(--gafa-color-surface);
+  display: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  left: 0.5rem;
+  line-height: 1.45;
+  padding: 0.55rem 0.7rem;
+  pointer-events: none;
+  position: absolute;
+  right: 0.5rem;
+  top: 2.35rem;
+  white-space: normal;
+  width: auto;
+  z-index: 8;
+}
+
+.gafa-meeting-chip {
+  --gafa-type-size: 0.74rem;
+  background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
+  border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.22rem 0.55rem;
+}
+
+.gafa-availability-pill {
+  --gafa-type-size: 0.74rem;
+  background: var(--gafa-color-success-soft);
+  border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-success);
+  color: var(--gafa-color-success);
+  font-size: 0.74rem;
+  font-weight: 700;
+  justify-self: start;
+  margin-top: 2px;
+  padding: 0.2rem 0.5rem;
+}
+
+/* Semaforo de capacidad: verde 70%+ libre, amarillo 30–69%, rojo <30%. */
+.gafa-availability-pill[data-level="yellow"] {
+  background: var(--gafa-color-warning-soft);
+  --gafa-fg: var(--gafa-color-warning);
+  color: var(--gafa-color-warning);
+}
+
+.gafa-availability-pill[data-level="red"] {
+  background: var(--gafa-color-danger-soft);
+  --gafa-fg: var(--gafa-color-danger);
+  color: var(--gafa-color-danger);
+}
+
+.gafa-availability-pill--sold-out {
+  background: var(--gafa-color-danger-soft);
+  --gafa-fg: var(--gafa-color-danger);
+  color: var(--gafa-color-danger);
+}
+
+.gafa-availability-pill--waitlist {
+  background: color-mix(in srgb, var(--gafa-color-accent) 22%, transparent);
+  --gafa-fg: var(--gafa-color-accent);
+  color: var(--gafa-color-accent);
+  font-weight: 800;
+}
+
+.gafa-availability-pill--reserved {
+  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  --gafa-fg: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-empty-state {
+  border: 1px dashed var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-1);
+  padding: var(--gafa-space-5);
+  text-align: center;
+}
+
+.gafa-empty-state--calendar {
+  align-content: center;
+  justify-items: center;
+}
+
+.gafa-empty-state--calendar .gafa-sdk-button {
+  margin-top: var(--gafa-space-3);
+}
+
+.gafa-empty-state strong {
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+}
+
+.gafa-empty-state span {
+  --gafa-type-size: 0.9rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------ skeletons */
+
+.gafa-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--gafa-color-border) 25%,
+    var(--gafa-color-surface-raised) 50%,
+    var(--gafa-color-border) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--gafa-radius-sm);
+  display: block;
+  animation: gafa-shimmer 1.4s ease-in-out infinite;
+}
+
+.gafa-skeleton--line {
+  height: 14px;
+}
+
+.gafa-skeleton--card {
+  height: 64px;
+}
+
+@keyframes gafa-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gafa-skeleton {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------- modales */
+
+.gafa-reservation-overlay,
+.gafa-fancy-overlay {
+  align-items: flex-end;
+  background: var(--gafa-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--gafa-space-3);
+  position: fixed;
+  z-index: 2147483000;
+}
+
+@media (min-width: 640px) {
+  .gafa-reservation-overlay,
+  .gafa-fancy-overlay {
+    align-items: center;
+  }
+}
+
+.gafa-reservation-sheet,
+.gafa-fancy-sheet {
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  box-shadow: var(--gafa-shadow-pop);
+  display: grid;
+  gap: var(--gafa-space-3);
+  max-height: 90vh;
+  max-width: 520px;
+  overflow-y: auto;
+  padding: var(--gafa-space-5);
+  position: relative;
+  width: 100%;
+}
+
+/* Con el template del checkout cargado (mapa de salon incluido) el sheet
+   crece a casi toda la pantalla: el mapa no cabe en 520px. */
+.gafa-reservation-sheet[data-fancy-ready="true"] {
+  max-width: min(1100px, 96vw);
+  padding: var(--gafa-space-3);
+}
+
+.gafa-reservation-close,
+.gafa-fancy-close {
+  --gafa-type-size: 0;
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  --gafa-control-min-height: 32px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 14px;
+  align-items: center;
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0;
+  height: 32px;
+  justify-content: center;
+  line-height: 1;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  right: var(--gafa-space-3);
+  top: var(--gafa-space-3);
+  width: 32px;
+}
+
+.gafa-studio-logo {
+  --gafa-img-fit: contain;
+  --gafa-img-height: 56px;
+  --gafa-img-width: 200px;
+  --gafa-img-radius: 0;
+  display: block;
+  height: auto;
+  justify-self: center;
+  margin: 0 auto 0.35rem;
+  max-height: 56px;
+  max-width: min(200px, 72%);
+  object-fit: contain;
+  width: auto;
+}
+
+.gafa-account-modal__auth .gafa-studio-logo,
+.gafa-checkout__hero .gafa-studio-logo {
+  margin-bottom: 0.75rem;
+}
+
+.gafa-reservation-hero {
+  display: grid;
+  gap: var(--gafa-space-1);
+  padding-right: 44px;
+}
+
+.gafa-reservation-hero[data-auth="true"] {
+  justify-items: center;
+  text-align: center;
+}
+
+.gafa-reservation-hero h3 {
+  --gafa-heading-size: 1.2rem;
+  --gafa-heading-weight: 700;
+  --gafa-heading-leading: 1.25;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-family: var(--gafa-heading-font-family);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* Misma pinta que `.gafa-meeting-desc` en la tarjeta: chica, muted, caps.
+   No comparte el 1.2rem del título. */
+.gafa-reservation-hero .gafa-reservation-notes {
+  --gafa-type-size: 0.78rem;
+  --gafa-type-leading: 1.25;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  background: none;
+  color: var(--gafa-color-muted-text);
+  font-family: var(--gafa-font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
+/* Silueta del detalle de la clase mientras se resuelve por id. */
+.gafa-launcher-skel__title {
+  height: 22px;
+  margin-top: 0.35rem;
+  width: 62%;
+}
+
+/* Silueta del formulario del fancy legacy mientras el SDK externo lo inyecta. */
+.gafa-fancy-skel {
+  display: grid;
+  gap: 0.6rem;
+  padding: var(--gafa-space-3) 0;
+}
+
+.gafa-fancy-skel .gafa-skeleton--line {
+  width: 55%;
+}
+
+.gafa-reservation-summary {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-reservation-summary div {
+  border-bottom: 1px solid var(--gafa-color-border);
+  display: flex;
+  gap: var(--gafa-space-3);
+  justify-content: space-between;
+  padding-bottom: var(--gafa-space-2);
+}
+
+.gafa-reservation-summary dt,
+.gafa-reservation-summary span:first-child {
+  --gafa-type-size: 0.85rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.85rem;
+}
+
+.gafa-reservation-summary dd,
+.gafa-reservation-summary span:last-child {
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-weight: 600;
+  margin: 0;
+  text-align: right;
+}
+
+.gafa-reservation-steps {
+  display: grid;
+  gap: var(--gafa-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gafa-reservation-steps li {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  padding-left: var(--gafa-space-4);
+  position: relative;
+}
+
+.gafa-reservation-steps li::before {
+  background: var(--gafa-color-primary);
+  border-radius: var(--gafa-radius-pill);
+  content: "";
+  height: 7px;
+  left: 0;
+  position: absolute;
+  top: 0.5em;
+  width: 7px;
+}
+
+.gafa-reservation-actions {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+/* Con mapa, dos pastillas solidas del mismo ancho y peso se veian pesadas.
+   El secundario ("seguir viendo horarios") pasa a texto/ghost -- no compite
+   con el CTA principal -- y en escritorio la fila se alinea a la derecha,
+   bajo el mapa, en vez de estirarse de punta a punta del modal. */
+.gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  background: transparent;
+  border-color: transparent;
+  color: var(--gafa-color-muted-text);
+}
+
+.gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  background: var(--gafa-color-surface-raised);
+  color: var(--gafa-color-text);
+}
+
+@media (min-width: 640px) {
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions {
+    align-items: center;
+    display: flex;
+    gap: var(--gafa-space-3);
+    justify-content: flex-end;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button:not(.gafa-sdk-button--secondary) {
+    flex: 0 1 340px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions .gafa-sdk-button--secondary {
+    flex: 0 0 auto;
+  }
+}
+
+.gafa-reservation-hint {
+  --gafa-type-size: 0.88rem;
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.gafa-reservation-hint strong {
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+}
+
+.gafa-reservation-hint--ok {
+  background: var(--gafa-color-success-soft);
+  border-color: transparent;
+  --gafa-fg: var(--gafa-color-success);
+  color: var(--gafa-color-success);
+}
+
+.gafa-reservation-hint--ok strong {
+  --gafa-fg: var(--gafa-color-success);
+
+  color: var(--gafa-color-success);
+}
+
+/* Seleccion de paquete/membresia cuando hay varias opciones. */
+.gafa-payment-choice {
+  display: grid;
+  gap: var(--gafa-space-1);
+}
+
+.gafa-payment-choice__title {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.gafa-payment-option {
+  align-items: center;
+  border: 1.5px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  cursor: pointer;
+  display: flex;
+  gap: var(--gafa-space-2);
+  padding: 0.55rem 0.75rem;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.gafa-payment-option:hover {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-payment-option[data-selected="true"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, transparent);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-payment-option input {
+  accent-color: var(--gafa-color-primary);
+}
+
+.gafa-payment-option__body {
+  display: grid;
+}
+
+.gafa-payment-option__body strong {
+  --gafa-type-size: 0.9rem;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-size: 0.9rem;
+}
+
+.gafa-payment-option__body span {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+}
+
+/* --------------------------------------------------------------- mapa de salon */
+
+/* Con mapa, el modal crece y el contenido se divide info | mapa en desktop.
+   Ancho y alto generosos: el mapa es el protagonista y las columnas del grid
+   son 1fr, asi que a mas ancho, lugares mas grandes. Mejor crecer que
+   scrollear; solo si ni asi cabe (movil, mapas enormes) aparece scroll. */
+.gafa-reservation-sheet[data-has-map="true"] {
+  max-height: calc(100vh - 24px);
+  max-width: min(1240px, 96vw);
+}
+
+/* En escritorio, un mapa chico dejaba el modal muy corto para lo ancho que
+   es (1240px de ancho con 400px de alto se ve raro). Con un minimo razonable
+   se aprovecha mejor el espacio sin obligar a los mapas grandes a estirarse
+   de mas (el max-height de arriba sigue limitando ese caso). */
+@media (min-width: 720px) {
+  .gafa-reservation-sheet[data-has-map="true"] {
+    min-height: min(560px, calc(100vh - 24px));
+    /* El body (info + mapa) crece para llenar ese minimo; hero y acciones se
+       quedan a su alto natural arriba y abajo. */
+    grid-template-rows: auto 1fr auto;
+  }
+
+  /* Con mapas chicos el cuerpo queda mas alto que el mapa: centrado en vez
+     de pegado arriba, se ve a proposito en vez de "sobrar espacio". La
+     columna de info se queda arriba (align-items:start del grid padre). */
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-body > .gafa-seatmap {
+    align-self: center;
+  }
+}
+
+.gafa-reservation-body {
+  display: grid;
+  gap: var(--gafa-space-3);
+  min-height: 0;
+}
+
+.gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-body {
+  align-items: start;
+  gap: var(--gafa-space-5);
+  grid-template-columns: minmax(230px, 300px) 1fr;
+}
+
+/* Movil: el modal ocupa TODO el ancho y alto util SIN scroll general; el unico
+   scroll vive dentro del mapa, que es el protagonista. */
+@media (max-width: 720px) {
+  .gafa-reservation-overlay,
+  .gafa-fancy-overlay {
+    padding: 6px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] {
+    display: flex;
+    flex-direction: column;
+    /* Hasta pantalla completa: el modal crece lo que el mapa necesite y solo
+       si ni asi cabe, el mapa scrollea por dentro. */
+    max-height: calc(100dvh - 12px);
+    max-width: 100%;
+    overflow: hidden;
+    padding: var(--gafa-space-3);
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-body {
+    /* stretch: el align-items:start del layout desktop encogia info y mapa
+       a su contenido en vez de usar todo el ancho. */
+    align-items: stretch;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--gafa-space-2);
+    grid-template-columns: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-info {
+    flex-shrink: 0;
+    gap: var(--gafa-space-2);
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-seatmap {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    max-width: 100%;
+    min-height: 0;
+    /* Sin esto el mapa ancho desborda el modal en vez de scrollear adentro. */
+    min-width: 0;
+  }
+
+  /* El mapa a sangre completa: usa tambien el padding lateral del modal. */
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-seatmap__scroll {
+    flex: 1;
+    margin-inline: calc(var(--gafa-space-3) * -1);
+    padding-inline: var(--gafa-space-3);
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-summary {
+    gap: 7px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-summary div {
+    padding-bottom: 7px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-reservation-actions {
+    flex-shrink: 0;
+  }
+
+  .gafa-seatmap__legend {
+    flex-shrink: 0;
+    gap: var(--gafa-space-2);
+  }
+
+  /* Lugares mas grandes en movil: el mapa es lo que importa. Preferimos un
+     mapa grande con scroll horizontal a uno chiquito que quepa completo.
+     (Selector con el sheet para ganarle a la regla base, que viene despues.) */
+  .gafa-seatmap__grid {
+    gap: 7px;
+  }
+
+  .gafa-reservation-sheet[data-has-map="true"] .gafa-seatmap__seat {
+    --gafa-control-min-height: 34px;
+    min-height: 34px;
+    min-width: 34px;
+  }
+
+  /* En movil el tope es menor: con pocas columnas los lugares llenan el ancho
+     igual, pero sin comerse toda la pantalla. */
+  .gafa-seatmap__grid {
+    --gafa-seat-max: 48px;
+  }
+}
+
+.gafa-reservation-info {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+/* Coach dentro de la lista: nombre + foto redonda alineados a la derecha. */
+.gafa-reservation-summary__coach {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.gafa-reservation-summary__coach img {
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  height: 34px;
+  object-fit: cover;
+  width: 34px;
+}
+
+.gafa-seatmap {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-seatmap__legend {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  gap: var(--gafa-space-3);
+  justify-content: center;
+}
+
+.gafa-seatmap__legend span {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.gafa-seatmap__legend img {
+  height: 18px;
+  object-fit: contain;
+  width: 18px;
+}
+
+.gafa-seatmap__dot {
+  background: var(--gafa-color-surface);
+  border: 1.5px solid var(--gafa-color-border);
+  border-radius: 50%;
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+}
+
+.gafa-seatmap__dot--taken {
+  background: var(--gafa-color-border);
+}
+
+.gafa-seatmap__dot--selected {
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+}
+
+/* Scroll controlado SOLO del mapa: mapas grandes se desplazan aqui adentro,
+   nunca mueven el resto del modal. El padding es el colchon para lo que
+   sobresale de los lugares (badges numericos a -2px y el scale() del hover):
+   sin el, SIEMPRE aparecia un mini scroll vertical/horizontal aunque el mapa
+   cupiera completo. */
+.gafa-seatmap__scroll {
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+}
+
+.gafa-seatmap__grid {
+  --gafa-seat-gap: 5px;
+  /* Tope por lugar: un salon chico no pinta pelotas enormes. */
+  --gafa-seat-max: 42px;
+
+  display: grid;
+  gap: var(--gafa-seat-gap);
+  justify-items: stretch;
+  margin-inline: auto;
+  /* Ocupa el ancho disponible (con tope segun cuantas columnas hay) en vez de
+     quedarse en el minimo: los salones chicos aprovechan el espacio y los
+     grandes siguen scrolleando dentro de .gafa-seatmap__scroll. */
+  width: 100%;
+  max-width: calc(
+    var(--gafa-seat-cols, 1) * var(--gafa-seat-max) +
+      (var(--gafa-seat-cols, 1) - 1) * var(--gafa-seat-gap)
+  );
+}
+
+.gafa-seatmap__seat {
+  --gafa-type-size: 0.7rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1.5px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 28px;
+  --gafa-control-padding: 0px;
+  --gafa-control-font-size: 0.7rem;
+  --gafa-control-radius: 50%;
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--gafa-color-surface);
+  border: 1.5px solid var(--gafa-color-border);
+  border-radius: 50%;
+  color: var(--gafa-color-text);
+  justify-self: center;
+  max-height: var(--gafa-seat-max, 42px);
+  max-width: var(--gafa-seat-max, 42px);
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.7rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0;
+  position: relative;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+}
+
+/* Spot con imagen de la marca: la imagen ES el spot; sin borde nuestro. */
+.gafa-seatmap__seat[data-has-image="true"] {
+  --gafa-control-radius: var(--gafa-radius-sm);
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1.5px solid transparent;
+  background: transparent;
+  border-color: transparent;
+  border-radius: var(--gafa-radius-sm);
+}
+
+.gafa-seatmap__seat img {
+  height: 100%;
+  left: 0;
+  object-fit: contain;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.gafa-seatmap__seat-label {
+  position: relative;
+  z-index: 1;
+}
+
+/* Con imagen, el numero va en un badge chico abajo a la derecha (como el legacy). */
+.gafa-seatmap__seat[data-has-image="true"] .gafa-seatmap__seat-label {
+  --gafa-type-size: 0.62rem;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  bottom: -2px;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.62rem;
+  line-height: 1;
+  min-width: 15px;
+  padding: 2px 3px;
+  position: absolute;
+  right: -2px;
+  text-align: center;
+}
+
+.gafa-seatmap__seat:not(:disabled):hover {
+  --gafa-control-border: 1.5px solid var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  transform: scale(1.08);
+}
+
+.gafa-seatmap__seat[data-has-image="true"]:not(:disabled):hover {
+  transform: scale(1.12);
+}
+
+.gafa-seatmap__seat[data-taken="true"] {
+  --gafa-control-bg: var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  background: var(--gafa-color-border);
+  color: var(--gafa-color-muted-text);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gafa-seatmap__seat[data-has-image="true"][data-taken="true"] {
+  --gafa-control-bg: transparent;
+  background: transparent;
+  opacity: 0.85;
+}
+
+.gafa-seatmap__seat[data-selected="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1.5px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+/* Seleccion con imagen: anillo de marca alrededor de la imagen elegida. */
+.gafa-seatmap__seat[data-has-image="true"][data-selected="true"] {
+  --gafa-control-bg: transparent;
+  --gafa-control-shadow: 0 0 0 2.5px var(--gafa-color-primary);
+  background: transparent;
+  box-shadow: 0 0 0 2.5px var(--gafa-color-primary);
+}
+
+.gafa-seatmap__fixture {
+  --gafa-type-size: 0.66rem;
+  align-items: center;
+  background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
+  border: 1px dashed var(--gafa-color-border);
+  border-radius: var(--gafa-radius-sm);
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.66rem;
+  font-weight: 800;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  min-height: 30px;
+}
+
+.gafa-seatmap__fixture-img {
+  object-fit: contain;
+  width: 100%;
+}
+
+/* ------------------------------------------------------------ reserva exitosa */
+
+/* Confirmacion compacta: el sheet deja de usar el layout ancho del mapa. */
+.gafa-reservation-sheet[data-step="done"] {
+  grid-template-rows: none;
+  max-width: 440px;
+  min-height: 0;
+  padding: var(--gafa-space-5) var(--gafa-space-4);
+}
+
+.gafa-reservation-success {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  text-align: center;
+  width: 100%;
+}
+
+.gafa-reservation-success__icon {
+  --gafa-type-size: 1.45rem;
+  align-items: center;
+  background: var(--gafa-color-success-soft);
+  border-radius: 50%;
+  --gafa-fg: var(--gafa-color-success);
+  color: var(--gafa-color-success);
+  display: flex;
+  font-size: 1.45rem;
+  font-weight: 800;
+  height: 52px;
+  justify-content: center;
+  margin-bottom: 0.15rem;
+  width: 52px;
+}
+
+.gafa-reservation-success h3 {
+  --gafa-heading-size: 1.35rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.gafa-reservation-success__when {
+  --gafa-type-size: 0.9rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 22rem;
+}
+
+.gafa-reservation-success__card {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+  padding: 0.85rem 1rem;
+  width: 100%;
+}
+
+.gafa-reservation-success__card p {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.gafa-reservation-success__seat {
+  color: var(--gafa-color-text) !important;
+  font-size: 1rem !important;
+}
+
+.gafa-reservation-success__done {
+  margin-top: 0.15rem;
+  max-width: 220px;
+  width: 100%;
+}
+
+/* Botones "agregar a calendario" en la confirmacion. */
+.gafa-addtocal {
+  border-top: 1px solid var(--gafa-color-border);
+  display: grid;
+  gap: 0.65rem;
+  justify-items: center;
+  margin-top: 0.35rem;
+  padding-top: var(--gafa-space-3);
+  width: 100%;
+}
+
+.gafa-addtocal__title {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gafa-addtocal__row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+}
+
+.gafa-addtocal__button {
+  --gafa-type-size: 0.75rem;
+  --gafa-control-font-size: 0.75rem;
+  --gafa-control-padding: 0 0.4rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 40px;
+  --gafa-control-radius: var(--gafa-radius-md);
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 5px;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 0;
+  padding: 0 0.4rem;
+  text-decoration: none;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.gafa-addtocal__button svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.gafa-addtocal__button:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
+  background: var(--gafa-color-surface-raised);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+@media (max-width: 420px) {
+  .gafa-addtocal__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ------------------------------------------------------- header (cuenta + carrito) */
+
+/* El ThemeProvider envuelve en .gafa-sdk (block). En el header del socio
+   eso rompia el layout: el wrapper no genera caja, los botones si. */
+.gafa-sdk:has(> .gafa-header-controls) {
+  display: contents;
+}
+
+.gafa-header-controls {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.5rem;
+  vertical-align: middle;
+}
+
+.gafa-header-cart,
+.gafa-header-account {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  height: 36px;
+  position: relative;
+}
+
+.gafa-header-cart {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-control-font-size: 0.68rem;
+  --gafa-control-height: 38px;
+  --gafa-control-min-height: 38px;
+  --gafa-control-padding: 0px;
+  --gafa-control-radius: 999px;
+  --gafa-control-tracking: 0;
+  --gafa-control-transform: none;
+  --gafa-control-width: 38px;
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  border: none;
+  border-radius: 999px;
+  color: var(--gafa-color-primary-text);
+  height: 38px;
+  justify-content: center;
+  min-width: 38px;
+  overflow: visible;
+  padding: 0;
+  width: 38px;
+}
+
+.gafa-header-cart:hover {
+  --gafa-control-border: 0 solid transparent;
+  filter: brightness(1.06);
+}
+
+.gafa-header-cart svg {
+  display: block;
+  flex: 0 0 18px;
+  height: 18px;
+  width: 18px;
+}
+
+.gafa-header-cart__count {
+  align-items: center;
+  background: var(--gafa-color-primary-text);
+  border: 2px solid var(--gafa-color-primary);
+  border-radius: 999px;
+  color: var(--gafa-color-primary);
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  height: 18px;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  min-width: 18px;
+  padding: 0 4px;
+  position: absolute;
+  right: -5px;
+  text-transform: none;
+  top: -5px;
+}
+
+.gafa-header-account {
+  --gafa-control-padding: 0 0.9rem;
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  background: var(--gafa-color-primary);
+  border: none;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-primary-text);
+  overflow: visible;
+  padding: 0 0.9rem;
+}
+
+.gafa-header-account__dot {
+  background: var(--gafa-color-success);
+  border: 0;
+  border-radius: 50%;
+  box-sizing: border-box;
+  height: 10px;
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 10px;
+}
+
+@media (max-width: 620px) {
+  .gafa-header-account__label {
+    display: none;
+  }
+
+  .gafa-header-account {
+    height: 38px;
+    justify-content: center;
+    padding: 0;
+    width: 38px;
+  }
+}
+
+/* ------------------------------------------------------- cuenta (popup + perfil) */
+
+.gafa-account-overlay {
+  align-items: flex-end;
+  background: var(--gafa-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 0;
+  position: fixed;
+  z-index: 2147483000;
+}
+
+.gafa-account-modal {
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
+  border-radius: var(--gafa-radius-lg) var(--gafa-radius-lg) 0 0;
+  box-shadow: var(--gafa-shadow-pop);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Alto fijo con la sesion iniciada: si cada seccion define el alto, el popup
+   salta de tamaño. En movil ocupa casi toda la pantalla (sheet desde abajo).
+   El sobrante de las secciones cortas queda en blanco al fondo del panel. */
+.gafa-account-modal[data-state="account"] {
+  height: 96dvh;
+  max-height: 96dvh;
+}
+
+.gafa-account-modal:focus {
+  outline: none;
+}
+
+/* El login no necesita el ancho de la cuenta completa: con 1100px se ve una
+   caja vacia con un formulario perdido a la izquierda. */
+.gafa-account-modal[data-state="auth"] {
+  max-width: 460px;
+}
+
+@media (min-width: 768px) {
+  .gafa-account-overlay {
+    align-items: center;
+    padding: var(--gafa-space-4);
+  }
+
+  .gafa-account-modal {
+    border: 1px solid var(--gafa-color-border);
+    border-radius: var(--gafa-radius-lg);
+    max-height: min(760px, 92vh);
+    max-width: 1040px;
+  }
+
+  /* Alto fijo con la sesion iniciada: si cada seccion define el alto, el popup
+     salta de tamaño cada vez que cambias de seccion. */
+  .gafa-account-modal[data-state="account"] {
+    height: min(720px, 92vh);
+    max-height: min(760px, 92vh);
+  }
+}
+
+.gafa-account-modal__close {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  --gafa-control-min-height: 32px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 14px;
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  right: var(--gafa-space-3);
+  top: var(--gafa-space-3);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  width: 32px;
+  z-index: 6;
+}
+
+.gafa-account-modal__close:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  background: var(--gafa-color-surface-raised);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-account-modal__loading {
+  display: grid;
+  gap: var(--gafa-space-3);
+  padding: var(--gafa-space-6) var(--gafa-space-5);
+}
+
+.gafa-account-modal__loading-bar {
+  border-radius: var(--gafa-radius-sm);
+  height: 18px;
+}
+
+/* La cuenta tiene que ocupar todo el alto del popup: si no, "Cerrar sesión"
+   (anclado al fondo de la barra lateral) se queda flotando a media altura en
+   las secciones cortas. */
+.gafa-account-modal > .gafa-acct {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Dentro del popup el AuthWidget ya no necesita su propia tarjeta: el marco lo
+   pone el modal. */
+.gafa-account-modal__auth {
+  overflow-y: auto;
+  padding: var(--gafa-space-2);
+}
+
+.gafa-account-modal__auth .gafa-widget-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* ----- layout de la cuenta */
+
+.gafa-acct {
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.gafa-acct[data-variant="page"] {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  box-shadow: var(--gafa-shadow-card);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .gafa-acct {
+    grid-template-columns: 248px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 520px;
+  }
+}
+
+.gafa-acct__boot {
+  display: grid;
+  gap: var(--gafa-space-3);
+  padding: var(--gafa-space-5);
+}
+
+.gafa-acct__boot-bar {
+  border-radius: var(--gafa-radius-sm);
+  display: block;
+  height: 16px;
+  width: 100%;
+}
+
+/* ----- barra lateral */
+
+.gafa-acct__side {
+  background: var(--gafa-color-surface-raised);
+  border-bottom: 1px solid var(--gafa-color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gafa-space-3);
+  min-width: 0;
+  padding: var(--gafa-space-4) var(--gafa-space-4) var(--gafa-space-3);
+}
+
+@media (min-width: 768px) {
+  .gafa-acct__side {
+    border-bottom: none;
+    border-right: 1px solid var(--gafa-color-border);
+    gap: var(--gafa-space-4);
+    padding: var(--gafa-space-5) var(--gafa-space-3) var(--gafa-space-4);
+  }
+}
+
+.gafa-acct__user {
+  align-items: center;
+  display: flex;
+  gap: var(--gafa-space-2);
+  min-width: 0;
+  padding-right: 44px;
+}
+
+@media (min-width: 768px) {
+  .gafa-acct__user {
+    padding: 0 var(--gafa-space-2);
+  }
+}
+
+.gafa-acct__avatar {
+  --gafa-img-fit: cover;
+  --gafa-img-height: 44px;
+  --gafa-img-radius: 50%;
+  --gafa-img-width: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 44px;
+  object-fit: cover;
+  width: 44px;
+}
+
+.gafa-acct__avatar--initials {
+  --gafa-type-size: 0.95rem;
+  align-items: center;
+  background: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary-text);
+  color: var(--gafa-color-primary-text);
+  display: inline-flex;
+  font-size: 0.95rem;
+  font-weight: 800;
+  justify-content: center;
+  letter-spacing: 0.02em;
+}
+
+.gafa-acct__user-text {
+  display: grid;
+  min-width: 0;
+}
+
+.gafa-acct__user-text strong {
+  font-size: 0.98rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-acct__user-text span {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-acct__menu-toggle {
+  --gafa-type-size: 0.92rem;
+  --gafa-control-font-size: 0.92rem;
+  --gafa-control-padding: 0.7rem 0.85rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-md);
+  --gafa-control-transform: none;
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  width: 100%;
+}
+
+.gafa-acct__menu-toggle svg:last-child {
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: transform 0.16s ease;
+}
+
+.gafa-acct__menu-toggle[aria-expanded="true"] svg:last-child {
+  transform: rotate(180deg);
+}
+
+@media (min-width: 768px) {
+  .gafa-acct__menu-toggle {
+    display: none;
+  }
+}
+
+.gafa-acct__nav-panel {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .gafa-acct[data-menu="open"] .gafa-acct__nav-panel {
+    background: var(--gafa-color-surface-raised);
+    border-top: 1px solid var(--gafa-color-border);
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gafa-space-3);
+    left: 0;
+    overflow: auto;
+    padding: var(--gafa-space-3) var(--gafa-space-4) var(--gafa-space-4);
+    position: absolute;
+    right: 0;
+    top: var(--gafa-acct-side-h, 0px);
+    z-index: 4;
+  }
+}
+
+@media (min-width: 768px) {
+  .gafa-acct__nav-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
+.gafa-acct__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.gafa-acct__nav-item {
+  --gafa-type-size: 0.88rem;
+  --gafa-control-font-size: 0.88rem;
+  --gafa-control-padding: 0.68rem 0.95rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-md);
+  --gafa-control-tracking: normal;
+  --gafa-control-transform: none;
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 600;
+  gap: 0.6rem;
+  padding: 0.68rem 0.95rem;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+  width: 100%;
+}
+
+.gafa-acct__nav-item:hover {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  background: var(--gafa-color-surface);
+  color: var(--gafa-color-text);
+}
+
+.gafa-acct__nav-item[aria-current="page"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-acct__nav-icon {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.gafa-acct__side-foot {
+  margin-top: auto;
+  padding-top: var(--gafa-space-3);
+}
+
+.gafa-acct__logout {
+  --gafa-type-size: 0.85rem;
+  --gafa-control-font-size: 0.85rem;
+  --gafa-control-padding: 0.55rem 0.9rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-md);
+  --gafa-control-transform: none;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.55rem 0.9rem;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  width: 100%;
+}
+
+.gafa-acct__logout:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-danger, #dc2626);
+  --gafa-control-fg: var(--gafa-color-danger, #dc2626);
+  --gafa-fg: var(--gafa-color-danger, #dc2626);
+  border-color: var(--gafa-color-danger, #dc2626);
+  color: var(--gafa-color-danger, #dc2626);
+}
+
+/* ----- panel principal */
+
+.gafa-acct__main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.gafa-acct__head {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--gafa-color-border);
+  display: flex;
+  gap: var(--gafa-space-3);
+  justify-content: space-between;
+  /* padding-right reserva espacio para la X, que es absoluta y flota encima:
+     sin esto un titulo largo (el saludo con el nombre) se le mete debajo. */
+  padding: var(--gafa-space-4) 52px var(--gafa-space-3) var(--gafa-space-4);
+}
+
+.gafa-acct__head-copy {
+  min-width: 0;
+}
+
+.gafa-acct__buy {
+  --gafa-control-min-height: 32px;
+  --gafa-control-padding: 0.2rem 0.85rem;
+  --gafa-control-font-size: 0.82rem;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  min-height: 32px;
+  padding: 0.2rem 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .gafa-acct__head {
+    padding: var(--gafa-space-5) var(--gafa-space-5) var(--gafa-space-3);
+    padding-right: 64px;
+  }
+}
+
+.gafa-acct__head h2 {
+  --gafa-heading-size: clamp(1.25rem, 2.2vw, 1.6rem);
+  background: none;
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
+  margin: 0;
+}
+
+.gafa-acct__head p {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  margin: 0.25rem 0 0;
+}
+
+.gafa-acct__body {
+  display: grid;
+  gap: var(--gafa-space-4);
+  overflow-y: auto;
+  padding: var(--gafa-space-4);
+}
+
+@media (min-width: 768px) {
+  .gafa-acct__body {
+    padding: var(--gafa-space-4) var(--gafa-space-5) var(--gafa-space-5);
+  }
+}
+
+/* ----- resumen / actividad */
+
+.gafa-acct__wave {
+  display: inline-block;
+  transform-origin: 70% 80%;
+  animation: gafa-wave 2.6s ease-in-out 0.4s 3;
+}
+
+@keyframes gafa-wave {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+  10%,
+  30% {
+    transform: rotate(14deg);
+  }
+  20%,
+  40% {
+    transform: rotate(-8deg);
+  }
+}
+
+/* space-3, no space-4: con space-4 "Mi actividad" no cabía sin scroll ni en
+   el modal de escritorio (720px). */
+.gafa-acct-overview {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+/* Entrada escalonada: el panel se siente vivo al abrir sin depender de una
+   libreria de animacion. */
+.gafa-acct-overview > * {
+  animation: gafa-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gafa-acct-overview > *:nth-child(2) {
+  animation-delay: 0.07s;
+}
+
+.gafa-acct-overview > *:nth-child(3) {
+  animation-delay: 0.14s;
+}
+
+@keyframes gafa-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.gafa-acct-next {
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--gafa-color-accent) 16%, transparent) 0%, transparent 55%),
+    var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  display: grid;
+  gap: var(--gafa-space-3);
+  overflow: hidden;
+  padding: var(--gafa-space-4);
+  position: relative;
+}
+
+.gafa-acct-next__label {
+  align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.gafa-acct-next__label-text {
+  align-items: center;
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 800;
+  gap: 0.45rem;
+  letter-spacing: 0.08em;
+  min-width: 0;
+  text-transform: uppercase;
+}
+
+.gafa-acct-dot {
+  animation: gafa-pulse 2s ease-in-out infinite;
+  background: var(--gafa-color-accent);
+  border-radius: 50%;
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+}
+
+@keyframes gafa-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--gafa-color-accent) 60%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+.gafa-acct-next__body {
+  align-items: center;
+  display: grid;
+  gap: var(--gafa-space-3);
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.gafa-acct-next__when {
+  background: var(--gafa-color-primary);
+  border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-primary-text);
+  color: var(--gafa-color-primary-text);
+  display: grid;
+  gap: 2px;
+  min-width: 110px;
+  padding: 0.75rem 0.9rem;
+  text-align: center;
+}
+
+.gafa-acct-next__when strong {
+  font-size: 1rem;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
+.gafa-acct-next__when span {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.gafa-acct-next__what h3 {
+  --gafa-heading-size: 1.15rem;
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.gafa-acct-next__what p {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  margin: 0.2rem 0 0;
+}
+
+.gafa-acct-next__what .gafa-meeting-chip {
+  margin-top: 0.45rem;
+}
+
+.gafa-acct-next__actions {
+  display: flex;
+  gap: var(--gafa-space-2);
+  grid-column: 1 / -1;
+}
+
+.gafa-acct-next__actions .gafa-sdk-button {
+  flex: 1;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .gafa-acct-next__body {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .gafa-acct-next__actions {
+    grid-column: auto;
+  }
+
+  .gafa-acct-next__actions .gafa-sdk-button {
+    flex: 0 0 auto;
+  }
+}
+
+.gafa-acct-next__countdown {
+  --gafa-type-size: 0.76rem;
+  background: color-mix(in srgb, var(--gafa-color-accent) 16%, transparent);
+  border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding: 0.2rem 0.6rem;
+  text-transform: none;
+}
+
+.gafa-acct-next__empty {
+  align-items: center;
+  display: grid;
+  gap: var(--gafa-space-3);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.gafa-acct-next__empty-cta {
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .gafa-acct-next__empty {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .gafa-acct-next__empty-cta {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+.gafa-acct-next__empty-emoji {
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.gafa-acct-next__empty p {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.2rem;
+}
+
+.gafa-acct-next__empty span {
+  font-size: 0.88rem;
+}
+
+.gafa-acct-next__more {
+  --gafa-type-size: 0.86rem;
+  --gafa-control-font-size: 0.86rem;
+  --gafa-control-padding: var(--gafa-space-2) 0 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
+  --gafa-control-shadow: inset 0 1px 0 var(--gafa-color-border);
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--gafa-color-border);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.86rem;
+  font-weight: 700;
+  gap: 0.35rem;
+  justify-content: space-between;
+  padding: var(--gafa-space-2) 0 0;
+  width: 100%;
+}
+
+.gafa-acct-next__more:hover {
+  --gafa-control-fg: var(--gafa-color-accent);
+  --gafa-fg: var(--gafa-color-accent);
+  color: var(--gafa-color-accent);
+}
+
+.gafa-acct-block {
+  display: grid;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-acct-block__head {
+  align-items: baseline;
+  display: flex;
+  gap: var(--gafa-space-3);
+  justify-content: space-between;
+}
+
+.gafa-acct-block__actions {
+  align-items: baseline;
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--gafa-space-3);
+}
+
+.gafa-acct-block__head h3,
+.gafa-acct-group h3 {
+  --gafa-heading-size: 0.76rem;
+  align-items: center;
+  background: none;
+  display: flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  gap: 0.5rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.gafa-acct-link {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-accent);
+  --gafa-fg: var(--gafa-color-accent);
+  --gafa-control-radius: 0px;
+  background: none;
+  border: none;
+  color: var(--gafa-color-accent);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0;
+}
+
+.gafa-acct-balance {
+  display: grid;
+  gap: var(--gafa-space-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gafa-acct-balance__card {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: 2px;
+  padding: var(--gafa-space-3);
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.gafa-acct-balance__card:hover {
+  border-color: var(--gafa-color-primary);
+  transform: translateY(-2px);
+}
+
+.gafa-acct-balance__emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+  margin-bottom: 0.15rem;
+}
+
+.gafa-acct-balance__value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.gafa-acct-balance__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.gafa-acct-balance__hint {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Nombre del paquete/membresia activa (solo aparece con mas de uno: con uno
+   solo el numero grande ya lo dice todo). */
+.gafa-acct-balance__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-acct-balance__card[data-carousel="true"] {
+  padding-bottom: 0.5rem;
+}
+
+/* Mini slider para moverse entre paquetes/membresias sin salir de "Mi
+   actividad": el detalle completo sigue viviendo en la pestaña Creditos. */
+.gafa-acct-balance__nav {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+  margin-top: 0.4rem;
+}
+
+.gafa-acct-balance__nav button:first-child,
+.gafa-acct-balance__nav button:last-child {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.gafa-acct-balance__nav button:first-child:hover,
+.gafa-acct-balance__nav button:last-child:hover {
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+}
+
+.gafa-acct-balance__nav button:first-child svg {
+  transform: rotate(180deg);
+}
+
+.gafa-acct-balance__count {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: center;
+}
+
+.gafa-acct-stats {
+  display: grid;
+  gap: var(--gafa-space-2);
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+}
+
+/* Movil: 3 + 2 iguales, sin la quinta tarjeta estirada a lo ancho. */
+@media (max-width: 640px) {
+  .gafa-acct-stats {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .gafa-acct-stats > * {
+    grid-column: span 2;
+  }
+
+  .gafa-acct-stats > :nth-child(4),
+  .gafa-acct-stats > :nth-child(5) {
+    grid-column: span 3;
+  }
+}
+
+.gafa-acct-stat {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: 2px;
+  padding: var(--gafa-space-3) var(--gafa-space-2);
+  text-align: center;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.gafa-acct-stat:hover {
+  border-color: var(--gafa-color-primary);
+  transform: translateY(-2px);
+}
+
+.gafa-acct-stat__emoji {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.gafa-acct-stat:hover .gafa-acct-stat__emoji {
+  animation: gafa-bounce 0.5s ease;
+  display: inline-block;
+}
+
+@keyframes gafa-bounce {
+  50% {
+    transform: translateY(-4px) scale(1.12);
+  }
+}
+
+.gafa-acct-stat strong {
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.gafa-acct-stat__label {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.gafa-acct-stat[data-tone="strong"] {
+  background: var(--gafa-color-primary);
+  border-color: transparent;
+}
+
+.gafa-acct-stat[data-tone="strong"] strong,
+.gafa-acct-stat[data-tone="strong"] .gafa-acct-stat__label {
+  --gafa-fg: var(--gafa-color-primary-text);
+
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-acct-progress {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: 0.4rem;
+  padding: var(--gafa-space-3);
+}
+
+.gafa-acct-progress__head {
+  --gafa-type-size: 0.8rem;
+  align-items: baseline;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 600;
+  justify-content: space-between;
+}
+
+.gafa-acct-progress__head strong {
+  --gafa-type-size: 1rem;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-size: 1rem;
+}
+
+.gafa-acct-progress__track {
+  background: var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  height: 8px;
+  overflow: hidden;
+}
+
+.gafa-acct-progress__fill {
+  animation: gafa-fill 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--gafa-color-primary);
+  border-radius: var(--gafa-radius-pill);
+  display: block;
+  height: 100%;
+}
+
+@keyframes gafa-fill {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+}
+
+.gafa-acct-progress__note {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.gafa-acct-stat[data-tone="warn"] strong {
+  --gafa-fg: var(--gafa-color-danger, #dc2626);
+
+  color: var(--gafa-color-danger, #dc2626);
+}
+
+.gafa-acct-faves {
+  display: grid;
+  gap: var(--gafa-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.gafa-acct-faves__title {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.gafa-acct-faves p {
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.gafa-acct-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+@media (max-width: 767px) {
+  .gafa-acct__head {
+    padding: var(--gafa-space-3) 48px var(--gafa-space-2) var(--gafa-space-3);
+  }
+
+  .gafa-acct__head h2 {
+  --gafa-heading-size: 1.15rem;
+    font-size: 1.15rem;
+  }
+
+  .gafa-acct__head p {
+    font-size: 0.8rem;
+  }
+
+  .gafa-acct__body {
+    gap: var(--gafa-space-3);
+    padding: var(--gafa-space-3);
+  }
+
+  .gafa-acct-overview {
+    gap: var(--gafa-space-3);
+  }
+
+  .gafa-acct-next {
+    gap: var(--gafa-space-2);
+    padding: var(--gafa-space-3);
+  }
+
+  .gafa-acct-next__body {
+    align-items: start;
+    gap: var(--gafa-space-2);
+  }
+
+  .gafa-acct-next__when {
+    min-width: 76px;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .gafa-acct-next__when strong {
+    font-size: 0.72rem;
+  }
+
+  .gafa-acct-next__when span {
+    font-size: 0.92rem;
+  }
+
+  .gafa-acct-next__what h3 {
+  --gafa-heading-size: 0.98rem;
+    font-size: 0.98rem;
+  }
+
+  .gafa-acct-next__what p {
+    font-size: 0.78rem;
+  }
+
+  .gafa-acct-next__countdown {
+    font-size: 0.7rem;
+    padding: 0.12rem 0.45rem;
+  }
+
+  .gafa-acct-next__actions .gafa-sdk-button {
+    --gafa-control-min-height: 36px;
+    font-size: 0.8rem;
+    min-height: 36px;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .gafa-acct-next__empty-emoji {
+    font-size: 1.35rem;
+  }
+
+  .gafa-acct-next__empty p {
+    font-size: 0.9rem;
+  }
+
+  .gafa-acct-next__empty span {
+    font-size: 0.78rem;
+  }
+
+  .gafa-acct-block {
+    gap: var(--gafa-space-2);
+  }
+
+  .gafa-acct-balance {
+    gap: 0.4rem;
+  }
+
+  .gafa-acct-balance__card {
+    padding: 0.55rem 0.4rem;
+    text-align: center;
+  }
+
+  .gafa-acct-balance__card:hover {
+    transform: none;
+  }
+
+  .gafa-acct-balance__emoji {
+    font-size: 0.95rem;
+    margin: 0 auto 0.1rem;
+  }
+
+  .gafa-acct-balance__value {
+    font-size: 1.15rem;
+  }
+
+  .gafa-acct-balance__label {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .gafa-acct-balance__hint,
+  .gafa-acct-balance__title {
+    display: none;
+  }
+
+  .gafa-acct-balance__card[data-carousel="true"] .gafa-acct-balance__title,
+  .gafa-acct-balance__card[data-carousel="true"] .gafa-acct-balance__hint {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+  }
+
+  .gafa-acct-stats {
+    gap: 0.4rem;
+  }
+
+  .gafa-acct-stat {
+    padding: 0.45rem 0.25rem;
+  }
+
+  .gafa-acct-stat:hover {
+    transform: none;
+  }
+
+  .gafa-acct-stat__emoji {
+    font-size: 0.88rem;
+  }
+
+  .gafa-acct-stat strong {
+    font-size: 1.05rem;
+  }
+
+  .gafa-acct-stat__label {
+    font-size: 0.66rem;
+    line-height: 1.2;
+  }
+
+  .gafa-acct-faves {
+    gap: var(--gafa-space-2);
+    grid-template-columns: 1fr;
+  }
+
+  .gafa-acct-faves p {
+    font-size: 0.78rem;
+  }
+}
+
+/* ----- clases */
+
+.gafa-acct-classes {
+  display: grid;
+  gap: var(--gafa-space-4);
+}
+
+.gafa-acct-switch {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  display: inline-flex;
+  gap: 2px;
+  justify-self: start;
+  padding: 3px;
+}
+
+.gafa-acct-switch button {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0.45rem 1.1rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  background: transparent;
+  border: none;
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0.45rem 1.1rem;
+}
+
+.gafa-acct-switch button[aria-selected="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-acct-group {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-acct-group__count {
+  --gafa-type-size: 0.72rem;
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  min-width: 22px;
+  padding: 0.05rem 0.4rem;
+  text-align: center;
+}
+
+.gafa-acct-cards {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-acct-more {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0.55rem 1rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-md);
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin-top: var(--gafa-space-2);
+  padding: 0.55rem 1rem;
+  width: 100%;
+}
+
+.gafa-acct-empty {
+  --gafa-type-size: 0.88rem;
+  border: 1px dashed var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  margin: 0;
+  padding: var(--gafa-space-4);
+  text-align: center;
+}
+
+/* Estado vacio "con vida": el mismo emoji+titulo+CTA en Mis clases, Creditos
+   y Compras, para que el socio sepa a donde ir en vez de solo leer que no
+   tiene nada. */
+.gafa-acct-empty2 {
+  background:
+    radial-gradient(120% 160% at 50% 0%, color-mix(in srgb, var(--gafa-color-accent) 10%, transparent) 0%, transparent 60%),
+    var(--gafa-color-surface-raised);
+  border: 1px dashed var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  padding: var(--gafa-space-5) var(--gafa-space-4);
+  text-align: center;
+}
+
+.gafa-acct-empty2__emoji {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.gafa-acct-empty2 strong {
+  font-size: 1rem;
+}
+
+.gafa-acct-empty2 p {
+  --gafa-type-size: 0.86rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.86rem;
+  margin: 0;
+  max-width: 320px;
+}
+
+.gafa-acct-empty2__cta {
+  margin-top: var(--gafa-space-2);
+  min-width: 180px;
+}
+
+.gafa-acct-class {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-3);
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: var(--gafa-space-3);
+  transition: border-color 0.15s ease;
+}
+
+@media (min-width: 560px) {
+  .gafa-acct-class {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+}
+
+.gafa-acct-class:hover {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-acct-class[data-cancelled="true"],
+.gafa-acct-class[data-historic="true"] {
+  opacity: 0.72;
+}
+
+.gafa-acct-class[data-cancelled="true"]:hover,
+.gafa-acct-class[data-historic="true"]:hover {
+  border-color: var(--gafa-color-border);
+}
+
+.gafa-acct-class__date {
+  background: var(--gafa-color-surface-raised);
+  border-radius: var(--gafa-radius-sm);
+  display: grid;
+  gap: 0;
+  min-width: 54px;
+  padding: 0.5rem 0.4rem;
+  text-align: center;
+}
+
+.gafa-acct-class__date strong {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.gafa-acct-class__date span {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gafa-acct-class__info {
+  min-width: 0;
+}
+
+.gafa-acct-class__info h4 {
+  --gafa-heading-size: 1rem;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.gafa-acct-class__when {
+  --gafa-type-size: 0.84rem;
+  --gafa-fg: var(--gafa-color-accent);
+
+  color: var(--gafa-color-accent);
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin: 0.1rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-acct-class__meta {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  margin: 0.1rem 0 0;
+}
+
+.gafa-acct-class__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.gafa-acct-class__tags:empty {
+  display: none;
+}
+
+.gafa-acct-class__actions {
+  display: flex;
+  gap: 0.4rem;
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 560px) {
+  .gafa-acct-class__actions {
+    grid-column: auto;
+  }
+}
+
+.gafa-acct-class__actions .gafa-sdk-button {
+  flex: 1;
+  font-size: 0.82rem;
+  padding: 0.5rem 0.9rem;
+  white-space: nowrap;
+}
+
+/* ----- filas de saldo y compras */
+
+.gafa-acct-row {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-3);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: var(--gafa-space-3);
+}
+
+.gafa-acct-row__icon {
+  align-items: center;
+  background: var(--gafa-color-surface-raised);
+  border-radius: var(--gafa-radius-sm);
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.gafa-acct-row__info {
+  min-width: 0;
+}
+
+.gafa-acct-row__info h4 {
+  --gafa-heading-size: 0.98rem;
+  font-size: 0.98rem;
+  margin: 0;
+}
+
+.gafa-acct-row__info p {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  margin: 0.15rem 0 0;
+}
+
+.gafa-acct-row__value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.gafa-acct-row__end {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.gafa-acct-row__status {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  text-transform: capitalize;
+}
+
+.gafa-acct-row--hero {
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--gafa-color-accent) 18%, transparent) 0%, transparent 55%),
+    var(--gafa-color-surface-raised);
+  border-color: color-mix(in srgb, var(--gafa-color-primary) 32%, var(--gafa-color-border));
+}
+
+.gafa-acct-row--hero .gafa-acct-row__icon {
+  background: color-mix(in srgb, var(--gafa-color-primary) 16%, transparent);
+  --gafa-fg: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-acct-row--hero .gafa-acct-row__value {
+  font-size: 1.55rem;
+}
+
+/* ----- formularios */
+
+.gafa-acct-form {
+  display: grid;
+  gap: var(--gafa-space-4);
+  max-width: 680px;
+}
+
+.gafa-acct-form--narrow {
+  max-width: 460px;
+}
+
+.gafa-acct-form__since {
+  --gafa-type-size: 0.84rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+.gafa-acct-fieldset {
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-3);
+  margin: 0;
+  padding: var(--gafa-space-4) var(--gafa-space-3) var(--gafa-space-3);
+}
+
+.gafa-acct-fieldset legend {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0 0.4rem;
+  text-transform: uppercase;
+}
+
+.gafa-acct-datefield {
+  align-content: start;
+  display: grid;
+  position: relative;
+}
+
+.gafa-acct-datefield__button {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-min-height: 48px;
+  --gafa-control-padding: 1.1rem 0.85rem 0.3rem;
+  --gafa-control-font-size: 0.88rem;
+  --gafa-control-radius: var(--gafa-radius-md);
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: flex;
+  gap: var(--gafa-space-2);
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 1.1rem 0.85rem 0.3rem;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.gafa-acct-datefield__button:hover,
+.gafa-acct-datefield__button[aria-expanded="true"] {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-acct-datefield__label {
+  --gafa-type-size: 0.6rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.6rem;
+  font-weight: 700;
+  left: 1.05rem;
+  letter-spacing: 0.03em;
+  position: absolute;
+  text-transform: uppercase;
+  top: 0.55rem;
+}
+
+.gafa-acct-datefield__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-acct-datefield__button[data-filled="true"] .gafa-acct-datefield__value {
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+}
+
+.gafa-acct-choice {
+  align-self: center;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.gafa-acct-choice__legend {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.gafa-acct-choice__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.gafa-acct-choice__button {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0.45rem 0.85rem;
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+}
+
+.gafa-acct-choice__button[aria-pressed="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  border-color: transparent;
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-acct-form__actions {
+  display: flex;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-acct-form__actions .gafa-sdk-button {
+  min-width: 190px;
+}
+
+@media (max-width: 560px) {
+  .gafa-acct-form__actions .gafa-sdk-button {
+    width: 100%;
+  }
+}
+
+/* ----- QR */
+
+.gafa-acct-qr-overlay {
+  align-items: center;
+  background: var(--gafa-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--gafa-space-4);
+  position: fixed;
+  z-index: 2147483001;
+}
+
+.gafa-acct-qr {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  box-shadow: var(--gafa-shadow-pop);
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  max-width: 340px;
+  padding: var(--gafa-space-5);
+  text-align: center;
+  width: 100%;
+}
+
+.gafa-acct-qr h3 {
+  --gafa-heading-size: 1.15rem;
+  background: none;
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.gafa-acct-qr__when {
+  --gafa-type-size: 0.86rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.86rem;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.gafa-acct-qr__image {
+  --gafa-img-bg: #fff;
+  --gafa-img-fit: contain;
+  --gafa-img-height: 240px;
+  --gafa-img-width: 240px;
+  background: #fff;
+  border-radius: var(--gafa-radius-md);
+  display: block;
+  height: 240px;
+  margin: var(--gafa-space-2) 0;
+  width: 240px;
+}
+
+.gafa-acct-qr__seat {
+  font-weight: 700;
+  margin: 0 0 var(--gafa-space-2);
+}
+
+.gafa-acct-qr .gafa-sdk-button {
+  width: 100%;
+}
+
+/* ----- confirmacion */
+
+.gafa-confirm-overlay {
+  align-items: center;
+  animation: gafa-fade 0.18s ease both;
+  background: var(--gafa-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--gafa-space-4);
+  position: fixed;
+  z-index: 2147483002;
+}
+
+@keyframes gafa-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.gafa-confirm {
+  animation: gafa-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  box-shadow: var(--gafa-shadow-pop);
+  display: grid;
+  gap: var(--gafa-space-2);
+  justify-items: center;
+  max-width: 420px;
+  padding: var(--gafa-space-5);
+  text-align: center;
+  width: 100%;
+}
+
+@keyframes gafa-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+
+.gafa-confirm__mark {
+  align-items: center;
+  background: var(--gafa-color-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--gafa-color-primary) 18%, transparent);
+  --gafa-fg: var(--gafa-color-primary-text);
+  color: var(--gafa-color-primary-text);
+  display: inline-flex;
+  height: 52px;
+  justify-content: center;
+  width: 52px;
+}
+
+.gafa-confirm[data-tone="danger"] .gafa-confirm__mark {
+  background: var(--gafa-color-danger, #dc2626);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--gafa-color-danger, #dc2626) 16%, transparent);
+  --gafa-fg: var(--gafa-color-background);
+  color: var(--gafa-color-background);
+}
+
+.gafa-confirm__title {
+  font-size: 1.15rem;
+  margin: 0.2rem 0 0;
+}
+
+.gafa-confirm__text {
+  --gafa-type-size: 0.9rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.gafa-confirm__text a {
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.gafa-confirm__subject {
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.gafa-confirm__actions {
+  display: grid;
+  gap: var(--gafa-space-2);
+  grid-template-columns: 1fr 1fr;
+  margin-top: var(--gafa-space-2);
+  width: 100%;
+}
+
+.gafa-confirm__actions .gafa-sdk-button {
+  width: 100%;
+}
+
+/* El rojo del tema es claro en modo oscuro y oscuro en modo claro: el texto
+   tiene que ir al color del fondo de la pagina, no siempre a blanco. */
+.gafa-confirm[data-tone="danger"] .gafa-confirm__confirm {
+  --gafa-control-bg: var(--gafa-color-danger, #dc2626);
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-background);
+  --gafa-fg: var(--gafa-color-background);
+  background: var(--gafa-color-danger, #dc2626);
+  border-color: transparent;
+  color: var(--gafa-color-background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gafa-acct__wave,
+  .gafa-acct-dot,
+  .gafa-acct-overview > *,
+  .gafa-acct-progress__fill,
+  .gafa-confirm,
+  .gafa-confirm-overlay,
+  .gafa-acct-stat:hover .gafa-acct-stat__emoji {
+    animation: none;
+  }
+
+  .gafa-acct-stat,
+  .gafa-acct-balance__card {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------- catalogo */
+
+.gafa-catalog-card {
+  display: grid;
+  gap: var(--gafa-space-3);
+  grid-template-rows: 1fr auto;
+}
+
+/* Tarjetas fantasma mientras llega el catálogo. */
+.gafa-catalog-card--skel {
+  pointer-events: none;
+}
+
+.gafa-catalog-card--skel > div {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gafa-catalog-skel__kicker {
+  height: 10px;
+  width: 38%;
+}
+
+.gafa-catalog-skel__title {
+  height: 18px;
+  width: 72%;
+}
+
+.gafa-catalog-skel__price {
+  height: 22px;
+  width: 45%;
+}
+
+.gafa-catalog-skel__btn {
+  border-radius: 999px;
+  height: 40px;
+  width: 100%;
+}
+
+.gafa-catalog-price {
+  --gafa-type-size: 1.3rem;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-top: var(--gafa-space-2);
+}
+
+.gafa-sdk-kicker {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gafa-sdk-fieldset {
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: grid;
+  gap: var(--gafa-space-3);
+  margin: 0;
+  padding: var(--gafa-space-3);
+}
+
+.gafa-sdk-fieldset legend {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0 var(--gafa-space-1);
+  text-transform: uppercase;
+}
+
+.gafa-auth-note {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* Clases que ya pasaron: visibles pero apagadas, sin accion. */
+.gafa-meeting-card[data-passed="true"] {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.gafa-meeting-card[data-passed="true"]:hover {
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  border-color: var(--gafa-color-border);
+}
+
+.gafa-availability-pill--passed {
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 14%, transparent);
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+}
+
+/* Subtitulos de franja en la vista de dia. */
+.gafa-day-slot {
+  display: grid;
+  gap: var(--gafa-space-2);
+}
+
+.gafa-day-slot + .gafa-day-slot {
+  margin-top: var(--gafa-space-4);
+}
+
+.gafa-day-slot__title {
+  --gafa-type-size: 0.78rem;
+  border-bottom: 1px solid var(--gafa-color-border);
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  padding-bottom: var(--gafa-space-1);
+  text-transform: uppercase;
+}
+
+/* ─── Checkout nativo v2 ─────────────────────────────────────────── */
+
+.gafa-sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.gafa-checkout-overlay {
+  align-items: stretch;
+  background: rgb(9 11 15 / 0.66);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  overflow: auto;
+  padding: clamp(0.75rem, 2.5vw, 2rem);
+  position: fixed;
+  right: 0;
+  top: 0;
+  /* Mismo techo que cuenta/reserva: en WP/Elementor el header sticky vive
+     en 9999–10000 y z-index 80 dejaba el checkout debajo. */
+  z-index: 2147483000;
+  animation: gafa-checkout-fade 0.24s ease;
+}
+
+.gafa-checkout-overlay[data-charge-hold="true"] {
+  cursor: default;
+}
+
+@keyframes gafa-checkout-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.gafa-checkout {
+  background: var(--gafa-color-modal, var(--gafa-color-surface-raised));
+  border: 1px solid color-mix(in srgb, var(--gafa-color-border) 60%, transparent);
+  border-radius: 22px;
+  box-shadow: var(--gafa-shadow-pop);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  /* Techo duro: con el carrito lleno el modal crecia mas alla del viewport y
+     el total + "Ir a pagar" quedaban fuera de la pantalla. El scroll vive
+     dentro de cada columna, no en el modal. */
+  max-height: calc(100vh - 2 * clamp(0.75rem, 2.5vw, 2rem));
+  max-width: 980px;
+  min-height: min(620px, calc(100vh - 4rem));
+  overflow: hidden;
+  position: relative;
+  width: min(980px, 100%);
+  animation: gafa-checkout-rise 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes gafa-checkout-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+
+.gafa-checkout__close {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-surface-raised) 85%, transparent);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 999px;
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 32px;
+  --gafa-control-height: 32px;
+  --gafa-control-min-height: 32px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 14px;
+  align-items: center;
+  background: color-mix(in srgb, var(--gafa-color-surface-raised) 85%, transparent);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  right: 0.9rem;
+  top: 0.9rem;
+  transition: background 0.15s ease;
+  width: 32px;
+  z-index: 3;
+}
+
+.gafa-checkout__close:hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  background: var(--gafa-color-surface-raised);
+}
+
+.gafa-checkout__layout {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  /* min-height:0 es lo que permite que el overflow-y de cada columna funcione;
+     sin esto las columnas se estiran al alto del contenido y el carrito largo
+     empujaba el modal fuera del viewport. */
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Columna principal ── */
+
+.gafa-checkout__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1.4rem 1.5rem 1.5rem;
+}
+
+.gafa-checkout__context {
+  --gafa-type-size: 0.8rem;
+  align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 600;
+  gap: 0.45rem;
+  letter-spacing: 0.02em;
+  margin: 0;
+  max-width: 100%;
+}
+
+.gafa-checkout__context-text {
+  min-width: 0;
+}
+
+.gafa-checkout__context .gafa-checkout__line-remove {
+  flex-shrink: 0;
+}
+
+.gafa-checkout__context-dot {
+  background: var(--gafa-color-primary);
+  border-radius: 999px;
+  display: inline-block;
+  height: 7px;
+  width: 7px;
+}
+
+.gafa-checkout__hero h2 {
+  --gafa-heading-size: 1.2rem;
+  background: none;
+  font-family: var(--gafa-heading-font-family);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 0.25rem;
+}
+
+.gafa-checkout__hero p {
+  --gafa-type-size: 0.88rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.gafa-checkout__toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.gafa-checkout-tabs {
+  display: inline-flex;
+  flex: 1 1 auto;
+  gap: 0.3rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.gafa-checkout-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.gafa-checkout-tabs button {
+  --gafa-type-size: 0.82rem;
+  --gafa-control-font-size: 0.82rem;
+  --gafa-control-padding: 0.42rem 0.85rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 999px;
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  padding: 0.42rem 0.85rem;
+  transition: background 0.16s ease, color 0.16s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gafa-checkout-tabs button em {
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 14%, transparent);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-style: normal;
+  line-height: 1;
+  padding: 0.22rem 0.42rem;
+}
+
+.gafa-checkout-tabs button[data-active="true"] {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-checkout-tabs button[data-active="true"] em {
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: color-mix(in srgb, var(--gafa-color-primary-text) 18%, transparent);
+  color: var(--gafa-color-primary-text);
+}
+
+.gafa-checkout-search {
+  --gafa-type-size: 0.78rem;
+  --gafa-type-leading: 1;
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-search-width: 92px;
+  align-items: center;
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-muted-text);
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  gap: 0.35rem;
+  height: 32px;
+  max-width: 168px;
+  min-height: 32px;
+  min-width: 0;
+  padding: 0 0.55rem;
+  transition: border-color 0.16s ease;
+}
+
+.gafa-checkout-search:focus-within {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-checkout-search svg {
+  flex-shrink: 0;
+  height: 12px;
+  width: 12px;
+}
+
+.gafa-checkout-search input {
+  --gafa-type-size: 0.78rem;
+  --gafa-field-bg: transparent;
+  --gafa-field-border: 0 solid transparent;
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-font-size: 0.78rem;
+  --gafa-field-radius: 0px;
+  --gafa-fg: var(--gafa-color-text);
+  background: transparent;
+  border: 0;
+  color: var(--gafa-color-text);
+  font: inherit;
+  font-size: 0.78rem;
+  height: 30px;
+  min-height: 0;
+  outline: none;
+  padding: 0;
+  width: 92px;
+}
+
+/* ── Productos ── */
+
+.gafa-checkout-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+}
+
+.gafa-checkout-product {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.9rem 0.9rem 0.8rem;
+  position: relative;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.gafa-checkout-product:hover {
+  border-color: color-mix(in srgb, var(--gafa-color-primary) 60%, var(--gafa-color-border));
+  box-shadow: var(--gafa-shadow-soft);
+}
+
+.gafa-checkout-product[data-in-cart="true"] {
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-checkout-catalog-loading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+/* La línea de pedido que está por aparecer (compra directa desde botón). */
+.gafa-checkout-line-skel {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.4rem 0;
+}
+
+.gafa-checkout-line-skel__name {
+  height: 16px;
+  width: 55%;
+}
+
+.gafa-checkout-line-skel__meta {
+  height: 12px;
+  width: 40%;
+}
+
+.gafa-checkout-line-skel__controls {
+  border-radius: 999px;
+  height: 30px;
+  width: 96px;
+}
+
+/* Loader del paso de pago: mismas cajas que va a ocupar GafaPay. */
+.gafa-checkout-pay-skel {
+  display: grid;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.gafa-checkout-pay-skel__methods {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.gafa-checkout-pay-skel__pill {
+  border-radius: 999px;
+  height: 40px;
+  width: 118px;
+}
+
+.gafa-checkout-pay-skel__card {
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.gafa-checkout-pay-skel__brand {
+  border-radius: 6px;
+  height: 18px;
+  width: 130px;
+}
+
+.gafa-checkout-pay-skel__number {
+  height: 20px;
+  width: 55%;
+}
+
+.gafa-checkout-product--skel {
+  gap: 0.55rem;
+  min-height: 148px;
+  pointer-events: none;
+}
+
+.gafa-checkout-product-skel__price {
+  height: 22px;
+  width: 42%;
+}
+
+.gafa-checkout-product-skel__title {
+  height: 12px;
+  width: 78%;
+}
+
+.gafa-checkout-product-skel__meta {
+  height: 10px;
+  width: 55%;
+}
+
+.gafa-checkout-product-skel__btn {
+  border-radius: 999px;
+  height: 34px;
+  margin-top: auto;
+  width: 100%;
+}
+
+.gafa-checkout-product__info {
+  position: absolute;
+  right: 0.6rem;
+  top: 0.6rem;
+}
+
+.gafa-checkout-product__info > button {
+  --gafa-type-size: 0.66rem;
+  --gafa-control-font-size: 0.66rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 999px;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-muted-text);
+  cursor: help;
+  display: inline-flex;
+  font-family: var(--gafa-heading-font-family);
+  font-size: 0.66rem;
+  font-style: italic;
+  font-weight: 700;
+  height: 18px;
+  justify-content: center;
+  line-height: 1;
+  width: 18px;
+}
+
+.gafa-checkout-product__tooltip {
+  --gafa-type-size: 0.75rem;
+  background: var(--gafa-color-text);
+  border-radius: 10px;
+  bottom: calc(100% + 8px);
+  box-shadow: var(--gafa-shadow-pop);
+  --gafa-fg: var(--gafa-color-surface);
+  color: var(--gafa-color-surface);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  opacity: 0;
+  padding: 0.6rem 0.75rem;
+  pointer-events: none;
+  position: absolute;
+  right: -6px;
+  transform: translateY(4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  width: max(200px, 22ch);
+  z-index: 5;
+}
+
+.gafa-checkout-product__info:hover .gafa-checkout-product__tooltip,
+.gafa-checkout-product__info > button:focus-visible + .gafa-checkout-product__tooltip {
+  opacity: 1;
+  transform: none;
+}
+
+.gafa-checkout-product__price {
+  align-items: baseline;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.gafa-checkout-product__price s {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+}
+
+.gafa-checkout-product__price strong {
+  --gafa-type-size: 1.18rem;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-family: var(--gafa-heading-font-family);
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.gafa-checkout-product h3 {
+  --gafa-type-size: 0.86rem;
+  --gafa-heading-size: 0.86rem;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-family: var(--gafa-font-body);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.gafa-checkout-product__meta {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+  margin: 0 0 0.55rem;
+}
+
+.gafa-checkout-product__add {
+  --gafa-type-size: 0.78rem;
+  --gafa-control-font-size: 0.78rem;
+  --gafa-control-padding: 0.35rem 0.7rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-min-height: 34px;
+  --gafa-control-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: auto;
+  padding: 0.35rem 0.7rem;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  width: 100%;
+}
+
+.gafa-checkout-product__add:hover {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-fg: var(--gafa-color-primary-text);
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-primary-text);
+}
+
+/* ── Carrito ── */
+
+.gafa-checkout__cart {
+  background: var(--gafa-color-surface-raised);
+  border-left: 1px solid var(--gafa-color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-height: 0;
+  /* La columna NO scrollea completa: lo unico que scrollea es la lista de
+     lineas, para que total y "Ir a pagar" queden siempre a la vista. */
+  overflow: hidden;
+  padding: 1.4rem 1.15rem 1.15rem;
+}
+
+/* Resumen plegable del carrito: solo existe en movil. */
+.gafa-checkout__cart-toggle {
+  --gafa-control-padding: 0.15rem 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: none;
+  font: inherit;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  width: 100%;
+}
+
+.gafa-checkout__cart-toggle span {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.gafa-checkout__cart-toggle strong {
+  font-family: var(--gafa-heading-font-family);
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-left: auto;
+}
+
+.gafa-checkout__cart-toggle svg {
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  transition: transform 0.18s ease;
+}
+
+/* Todo lo que no es la lista se queda fijo arriba/abajo. */
+.gafa-checkout__cart-toggle,
+.gafa-checkout__cart-head,
+.gafa-checkout__reserve-chip,
+.gafa-checkout__extras,
+.gafa-checkout__total,
+.gafa-checkout__cta,
+.gafa-checkout__cta-wrap,
+.gafa-checkout__backlink,
+.gafa-checkout__error,
+.gafa-checkout__env-warn {
+  flex-shrink: 0;
+}
+
+.gafa-checkout__cart-head {
+  align-items: baseline;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+  padding-right: 2.2rem;
+}
+
+.gafa-checkout__cart-head h3 {
+  --gafa-type-size: 0.95rem;
+  --gafa-heading-size: 0.95rem;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-family: var(--gafa-heading-font-family);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.gafa-checkout__cart-head span {
+  --gafa-type-size: 0.76rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.gafa-checkout__reserve-chip {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  border-left: 3px solid var(--gafa-color-primary);
+  border-radius: 10px;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0.5rem 0.6rem 0.75rem;
+}
+
+.gafa-checkout__reserve-chip-text {
+  display: grid;
+  flex: 1;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.gafa-checkout__reserve-chip strong {
+  font-size: 0.86rem;
+}
+
+.gafa-checkout__reserve-chip small {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+}
+
+.gafa-checkout__reserve-chip .gafa-checkout__line-remove {
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.gafa-checkout__empty {
+  align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.3rem;
+  justify-content: center;
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.gafa-checkout__empty svg {
+  margin-bottom: 0.35rem;
+  opacity: 0.55;
+}
+
+.gafa-checkout__empty p {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.gafa-checkout__empty small {
+  font-size: 0.78rem;
+}
+
+.gafa-checkout__lines {
+  align-content: start;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0;
+  /* Aviso visual de que hay mas abajo cuando el carrito es largo. */
+  scrollbar-width: thin;
+}
+
+.gafa-checkout__lines li {
+  border-bottom: 1px solid color-mix(in srgb, var(--gafa-color-border) 55%, transparent);
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.5rem 0;
+}
+
+.gafa-checkout__lines li:last-child {
+  border-bottom: 0;
+}
+
+.gafa-checkout__line-info {
+  min-width: 0;
+}
+
+.gafa-checkout__line-info strong {
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-type-size: 0.8rem;
+  color: var(--gafa-color-text);
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-checkout__line-info span {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.7rem;
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.7rem;
+}
+
+.gafa-checkout__line-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.gafa-checkout__stepper {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.gafa-checkout__stepper button {
+  --gafa-type-size: 0.85rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 22px;
+  --gafa-control-height: 22px;
+  --gafa-control-min-height: 22px;
+  --gafa-control-font-size: 0.85rem;
+  background: transparent;
+  border: 0;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  height: 22px;
+  line-height: 1;
+  overflow: hidden;
+  padding: 0;
+  width: 22px;
+}
+
+.gafa-checkout__stepper span {
+  --gafa-type-size: 0.78rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 1.1rem;
+  text-align: center;
+}
+
+.gafa-checkout__line-price {
+  --gafa-type-size: 0.8rem;
+  flex: 1 1 auto;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-checkout__line-remove {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 999px;
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 22px;
+  --gafa-control-height: 22px;
+  --gafa-control-min-height: 22px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 11px;
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 22px;
+  justify-content: center;
+  line-height: 0;
+  overflow: visible;
+  padding: 0;
+  width: 22px;
+}
+
+.gafa-checkout__line-remove:hover {
+  --gafa-control-fg: var(--gafa-color-danger, #dc2626);
+  --gafa-fg: var(--gafa-color-danger, #dc2626);
+  color: var(--gafa-color-danger, #dc2626);
+}
+
+.gafa-checkout__line-remove svg,
+.gafa-checkout__line-remove svg [stroke] {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+/* ── Promos / términos ── */
+
+.gafa-checkout__extras {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gafa-checkout-promo {
+  --gafa-type-size: 0.8rem;
+  --gafa-type-leading: 1.35;
+}
+
+.gafa-checkout-promo__link {
+  --gafa-type-size: 0.8rem;
+  --gafa-control-font-size: 0.8rem;
+  --gafa-control-padding: 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
+  background: none;
+  border: 0;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--gafa-color-primary) 80%, transparent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  width: fit-content;
+}
+
+.gafa-checkout-promo__link:hover {
+  --gafa-control-fg: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-primary);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-checkout-promo__row {
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: 1fr auto;
+  margin-top: 0.4rem;
+}
+
+.gafa-checkout-promo input {
+  --gafa-field-bg: var(--gafa-color-surface);
+  --gafa-field-border: 1px solid var(--gafa-color-border);
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-radius: 10px;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 10px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.84rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.gafa-checkout-promo__row button {
+  --gafa-type-size: 0.78rem;
+  --gafa-control-font-size: 0.78rem;
+  --gafa-control-padding: 0.45rem 0.8rem;
+  --gafa-control-bg: var(--gafa-color-text);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-surface);
+  --gafa-fg: var(--gafa-color-surface);
+  --gafa-control-radius: 10px;
+  align-items: center;
+  background: var(--gafa-color-text);
+  border: 0;
+  border-radius: 10px;
+  color: var(--gafa-color-surface);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  justify-content: center;
+  padding: 0.45rem 0.8rem;
+}
+
+.gafa-checkout-promo__row button:disabled {
+  opacity: 0.5;
+}
+
+.gafa-checkout-promo small {
+  --gafa-fg: #b91c1c;
+  --gafa-type-size: 0.74rem;
+  --gafa-type-leading: 1.3;
+  color: #b91c1c;
+  display: block;
+  font-size: 0.74rem;
+  margin-top: 0.25rem;
+}
+
+.gafa-checkout-promo small.gafa-checkout-promo__applied,
+.gafa-checkout-promo__applied {
+  --gafa-fg: #15803d;
+  --gafa-type-size: 0.8rem;
+  --gafa-type-leading: 1.35;
+  align-items: center;
+  color: #15803d;
+  display: inline-flex;
+  font-family: var(--gafa-font-body);
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 600;
+  gap: 0.35rem;
+  letter-spacing: 0;
+  line-height: 1.35;
+  margin: 0.3rem 0 0;
+  text-transform: none;
+}
+
+.gafa-checkout-promo__head {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  width: fit-content;
+}
+
+.gafa-checkout-promo__info {
+  display: inline-flex;
+  position: relative;
+}
+
+.gafa-checkout-promo__info > button {
+  --gafa-type-size: 0.66rem;
+  --gafa-control-font-size: 0.66rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-padding: 0;
+  --gafa-control-radius: 999px;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 999px;
+  color: var(--gafa-color-muted-text);
+  cursor: help;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 0.66rem;
+  font-style: italic;
+  font-weight: 700;
+  height: 18px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 18px;
+}
+
+.gafa-checkout-promo__info:hover .gafa-checkout-promo__tooltip,
+.gafa-checkout-promo__info > button:focus-visible + .gafa-checkout-promo__tooltip {
+  display: block;
+}
+
+.gafa-checkout-promo__tooltip {
+  --gafa-type-size: 0.75rem;
+  background: var(--gafa-color-text);
+  border-radius: 10px;
+  bottom: calc(100% + 8px);
+  box-shadow: var(--gafa-shadow-pop);
+  --gafa-fg: var(--gafa-color-surface);
+  color: var(--gafa-color-surface);
+  display: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  left: 50%;
+  line-height: 1.45;
+  padding: 0.55rem 0.7rem;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  width: min(220px, 70vw);
+  z-index: 6;
+}
+
+.gafa-checkout__terms {
+  --gafa-type-size: 0.8rem;
+  align-items: flex-start;
+  border-radius: 10px;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.8rem;
+  gap: 0.5rem;
+  line-height: 1.4;
+  margin-top: 0.2rem;
+  padding: 0.15rem 0;
+  transition: background 0.18s ease, box-shadow 0.18s ease, padding 0.18s ease;
+}
+
+.gafa-checkout__terms[data-attention="true"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 16%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--gafa-color-primary);
+  padding: 0.5rem 0.6rem;
+}
+
+.gafa-checkout__terms .gafa-check-box {
+  margin-top: 0.05rem;
+}
+
+.gafa-checkout__terms a {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
+  color: var(--gafa-color-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Total / CTA ── */
+
+.gafa-checkout__total {
+  border-top: 1px solid var(--gafa-color-border);
+  display: grid;
+  gap: 0.3rem;
+  margin-top: auto;
+  padding-top: 0.7rem;
+}
+
+.gafa-checkout__total-row {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.82rem;
+  justify-content: space-between;
+}
+
+.gafa-checkout__total-row--discount {
+  color: #15803d;
+}
+
+.gafa-checkout__total-row--grand {
+  align-items: baseline;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+}
+
+.gafa-checkout__total-row--grand span {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.gafa-checkout__total-row--grand strong {
+  font-family: var(--gafa-heading-font-family);
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.gafa-checkout__total-row--grand em {
+  --gafa-type-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 600;
+  margin-left: 0.3rem;
+}
+
+.gafa-checkout__cta {
+  width: 100%;
+}
+
+.gafa-checkout__cta-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.gafa-checkout__paypal-hit {
+  border-radius: inherit;
+  inset: 0;
+  opacity: 0.001;
+  overflow: hidden;
+  position: absolute;
+  z-index: 2;
+}
+
+.gafa-checkout__cta-wrap[data-paypal-locked="true"] .gafa-checkout__paypal-hit,
+.gafa-checkout__cta-wrap[data-busy="true"] .gafa-checkout__paypal-hit,
+.gafa-checkout__paypal-hit:not(:has(iframe, .paypal-button, .paypal-button-container)) {
+  pointer-events: none;
+}
+
+.gafa-checkout__paypal-hit iframe,
+.gafa-checkout__paypal-hit .paypal-button,
+.gafa-checkout__paypal-hit .paypal-button-container {
+  height: 100% !important;
+  min-height: 100%;
+  min-width: 100%;
+  width: 100% !important;
+}
+
+.gafa-checkout__backlink {
+  --gafa-type-size: 0.78rem;
+  --gafa-control-font-size: 0.78rem;
+  --gafa-control-padding: 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 0px;
+  --gafa-control-tracking: normal;
+  --gafa-control-transform: none;
+  background: none;
+  border: 0;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0;
+  text-align: left;
+  white-space: normal;
+}
+
+.gafa-checkout__backlink:hover {
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+}
+
+.gafa-checkout__error {
+  color: #b91c1c;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.gafa-checkout__env-warn {
+  background: color-mix(in srgb, #b45309 12%, transparent);
+  border-radius: 10px;
+  color: #92400e;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+}
+
+.gafa-checkout__paypal-hint {
+  --gafa-type-size: 0.82rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Pago ── */
+
+.gafa-checkout-pay {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.gafa-checkout-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.gafa-checkout-methods button {
+  --gafa-type-size: 0.84rem;
+  --gafa-control-font-size: 0.84rem;
+  --gafa-control-padding: 0.55rem 0.95rem;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: 12px;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  gap: 0.45rem;
+  padding: 0.55rem 0.95rem;
+  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+}
+
+.gafa-checkout-methods button[data-active="true"] {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
+  border-color: var(--gafa-color-primary);
+  color: var(--gafa-color-text);
+}
+
+/* Sin marco propio: el campo de tarjeta que inyecta GafaPayFront ya trae el
+   suyo, y los dos juntos se veian como un doble borde con hueco en medio. */
+.gafa-checkout-paymount {
+  min-height: 0;
+  /* La isla trae anchos fijos (tarjetas de 200px, formularios al 100%): sin
+     esto el panel de pago desbordaba y el modal sacaba scroll horizontal. */
+  max-width: 100%;
+  min-width: 0;
+}
+
+.gafa-checkout-paymount__island {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/*
+ * theme.css pone `content-box` en toda la isla de GafaPay porque checkout.js
+ * (PayPal) mide asi su boton. Con Stripe eso hacia que `width: 100%` + padding
+ * + borde se saliera del panel: el `•••• 3002` y el `MM / YY CVC` quedaban
+ * cortados a la derecha. PayPal se queda como estaba.
+ */
+.gafa-checkout-paymount[data-method="stripe"] .gafa-pay-native,
+.gafa-checkout-paymount[data-method="stripe"] .gafa-pay-native * {
+  box-sizing: border-box;
+}
+
+.gafa-checkout-paymount[data-method="paypal"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 1rem;
+  justify-items: stretch;
+  min-height: 0;
+  padding: 1.15rem 1.15rem 1.05rem;
+}
+
+.gafa-checkout-paymount[data-method="paypal"][data-locked="true"] {
+  cursor: pointer;
+}
+
+.gafa-checkout-paymount[data-method="paypal"][data-locked="true"] .gafa-pay-native,
+.gafa-checkout-paymount[data-method="paypal"][data-busy="true"] .gafa-pay-native {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/*
+ * El botón oro vive aquí, en el recuadro del centro. No le pongas width/height
+ * a #paypal: checkout.js mide content-box y logo + “Pagar” se enciman.
+ * El recuadro es más ancho que la columna del total, así el botón sale grande.
+ */
+.gafa-checkout-paymount[data-method="paypal"] .gafa-checkout-paymount__island {
+  width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements,
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__container,
+.gafa-checkout-paymount[data-method="paypal"] .gafapay-elements__section {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="recurrente"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 1rem;
+  justify-items: stretch;
+  min-height: 0;
+  padding: 1.15rem 1.15rem 1.05rem;
+  position: relative;
+}
+
+/* GafaPay pinta "Pago con Tarjeta": lo dejamos oculto y usamos nuestro CTA
+   en el recuadro (más el de la columna derecha). */
+.gafa-checkout-paymount[data-method="recurrente"] .gafapay-recurrente button {
+  height: 1px;
+  left: -9999px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.gafa-checkout-cardpay {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.gafa-checkout-cardpay .gafa-checkout__cta {
+  width: 100%;
+}
+
+/* Fancy v1: #saveCard / #recurringPayment / [name=subscribe] van marcados
+   y ocultos. El socio los ve solo si abre “Opciones de la membresía”. */
+.gafa-checkout-paymount .gafapay-form__group.is-checkbox,
+.gafa-checkout-paymount #saveCard,
+.gafa-checkout-paymount #recurringPayment,
+.gafa-checkout-paymount [name="saveCard"],
+.gafa-checkout-paymount [name="recurringPayment"],
+.gafa-checkout-paymount [name="subscribe"] {
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Oculto por defecto (link + checks). El socio lo enciende con
+   SHOW_MEMBERSHIP_OPTIONS, show-membership-options="true" o:
+   .gafa-checkout-membership[hidden] { display: grid !important; } */
+.gafa-checkout-membership {
+  display: none;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.gafa-checkout-membership[data-visible="true"] {
+  display: grid;
+}
+
+.gafa-checkout-membership__fields {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.gafa-check-row {
+  align-items: flex-start;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: grid;
+  font-size: 0.82rem;
+  gap: 0.55rem;
+  grid-template-columns: auto 1fr;
+  line-height: 1.35;
+  position: relative;
+}
+
+.gafa-check-input {
+  height: 1px;
+  left: 0;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  top: 0.15rem;
+  width: 1px;
+}
+
+.gafa-check-box {
+  background: var(--gafa-color-surface);
+  border: 1.5px solid color-mix(in srgb, var(--gafa-color-text) 28%, var(--gafa-color-border));
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: inline-grid;
+  flex: 0 0 auto;
+  height: 1.2rem;
+  place-items: center;
+  position: relative;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  width: 1.2rem;
+}
+
+.gafa-check-box::after {
+  border: solid var(--gafa-color-primary-text, #111827);
+  border-width: 0 2px 2px 0;
+  content: "";
+  height: 0.48rem;
+  opacity: 0;
+  transform: rotate(45deg) translate(-0.5px, -1px) scale(0.6);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  width: 0.26rem;
+}
+
+.gafa-check-input:checked + .gafa-check-box {
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gafa-color-primary) 22%, transparent);
+}
+
+.gafa-check-input:checked + .gafa-check-box::after {
+  opacity: 1;
+  transform: rotate(45deg) translate(-0.5px, -1px) scale(1);
+}
+
+.gafa-check-input:focus-visible + .gafa-check-box {
+  box-shadow: 0 0 0 3px var(--gafa-color-accent);
+}
+
+.gafa-check-row__text {
+  min-width: 0;
+}
+
+.gafa-checkout-paypal-copy {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.gafa-checkout-paypal-copy__mark {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.gafa-checkout-paypal-copy strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.gafa-checkout-paypal-copy p {
+  --gafa-type-size: 0.8rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0.15rem 0 0;
+}
+
+.gafa-checkout-paymount[data-loading="true"] {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+/* Formulario que inyecta GafaPayFront: se alinea al tema. */
+.gafa-checkout-paymount .gafapay-form__group {
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+}
+
+/* ── Thank you ── */
+
+/* El thank you es contenido corto: el modal se encoge en vez de dejar
+   medio panel vacio como pasaba con la altura minima del checkout. */
+.gafa-checkout[data-step="thanks"] {
+  max-width: 620px;
+  min-height: 0;
+}
+
+.gafa-checkout-thanks {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  justify-content: center;
+  padding: 2.5rem clamp(1.5rem, 5vw, 3rem);
+  text-align: center;
+}
+
+.gafa-checkout-thanks__badge {
+  align-items: center;
+  animation: gafa-thanks-pop 0.5s cubic-bezier(0.22, 1.4, 0.36, 1);
+  background: var(--gafa-color-primary);
+  border-radius: 999px;
+  --gafa-fg: var(--gafa-color-primary-text);
+  color: var(--gafa-color-primary-text);
+  display: inline-flex;
+  height: 54px;
+  justify-content: center;
+  width: 54px;
+}
+
+@keyframes gafa-thanks-pop {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: none; }
+}
+
+.gafa-checkout-thanks h2 {
+  --gafa-heading-size: clamp(1.7rem, 3.4vw, 2.3rem);
+  font-family: var(--gafa-heading-font-family);
+  font-size: clamp(1.7rem, 3.4vw, 2.3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.gafa-checkout-thanks > p {
+  --gafa-type-size: 0.92rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.92rem;
+  margin: 0;
+  max-width: 32rem;
+}
+
+.gafa-checkout-thanks > p.gafa-checkout-thanks__pending {
+  --gafa-type-size: 0.84rem;
+  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  border-radius: 12px;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-size: 0.84rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.gafa-checkout-thanks__card {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-left: 3px solid var(--gafa-color-primary);
+  border-radius: 14px;
+  display: grid;
+  gap: 0.2rem;
+  max-width: 26rem;
+  padding: 0.9rem 1.05rem;
+  text-align: left;
+  width: 100%;
+}
+
+.gafa-checkout-thanks__card span,
+.gafa-checkout-thanks__card small {
+  --gafa-type-size: 0.74rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.74rem;
+}
+
+.gafa-checkout-thanks__card strong {
+  font-size: 1.02rem;
+}
+
+.gafa-checkout-thanks__card p {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.gafa-checkout-thanks__lines {
+  display: grid;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  max-width: 26rem;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.gafa-checkout-thanks__lines li {
+  --gafa-type-size: 0.85rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.85rem;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.gafa-checkout-thanks__lines strong {
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.gafa-checkout-thanks__lines li.gafa-checkout-thanks__total {
+  border-top: 1px solid var(--gafa-color-border);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-weight: 700;
+  margin-top: 0.3rem;
+  padding-top: 0.45rem;
+}
+
+.gafa-checkout-thanks > .gafa-sdk-button {
+  margin-top: 0.35rem;
+  max-width: 240px;
+  width: 100%;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 860px) {
+  .gafa-checkout-overlay {
+    padding: 0;
+  }
+
+  .gafa-checkout {
+    border-radius: 18px 18px 0 0;
+    margin: auto 0 0;
+    max-height: calc(100dvh - 1.5rem);
+    min-height: 0;
+  }
+
+  /* El catalogo scrollea; el carrito es una barra anclada abajo. Antes el
+     carrito se apilaba debajo del catalogo y el total con "Ir a pagar"
+     quedaban fuera de la pantalla. */
+  .gafa-checkout__layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .gafa-checkout__main {
+    overflow-y: auto;
+    padding: 1.2rem 1rem 1rem;
+  }
+
+  .gafa-checkout__cart {
+    border-left: 0;
+    border-top: 1px solid var(--gafa-color-border);
+    box-shadow: 0 -12px 28px -22px rgb(0 0 0 / 0.8);
+    gap: 0.6rem;
+    max-height: 62dvh;
+    padding: 0.75rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* El resumen plegable: catalogo y pago. En desktop sigue en display:none. */
+  .gafa-checkout:not([data-step="thanks"]) .gafa-checkout__cart-toggle {
+    display: flex;
+  }
+
+  /* En movil la cabecera del carrito repetia la barra de resumen. El chip de
+     la clase se deja: ahi esta la X para quitarla y comprar sin reservar. */
+  .gafa-checkout__cart-head {
+    display: none;
+  }
+
+  /* En pago el carrito comparte espacio con promos, terminos y el boton. */
+  .gafa-checkout[data-step="pay"] .gafa-checkout__lines,
+  .gafa-checkout[data-step="auth"] .gafa-checkout__lines {
+    max-height: 22dvh;
+  }
+
+  .gafa-checkout-paymount[data-method="paypal"] {
+    min-height: 0;
+    padding: 0.9rem;
+  }
+
+  /* Catalogo y pago: el detalle de lineas arranca colapsado. */
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__lines,
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__empty,
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout-line-skel {
+    display: none;
+  }
+
+  /* En catalogo el total ya vive en la barra; no lo duplicamos. En pago
+     se deja: ahi acompaña a «Pagar». */
+  .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__total {
+    display: none;
+  }
+
+  .gafa-checkout__cart[data-open="true"] .gafa-checkout__cart-toggle svg {
+    transform: rotate(180deg);
+  }
+
+  .gafa-checkout__lines {
+    max-height: 34dvh;
+  }
+
+  .gafa-checkout__empty {
+    padding: 0.75rem 0;
+  }
+
+  .gafa-checkout__empty svg {
+    display: none;
+  }
+
+  .gafa-checkout-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .gafa-checkout__toolbar {
+    gap: 0.3rem;
+  }
+
+  .gafa-checkout-tabs {
+    gap: 0.2rem;
+  }
+
+  .gafa-checkout-tabs button {
+    --gafa-control-font-size: 0.72rem;
+    --gafa-control-padding: 0.28rem 0.5rem;
+    font-size: 0.72rem;
+    padding: 0.28rem 0.5rem;
+  }
+
+  .gafa-checkout-tabs button em {
+    font-size: 0.62rem;
+    padding: 0.16rem 0.32rem;
+  }
+
+  .gafa-checkout-search {
+    --gafa-search-width: 0px;
+    justify-content: center;
+    max-width: 32px;
+    min-width: 32px;
+    overflow: hidden;
+    padding: 0;
+    width: 32px;
+  }
+
+  .gafa-checkout-search input {
+    opacity: 0;
+    width: 0;
+  }
+
+  .gafa-checkout-search:focus-within {
+    --gafa-search-width: 72px;
+    justify-content: flex-start;
+    max-width: 120px;
+    min-width: 108px;
+    padding: 0 0.45rem;
+    width: auto;
+  }
+
+  .gafa-checkout-search:focus-within input {
+    opacity: 1;
+    width: 72px;
+  }
+
+  /* El titulo compite con el catalogo por el alto util. */
+  .gafa-checkout__hero h2 {
+  --gafa-heading-size: 1.3rem;
+    font-size: 1.3rem;
+  }
+
+  .gafa-checkout__hero p {
+    font-size: 0.84rem;
+  }
+}
+
+/* ── Skeleton del mapa mientras carga el contexto de reserva ── */
+
+/* Donde van a aparecer las opciones de pago (paquete / membresía). */
+.gafa-payment-choice-skel {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gafa-payment-choice-skel__bar {
+  border-radius: var(--gafa-radius-md);
+  height: 44px;
+  width: 100%;
+}
+
+.gafa-seatmap-skeleton {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.1rem;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.gafa-seatmap-skeleton__legend {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.gafa-seatmap-skeleton__legend span {
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 16%, transparent);
+  border-radius: 999px;
+  height: 10px;
+  width: 64px;
+}
+
+.gafa-seatmap-skeleton__grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(6, 38px);
+}
+
+.gafa-seatmap-skeleton__grid span {
+  animation: gafa-skeleton-pulse 1.2s ease-in-out infinite;
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 18%, transparent);
+  border-radius: 999px;
+  height: 38px;
+  width: 38px;
+}
+
+@keyframes gafa-skeleton-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+/* Login dentro del checkout (compra suelta sin sesion). */
+.gafa-checkout-auth {
+  max-width: 26rem;
+}
+
+/* El hero del contenedor ya es el encabezado del paso de cuenta: la tarjeta del
+   AuthWidget no necesita repetir marco dentro del modal (mismo criterio que en
+   la cuenta). El padding se queda: es el ancho con el que se midieron los
+   campos y los links de abajo. */
+.gafa-checkout-auth .gafa-widget-card,
+.gafa-reservation-sheet .gafa-widget-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.gafa-checkout-auth .gafa-sdk-form {
+  gap: 0.7rem;
+}
+
+/* Isla de GafaPayFront: el markup lo pinta su React 16, aqui solo se integra
+   visualmente con el tema del socio. */
+.gafa-checkout-paymount[data-state="error"] .gafa-checkout-paymount__island {
+  display: none;
+}
+
+/* Mientras carga se mantiene montado pero fuera de vista: desmontarlo
+   reiniciaria el iframe de Stripe en cada render. PayPal (checkout.js)
+   mide el contenedor al pintar: si la isla vale height:0, logo y “Pagar”
+   se enciman. */
+.gafa-checkout-paymount[data-state="loading"] .gafa-checkout-paymount__island,
+.gafa-checkout-paymount[data-state="idle"] .gafa-checkout-paymount__island {
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.gafa-checkout-paymount[data-method="paypal"][data-state="loading"] .gafa-checkout-paymount__island,
+.gafa-checkout-paymount[data-method="paypal"][data-state="idle"] .gafa-checkout-paymount__island {
+  height: 45px;
+  min-height: 45px;
+  opacity: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.gafa-checkout-paymount .gafapay-elements__container {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.gafa-checkout-paymount .gafapay-form__group {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0.7rem 0.9rem;
+}
+
+/*
+ * Stripe vs Conekta (GafaPayFront): no es el mismo padre.
+ *
+ * Stripe (Fitspin):
+ *   .gafapay-elements
+ *     .gafapay-elements__container.is-cardList > .card-list > .card-list__item*
+ *     .gafapay-elements__container.is-newCard  > form (Nueva tarjeta)
+ *   GafaPay deja `.gafapay-elements__container { display: block }` y NO
+ *   pone gap en `.gafapay-elements`. Las cajas hermanas se tocan.
+ *
+ * Conekta:
+ *   .gafapay-elements__section.is-cards (row-gap 20px)
+ *     .gafapay-elements__cards.is-cardList
+ *     .gafapay-elements__cards.is-newCard { row-gap: 0 }
+ *
+ * Varias tarjetas guardadas: StripeSources hace un `.card-list__item` por
+ * source. GafaPay a ≥992px las pone en 3 columnas de 200×110. Aquí cada
+ * una es un tile a todo el ancho, con el mismo hueco que la tarjeta nueva.
+ *
+ * OJO: nada de `display: flex` en `.gafapay-form__group`. El div `.StripeElement`
+ * no lleva ancho propio, como flex item se encoge a 0 y el iframe de Stripe
+ * queda invisible (la caja se ve vacía).
+ *
+ * Prefijo `html body .gafa-sdk`: GafaPay inyecta su CSS DESPUÉS del embed.
+ */
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] {
+  --gafa-pay-card-gap: 0.85rem;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements {
+  align-items: start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  row-gap: var(--gafa-pay-card-gap);
+  width: 100%;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements.has-noCards > .gafapay-elements__container.is-cardList {
+  display: none;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements__container {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Hueco visible entre la lista guardada y «Nueva tarjeta». GafaPay las deja
+   pegadas (display:block, sin margin). */
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-elements__container.is-cardList {
+  margin-bottom: 12px;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list__item + .card-list__item {
+  margin-top: 12px;
+}
+
+.gafa-checkout-paymount .gafapay-elements__cards {
+  justify-items: stretch;
+  row-gap: 0.85rem;
+  width: 100%;
+}
+
+/* GafaPayFront centra los hijos de la sección: sin esto el campo de tarjeta
+   se encoge al ancho de su contenido y no cuadra con la tarjeta guardada. */
+.gafa-checkout-paymount .gafapay-form__section {
+  justify-items: stretch;
+  row-gap: 0.6rem;
+  width: 100%;
+}
+
+.gafa-checkout-paymount .StripeElement {
+  width: 100%;
+}
+
+.gafa-checkout-paymount input,
+.gafa-checkout-paymount select {
+  background: transparent;
+  border: 0;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font: inherit;
+  outline: none;
+  width: 100%;
+}
+
+.gafa-checkout-paymount label {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+}
+
+.gafa-checkout-paymount .card-list:empty {
+  display: none;
+}
+
+/* GafaPayFront envuelve el campo de tarjeta en 30px de aire arriba y abajo:
+   dentro del modal se veia como un hueco vacio debajo del borde. El fancy v1
+   deja padding:0 pero pone margin-bottom:20px en .card-list para no encimar. */
+.gafa-checkout-paymount .gafapay-form__container {
+  padding: 0;
+  row-gap: 0.75rem;
+  width: 100%;
+}
+
+/* ── Tarjetas guardadas (las pinta GafaPayFront) ── */
+
+.gafa-checkout-paymount .card-list {
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  margin: 0;
+  row-gap: 0.85rem;
+  width: 100%;
+}
+
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list {
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  margin: 0;
+  row-gap: var(--gafa-pay-card-gap);
+  width: 100%;
+}
+
+@media screen and (min-width: 992px) {
+  html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .card-list__item {
+    height: auto;
+    width: 100%;
+  }
+}
+
+/* GafaPayFront las fija en 200×110 y alinea el `•••• 1234` a la derecha: dentro
+   del modal quedaba una caja ancha medio vacía. Aquí es una tarjeta compacta. */
+.gafa-checkout-paymount .card-list__item {
+  align-content: start;
+  background: var(--gafa-color-surface);
+  border-color: var(--gafa-color-border);
+  border-radius: 12px;
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  gap: 0.45rem;
+  /* GafaPayFront usa 2 columnas y manda el `•••• 1234` a la derecha; apilado
+     bajo la marca se lee como una tarjeta. */
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto;
+  height: auto;
+  justify-items: start;
+  min-height: 0;
+  padding: 0.7rem 0.8rem;
+  width: 100%;
+}
+
+/* La tarjeta nueva se pinta como una tarjeta más: mismo marco y un rótulo
+   arriba, en el lugar donde la guardada trae la marca. */
+.gafa-checkout-paymount[data-method="stripe"] .gafapay-form__group:not(.is-checkbox) {
+  align-content: start;
+  display: grid;
+  gap: 0.55rem;
+  justify-items: stretch;
+  min-height: 0;
+  padding: 0.7rem 0.8rem;
+  width: 100%;
+}
+
+.gafa-checkout-paymount[data-method="stripe"] .gafapay-form__group:not(.is-checkbox)::before {
+  --gafa-type-size: 0.62rem;
+  background: var(--gafa-color-surface-raised, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 6px;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  content: "Nueva tarjeta";
+  font-size: 0.62rem;
+  font-weight: 700;
+  justify-self: start;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  padding: 0.2rem 0.4rem;
+  text-transform: uppercase;
+}
+
+/* GafaPay solo muestra el form de tarjeta nueva cuando ninguna guardada está
+   elegida (`.gafapay-form__container.is-active`). Visible = es el método
+   activo: mismo resalte que una tarjeta guardada seleccionada, para que no
+   parezca que la compra saldrá de la guardada. */
+html body .gafa-sdk .gafa-checkout-paymount[data-method="stripe"] .gafapay-form__container.is-active .gafapay-form__group:not(.is-checkbox) {
+  border-color: var(--gafa-color-primary);
+  box-shadow: 0 0 0 1px var(--gafa-color-primary);
+}
+
+.gafa-checkout-paymount .card-list__item.is-selected,
+.gafa-checkout-paymount .card-list__item:hover {
+  background: color-mix(in srgb, var(--gafa-color-primary) 10%, var(--gafa-color-surface));
+  border-color: var(--gafa-color-primary);
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+}
+
+/* La guardada elegida se deselecciona con otro clic (GafaPay hace el toggle);
+   la ✕ solo lo hace visible. Es decorativa: el clic lo captura el tile. */
+.gafa-checkout-paymount .card-list__item.is-selected::after {
+  --gafa-type-size: 0.7rem;
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: 50%;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  content: "✕";
+  display: inline-flex;
+  font-size: 0.7rem;
+  height: 22px;
+  justify-content: center;
+  line-height: 1;
+  position: absolute;
+  right: 0.6rem;
+  top: 0.6rem;
+  width: 22px;
+}
+
+/* El nombre de la marca va en un <p>, pero la hoja de GafaPayFront solo
+   estiliza el <span> de su version de Conekta: sin esto el texto se sale de la
+   cajita de 35px y se parte en dos renglones. */
+.gafa-checkout-paymount .card-list__item > .type {
+  background: var(--gafa-color-surface);
+  border-color: var(--gafa-color-border);
+  border-radius: 6px;
+  max-width: 100%;
+  padding: 0.2rem 0.4rem;
+  width: auto;
+}
+
+.gafa-checkout-paymount .card-list__item > .type p {
+  --gafa-type-size: 0.62rem;
+  --gafa-fg: var(--gafa-color-text);
+
+  color: var(--gafa-color-text);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* GafaPayFront manda el `•••• 1234` abajo a la derecha (tarjeta de 200×110).
+   Apilado bajo la marca se lee como una tarjeta y no como una fila suelta. */
+.gafa-checkout-paymount .card-list__item > .last4 {
+  align-items: start;
+  justify-items: start;
+}
+
+.gafa-checkout-paymount .card-list__item > .last4 p {
+  font-size: 0.95rem;
+}
+
+/* GafaPay pinta labels/checks en negro. En dark el chrome de Stripe tiene
+   que leer el texto del SDK; el iframe lo pinta stripeCardStyle.ts. */
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"],
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"] .gafapay-form,
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"] .gafapay-form label,
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"] .card-list__item,
+html body .gafa-sdk[data-color-scheme="dark"] .gafa-checkout-paymount[data-method="stripe"] .form-check-label {
+  --gafa-fg: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+}
+
+/* Resultados de busqueda: agrupados por tipo, porque el buscador mira todo el
+   catalogo y no solo la pestaña abierta. */
+.gafa-checkout-results {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.gafa-checkout-results__title {
+  --gafa-type-size: 0.74rem;
+  align-items: center;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  font-size: 0.74rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  letter-spacing: 0.08em;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+}
+
+.gafa-checkout-results__title span {
+  background: color-mix(in srgb, var(--gafa-color-muted-text) 14%, transparent);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  padding: 0.1rem 0.4rem;
+}
