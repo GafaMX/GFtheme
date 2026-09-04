@@ -97,6 +97,11 @@ export function ConciergeHost({
 }) {
   const [config, setConfig] = useState(initialConfig);
   const [open, setOpen] = useState(false);
+  const [catalogNonce, setCatalogNonce] = useState(0);
+  const openCatalog = useCallback(() => {
+    setOpen(true);
+    setCatalogNonce((current) => current + 1);
+  }, []);
   const go = useCallback((path: string) => {
     if (navigate) {
       navigate(path);
@@ -151,6 +156,7 @@ export function ConciergeHost({
         webview={webview}
         resolveHardPath={resolveHardPath}
         ask={resolvedAsk}
+        catalogNonce={catalogNonce}
       />
       <ConciergeCommandBar
         config={config}
@@ -160,6 +166,7 @@ export function ConciergeHost({
         webview={webview}
         collapsedByDefault={collapsedByDefault}
         extraAction={extraAction}
+        onOpenCatalog={openCatalog}
       />
     </>
   );

@@ -249,6 +249,11 @@
 .gafa-concierge .transition-transform { transition: transform 150ms ease; }
 .gafa-concierge .group:hover .group-hover\:translate-x-0\.5 { transform: translateX(0.125rem); }
 
+.gafa-concierge .chip-on {
+  background: var(--concierge-accent);
+  color: var(--concierge-accent-ink);
+}
+
 .gafa-concierge .hover\:bg-\[var\(--concierge-soft\)\]:hover { background: var(--concierge-soft); }
 .gafa-concierge .bg-black\/5 { background: rgb(0 0 0 / 0.05); }
 .gafa-concierge .hover\:bg-black\/5:hover { background: rgb(0 0 0 / 0.05); }

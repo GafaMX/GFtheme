@@ -4,8 +4,10 @@ export {
   ConciergeBuyActionSchema,
   ConciergeCapabilities,
   ConciergeCardSchema,
+  ConciergeCatalogGroupSchema,
   ConciergeChipSchema,
   ConciergeErrorSchema,
+  ConciergeExperienceSchema,
   ConciergeHistoryItemSchema,
   ConciergePartnerConfig,
   ConciergeProduct,
@@ -18,10 +20,26 @@ export {
 export type {
   ConciergeActionData,
   ConciergeCardData,
+  ConciergeCatalogGroup,
   ConciergeErrorData,
+  ConciergeExperience,
   ConciergeResponseData,
   ConciergeScheduleItem,
 } from "./contracts";
+export {
+  actionAllowed,
+  allLocationsLabel,
+  catalogGroups,
+  emptyCatalogCopy,
+  filterCatalogProducts,
+  openingChips,
+  packagesIntro,
+  productMatchesGroup,
+  showLocationSwitcher,
+  todayIntro,
+  todayIso,
+} from "./experience";
+export type { CatalogFilter, OpeningChip } from "./experience";
 export {
   DEMO_CONCIERGE_CONFIG,
   FITSPIN_CONCIERGE_CONFIG,

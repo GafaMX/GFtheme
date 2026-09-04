@@ -119,14 +119,99 @@ describe("sdk.concierge.mount", () => {
     fireEvent.change(input!, { target: { value: "quiero un paquete" } });
     fireEvent.submit(form!);
     await waitFor(() => {
-      expect(document.body.textContent).toContain("Estos son los paquetes disponibles:");
+      expect(document.body.textContent).toContain("Available passes:");
+      expect(document.querySelector("[data-gafa-concierge-catalog]")).toBeTruthy();
       expect(document.body.textContent).toContain("Drop-in");
     });
-    const buy = Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("Comprar"));
+    const buy = Array.from(document.querySelectorAll("[data-gafa-concierge-catalog] button")).find((button) => button.textContent?.includes("Comprar"));
     buy?.click();
     await waitFor(() => {
       expect(document.querySelector(".gafa-checkout-overlay")).toBeTruthy();
+      expect(document.querySelector("[data-gafa-concierge-dialog]")).toBeNull();
     });
+  });
+
+  it("abre el catálogo en el chat desde Comprar y no navega", async () => {
+    const navigated: string[] = [];
+    const handle = boot().concierge.mount({
+      config: DEMO_CONCIERGE_CONFIG,
+      navigate: (path) => navigated.push(path),
+    });
+    const buy = await waitFor(() => {
+      const button = Array.from(document.querySelectorAll("[data-gafa-concierge-bar] button"))
+        .find((candidate) => candidate.textContent?.trim() === "Comprar");
+      expect(button).toBeTruthy();
+      return button!;
+    });
+    fireEvent.click(buy);
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-concierge-catalog]")).toBeTruthy();
+      expect(document.body.textContent).toContain("Available passes:");
+      expect(document.body.textContent).toContain("Drop-in");
+    });
+    expect(navigated).toEqual([]);
+    handle.close();
+  });
+
+  it("muestra chips de apertura y filtros de sede/categoría desde experience", async () => {
+    const handle = boot().concierge.mount({ config: FITSPIN_CONCIERGE_CONFIG });
+    handle.open();
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Comprar paquetes");
+      expect(document.body.textContent).toContain("Horarios de hoy");
+    });
+    const chip = Array.from(document.querySelectorAll("[data-gafa-concierge-dialog] button"))
+      .find((button) => button.textContent?.trim() === "Comprar paquetes");
+    fireEvent.click(chip!);
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-concierge-catalog]")).toBeTruthy();
+      expect(document.body.textContent).toContain("Todas las sedes");
+      expect(document.querySelector('[data-gafa-concierge-location="122"]')?.textContent).toContain("LOMAS");
+      expect(document.querySelector('[data-gafa-concierge-group="clases"]')?.textContent).toContain("Clases");
+      expect(document.querySelector('[data-gafa-concierge-group="membresias"]')?.textContent).toContain("Membresías");
+    });
+    fireEvent.click(document.querySelector('[data-gafa-concierge-location="200"]')!);
+    fireEvent.click(document.querySelector('[data-gafa-concierge-group="membresias"]')!);
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("MEMBRESÍA CANCÚN");
+      expect(document.body.textContent).not.toContain("1 CLASE");
+    });
+    handle.close();
+  });
+
+  it("no cierra el concierge si el checkout no abre", async () => {
+    const handle = boot().concierge.mount({
+      config: {
+        ...DEMO_CONCIERGE_CONFIG,
+        catalog: {
+          ...DEMO_CONCIERGE_CONFIG.catalog,
+          products: [{
+            type: "combo",
+            id: "not-a-number",
+            brandSlug: "demo",
+            locationId: "1",
+            name: "Broken pass",
+            price: "$20",
+            note: "Valid for 30 days",
+          }],
+        },
+      },
+    });
+    handle.open();
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Buy a pass");
+    });
+    fireEvent.click(Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Buy a pass")!);
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Broken pass");
+    });
+    fireEvent.click(Array.from(document.querySelectorAll("[data-gafa-concierge-catalog] button")).find((button) => button.textContent?.includes("Comprar"))!);
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("El checkout no se abrió");
+    }, { timeout: 4_000 });
+    expect(document.querySelector(".gafa-checkout-overlay")).toBeNull();
+    expect(document.querySelector("[data-gafa-concierge-dialog]")).toBeTruthy();
+    handle.close();
   });
 
   it("oculta chips de cuenta/paquetes cuando el fallback o capability estan apagados", async () => {

@@ -101,6 +101,8 @@ export const ConciergePartnerConfig = z.object({
   security: z.object({
     allowedOrigins: z.array(z.string().url()).max(20),
   }),
+  /** Cómo abrir, agrupar y presentar el catálogo. No incluye precios ni IDs. */
+  experience: z.lazy(() => ConciergeExperienceSchema).optional(),
 });
 
 export const ConciergeHistoryItemSchema = z.object({
@@ -153,9 +155,47 @@ export const ConciergeBuyActionSchema = z.discriminatedUnion("productType", [
 
 export const ConciergeActionSchema = z.union([
   ConciergeBuyActionSchema,
-  z.object({ kind: z.enum(["reservar", "comprar", "cuenta", "whatsapp"]) }),
+  z.object({
+    kind: z.enum(["reservar", "comprar", "cuenta", "whatsapp", "horarios_hoy"]),
+    locationId: id.optional(),
+  }),
   z.object({ kind: z.literal("say"), text: z.string().min(1).max(300) }),
 ]);
+
+export const ConciergeCatalogGroupSchema = z.object({
+  id,
+  label: z.string().min(1).max(80),
+  match: z
+    .object({
+      types: z.array(z.enum(["combo", "membership"])).max(2).optional(),
+      locationIds: z.array(id).max(20).optional(),
+      productIds: z.array(id).max(50).optional(),
+      nameIncludes: z.array(z.string().min(1).max(80)).max(10).optional(),
+    })
+    .optional(),
+});
+
+export const ConciergeExperienceSchema = z.object({
+  openingActions: z
+    .array(
+      z.object({
+        label: z.string().min(1).max(80),
+        action: ConciergeActionSchema,
+      }),
+    )
+    .max(8)
+    .optional(),
+  locationSwitcher: z.boolean().optional(),
+  groups: z.array(ConciergeCatalogGroupSchema).max(12).optional(),
+  copy: z
+    .object({
+      packagesIntro: z.string().max(240).optional(),
+      todayIntro: z.string().max(240).optional(),
+      emptyCatalog: z.string().max(240).optional(),
+      allLocations: z.string().max(80).optional(),
+    })
+    .optional(),
+});
 
 export const ConciergeChipSchema = z.object({
   label: z.string().min(1).max(100),
@@ -226,3 +266,5 @@ export type ConciergeCardData = z.infer<typeof ConciergeCardSchema>;
 export type ConciergeActionData = z.infer<typeof ConciergeActionSchema>;
 export type ConciergeScheduleItem = z.infer<typeof ConciergeScheduleItemSchema>;
 export type ConciergeErrorData = z.infer<typeof ConciergeErrorSchema>;
+export type ConciergeExperience = z.infer<typeof ConciergeExperienceSchema>;
+export type ConciergeCatalogGroup = z.infer<typeof ConciergeCatalogGroupSchema>;

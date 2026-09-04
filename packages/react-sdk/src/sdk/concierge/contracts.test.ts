@@ -30,4 +30,14 @@ describe("concierge contracts", () => {
   it("rechaza una respuesta de IA sin version v1", () => {
     expect(ConciergeResponseSchema.safeParse({ message: "hola" }).success).toBe(false);
   });
+
+  it("acepta experience opcional y no exige textos Fitspin", () => {
+    const withoutExperience = ConciergePartnerConfig.parse({
+      ...DEMO_CONCIERGE_CONFIG,
+      experience: undefined,
+    });
+    expect(withoutExperience.experience).toBeUndefined();
+    expect(FITSPIN_CONCIERGE_CONFIG.experience?.groups?.[0]?.label).toBe("Clases");
+    expect(DEMO_CONCIERGE_CONFIG.experience?.openingActions?.[1]?.label).toBe("Buy a pass");
+  });
 });

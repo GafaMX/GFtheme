@@ -38,6 +38,18 @@ import {
 import { type ConciergeAskFn } from "./ask";
 import { timeoutSignal } from "./ask";
 import { conciergeProducts } from "./products";
+import {
+  actionAllowed,
+  allLocationsLabel,
+  catalogGroups,
+  emptyCatalogCopy,
+  filterCatalogProducts,
+  openingChips,
+  packagesIntro,
+  showLocationSwitcher,
+  todayIntro,
+  todayIso,
+} from "./experience";
 import "./concierge.css";
 
 export type ConciergeWidgetProps = {
@@ -49,6 +61,8 @@ export type ConciergeWidgetProps = {
   webview?: boolean;
   resolveHardPath?: (path: string) => string;
   ask?: ConciergeAskFn;
+  /** Incrementar para abrir el catálogo en el chat (botón Comprar de la barra). */
+  catalogNonce?: number;
 };
 
 type ChatMessage = {
@@ -56,6 +70,7 @@ type ChatMessage = {
   role: "assistant" | "user";
   text: string;
   card?: ConciergeCardData;
+  catalog?: boolean;
   chips?: Array<{ label: string; action: ConciergeActionData }>;
 };
 
@@ -81,16 +96,105 @@ function packageFor(
   );
 }
 
+function CatalogPanel({
+  config,
+  adapter,
+  onHandoff,
+  onStay,
+}: {
+  config: ConciergePartnerConfig;
+  adapter: ConciergeBrowserAdapter;
+  onHandoff: () => void;
+  onStay: () => void;
+}) {
+  const groups = catalogGroups(config);
+  const switcher = showLocationSwitcher(config);
+  const [locationId, setLocationId] = useState<string | undefined>();
+  const [groupId, setGroupId] = useState<string | undefined>(groups[0]?.id);
+  const products = filterCatalogProducts(config, { locationId, groupId });
+
+  return (
+    <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--concierge-line)]" data-gafa-concierge-catalog="">
+      {switcher ? (
+        <div className="flex flex-wrap gap-1.5 border-b border-[var(--concierge-line)] p-2">
+          <button
+            type="button"
+            data-gafa-concierge-location=""
+            onClick={() => setLocationId(undefined)}
+            className={`rounded-full px-3 py-1 text-[11px] font-semibold ${locationId ? "border border-[var(--concierge-line)]" : "chip-on"}`}
+          >
+            {allLocationsLabel(config)}
+          </button>
+          {config.studios.map((studio) => (
+            <button
+              key={studio.id}
+              type="button"
+              data-gafa-concierge-location={studio.locationId}
+              onClick={() => setLocationId(studio.locationId)}
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${locationId === studio.locationId ? "chip-on" : "border border-[var(--concierge-line)]"}`}
+            >
+              {studio.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {groups.length ? (
+        <div className="flex flex-wrap gap-1.5 border-b border-[var(--concierge-line)] p-2">
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              data-gafa-concierge-group={group.id}
+              onClick={() => setGroupId(group.id)}
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${groupId === group.id ? "chip-on" : "border border-[var(--concierge-line)]"}`}
+            >
+              {group.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {products.length ? products.map((product, index) => (
+        <div key={`${product.type}-${product.id}-${product.locationId}`} className={`flex items-center gap-3 p-3 ${index ? "border-t border-[var(--concierge-line)]" : ""}`}>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-bold">{product.name}</p>
+            <p className="text-[11px] opacity-65">{product.note}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-[14px] font-extrabold text-[var(--concierge-accent)]">{product.price}</p>
+            <button
+              type="button"
+              onClick={async () => {
+                completeAdapterHandoff(
+                  await adapter.buyProduct(product),
+                  onHandoff,
+                  onStay,
+                );
+              }}
+              className="mt-1 rounded-full bg-[var(--concierge-accent)] px-3 py-1 text-[10px] font-bold uppercase text-[var(--concierge-accent-ink)]"
+            >
+              Comprar →
+            </button>
+          </div>
+        </div>
+      )) : (
+        <p className="p-3 text-[12px] opacity-70">{emptyCatalogCopy(config)}</p>
+      )}
+    </div>
+  );
+}
+
 function PackagesCard({
   card,
   config,
   adapter,
   onHandoff,
+  onStay,
 }: {
   card: Extract<ConciergeCardData, { type: "packages" }>;
   config: ConciergePartnerConfig;
   adapter: ConciergeBrowserAdapter;
   onHandoff: () => void;
+  onStay: () => void;
 }) {
   return (
     <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--concierge-line)]">
@@ -106,11 +210,14 @@ function PackagesCard({
               type="button"
               onClick={async () => {
                 const product = packageFor(config, item.action);
-                if (!product) return adapter.openPackages();
+                if (!product) {
+                  onStay();
+                  return;
+                }
                 completeAdapterHandoff(
                   await adapter.buyProduct(product),
                   onHandoff,
-                  () => adapter.openPackages(),
+                  onStay,
                 );
               }}
               className="mt-1 rounded-full bg-[var(--concierge-accent)] px-3 py-1 text-[10px] font-bold uppercase text-[var(--concierge-accent-ink)]"
@@ -193,14 +300,28 @@ function ScheduleCard({
   );
 }
 
-function Card({ card, config, adapter, onHandoff }: { card: ConciergeCardData; config: ConciergePartnerConfig; adapter: ConciergeBrowserAdapter; onHandoff: () => void }) {
-  if (card.type === "packages") return <PackagesCard card={card} config={config} adapter={adapter} onHandoff={onHandoff} />;
+function Card({
+  card,
+  config,
+  adapter,
+  onHandoff,
+  onStay,
+}: {
+  card: ConciergeCardData;
+  config: ConciergePartnerConfig;
+  adapter: ConciergeBrowserAdapter;
+  onHandoff: () => void;
+  onStay: () => void;
+}) {
+  if (card.type === "packages") {
+    return <PackagesCard card={card} config={config} adapter={adapter} onHandoff={onHandoff} onStay={onStay} />;
+  }
   if (card.type === "studios") return <StudiosCard card={card} />;
   return <ScheduleCard card={card} adapter={adapter} onHandoff={onHandoff} />;
 }
 
 export function ConciergeWidget(props: ConciergeWidgetProps) {
-  const { config, open, onClose, navigate, sdk, webview, resolveHardPath, ask } = props;
+  const { config, open, onClose, navigate, sdk, webview, resolveHardPath, ask, catalogNonce = 0 } = props;
   const adapter = useMemo(
     () => createConciergeBrowserAdapter({ config, sdk, webview, navigate, resolveHardPath }),
     [config, sdk, webview, navigate, resolveHardPath],
@@ -214,6 +335,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
   const inputElement = useRef<HTMLInputElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
   const suppressFocusRestore = useRef(false);
+  const shownCatalogNonce = useRef(0);
 
   useEffect(() => {
     if (!open) return;
@@ -254,6 +376,18 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
     onClose();
   }, [onClose]);
 
+  const appendAssistant = useCallback((text: string, extra?: Partial<Omit<ChatMessage, "id" | "role" | "text">>) => {
+    setMessages((current) => [...current, { id: ++messageId, role: "assistant", text, ...extra }]);
+  }, []);
+
+  const showCatalogInChat = useCallback(() => {
+    appendAssistant(packagesIntro(config), { catalog: true });
+  }, [appendAssistant, config]);
+
+  const stayInChat = useCallback(() => {
+    appendAssistant("El checkout no se abrió. Puedes intentar de nuevo desde el catálogo.");
+  }, [appendAssistant]);
+
   useEffect(() => {
     if (!open || messages.length) return;
     void adapter.getProfile().then((profile) => {
@@ -261,9 +395,17 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
         id: ++messageId,
         role: "assistant",
         text: personalizeGreeting(config.copy.greeting, profile?.firstName),
+        chips: openingChips(config),
       }]);
     });
-  }, [adapter, config.copy.greeting, messages.length, open]);
+  }, [adapter, config, messages.length, open]);
+
+  useEffect(() => {
+    if (!open || !catalogNonce || !messages.length) return;
+    if (shownCatalogNonce.current === catalogNonce) return;
+    shownCatalogNonce.current = catalogNonce;
+    showCatalogInChat();
+  }, [catalogNonce, messages.length, open, showCatalogInChat]);
 
   useEffect(() => {
     const node = scroll.current;
@@ -276,22 +418,53 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
       setInput(action.text);
       return;
     }
+    if (!actionAllowed(config, action) && action.kind !== "whatsapp") {
+      appendAssistant("Esa acción no está disponible para esta compañía.");
+      return;
+    }
     if (action.kind === "reservar") return adapter.openCalendar();
-    if (action.kind === "comprar") return adapter.openPackages();
+    if (action.kind === "comprar") {
+      showCatalogInChat();
+      return;
+    }
+    if (action.kind === "horarios_hoy") {
+      const date = todayIso(config.timezone);
+      const studios = action.locationId
+        ? config.studios.filter((studio) => studio.locationId === action.locationId)
+        : config.studios;
+      appendAssistant(todayIntro(config));
+      let shown = 0;
+      for (const studio of studios) {
+        const result = await adapter.listMeetings(studio.locationId, date);
+        if (result.status === "ok" && result.items.length) {
+          shown += 1;
+          appendAssistant(`${studio.name} · ${date}`, {
+            card: {
+              type: "schedule",
+              locationName: studio.name,
+              date,
+              locationId: studio.locationId,
+              items: result.items,
+            },
+          });
+        }
+      }
+      if (!shown) appendAssistant("No hay horarios publicados para hoy.");
+      return;
+    }
     if (action.kind === "whatsapp") return adapter.openWhatsapp();
     if (action.kind === "cuenta") {
-      if (adapter.openAccount().fallback) adapter.openWhatsapp();
+      completeAdapterHandoff(adapter.openAccount(), handoffToSdkModal, () => adapter.openWhatsapp());
       return;
     }
     if (!("productType" in action)) return;
     const product = packageFor(config, action);
-    if (!product) return adapter.openPackages();
-    completeAdapterHandoff(
-      await adapter.buyProduct(product),
-      handoffToSdkModal,
-      () => adapter.openPackages(),
-    );
-  }, [adapter, config, handoffToSdkModal]);
+    if (!product) {
+      appendAssistant("No encontré ese producto. El catálogo sigue disponible aquí.", { catalog: true });
+      return;
+    }
+    completeAdapterHandoff(await adapter.buyProduct(product), handoffToSdkModal, stayInChat);
+  }, [adapter, appendAssistant, config, handoffToSdkModal, showCatalogInChat, stayInChat]);
 
   const send = useCallback(async (text: string) => {
     const message = text.trim();
@@ -319,11 +492,11 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
           action: { kind: "buy_package" as const, productType: product.type, productId: product.id, brandSlug: product.brandSlug, locationId: product.locationId },
         }));
         setMessages((current) => [...current, items.length
-          ? { id: ++messageId, role: "assistant", text: "Estos son los paquetes disponibles:", card: { type: "packages", items } }
+          ? { id: ++messageId, role: "assistant", text: packagesIntro(config), catalog: true }
           : {
               id: ++messageId,
               role: "assistant",
-              text: config.copy.fallback,
+              text: emptyCatalogCopy(config),
               chips: config.fallbacks.packages ? [{ label: "Ver paquetes", action: { kind: "comprar" as const } }] : undefined,
             }]);
       } else if (localStudios) {
@@ -412,7 +585,18 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
                 <div className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${message.role === "user" ? "bg-[var(--concierge-accent)] text-[var(--concierge-accent-ink)]" : "bg-[var(--concierge-soft)]"}`}>
                   {message.text}
                 </div>
-                {message.card && <Card card={message.card} config={config} adapter={adapter} onHandoff={handoffToSdkModal} />}
+                {message.catalog ? (
+                  <CatalogPanel config={config} adapter={adapter} onHandoff={handoffToSdkModal} onStay={stayInChat} />
+                ) : null}
+                {message.card && (
+                  <Card
+                    card={message.card}
+                    config={config}
+                    adapter={adapter}
+                    onHandoff={handoffToSdkModal}
+                    onStay={stayInChat}
+                  />
+                )}
                 {message.chips?.length ? (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {message.chips.map((chip) => (
@@ -427,8 +611,8 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
             {typing && <div className="w-fit rounded-2xl bg-[var(--concierge-soft)] px-4 py-2 text-[12px]" aria-label="Escribiendo">•••</div>}
           </div>
           <div className="flex gap-1.5 overflow-x-auto border-t border-[var(--concierge-line)] px-3 py-2">
-            {config.capabilities.schedule && config.fallbacks.calendar && <button type="button" onClick={() => adapter.openCalendar()} className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"><CalendarDays className="mr-1 inline h-3.5 w-3.5" /> Horarios</button>}
-            {config.capabilities.packages && config.fallbacks.packages && <button type="button" onClick={() => adapter.openPackages()} className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"><ShoppingBag className="mr-1 inline h-3.5 w-3.5" /> Paquetes</button>}
+            {config.capabilities.schedule && config.fallbacks.calendar && <button type="button" onClick={() => void runAction({ kind: "horarios_hoy" })} className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"><CalendarDays className="mr-1 inline h-3.5 w-3.5" /> Horarios</button>}
+            {config.capabilities.packages && config.fallbacks.packages && <button type="button" onClick={() => void runAction({ kind: "comprar" })} className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"><ShoppingBag className="mr-1 inline h-3.5 w-3.5" /> Paquetes</button>}
             {config.capabilities.account && config.fallbacks.account && <button type="button" onClick={() => void runAction({ kind: "cuenta" })} className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"><UserRound className="mr-1 inline h-3.5 w-3.5" /> Mi cuenta</button>}
           </div>
           <form onSubmit={submit} className="flex items-center gap-2 border-t border-[var(--concierge-line)] p-3">
@@ -450,6 +634,7 @@ export function ConciergeCommandBar({
   webview,
   collapsedByDefault,
   extraAction,
+  onOpenCatalog,
 }: {
   config: ConciergePartnerConfig;
   navigate: (path: string) => void;
@@ -458,6 +643,7 @@ export function ConciergeCommandBar({
   webview?: boolean;
   collapsedByDefault?: boolean;
   extraAction?: ReactNode;
+  onOpenCatalog?: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(Boolean(collapsedByDefault));
   const routes = webview ? config.routes.webview : config.routes.web;
@@ -480,7 +666,7 @@ export function ConciergeCommandBar({
           <motion.div key="bar" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="gafa-concierge-bar-inner">
             {config.capabilities.whatsapp && <button type="button" onClick={() => window.open(`https://wa.me/${config.contact.whatsapp}`, "_blank", "noopener,noreferrer")} aria-label="WhatsApp" className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5"><MessageCircle className="h-4 w-4 text-[#25D366]" /></button>}
             {config.capabilities.schedule && config.fallbacks.calendar && <button type="button" onClick={() => navigate(routes.calendar)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><CalendarDays className="h-4 w-4" style={{ color: config.theme.accent }} /><span>Reservar</span></button>}
-            {config.capabilities.packages && config.fallbacks.packages && <button type="button" onClick={() => navigate(routes.packages)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><ShoppingBag className="h-4 w-4" style={{ color: config.theme.accent }} /><span>Comprar</span></button>}
+            {config.capabilities.packages && config.fallbacks.packages && <button type="button" onClick={() => onOpenCatalog ? onOpenCatalog() : setOpen(true)} className="flex h-10 items-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase hover:bg-black/5"><ShoppingBag className="h-4 w-4" style={{ color: config.theme.accent }} /><span>Comprar</span></button>}
             <button type="button" onClick={() => setOpen(!open)} className="flex h-10 items-center gap-2 rounded-full px-4 text-[11px] font-bold uppercase" style={{ background: config.theme.accent, color: config.theme.foreground }}><Sparkles className="h-4 w-4" />{open ? "Cerrar" : "Concierge"}</button>
             {extraAction}
             <button type="button" onClick={() => setCollapsed(true)} aria-label="Minimizar acciones" className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5"><ChevronDown className="h-4 w-4" /></button>

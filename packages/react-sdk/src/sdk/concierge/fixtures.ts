@@ -105,6 +105,25 @@ export const FITSPIN_CONCIERGE_CONFIG: ConciergePartnerConfig = {
       "https://fitspin.mybuq.app",
     ],
   },
+  experience: {
+    locationSwitcher: true,
+    openingActions: [
+      { label: "Reservar", action: { kind: "reservar" } },
+      { label: "Comprar paquetes", action: { kind: "comprar" } },
+      { label: "Mi cuenta", action: { kind: "cuenta" } },
+      { label: "Horarios de hoy", action: { kind: "horarios_hoy" } },
+    ],
+    groups: [
+      { id: "clases", label: "Clases", match: { types: ["combo"] } },
+      { id: "membresias", label: "Membresías", match: { types: ["membership"] } },
+    ],
+    copy: {
+      packagesIntro: "Elige sede y categoría para ver el catálogo:",
+      todayIntro: "Clases de hoy",
+      emptyCatalog: "No hay paquetes para esta combinación.",
+      allLocations: "Todas las sedes",
+    },
+  },
 };
 
 /** Fixture deliberadamente distinto: el motor no debe depender de nombres Fitspin. */
@@ -152,6 +171,22 @@ export const DEMO_CONCIERGE_CONFIG: ConciergePartnerConfig = {
   theme: { mode: "dark", accent: "#8BE9FD", foreground: "#111827", icon: "calendar" },
   fallbacks: { calendar: true, packages: true, account: true, whatsapp: true },
   security: { allowedOrigins: ["https://demo.example.com"] },
+  experience: {
+    locationSwitcher: false,
+    openingActions: [
+      { label: "Book", action: { kind: "reservar" } },
+      { label: "Buy a pass", action: { kind: "comprar" } },
+      { label: "Account", action: { kind: "cuenta" } },
+      { label: "Today's classes", action: { kind: "horarios_hoy" } },
+    ],
+    groups: [{ id: "passes", label: "Passes", match: { types: ["combo"] } }],
+    copy: {
+      packagesIntro: "Available passes:",
+      todayIntro: "Today's schedule",
+      emptyCatalog: "No passes for this filter.",
+      allLocations: "All studios",
+    },
+  },
 };
 
 export const conciergePartnerFixtures = {
