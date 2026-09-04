@@ -547,6 +547,23 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
     event.preventDefault();
     void send(input);
   };
+
+  const footerActions = useMemo(() => {
+    const chips = openingChips(config);
+    const labelFor = (kind: "horarios_hoy" | "comprar" | "cuenta", fallback: string) =>
+      chips.find((chip) => chip.action.kind === kind)?.label ?? fallback;
+    const actions: Array<{ label: string; action: ConciergeActionData }> = [];
+    if (config.capabilities.schedule && config.fallbacks.calendar) {
+      actions.push({ label: labelFor("horarios_hoy", "Horarios"), action: { kind: "horarios_hoy" } });
+    }
+    if (config.capabilities.packages && config.fallbacks.packages) {
+      actions.push({ label: labelFor("comprar", "Paquetes"), action: { kind: "comprar" } });
+    }
+    if (config.capabilities.account && config.fallbacks.account) {
+      actions.push({ label: labelFor("cuenta", "Mi cuenta"), action: { kind: "cuenta" } });
+    }
+    return actions;
+  }, [config]);
   const variables = {
     "--concierge-accent": config.theme.accent,
     "--concierge-accent-ink": config.theme.foreground,
@@ -611,9 +628,23 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
             {typing && <div className="w-fit rounded-2xl bg-[var(--concierge-soft)] px-4 py-2 text-[12px]" aria-label="Escribiendo">•••</div>}
           </div>
           <div className="flex gap-1.5 overflow-x-auto border-t border-[var(--concierge-line)] px-3 py-2">
-            {config.capabilities.schedule && config.fallbacks.calendar && <button type="button" onClick={() => void runAction({ kind: "horarios_hoy" })} className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"><CalendarDays className="mr-1 inline h-3.5 w-3.5" /> Horarios</button>}
-            {config.capabilities.packages && config.fallbacks.packages && <button type="button" onClick={() => void runAction({ kind: "comprar" })} className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"><ShoppingBag className="mr-1 inline h-3.5 w-3.5" /> Paquetes</button>}
-            {config.capabilities.account && config.fallbacks.account && <button type="button" onClick={() => void runAction({ kind: "cuenta" })} className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"><UserRound className="mr-1 inline h-3.5 w-3.5" /> Mi cuenta</button>}
+            {footerActions.map((item) => {
+              const Icon = item.action.kind === "comprar"
+                ? ShoppingBag
+                : item.action.kind === "cuenta"
+                  ? UserRound
+                  : CalendarDays;
+              return (
+                <button
+                  key={item.action.kind}
+                  type="button"
+                  onClick={() => void runAction(item.action)}
+                  className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"
+                >
+                  <Icon className="mr-1 inline h-3.5 w-3.5" /> {item.label}
+                </button>
+              );
+            })}
           </div>
           <form onSubmit={submit} className="flex items-center gap-2 border-t border-[var(--concierge-line)] p-3">
             <label htmlFor={`concierge-input-${config.id}`} className="sr-only">Mensaje para {config.copy.assistantName}</label>

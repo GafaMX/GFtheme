@@ -64,6 +64,9 @@ describe("sdk.concierge.mount", () => {
     await waitFor(() => {
       expect(document.querySelector('[role="dialog"][aria-modal="true"]')).toBeTruthy();
       expect(document.getElementById("concierge-title-demo-studio")?.textContent).toBe("Studio guide");
+      expect(document.body.textContent).toContain("Book");
+      expect(document.body.textContent).toContain("Buy a pass");
+      expect(document.body.textContent).toContain("Today's classes");
     });
 
     handle.close();
@@ -233,5 +236,7 @@ describe("sdk.concierge.mount", () => {
     expect(document.querySelector('[aria-label="WhatsApp"]')).toBeNull();
     expect(Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("Paquetes"))).toBe(false);
     expect(Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("Mi cuenta"))).toBe(false);
+    expect(Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("Buy a pass"))).toBe(false);
+    expect(Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("Account"))).toBe(false);
   });
 });
