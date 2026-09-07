@@ -9,6 +9,7 @@ describe("ThemeProvider sigue el theme de la página", () => {
     document.documentElement.style.removeProperty("--sdk-background-color");
     localStorage.removeItem("gafa-sdk-color-scheme");
     localStorage.removeItem(themePreferenceStorageKey());
+    localStorage.removeItem(themePreferenceStorageKey("80:74"));
     localStorage.removeItem("fitspin-theme");
     document.body.removeAttribute("data-scheme");
     document.body.removeAttribute("data-demo-scheme");
@@ -116,5 +117,24 @@ describe("ThemeProvider sigue el theme de la página", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /cambiar a tema oscuro/i }));
     expect(view.container.querySelector(".gafa-sdk")?.getAttribute("data-color-scheme")).toBe("dark");
+  });
+
+  it("dos ThemeProvider del mismo scope se sincronizan (header y barra)", () => {
+    const view = render(
+      <>
+        <ThemeProvider theme={{ colorScheme: "light" }} storageScope="80:74">
+          <ColorSchemeToggle />
+          <span data-testid="page">calendario</span>
+        </ThemeProvider>
+        <ThemeProvider theme={{ colorScheme: "light" }} storageScope="80:74">
+          <ColorSchemeToggle className="gafa-concierge-scheme-toggle" />
+        </ThemeProvider>
+      </>,
+    );
+    const roots = view.container.querySelectorAll(".gafa-sdk");
+    expect(roots).toHaveLength(2);
+    fireEvent.click(roots[1].querySelector("button")!);
+    expect(roots[0].getAttribute("data-color-scheme")).toBe("dark");
+    expect(roots[1].getAttribute("data-color-scheme")).toBe("dark");
   });
 });

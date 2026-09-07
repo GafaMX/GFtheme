@@ -10,6 +10,7 @@ import { createHttpConciergeAsk, createLocalConciergeAsk, type ConciergeAskFn } 
 import { assertConciergeOriginAllowed } from "./domConfig";
 import { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
 import { ConciergeSchemeToggle } from "./ConciergeWidget";
+import { ColorSchemeToggle, useGafaThemeOptional } from "../theme/theme";
 
 export type ConciergeHandle = {
   open(): void;
@@ -96,10 +97,16 @@ export function ConciergeHost({
   extraAction?: ReactNode;
   hydrateFromClient?: boolean;
 }) {
+  const pageTheme = useGafaThemeOptional();
+  const followPage = Boolean(pageTheme?.allowUserColorScheme);
   const [config, setConfig] = useState(initialConfig);
-  const [scheme, setScheme] = useState<"light" | "dark">(
+  const [localScheme, setLocalScheme] = useState<"light" | "dark">(
     initialConfig.theme.mode === "dark" ? "dark" : "light",
   );
+  const scheme: "light" | "dark" = followPage ? pageTheme!.scheme : localScheme;
+  const setScheme = followPage
+    ? (next: "light" | "dark") => pageTheme!.setPreference(next)
+    : setLocalScheme;
   const [open, setOpen] = useState(false);
   const [catalogNonce, setCatalogNonce] = useState(0);
   const openCatalog = useCallback(() => {
@@ -176,7 +183,14 @@ export function ConciergeHost({
         setOpen={setOpen}
         webview={webview}
         collapsedByDefault={collapsedByDefault}
-        extraAction={extraAction ?? <ConciergeSchemeToggle scheme={scheme} onSchemeChange={setScheme} />}
+        extraAction={
+          extraAction ??
+          (followPage ? (
+            <ColorSchemeToggle className="gafa-concierge-scheme-toggle" />
+          ) : (
+            <ConciergeSchemeToggle scheme={scheme} onSchemeChange={setScheme} />
+          ))
+        }
         onOpenCatalog={openCatalog}
         scheme={scheme}
       />

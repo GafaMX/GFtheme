@@ -342,6 +342,17 @@ function readStoredPreference(scope?: string): ColorSchemePreference | null {
   return value === "light" || value === "dark" || value === "system" || value === "host" ? value : null;
 }
 
+const THEME_PREFERENCE_EVENT = "gafa-sdk:color-scheme";
+
+function publishThemePreference(scope: string | undefined, preference: ColorSchemePreference) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(THEME_PREFERENCE_EVENT, {
+      detail: { scope: themePreferenceStorageKey(scope), preference },
+    }),
+  );
+}
+
 function useHostColorScheme(): ColorScheme | null {
   const [scheme, setScheme] = useState<ColorScheme | null>(() =>
     typeof document === "undefined" ? null : readHostColorScheme(document),
@@ -391,9 +402,24 @@ export function ThemeProvider({
       setPreferenceState(next);
       if (!resolved.allowUserColorScheme || typeof localStorage === "undefined") return;
       localStorage.setItem(themePreferenceStorageKey(storageScope), next);
+      publishThemePreference(storageScope, next);
     },
     [resolved.allowUserColorScheme, storageScope],
   );
+
+  useEffect(() => {
+    if (!resolved.allowUserColorScheme || typeof window === "undefined") return;
+    const key = themePreferenceStorageKey(storageScope);
+    const onPreference = (event: Event) => {
+      const detail = (event as CustomEvent<{ scope?: string; preference?: ColorSchemePreference }>).detail;
+      if (detail?.scope !== key) return;
+      if (detail.preference === "light" || detail.preference === "dark" || detail.preference === "system" || detail.preference === "host") {
+        setPreferenceState(detail.preference);
+      }
+    };
+    window.addEventListener(THEME_PREFERENCE_EVENT, onPreference);
+    return () => window.removeEventListener(THEME_PREFERENCE_EVENT, onPreference);
+  }, [resolved.allowUserColorScheme, storageScope]);
 
   const scheme: ColorScheme = resolveSdkColorScheme({
     colorScheme: resolved.colorScheme,

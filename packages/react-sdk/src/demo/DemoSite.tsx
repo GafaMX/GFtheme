@@ -83,7 +83,11 @@ export function DemoSite() {
   const brand = BRANDS[brandKey];
 
   return (
-    <ThemeProvider key={brandKey} theme={brand.theme}>
+    <ThemeProvider
+      key={brandKey}
+      theme={brand.theme}
+      storageScope={`${brand.companyId}:${brand.apiClient}`}
+    >
       <DemoShell brandKey={brandKey} onBrandChange={setBrandKey} />
     </ThemeProvider>
   );
@@ -154,6 +158,12 @@ function DemoShell({
         companyId: brand.companyId,
         publicClientId: brand.apiClient,
         clientSecret: brand.apiSecret,
+        theme: {
+          colorScheme: brand.theme.colorScheme,
+          logoUrl: brand.theme.logoUrl,
+          logoUrlDark: brand.theme.logoUrlDark,
+          colors: brand.theme.colors as Record<string, string> | undefined,
+        },
       },
       { client },
     );
