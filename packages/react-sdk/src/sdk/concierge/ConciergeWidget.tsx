@@ -65,7 +65,29 @@ export type ConciergeWidgetProps = {
   ask?: ConciergeAskFn;
   /** Incrementar para abrir el catálogo en el chat (botón Comprar de la barra). */
   catalogNonce?: number;
+  scheme: "light" | "dark";
+  onSchemeChange(scheme: "light" | "dark"): void;
 };
+
+export function ConciergeSchemeToggle({
+  scheme,
+  onSchemeChange,
+}: {
+  scheme: "light" | "dark";
+  onSchemeChange(scheme: "light" | "dark"): void;
+}) {
+  return (
+    <button
+      type="button"
+      className="gafa-concierge-scheme-toggle"
+      aria-label={scheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+      title={scheme === "dark" ? "Tema claro" : "Tema oscuro"}
+      onClick={() => onSchemeChange(scheme === "dark" ? "light" : "dark")}
+    >
+      {scheme === "dark" ? "☀" : "☾"}
+    </button>
+  );
+}
 
 type ChatMessage = {
   id: number;
@@ -371,7 +393,19 @@ function Card({
 }
 
 export function ConciergeWidget(props: ConciergeWidgetProps) {
-  const { config, open, onClose, navigate, sdk, webview, resolveHardPath, ask, catalogNonce = 0 } = props;
+  const {
+    config,
+    open,
+    onClose,
+    navigate,
+    sdk,
+    webview,
+    resolveHardPath,
+    ask,
+    catalogNonce = 0,
+    scheme,
+    onSchemeChange,
+  } = props;
   const adapter = useMemo(
     () => createConciergeBrowserAdapter({ config, sdk, webview, navigate, resolveHardPath }),
     [config, sdk, webview, navigate, resolveHardPath],
@@ -386,7 +420,6 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
   const restoreFocus = useRef<HTMLElement | null>(null);
   const suppressFocusRestore = useRef(false);
   const shownCatalogNonce = useRef(0);
-  const [scheme, setScheme] = useState<"light" | "dark">(config.theme.mode === "dark" ? "dark" : "light");
 
   useEffect(() => {
     if (!open) return;
@@ -640,15 +673,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
               <strong id={`concierge-title-${config.id}`} className="gafa-concierge-title block truncate">{config.copy.title}</strong>
               <span className="gafa-concierge-subtitle block truncate opacity-70">{config.copy.subtitle}</span>
             </span>
-            <button
-              type="button"
-              className="gafa-concierge-scheme-toggle"
-              aria-label={scheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-              title={scheme === "dark" ? "Tema claro" : "Tema oscuro"}
-              onClick={() => setScheme(scheme === "dark" ? "light" : "dark")}
-            >
-              {scheme === "dark" ? "☀" : "☾"}
-            </button>
+            <ConciergeSchemeToggle scheme={scheme} onSchemeChange={onSchemeChange} />
             <button type="button" onClick={onClose} aria-label="Cerrar concierge" className="gafa-concierge-icon-btn grid h-9 w-9 place-items-center"><X /></button>
           </header>
           <div ref={scroll} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
@@ -716,6 +741,7 @@ export function ConciergeCommandBar({
   collapsedByDefault,
   extraAction,
   onOpenCatalog,
+  scheme,
 }: {
   config: ConciergePartnerConfig;
   navigate: (path: string) => void;
@@ -725,17 +751,16 @@ export function ConciergeCommandBar({
   collapsedByDefault?: boolean;
   extraAction?: ReactNode;
   onOpenCatalog?: () => void;
+  scheme: "light" | "dark";
 }) {
   const [collapsed, setCollapsed] = useState(Boolean(collapsedByDefault));
   const routes = webview ? config.routes.webview : config.routes.web;
-  const variables = {
-    "--concierge-accent": config.theme.accent,
-    "--concierge-accent-ink": config.theme.foreground,
-  } as CSSProperties;
+  const variables = conciergeSurfaceVars(scheme, config.theme.accent, config.theme.foreground);
   return (
     <div
       className={`gafa-concierge gafa-concierge-bar${webview ? " is-webview" : ""}`}
       data-gafa-concierge-bar={config.id}
+      data-color-scheme={scheme}
       style={variables}
     >
       <AnimatePresence mode="wait" initial={false}>

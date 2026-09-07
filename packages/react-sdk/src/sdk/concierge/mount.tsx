@@ -9,7 +9,7 @@ import {
 import { createHttpConciergeAsk, createLocalConciergeAsk, type ConciergeAskFn } from "./ask";
 import { assertConciergeOriginAllowed } from "./domConfig";
 import { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
-import { ColorSchemeToggle } from "../theme/theme";
+import { ConciergeSchemeToggle } from "./ConciergeWidget";
 
 export type ConciergeHandle = {
   open(): void;
@@ -97,6 +97,9 @@ export function ConciergeHost({
   hydrateFromClient?: boolean;
 }) {
   const [config, setConfig] = useState(initialConfig);
+  const [scheme, setScheme] = useState<"light" | "dark">(
+    initialConfig.theme.mode === "dark" ? "dark" : "light",
+  );
   const [open, setOpen] = useState(false);
   const [catalogNonce, setCatalogNonce] = useState(0);
   const openCatalog = useCallback(() => {
@@ -125,6 +128,10 @@ export function ConciergeHost({
   useEffect(() => {
     ensureFancySibling();
   }, []);
+
+  useEffect(() => {
+    setScheme(initialConfig.theme.mode === "dark" ? "dark" : "light");
+  }, [initialConfig.theme.mode]);
 
   useEffect(() => {
     setConfig(initialConfig);
@@ -159,6 +166,8 @@ export function ConciergeHost({
         resolveHardPath={resolveHardPath}
         ask={resolvedAsk}
         catalogNonce={catalogNonce}
+        scheme={scheme}
+        onSchemeChange={setScheme}
       />
       <ConciergeCommandBar
         config={config}
@@ -167,8 +176,9 @@ export function ConciergeHost({
         setOpen={setOpen}
         webview={webview}
         collapsedByDefault={collapsedByDefault}
-        extraAction={extraAction ?? <ColorSchemeToggle className="gafa-concierge-scheme-toggle" />}
+        extraAction={extraAction ?? <ConciergeSchemeToggle scheme={scheme} onSchemeChange={setScheme} />}
         onOpenCatalog={openCatalog}
+        scheme={scheme}
       />
     </>
   );

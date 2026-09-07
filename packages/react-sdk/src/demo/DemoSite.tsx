@@ -172,7 +172,7 @@ function DemoShell({
   // El fondo de la pagina lo pone el demo, no el SDK: en un sitio real es el
   // propio sitio el que lo define.
   useEffect(() => {
-    document.body.dataset.scheme = scheme;
+    document.body.dataset.demoScheme = scheme;
   }, [scheme]);
 
   return (

@@ -107,6 +107,30 @@ describe("sdk.concierge.mount", () => {
     handle.destroy();
   });
 
+  it("el toggle de la barra cambia el scheme del chat, no el THEME del host", async () => {
+    document.body.dataset.scheme = "light";
+    const handle = boot().concierge.mount({ config: FITSPIN_CONCIERGE_CONFIG });
+    const bar = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>("[data-gafa-concierge-bar]");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(bar.getAttribute("data-color-scheme")).toBe("light");
+    const barToggle = bar.querySelector<HTMLButtonElement>(".gafa-concierge-scheme-toggle");
+    expect(barToggle).toBeTruthy();
+    fireEvent.click(barToggle!);
+    expect(bar.getAttribute("data-color-scheme")).toBe("dark");
+    handle.open();
+    const dialog = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>("[data-gafa-concierge-dialog]");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(dialog.getAttribute("data-color-scheme")).toBe("dark");
+    handle.destroy();
+    document.body.removeAttribute("data-scheme");
+  });
+
   it("rechaza un partnerId que no coincide con la config", () => {
     expect(() =>
       resolveConciergeConfig({
