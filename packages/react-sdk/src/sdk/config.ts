@@ -28,14 +28,10 @@ const imagesSchema = z
   .optional();
 
 function stringWithBlankDefault(defaultValue: string) {
-  return z.preprocess(
-    (value) => {
-      if (typeof value !== "string") return value;
-      const trimmed = value.trim();
-      return trimmed === "" ? undefined : trimmed;
-    },
-    z.string().default(defaultValue),
-  );
+  return z.string().optional().transform((value) => {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : defaultValue;
+  });
 }
 
 const legacyThemeSchema = z
