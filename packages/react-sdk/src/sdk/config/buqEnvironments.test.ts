@@ -6,7 +6,12 @@ import {
   resolveBuqEnvironment,
   withBuqEnvironment,
 } from "./buqEnvironments";
-import { legacyOptionsToConfig, parseGafaSdkConfig } from "../config";
+import {
+  DEFAULT_CAPTCHA_PUBLIC_KEY,
+  DEFAULT_CAPTCHA_SECRET_KEY,
+  legacyOptionsToConfig,
+  parseGafaSdkConfig,
+} from "../config";
 
 describe("buq environments", () => {
   afterEach(() => {
@@ -71,6 +76,28 @@ describe("buq environments", () => {
     expect(config.gafaPayFrontUrl).toBe(BUQ_ENVIRONMENTS.production.gafaPayFrontUrl);
     expect(config.hubUrl).toBe("https://hub.buq.partners");
     expect(config.analyticsEnabled).toBe(true);
+  });
+
+  it("usa captcha default cuando la integracion manda llaves vacias", () => {
+    const config = legacyOptionsToConfig({
+      COMPANY_ID: 1,
+      CAPTCHA_PUBLIC_KEY: "",
+      CAPTCHA_SECRET_KEY: "   ",
+    });
+
+    expect(config.captchaPublicKey).toBe(DEFAULT_CAPTCHA_PUBLIC_KEY);
+    expect(config.captchaSecretKey).toBe(DEFAULT_CAPTCHA_SECRET_KEY);
+  });
+
+  it("recorta llaves de captcha configuradas explicitamente", () => {
+    const config = parseGafaSdkConfig({
+      companyId: 1,
+      captchaPublicKey: "  public-test-key  ",
+      captchaSecretKey: "  secret-test-key  ",
+    });
+
+    expect(config.captchaPublicKey).toBe("public-test-key");
+    expect(config.captchaSecretKey).toBe("secret-test-key");
   });
 
   it("HUB_URL pisa el default y ANALYTICS=false apaga el tracker", () => {
