@@ -27,6 +27,17 @@ const imagesSchema = z
   })
   .optional();
 
+function stringWithBlankDefault(defaultValue: string) {
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const trimmed = value.trim();
+      return trimmed === "" ? undefined : trimmed;
+    },
+    z.string().default(defaultValue),
+  );
+}
+
 const legacyThemeSchema = z
   .object({
     preset: z.string().optional(),
@@ -58,10 +69,10 @@ export const sdkConfigSchema = z
     captchaProvider: z.enum(["recaptcha-v3", "turnstile"]).default("recaptcha-v3"),
     // Default al par compartido de Buq: el captcha queda operativo sin que la
     // integracion configure nada. Un socio puede sobreescribirlo con su propio par.
-    captchaPublicKey: z.string().default(DEFAULT_CAPTCHA_PUBLIC_KEY),
+    captchaPublicKey: stringWithBlankDefault(DEFAULT_CAPTCHA_PUBLIC_KEY),
     // Igual que clientSecret: gafa.fit valida el reCAPTCHA en el server usando esta secret key
     // que el cliente le manda en cada registro (ver App\Rules\Captcha). Viene asi del backend.
-    captchaSecretKey: z.string().default(DEFAULT_CAPTCHA_SECRET_KEY),
+    captchaSecretKey: stringWithBlankDefault(DEFAULT_CAPTCHA_SECRET_KEY),
     language: z.enum(["es", "en"]).default("es"),
     /**
      * Backend de Buq. Default production. `staging` = buq.com.mx (Stripe nuevo),
