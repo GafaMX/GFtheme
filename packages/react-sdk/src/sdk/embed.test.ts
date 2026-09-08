@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { waitFor } from "@testing-library/react";
-import { bootGafaSdkFromDom, startEmbedWhenReady, type EmbedHostWindow } from "./embed";
+import { bootGafaSdk, bootGafaSdkFromDom, startEmbedWhenReady, type EmbedHostWindow } from "./embed";
+import { parseGafaSdkConfig } from "./config";
 
 const OPTIONS_JSON = JSON.stringify({
   GAFA_FIT_URL: "https://example.gafa.fit",
@@ -116,6 +117,100 @@ describe("embed drop-in", () => {
     expect(() => bootGafaSdkFromDom(document, window, { useMockClient: true })).not.toThrow();
     expect(document.querySelector("[data-gafa-concierge]")).toBeNull();
     expect(document.body.textContent).not.toContain("FITSPIN Concierge");
+  });
+
+  it("CONCIERGE true arma el default live sin el JSON largo", async () => {
+    document.body.innerHTML = `
+      <script data-gf-options type="application/json">${JSON.stringify({
+        GAFA_FIT_URL: "https://example.gafa.fit",
+        COMPANY_ID: 190,
+        API_CLIENT: "demo-client",
+        THEME: { colorScheme: "dark", colors: { brand: "#c8ff2e" } },
+        CONCIERGE: true,
+      })}</script>
+      <section data-gafa-v2="concierge"></section>
+    `;
+    bootGafaSdkFromDom(document, window, { useMockClient: true });
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-concierge='company-190']")).toBeTruthy();
+    });
+    expect(document.querySelector('[aria-label="WhatsApp"]')).toBeNull();
+  });
+
+  it("un CONCIERGE mergeado (Hub) monta aunque el script HTML no lo traiga", async () => {
+    document.body.innerHTML = `
+      <script data-gf-options type="application/json">${JSON.stringify({
+        COMPANY_ID: 190,
+        API_CLIENT: "demo-client",
+      })}</script>
+      <section data-gf-theme="concierge"></section>
+    `;
+    bootGafaSdk(
+      parseGafaSdkConfig({ companyId: 190, publicClientId: "demo-client", concierge: true }),
+      document,
+      window,
+      { useMockClient: true },
+    );
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-concierge='company-190']")).toBeTruthy();
+    });
+  });
+
+  /**
+   * La barra flota: encenderla en el Hub tiene que bastar, sin pedirle al sitio
+   * que agregue HTML.
+   */
+  describe("Concierge sin nodo en el HTML", () => {
+    const bootWithConcierge = (concierge: unknown) =>
+      bootGafaSdk(
+        parseGafaSdkConfig({ companyId: 190, publicClientId: "demo-client", concierge }),
+        document,
+        window,
+        { useMockClient: true },
+      );
+
+    it("se cuelga sola del body cuando la config la enciende", async () => {
+      mountHost();
+      const sdk = bootWithConcierge(true);
+      await waitFor(() => {
+        expect(document.querySelector("[data-gafa-concierge='company-190']")).toBeTruthy();
+      });
+      expect(document.querySelector("[data-gf-concierge-auto]")).toBeTruthy();
+      expect(sdk.config.concierge).toBe(true);
+    });
+
+    it("no duplica la barra si el sitio ya puso su nodo", async () => {
+      mountHost(`<section data-gf-theme="concierge"></section>`);
+      bootWithConcierge(true);
+      await waitFor(() => {
+        expect(document.querySelectorAll("[data-gafa-concierge='company-190']")).toHaveLength(1);
+      });
+      expect(document.querySelector("[data-gf-concierge-auto]")).toBeNull();
+    });
+
+    it("una página se excluye con data-gf-concierge='off'", async () => {
+      mountHost(`<div data-gf-concierge="off"></div>`);
+      bootWithConcierge(true);
+      await waitFor(() => {
+        expect(document.querySelector("[data-gf-theme='login-register']")).toBeNull();
+      });
+      expect(document.querySelector("[data-gafa-concierge='company-190']")).toBeNull();
+      expect(document.querySelector("[data-gf-concierge-auto]")).toBeNull();
+    });
+
+    it("apagada en la config, no aparece nada", () => {
+      mountHost();
+      bootWithConcierge(undefined);
+      expect(document.querySelector("[data-gf-concierge-auto]")).toBeNull();
+    });
+
+    it("respeta el partial del Hub al armar la barra automática", async () => {
+      mountHost();
+      bootWithConcierge({ displayName: "Bunker", contact: { whatsapp: "5215512345678" } });
+      await waitFor(() => {
+        expect(document.querySelector('[aria-label="WhatsApp"]')).toBeTruthy();
+      });
+    });
   });
 
   it("acepta un fixture solo si el socio lo pide explicitamente", async () => {

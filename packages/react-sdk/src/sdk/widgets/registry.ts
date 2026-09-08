@@ -165,7 +165,14 @@ export function mountRegisteredWidget(runtime: GafaSdk, shortcode: string, eleme
 
 function mountConcierge(runtime: GafaSdk, element: HTMLElement) {
   try {
-    const { config } = readConciergeConfigFromDom(element.ownerDocument ?? document, element);
+    const { config } = readConciergeConfigFromDom(element.ownerDocument ?? document, element, {
+      COMPANY_ID: runtime.config.companyId,
+      THEME: runtime.config.theme as Record<string, unknown> | undefined,
+      CONCIERGE: runtime.config.concierge,
+      companyId: runtime.config.companyId,
+      theme: runtime.config.theme as Record<string, unknown> | undefined,
+      concierge: runtime.config.concierge,
+    });
     runtime.concierge.mount({
       config,
       container: element,

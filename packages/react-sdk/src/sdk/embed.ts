@@ -1,5 +1,6 @@
 import { createGafaSdk, type GafaSdk, type RuntimeOptions } from "./runtime";
-import { readLegacyOptionsFromDom } from "./config";
+import { readLegacyOptionsFromDom, type GafaSdkConfig } from "./config";
+import { readEmbedOptionsFromDom } from "./config/embedOptions";
 import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 
 export type EmbedHostWindow = {
@@ -27,20 +28,12 @@ function aliasV2Shortcodes(root: ParentNode): void {
   });
 }
 
-/**
- * Arranque drop-in para WordPress / HTML plano: lee `[data-gf-options]` (o
- * `[data-gafa-options]`), monta `[data-gf-theme]` / `[data-gafa-v2]` y deja
- * `window.GafaThemeSDK` (la instancia, no la clase estática del theme v1).
- *
- * El bundle IIFE (`gafa-sdk.js`) llama esto solo. En tests se invoca a mano
- * con `useMockClient: true` para no pegarle a gafa.fit.
- */
-export function bootGafaSdkFromDom(
+export function bootGafaSdk(
+  options: GafaSdkConfig,
   documentRef: Document = document,
   win: EmbedHostWindow = window as EmbedHostWindow,
   runtimeOptions?: RuntimeOptions,
 ): GafaSdk {
-  const options = readLegacyOptionsFromDom(documentRef);
   const sdk = createGafaSdk(options, runtimeOptions);
   aliasV2Shortcodes(documentRef);
   const mounted = bootstrapLegacyWidgets(sdk, documentRef);
@@ -50,12 +43,43 @@ export function bootGafaSdkFromDom(
   return sdk;
 }
 
+/**
+ * Arranque drop-in para WordPress / HTML plano: lee `[data-gf-options]` (o
+ * `[data-gafa-options]`), monta `[data-gf-theme]` / `[data-gafa-v2]` y deja
+ * `window.GafaThemeSDK` (la instancia, no la clase estática del theme v1).
+ *
+ * Síncrono: solo DOM + query. El IIFE usa `bootGafaSdkFromDomWithRemote`.
+ */
+export function bootGafaSdkFromDom(
+  documentRef: Document = document,
+  win: EmbedHostWindow = window as EmbedHostWindow,
+  runtimeOptions?: RuntimeOptions,
+): GafaSdk {
+  return bootGafaSdk(readLegacyOptionsFromDom(documentRef), documentRef, win, runtimeOptions);
+}
+
+/** DOM + Hub (fail-open) + query. */
+export async function bootGafaSdkFromDomWithRemote(
+  documentRef: Document = document,
+  win: EmbedHostWindow = window as EmbedHostWindow,
+  runtimeOptions?: RuntimeOptions,
+): Promise<GafaSdk> {
+  const options = await readEmbedOptionsFromDom(documentRef);
+  return bootGafaSdk(options, documentRef, win, runtimeOptions);
+}
+
 export function startEmbedWhenReady(
   documentRef: Document = document,
   win: EmbedHostWindow = window as EmbedHostWindow,
   runtimeOptions?: RuntimeOptions,
 ): void {
-  const run = () => bootGafaSdkFromDom(documentRef, win, runtimeOptions);
+  const run = () => {
+    if (import.meta.env.MODE === "test") {
+      bootGafaSdkFromDom(documentRef, win, runtimeOptions);
+      return;
+    }
+    void bootGafaSdkFromDomWithRemote(documentRef, win, runtimeOptions);
+  };
   if (documentRef.readyState === "loading") {
     documentRef.addEventListener("DOMContentLoaded", run, { once: true });
   } else {

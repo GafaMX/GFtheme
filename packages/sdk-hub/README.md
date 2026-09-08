@@ -16,7 +16,10 @@ npm run dev
 
 - Admin: http://127.0.0.1:8787 — password `buq-hub-dev`
 - Ingest: `POST /v1/events`
+- Remote config: `GET /v1/config?company_id=` (público, sin secretos) · `PUT /v1/admin/config`
 - Health: `GET /v1/health`
+
+La pantalla **Config** del admin es un formulario, no un editor de JSON. El catálogo de opciones vive en [`public/configModel.js`](public/configModel.js): cada entrada declara etiqueta, tooltip y control, y de ahí salen la UI, el resumen y el guardado. Contrato: [`docs/v2-hub/remote-config.md`](../../docs/v2-hub/remote-config.md).
 
 El SDK apunta aquí con `HUB_URL` / `hubUrl` (no uses `GAFA_FIT_URL`).
 

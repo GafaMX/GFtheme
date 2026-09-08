@@ -1,5 +1,6 @@
 import type { CatalogItem, Location } from "../client/types";
 import type { ConciergePartnerConfig, ConciergeProduct, ConciergeStudio } from "./contracts";
+import { GENERATED_CONCIERGE_DISPLAY_NAME, isGeneratedConciergeId } from "./resolveConfig";
 
 export type ConciergeHydrateClient = {
   listBrands?(): Promise<Array<{ slug: string; name: string }>>;
@@ -172,24 +173,50 @@ export async function hydrateConciergeCatalog(
     return !config.studios.some((known) => known.locationId === studio.locationId && known.brandSlug === studio.brandSlug);
   })] : liveStudios;
 
+  const resolvedBrands = brands.map((brand) => {
+    if (brand.locationIds.length) return brand;
+    const fromStudios = studios
+      .filter((studio) => studio.brandSlug === brand.slug)
+      .map((studio) => studio.locationId)
+      .slice(0, 20);
+    return { ...brand, locationIds: fromStudios.length ? fromStudios : ["live"] };
+  });
+
+  return applyHydratedPartnerIdentity(
+    {
+      ...config,
+      buq: {
+        ...config.buq,
+        brands: resolvedBrands,
+      },
+      studios,
+      catalog: {
+        ...config.catalog,
+        products,
+        live: true,
+      },
+    },
+    resolvedBrands,
+  );
+}
+
+export function applyHydratedPartnerIdentity(
+  config: ConciergePartnerConfig,
+  brands: HydrateBrand[],
+): ConciergePartnerConfig {
+  const brand = brands[0];
+  if (!brand) return config;
+  const generated =
+    isGeneratedConciergeId(config.id) || config.displayName === GENERATED_CONCIERGE_DISPLAY_NAME;
+  if (!generated) return config;
   return {
     ...config,
-    buq: {
-      ...config.buq,
-      brands: brands.map((brand) => {
-        if (brand.locationIds.length) return brand;
-        const fromStudios = studios
-          .filter((studio) => studio.brandSlug === brand.slug)
-          .map((studio) => studio.locationId)
-          .slice(0, 20);
-        return { ...brand, locationIds: fromStudios.length ? fromStudios : ["live"] };
-      }),
-    },
-    studios,
-    catalog: {
-      ...config.catalog,
-      products,
-      live: true,
+    displayName: brand.name,
+    copy: {
+      ...config.copy,
+      greeting: `¡Hola! Soy el concierge de ${brand.name}. Puedo ayudarte a reservar, comprar o resolver tus dudas.`,
+      title: `${brand.name} Concierge`,
+      scope: `Solo puedo ayudar con ${brand.name}.`,
     },
   };
 }

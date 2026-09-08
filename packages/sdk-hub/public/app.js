@@ -1,3 +1,15 @@
+import {
+  CONFIG_SECTIONS,
+  allFields,
+  configFromDraft,
+  draftFromConfig,
+  sameConfig,
+  summarizeConfig,
+  triChoices,
+  unmanagedPaths,
+  validateDraft,
+} from "/configModel.js?v=concierge-auto-1";
+
 const root = document.getElementById("root");
 
 const state = {
@@ -27,7 +39,36 @@ const state = {
   grantPerson: "",
   grantPoints: "10",
   grantReason: "",
+  remoteConfig: { company_id: null, config: {}, updated_at: null, stripped: [] },
+  configDraft: draftFromConfig({}),
+  configTab: "marca",
+  configErrors: {},
+  configSaving: false,
+  configNotice: "",
+  openTip: "",
+  theme: readStoredTheme(),
 };
+
+const THEME_KEY = "buq-hub-theme";
+
+function readStoredTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  document.documentElement.dataset.theme = theme;
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    /* modo incógnito: se queda solo para esta sesión */
+  }
+  render();
+}
 
 function pageCopy() {
   if (state.view === "loyalty" && state.loyaltyMode === "studio") {
@@ -48,7 +89,11 @@ function pageCopy() {
       sites: ["Sitios", "Dónde está vivo el SDK, con el nombre del estudio. No hace falta memorizar números."],
       usage: ["Actividad", "El pulso del negocio. Cada barra es un conteo aparte, no las mismas personas. Por defecto sin Replit ni localhost."],
       events: ["Bitácora", "Cada gesto del SDK. 25 por página. Los crudos se guardan 90 días; los totales se quedan."],
-      catalog: ["Widgets", "Lo que un sitio puede montar. El shortcode queda detrás del nombre."],
+      catalog: ["Widgets", "Lo que un sitio puede montar. Clic en la tarjeta abre la guía en otra pestaña."],
+      config: [
+        "Config",
+        "Los ajustes de un estudio, sin tocar el código de su sitio. Se guardan aquí y las páginas los toman solitas al cargar.",
+      ],
     }[state.view] ?? ["Hub", ""]
   );
 }
@@ -161,6 +206,16 @@ async function refresh() {
         state.ledger = ledger;
         state.rules = rules.effective ?? [];
       }
+    } else if (state.view === "config") {
+      const site = selectedSite();
+      if (site?.company_id) {
+        const row = await api(`/v1/admin/config${qs({ company_id: site.company_id })}`);
+        state.remoteConfig = row;
+        state.configDraft = draftFromConfig(row.config ?? {});
+      } else {
+        state.remoteConfig = { company_id: null, config: {}, updated_at: null, stripped: [] };
+        state.configDraft = draftFromConfig({});
+      }
     } else {
       const widgets = await api("/v1/widgets");
       state.widgets = widgets.widgets ?? [];
@@ -193,6 +248,7 @@ function h(tag, props = {}, ...children) {
 }
 
 function render() {
+  configChrome = null;
   root.replaceChildren(state.me ? renderApp() : renderLogin());
 }
 
@@ -268,6 +324,7 @@ function renderApp() {
         navBtn("usage", "Actividad", "M4 19V5m4 14V9m4 10V7m4 12v-6m4 6V8"),
         navBtn("events", "Bitácora", "M5 5h14v14H5zM8 9h8M8 13h5"),
         navBtn("loyalty", "Lealtad", "M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"),
+        navBtn("config", "Config", "M4 6h16M4 12h10M4 18h16M17 9l3 3-3 3"),
         navBtn("catalog", "Widgets", "M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"),
       ),
       h(
@@ -280,11 +337,12 @@ function renderApp() {
             ? `${fmt(state.stats.sites)} sitios · ${fmt(state.stats.events)} eventos guardados`
             : "Cargando el pulso…",
         ),
+        themeToggle(),
         h(
           "button",
           {
             class: "btn ghost",
-            style: "width:100%;margin-top:14px",
+            style: "width:100%;margin-top:8px",
             onClick: async () => {
               await api("/v1/admin/logout", { method: "POST" });
               state.me = false;
@@ -302,6 +360,30 @@ function renderApp() {
       renderFilters(),
       state.error ? h("p", { class: "error" }, state.error) : null,
       state.loading ? h("p", { class: "loading" }, "Cargando…") : renderView(),
+    ),
+  );
+}
+
+function themeToggle() {
+  const modes = [
+    ["light", "Claro", "M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7l-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0l-1.4-1.4M7.7 7.7L6.3 6.3M15 12a3 3 0 11-6 0 3 3 0 016 0z"],
+    ["dark", "Oscuro", "M20 14.5A8 8 0 019.5 4a8.5 8.5 0 1010.5 10.5z"],
+  ];
+  return h(
+    "div",
+    { class: "theme-toggle", role: "group", "aria-label": "Tema del Hub" },
+    modes.map(([mode, label, d]) =>
+      h(
+        "button",
+        {
+          type: "button",
+          class: state.theme === mode ? "active" : "",
+          "aria-pressed": state.theme === mode ? "true" : "false",
+          onClick: () => setTheme(mode),
+        },
+        icon(d),
+        label,
+      ),
     ),
   );
 }
@@ -373,7 +455,7 @@ function renderFilters() {
             onChange: (event) => {
               state.siteKey = event.target.value;
               resetPages();
-              if (state.view === "loyalty") refresh();
+              if (state.view === "loyalty" || state.view === "config") refresh();
             },
           },
           ...studioOptions,
@@ -474,6 +556,7 @@ function renderView() {
   if (state.view === "usage") return renderUsage();
   if (state.view === "events") return renderEvents();
   if (state.view === "loyalty") return renderLoyalty();
+  if (state.view === "config") return renderConfig();
   return renderCatalog();
 }
 
@@ -539,10 +622,23 @@ function siteCard(row) {
     ),
     h(
       "div",
-      {},
+      { class: "site-actions" },
       live
         ? h("div", { class: "pulse" }, h("i"), "En vivo")
         : h("div", { class: "muted", style: "font-size:12px" }, relTime(row.last_seen_at)),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn ghost compact",
+          onClick: () => {
+            state.view = "config";
+            state.siteKey = row.key || state.directory.sites.find((site) => site.company_id === row.company_id)?.key || "";
+            refresh();
+          },
+        },
+        "Config",
+      ),
     ),
   );
 }
@@ -992,17 +1088,461 @@ async function onGrant(event) {
   }
 }
 
+/* ---------------------------------------------------------------- Config */
+
+let configChrome = null;
+
+function currentConfig() {
+  return configFromDraft(state.remoteConfig.config ?? {}, state.configDraft);
+}
+
+function sectionOfField(key) {
+  return allFields().find((field) => field.key === key)?.section ?? "";
+}
+
+function sectionHasError(sectionId) {
+  return Object.keys(state.configErrors).some((key) => sectionOfField(key) === sectionId);
+}
+
+function setField(key, value) {
+  state.configDraft = { ...state.configDraft, [key]: value };
+  if (state.configErrors[key]) {
+    const next = { ...state.configErrors };
+    delete next[key];
+    state.configErrors = next;
+  }
+  syncConfigChrome();
+}
+
+function syncConfigChrome() {
+  if (!configChrome) return;
+  const next = currentConfig();
+  const dirty = !sameConfig(next, state.remoteConfig.config ?? {});
+  configChrome.bar.classList.toggle("dirty", dirty);
+  configChrome.bar.classList.toggle("saved", !dirty && Boolean(state.configNotice));
+  configChrome.status.textContent = dirty
+    ? "Tienes cambios sin guardar."
+    : state.configNotice || "Todo guardado.";
+  configChrome.save.disabled = !dirty || state.configSaving;
+  configChrome.undo.disabled = !dirty || state.configSaving;
+  configChrome.summary.replaceChildren(...summaryChips(next));
+  if (configChrome.preview) paintPreview(configChrome.preview, next);
+}
+
+function summaryChips(config) {
+  const items = summarizeConfig(config);
+  if (!items.length) {
+    return [h("span", { class: "muted" }, "Nada configurado todavía: manda lo que diga cada página.")];
+  }
+  return items.map((item) =>
+    h(
+      "button",
+      {
+        type: "button",
+        class: "summary-chip",
+        title: `Ir a ${item.label}`,
+        onClick: () => {
+          state.configTab = item.section;
+          render();
+        },
+      },
+      item.swatch ? h("i", { class: "swatch-dot", style: `background:${item.swatch}` }) : null,
+      h("span", { class: "summary-label" }, item.label),
+      h("b", {}, item.value.length > 44 ? `${item.value.slice(0, 42).trimEnd()}…` : item.value),
+    ),
+  );
+}
+
+function paintPreview(node, config) {
+  const theme = config.THEME && typeof config.THEME === "object" ? config.THEME : {};
+  const raw = theme.colors && typeof theme.colors === "object" ? theme.colors : {};
+  // Un hex a medio escribir no debe romper la vista previa.
+  const colors = Object.fromEntries(
+    Object.entries(raw).filter(([, value]) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value.trim())),
+  );
+  const dark = theme.colorScheme === "dark";
+  const brand = colors.brand || (dark ? "#f3d48a" : "#111827");
+  const accent = colors.accent || brand;
+  const background = colors.background || (dark ? "#14161c" : "#ffffff");
+  const surface = colors.surface || (dark ? "#1b1e26" : "#f8fafc");
+  const text = colors.text || (dark ? "#f4f1ea" : "#111827");
+  const muted = colors.mutedText || (dark ? "#9aa3b5" : "#6b7280");
+  const border = colors.border || (dark ? "rgba(255,255,255,.12)" : "#e5e7eb");
+  const radiusMd = theme.radius?.md || "16px";
+  node.style.setProperty("--pv-brand", brand);
+  node.style.setProperty("--pv-accent", accent);
+  node.style.setProperty("--pv-bg", background);
+  node.style.setProperty("--pv-surface", surface);
+  node.style.setProperty("--pv-text", text);
+  node.style.setProperty("--pv-muted", muted);
+  node.style.setProperty("--pv-border", border);
+  node.style.setProperty("--pv-radius", radiusMd);
+  if (theme.typography?.fontFamily) node.style.setProperty("--pv-font", theme.typography.fontFamily);
+}
+
+function tip(id, text) {
+  const open = state.openTip === id;
+  return h(
+    "span",
+    { class: "tip" },
+    h(
+      "button",
+      {
+        type: "button",
+        class: `tip-btn${open ? " open" : ""}`,
+        "aria-label": "Explicación",
+        "aria-expanded": open ? "true" : "false",
+        onClick: (event) => {
+          event.preventDefault();
+          state.openTip = open ? "" : id;
+          render();
+        },
+      },
+      "?",
+    ),
+    h("span", { class: `tip-bubble${open ? " open" : ""}`, role: "note" }, text),
+  );
+}
+
+function triControl(field) {
+  const value = String(state.configDraft[field.key] ?? "");
+  return h(
+    "div",
+    { class: "seg tri" },
+    triChoices().map((choice) =>
+      h(
+        "button",
+        {
+          type: "button",
+          class: value === choice.value ? "active" : "",
+          onClick: () => {
+            setField(field.key, choice.value);
+            render();
+          },
+        },
+        choice.label,
+      ),
+    ),
+  );
+}
+
+function switchControl(field) {
+  const on = Boolean(state.configDraft[field.key]);
+  return h(
+    "button",
+    {
+      type: "button",
+      class: `switch${on ? " on" : ""}`,
+      role: "switch",
+      "aria-checked": on ? "true" : "false",
+      onClick: () => {
+        setField(field.key, !on);
+        render();
+      },
+    },
+    h("i", {}),
+    h("span", {}, on ? "Encendido" : "Apagado"),
+  );
+}
+
+function colorControl(field) {
+  const value = String(state.configDraft[field.key] ?? "");
+  const valid = /^#[0-9a-f]{6}$/i.test(value);
+  const swatch = h("input", {
+    type: "color",
+    class: "color-swatch",
+    value: valid ? value : field.placeholder ?? "#888888",
+    "aria-label": field.label,
+  });
+  const text = h("input", {
+    class: "color-hex",
+    value,
+    placeholder: `${field.placeholder ?? "#000000"} (automático)`,
+    spellcheck: "false",
+    onInput: (event) => {
+      const next = event.target.value;
+      setField(field.key, next);
+      if (/^#[0-9a-f]{6}$/i.test(next.trim())) swatch.value = next.trim();
+      clear.hidden = !next.trim();
+    },
+  });
+  const clear = h(
+    "button",
+    {
+      type: "button",
+      class: "btn ghost compact",
+      hidden: !value,
+      onClick: () => {
+        setField(field.key, "");
+        text.value = "";
+        clear.hidden = true;
+      },
+    },
+    "Quitar",
+  );
+  swatch.addEventListener("input", (event) => {
+    const next = event.target.value;
+    setField(field.key, next);
+    text.value = next;
+    clear.hidden = false;
+  });
+  return h("div", { class: "color-row" }, swatch, text, clear);
+}
+
+function fieldControl(field) {
+  const value = state.configDraft[field.key] ?? "";
+  if (field.type === "switch") return switchControl(field);
+  if (field.type === "tri") return triControl(field);
+  if (field.type === "color") return colorControl(field);
+  if (field.type === "select") {
+    return h(
+      "select",
+      {
+        value: String(value),
+        onChange: (event) => {
+          setField(field.key, event.target.value);
+        },
+      },
+      field.choices.map((choice) => h("option", { value: choice.value }, choice.label)),
+    );
+  }
+  if (field.type === "longtext") {
+    return h("textarea", {
+      rows: "3",
+      value: String(value),
+      placeholder: field.placeholder ?? "",
+      onInput: (event) => setField(field.key, event.target.value),
+    });
+  }
+  const suffix = field.type === "px" ? h("span", { class: "field-suffix" }, "px") : null;
+  const numeric = field.type === "number" || field.type === "px" || field.type === "tel";
+  const input = h("input", {
+    value: String(value),
+    inputmode: numeric ? "numeric" : null,
+    placeholder: field.placeholder ? `${field.placeholder}` : "Sin cambio",
+    spellcheck: "false",
+    onInput: (event) => {
+      // Un teléfono pegado con +, espacios o guiones se limpia solo.
+      if (field.type === "tel") event.target.value = event.target.value.replace(/\D/g, "");
+      setField(field.key, event.target.value);
+    },
+  });
+  return suffix ? h("div", { class: "field-with-suffix" }, input, suffix) : input;
+}
+
+function configField(field) {
+  const error = state.configErrors[field.key];
+  return h(
+    "div",
+    { class: `field field-${field.type}${error ? " has-error" : ""}` },
+    h("div", { class: "field-head" }, h("span", { class: "field-label" }, field.label), tip(field.key, field.help)),
+    h("div", { class: "field-control" }, fieldControl(field)),
+    error ? h("p", { class: "field-error" }, error) : null,
+  );
+}
+
+function configGroup(group) {
+  if (group.requires && !state.configDraft[group.requires]) return null;
+  const colorsOnly = group.fields.every((field) => field.type === "color");
+  return h(
+    "section",
+    { class: "panel config-group" },
+    h("h4", {}, group.title),
+    group.note ? h("p", { class: "muted group-note" }, group.note) : null,
+    h("div", { class: `fields${colorsOnly ? " fields-colors" : ""}` }, group.fields.map((field) => configField(field))),
+  );
+}
+
+function configPreview() {
+  const node = h(
+    "div",
+    { class: "preview" },
+    h(
+      "div",
+      { class: "preview-card" },
+      h("div", { class: "preview-logo" }, "Tu marca"),
+      h("h5", {}, "Clase de las 7:00"),
+      h("p", {}, "Así se van a ver los botones y las tarjetas del SDK dentro del sitio."),
+      h("div", { class: "preview-actions" }, h("span", { class: "preview-btn" }, "Reservar"), h("span", { class: "preview-btn ghost" }, "Ver horarios")),
+    ),
+  );
+  return h(
+    "section",
+    { class: "panel config-group preview-wrap" },
+    h("h4", {}, "Vista previa"),
+    h("p", { class: "muted group-note" }, "Un ejemplo con los colores que llevas. No es el sitio real, es para que veas el contraste."),
+    node,
+  );
+}
+
+function renderConfig() {
+  const site = selectedSite();
+  if (!site) {
+    return empty(
+      "Elige un estudio arriba",
+      "Esta pantalla configura una compañía completa. Escoge cuál en el menú de arriba y aquí aparece su formulario.",
+    );
+  }
+
+  const section = CONFIG_SECTIONS.find((item) => item.id === state.configTab) ?? CONFIG_SECTIONS[0];
+  const leftovers = unmanagedPaths(state.remoteConfig.config ?? {});
+  const summary = h("div", { class: "summary" });
+  const status = h("span", { class: "save-status" });
+  const save = h("button", { class: "btn", type: "submit" }, "Guardar cambios");
+  const undo = h(
+    "button",
+    {
+      class: "btn ghost",
+      type: "button",
+      onClick: () => {
+        state.configDraft = draftFromConfig(state.remoteConfig.config ?? {});
+        state.configErrors = {};
+        state.configNotice = "";
+        render();
+      },
+    },
+    "Descartar",
+  );
+  const bar = h("div", { class: "save-bar" }, status, h("div", { class: "save-actions" }, undo, save));
+  const preview = section.id === "marca" ? configPreview() : null;
+
+  const form = h(
+    "form",
+    { class: "config-form", onSubmit: onSaveConfig },
+    h(
+      "div",
+      { class: "panel config-intro" },
+      h("div", { class: "kicker" }, site.name),
+      h("h3", { class: "op-title" }, "Cómo se comporta el SDK en este estudio"),
+      h(
+        "p",
+        { class: "muted" },
+        "Todo lo de aquí se aplica a las páginas del estudio sin tocar su código. Lo que la página traiga escrito le gana a lo que pongas aquí, y la llave secreta nunca se guarda en el Hub.",
+      ),
+      h(
+        "p",
+        { class: "muted saved-at" },
+        state.remoteConfig.updated_at
+          ? `Último guardado ${relTime(state.remoteConfig.updated_at)}.`
+          : "Todavía no has guardado nada para este estudio.",
+      ),
+      summary,
+      leftovers.length
+        ? h(
+            "p",
+            { class: "muted leftovers" },
+            `Se conservan tal cual ${leftovers.length} ${leftovers.length === 1 ? "ajuste avanzado que esta pantalla no muestra" : "ajustes avanzados que esta pantalla no muestra"}: ${leftovers.join(", ")}.`,
+          )
+        : null,
+    ),
+    h(
+      "div",
+      { class: "seg tabs config-tabs" },
+      CONFIG_SECTIONS.map((item) =>
+        h(
+          "button",
+          {
+            type: "button",
+            class: state.configTab === item.id ? "active" : "",
+            onClick: () => {
+              state.configTab = item.id;
+              state.openTip = "";
+              render();
+            },
+          },
+          item.label,
+          sectionHasError(item.id) ? h("i", { class: "tab-dot" }) : null,
+        ),
+      ),
+    ),
+    h("p", { class: "muted section-blurb" }, section.blurb),
+    preview,
+    section.groups.map((group) => configGroup(group)),
+    bar,
+  );
+
+  configChrome = { bar, status, save, undo, summary, preview: preview?.querySelector(".preview") ?? null };
+  queueMicrotask(syncConfigChrome);
+  return form;
+}
+
+async function onSaveConfig(event) {
+  event.preventDefault();
+  const site = selectedSite();
+  if (!site) return;
+  const errors = validateDraft(state.configDraft);
+  if (Object.keys(errors).length) {
+    state.configErrors = errors;
+    state.configNotice = "";
+    state.error = "Revisa lo que está marcado en rojo: hay un dato que no se entiende.";
+    if (!sectionHasError(state.configTab)) state.configTab = sectionOfField(Object.keys(errors)[0]) || state.configTab;
+    render();
+    return;
+  }
+  state.configSaving = true;
+  state.configNotice = "";
+  state.error = "";
+  render();
+  try {
+    const saved = await api("/v1/admin/config", {
+      method: "PUT",
+      body: JSON.stringify({ company_id: site.company_id, config: currentConfig() }),
+    });
+    state.remoteConfig = saved;
+    state.configDraft = draftFromConfig(saved.config ?? {});
+    state.configErrors = {};
+    state.configNotice = saved.stripped?.length
+      ? `Guardado. Quitamos ${saved.stripped.join(", ")}: la llave secreta se queda en el sitio, nunca aquí.`
+      : "Guardado. Los sitios lo toman la próxima vez que alguien los abra.";
+  } catch (error) {
+    state.error = error.message;
+  }
+  state.configSaving = false;
+  render();
+}
+
+const WIDGET_DOCS = {
+  concierge: "docs/v2-agente.md#11-concierge--opt-in-apagado-por-default",
+  "meetings-calendar": "docs/v2-agente.md#7-calendario--filtros-y-vista",
+  "combo-list": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "membership-list": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "staff-list": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "service-list": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  login: "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  register: "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "password-recovery": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "login-register": "docs/v2-agente.md#header-login-register",
+  "login-register-pages": "docs/v2-agente.md#auth-en-página-login-register-pages",
+  "profile-info": "docs/v2-agente.md#6-widgets-data-gf-theme",
+  "purchase-button": "docs/v2-agente.md#9-html-plano--comprar-reservar-carrito-cuenta",
+  fancy: "docs/v2-agente.md#9-html-plano--comprar-reservar-carrito-cuenta",
+};
+
+function widgetDocsUrl(row) {
+  const path = WIDGET_DOCS[row.id] || WIDGET_DOCS[row.shortcode] || "docs/v2-agente.md#6-widgets-data-gf-theme";
+  const hash = path.indexOf("#");
+  const file = hash === -1 ? path : path.slice(0, hash);
+  const fragment = hash === -1 ? "" : path.slice(hash);
+  return `https://github.com/GafaMX/GFtheme/blob/v2/main/${file}${fragment}`;
+}
+
 function renderCatalog() {
   return h(
     "div",
     { class: "widgets" },
     state.widgets.map((row) =>
       h(
-        "article",
-        { class: "panel widget-card" },
+        "a",
+        {
+          class: `panel widget-card${row.status === "preview" ? " is-preview" : ""}`,
+          href: widgetDocsUrl(row),
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
         h("span", { class: `tag ${row.status}` }, row.status === "stable" ? "Listo" : "En preview"),
         h("h3", {}, row.title),
         h("p", { class: "muted" }, row.description ?? ""),
+        h("span", { class: "widget-doc" }, "Guía ↗"),
       ),
     ),
   );

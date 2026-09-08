@@ -123,4 +123,9 @@ describe("buq environments", () => {
     const off = legacyOptionsToConfig({ COMPANY_ID: 1 });
     expect(off.showMembershipOptions).toBeUndefined();
   });
+
+  it("CONCIERGE true llega al config del SDK (para el merge del Hub)", () => {
+    const config = legacyOptionsToConfig({ COMPANY_ID: 190, CONCIERGE: true });
+    expect(config.concierge).toBe(true);
+  });
 });

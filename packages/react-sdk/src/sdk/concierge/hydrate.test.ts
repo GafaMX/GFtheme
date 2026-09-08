@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { DEMO_CONCIERGE_CONFIG, FITSPIN_CONCIERGE_CONFIG } from "./fixtures";
-import { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
+import { applyHydratedPartnerIdentity, hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
+import { GENERATED_CONCIERGE_DISPLAY_NAME } from "./resolveConfig";
 import type { ConciergeHydrateClient } from "./hydrate";
 
 function clientMock(): ConciergeHydrateClient {
@@ -122,5 +123,19 @@ describe("hydrateConciergeCatalog", () => {
       "680:PROMOCION DE APERTURA",
     ]);
     expect(next.catalog.products.some((product) => product.id === "demo-combo")).toBe(false);
+  });
+
+  it("si el default live no tenía nombre, usa la primera marca hidratada", () => {
+    const next = applyHydratedPartnerIdentity(
+      {
+        ...DEMO_CONCIERGE_CONFIG,
+        id: "company-190",
+        displayName: GENERATED_CONCIERGE_DISPLAY_NAME,
+      },
+      [{ slug: "bunker", name: "Bunker Indoor Golf", locationIds: ["10"] }],
+    );
+    expect(next.displayName).toBe("Bunker Indoor Golf");
+    expect(next.copy.title).toBe("Bunker Indoor Golf Concierge");
+    expect(next.copy.greeting).toContain("Bunker Indoor Golf");
   });
 });

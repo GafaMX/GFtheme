@@ -6,6 +6,7 @@ import { pruneOldEvents } from "./cleanup";
 import { parseAndNormalizeEvents, persistEvents } from "./ingest";
 import { applyLoyalty, d1LoyaltyStore, tierForPoints } from "./loyalty";
 import { allowRequest } from "./rateLimit";
+import { readCompanyConfig, writeCompanyConfig } from "./remoteConfig";
 
 export type HubEnv = {
   DB: D1Database;
@@ -34,6 +35,7 @@ const embedCors = cors({
 
 app.use("/v1/events", embedCors);
 app.use("/v1/loyalty/*", embedCors);
+app.use("/v1/config", embedCors);
 
 app.get("/v1/health", (c) =>
   c.json({
@@ -43,6 +45,24 @@ app.get("/v1/health", (c) =>
     origin: c.env.HUB_PUBLIC_ORIGIN,
   }),
 );
+
+app.get("/v1/config", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  if (!allowRequest(`config:${ip}`, 120)) {
+    return c.json({ ok: false, error: "rate_limited" }, 429);
+  }
+  const companyId = Number(c.req.query("company_id"));
+  if (!Number.isFinite(companyId) || companyId <= 0) {
+    return c.json({ ok: false, error: "company_required" }, 400);
+  }
+  const row = await readCompanyConfig(c.env.DB, companyId);
+  return c.json({
+    ok: true,
+    company_id: companyId,
+    config: row.config,
+    updated_at: row.updated_at,
+  });
+});
 
 app.get("/v1/widgets", async (c) => {
   const { results } = await c.env.DB.prepare(
@@ -225,6 +245,36 @@ app.put("/v1/admin/loyalty/rules", async (c) => {
       .run();
   }
   return c.json({ ok: true });
+});
+
+app.get("/v1/admin/config", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+  const companyId = Number(c.req.query("company_id"));
+  if (!Number.isFinite(companyId) || companyId <= 0) {
+    return c.json({ ok: false, error: "company_required" }, 400);
+  }
+  const row = await readCompanyConfig(c.env.DB, companyId);
+  return c.json({ ok: true, ...row });
+});
+
+app.put("/v1/admin/config", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+  let body: { company_id?: number; config?: unknown } = {};
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    return c.json({ ok: false, error: "invalid_json" }, 400);
+  }
+  const companyId = Number(body.company_id);
+  if (!Number.isFinite(companyId) || companyId <= 0) {
+    return c.json({ ok: false, error: "company_required" }, 400);
+  }
+  const saved = await writeCompanyConfig(c.env.DB, {
+    companyId,
+    config: body.config,
+    updatedBy: "admin",
+  });
+  return c.json({ ok: true, ...saved });
 });
 
 app.all("*", async (c) => {

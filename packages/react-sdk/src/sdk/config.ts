@@ -112,6 +112,12 @@ export const sdkConfigSchema = z
     showMembershipOptions: z.boolean().optional(),
     images: imagesSchema,
     theme: legacyThemeSchema,
+    /**
+     * `true` | `{}` | partial | objeto completo. El widget lo resuelve con
+     * `createLiveConciergeConfig`. Encenderlo alcanza: sin nodo HTML el
+     * bootstrap cuelga la barra del `body`.
+     */
+    concierge: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
   })
   .passthrough();
 
@@ -122,6 +128,7 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   gafaPayFrontUrl: string;
   hubUrl: string;
   analyticsEnabled: boolean;
+  concierge?: boolean | Record<string, unknown>;
 };
 
 const legacyOptionsSchema = z
@@ -141,6 +148,8 @@ const legacyOptionsSchema = z
     SHOW_MEMBERSHIP_OPTIONS: z.union([z.boolean(), z.string(), z.number()]).optional(),
     IMAGES: imagesSchema,
     THEME: legacyThemeSchema,
+    CONCIERGE: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
+    concierge: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
   })
   .passthrough();
 
@@ -181,6 +190,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     showMembershipOptions: coerceFlag(legacyOptions.SHOW_MEMBERSHIP_OPTIONS),
     images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
+    concierge: legacyOptions.CONCIERGE ?? legacyOptions.concierge,
   });
 }
 

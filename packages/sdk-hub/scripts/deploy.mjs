@@ -5,6 +5,8 @@
  *   CLOUDFLARE_API_TOKEN=… node scripts/deploy.mjs --env production
  *
  * Optional: CLOUDFLARE_ACCOUNT_ID, ADMIN_PASSWORD, ADMIN_SESSION_SECRET.
+ * Los secretos que ya existen en el Worker se conservan: un redeploy no le
+ * cambia la contraseña a un Hub que está en el aire.
  * Custom domain (hub.buq.partners) is attempted; if the zone is not in this
  * account the script retries without the route and prints the workers.dev URL.
  */
@@ -97,14 +99,44 @@ writeFileSync(configPath, config);
 console.log("== migrations ==");
 console.log(wrangler(["d1", "migrations", "apply", dbName, "--remote", "--env", envName]));
 
-const adminPassword = process.env.ADMIN_PASSWORD || randomBytes(18).toString("base64url");
-const sessionSecret = process.env.ADMIN_SESSION_SECRET || randomBytes(32).toString("base64url");
 console.log("== secrets ==");
-wrangler(["secret", "put", "ADMIN_PASSWORD", "--env", envName], { input: `${adminPassword}\n` });
-wrangler(["secret", "put", "ADMIN_SESSION_SECRET", "--env", envName], { input: `${sessionSecret}\n` });
-if (!process.env.ADMIN_PASSWORD) {
-  console.log(`ADMIN_PASSWORD generated (save this): ${adminPassword}`);
+const existingSecrets = readSecretNames();
+
+/**
+ * Un redeploy no puede cambiarle la contraseña a un Hub que ya está en el aire:
+ * solo se escribe el secreto si lo pides explícito o si todavía no existe.
+ */
+function ensureSecret(name, provided, generate) {
+  if (provided) {
+    wrangler(["secret", "put", name, "--env", envName], { input: `${provided}\n` });
+    console.log(`${name}: actualizado con el valor que pasaste.`);
+    return;
+  }
+  if (existingSecrets.has(name)) {
+    console.log(`${name}: ya existe, se conserva.`);
+    return;
+  }
+  const value = generate();
+  wrangler(["secret", "put", name, "--env", envName], { input: `${value}\n` });
+  console.log(`${name} generado (guárdalo): ${value}`);
 }
+
+function readSecretNames() {
+  const raw = wrangler(["secret", "list", "--env", envName, "--format", "json"], { allowFail: true });
+  try {
+    const parsed = parseJson(raw);
+    const rows = Array.isArray(parsed) ? parsed : parsed.result ?? [];
+    return new Set(rows.map((row) => row.name).filter(Boolean));
+  } catch {
+    // Worker nuevo o salida inesperada: tratamos todo como faltante.
+    return new Set();
+  }
+}
+
+ensureSecret("ADMIN_PASSWORD", process.env.ADMIN_PASSWORD, () => randomBytes(18).toString("base64url"));
+ensureSecret("ADMIN_SESSION_SECRET", process.env.ADMIN_SESSION_SECRET, () =>
+  randomBytes(32).toString("base64url"),
+);
 
 console.log("== deploy ==");
 let deployed = wrangler(["deploy", "--env", envName], { allowFail: true });

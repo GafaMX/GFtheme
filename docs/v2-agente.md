@@ -10,8 +10,10 @@ cuenta, reserva, carrito y checkout. Concierge solo si el socio lo activa
 backend propio.
 
 **Contratos cortos:** colores → [`v2-theme-colors.md`](v2-theme-colors.md) ·
-botones HTML → [`botones-de-compra.md`](botones-de-compra.md) · reservar por
-id → [`reservar-una-clase-desde-js.md`](reservar-una-clase-desde-js.md) ·
+catálogo de options → [`v2-options.md`](v2-options.md) · remote config →
+[`v2-hub/remote-config.md`](v2-hub/remote-config.md) · botones HTML →
+[`botones-de-compra.md`](botones-de-compra.md) · reservar por id →
+[`reservar-una-clase-desde-js.md`](reservar-una-clase-desde-js.md) ·
 publicar bundle → [`v2-lanzamiento.md`](v2-lanzamiento.md).
 
 ---
@@ -111,7 +113,7 @@ VITE_GAFA_SDK_V2_URL=https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2
 | Tienda | `data-gf-buy` + `data-gf-product-id` |
 | “Reservar esta clase” en una landing | `data-gf-reserve` + `data-gf-meeting-id` |
 | Perfil | lo abre el header; `profile-info` solo si quieres la página entera |
-| Concierge (barra + chat) | `concierge` — **opt-in, por página**. Nodo solo en esa URL + `CONCIERGE`. Ver §11 |
+| Concierge (barra + chat) | No se pega a mano: con `CONCIERGE` encendido flota solo. Ver §11 |
 
 Checkout, login popup y detalle de reserva **no se pegan a mano**: el SDK
 los abre en `document.body`.
@@ -178,12 +180,15 @@ del socio (así lo exige gafa.fit hoy, igual que v1).
 | `CAPTCHA_PUBLIC_KEY` / `CAPTCHA_SECRET_KEY` | no | Default: par compartido de Buq |
 | `TOKENMOVIL` | no | SSO app |
 | `IMAGES` | no | `{ "provider": "cloudflare" \| "none" }` |
-| `CONCIERGE` | no | Config del asistente. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Ver §11 |
+| `CONCIERGE` | no | `true` \| `{}` \| partial \| objeto completo. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Ver §11. El Hub puede mandar este override; el nodo sigue siendo por página. |
 
 Query string de prueba (no uses en producción):
 
 - `?buq-env=staging` pisa el backend
 - `?hub-url=http://127.0.0.1:8787` pisa el Hub
+
+Merge: defaults del SDK → partial del Hub (`GET /v1/config`) → este JSON →
+query. El `API_SECRET` nunca se pide al Hub. Catálogo: [`v2-options.md`](v2-options.md).
 
 `language` existe en el schema (`es`/`en`) pero **hoy no cambia copy**. No
 lo prometas.
@@ -320,6 +325,9 @@ Para que `Entrar` coincida con un CTA `Reservar` del header:
 
 ## 6. Widgets (`data-gf-theme`)
 
+<a id="widget-list"></a>
+<a id="widget-perfil"></a>
+
 Un shortcode = un contenedor. El registry está en
 `packages/react-sdk/src/sdk/widgets/registry.ts`.
 
@@ -338,7 +346,7 @@ Un shortcode = un contenedor. El registry está en
 | `profile-info` | stable | Perfil (reservas, créditos, compras) |
 | `purchase-button` | stable | Botón / ancla de compra |
 | `fancy` | stable | Host legacy. V2 **no lo necesita** |
-| `concierge` | **opt-in** | Barra + chat. **Off** si no hay nodo **y** `CONCIERGE`. Ver §11 |
+| `concierge` | **opt-in** | Barra + chat. **Off** salvo que `CONCIERGE` la encienda; sin nodo se cuelga del `body`. Ver §11 |
 | `cross-sell` | **preview** | Reservado. Hoy **no pinta nada** |
 
 `data-gafa-v2="meetings-calendar"` es el mismo shortcode.
@@ -346,6 +354,8 @@ Un shortcode = un contenedor. El registry está en
 ---
 
 ## 7. Calendario — filtros y vista
+
+<a id="widget-calendario"></a>
 
 Van en el `<section data-gf-theme="meetings-calendar">`.
 
@@ -375,6 +385,9 @@ Los ids son los de **gafa.fit**, no ids del builder.
 ---
 
 ## 8. Catálogo, header, auth — atributos
+
+<a id="widget-catalogo"></a>
+<a id="widget-auth"></a>
 
 ### Paquetes / membresías
 
@@ -407,6 +420,8 @@ Los ids son los de **gafa.fit**, no ids del builder.
 ---
 
 ## 9. HTML plano — comprar, reservar, carrito, cuenta
+
+<a id="widget-compra"></a>
 
 El IIFE ya llama `enablePurchaseButtons()`. Sirve para nodos que el builder
 pinta después (sliders, AJAX).
@@ -475,33 +490,36 @@ abren los modales nativos. Código nuevo: los métodos del `sdk`.
 
 ## 11. Concierge — opt-in (apagado por default)
 
+<a id="widget-concierge"></a>
+
 Mismo script, mismas options, mismo `THEME`. No es un bundle aparte ni un
-iframe. **Cargar `gafa-sdk.js` no lo enciende.**
+iframe. **Cargar `gafa-sdk.js` no lo enciende**: hace falta config que lo
+prenda.
 
-Hacen falta **las dos** piezas. Si pones el nodo y olvidas la config, el
-SDK **no monta** Concierge y deja un `console.warn` (`Concierge config was
-not found`). El calendario y el checkout siguen.
+`CONCIERGE` acepta `true`, `{}` o un partial. Los defaults los arma
+`createLiveConciergeConfig()` (catálogo live, textos de la compañía). El
+objeto largo de abajo sigue válido.
 
-### 11.1 Cómo se activa (una página, no todo el sitio)
+### 11.1 Cómo se activa
 
-Concierge **no es del header**. El script y `CONCIERGE` en `[data-gf-options]`
-pueden ser globales; **el nodo es lo que lo enciende en esa URL**.
+**Con la config alcanza.** La barra flota sobre la página, no ocupa un lugar
+en el layout, así que el bootstrap le cuelga su propio contenedor al `body`.
+Prenderla en el Hub (o mandar `CONCIERGE` en `[data-gf-options]`) la pinta en
+todas las páginas que carguen el script. No hay que tocar el HTML del sitio.
 
-En Buq-Webs / Replit:
+| Caso | Qué pasa |
+| --- | --- |
+| Config encendida, sin nodo | Se monta sola al final del `body`. |
+| Config encendida, con nodo | Se monta **en el nodo**, donde el sitio lo puso. No sale una segunda. |
+| `<body data-gf-concierge="off">` | Esa página queda excluida, diga lo que diga el Hub. |
+| Nodo sin config en ningún lado | `console.warn` y nada más. El calendario y el checkout siguen. |
 
-1. Abre **solo la página** donde lo pidió el socio (home, clases, etc.).
-2. Pega **un** nodo en el body de **esa** página, no en el layout compartido
-   (header, footer, `App`, shell, `_layout`).
-3. Añade `CONCIERGE` al `[data-gf-options]` de la marca si aún no está.
-4. Hard refresh. **No** Republish.
+Ojo con el cambio de criterio: antes el nodo era lo que encendía la barra en
+**esa** URL, así que ponerlo en el header global se consideraba un error.
+Ahora es al revés — encendida, sale en todo el sitio, y para dejarla fuera de
+una página se usa `data-gf-concierge="off"` en su `<body>`.
 
-Si el nodo vive en el header global, la barra sale en **todas** las páginas.
-Eso está mal. Quita el nodo del layout y déjalo solo en la página pedida.
-
-Otras URLs de la misma marca: sin nodo → sin barra. Eso es correcto,
-aunque `CONCIERGE` esté en las options globales.
-
-**1. Nodo HTML** (una vez, en esa página):
+**Nodo HTML** (opcional; solo si quieres mandar tú dónde va):
 
 ```html
 <section data-gf-theme="concierge"></section>
@@ -513,13 +531,13 @@ Si el theme v1 sigue cargado, usa el alias para no pelear el shortcode viejo:
 <section data-gafa-v2="concierge"></section>
 ```
 
-**2. Config declarativa.** El SDK busca, en este orden:
+**Config declarativa.** El SDK busca, en este orden:
 
 | Prioridad | Fuente | Cuándo |
 | --- | --- | --- |
 | 1 | `data-gafa-concierge-fixture` / `data-gf-concierge-fixture` en el nodo | Solo demos. Valores: `fitspin`, `demo-studio`. **Nunca** se asume solo. |
 | 2 | `<script data-gafa-concierge-config type="application/json">` (en el nodo o global) | Config suelta, fuera de options |
-| 3 | `CONCIERGE` (o `concierge`) dentro de `[data-gf-options]` | **Camino de producción** |
+| 3 | `CONCIERGE` (o `concierge`) ya mergeado: Hub + `[data-gf-options]` | **Camino de producción.** `true` / `{}` / partial alcanzan. |
 
 Sin esas tres: no hay Concierge. Fitspin **no** es el default del registry.
 
@@ -563,6 +581,25 @@ precios ni IDs.
 ### 11.4 Ejemplo mínimo de producción
 
 Mismo `[data-gf-options]` de siempre. Añade `CONCIERGE` y el nodo.
+
+Camino corto (recomendado). Theme y WhatsApp pueden vivir en el Hub:
+
+```html
+<script data-gf-options type="application/json">
+  {
+    "COMPANY_ID": 190,
+    "API_CLIENT": "…",
+    "API_SECRET": "…",
+    "CONCIERGE": true
+  }
+</script>
+<section data-gf-theme="concierge"></section>
+```
+
+`true` o `{}` = defaults live (toda la compañía). Un partial pisa lo que
+haga falta: `{ "contact": { "whatsapp": "5215512345678" }, "displayName": "Bunker" }`.
+
+Objeto completo (sigue válido; ya no es obligatorio):
 
 ```html
 <script data-gf-options type="application/json">
@@ -740,9 +777,11 @@ Instala el SDK v2 de Buq. Guía: docs/v2-agente.md del repo GafaMX/GFtheme.
    Reservar clase: data-gf-reserve + data-gf-meeting-id. Ids de gafa.fit.
 
 5. No CSS de overlays, no MutationObserver, no selectores internos del SDK.
-   Concierge está APAGADO salvo nodo data-gf-theme=concierge (o data-gafa-v2)
-   + CONCIERGE en options. El nodo va SOLO en la página pedida, nunca en el
-   header/layout global. WhatsApp es opcional: sin teléfono no hay botón.
+   Concierge está APAGADO salvo CONCIERGE (true, {} o partial), venga del Hub
+   o del HTML. Encendido flota sola: sin nodo el SDK cuelga el suyo del body.
+   El nodo data-gf-theme=concierge solo manda DÓNDE va, y
+   data-gf-concierge="off" en el body excluye esa página.
+   WhatsApp es opcional: sin teléfono no hay botón.
    catalog.live true + products [] = todos los paquetes de ESTA compañía.
    No inventes un chat. Cross-sell sigue reservado: no pinta.
    No implementes un carrusel paralelo.
@@ -767,7 +806,7 @@ Después de pegar options + widgets:
 8. Si hay Concierge: barra visible. Sin `contact.whatsapp`, no hay icono WA.
    Con número, abre `wa.me/<dígitos de ESTA marca>`. “Comprar” hidrata **toda**
    la compañía (`products: []` + `live`), no Demo Studio / Fitspin.
-   Sin nodo o sin `CONCIERGE`: no hay barra. Eso es correcto.
+   Sin `CONCIERGE`: no hay barra. Eso es correcto.
 
 Si el color no cambia: el `THEME` no está llegando al JSON, o hay CSS del
 sitio encima. Quita el CSS. No subas especificidad.

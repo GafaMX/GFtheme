@@ -1,5 +1,6 @@
-import { ConciergePartnerConfig as ConciergePartnerConfigSchema, type ConciergePartnerConfig } from "./contracts";
+import type { ConciergePartnerConfig } from "./contracts";
 import { getConciergeFixture } from "./fixtures";
+import { conciergeContextFromOptions, resolveConciergeFromInput } from "./resolveConfig";
 
 export type ConciergeDomConfigSource = {
   config: ConciergePartnerConfig;
@@ -46,6 +47,7 @@ export function assertConciergeOriginAllowed(config: ConciergePartnerConfig, ori
 export function readConciergeConfigFromDom(
   root: ParentNode = document,
   host?: Element,
+  mergedOptions?: Record<string, unknown>,
 ): ConciergeDomConfigSource {
   const fixtureId = host?.getAttribute("data-gafa-concierge-fixture") || host?.getAttribute("data-gf-concierge-fixture");
   if (fixtureId) {
@@ -54,15 +56,17 @@ export function readConciergeConfigFromDom(
     return { config: fixture, source: "fixture" };
   }
 
+  const options = mergedOptions ?? readOptionsRecord(root);
+  const context = conciergeContextFromOptions(options);
+
   const scriptConfig = readScriptConfig(root, host);
   if (scriptConfig) {
-    return { config: ConciergePartnerConfigSchema.parse(scriptConfig), source: "script" };
+    return { config: resolveConciergeFromInput(scriptConfig, context), source: "script" };
   }
 
-  const options = readOptionsRecord(root);
   const fromOptions = options?.CONCIERGE ?? options?.concierge;
   if (fromOptions) {
-    return { config: ConciergePartnerConfigSchema.parse(fromOptions), source: "options" };
+    return { config: resolveConciergeFromInput(fromOptions, context), source: "options" };
   }
 
   throw new Error(
