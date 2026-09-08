@@ -46,7 +46,29 @@ const state = {
   configSaving: false,
   configNotice: "",
   openTip: "",
+  theme: readStoredTheme(),
 };
+
+const THEME_KEY = "buq-hub-theme";
+
+function readStoredTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  document.documentElement.dataset.theme = theme;
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    /* modo incógnito: se queda solo para esta sesión */
+  }
+  render();
+}
 
 function pageCopy() {
   if (state.view === "loyalty" && state.loyaltyMode === "studio") {
@@ -315,11 +337,12 @@ function renderApp() {
             ? `${fmt(state.stats.sites)} sitios · ${fmt(state.stats.events)} eventos guardados`
             : "Cargando el pulso…",
         ),
+        themeToggle(),
         h(
           "button",
           {
             class: "btn ghost",
-            style: "width:100%;margin-top:14px",
+            style: "width:100%;margin-top:8px",
             onClick: async () => {
               await api("/v1/admin/logout", { method: "POST" });
               state.me = false;
@@ -337,6 +360,30 @@ function renderApp() {
       renderFilters(),
       state.error ? h("p", { class: "error" }, state.error) : null,
       state.loading ? h("p", { class: "loading" }, "Cargando…") : renderView(),
+    ),
+  );
+}
+
+function themeToggle() {
+  const modes = [
+    ["light", "Claro", "M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7l-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0l-1.4-1.4M7.7 7.7L6.3 6.3M15 12a3 3 0 11-6 0 3 3 0 016 0z"],
+    ["dark", "Oscuro", "M20 14.5A8 8 0 019.5 4a8.5 8.5 0 1010.5 10.5z"],
+  ];
+  return h(
+    "div",
+    { class: "theme-toggle", role: "group", "aria-label": "Tema del Hub" },
+    modes.map(([mode, label, d]) =>
+      h(
+        "button",
+        {
+          type: "button",
+          class: state.theme === mode ? "active" : "",
+          "aria-pressed": state.theme === mode ? "true" : "false",
+          onClick: () => setTheme(mode),
+        },
+        icon(d),
+        label,
+      ),
     ),
   );
 }
