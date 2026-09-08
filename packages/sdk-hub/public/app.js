@@ -1072,6 +1072,7 @@ function syncConfigChrome() {
   const next = currentConfig();
   const dirty = !sameConfig(next, state.remoteConfig.config ?? {});
   configChrome.bar.classList.toggle("dirty", dirty);
+  configChrome.bar.classList.toggle("saved", !dirty && Boolean(state.configNotice));
   configChrome.status.textContent = dirty
     ? "Tienes cambios sin guardar."
     : state.configNotice || "Todo guardado.";
@@ -1410,7 +1411,6 @@ function renderConfig() {
     h("p", { class: "muted section-blurb" }, section.blurb),
     preview,
     section.groups.map((group) => configGroup(group)),
-    state.configNotice ? h("p", { class: "ok" }, state.configNotice) : null,
     bar,
   );
 

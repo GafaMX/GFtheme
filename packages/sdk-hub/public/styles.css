@@ -655,8 +655,10 @@ a.widget-card:hover { border-color: rgba(228, 184, 74, 0.4); }
   box-shadow: var(--shadow);
 }
 .save-bar.dirty { border-color: rgba(228, 184, 74, 0.45); }
+.save-bar.saved { border-color: rgba(74, 222, 128, 0.4); }
 .save-status { color: var(--muted); font-size: 13px; }
 .save-bar.dirty .save-status { color: var(--gold); font-weight: 600; }
+.save-bar.saved .save-status { color: var(--ok); font-weight: 600; }
 .save-actions { display: flex; gap: 8px; }
 
 @media (max-width: 1100px) {
