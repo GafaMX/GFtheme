@@ -29,6 +29,13 @@ export { useCartStore } from "./cart/cartStore";
 export type { CartLine, CartReservationContext } from "./cart/cartStore";
 export { legacyOptionsToConfig, parseSdkConfig, readLegacyOptionsFromDom } from "./config";
 export type { GafaSdkConfig, GafaSdkConfigInput } from "./config";
+export { readEmbedOptionsFromDom } from "./config/embedOptions";
+export {
+  fetchHubRemoteConfig,
+  mergeSdkOptionLayers,
+  sanitizeHubRemoteConfig,
+  stripRemoteConfigSecrets,
+} from "./config/remoteConfig";
 export { BUQ_ENVIRONMENTS, parseBuqEnvironmentId, resolveBuqEnvironment } from "./config/buqEnvironments";
 export type { BuqEnvironment, BuqEnvironmentId } from "./config/buqEnvironments";
 export { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";

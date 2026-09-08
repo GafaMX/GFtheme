@@ -70,9 +70,18 @@ export { ConciergeHost, createConciergeController, resolveConciergeConfig } from
 export type { ConciergeController, ConciergeHandle, ConciergeMountOptions } from "./mount";
 export { createHttpConciergeAsk, createLocalConciergeAsk, timeoutSignal } from "./ask";
 export type { ConciergeAskFn, ConciergeAskOptions } from "./ask";
-export { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
+export { applyHydratedPartnerIdentity, hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
 export { createLiveConciergeConfig } from "./liveConfig";
 export type { LiveConciergeConfigInput } from "./liveConfig";
 export { assertConciergeOriginAllowed, isTrustedConciergePreviewOrigin, readConciergeConfigFromDom } from "./domConfig";
 export type { ConciergeDomConfigSource } from "./domConfig";
 export type { ConciergeHydrateClient } from "./hydrate";
+export {
+  GENERATED_CONCIERGE_DISPLAY_NAME,
+  conciergeContextFromOptions,
+  isConciergeShorthand,
+  isGeneratedConciergeId,
+  liveConciergeInputFromContext,
+  resolveConciergeFromInput,
+} from "./resolveConfig";
+export type { ConciergeResolveContext } from "./resolveConfig";

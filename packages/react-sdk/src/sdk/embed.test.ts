@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { waitFor } from "@testing-library/react";
-import { bootGafaSdkFromDom, startEmbedWhenReady, type EmbedHostWindow } from "./embed";
+import { bootGafaSdk, bootGafaSdkFromDom, startEmbedWhenReady, type EmbedHostWindow } from "./embed";
+import { parseGafaSdkConfig } from "./config";
 
 const OPTIONS_JSON = JSON.stringify({
   GAFA_FIT_URL: "https://example.gafa.fit",
@@ -114,6 +115,43 @@ describe("embed drop-in", () => {
   it("exige config declarativa y no usa Fitspin como default", () => {
     mountHost(`<section data-gafa-v2="concierge"></section>`);
     expect(() => bootGafaSdkFromDom(document, window, { useMockClient: true })).toThrow(/Concierge config was not found/);
+  });
+
+  it("CONCIERGE true arma el default live sin el JSON largo", async () => {
+    document.body.innerHTML = `
+      <script data-gf-options type="application/json">${JSON.stringify({
+        GAFA_FIT_URL: "https://example.gafa.fit",
+        COMPANY_ID: 190,
+        API_CLIENT: "demo-client",
+        THEME: { colorScheme: "dark", colors: { brand: "#c8ff2e" } },
+        CONCIERGE: true,
+      })}</script>
+      <section data-gafa-v2="concierge"></section>
+    `;
+    bootGafaSdkFromDom(document, window, { useMockClient: true });
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-concierge='company-190']")).toBeTruthy();
+    });
+    expect(document.querySelector('[aria-label="WhatsApp"]')).toBeNull();
+  });
+
+  it("un CONCIERGE mergeado (Hub) monta aunque el script HTML no lo traiga", async () => {
+    document.body.innerHTML = `
+      <script data-gf-options type="application/json">${JSON.stringify({
+        COMPANY_ID: 190,
+        API_CLIENT: "demo-client",
+      })}</script>
+      <section data-gf-theme="concierge"></section>
+    `;
+    bootGafaSdk(
+      parseGafaSdkConfig({ companyId: 190, publicClientId: "demo-client", concierge: true }),
+      document,
+      window,
+      { useMockClient: true },
+    );
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-concierge='company-190']")).toBeTruthy();
+    });
   });
 
   it("acepta un fixture solo si el socio lo pide explicitamente", async () => {
