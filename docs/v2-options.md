@@ -92,7 +92,7 @@ Los campos que sí existen son exactamente los de arriba (`legacyThemeSchema` en
 
 ## `CONCIERGE`
 
-Sin esto (y sin script/fixture), el nodo **no monta**. El Hub puede mandar `true` y aun así hace falta `<section data-gf-theme="concierge">` en **esa** página.
+Enciende la barra flotante. Con la config alcanza: si nadie puso `<section data-gf-theme="concierge">`, el SDK cuelga el suyo del `body`, así que prenderlo en el Hub lo pinta en todo el sitio. El nodo sigue sirviendo para mandar dónde va; `<body data-gf-concierge="off">` excluye una página.
 
 | Valor | Resultado |
 | --- | --- |

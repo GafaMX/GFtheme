@@ -93,7 +93,8 @@ export const sdkConfigSchema = z
     theme: legacyThemeSchema,
     /**
      * `true` | `{}` | partial | objeto completo. El widget lo resuelve con
-     * `createLiveConciergeConfig`. El nodo HTML sigue siendo opt-in.
+     * `createLiveConciergeConfig`. Encenderlo alcanza: sin nodo HTML el
+     * bootstrap cuelga la barra del `body`.
      */
     concierge: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
   })

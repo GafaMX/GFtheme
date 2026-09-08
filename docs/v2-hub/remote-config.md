@@ -14,7 +14,7 @@ Plan vivo. Si el código choca con este contrato, **se actualiza este archivo** 
 | HTML mínimo de prod | `COMPANY_ID` + `API_CLIENT` + `API_SECRET`. |
 | Secret | `API_SECRET` / `clientSecret` / `CAPTCHA_SECRET_KEY` **nunca** van al Hub (ni GET ni PUT). |
 | Concierge en HTML | `CONCIERGE: true \| {} \| partial`. Defaults: `createLiveConciergeConfig()`. |
-| Nodo HTML | `data-gf-theme="concierge"` (o `data-gafa-v2`) sigue siendo **opt-in por página**. El Hub no pinta la barra en todo el sitio. |
+| Nodo HTML | Widgets con lugar en el layout (`login-register`, calendario, catálogo) siguen pidiendo su `data-gf-theme`. El Concierge **no**: flota, así que encenderlo en el Hub lo pinta en todo el sitio. |
 | Admin | Primero en Hub (`hub.buq.partners`). Buq-Webs más tarde, **mismo PUT**. |
 
 Catálogo de claves: [`docs/v2-options.md`](../v2-options.md). Guía de instalación: [`docs/v2-agente.md`](../v2-agente.md).
@@ -55,14 +55,16 @@ Después del merge, Zod parsea. Si Hub está caído o tarda de más, se sigue co
 
 | Valor | Efecto |
 | --- | --- |
-| ausente / `false` | No hay config. El nodo, si existe, tira: `Concierge config was not found`. |
+| ausente / `false` | No hay config ni barra. El nodo puesto a mano, si existe, tira: `Concierge config was not found`. |
 | `true` o `{}` | `createLiveConciergeConfig()` con `COMPANY_ID` + `THEME` (si hay). Catálogo `live` + `products: []`. |
 | partial | Defaults live + deep-merge del partial (`contact.whatsapp`, `copy`, `id`, …). |
 | objeto completo | Sigue igual: se parsea tal cual (compat). |
 
 Identidad si no mandas `id` / `displayName`: `id = company-<COMPANY_ID>`, `displayName = "tu estudio"`. Al hidratar marcas de BUQ, si el id sigue siendo `company-*` (o el nombre es el placeholder), se pinta el nombre de la primera marca.
 
-**El Hub no enciende la barra.** Hace falta el nodo en esa página. `CONCIERGE: true` en Hub solo deja la config lista para las páginas que ya lo pidieron.
+**El Hub sí enciende la barra.** La barra flota sobre la página, no ocupa un lugar en el layout: si la config resuelta la trae encendida y la página no puso su nodo, el bootstrap cuelga uno del `body`. Instalar el script y prenderla en el Hub alcanza — no hay que tocar el HTML del sitio.
+
+Excepciones, por si alguna página no la quiere: `<body data-gf-concierge="off">` la excluye. Un nodo puesto a mano sigue mandando dónde va y evita el automático (no salen dos barras).
 
 WhatsApp: sin número, no hay botón. Un string raro sigue tirando.
 
@@ -119,4 +121,4 @@ Agregar una opción nueva = agregar un objeto en `configModel.js` (y su clave en
 - No cambia la URL pública del embed (`@cdn-live/.../gafa-sdk.js`).
 - No toca Buq-Webs ni pide Republish.
 - No mueve OAuth a un backend: el secret sigue en el HTML (contrato de gafa.fit).
-- No enciende Concierge en todas las páginas desde el Hub.
+- No monta desde el Hub los widgets que ocupan un lugar en la página (login, calendario, catálogo): esos siguen necesitando su nodo, porque el Hub no sabe dónde van.

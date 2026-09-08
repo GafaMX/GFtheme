@@ -15,6 +15,6 @@ Cada elemento se instala igual: un `<section data-gf-theme="SHORTCODE">`. El reg
 | `profile-info` | stable | Perfil |
 | `purchase-button` | stable | Botón de compra |
 | `fancy` | stable | Host legacy de checkout |
-| `concierge` | stable | Barra + chat. Opt-in: nodo HTML **y** `CONCIERGE` (`true` / `{}` / partial). El Hub no enciende la barra en todo el sitio. |
+| `concierge` | stable | Barra + chat. La enciende `CONCIERGE` (`true` / `{}` / partial) desde el Hub o el HTML; sin nodo se cuelga del `body`. `data-gf-concierge="off"` excluye una página. |
 
 Un widget nuevo (Concierge, un template, un tipo de elemento) es **una entrada en el registry**, no un bundle aparte.

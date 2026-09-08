@@ -25,8 +25,9 @@ Sigue siendo **un script**. El Hub no cambia el markup.
 
 ## Widgets
 
-El shortcode es `data-gf-theme` (o `data-gafa-v2`). Concierge es opt-in por
-página (`CONCIERGE: true` no basta sin el nodo):
+El shortcode es `data-gf-theme` (o `data-gafa-v2`). El Concierge no lo
+necesita: con `CONCIERGE: true` (Hub u HTML) flota solo en cada página. El
+nodo solo sirve para elegir dónde va:
 
 ```html
 <section data-gf-theme="concierge"></section>

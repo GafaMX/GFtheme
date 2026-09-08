@@ -189,7 +189,7 @@ export const CONFIG_SECTIONS = [
   {
     id: "concierge",
     label: "Concierge",
-    blurb: "El asistente que responde y ayuda a reservar. Encenderlo aquí no lo hace aparecer: la página también necesita su bloque.",
+    blurb: "El asistente que responde y ayuda a reservar. Se enciende desde aquí y aparece en todas las páginas del sitio que carguen el SDK.",
     groups: [
       {
         title: "Encendido",
@@ -197,8 +197,8 @@ export const CONFIG_SECTIONS = [
           {
             key: "conciergeEnabled",
             type: "switch",
-            label: "Configurar el Concierge desde el Hub",
-            help: "Apagado: cada página decide con su propio código y aquí no mandamos nada. Encendido: el asistente arranca con textos y colores automáticos y tú ajustas lo que quieras. Ojo: la barra solo se ve en las páginas que tienen puesto el bloque del Concierge.",
+            label: "Mostrar el Concierge en el sitio",
+            help: "Encendido: la barra del asistente aparece sola en las páginas que ya cargan el SDK, con textos y colores automáticos que puedes ajustar abajo. Apagado: no la mandamos y cada página queda como esté en su propio código. Si hay una página suelta donde no la quieres, tu desarrollador puede excluirla con data-gf-concierge=\"off\".",
           },
         ],
       },
