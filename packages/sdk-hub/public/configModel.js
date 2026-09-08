@@ -645,7 +645,7 @@ export function validateDraft(draft) {
       errors[field.key] = "Escribe el color con # y seis letras o números, como #c8ff2e.";
     } else if (field.type === "url" && !/^https?:\/\/.+/i.test(raw)) {
       errors[field.key] = "La liga tiene que empezar con https:// y llevar la dirección completa.";
-    } else if (field.type === "tel" && !/^\d{8,15}$/.test(raw)) {
+    } else if (field.type === "tel" && !/^\d{8,20}$/.test(raw)) {
       errors[field.key] = "Solo números, con la lada del país y sin el +. Ejemplo: 5215512345678.";
     } else if (field.type === "number" && !(Number.isFinite(Number(raw)) && Number(raw) > 0)) {
       errors[field.key] = "Tiene que ser un número mayor que cero.";

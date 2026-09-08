@@ -1100,14 +1100,18 @@ function summaryChips(config) {
       },
       item.swatch ? h("i", { class: "swatch-dot", style: `background:${item.swatch}` }) : null,
       h("span", { class: "summary-label" }, item.label),
-      h("b", {}, item.value),
+      h("b", {}, item.value.length > 44 ? `${item.value.slice(0, 42).trimEnd()}…` : item.value),
     ),
   );
 }
 
 function paintPreview(node, config) {
   const theme = config.THEME && typeof config.THEME === "object" ? config.THEME : {};
-  const colors = theme.colors && typeof theme.colors === "object" ? theme.colors : {};
+  const raw = theme.colors && typeof theme.colors === "object" ? theme.colors : {};
+  // Un hex a medio escribir no debe romper la vista previa.
+  const colors = Object.fromEntries(
+    Object.entries(raw).filter(([, value]) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value.trim())),
+  );
   const dark = theme.colorScheme === "dark";
   const brand = colors.brand || (dark ? "#f3d48a" : "#111827");
   const accent = colors.accent || brand;
@@ -1263,12 +1267,17 @@ function fieldControl(field) {
     });
   }
   const suffix = field.type === "px" ? h("span", { class: "field-suffix" }, "px") : null;
+  const numeric = field.type === "number" || field.type === "px" || field.type === "tel";
   const input = h("input", {
     value: String(value),
-    inputmode: field.type === "number" || field.type === "px" || field.type === "tel" ? "numeric" : null,
+    inputmode: numeric ? "numeric" : null,
     placeholder: field.placeholder ? `${field.placeholder}` : "Sin cambio",
     spellcheck: "false",
-    onInput: (event) => setField(field.key, event.target.value),
+    onInput: (event) => {
+      // Un teléfono pegado con +, espacios o guiones se limpia solo.
+      if (field.type === "tel") event.target.value = event.target.value.replace(/\D/g, "");
+      setField(field.key, event.target.value);
+    },
   });
   return suffix ? h("div", { class: "field-with-suffix" }, input, suffix) : input;
 }
