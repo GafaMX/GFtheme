@@ -103,4 +103,73 @@ describe("readEmbedOptionsFromDom", () => {
     expect(config.concierge).toBe(true);
     document.body.innerHTML = "";
   });
+
+  /**
+   * Los sitios que ya están instalados traen todo escrito en el HTML. El Hub
+   * no puede cambiarles nada de eso: solo rellena lo que la página no declaró.
+   */
+  describe("una página que ya trae su config", () => {
+    const paginaInstalada = {
+      COMPANY_ID: 190,
+      API_CLIENT: "203",
+      API_SECRET: "from-page",
+      ANALYTICS: true,
+      SHOW_MEMBERSHIP_OPTIONS: true,
+      THEME: { colors: { brand: "#f3d15e" }, logoUrl: "https://sitio.mx/logo.svg" },
+      CONCIERGE: { displayName: "El de la página", contact: { whatsapp: "5215500000000" } },
+    };
+
+    const hubQueContradice = {
+      ANALYTICS: false,
+      SHOW_MEMBERSHIP_OPTIONS: false,
+      THEME: { colorScheme: "dark", colors: { brand: "#000000", accent: "#ff5c00" } },
+      CONCIERGE: { displayName: "El del Hub", contact: { whatsapp: "5215599999999" } },
+    };
+
+    const montar = (options: Record<string, unknown>) => {
+      document.body.innerHTML = `<script data-gf-options type="application/json">${JSON.stringify(options)}</script>`;
+    };
+
+    const hubRespondiendo = (config: Record<string, unknown>) =>
+      vi.fn(async () => ({ ok: true, json: async () => ({ ok: true, config }) })) as unknown as typeof fetch;
+
+    it("el HTML le gana al Hub en todo lo que ya declara", async () => {
+      montar(paginaInstalada);
+      const config = await readEmbedOptionsFromDom(document, {
+        fetchImpl: hubRespondiendo(hubQueContradice),
+        search: "",
+      });
+      expect(config.analyticsEnabled).toBe(true);
+      expect(config.showMembershipOptions).toBe(true);
+      expect(config.theme?.colors?.brand).toBe("#f3d15e");
+      expect(config.theme?.logoUrl).toBe("https://sitio.mx/logo.svg");
+      expect(config.concierge).toEqual({
+        displayName: "El de la página",
+        contact: { whatsapp: "5215500000000" },
+      });
+      document.body.innerHTML = "";
+    });
+
+    it("el Hub sí agrega lo que la página nunca escribió, aunque sea dentro de THEME", async () => {
+      montar(paginaInstalada);
+      const config = await readEmbedOptionsFromDom(document, {
+        fetchImpl: hubRespondiendo(hubQueContradice),
+        search: "",
+      });
+      expect(config.theme?.colorScheme).toBe("dark");
+      expect(config.theme?.colors?.accent).toBe("#ff5c00");
+      document.body.innerHTML = "";
+    });
+
+    it("si el Hub no contesta, la página arranca igual que hoy", async () => {
+      montar(paginaInstalada);
+      const caido = vi.fn(async () => {
+        throw new Error("offline");
+      });
+      const conHubCaido = await readEmbedOptionsFromDom(document, { fetchImpl: caido, search: "" });
+      const sinHub = await readEmbedOptionsFromDom(document, { fetchRemote: false, search: "" });
+      expect(conHubCaido).toEqual(sinHub);
+      document.body.innerHTML = "";
+    });
+  });
 });
