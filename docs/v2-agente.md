@@ -27,7 +27,9 @@ publicar bundle → [`v2-lanzamiento.md`](v2-lanzamiento.md).
    Eso reinicia **todas** las marcas. El JS ya viene de jsDelivr.
 5. **No pelees el CSS del SDK.** Nada de `MutationObserver`, selectores
    internos (`.gafa-sdk.gafa-sdk…`), estilos post-mount ni reordenar
-   stylesheets. Si un color no pinta, falta `THEME.colors`.
+   stylesheets. Si un color no pinta, falta `THEME.colors`. Si `Entrar` /
+   `Mi cuenta` no coinciden con el CTA del header, usa `THEME.headerControls`
+   (§5.1), no CSS externo.
 6. **No muestres tipos de crédito internos** (`CDMXnew`, etc.). Al socio se
    le enseña el **paquete** o la **membresía**. Ver [`creditos-vs-paquetes.md`](creditos-vs-paquetes.md).
 7. **No pidas otro `src` al socio.** Un publish actualiza el loader; hard
@@ -109,7 +111,7 @@ VITE_GAFA_SDK_V2_URL=https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2
 | Tienda | `data-gf-buy` + `data-gf-product-id` |
 | “Reservar esta clase” en una landing | `data-gf-reserve` + `data-gf-meeting-id` |
 | Perfil | lo abre el header; `profile-info` solo si quieres la página entera |
-| Concierge (barra + chat) | `concierge` — **opt-in**. Nodo + `CONCIERGE`. Ver §11 |
+| Concierge (barra + chat) | `concierge` — **opt-in, por página**. Nodo solo en esa URL + `CONCIERGE`. Ver §11 |
 
 Checkout, login popup y detalle de reserva **no se pegan a mano**: el SDK
 los abre en `document.body`.
@@ -123,6 +125,7 @@ los abre en `document.body`.
 - [ ] Fitspin **sin** lock (ver §5)
 - [ ] Cero CSS contra `.gafa-checkout-overlay` / `.gafa-account-overlay`
 - [ ] Hard refresh. **No** Republish
+- [ ] Concierge: nodo **solo** en la página pedida, nunca en el layout global
 
 ---
 
@@ -175,7 +178,7 @@ del socio (así lo exige gafa.fit hoy, igual que v1).
 | `CAPTCHA_PUBLIC_KEY` / `CAPTCHA_SECRET_KEY` | no | Default: par compartido de Buq |
 | `TOKENMOVIL` | no | SSO app |
 | `IMAGES` | no | `{ "provider": "cloudflare" \| "none" }` |
-| `CONCIERGE` | no | Config del asistente. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Ver §11 |
+| `CONCIERGE` | no | Config del asistente. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Hoy exige el objeto Zod completo. Plan para `true` / `{}` + Hub: [`v2-hub/remote-config.md`](v2-hub/remote-config.md). Ver §11 |
 
 Query string de prueba (no uses en producción):
 
@@ -252,11 +255,65 @@ Opcional, no mezclar en un ticket solo de color:
 - `typography.fontFamily` / `headingFontFamily` (default: hereda el sitio)
 - `radius.sm|md|lg|pill`
 - `assets.heroBackgroundUrl` / `loginBackgroundUrl`
+- `headerControls` — botón `Entrar` / `Mi cuenta`. Ver §5.1
+
+### 5.1 `THEME.headerControls` — botón Entrar / Mi cuenta
+
+Contrato oficial del control `[data-gf-theme="login-register"]` (también
+`runtime.mountHeaderControls()`). **Reemplaza** CSS externo, selectores
+`.gafa-header-account` y observers post-mount.
+
+Sin `headerControls` el botón queda exactamente como hoy (primary + pastilla).
+El carrito circular **no** usa estos tokens. El icono, el puntito de sesión y
+el popup se conservan. `Entrar` → `Mi cuenta` al iniciar sesión, mismo chrome.
+
+| Propiedad | CSS | Default si se omite |
+| --- | --- | --- |
+| `fontFamily` | `--gafa-header-account-font-family` | hereda el sitio |
+| `fontSize` | `--gafa-header-account-font-size` | `0.84rem` |
+| `fontWeight` | `--gafa-header-account-font-weight` | `700` |
+| `letterSpacing` | `--gafa-header-account-letter-spacing` | `normal` |
+| `textTransform` | `--gafa-header-account-text-transform` | `none` |
+| `lineHeight` | `--gafa-header-account-line-height` | `inherit` |
+| `height` | `--gafa-header-account-height` | `36px` (`38px` icono en mobile) |
+| `padding` | `--gafa-header-account-padding` | `0 0.9rem` (`0` en mobile) |
+| `background` | `--gafa-header-account-background` | `--gafa-color-primary` |
+| `color` | `--gafa-header-account-color` | `--gafa-color-primary-text` |
+| `border` | `--gafa-header-account-border` | `none` |
+| `borderRadius` | `--gafa-header-account-border-radius` | `--gafa-radius-pill` |
+
+`""` o espacios → default. `height: 48` = `48px`. Light y dark usan los mismos
+valores explícitos (no se recortan por scheme). En mobile el label se oculta;
+si mandas `height` / `padding`, esos ganan al círculo 38×38.
+
+Para que `Entrar` coincida con un CTA `Reservar` del header:
+
+```json
+{
+  "THEME": {
+    "typography": {
+      "fontFamily": "Inter, sans-serif"
+    },
+    "headerControls": {
+      "fontSize": "11px",
+      "fontWeight": 500,
+      "letterSpacing": "0.22em",
+      "textTransform": "uppercase",
+      "height": "48px",
+      "padding": "0 28px",
+      "background": "#8D6363",
+      "color": "#FFFFFF",
+      "border": "0",
+      "borderRadius": "999px"
+    }
+  }
+}
+```
 
 ### Qué no pinta THEME
 
 - Iframe de Stripe / GafaPay (el Card Element es de ellos).
-- Tipografía ni layout, salvo que los declares.
+- Tipografía ni layout, salvo que los declares (`typography`, `headerControls`).
 - El sitio alrededor del SDK (hero del host, footer, Elementor).
 
 ---
@@ -309,7 +366,8 @@ Van en el `<section data-gf-theme="meetings-calendar">`.
 | `data-gf-limit` | — | Tope de clases (número) |
 | `data-bq-show-description` | — | Se acepta; la nota de clase se pinta si la API la manda |
 
-La URL también arranca la sede: `?location=235` (o `location_id` / `locationId`).
+La URL también arranca la sede: `?location=235` (o `location_id` / `locationId`)
+y el servicio: `?service=123` (o `service_id` / `filter_service`).
 Si el usuario elige “Todos”, no se vuelve a aplicar.
 
 Los ids son los de **gafa.fit**, no ids del builder.
@@ -421,11 +479,29 @@ Mismo script, mismas options, mismo `THEME`. No es un bundle aparte ni un
 iframe. **Cargar `gafa-sdk.js` no lo enciende.**
 
 Hacen falta **las dos** piezas. Si pones el nodo y olvidas la config, el
-bootstrap **tira**: `Concierge config was not found`.
+SDK **no monta** Concierge y deja un `console.warn` (`Concierge config was
+not found`). El calendario y el checkout siguen.
 
-### 11.1 Cómo se activa
+### 11.1 Cómo se activa (una página, no todo el sitio)
 
-**1. Nodo HTML** (una vez por página, donde quieras la barra):
+Concierge **no es del header**. El script y `CONCIERGE` en `[data-gf-options]`
+pueden ser globales; **el nodo es lo que lo enciende en esa URL**.
+
+En Buq-Webs / Replit:
+
+1. Abre **solo la página** donde lo pidió el socio (home, clases, etc.).
+2. Pega **un** nodo en el body de **esa** página, no en el layout compartido
+   (header, footer, `App`, shell, `_layout`).
+3. Añade `CONCIERGE` al `[data-gf-options]` de la marca si aún no está.
+4. Hard refresh. **No** Republish.
+
+Si el nodo vive en el header global, la barra sale en **todas** las páginas.
+Eso está mal. Quita el nodo del layout y déjalo solo en la página pedida.
+
+Otras URLs de la misma marca: sin nodo → sin barra. Eso es correcto,
+aunque `CONCIERGE` esté en las options globales.
+
+**1. Nodo HTML** (una vez, en esa página):
 
 ```html
 <section data-gf-theme="concierge"></section>
@@ -665,7 +741,8 @@ Instala el SDK v2 de Buq. Guía: docs/v2-agente.md del repo GafaMX/GFtheme.
 
 5. No CSS de overlays, no MutationObserver, no selectores internos del SDK.
    Concierge está APAGADO salvo nodo data-gf-theme=concierge (o data-gafa-v2)
-   + CONCIERGE en options. WhatsApp es opcional: sin teléfono no hay botón.
+   + CONCIERGE en options. El nodo va SOLO en la página pedida, nunca en el
+   header/layout global. WhatsApp es opcional: sin teléfono no hay botón.
    catalog.live true + products [] = todos los paquetes de ESTA compañía.
    No inventes un chat. Cross-sell sigue reservado: no pinta.
    No implementes un carrusel paralelo.

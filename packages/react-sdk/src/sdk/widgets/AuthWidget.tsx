@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { CustomField, CustomFieldValues, GafaClient } from "../client/types";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
+import { showToast } from "../toast/toastStore";
+import { ToastHost } from "../toast/ToastHost";
 import { WidgetShell } from "./WidgetShell";
 import { CustomFieldInput } from "./CustomFieldInput";
 
@@ -124,6 +126,8 @@ export function AuthWidget({
 
   return (
     <WidgetShell {...header}>
+      {/* Prueba: solo login/registro. Recuperar contraseña sigue con el banner. */}
+      <ToastHost />
       {/* Dos opciones claras; la activa se pinta con el color de marca. */}
       <div className="gafa-sdk-auth-tabs" role="tablist" aria-label="Iniciar sesión o crear cuenta">
         <button type="button" aria-pressed={formView === "login"} onClick={() => setView("login")}>
@@ -243,16 +247,17 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<FormStatus>("idle");
-  const [error, setError] = useState<string>();
   const { fieldErrors, formProps } = useSpanishValidation();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!event.currentTarget.checkValidity()) return;
+    if (!event.currentTarget.checkValidity()) {
+      toastInvalidAuthForm(event.currentTarget);
+      return;
+    }
     if (!client) return;
 
     setStatus("submitting");
-    setError(undefined);
 
     try {
       await client.login({ email, password });
@@ -260,13 +265,12 @@ function LoginForm({ client, onAuthenticated }: { client?: GafaClient; onAuthent
       onAuthenticated?.();
     } catch (err) {
       setStatus("error");
-      setError(err instanceof Error ? err.message : "No pudimos iniciar sesion.");
+      showToast(err instanceof Error ? err.message : "No pudimos iniciar sesion.", "error");
     }
   }
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
-      <FormAlert fieldErrors={fieldErrors} status={status} error={error} />
       <FloatField
         label="Email"
         name="email"
@@ -314,13 +318,28 @@ function FloatField({
   );
 }
 
-/** Un solo resumen arriba del form; los campos solo se marcan en rojo. */
-function validationSummary(fieldErrors: Record<string, string>): string | null {
-  const messages = Object.values(fieldErrors);
+/** Un solo resumen; los campos solo se marcan en rojo. */
+function validationSummaryFromMessages(messages: string[]): string | null {
   if (messages.length === 0) return null;
   const unique = Array.from(new Set(messages));
   if (unique.length === 1 && unique[0] !== "Este campo es obligatorio.") return unique[0];
   return messages.length === 1 ? "Completa el campo marcado en rojo." : "Completa los campos marcados en rojo.";
+}
+
+function validationSummary(fieldErrors: Record<string, string>): string | null {
+  return validationSummaryFromMessages(Object.values(fieldErrors));
+}
+
+/** Tras checkValidity(): los bordes ya quedaron en rojo; el texto va al toast. */
+function toastInvalidAuthForm(form: HTMLFormElement) {
+  const invalid = Array.from(form.elements).filter(
+    (el): el is HTMLInputElement | HTMLSelectElement =>
+      (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) &&
+      Boolean(el.name) &&
+      !el.validity.valid,
+  );
+  const summary = validationSummaryFromMessages(invalid.map(spanishValidationMessage));
+  if (summary) showToast(summary, "error");
 }
 
 function FormAlert({
@@ -399,7 +418,6 @@ function RegisterForm({
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [customValues, setCustomValues] = useState<CustomFieldValues>({});
   const [status, setStatus] = useState<FormStatus>("idle");
-  const [error, setError] = useState<string>();
   const { fieldErrors, setFieldErrors, formProps } = useSpanishValidation();
 
   const brandsQuery = useQuery({
@@ -429,19 +447,22 @@ function RegisterForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!event.currentTarget.checkValidity()) return;
+    if (!event.currentTarget.checkValidity()) {
+      toastInvalidAuthForm(event.currentTarget);
+      return;
+    }
     if (password !== passwordConfirmation) {
       setFieldErrors((previous) => ({
         ...previous,
         password: "Las contraseñas no coinciden.",
         passwordConfirmation: "Las contraseñas no coinciden.",
       }));
+      showToast("Las contraseñas no coinciden.", "error");
       return;
     }
     if (!client) return;
 
     setStatus("submitting");
-    setError(undefined);
 
     try {
       if (!captcha) {
@@ -468,7 +489,7 @@ function RegisterForm({
       onAuthenticated?.();
     } catch (err) {
       setStatus("error");
-      setError(err instanceof Error ? err.message : "No pudimos crear tu cuenta.");
+      showToast(err instanceof Error ? err.message : "No pudimos crear tu cuenta.", "error");
     }
   }
 
@@ -482,7 +503,6 @@ function RegisterForm({
 
   return (
     <form className="gafa-sdk-form" onSubmit={handleSubmit} {...formProps}>
-      <FormAlert fieldErrors={fieldErrors} status={status} error={error} />
       <div className="gafa-field-row">
         <FloatField
           label="Nombre"

@@ -6,12 +6,15 @@ describe("widget registry", () => {
     expect(WIDGET_BY_SHORTCODE.get("meetings-calendar")?.status).toBe("stable");
     expect(WIDGET_BY_SHORTCODE.get("concierge")?.status).toBe("stable");
     expect(WIDGET_BY_SHORTCODE.get("concierge")?.mount).toEqual(expect.any(Function));
+    expect(WIDGET_BY_SHORTCODE.get("cross-sell")?.status).toBe("preview");
+    expect(WIDGET_BY_SHORTCODE.get("cross-sell")?.mount).toBeUndefined();
   });
 
-  it("arranca Concierge junto al calendario cuando el shortcode tiene mount", () => {
+  it("arranca Concierge junto al calendario; cross-sell sigue fuera", () => {
     const shortcodes = bootstrapableWidgets().map((widget) => widget.shortcode);
     expect(shortcodes).toContain("meetings-calendar");
     expect(shortcodes).toContain("concierge");
-    expect(WIDGET_CATALOG.length).toBe(shortcodes.length);
+    expect(shortcodes).not.toContain("cross-sell");
+    expect(WIDGET_CATALOG.length).toBeGreaterThan(shortcodes.length);
   });
 });

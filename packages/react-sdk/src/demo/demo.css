@@ -8,11 +8,11 @@ body {
   transition: background 0.2s ease;
 }
 
-body[data-scheme="light"] {
+body[data-demo-scheme="light"] {
   background: #f4f5f7;
 }
 
-body[data-scheme="dark"] {
+body[data-demo-scheme="dark"] {
   background: #0c0c0e;
 }
 

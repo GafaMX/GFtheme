@@ -16,6 +16,8 @@ Foundation for the next GFTheme SDK: a modern, embeddable React package that can
 
 The first calendar implementation already loads brands, locations, services, staff, and meetings through the `GafaClient` contract. It supports the legacy filter attributes, groups meetings by day, displays availability, and keeps the mobile layout as the default experience.
 
+Preselect a service with `?service=123` (id) or the v1 query `?filter_service=Pilates+Reformer` (name). The HTML default is `filter-bq-service-default` with the same id-or-name value. Location already works the same way via `?location=200`.
+
 ## Programmatic usage
 
 ```ts
@@ -28,6 +30,7 @@ const sdk = createGafaSdk({
   theme: {
     preset: "boutique",
     logoUrl: "https://example.com/logo.svg",
+    logoUrlDark: "https://example.com/logo-dark.svg",
     colors: {
       primary: "#111827",
       accent: "#f97316",

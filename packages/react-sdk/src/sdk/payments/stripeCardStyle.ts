@@ -43,15 +43,53 @@ export const STRIPE_CARD_STYLE = {
 } as const;
 
 export function mergeStripeCardStyle(existing: unknown, scheme: ColorScheme): StripeStyle {
-  const preset = STRIPE_CARD_STYLE[scheme];
+  const preset = stripeCardStyleForScheme(scheme);
   const current = existing && typeof existing === "object" ? (existing as StripeStyle) : {};
   return {
     ...current,
-    // El scheme gana al #303238 hardcodeado de GafaPayFront.
+    // El scheme gana al #303238 hardcodeado de GafaPayFront (create y update).
     base: { ...(current.base ?? {}), ...preset.base },
     invalid: { ...(current.invalid ?? {}), ...preset.invalid },
   };
 }
+
+type StripeAppearance = {
+  theme?: string;
+  variables?: Record<string, string>;
+};
+
+/**
+ * Payment Element ignora `style` del Card Element: usa `appearance` en
+ * `elements()`. GafaPay a veces crea `payment` en vez de `card`.
+ */
+export function mergeStripeAppearance(existing: unknown, scheme: ColorScheme): StripeAppearance {
+  const preset = STRIPE_CARD_STYLE[scheme];
+  const current = existing && typeof existing === "object" ? (existing as StripeAppearance) : {};
+  return {
+    ...current,
+    theme: scheme === "dark" ? "night" : "stripe",
+    variables: {
+      ...(current.variables ?? {}),
+      colorText: preset.base.color,
+      colorTextPlaceholder: preset.base["::placeholder"].color,
+      colorDanger: preset.invalid.color,
+    },
+  };
+}
+
+export function mergeStripeElementsOptions(existing: unknown, scheme: ColorScheme): Record<string, unknown> {
+  const current = existing && typeof existing === "object" ? (existing as Record<string, unknown>) : {};
+  return {
+    ...current,
+    appearance: mergeStripeAppearance(current.appearance, scheme),
+  };
+}
+
+function stripeCardStyleForScheme(scheme: ColorScheme): (typeof STRIPE_CARD_STYLE)[ColorScheme] {
+  return STRIPE_CARD_STYLE[scheme];
+}
+
+const CARD_ELEMENT_TYPES = new Set(["card", "cardNumber", "cardExpiry", "cardCvc"]);
 
 type StripeLike = {
   (...args: unknown[]): StripeInstance;
@@ -120,14 +158,33 @@ function wrapStripeInstance(instance: StripeInstance, scheme: ColorScheme): Stri
   const originalElements = instance.elements?.bind(instance);
   if (!originalElements) return instance;
   instance.elements = (options?: unknown) => {
-    const elements = originalElements(options);
+    const elements = originalElements(mergeStripeElementsOptions(options, scheme));
     const originalCreate = elements.create.bind(elements);
-    elements.create = (type: string, options: Record<string, unknown> = {}) =>
-      originalCreate(type, {
-        ...options,
-        style: mergeStripeCardStyle(options.style, scheme),
-      });
+    elements.create = (type: string, options: Record<string, unknown> = {}) => {
+      const nextOptions = CARD_ELEMENT_TYPES.has(type)
+        ? { ...options, style: mergeStripeCardStyle(options.style, scheme) }
+        : options;
+      return wrapCreatedElement(originalCreate(type, nextOptions), scheme);
+    };
     return elements;
   };
   return instance;
+}
+
+type StripeUpdatable = {
+  update?: (options?: Record<string, unknown>) => unknown;
+};
+
+/** GafaPay llama `card.update({ style: { color: #303238 } })` despues del create. */
+function wrapCreatedElement(element: unknown, scheme: ColorScheme): unknown {
+  if (!element || typeof element !== "object") return element;
+  const card = element as StripeUpdatable;
+  if (typeof card.update !== "function") return element;
+  const originalUpdate = card.update.bind(card);
+  card.update = (options: Record<string, unknown> = {}) =>
+    originalUpdate({
+      ...options,
+      style: mergeStripeCardStyle(options.style, scheme),
+    });
+  return element;
 }

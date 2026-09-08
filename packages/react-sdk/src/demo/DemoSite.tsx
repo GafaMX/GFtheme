@@ -55,7 +55,20 @@ const BRANDS: Record<string, BrandConfig> = {
     // Mismas credenciales publicas que fitspin.mx expone en GFThemeOptions.
     apiClient: "74",
     apiSecret: "hI8M3iAEVlWIIfxBLesaxhtEIVpEEPwRyHyxw523",
-    theme: { colors: { brand: "#f2b705", accent: "#111827" }, colorScheme: "light" },
+    theme: {
+      colors: { brand: "#f2b705", accent: "#111827" },
+      colorScheme: "light",
+      logoUrl:
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#111827">FITSPIN</text></svg>',
+        ),
+      logoUrlDark:
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#fffaf4">FITSPIN</text></svg>',
+        ),
+    },
     // Fitspin abre en semana a proposito: demuestra que la vista inicial es
     // configuracion por socio, no un comportamiento fijo del SDK.
     calendar: { view: "week", filters: { location: true, service: true, staff: true } },
@@ -70,7 +83,11 @@ export function DemoSite() {
   const brand = BRANDS[brandKey];
 
   return (
-    <ThemeProvider key={brandKey} theme={brand.theme}>
+    <ThemeProvider
+      key={brandKey}
+      theme={brand.theme}
+      storageScope={`${brand.companyId}:${brand.apiClient}`}
+    >
       <DemoShell brandKey={brandKey} onBrandChange={setBrandKey} />
     </ThemeProvider>
   );
@@ -141,6 +158,12 @@ function DemoShell({
         companyId: brand.companyId,
         publicClientId: brand.apiClient,
         clientSecret: brand.apiSecret,
+        theme: {
+          colorScheme: brand.theme.colorScheme,
+          logoUrl: brand.theme.logoUrl,
+          logoUrlDark: brand.theme.logoUrlDark,
+          colors: brand.theme.colors as Record<string, string> | undefined,
+        },
       },
       { client },
     );
@@ -159,7 +182,7 @@ function DemoShell({
   // El fondo de la pagina lo pone el demo, no el SDK: en un sitio real es el
   // propio sitio el que lo define.
   useEffect(() => {
-    document.body.dataset.scheme = scheme;
+    document.body.dataset.demoScheme = scheme;
   }, [scheme]);
 
   return (

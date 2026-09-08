@@ -45,6 +45,12 @@ import {
   readCalendarLocationIdFromWindow,
   resolveCalendarLocationId,
 } from "./calendarLocationQuery";
+import {
+  matchServiceIdByName,
+  meetingMatchesService,
+  readCalendarServiceQueryFromWindow,
+  resolveCalendarServiceId,
+} from "./calendarServiceQuery";
 
 export type CalendarWidgetProps = {
   client?: GafaClient;
@@ -60,6 +66,8 @@ export type CalendarWidgetProps = {
     brandId?: number;
     locationId?: number;
     serviceId?: number;
+    /** Nombre v1 (`filter_service=Pilates+Reformer` / `filter-bq-service-default`). */
+    serviceName?: string;
     staffId?: number;
   };
   /** Vista inicial. El usuario puede cambiarla si `allowViewChange` esta activo. */
@@ -79,7 +87,7 @@ type CalendarFiltersState = {
   brandSlug?: string;
   /** `null` = el usuario eligió "Todos"; no reaplicar URL / default. */
   locationId?: number | null;
-  serviceId?: number;
+  serviceId?: number | null;
   staffId?: number;
 };
 
@@ -99,8 +107,13 @@ export function CalendarWidget({
 }: CalendarWidgetProps) {
   const filters = { service: true, staff: true, ...filtersProp };
   const queryClient = useQueryClient();
+  const serviceQuery = readCalendarServiceQueryFromWindow();
+  const serviceFallbackId = serviceQuery.serviceId ?? filters.serviceId;
+  const serviceFallbackName = serviceQuery.serviceName ?? filters.serviceName;
+
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>(() => ({
     locationId: readCalendarLocationIdFromWindow() ?? filters.locationId,
+    serviceId: serviceFallbackId,
   }));
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [view, setView] = useState<CalendarView>(initialView);
@@ -319,24 +332,6 @@ export function CalendarWidget({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchor, view, locationGroupIds, client, queryClient, activeLocationGroup]);
 
-  const visibleMeetings = useMemo(() => {
-    const meetings = applyLocalMeetingFilters(meetingsQuery.data ?? [], {
-      serviceId: selectedFilters.serviceId ?? filters.serviceId,
-      staffId: selectedFilters.staffId ?? filters.staffId,
-    }).filter((meeting) => matchesTimeOfDay(getMeetingStart(meeting), timeOfDay, meeting.timezone));
-
-    const sorted = [...meetings].sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
-    return limit ? sorted.slice(0, limit) : sorted;
-  }, [
-    filters.serviceId,
-    filters.staffId,
-    limit,
-    meetingsQuery.data,
-    selectedFilters.serviceId,
-    selectedFilters.staffId,
-    timeOfDay,
-  ]);
-
   // Las opciones de los filtros salen de las clases ya cargadas, no del catalogo
   // completo de la marca: asi nunca se ofrece un servicio o un coach que no tiene
   // clases en la ventana visible (elegirlo solo podia dar "sin resultados"), y de
@@ -350,6 +345,34 @@ export function CalendarWidget({
     });
     return [...names.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [meetingsQuery.data]);
+
+  // URL (?service=12 / ?filter_service=Pilates+Reformer) y
+  // filter-bq-service-default arrancan el select. "Todos" (null) no se reaplica.
+  const selectedServiceId = resolveCalendarServiceId(
+    selectedFilters.serviceId,
+    serviceFallbackId ?? matchServiceIdByName(serviceFallbackName, serviceOptions),
+  );
+  const selectedServiceName =
+    selectedFilters.serviceId === null || selectedServiceId != null ? undefined : serviceFallbackName;
+
+  const visibleMeetings = useMemo(() => {
+    const meetings = applyLocalMeetingFilters(meetingsQuery.data ?? [], {
+      serviceId: selectedServiceId,
+      serviceName: selectedServiceName,
+      staffId: selectedFilters.staffId ?? filters.staffId,
+    }).filter((meeting) => matchesTimeOfDay(getMeetingStart(meeting), timeOfDay, meeting.timezone));
+
+    const sorted = [...meetings].sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
+    return limit ? sorted.slice(0, limit) : sorted;
+  }, [
+    filters.staffId,
+    limit,
+    meetingsQuery.data,
+    selectedFilters.staffId,
+    selectedServiceId,
+    selectedServiceName,
+    timeOfDay,
+  ]);
 
   const staffOptions = useMemo(() => {
     const names = new Map<number, string>();
@@ -375,10 +398,10 @@ export function CalendarWidget({
     if (!timeOfDayOptions.has(timeOfDay)) setTimeOfDay("all");
   }, [timeOfDay, timeOfDayOptions]);
 
-  const hasActiveFilters = Boolean(selectedFilters.serviceId) || Boolean(selectedFilters.staffId) || timeOfDay !== "all";
+  const hasActiveFilters = Boolean(selectedServiceId) || Boolean(selectedFilters.staffId) || timeOfDay !== "all";
 
   function clearFilters() {
-    setSelectedFilters((current) => ({ ...current, serviceId: undefined, staffId: undefined }));
+    setSelectedFilters((current) => ({ ...current, serviceId: null, staffId: undefined }));
     setTimeOfDay("all");
   }
 
@@ -604,7 +627,7 @@ export function CalendarWidget({
               allowAutoSkipRef.current = true;
               setSelectedFilters(updater);
             }}
-            selected={selectedFilters}
+            selected={{ ...selectedFilters, serviceId: selectedServiceId }}
             serviceOptions={serviceOptions}
             staffOptions={staffOptions}
             timeOfDay={timeOfDay}
@@ -1264,7 +1287,10 @@ function CalendarFilterBar({
               <select
                 value={selected.serviceId ?? ""}
                 onChange={(event) =>
-                  onChange((current) => ({ ...current, serviceId: toOptionalNumber(event.target.value) }))
+                  onChange((current) => ({
+                    ...current,
+                    serviceId: event.target.value === "" ? null : toOptionalNumber(event.target.value),
+                  }))
                 }
               >
                 <option value="">Todos</option>
@@ -1326,7 +1352,7 @@ function CalendarFilterBar({
               className="gafa-sdk-button gafa-sdk-button--secondary"
               type="button"
               onClick={() => {
-                onChange((current) => ({ ...current, serviceId: undefined, staffId: undefined }));
+                onChange((current) => ({ ...current, serviceId: null, staffId: undefined }));
                 onTimeOfDayChange("all");
               }}
             >
@@ -2396,10 +2422,10 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
 
 function applyLocalMeetingFilters(
   meetings: Meeting[],
-  filters: Pick<CalendarFiltersState, "serviceId" | "staffId">,
+  filters: Pick<CalendarFiltersState, "serviceId" | "staffId"> & { serviceName?: string },
 ): Meeting[] {
   return meetings.filter((meeting) => {
-    if (filters.serviceId && meeting.service?.id !== filters.serviceId && meeting.serviceId !== filters.serviceId) {
+    if (!meetingMatchesService(meeting, { serviceId: filters.serviceId ?? undefined, serviceName: filters.serviceName })) {
       return false;
     }
 

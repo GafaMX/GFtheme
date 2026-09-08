@@ -6,6 +6,8 @@ import type { GafaPayIsland, GafaPayWidgetProps } from "../payments/gafaPay";
 import { CheckoutModal, PAYPAL_CLOSE_HOLD_MS } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
 import { reservateRetryWait } from "./reservateRetry";
+import { clearToasts } from "../toast/toastStore";
+import { resetToastHostForTests } from "../toast/ToastHost";
 
 const { mocks } = vi.hoisted(() => ({
   mocks: {
@@ -161,6 +163,8 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
 
   afterEach(() => {
     cleanup();
+    clearToasts();
+    resetToastHostForTests();
     useCartStore.setState({ lines: [], reservation: null });
     delete window._handleStripePayment;
     reservateRetryWait.wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -197,6 +201,23 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(typeof lastProps?.onStartPayAction).toBe("function");
     expect(() => lastProps?.onStartPayAction()).not.toThrow();
     expect(lastProps?.order.lineItems[0]?.product_type).toBe("App\\Models\\Combos\\Combos");
+  });
+
+  it("el CVC inválido sale en toast, sin ERROR-05 ni texto junto al botón", async () => {
+    renderPay(mockClient());
+    await waitUntilPayReady();
+
+    lastProps?.onGafaPayErrAction({
+      message:
+        "Ocurrió un error al completar el pago con Stripe. ERROR-05: No se pudo crear la tarjeta. Your card's security code is invalid.",
+    });
+
+    await waitFor(() => {
+      expect(document.querySelector(".gafa-toast")?.textContent).toMatch(/c[oó]digo de seguridad inválido/i);
+    });
+    expect(document.querySelector(".gafa-checkout__error")).toBeNull();
+    expect(document.body.textContent ?? "").not.toMatch(/ERROR-05/);
+    expect(document.body.textContent ?? "").not.toMatch(/runtime de pago/i);
   });
 
   it("no se queda en Procesando si el handler de Stripe revienta", async () => {
@@ -538,7 +559,7 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(stripe).toHaveBeenCalledTimes(1);
     expect(reservatePurchase).toHaveBeenCalledTimes(3);
     expect(screen.getByRole("button", { name: /registrar compra/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /cerrar/i })).toBeNull();
+    expect(document.querySelector(".gafa-checkout__close")).toBeNull();
     expect(document.querySelector("[data-charge-hold='true']")).toBeTruthy();
 
     fireEvent.mouseDown(document.querySelector(".gafa-checkout-overlay")!);

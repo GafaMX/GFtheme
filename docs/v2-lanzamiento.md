@@ -98,6 +98,19 @@ Los precios salen del `prefijo` / `code3` de la marca (`Q`+`GTQ`, `€`+`EUR`, `
 
 Van **encendidos por defecto**. En el HTML de Buq-Webs no hace falta `filter-bq-service` / `filter-bq-staff`. Para apagarlos: `="false"`.
 
+Para preseleccionar un servicio (el `?filter_service=Pilates+Reformer` de v1):
+
+```
+https://stanzapilates.com/reservar?service=123
+https://stanzapilates.com/reservar?filter_service=Pilates+Reformer
+```
+
+- URL por **id** (canónico v2, igual que `?location=200`): `?service=123`. También `service_id`, `serviceId` o `filter_service=123`.
+- URL por **nombre** (compat v1): `?filter_service=Pilates+Reformer` o `?service=Pilates+Reformer`.
+- HTML: `filter-bq-service-default="123"` o `filter-bq-service-default="Pilates Reformer"`.
+
+La URL gana sobre el atributo. El usuario puede cambiar a “Todos”.
+
 ## WordPress / Elementor (no Buq-Webs)
 
 El JS es el mismo `@cdn-live` de siempre. **No cambies el `src` en Elementor.**

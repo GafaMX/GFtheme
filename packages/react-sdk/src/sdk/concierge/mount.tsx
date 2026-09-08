@@ -9,6 +9,8 @@ import {
 import { createHttpConciergeAsk, createLocalConciergeAsk, type ConciergeAskFn } from "./ask";
 import { assertConciergeOriginAllowed } from "./domConfig";
 import { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
+import { ConciergeSchemeToggle } from "./ConciergeWidget";
+import { ColorSchemeToggle, useGafaThemeOptional } from "../theme/theme";
 
 export type ConciergeHandle = {
   open(): void;
@@ -95,7 +97,16 @@ export function ConciergeHost({
   extraAction?: ReactNode;
   hydrateFromClient?: boolean;
 }) {
+  const pageTheme = useGafaThemeOptional();
+  const followPage = Boolean(pageTheme?.allowUserColorScheme);
   const [config, setConfig] = useState(initialConfig);
+  const [localScheme, setLocalScheme] = useState<"light" | "dark">(
+    initialConfig.theme.mode === "dark" ? "dark" : "light",
+  );
+  const scheme: "light" | "dark" = followPage ? pageTheme!.scheme : localScheme;
+  const setScheme = followPage
+    ? (next: "light" | "dark") => pageTheme!.setPreference(next)
+    : setLocalScheme;
   const [open, setOpen] = useState(false);
   const [catalogNonce, setCatalogNonce] = useState(0);
   const openCatalog = useCallback(() => {
@@ -124,6 +135,10 @@ export function ConciergeHost({
   useEffect(() => {
     ensureFancySibling();
   }, []);
+
+  useEffect(() => {
+    setScheme(initialConfig.theme.mode === "dark" ? "dark" : "light");
+  }, [initialConfig.theme.mode]);
 
   useEffect(() => {
     setConfig(initialConfig);
@@ -158,6 +173,8 @@ export function ConciergeHost({
         resolveHardPath={resolveHardPath}
         ask={resolvedAsk}
         catalogNonce={catalogNonce}
+        scheme={scheme}
+        onSchemeChange={setScheme}
       />
       <ConciergeCommandBar
         config={config}
@@ -166,8 +183,16 @@ export function ConciergeHost({
         setOpen={setOpen}
         webview={webview}
         collapsedByDefault={collapsedByDefault}
-        extraAction={extraAction}
+        extraAction={
+          extraAction ??
+          (followPage ? (
+            <ColorSchemeToggle className="gafa-concierge-scheme-toggle" />
+          ) : (
+            <ConciergeSchemeToggle scheme={scheme} onSchemeChange={setScheme} />
+          ))
+        }
         onOpenCatalog={openCatalog}
+        scheme={scheme}
       />
     </>
   );

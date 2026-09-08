@@ -38,6 +38,9 @@ import {
 } from "../payments/gafaPay";
 import { findPurchasableItem, sameCatalogId } from "../cart/findPurchasable";
 import { installStripeCardTheme } from "../payments/stripeCardStyle";
+import { humanizeCheckoutError } from "../payments/checkoutErrorMessage";
+import { showToast } from "../toast/toastStore";
+import { ToastHost } from "../toast/ToastHost";
 import { useGafaThemeOptional } from "../theme/theme";
 import {
   CHECKOUT_CATALOG_STALE_MS,
@@ -211,7 +214,9 @@ export function CheckoutModal({
   const [giftStatus, setGiftStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
   const [giftHint, setGiftHint] = useState<string>();
   const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
-  const [payError, setPayError] = useState<string>();
+  function reportPayError(raw?: string | null) {
+    showToast(humanizeCheckoutError(raw), "error");
+  }
   // El formulario del proveedor vive fuera de React. Sin el listo, "Pagar"
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
@@ -251,6 +256,7 @@ export function CheckoutModal({
     /** undefined mientras gafa.fit confirma; false si se quedó sin resolver. */
     confirmed?: boolean;
     isWaitlist?: boolean;
+    paidTotal: number;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null>(null);
@@ -446,18 +452,19 @@ export function CheckoutModal({
   const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
   const discountLabel = appliedDiscount?.label;
   const total = Math.max(0, subtotal - discountAmount);
-  const envWarning = step === "pay" ? stagingPayWarning() : null;
+  const isFreeTotal = relevantLines.length > 0 && total <= 0;
+  const envWarning = step === "pay" && !isFreeTotal ? stagingPayWarning() : null;
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
 
   const waitingOnTerms = hasTerms && !termsAccepted;
   const waitingOnGift = convertGift && giftStatus !== "ok";
   const canPay =
     relevantLines.length > 0 &&
-    Boolean(selectedMethod) &&
-    paymentReady &&
+    Boolean(profileQuery.data) &&
     !waitingOnTerms &&
     !waitingOnGift &&
-    !paying;
+    !paying &&
+    (isFreeTotal ? Boolean(config) : Boolean(selectedMethod) && paymentReady);
 
   function resolvedGiftCode(): string | null {
     if (!convertGift || giftStatus !== "ok") return null;
@@ -682,7 +689,11 @@ export function CheckoutModal({
     };
 
     try {
-      if (!profile || !client.reservatePurchase || !selectedMethod || !brandSlug || !locationSlug) {
+      const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
+      if (!profile || !client.reservatePurchase || !brandSlug || !locationSlug) {
+        throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
+      }
+      if (!isFreeTotal && !selectedMethod) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
 
@@ -690,6 +701,7 @@ export function CheckoutModal({
       // Eso dispara paymentByCard / paymentByToken. `initial-purchase` es Recurrente
       // y en producción cae en unpaidPurchase (TypeError $subscribe null).
       // 3 intentos: un 500 no debe dejar Pendiente si el back se recupera.
+      // Total $0 (descuento 100% / precio 0): no hay cobro; /reservate sin payment_data.
       const purchase = await retryReservate(() =>
         client.reservatePurchase!({
           brandSlug,
@@ -705,8 +717,8 @@ export function CheckoutModal({
             companiesId: config?.companiesId,
             raw: rawFor(line),
           })),
-          paymentTypeId: selectedMethod.id,
-          paymentData,
+          paymentTypeId,
+          paymentData: isFreeTotal ? undefined : paymentData,
           subscriptionId,
           csrfToken: config?.csrfToken ?? null,
           discountCode: discountStatus === "ok" ? discountCode.trim() : null,
@@ -724,6 +736,7 @@ export function CheckoutModal({
         reservationId,
         confirmed: true,
         isWaitlist: Boolean(purchase.isWaitlist) || waitlistPurchase,
+        paidTotal: total,
         reservationSnapshot,
         linesSnapshot,
       });
@@ -734,13 +747,13 @@ export function CheckoutModal({
       const detail = err instanceof Error ? err.message : "No pudimos completar el pago.";
       if (chargedRef.current) {
         setRegisterOnly(true);
-        setPayError(
+        reportPayError(
           detail && detail !== CHARGED_BUT_NOT_RECORDED
             ? `${CHARGED_BUT_NOT_RECORDED} (${detail})`
             : CHARGED_BUT_NOT_RECORDED,
         );
       } else {
-        setPayError(detail);
+        reportPayError(detail);
       }
     } finally {
       setPaying(false);
@@ -808,6 +821,7 @@ export function CheckoutModal({
       reservationId: result.reservationId,
       confirmed: true,
       isWaitlist: Boolean(result.isWaitlist) || waitlistPurchase,
+      paidTotal: total,
       reservationSnapshot: reservation,
       linesSnapshot: relevantLines,
     });
@@ -820,13 +834,13 @@ export function CheckoutModal({
     const profile = profileQuery.data;
     if (!profile || !selectedMethod || !brandSlug || !locationSlug) {
       setPaying(false);
-      setPayError("No pudimos abrir el pago. Recarga e inténtalo de nuevo.");
+      reportPayError("No pudimos abrir el pago. Recarga e inténtalo de nuevo.");
       return;
     }
     const checkoutToken = checkoutTokenFromHostedData(data);
     if (!checkoutToken) {
       setPaying(false);
-      setPayError("No pudimos iniciar el pago. Intenta de nuevo.");
+      reportPayError("No pudimos iniciar el pago. Intenta de nuevo.");
       return;
     }
 
@@ -847,7 +861,6 @@ export function CheckoutModal({
       setPayment: membershipPurchase ? saveCard : false,
     };
 
-    setPayError(undefined);
     setPaying(true);
     hostedAbortRef.current?.abort();
     const abort = new AbortController();
@@ -885,7 +898,7 @@ export function CheckoutModal({
       if (hostedPendingRef.current?.purchaseId) {
         setRegisterOnly(true);
       }
-      setPayError(detail);
+      reportPayError(detail);
     } finally {
       setPaying(false);
     }
@@ -930,7 +943,7 @@ export function CheckoutModal({
           missMs: options.missMs,
           onMiss: () => {
             releaseHostedWait();
-            setPayError(options.missMessage ?? "No pudimos abrir el pago. Intenta de nuevo.");
+            reportPayError(options.missMessage ?? "No pudimos abrir el pago. Intenta de nuevo.");
           },
         }
       : undefined);
@@ -938,7 +951,6 @@ export function CheckoutModal({
 
   async function proceedToPay() {
     if (registerOnly && hostedPendingRef.current?.purchaseId) {
-      setPayError(undefined);
       setPaying(true);
       const pending = hostedPendingRef.current;
       hostedAbortRef.current?.abort();
@@ -963,27 +975,30 @@ export function CheckoutModal({
           setPaying(false);
           return;
         }
-        setPayError(err instanceof Error ? err.message : "El pago sigue pendiente.");
+        reportPayError(err instanceof Error ? err.message : "El pago sigue pendiente.");
       } finally {
         setPaying(false);
       }
       return;
     }
     if (registerOnly && pendingRegisterRef.current) {
-      setPayError(undefined);
       setPaying(true);
       const pending = pendingRegisterRef.current;
       await completePurchase(pending.paymentData, pending.recurring, pending.subscriptionId);
       return;
     }
+    if (isFreeTotal) {
+      setPaying(true);
+      await completePurchase(undefined);
+      return;
+    }
     if (!paymentReady) {
-      setPayError("El formulario de pago todavía no está listo.");
+      reportPayError("El formulario de pago todavía no está listo.");
       return;
     }
     if (paypalFlowRef.current && selectedMethod?.slug === "paypal" && !registerOnly) {
       return;
     }
-    setPayError(undefined);
     setPaying(true);
     if (selectedMethod?.slug === "recurrente") {
       startHostedPopupWatch();
@@ -1002,7 +1017,7 @@ export function CheckoutModal({
         stopPopupWatchRef.current?.();
         stopPopupWatchRef.current = null;
         setPaying(false);
-        setPayError(
+        reportPayError(
           selectedMethod?.slug === "paypal"
             ? "No pudimos abrir PayPal. Intenta de nuevo."
             : selectedMethod?.slug === "recurrente"
@@ -1014,7 +1029,7 @@ export function CheckoutModal({
       paypalFlowRef.current = false;
       setPaying(false);
       const raw = err instanceof Error ? err.message : "";
-      setPayError(
+      reportPayError(
         /is not a function/i.test(raw)
           ? "El procesador de pago aún no está listo. Intenta de nuevo."
           : raw || "No pudimos iniciar el pago. Intenta de nuevo.",
@@ -1023,9 +1038,8 @@ export function CheckoutModal({
   }
 
   function handlePayClick() {
-    setPayError(undefined);
     if (!relevantLines.length) {
-      setPayError("Agrega un paquete o membresía para continuar.");
+      reportPayError("Agrega un paquete o membresía para continuar.");
       return;
     }
     if (registerOnly) {
@@ -1038,10 +1052,12 @@ export function CheckoutModal({
     }
     if (!canPay) {
       if (waitingOnGift) {
-        setPayError("Revisa el código de GiftCard.");
+        reportPayError("Revisa el código de GiftCard.");
         return;
       }
-      if (!paymentReady) setPayError("El formulario de pago todavía no está listo.");
+      if (!isFreeTotal && !paymentReady) {
+        reportPayError("El formulario de pago todavía no está listo.");
+      }
       return;
     }
     void proceedToPay();
@@ -1074,6 +1090,7 @@ export function CheckoutModal({
         if (event.target === event.currentTarget && step !== "thanks") requestClose();
       }}
     >
+      <ToastHost />
       <div className="gafa-checkout" data-step={step}>
         {blockDismiss ? null : (
           <button className="gafa-checkout__close" type="button" aria-label="Cerrar" onClick={requestClose}>
@@ -1117,7 +1134,9 @@ export function CheckoutModal({
                           ? "Al pagar te sumamos a la lista de espera y se descuenta el crédito."
                           : "Estos son los planes que aplican para esta clase."
                         : "Agrega paquetes o membresías."
-                      : "Revisa tu pedido y paga de forma segura. Si quieres agregar más, vuelve al paso anterior."}
+                      : isFreeTotal
+                        ? "El total es $0. Confirma el pedido."
+                        : "Revisa tu pedido y paga de forma segura. Si quieres agregar más, vuelve al paso anterior."}
                 </p>
               </header>
 
@@ -1253,6 +1272,24 @@ export function CheckoutModal({
                     </p>
                   ) : null}
                 </>
+              ) : isFreeTotal ? (
+                <div className="gafa-checkout-free" role="status">
+                  <span className="gafa-checkout-free__mark" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                      <path
+                        d="M2 7.5L5.5 11L12 3.5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong>Pedido cubierto</strong>
+                    <p>No hace falta tarjeta ni PayPal.</p>
+                  </div>
+                </div>
               ) : preselectStatus === "loading" ? (
                 <PaySkeleton withMethods label="Preparando tu compra…" />
               ) : (
@@ -1261,7 +1298,6 @@ export function CheckoutModal({
                   selectedMethodId={selectedMethodId}
                   onSelectMethod={(id) => {
                     setSelectedMethodId(id);
-                    setPayError(undefined);
                   }}
                   configLoading={configQuery.isLoading}
                   config={config}
@@ -1294,7 +1330,6 @@ export function CheckoutModal({
                   onError={(message) => {
                     if (isPaypalCheckoutCancelMessage(message)) {
                       releaseHostedWait();
-                      setPayError(undefined);
                       return;
                     }
                     paypalFlowRef.current = false;
@@ -1303,7 +1338,7 @@ export function CheckoutModal({
                       paypalHoldTimerRef.current = 0;
                     }
                     setPaying(false);
-                    setPayError(message);
+                    reportPayError(message);
                   }}
                   membershipOptions={
                     membershipPurchase
@@ -1559,8 +1594,6 @@ export function CheckoutModal({
 
               {envWarning ? <p className="gafa-checkout__env-warn">{envWarning}</p> : null}
 
-              {payError ? <p className="gafa-checkout__error">{payError}</p> : null}
-
               {/* En el paso de login la accion es "Entrar" del propio formulario:
                   dejar aqui un "Ir a pagar" deshabilitado era un boton muerto. */}
               {step === "auth" ? null : step === "shop" ? (
@@ -1570,7 +1603,7 @@ export function CheckoutModal({
                   disabled={!relevantLines.length}
                   onClick={() => setStep(isSignedIn ? "pay" : "auth")}
                 >
-                  Ir a pagar
+                  {isFreeTotal ? "Continuar" : "Ir a pagar"}
                 </button>
               ) : (
                 <div
@@ -1603,7 +1636,9 @@ export function CheckoutModal({
                         ? hostedPendingRef.current?.purchaseId
                           ? "Revisar pago"
                           : "Registrar compra"
-                        : `Pagar ${formatMoney(total, currency.prefix, "")}`}
+                        : isFreeTotal
+                          ? "Confirmar pedido"
+                          : `Pagar ${formatMoney(total, currency.prefix, "")}`}
                   </button>
                   {selectedMethod?.slug === "paypal" ? (
                     <div id={PAYPAL_CTA_HIT_ID} className="gafa-checkout__paypal-hit" aria-hidden="true" />
@@ -1811,7 +1846,6 @@ function PayPanel({
   };
 }) {
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [loadError, setLoadError] = useState<string>();
   const selected = methods.find((method) => method.id === selectedMethodId) ?? null;
   const mountRef = useRef<HTMLDivElement | null>(null);
   const islandRef = useRef<GafaPayIsland | null>(null);
@@ -1919,7 +1953,6 @@ function PayPanel({
     let stopPaypalCapture: () => void = () => undefined;
     const stopStripeTheme = slug === "stripe" ? installStripeCardTheme(colorScheme) : () => undefined;
     setLoadState("loading");
-    setLoadError(undefined);
 
     loadGafaPay({ clientId, clientSecret, scriptUrl: gafaPayFrontUrl })
       .then(async (runtime) => {
@@ -1940,10 +1973,13 @@ function PayPanel({
         if (cancelled) return;
         setLoadState("error");
         const raw = error instanceof Error ? error.message : undefined;
-        setLoadError(
-          raw && /render/i.test(raw)
-            ? "PayPal no terminó de cargar. Cierra el checkout e inténtalo de nuevo."
-            : raw,
+        showToast(
+          humanizeCheckoutError(
+            raw && /render/i.test(raw)
+              ? "PayPal no terminó de cargar. Cierra el checkout e inténtalo de nuevo."
+              : raw,
+          ),
+          "error",
         );
       });
 
@@ -1969,6 +2005,11 @@ function PayPanel({
       autoRenew: membershipOptions.autoRenew,
     });
   }, [loadState, membershipOptions]);
+
+  useEffect(() => {
+    if (configLoading || !selected || (clientId && clientSecret)) return;
+    showToast("El pago no está disponible. Contacta al estudio.", "error");
+  }, [clientId, clientSecret, configLoading, selected]);
 
   return (
     <div className="gafa-checkout-pay">
@@ -2088,16 +2129,6 @@ function PayPanel({
         {loadState === "loading" ? (
           <PaySkeleton label="Conectando con el procesador de pago…" />
         ) : null}
-        {loadState === "error" ? (
-          <p className="gafa-sdk-state gafa-sdk-state--error">
-            {loadError ?? "No se pudo conectar con GafaPay. Revisa tu conexión e intenta de nuevo."}
-          </p>
-        ) : null}
-        {selected && (!clientId || !clientSecret) && !configLoading ? (
-          <p className="gafa-sdk-state gafa-sdk-state--error">
-            Esta marca no tiene configurado GafaPay (falta client id/secret).
-          </p>
-        ) : null}
       </div>
     </div>
   );
@@ -2215,6 +2246,7 @@ function ThanksPanel({
     reservationId?: number;
     confirmed?: boolean;
     isWaitlist?: boolean;
+    paidTotal: number;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null;
@@ -2224,6 +2256,8 @@ function ThanksPanel({
 }) {
   const reservation = thanks?.reservationSnapshot;
   const lines = thanks?.linesSnapshot ?? [];
+  const paidTotal = thanks?.paidTotal ?? lines.reduce((sum, line) => sum + line.price * line.amount, 0);
+  const isFreeOrder = paidTotal <= 0;
 
   return (
     <div className="gafa-checkout-thanks">
@@ -2240,7 +2274,7 @@ function ThanksPanel({
             : "¡Gracias por tu compra!"}
       </h2>
       <p>
-        {firstName ? `${firstName}, tu` : "Tu"} pago quedó registrado
+        {firstName ? `${firstName}, tu` : "Tu"} {isFreeOrder ? "pedido" : "pago"} quedó registrado
         {thanks?.purchaseId ? ` (orden #${thanks.purchaseId})` : ""}. Te enviamos el detalle por correo.
       </p>
 
@@ -2276,13 +2310,9 @@ function ThanksPanel({
             </li>
           ))}
           <li className="gafa-checkout-thanks__total">
-            <span>Total pagado</span>
+            <span>{isFreeOrder ? "Total" : "Total pagado"}</span>
             <strong>
-              {formatMoney(
-                lines.reduce((sum, line) => sum + line.price * line.amount, 0),
-                currency.prefix,
-                currency.suffix,
-              )}
+              {formatMoney(paidTotal, currency.prefix, currency.suffix)}
             </strong>
           </li>
         </ul>

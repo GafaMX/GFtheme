@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { fireEvent, waitFor } from "@testing-library/react";
 import { createGafaSdk, type GafaSdk } from "../runtime";
+import { themePreferenceStorageKey } from "../theme/theme";
 import { DEMO_CONCIERGE_CONFIG, FITSPIN_CONCIERGE_CONFIG } from "./fixtures";
 import { resolveConciergeConfig } from "./mount";
 
@@ -17,6 +18,8 @@ afterEach(() => {
   sdk?.unmountAll();
   sdk = null;
   document.body.innerHTML = "";
+  localStorage.removeItem(themePreferenceStorageKey("1:demo-client"));
+  localStorage.removeItem(themePreferenceStorageKey("8801:demo-client"));
 });
 
 describe("sdk.concierge.mount", () => {
@@ -80,6 +83,56 @@ describe("sdk.concierge.mount", () => {
 
     handle.destroy();
     expect(document.querySelector("[data-gafa-concierge='demo-studio']")).toBeNull();
+  });
+
+  it("pinta pastillas con icono e input propio; el scheme sale de CONCIERGE, no del THEME", async () => {
+    sdk = createGafaSdk(
+      { ...CONFIG, companyId: 8801, theme: { colorScheme: "dark", allowUserColorScheme: false } },
+      { useMockClient: true },
+    );
+    const handle = sdk.concierge.mount({ config: FITSPIN_CONCIERGE_CONFIG });
+    handle.open();
+    const dialog = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>("[data-gafa-concierge-dialog]");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(dialog.getAttribute("data-color-scheme")).toBe("light");
+    expect(dialog.style.getPropertyValue("--concierge-field-bg")).toBe("#ffffff");
+    expect(dialog.querySelectorAll(".gafa-concierge-chip").length).toBeGreaterThan(0);
+    expect(dialog.querySelector(".gafa-concierge-chip svg")).toBeTruthy();
+    expect(dialog.querySelector(".gafa-concierge-input")).toBeTruthy();
+    const toggle = dialog.querySelector<HTMLButtonElement>(".gafa-concierge-scheme-toggle");
+    expect(toggle).toBeTruthy();
+    fireEvent.click(toggle!);
+    expect(dialog.getAttribute("data-color-scheme")).toBe("dark");
+    expect(dialog.style.getPropertyValue("--concierge-field-bg")).toBe("#2a2a2a");
+    handle.destroy();
+  });
+
+  it("el toggle de la barra cambia el theme de toda la página (SDK + chat)", async () => {
+    const handle = boot().concierge.mount({ config: FITSPIN_CONCIERGE_CONFIG });
+    const bar = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>("[data-gafa-concierge-bar]");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    const page = bar.closest(".gafa-sdk");
+    expect(page?.getAttribute("data-color-scheme")).toBe("light");
+    expect(bar.getAttribute("data-color-scheme")).toBe("light");
+    const barToggle = bar.querySelector<HTMLButtonElement>(".gafa-concierge-scheme-toggle");
+    expect(barToggle).toBeTruthy();
+    fireEvent.click(barToggle!);
+    expect(page?.getAttribute("data-color-scheme")).toBe("dark");
+    expect(bar.getAttribute("data-color-scheme")).toBe("dark");
+    handle.open();
+    const dialog = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>("[data-gafa-concierge-dialog]");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(dialog.getAttribute("data-color-scheme")).toBe("dark");
+    handle.destroy();
   });
 
   it("rechaza un partnerId que no coincide con la config", () => {

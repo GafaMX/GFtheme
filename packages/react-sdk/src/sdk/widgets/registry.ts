@@ -3,6 +3,7 @@ import { readFilterFlag } from "../bootstrap/legacyFilterFlag";
 import { readConciergeConfigFromDom } from "../concierge/domConfig";
 import type { CalendarView } from "./calendarRange";
 import { readCalendarLocationIdFromWindow } from "./calendarLocationQuery";
+import { resolveCalendarServiceQuery } from "./calendarServiceQuery";
 
 export type WidgetStatus = "stable" | "beta" | "preview";
 
@@ -140,6 +141,13 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     description: "Barra + chat. Off salvo nodo HTML y CONCIERGE en options.",
     mount: mountConcierge,
   },
+  {
+    id: "cross-sell",
+    shortcode: "cross-sell",
+    title: "Cross-sell",
+    status: "preview",
+    description: "Sugerencias en carrito / gracias / página. Reservado; aún no monta UI.",
+  },
 ];
 
 export const WIDGET_BY_SHORTCODE = new Map(WIDGET_CATALOG.map((widget) => [widget.shortcode, widget]));
@@ -156,13 +164,20 @@ export function mountRegisteredWidget(runtime: GafaSdk, shortcode: string, eleme
 }
 
 function mountConcierge(runtime: GafaSdk, element: HTMLElement) {
-  const { config } = readConciergeConfigFromDom(element.ownerDocument ?? document, element);
-  runtime.concierge.mount({
-    config,
-    container: element,
-    webview: element.getAttribute("data-gafa-webview") === "true" || element.getAttribute("data-gf-webview") === "true",
-    hydrateFromClient: readLiveFlag(element),
-  });
+  try {
+    const { config } = readConciergeConfigFromDom(element.ownerDocument ?? document, element);
+    runtime.concierge.mount({
+      config,
+      container: element,
+      webview:
+        element.getAttribute("data-gafa-webview") === "true" ||
+        element.getAttribute("data-gf-webview") === "true",
+      hydrateFromClient: readLiveFlag(element),
+    });
+  } catch (error) {
+    // Nodo reservado sin CONCIERGE: no tumba calendario / checkout.
+    console.warn("[gafa-sdk] Concierge no montó:", error instanceof Error ? error.message : error);
+  }
 }
 
 function readLiveFlag(element: HTMLElement): boolean | undefined {
@@ -185,7 +200,7 @@ function mountCalendar(runtime: GafaSdk, element: HTMLElement) {
       room: element.hasAttribute("filter-bq-room"),
       brandId: toNumber(element.getAttribute("filter-bq-brand-default")),
       locationId: readCalendarLocationIdFromWindow() ?? toNumber(element.getAttribute("filter-bq-location-default")),
-      serviceId: toNumber(element.getAttribute("filter-bq-service-default")),
+      ...readCalendarServiceFilters(element),
       staffId: toNumber(element.getAttribute("filter-bq-staff-default")),
     },
   });
@@ -263,6 +278,11 @@ function toNumber(value: string | null): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
   return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function readCalendarServiceFilters(element: HTMLElement) {
+  const search = typeof window === "undefined" ? "" : window.location.search;
+  return resolveCalendarServiceQuery(search, element.getAttribute("filter-bq-service-default"));
 }
 
 function readCalendarView(element: HTMLElement): CalendarView | undefined {

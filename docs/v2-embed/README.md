@@ -1,7 +1,11 @@
 # Cómo montar el SDK v2 en cualquier web
 
-Receta para **cualquier agente** (Cursor, Replit, WP, HTML estático, Webflow, etc.).
-El SDK no se copia ni se transpila en el sitio del socio. Se carga con **un script**.
+**Guía completa para agentes (Buq-Webs + WordPress):**
+[`docs/v2-agente.md`](../v2-agente.md). Options, THEME, filtros, botones,
+Concierge y cross-sell.
+
+Receta corta: el SDK no se copia ni se transpila en el sitio del socio. Se
+carga con **un script**.
 
 La URL pública es siempre `docs/v2-sdk/gafa-sdk.js` (loader). El IIFE con React
 y CSS va en `gafa-sdk.bundle.<stamp>.js`. **No cambies el `src` de los sitios.**
@@ -65,6 +69,10 @@ siguen ON). Para mostrarlas, en `data-gf-options`:
 `VITE_GAFA_SDK_V2_URL` ya apunta a `@cdn-live` para **toda** la app. Fitspin
 es el piloto; el publish llega a todas las páginas v2. Receta:
 [`docs/v2-lanzamiento.md`](../v2-lanzamiento.md).
+
+Colores de marca: `THEME.colors` en `data-gf-options` (fondos, superficies,
+inputs). Contrato: [`docs/v2-theme-colors.md`](../v2-theme-colors.md). No CSS
+de overlays ni `MutationObserver`.
 
 **HTML / Webflow / otro:** el mismo `<script src>` + `data-gf-options` + contenedores.
 

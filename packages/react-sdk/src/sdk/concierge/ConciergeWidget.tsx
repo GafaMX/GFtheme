@@ -65,7 +65,29 @@ export type ConciergeWidgetProps = {
   ask?: ConciergeAskFn;
   /** Incrementar para abrir el catálogo en el chat (botón Comprar de la barra). */
   catalogNonce?: number;
+  scheme: "light" | "dark";
+  onSchemeChange(scheme: "light" | "dark"): void;
 };
+
+export function ConciergeSchemeToggle({
+  scheme,
+  onSchemeChange,
+}: {
+  scheme: "light" | "dark";
+  onSchemeChange(scheme: "light" | "dark"): void;
+}) {
+  return (
+    <button
+      type="button"
+      className="gafa-concierge-scheme-toggle"
+      aria-label={scheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+      title={scheme === "dark" ? "Tema claro" : "Tema oscuro"}
+      onClick={() => onSchemeChange(scheme === "dark" ? "light" : "dark")}
+    >
+      {scheme === "dark" ? "☀" : "☾"}
+    </button>
+  );
+}
 
 type ChatMessage = {
   id: number;
@@ -82,6 +104,54 @@ function personalizeGreeting(greeting: string, firstName?: string): string {
   if (!firstName) return greeting;
   if (greeting.includes("{name}")) return greeting.replace(/\{name\}/g, firstName);
   return greeting.replace(/^(¡?Hola!?)\s*/i, `¡Hola, ${firstName}! `);
+}
+
+function actionIcon(kind: ConciergeActionData["kind"]) {
+  if (kind === "comprar" || kind === "buy_package") return ShoppingBag;
+  if (kind === "cuenta") return UserRound;
+  if (kind === "whatsapp") return MessageCircle;
+  return CalendarDays;
+}
+
+function ActionChip({
+  label,
+  action,
+  onClick,
+  footer,
+}: {
+  label: string;
+  action: ConciergeActionData;
+  onClick: () => void;
+  footer?: boolean;
+}) {
+  const Icon = actionIcon(action.kind);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`gafa-concierge-chip${footer ? " is-footer" : ""}`}
+    >
+      <Icon />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function conciergeSurfaceVars(
+  mode: "light" | "dark",
+  accent: string,
+  foreground: string,
+): CSSProperties {
+  const dark = mode === "dark";
+  return {
+    "--concierge-accent": accent,
+    "--concierge-accent-ink": foreground,
+    "--concierge-bg": dark ? "#141414" : "#ffffff",
+    "--concierge-ink": dark ? "#f5f5f5" : "#111111",
+    "--concierge-soft": dark ? "#262626" : "#f4f4f4",
+    "--concierge-field-bg": dark ? "#2a2a2a" : "#ffffff",
+    "--concierge-line": dark ? "#3a3a3a" : "#e5e5e5",
+  } as CSSProperties;
 }
 
 function packageFor(
@@ -123,7 +193,7 @@ function CatalogPanel({
             type="button"
             data-gafa-concierge-location=""
             onClick={() => setLocationId(undefined)}
-            className={`rounded-full px-3 py-1 text-[11px] font-semibold ${locationId ? "border border-[var(--concierge-line)]" : "chip-on"}`}
+            className={`gafa-concierge-chip${locationId ? "" : " is-on"}`}
           >
             {allLocationsLabel(config)}
           </button>
@@ -133,7 +203,7 @@ function CatalogPanel({
               type="button"
               data-gafa-concierge-location={studio.locationId}
               onClick={() => setLocationId(studio.locationId)}
-              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${locationId === studio.locationId ? "chip-on" : "border border-[var(--concierge-line)]"}`}
+              className={`gafa-concierge-chip${locationId === studio.locationId ? " is-on" : ""}`}
             >
               {studio.name}
             </button>
@@ -148,7 +218,7 @@ function CatalogPanel({
               type="button"
               data-gafa-concierge-group={group.id}
               onClick={() => setGroupId(group.id)}
-              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${groupId === group.id ? "chip-on" : "border border-[var(--concierge-line)]"}`}
+              className={`gafa-concierge-chip${groupId === group.id ? " is-on" : ""}`}
             >
               {group.label}
             </button>
@@ -172,7 +242,7 @@ function CatalogPanel({
                   onStay,
                 );
               }}
-              className="mt-1 rounded-full bg-[var(--concierge-accent)] px-3 py-1 text-[10px] font-bold uppercase text-[var(--concierge-accent-ink)]"
+              className="gafa-concierge-buy mt-1"
             >
               Comprar →
             </button>
@@ -222,7 +292,7 @@ function PackagesCard({
                   onStay,
                 );
               }}
-              className="mt-1 rounded-full bg-[var(--concierge-accent)] px-3 py-1 text-[10px] font-bold uppercase text-[var(--concierge-accent-ink)]"
+              className="gafa-concierge-buy mt-1"
             >
               Comprar →
             </button>
@@ -323,7 +393,19 @@ function Card({
 }
 
 export function ConciergeWidget(props: ConciergeWidgetProps) {
-  const { config, open, onClose, navigate, sdk, webview, resolveHardPath, ask, catalogNonce = 0 } = props;
+  const {
+    config,
+    open,
+    onClose,
+    navigate,
+    sdk,
+    webview,
+    resolveHardPath,
+    ask,
+    catalogNonce = 0,
+    scheme,
+    onSchemeChange,
+  } = props;
   const adapter = useMemo(
     () => createConciergeBrowserAdapter({ config, sdk, webview, navigate, resolveHardPath }),
     [config, sdk, webview, navigate, resolveHardPath],
@@ -566,14 +648,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
     }
     return actions;
   }, [config]);
-  const variables = {
-    "--concierge-accent": config.theme.accent,
-    "--concierge-accent-ink": config.theme.foreground,
-    "--concierge-bg": config.theme.mode === "dark" ? "#111111" : "#ffffff",
-    "--concierge-ink": config.theme.mode === "dark" ? "#ffffff" : "#111111",
-    "--concierge-soft": config.theme.mode === "dark" ? "#202020" : "#f4f4f4",
-    "--concierge-line": config.theme.mode === "dark" ? "#353535" : "#e5e5e5",
-  } as CSSProperties;
+  const variables = conciergeSurfaceVars(scheme, config.theme.accent, config.theme.foreground);
 
   return (
     <AnimatePresence>
@@ -586,6 +661,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
           style={variables}
           className={`gafa-concierge gafa-concierge-dialog border border-[var(--concierge-line)] bg-[var(--concierge-bg)] text-[var(--concierge-ink)] shadow-2xl${webview ? " is-webview" : ""}`}
           data-gafa-concierge-dialog={config.id}
+          data-color-scheme={scheme}
           id={`concierge-dialog-${config.id}`}
           role="dialog"
           aria-modal="true"
@@ -594,15 +670,16 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
           <header className="flex items-center gap-3 p-4" style={{ background: "var(--concierge-accent)", color: "var(--concierge-accent-ink)" }}>
             <span className="grid h-9 w-9 place-items-center rounded-full bg-black/5"><Sparkles className="h-4 w-4" /></span>
             <span className="min-w-0 flex-1">
-              <strong id={`concierge-title-${config.id}`} className="block truncate text-[14px]">{config.copy.title}</strong>
-              <span className="block truncate text-[11px] opacity-70">{config.copy.subtitle}</span>
+              <strong id={`concierge-title-${config.id}`} className="gafa-concierge-title block truncate">{config.copy.title}</strong>
+              <span className="gafa-concierge-subtitle block truncate opacity-70">{config.copy.subtitle}</span>
             </span>
-            <button type="button" onClick={onClose} aria-label="Cerrar concierge" className="grid h-9 w-9 place-items-center rounded-full hover:bg-black/5"><X className="h-4 w-4" /></button>
+            <ConciergeSchemeToggle scheme={scheme} onSchemeChange={onSchemeChange} />
+            <button type="button" onClick={onClose} aria-label="Cerrar concierge" className="gafa-concierge-icon-btn grid h-9 w-9 place-items-center"><X /></button>
           </header>
           <div ref={scroll} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
             {messages.map((message) => (
               <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[86%]" : "mr-auto max-w-[94%]"}>
-                <div className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${message.role === "user" ? "bg-[var(--concierge-accent)] text-[var(--concierge-accent-ink)]" : "bg-[var(--concierge-soft)]"}`}>
+                <div className={`gafa-concierge-bubble rounded-2xl px-3.5 py-2.5 leading-relaxed ${message.role === "user" ? "bg-[var(--concierge-accent)] text-[var(--concierge-accent-ink)]" : "bg-[var(--concierge-soft)]"}`}>
                   {message.text}
                 </div>
                 {message.catalog ? (
@@ -620,9 +697,12 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
                 {message.chips?.length ? (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {message.chips.map((chip) => (
-                      <button key={`${chip.label}-${chip.action.kind}`} type="button" onClick={() => void runAction(chip.action)} className="rounded-full border border-[var(--concierge-line)] px-3 py-1.5 text-[11px] font-semibold hover:bg-[var(--concierge-soft)]">
-                        {chip.label}
-                      </button>
+                      <ActionChip
+                        key={`${chip.label}-${chip.action.kind}`}
+                        label={chip.label}
+                        action={chip.action}
+                        onClick={() => void runAction(chip.action)}
+                      />
                     ))}
                   </div>
                 ) : null}
@@ -631,28 +711,20 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
             {typing && <div className="w-fit rounded-2xl bg-[var(--concierge-soft)] px-4 py-2 text-[12px]" aria-label="Escribiendo">•••</div>}
           </div>
           <div className="flex gap-1.5 overflow-x-auto border-t border-[var(--concierge-line)] px-3 py-2">
-            {footerActions.map((item) => {
-              const Icon = item.action.kind === "comprar"
-                ? ShoppingBag
-                : item.action.kind === "cuenta"
-                  ? UserRound
-                  : CalendarDays;
-              return (
-                <button
-                  key={item.action.kind}
-                  type="button"
-                  onClick={() => void runAction(item.action)}
-                  className="whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] hover:bg-[var(--concierge-soft)]"
-                >
-                  <Icon className="mr-1 inline h-3.5 w-3.5" /> {item.label}
-                </button>
-              );
-            })}
+            {footerActions.map((item) => (
+              <ActionChip
+                key={item.action.kind}
+                label={item.label}
+                action={item.action}
+                footer
+                onClick={() => void runAction(item.action)}
+              />
+            ))}
           </div>
           <form onSubmit={submit} className="flex items-center gap-2 border-t border-[var(--concierge-line)] p-3">
             <label htmlFor={`concierge-input-${config.id}`} className="sr-only">Mensaje para {config.copy.assistantName}</label>
-            <input ref={inputElement} id={`concierge-input-${config.id}`} value={input} onChange={(event) => setInput(event.target.value)} maxLength={2000} placeholder="Escribe tu pregunta…" className="min-w-0 flex-1 rounded-full bg-[var(--concierge-soft)] px-4 py-2.5 text-[13px] outline-none ring-[var(--concierge-accent)] focus:ring-2" />
-            <button type="submit" disabled={!input.trim() || typing} aria-label="Enviar mensaje" className="grid h-10 w-10 place-items-center rounded-full bg-[var(--concierge-accent)] text-[var(--concierge-accent-ink)] disabled:opacity-40"><Send className="h-4 w-4" /></button>
+            <input ref={inputElement} id={`concierge-input-${config.id}`} value={input} onChange={(event) => setInput(event.target.value)} maxLength={2000} placeholder="Escribe tu pregunta…" className="gafa-concierge-input min-w-0 flex-1 px-4 py-2.5 outline-none" />
+            <button type="submit" disabled={!input.trim() || typing} aria-label="Enviar mensaje" className="gafa-concierge-send grid h-10 w-10 place-items-center disabled:opacity-40"><Send /></button>
           </form>
         </motion.section>
       )}
@@ -669,6 +741,7 @@ export function ConciergeCommandBar({
   collapsedByDefault,
   extraAction,
   onOpenCatalog,
+  scheme,
 }: {
   config: ConciergePartnerConfig;
   navigate: (path: string) => void;
@@ -678,17 +751,16 @@ export function ConciergeCommandBar({
   collapsedByDefault?: boolean;
   extraAction?: ReactNode;
   onOpenCatalog?: () => void;
+  scheme: "light" | "dark";
 }) {
   const [collapsed, setCollapsed] = useState(Boolean(collapsedByDefault));
   const routes = webview ? config.routes.webview : config.routes.web;
-  const variables = {
-    "--concierge-accent": config.theme.accent,
-    "--concierge-accent-ink": config.theme.foreground,
-  } as CSSProperties;
+  const variables = conciergeSurfaceVars(scheme, config.theme.accent, config.theme.foreground);
   return (
     <div
       className={`gafa-concierge gafa-concierge-bar${webview ? " is-webview" : ""}`}
       data-gafa-concierge-bar={config.id}
+      data-color-scheme={scheme}
       style={variables}
     >
       <AnimatePresence mode="wait" initial={false}>
