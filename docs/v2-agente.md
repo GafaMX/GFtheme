@@ -742,7 +742,7 @@ Después de pegar options + widgets:
 8. Si hay Concierge: barra visible. Sin `contact.whatsapp`, no hay icono WA.
    Con número, abre `wa.me/<dígitos de ESTA marca>`. “Comprar” hidrata **toda**
    la compañía (`products: []` + `live`), no Demo Studio / Fitspin.
-   Sin nodo o sin `CONCIERGE`: no hay barra. Eso es correcto.
+   Sin `CONCIERGE`: no hay barra. Eso es correcto.
 
 Si el color no cambia: el `THEME` no está llegando al JSON, o hay CSS del
 sitio encima. Quita el CSS. No subas especificidad.
