@@ -1,0 +1,199 @@
+import { useQuery } from "@tanstack/react-query";
+import type { CatalogItem, GafaClient } from "../client/types";
+import { formatMoney, resolveMoneyCurrency } from "../cart/money";
+import { WidgetShell } from "./WidgetShell";
+
+export type CatalogKind = "packages" | "memberships" | "services" | "staff";
+
+export type CatalogWidgetProps = {
+  client?: GafaClient;
+  type?: CatalogKind;
+  title?: string;
+  filterByName?: string | null;
+  filterByBrand?: string | null;
+  /** Compra suelta: el host abre el checkout con este item preseleccionado. */
+  onBuy?: (item: CatalogItem & { brandSlug?: string }) => void;
+};
+
+export function CatalogWidget({
+  client,
+  type = "packages",
+  title,
+  filterByName,
+  filterByBrand,
+  onBuy,
+}: CatalogWidgetProps) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["catalog", type, filterByName, filterByBrand],
+    queryFn: async () => {
+      if (!client) {
+        return demoItems(type);
+      }
+
+      const brands = await client.listBrands();
+      const visibleBrands = filterByBrand
+        ? brands.filter((brand) => brand.name.toLowerCase().includes(filterByBrand.toLowerCase()))
+        : brands;
+
+      const results = await Promise.all(
+        visibleBrands.map(async (brand) => {
+          const items = await getItemsForType(client, type, brand.slug);
+          return items.map((item) => {
+            const amount = item.priceFinal ?? item.price;
+            const money = resolveMoneyCurrency(item.raw?.currency ?? item.currency) ?? brand.currency;
+            return {
+              ...item,
+              brandName: brand.name,
+              brandSlug: brand.slug,
+              priceLabel:
+                amount != null ? formatMoney(amount, money?.prefix ?? "$", "") : item.priceLabel,
+            };
+          });
+        }),
+      );
+
+      const items = results.flat();
+      if (!filterByName) return items;
+
+      return items.filter((item) => item.name.toLowerCase().includes(filterByName.toLowerCase()));
+    },
+  });
+
+  return (
+    <WidgetShell
+      eyebrow={getCatalogLabel(type)}
+      title={title ?? getCatalogTitle(type)}
+      description="Elige el paquete ideal para reservar sin friccion."
+    >
+      {isLoading ? (
+        <div className="gafa-sdk-grid" aria-busy="true" aria-live="polite">
+          <span className="gafa-sr-only">Cargando catálogo…</span>
+          {Array.from({ length: 3 }, (_, index) => (
+            <article className="gafa-sdk-card gafa-catalog-card gafa-catalog-card--skel" key={index} aria-hidden="true">
+              <div>
+                <span className="gafa-skeleton gafa-catalog-skel__kicker" />
+                <span className="gafa-skeleton gafa-catalog-skel__title" />
+                <span className="gafa-skeleton gafa-catalog-skel__price" />
+              </div>
+              <span className="gafa-skeleton gafa-catalog-skel__btn" />
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {isError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el catalogo.</p> : null}
+      <div className="gafa-sdk-grid">
+        {(data ?? []).map((item) => (
+          <article className="gafa-sdk-card gafa-catalog-card" key={`${type}-${item.id}`}>
+            <div>
+              <p className="gafa-sdk-kicker">{item.brandName}</p>
+              <h3>{item.name}</h3>
+              {item.description ? <p>{item.description}</p> : null}
+              {item.priceLabel ? <strong className="gafa-catalog-price">{item.priceLabel}</strong> : null}
+            </div>
+            <button
+              className="gafa-sdk-button"
+              type="button"
+              disabled={!onBuy}
+              onClick={() => onBuy?.(item)}
+            >
+              {item.type === "membership" ? "Suscribirme" : "Comprar"}
+            </button>
+          </article>
+        ))}
+      </div>
+      {!isLoading && !isError && !data?.length ? <p className="gafa-sdk-state">No hay elementos para mostrar.</p> : null}
+    </WidgetShell>
+  );
+}
+
+async function getItemsForType(client: GafaClient, type: CatalogKind, brandSlug: string): Promise<CatalogItem[]> {
+  switch (type) {
+    case "memberships":
+      return client.listMemberships(brandSlug);
+    case "services":
+      return client.listServices(brandSlug);
+    case "staff":
+      return client.listStaff(brandSlug);
+    case "packages":
+    default:
+      return client.listCombos(brandSlug);
+  }
+}
+
+function getCatalogLabel(type: CatalogKind): string {
+  switch (type) {
+    case "memberships":
+      return "Membresias";
+    case "services":
+      return "Servicios";
+    case "staff":
+      return "Staff";
+    default:
+      return "Paquetes";
+  }
+}
+
+function demoItems(type: CatalogKind): Array<CatalogItem & { brandName: string }> {
+  const brandName = "Demo Studio";
+
+  if (type === "memberships") {
+    return [
+      {
+        id: 2,
+        name: "Mensual ilimitada",
+        description: "Membresia para clientes recurrentes.",
+        priceLabel: "$2,400 MXN",
+        type: "membership",
+        brandName,
+      },
+    ];
+  }
+
+  if (type === "services") {
+    return [
+      {
+        id: 3,
+        name: "Functional Training",
+        description: "Servicio de fuerza y acondicionamiento.",
+        type: "service",
+        brandName,
+      },
+    ];
+  }
+
+  if (type === "staff") {
+    return [
+      {
+        id: 4,
+        name: "Coach Demo",
+        description: "Entrenador principal.",
+        type: "staff",
+        brandName,
+      },
+    ];
+  }
+
+  return [
+    {
+      id: 1,
+      name: "10 clases",
+      description: "Paquete inicial para reservar en cualquier sede.",
+      priceLabel: "$1,200 MXN",
+      type: "combo",
+      brandName,
+    },
+  ];
+}
+
+function getCatalogTitle(type: CatalogKind): string {
+  switch (type) {
+    case "memberships":
+      return "Elige una membresia";
+    case "services":
+      return "Explora servicios";
+    case "staff":
+      return "Conoce al staff";
+    default:
+      return "Compra paquetes";
+  }
+}
