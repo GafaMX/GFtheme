@@ -79,6 +79,7 @@ WhatsApp: sin número, no hay botón. Un string raro sigue tirando.
 | 4 | Embed: fetch Hub → merge → boot (timeout corto, fail-open) | hecho |
 | 5 | Admin en Hub (form del partial, mismo PUT) | hecho |
 | 5.1 | Form 100% humano: pestañas, controles, tooltips, cero JSON | hecho |
+| 5.2 | Concierge sin HTML: encendido en el Hub, la barra se monta sola | hecho |
 | luego | Buq-Webs (mismo PUT). **No** Republish. | fuera de este repo |
 
 No se salta a UI del Hub sin el contrato (fases 0–4).
