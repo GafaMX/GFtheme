@@ -111,7 +111,7 @@ VITE_GAFA_SDK_V2_URL=https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2
 | Tienda | `data-gf-buy` + `data-gf-product-id` |
 | “Reservar esta clase” en una landing | `data-gf-reserve` + `data-gf-meeting-id` |
 | Perfil | lo abre el header; `profile-info` solo si quieres la página entera |
-| Concierge (barra + chat) | `concierge` — **opt-in**. Nodo + `CONCIERGE`. Ver §11 |
+| Concierge (barra + chat) | `concierge` — **opt-in, por página**. Nodo solo en esa URL + `CONCIERGE`. Ver §11 |
 
 Checkout, login popup y detalle de reserva **no se pegan a mano**: el SDK
 los abre en `document.body`.
@@ -125,6 +125,7 @@ los abre en `document.body`.
 - [ ] Fitspin **sin** lock (ver §5)
 - [ ] Cero CSS contra `.gafa-checkout-overlay` / `.gafa-account-overlay`
 - [ ] Hard refresh. **No** Republish
+- [ ] Concierge: nodo **solo** en la página pedida, nunca en el layout global
 
 ---
 
@@ -481,9 +482,26 @@ Hacen falta **las dos** piezas. Si pones el nodo y olvidas la config, el
 SDK **no monta** Concierge y deja un `console.warn` (`Concierge config was
 not found`). El calendario y el checkout siguen.
 
-### 11.1 Cómo se activa
+### 11.1 Cómo se activa (una página, no todo el sitio)
 
-**1. Nodo HTML** (una vez por página, donde quieras la barra):
+Concierge **no es del header**. El script y `CONCIERGE` en `[data-gf-options]`
+pueden ser globales; **el nodo es lo que lo enciende en esa URL**.
+
+En Buq-Webs / Replit:
+
+1. Abre **solo la página** donde lo pidió el socio (home, clases, etc.).
+2. Pega **un** nodo en el body de **esa** página, no en el layout compartido
+   (header, footer, `App`, shell, `_layout`).
+3. Añade `CONCIERGE` al `[data-gf-options]` de la marca si aún no está.
+4. Hard refresh. **No** Republish.
+
+Si el nodo vive en el header global, la barra sale en **todas** las páginas.
+Eso está mal. Quita el nodo del layout y déjalo solo en la página pedida.
+
+Otras URLs de la misma marca: sin nodo → sin barra. Eso es correcto,
+aunque `CONCIERGE` esté en las options globales.
+
+**1. Nodo HTML** (una vez, en esa página):
 
 ```html
 <section data-gf-theme="concierge"></section>
@@ -723,7 +741,8 @@ Instala el SDK v2 de Buq. Guía: docs/v2-agente.md del repo GafaMX/GFtheme.
 
 5. No CSS de overlays, no MutationObserver, no selectores internos del SDK.
    Concierge está APAGADO salvo nodo data-gf-theme=concierge (o data-gafa-v2)
-   + CONCIERGE en options. WhatsApp es opcional: sin teléfono no hay botón.
+   + CONCIERGE en options. El nodo va SOLO en la página pedida, nunca en el
+   header/layout global. WhatsApp es opcional: sin teléfono no hay botón.
    catalog.live true + products [] = todos los paquetes de ESTA compañía.
    No inventes un chat. Cross-sell sigue reservado: no pinta.
    No implementes un carrusel paralelo.

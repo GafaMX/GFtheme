@@ -24,5 +24,7 @@ describe("docs/v2-agente.md", () => {
     expect(guide).toContain("filter-bq-location");
     expect(guide).toContain("data-gf-buy");
     expect(guide).toContain("allowUserColorScheme");
+    expect(guide).toContain("solo en esa URL");
+    expect(guide).toContain("nunca en el layout global");
   });
 });
