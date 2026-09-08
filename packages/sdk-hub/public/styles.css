@@ -369,8 +369,21 @@ tr:hover td { background: rgba(255, 255, 255, 0.015); }
 .rule b { display: block; font-size: 20px; margin: 6px 0; font-family: var(--serif); }
 
 .widgets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.widget-card { padding: 18px; }
+a.widget-card {
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+a.widget-card:hover { border-color: rgba(228, 184, 74, 0.4); }
 .widget-card h3 { margin: 10px 0 6px; }
+.widget-doc {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+}
 .tag {
   display: inline-block;
   padding: 2px 8px;

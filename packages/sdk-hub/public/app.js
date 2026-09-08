@@ -63,7 +63,7 @@ function pageCopy() {
       sites: ["Sitios", "Dónde está vivo el SDK, con el nombre del estudio. No hace falta memorizar números."],
       usage: ["Actividad", "El pulso del negocio. Cada barra es un conteo aparte, no las mismas personas. Por defecto sin Replit ni localhost."],
       events: ["Bitácora", "Cada gesto del SDK. 25 por página. Los crudos se guardan 90 días; los totales se quedan."],
-      catalog: ["Widgets", "Lo que un sitio puede montar. El shortcode queda detrás del nombre."],
+      catalog: ["Widgets", "Lo que un sitio puede montar. Clic en la tarjeta abre la guía en otra pestaña."],
       config: [
         "Remote config",
         "Partial del SDK para este estudio. El secret no se guarda. Concierge no enciende la barra: hace falta el nodo en esa página.",
@@ -1220,17 +1220,48 @@ function renderConfig() {
   );
 }
 
+const WIDGET_DOCS = {
+  concierge: "docs/v2-agente.md#11-concierge--opt-in-apagado-por-default",
+  "meetings-calendar": "docs/v2-agente.md#7-calendario--filtros-y-vista",
+  "combo-list": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "membership-list": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "staff-list": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "service-list": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  login: "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  register: "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "password-recovery": "docs/v2-agente.md#8-catálogo-header-auth--atributos",
+  "login-register": "docs/v2-agente.md#header-login-register",
+  "login-register-pages": "docs/v2-agente.md#auth-en-página-login-register-pages",
+  "profile-info": "docs/v2-agente.md#6-widgets-data-gf-theme",
+  "purchase-button": "docs/v2-agente.md#9-html-plano--comprar-reservar-carrito-cuenta",
+  fancy: "docs/v2-agente.md#9-html-plano--comprar-reservar-carrito-cuenta",
+};
+
+function widgetDocsUrl(row) {
+  const path = WIDGET_DOCS[row.id] || WIDGET_DOCS[row.shortcode] || "docs/v2-agente.md#6-widgets-data-gf-theme";
+  const hash = path.indexOf("#");
+  const file = hash === -1 ? path : path.slice(0, hash);
+  const fragment = hash === -1 ? "" : path.slice(hash);
+  return `https://github.com/GafaMX/GFtheme/blob/v2/main/${file}${fragment}`;
+}
+
 function renderCatalog() {
   return h(
     "div",
     { class: "widgets" },
     state.widgets.map((row) =>
       h(
-        "article",
-        { class: "panel widget-card" },
+        "a",
+        {
+          class: `panel widget-card${row.status === "preview" ? " is-preview" : ""}`,
+          href: widgetDocsUrl(row),
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
         h("span", { class: `tag ${row.status}` }, row.status === "stable" ? "Listo" : "En preview"),
         h("h3", {}, row.title),
         h("p", { class: "muted" }, row.description ?? ""),
+        h("span", { class: "widget-doc" }, "Guía ↗"),
       ),
     ),
   );

@@ -1,6 +1,6 @@
 # Catálogo de widgets
 
-Cada elemento se instala igual: un `<section data-gf-theme="SHORTCODE">`. El registry vive en `packages/react-sdk/src/sdk/widgets/registry.ts`. El Hub lee la misma lista (tabla `widgets`).
+Cada elemento se instala igual: un `<section data-gf-theme="SHORTCODE">`. El registry vive en `packages/react-sdk/src/sdk/widgets/registry.ts`. El Hub lee la misma lista (tabla `widgets`). En el admin, cada tarjeta abre la guía que ya existe (`docs/v2-agente.md`) en otra pestaña.
 
 | Shortcode | Estado | Qué es |
 | --- | --- | --- |

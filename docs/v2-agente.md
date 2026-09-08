@@ -268,6 +268,9 @@ Opcional, no mezclar en un ticket solo de color:
 
 ## 6. Widgets (`data-gf-theme`)
 
+<a id="widget-list"></a>
+<a id="widget-perfil"></a>
+
 Un shortcode = un contenedor. El registry está en
 `packages/react-sdk/src/sdk/widgets/registry.ts`.
 
@@ -294,6 +297,8 @@ Un shortcode = un contenedor. El registry está en
 ---
 
 ## 7. Calendario — filtros y vista
+
+<a id="widget-calendario"></a>
 
 Van en el `<section data-gf-theme="meetings-calendar">`.
 
@@ -322,6 +327,9 @@ Los ids son los de **gafa.fit**, no ids del builder.
 ---
 
 ## 8. Catálogo, header, auth — atributos
+
+<a id="widget-catalogo"></a>
+<a id="widget-auth"></a>
 
 ### Paquetes / membresías
 
@@ -354,6 +362,8 @@ Los ids son los de **gafa.fit**, no ids del builder.
 ---
 
 ## 9. HTML plano — comprar, reservar, carrito, cuenta
+
+<a id="widget-compra"></a>
 
 El IIFE ya llama `enablePurchaseButtons()`. Sirve para nodos que el builder
 pinta después (sliders, AJAX).
@@ -421,6 +431,8 @@ abren los modales nativos. Código nuevo: los métodos del `sdk`.
 ---
 
 ## 11. Concierge — opt-in (apagado por default)
+
+<a id="widget-concierge"></a>
 
 Mismo script, mismas options, mismo `THEME`. No es un bundle aparte ni un
 iframe. **Cargar `gafa-sdk.js` no lo enciende.**
