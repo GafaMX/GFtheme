@@ -31,6 +31,7 @@ Antes de este trabajo, en `v2/main`:
 6. El Hub no tenía tabla ni `GET/PUT /v1/config`.
 7. `docs/v2-hub/widgets.md` aún decía que Concierge era preview y no montaba (desactualizado vs §11 de `v2-agente.md`).
 8. `docs/v2-hub/install.md` citaba `@sdk-live` — la URL pública es `@cdn-live`.
+9. `docs/v2-agente.md` §5 documenta `THEME.logoUrlDark`, `logoMaxWidth`, `logoMaxHeight`, `colors.primary` y `colors.inputBackground|inputText|inputBorder`. **El SDK no los lee**: no existen en `legacyThemeSchema` ni en `theme/palette.ts`. El formulario del Hub no los ofrece; queda anotado en [`v2-options.md`](../v2-options.md#theme).
 
 Esos choques se resuelven en este plan; no se cambia el contrato de merge.
 
@@ -75,6 +76,7 @@ WhatsApp: sin número, no hay botón. Un string raro sigue tirando.
 | 3 | D1 `company_configs` + `GET /v1/config` + `PUT /v1/admin/config` | hecho |
 | 4 | Embed: fetch Hub → merge → boot (timeout corto, fail-open) | hecho |
 | 5 | Admin en Hub (form del partial, mismo PUT) | hecho |
+| 5.1 | Form 100% humano: pestañas, controles, tooltips, cero JSON | hecho |
 | luego | Buq-Webs (mismo PUT). **No** Republish. | fuera de este repo |
 
 No se salta a UI del Hub sin el contrato (fases 0–4).
@@ -99,6 +101,18 @@ PUT /v1/admin/config
 ```
 
 El PUT vuelve a strippear secretos. Si mandas `API_SECRET`, se descarta.
+
+## Admin (pantalla Config)
+
+Nadie escribe JSON. El formulario se genera desde `packages/sdk-hub/public/configModel.js`: cada opción declara etiqueta, explicación (tooltip) y tipo de control. Cuatro pestañas: **Marca**, **Concierge**, **Tienda**, **Conexión**.
+
+- Cada opción arranca en “sin cambio”: vacío = no se guarda esa clave, manda el default del SDK o el HTML.
+- Sí/no son tres estados (`Sin cambio` · `Sí` · `No`) para poder distinguir “apagado” de “no configurado”.
+- Al guardar se parte del partial guardado, así que **lo que el formulario no pinta se conserva** (por ejemplo `CONCIERGE.experience.groups` puesto a mano). La pantalla lo avisa.
+- Validación en español antes del PUT: hex de 6, ligas con `https://`, WhatsApp solo dígitos.
+- Concierge encendido sin ajustes se guarda como `CONCIERGE: true`; con un ajuste, como partial.
+
+Agregar una opción nueva = agregar un objeto en `configModel.js` (y su clave en la allowlist de `src/remoteConfig.ts` si es raíz nueva). La UI, el resumen y el guardado salen solos. `test/configModel.test.ts` verifica que toda clave del catálogo pase la allowlist del Worker y que ningún campo se quede sin explicación.
 
 ## Qué no es este plan
 

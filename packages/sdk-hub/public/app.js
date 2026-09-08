@@ -1,3 +1,15 @@
+import {
+  CONFIG_SECTIONS,
+  allFields,
+  configFromDraft,
+  draftFromConfig,
+  sameConfig,
+  summarizeConfig,
+  triChoices,
+  unmanagedPaths,
+  validateDraft,
+} from "/configModel.js?v=config-humano-1";
+
 const root = document.getElementById("root");
 
 const state = {
@@ -28,20 +40,12 @@ const state = {
   grantPoints: "10",
   grantReason: "",
   remoteConfig: { company_id: null, config: {}, updated_at: null, stripped: [] },
-  configDraft: {
-    concierge: "unset",
-    displayName: "",
-    whatsapp: "",
-    colorScheme: "",
-    allowUserColorScheme: "",
-    brand: "",
-    logoUrl: "",
-    showMembershipOptions: false,
-    analytics: true,
-    json: "{}",
-  },
+  configDraft: draftFromConfig({}),
+  configTab: "marca",
+  configErrors: {},
   configSaving: false,
   configNotice: "",
+  openTip: "",
 };
 
 function pageCopy() {
@@ -65,8 +69,8 @@ function pageCopy() {
       events: ["Bitácora", "Cada gesto del SDK. 25 por página. Los crudos se guardan 90 días; los totales se quedan."],
       catalog: ["Widgets", "Lo que un sitio puede montar. Clic en la tarjeta abre la guía en otra pestaña."],
       config: [
-        "Remote config",
-        "Partial del SDK para este estudio. El secret no se guarda. Concierge no enciende la barra: hace falta el nodo en esa página.",
+        "Config",
+        "Los ajustes de un estudio, sin tocar el código de su sitio. Se guardan aquí y las páginas los toman solitas al cargar.",
       ],
     }[state.view] ?? ["Hub", ""]
   );
@@ -222,6 +226,7 @@ function h(tag, props = {}, ...children) {
 }
 
 function render() {
+  configChrome = null;
   root.replaceChildren(state.me ? renderApp() : renderLogin());
 }
 
@@ -1036,188 +1041,408 @@ async function onGrant(event) {
   }
 }
 
-function draftFromConfig(config) {
-  const theme = config.THEME && typeof config.THEME === "object" ? config.THEME : {};
-  const colors = theme.colors && typeof theme.colors === "object" ? theme.colors : {};
-  const concierge = config.CONCIERGE ?? config.concierge;
-  let mode = "unset";
-  if (concierge === true) mode = "true";
-  else if (concierge && typeof concierge === "object" && !Object.keys(concierge).length) mode = "true";
-  else if (concierge && typeof concierge === "object") mode = "partial";
-  const contact = concierge && typeof concierge === "object" ? concierge.contact ?? {} : {};
-  return {
-    concierge: mode,
-    displayName: concierge && typeof concierge === "object" ? concierge.displayName ?? "" : "",
-    whatsapp: typeof contact.whatsapp === "string" ? contact.whatsapp : "",
-    colorScheme: theme.colorScheme ?? "",
-    allowUserColorScheme: theme.allowUserColorScheme === false ? "false" : theme.allowUserColorScheme === true ? "true" : "",
-    brand: colors.brand ?? "",
-    logoUrl: theme.logoUrl ?? "",
-    showMembershipOptions: config.SHOW_MEMBERSHIP_OPTIONS === true || config.SHOW_MEMBERSHIP_OPTIONS === "true",
-    analytics: config.ANALYTICS !== false && config.ANALYTICS !== "false",
-    json: JSON.stringify(config, null, 2),
-  };
+/* ---------------------------------------------------------------- Config */
+
+let configChrome = null;
+
+function currentConfig() {
+  return configFromDraft(state.remoteConfig.config ?? {}, state.configDraft);
 }
 
-function configFromDraft(draft) {
-  const config = {};
-  if (draft.concierge === "true") {
-    const partial = {};
-    if (draft.displayName.trim()) partial.displayName = draft.displayName.trim();
-    if (draft.whatsapp.trim()) partial.contact = { whatsapp: draft.whatsapp.trim() };
-    config.CONCIERGE = Object.keys(partial).length ? partial : true;
-  } else if (draft.concierge === "partial") {
-    try {
-      const parsed = JSON.parse(draft.json || "{}");
-      if (parsed.CONCIERGE != null) config.CONCIERGE = parsed.CONCIERGE;
-    } catch {
-      /* el JSON se valida al guardar */
-    }
+function sectionOfField(key) {
+  return allFields().find((field) => field.key === key)?.section ?? "";
+}
+
+function sectionHasError(sectionId) {
+  return Object.keys(state.configErrors).some((key) => sectionOfField(key) === sectionId);
+}
+
+function setField(key, value) {
+  state.configDraft = { ...state.configDraft, [key]: value };
+  if (state.configErrors[key]) {
+    const next = { ...state.configErrors };
+    delete next[key];
+    state.configErrors = next;
   }
-  const theme = {};
-  if (draft.colorScheme) theme.colorScheme = draft.colorScheme;
-  if (draft.allowUserColorScheme === "false") theme.allowUserColorScheme = false;
-  if (draft.allowUserColorScheme === "true") theme.allowUserColorScheme = true;
-  if (draft.logoUrl.trim()) theme.logoUrl = draft.logoUrl.trim();
-  if (draft.brand.trim()) theme.colors = { brand: draft.brand.trim() };
-  if (Object.keys(theme).length) config.THEME = theme;
-  if (draft.showMembershipOptions) config.SHOW_MEMBERSHIP_OPTIONS = true;
-  if (!draft.analytics) config.ANALYTICS = false;
-  return config;
+  syncConfigChrome();
+}
+
+function syncConfigChrome() {
+  if (!configChrome) return;
+  const next = currentConfig();
+  const dirty = !sameConfig(next, state.remoteConfig.config ?? {});
+  configChrome.bar.classList.toggle("dirty", dirty);
+  configChrome.status.textContent = dirty
+    ? "Tienes cambios sin guardar."
+    : state.configNotice || "Todo guardado.";
+  configChrome.save.disabled = !dirty || state.configSaving;
+  configChrome.undo.disabled = !dirty || state.configSaving;
+  configChrome.summary.replaceChildren(...summaryChips(next));
+  if (configChrome.preview) paintPreview(configChrome.preview, next);
+}
+
+function summaryChips(config) {
+  const items = summarizeConfig(config);
+  if (!items.length) {
+    return [h("span", { class: "muted" }, "Nada configurado todavía: manda lo que diga cada página.")];
+  }
+  return items.map((item) =>
+    h(
+      "button",
+      {
+        type: "button",
+        class: "summary-chip",
+        title: `Ir a ${item.label}`,
+        onClick: () => {
+          state.configTab = item.section;
+          render();
+        },
+      },
+      item.swatch ? h("i", { class: "swatch-dot", style: `background:${item.swatch}` }) : null,
+      h("span", { class: "summary-label" }, item.label),
+      h("b", {}, item.value),
+    ),
+  );
+}
+
+function paintPreview(node, config) {
+  const theme = config.THEME && typeof config.THEME === "object" ? config.THEME : {};
+  const colors = theme.colors && typeof theme.colors === "object" ? theme.colors : {};
+  const dark = theme.colorScheme === "dark";
+  const brand = colors.brand || (dark ? "#f3d48a" : "#111827");
+  const accent = colors.accent || brand;
+  const background = colors.background || (dark ? "#14161c" : "#ffffff");
+  const surface = colors.surface || (dark ? "#1b1e26" : "#f8fafc");
+  const text = colors.text || (dark ? "#f4f1ea" : "#111827");
+  const muted = colors.mutedText || (dark ? "#9aa3b5" : "#6b7280");
+  const border = colors.border || (dark ? "rgba(255,255,255,.12)" : "#e5e7eb");
+  const radiusMd = theme.radius?.md || "16px";
+  node.style.setProperty("--pv-brand", brand);
+  node.style.setProperty("--pv-accent", accent);
+  node.style.setProperty("--pv-bg", background);
+  node.style.setProperty("--pv-surface", surface);
+  node.style.setProperty("--pv-text", text);
+  node.style.setProperty("--pv-muted", muted);
+  node.style.setProperty("--pv-border", border);
+  node.style.setProperty("--pv-radius", radiusMd);
+  if (theme.typography?.fontFamily) node.style.setProperty("--pv-font", theme.typography.fontFamily);
+}
+
+function tip(id, text) {
+  const open = state.openTip === id;
+  return h(
+    "span",
+    { class: "tip" },
+    h(
+      "button",
+      {
+        type: "button",
+        class: `tip-btn${open ? " open" : ""}`,
+        "aria-label": "Explicación",
+        "aria-expanded": open ? "true" : "false",
+        onClick: (event) => {
+          event.preventDefault();
+          state.openTip = open ? "" : id;
+          render();
+        },
+      },
+      "?",
+    ),
+    h("span", { class: `tip-bubble${open ? " open" : ""}`, role: "note" }, text),
+  );
+}
+
+function triControl(field) {
+  const value = String(state.configDraft[field.key] ?? "");
+  return h(
+    "div",
+    { class: "seg tri" },
+    triChoices().map((choice) =>
+      h(
+        "button",
+        {
+          type: "button",
+          class: value === choice.value ? "active" : "",
+          onClick: () => {
+            setField(field.key, choice.value);
+            render();
+          },
+        },
+        choice.label,
+      ),
+    ),
+  );
+}
+
+function switchControl(field) {
+  const on = Boolean(state.configDraft[field.key]);
+  return h(
+    "button",
+    {
+      type: "button",
+      class: `switch${on ? " on" : ""}`,
+      role: "switch",
+      "aria-checked": on ? "true" : "false",
+      onClick: () => {
+        setField(field.key, !on);
+        render();
+      },
+    },
+    h("i", {}),
+    h("span", {}, on ? "Encendido" : "Apagado"),
+  );
+}
+
+function colorControl(field) {
+  const value = String(state.configDraft[field.key] ?? "");
+  const valid = /^#[0-9a-f]{6}$/i.test(value);
+  const swatch = h("input", {
+    type: "color",
+    class: "color-swatch",
+    value: valid ? value : field.placeholder ?? "#888888",
+    "aria-label": field.label,
+  });
+  const text = h("input", {
+    class: "color-hex",
+    value,
+    placeholder: `${field.placeholder ?? "#000000"} (automático)`,
+    spellcheck: "false",
+    onInput: (event) => {
+      const next = event.target.value;
+      setField(field.key, next);
+      if (/^#[0-9a-f]{6}$/i.test(next.trim())) swatch.value = next.trim();
+      clear.hidden = !next.trim();
+    },
+  });
+  const clear = h(
+    "button",
+    {
+      type: "button",
+      class: "btn ghost compact",
+      hidden: !value,
+      onClick: () => {
+        setField(field.key, "");
+        text.value = "";
+        clear.hidden = true;
+      },
+    },
+    "Quitar",
+  );
+  swatch.addEventListener("input", (event) => {
+    const next = event.target.value;
+    setField(field.key, next);
+    text.value = next;
+    clear.hidden = false;
+  });
+  return h("div", { class: "color-row" }, swatch, text, clear);
+}
+
+function fieldControl(field) {
+  const value = state.configDraft[field.key] ?? "";
+  if (field.type === "switch") return switchControl(field);
+  if (field.type === "tri") return triControl(field);
+  if (field.type === "color") return colorControl(field);
+  if (field.type === "select") {
+    return h(
+      "select",
+      {
+        value: String(value),
+        onChange: (event) => {
+          setField(field.key, event.target.value);
+        },
+      },
+      field.choices.map((choice) => h("option", { value: choice.value }, choice.label)),
+    );
+  }
+  if (field.type === "longtext") {
+    return h("textarea", {
+      rows: "3",
+      value: String(value),
+      placeholder: field.placeholder ?? "",
+      onInput: (event) => setField(field.key, event.target.value),
+    });
+  }
+  const suffix = field.type === "px" ? h("span", { class: "field-suffix" }, "px") : null;
+  const input = h("input", {
+    value: String(value),
+    inputmode: field.type === "number" || field.type === "px" || field.type === "tel" ? "numeric" : null,
+    placeholder: field.placeholder ? `${field.placeholder}` : "Sin cambio",
+    spellcheck: "false",
+    onInput: (event) => setField(field.key, event.target.value),
+  });
+  return suffix ? h("div", { class: "field-with-suffix" }, input, suffix) : input;
+}
+
+function configField(field) {
+  const error = state.configErrors[field.key];
+  return h(
+    "div",
+    { class: `field field-${field.type}${error ? " has-error" : ""}` },
+    h("div", { class: "field-head" }, h("span", { class: "field-label" }, field.label), tip(field.key, field.help)),
+    h("div", { class: "field-control" }, fieldControl(field)),
+    error ? h("p", { class: "field-error" }, error) : null,
+  );
+}
+
+function configGroup(group) {
+  if (group.requires && !state.configDraft[group.requires]) return null;
+  const colorsOnly = group.fields.every((field) => field.type === "color");
+  return h(
+    "section",
+    { class: "panel config-group" },
+    h("h4", {}, group.title),
+    group.note ? h("p", { class: "muted group-note" }, group.note) : null,
+    h("div", { class: `fields${colorsOnly ? " fields-colors" : ""}` }, group.fields.map((field) => configField(field))),
+  );
+}
+
+function configPreview() {
+  const node = h(
+    "div",
+    { class: "preview" },
+    h(
+      "div",
+      { class: "preview-card" },
+      h("div", { class: "preview-logo" }, "Tu marca"),
+      h("h5", {}, "Clase de las 7:00"),
+      h("p", {}, "Así se van a ver los botones y las tarjetas del SDK dentro del sitio."),
+      h("div", { class: "preview-actions" }, h("span", { class: "preview-btn" }, "Reservar"), h("span", { class: "preview-btn ghost" }, "Ver horarios")),
+    ),
+  );
+  return h(
+    "section",
+    { class: "panel config-group preview-wrap" },
+    h("h4", {}, "Vista previa"),
+    h("p", { class: "muted group-note" }, "Un ejemplo con los colores que llevas. No es el sitio real, es para que veas el contraste."),
+    node,
+  );
 }
 
 function renderConfig() {
   const site = selectedSite();
   if (!site) {
-    return empty("Elige un estudio", "La config remota es por compañía. El nodo de Concierge sigue siendo por página.");
+    return empty(
+      "Elige un estudio arriba",
+      "Esta pantalla configura una compañía completa. Escoge cuál en el menú de arriba y aquí aparece su formulario.",
+    );
   }
-  const draft = state.configDraft;
-  const bind = (field, refresh) => (event) => {
-    state.configDraft = {
-      ...state.configDraft,
-      [field]: event.target.type === "checkbox" ? event.target.checked : event.target.value,
-    };
-    if (refresh) render();
-  };
-  return h(
-    "div",
-    { class: "stack config-form" },
+
+  const section = CONFIG_SECTIONS.find((item) => item.id === state.configTab) ?? CONFIG_SECTIONS[0];
+  const leftovers = unmanagedPaths(state.remoteConfig.config ?? {});
+  const summary = h("div", { class: "summary" });
+  const status = h("span", { class: "save-status" });
+  const save = h("button", { class: "btn", type: "submit" }, "Guardar cambios");
+  const undo = h(
+    "button",
+    {
+      class: "btn ghost",
+      type: "button",
+      onClick: () => {
+        state.configDraft = draftFromConfig(state.remoteConfig.config ?? {});
+        state.configErrors = {};
+        state.configNotice = "";
+        render();
+      },
+    },
+    "Descartar",
+  );
+  const bar = h("div", { class: "save-bar" }, status, h("div", { class: "save-actions" }, undo, save));
+  const preview = section.id === "marca" ? configPreview() : null;
+
+  const form = h(
+    "form",
+    { class: "config-form", onSubmit: onSaveConfig },
     h(
       "div",
-      { class: "panel", style: "padding:22px" },
+      { class: "panel config-intro" },
       h("div", { class: "kicker" }, site.name),
-      h("h3", { class: "op-title" }, "Partial del SDK"),
+      h("h3", { class: "op-title" }, "Cómo se comporta el SDK en este estudio"),
       h(
         "p",
         { class: "muted" },
-        "Se mezcla encima de los defaults y debajo del HTML de la página. COMPANY_ID + API_CLIENT + API_SECRET se quedan en el sitio. El secret no entra aquí.",
+        "Todo lo de aquí se aplica a las páginas del estudio sin tocar su código. Lo que la página traiga escrito le gana a lo que pongas aquí, y la llave secreta nunca se guarda en el Hub.",
       ),
-      state.remoteConfig.updated_at
-        ? h("p", { class: "muted" }, `Último guardado ${relTime(state.remoteConfig.updated_at)}`)
-        : h("p", { class: "muted" }, "Todavía no hay override. El SDK usa solo el HTML."),
-    ),
-    h(
-      "form",
-      {
-        class: "panel",
-        style: "padding:22px",
-        onSubmit: async (event) => {
-          event.preventDefault();
-          const siteNow = selectedSite();
-          if (!siteNow) return;
-          let config = configFromDraft(state.configDraft);
-          if (state.configDraft.concierge === "partial") {
-            try {
-              config = JSON.parse(state.configDraft.json || "{}");
-            } catch {
-              state.error = "El JSON avanzado no parsea.";
-              render();
-              return;
-            }
-          }
-          state.configSaving = true;
-          state.configNotice = "";
-          state.error = "";
-          render();
-          try {
-            const saved = await api("/v1/admin/config", {
-              method: "PUT",
-              body: JSON.stringify({ company_id: siteNow.company_id, config }),
-            });
-            state.remoteConfig = saved;
-            state.configDraft = draftFromConfig(saved.config ?? {});
-            state.configNotice =
-              saved.stripped?.length
-                ? `Guardado. Se tiró ${saved.stripped.join(", ")} — el secret no vive en el Hub.`
-                : "Guardado. El embed lo pide en el próximo load.";
-          } catch (error) {
-            state.error = error.message;
-          }
-          state.configSaving = false;
-          render();
-        },
-      },
-      h("label", {}, "Concierge (config, no el nodo)"),
       h(
-        "select",
-        { value: draft.concierge, onChange: bind("concierge", true) },
-        h("option", { value: "unset" }, "Sin override — lo decide el HTML"),
-        h("option", { value: "true" }, "true / {} — defaults live"),
-        h("option", { value: "partial" }, "JSON avanzado"),
+        "p",
+        { class: "muted saved-at" },
+        state.remoteConfig.updated_at
+          ? `Último guardado ${relTime(state.remoteConfig.updated_at)}.`
+          : "Todavía no has guardado nada para este estudio.",
       ),
-      draft.concierge === "true"
+      summary,
+      leftovers.length
         ? h(
-            "div",
-            { class: "config-grid" },
-            h("label", {}, "Nombre (opcional)", h("input", { value: draft.displayName, onInput: bind("displayName"), placeholder: "Bunker Indoor Golf" })),
-            h("label", {}, "WhatsApp (solo dígitos)", h("input", { value: draft.whatsapp, onInput: bind("whatsapp"), placeholder: "5215512345678" })),
+            "p",
+            { class: "muted leftovers" },
+            `Se conservan tal cual ${leftovers.length} ${leftovers.length === 1 ? "ajuste avanzado que esta pantalla no muestra" : "ajustes avanzados que esta pantalla no muestra"}: ${leftovers.join(", ")}.`,
           )
         : null,
-      draft.concierge === "partial"
-        ? h("label", {}, "JSON del partial", h("textarea", { value: draft.json, onInput: bind("json"), rows: "12" }))
-        : null,
-      h("label", {}, "Esquema"),
-      h(
-        "select",
-        { value: draft.colorScheme, onChange: bind("colorScheme") },
-        h("option", { value: "" }, "Sin override"),
-        h("option", { value: "light" }, "light"),
-        h("option", { value: "dark" }, "dark"),
-      ),
-      h("label", {}, "Lock de esquema"),
-      h(
-        "select",
-        { value: draft.allowUserColorScheme, onChange: bind("allowUserColorScheme") },
-        h("option", { value: "" }, "Sin override"),
-        h("option", { value: "false" }, "Fijo (allowUserColorScheme false)"),
-        h("option", { value: "true" }, "El usuario puede cambiar"),
-      ),
-      h(
-        "div",
-        { class: "config-grid" },
-        h("label", {}, "Brand", h("input", { value: draft.brand, onInput: bind("brand"), placeholder: "#F3D15E" })),
-        h("label", {}, "Logo", h("input", { value: draft.logoUrl, onInput: bind("logoUrl"), placeholder: "https://…" })),
-      ),
-      h(
-        "label",
-        { class: "check" },
-        h("input", { type: "checkbox", checked: draft.showMembershipOptions, onChange: bind("showMembershipOptions") }),
-        " Mostrar “Opciones de la membresía”",
-      ),
-      h(
-        "label",
-        { class: "check" },
-        h("input", { type: "checkbox", checked: draft.analytics, onChange: bind("analytics") }),
-        " Analytics / heartbeats",
-      ),
-      state.configNotice ? h("p", { class: "ok" }, state.configNotice) : null,
-      h(
-        "button",
-        { class: "btn", type: "submit", disabled: state.configSaving },
-        state.configSaving ? "Guardando…" : "Guardar partial",
+    ),
+    h(
+      "div",
+      { class: "seg tabs config-tabs" },
+      CONFIG_SECTIONS.map((item) =>
+        h(
+          "button",
+          {
+            type: "button",
+            class: state.configTab === item.id ? "active" : "",
+            onClick: () => {
+              state.configTab = item.id;
+              state.openTip = "";
+              render();
+            },
+          },
+          item.label,
+          sectionHasError(item.id) ? h("i", { class: "tab-dot" }) : null,
+        ),
       ),
     ),
+    h("p", { class: "muted section-blurb" }, section.blurb),
+    preview,
+    section.groups.map((group) => configGroup(group)),
+    state.configNotice ? h("p", { class: "ok" }, state.configNotice) : null,
+    bar,
   );
+
+  configChrome = { bar, status, save, undo, summary, preview: preview?.querySelector(".preview") ?? null };
+  queueMicrotask(syncConfigChrome);
+  return form;
+}
+
+async function onSaveConfig(event) {
+  event.preventDefault();
+  const site = selectedSite();
+  if (!site) return;
+  const errors = validateDraft(state.configDraft);
+  if (Object.keys(errors).length) {
+    state.configErrors = errors;
+    state.configNotice = "";
+    state.error = "Revisa lo que está marcado en rojo: hay un dato que no se entiende.";
+    if (!sectionHasError(state.configTab)) state.configTab = sectionOfField(Object.keys(errors)[0]) || state.configTab;
+    render();
+    return;
+  }
+  state.configSaving = true;
+  state.configNotice = "";
+  state.error = "";
+  render();
+  try {
+    const saved = await api("/v1/admin/config", {
+      method: "PUT",
+      body: JSON.stringify({ company_id: site.company_id, config: currentConfig() }),
+    });
+    state.remoteConfig = saved;
+    state.configDraft = draftFromConfig(saved.config ?? {});
+    state.configErrors = {};
+    state.configNotice = saved.stripped?.length
+      ? `Guardado. Quitamos ${saved.stripped.join(", ")}: la llave secreta se queda en el sitio, nunca aquí.`
+      : "Guardado. Los sitios lo toman la próxima vez que alguien los abra.";
+  } catch (error) {
+    state.error = error.message;
+  }
+  state.configSaving = false;
+  render();
 }
 
 const WIDGET_DOCS = {

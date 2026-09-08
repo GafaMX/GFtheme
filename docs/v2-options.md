@@ -34,7 +34,7 @@ Query de prueba (no uses en producción): `?buq-env=` y `?hub-url=`. Nada más.
 | `API_SECRET` | `clientSecret` | sí para login/pago | **prohibido** | OAuth secret. Viaja en el browser (contrato de gafa.fit). |
 | `GAFA_FIT_URL` | `apiBaseUrl` | no | sí | API. Default del entorno. |
 | `BRAND_ID` | `brandId` | no | sí | Marca por defecto. |
-| `THEME` | `theme` | no | sí | Paleta, logo, lock. Ver [`v2-theme-colors.md`](v2-theme-colors.md). |
+| `THEME` | `theme` | no | sí | Paleta, logo, lock. Detalle abajo y en [`v2-agente.md`](v2-agente.md#5-theme--colores-logo-lock). |
 | `CONCIERGE` / `concierge` | `concierge` | no | sí | `true` \| `{}` \| partial \| objeto completo. Ver abajo. |
 | `SHOW_MEMBERSHIP_OPTIONS` | `showMembershipOptions` | no | sí | `true` muestra el link de membresía. |
 | `BUQ_ENV` | `environment` | no | sí | `production` · `staging` · `development`. Query `?buq-env=` gana. |
@@ -72,20 +72,21 @@ Partial. Lo que no pongas se deriva (`packages/react-sdk/src/sdk/theme/`).
 
 | Campo | Default | Notas |
 | --- | --- | --- |
+| `preset` | — | `default` \| `boutique` \| `fitness-dark` \| `wellness-light`. Lo que pongas después le gana. |
 | `colorScheme` | hereda / light | `light` \| `dark` \| `system` \| `host`. |
 | `allowUserColorScheme` | true salvo lock | `false` fija el scheme. |
-| `logoUrl` / `logoUrlDark` | — | Wordmark. |
-| `logoMaxWidth` / `logoMaxHeight` | — | Si el logo se estira, es esto, no CSS del kit. |
+| `logoUrl` | — | Wordmark. |
 | `colors.brand` | `#111827` | Primario. |
 | `colors.accent` | `#f97316` | Si se omite, = brand. |
 | `colors.background` `surface` `surfaceRaised` `text` `mutedText` `border` | derivados | |
-| `colors.inputBackground` `inputText` `inputBorder` | = surface / text / border | |
-| `colors.primary` | alias viejo de `brand` | |
+| `colors.success` `warning` `danger` | derivados | Hex propio si quieres el tono exacto. |
 | `typography.fontFamily` / `headingFontFamily` | hereda el sitio | |
-| `radius.sm\|md\|lg\|pill` | tokens del SDK | |
+| `radius.sm\|md\|lg\|pill` | `10px` `16px` `24px` `999px` | Strings con unidad. |
 | `assets.heroBackgroundUrl` / `loginBackgroundUrl` | — | |
 
 `""` o espacios en un color → default. Nunca transparente.
+
+Los campos que sí existen son exactamente los de arriba (`legacyThemeSchema` en `packages/react-sdk/src/sdk/config.ts` + `theme/palette.ts`). `v2-agente.md` §5 menciona además `logoUrlDark`, `logoMaxWidth`, `logoMaxHeight`, `colors.primary`, `colors.inputBackground|inputText|inputBorder`: **hoy el SDK no los lee**. Pásan por el `passthrough` de Zod y no pintan nada. Por eso el formulario del Hub no los ofrece.
 
 ---
 
