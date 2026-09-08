@@ -178,7 +178,7 @@ del socio (así lo exige gafa.fit hoy, igual que v1).
 | `CAPTCHA_PUBLIC_KEY` / `CAPTCHA_SECRET_KEY` | no | Default: par compartido de Buq |
 | `TOKENMOVIL` | no | SSO app |
 | `IMAGES` | no | `{ "provider": "cloudflare" \| "none" }` |
-| `CONCIERGE` | no | Config del asistente. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Ver §11 |
+| `CONCIERGE` | no | Config del asistente. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Hoy exige el objeto Zod completo. Plan para `true` / `{}` + Hub: [`v2-hub/remote-config.md`](v2-hub/remote-config.md). Ver §11 |
 
 Query string de prueba (no uses en producción):
 
