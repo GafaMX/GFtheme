@@ -27,6 +27,21 @@ const state = {
   grantPerson: "",
   grantPoints: "10",
   grantReason: "",
+  remoteConfig: { company_id: null, config: {}, updated_at: null, stripped: [] },
+  configDraft: {
+    concierge: "unset",
+    displayName: "",
+    whatsapp: "",
+    colorScheme: "",
+    allowUserColorScheme: "",
+    brand: "",
+    logoUrl: "",
+    showMembershipOptions: false,
+    analytics: true,
+    json: "{}",
+  },
+  configSaving: false,
+  configNotice: "",
 };
 
 function pageCopy() {
@@ -49,6 +64,10 @@ function pageCopy() {
       usage: ["Actividad", "El pulso del negocio. Cada barra es un conteo aparte, no las mismas personas. Por defecto sin Replit ni localhost."],
       events: ["Bitácora", "Cada gesto del SDK. 25 por página. Los crudos se guardan 90 días; los totales se quedan."],
       catalog: ["Widgets", "Lo que un sitio puede montar. El shortcode queda detrás del nombre."],
+      config: [
+        "Remote config",
+        "Partial del SDK para este estudio. El secret no se guarda. Concierge no enciende la barra: hace falta el nodo en esa página.",
+      ],
     }[state.view] ?? ["Hub", ""]
   );
 }
@@ -161,6 +180,16 @@ async function refresh() {
         state.ledger = ledger;
         state.rules = rules.effective ?? [];
       }
+    } else if (state.view === "config") {
+      const site = selectedSite();
+      if (site?.company_id) {
+        const row = await api(`/v1/admin/config${qs({ company_id: site.company_id })}`);
+        state.remoteConfig = row;
+        state.configDraft = draftFromConfig(row.config ?? {});
+      } else {
+        state.remoteConfig = { company_id: null, config: {}, updated_at: null, stripped: [] };
+        state.configDraft = draftFromConfig({});
+      }
     } else {
       const widgets = await api("/v1/widgets");
       state.widgets = widgets.widgets ?? [];
@@ -268,6 +297,7 @@ function renderApp() {
         navBtn("usage", "Actividad", "M4 19V5m4 14V9m4 10V7m4 12v-6m4 6V8"),
         navBtn("events", "Bitácora", "M5 5h14v14H5zM8 9h8M8 13h5"),
         navBtn("loyalty", "Lealtad", "M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"),
+        navBtn("config", "Config", "M4 6h16M4 12h10M4 18h16M17 9l3 3-3 3"),
         navBtn("catalog", "Widgets", "M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"),
       ),
       h(
@@ -373,7 +403,7 @@ function renderFilters() {
             onChange: (event) => {
               state.siteKey = event.target.value;
               resetPages();
-              if (state.view === "loyalty") refresh();
+              if (state.view === "loyalty" || state.view === "config") refresh();
             },
           },
           ...studioOptions,
@@ -474,6 +504,7 @@ function renderView() {
   if (state.view === "usage") return renderUsage();
   if (state.view === "events") return renderEvents();
   if (state.view === "loyalty") return renderLoyalty();
+  if (state.view === "config") return renderConfig();
   return renderCatalog();
 }
 
@@ -539,10 +570,23 @@ function siteCard(row) {
     ),
     h(
       "div",
-      {},
+      { class: "site-actions" },
       live
         ? h("div", { class: "pulse" }, h("i"), "En vivo")
         : h("div", { class: "muted", style: "font-size:12px" }, relTime(row.last_seen_at)),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn ghost compact",
+          onClick: () => {
+            state.view = "config";
+            state.siteKey = row.key || state.directory.sites.find((site) => site.company_id === row.company_id)?.key || "";
+            refresh();
+          },
+        },
+        "Config",
+      ),
     ),
   );
 }
@@ -990,6 +1034,190 @@ async function onGrant(event) {
     state.error = error.message;
     render();
   }
+}
+
+function draftFromConfig(config) {
+  const theme = config.THEME && typeof config.THEME === "object" ? config.THEME : {};
+  const colors = theme.colors && typeof theme.colors === "object" ? theme.colors : {};
+  const concierge = config.CONCIERGE ?? config.concierge;
+  let mode = "unset";
+  if (concierge === true) mode = "true";
+  else if (concierge && typeof concierge === "object" && !Object.keys(concierge).length) mode = "true";
+  else if (concierge && typeof concierge === "object") mode = "partial";
+  const contact = concierge && typeof concierge === "object" ? concierge.contact ?? {} : {};
+  return {
+    concierge: mode,
+    displayName: concierge && typeof concierge === "object" ? concierge.displayName ?? "" : "",
+    whatsapp: typeof contact.whatsapp === "string" ? contact.whatsapp : "",
+    colorScheme: theme.colorScheme ?? "",
+    allowUserColorScheme: theme.allowUserColorScheme === false ? "false" : theme.allowUserColorScheme === true ? "true" : "",
+    brand: colors.brand ?? "",
+    logoUrl: theme.logoUrl ?? "",
+    showMembershipOptions: config.SHOW_MEMBERSHIP_OPTIONS === true || config.SHOW_MEMBERSHIP_OPTIONS === "true",
+    analytics: config.ANALYTICS !== false && config.ANALYTICS !== "false",
+    json: JSON.stringify(config, null, 2),
+  };
+}
+
+function configFromDraft(draft) {
+  const config = {};
+  if (draft.concierge === "true") {
+    const partial = {};
+    if (draft.displayName.trim()) partial.displayName = draft.displayName.trim();
+    if (draft.whatsapp.trim()) partial.contact = { whatsapp: draft.whatsapp.trim() };
+    config.CONCIERGE = Object.keys(partial).length ? partial : true;
+  } else if (draft.concierge === "partial") {
+    try {
+      const parsed = JSON.parse(draft.json || "{}");
+      if (parsed.CONCIERGE != null) config.CONCIERGE = parsed.CONCIERGE;
+    } catch {
+      /* el JSON se valida al guardar */
+    }
+  }
+  const theme = {};
+  if (draft.colorScheme) theme.colorScheme = draft.colorScheme;
+  if (draft.allowUserColorScheme === "false") theme.allowUserColorScheme = false;
+  if (draft.allowUserColorScheme === "true") theme.allowUserColorScheme = true;
+  if (draft.logoUrl.trim()) theme.logoUrl = draft.logoUrl.trim();
+  if (draft.brand.trim()) theme.colors = { brand: draft.brand.trim() };
+  if (Object.keys(theme).length) config.THEME = theme;
+  if (draft.showMembershipOptions) config.SHOW_MEMBERSHIP_OPTIONS = true;
+  if (!draft.analytics) config.ANALYTICS = false;
+  return config;
+}
+
+function renderConfig() {
+  const site = selectedSite();
+  if (!site) {
+    return empty("Elige un estudio", "La config remota es por compañía. El nodo de Concierge sigue siendo por página.");
+  }
+  const draft = state.configDraft;
+  const bind = (field, refresh) => (event) => {
+    state.configDraft = {
+      ...state.configDraft,
+      [field]: event.target.type === "checkbox" ? event.target.checked : event.target.value,
+    };
+    if (refresh) render();
+  };
+  return h(
+    "div",
+    { class: "stack config-form" },
+    h(
+      "div",
+      { class: "panel", style: "padding:22px" },
+      h("div", { class: "kicker" }, site.name),
+      h("h3", { class: "op-title" }, "Partial del SDK"),
+      h(
+        "p",
+        { class: "muted" },
+        "Se mezcla encima de los defaults y debajo del HTML de la página. COMPANY_ID + API_CLIENT + API_SECRET se quedan en el sitio. El secret no entra aquí.",
+      ),
+      state.remoteConfig.updated_at
+        ? h("p", { class: "muted" }, `Último guardado ${relTime(state.remoteConfig.updated_at)}`)
+        : h("p", { class: "muted" }, "Todavía no hay override. El SDK usa solo el HTML."),
+    ),
+    h(
+      "form",
+      {
+        class: "panel",
+        style: "padding:22px",
+        onSubmit: async (event) => {
+          event.preventDefault();
+          const siteNow = selectedSite();
+          if (!siteNow) return;
+          let config = configFromDraft(state.configDraft);
+          if (state.configDraft.concierge === "partial") {
+            try {
+              config = JSON.parse(state.configDraft.json || "{}");
+            } catch {
+              state.error = "El JSON avanzado no parsea.";
+              render();
+              return;
+            }
+          }
+          state.configSaving = true;
+          state.configNotice = "";
+          state.error = "";
+          render();
+          try {
+            const saved = await api("/v1/admin/config", {
+              method: "PUT",
+              body: JSON.stringify({ company_id: siteNow.company_id, config }),
+            });
+            state.remoteConfig = saved;
+            state.configDraft = draftFromConfig(saved.config ?? {});
+            state.configNotice =
+              saved.stripped?.length
+                ? `Guardado. Se tiró ${saved.stripped.join(", ")} — el secret no vive en el Hub.`
+                : "Guardado. El embed lo pide en el próximo load.";
+          } catch (error) {
+            state.error = error.message;
+          }
+          state.configSaving = false;
+          render();
+        },
+      },
+      h("label", {}, "Concierge (config, no el nodo)"),
+      h(
+        "select",
+        { value: draft.concierge, onChange: bind("concierge", true) },
+        h("option", { value: "unset" }, "Sin override — lo decide el HTML"),
+        h("option", { value: "true" }, "true / {} — defaults live"),
+        h("option", { value: "partial" }, "JSON avanzado"),
+      ),
+      draft.concierge === "true"
+        ? h(
+            "div",
+            { class: "config-grid" },
+            h("label", {}, "Nombre (opcional)", h("input", { value: draft.displayName, onInput: bind("displayName"), placeholder: "Bunker Indoor Golf" })),
+            h("label", {}, "WhatsApp (solo dígitos)", h("input", { value: draft.whatsapp, onInput: bind("whatsapp"), placeholder: "5215512345678" })),
+          )
+        : null,
+      draft.concierge === "partial"
+        ? h("label", {}, "JSON del partial", h("textarea", { value: draft.json, onInput: bind("json"), rows: "12" }))
+        : null,
+      h("label", {}, "Esquema"),
+      h(
+        "select",
+        { value: draft.colorScheme, onChange: bind("colorScheme") },
+        h("option", { value: "" }, "Sin override"),
+        h("option", { value: "light" }, "light"),
+        h("option", { value: "dark" }, "dark"),
+      ),
+      h("label", {}, "Lock de esquema"),
+      h(
+        "select",
+        { value: draft.allowUserColorScheme, onChange: bind("allowUserColorScheme") },
+        h("option", { value: "" }, "Sin override"),
+        h("option", { value: "false" }, "Fijo (allowUserColorScheme false)"),
+        h("option", { value: "true" }, "El usuario puede cambiar"),
+      ),
+      h(
+        "div",
+        { class: "config-grid" },
+        h("label", {}, "Brand", h("input", { value: draft.brand, onInput: bind("brand"), placeholder: "#F3D15E" })),
+        h("label", {}, "Logo", h("input", { value: draft.logoUrl, onInput: bind("logoUrl"), placeholder: "https://…" })),
+      ),
+      h(
+        "label",
+        { class: "check" },
+        h("input", { type: "checkbox", checked: draft.showMembershipOptions, onChange: bind("showMembershipOptions") }),
+        " Mostrar “Opciones de la membresía”",
+      ),
+      h(
+        "label",
+        { class: "check" },
+        h("input", { type: "checkbox", checked: draft.analytics, onChange: bind("analytics") }),
+        " Analytics / heartbeats",
+      ),
+      state.configNotice ? h("p", { class: "ok" }, state.configNotice) : null,
+      h(
+        "button",
+        { class: "btn", type: "submit", disabled: state.configSaving },
+        state.configSaving ? "Guardando…" : "Guardar partial",
+      ),
+    ),
+  );
 }
 
 function renderCatalog() {

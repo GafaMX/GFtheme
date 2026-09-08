@@ -16,6 +16,7 @@ npm run dev
 
 - Admin: http://127.0.0.1:8787 — password `buq-hub-dev`
 - Ingest: `POST /v1/events`
+- Remote config: `GET /v1/config?company_id=` (público, sin secretos) · `PUT /v1/admin/config`
 - Health: `GET /v1/health`
 
 El SDK apunta aquí con `HUB_URL` / `hubUrl` (no uses `GAFA_FIT_URL`).
