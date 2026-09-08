@@ -10,8 +10,10 @@ cuenta, reserva, carrito y checkout. Concierge solo si el socio lo activa
 backend propio.
 
 **Contratos cortos:** colores → [`v2-theme-colors.md`](v2-theme-colors.md) ·
-botones HTML → [`botones-de-compra.md`](botones-de-compra.md) · reservar por
-id → [`reservar-una-clase-desde-js.md`](reservar-una-clase-desde-js.md) ·
+catálogo de options → [`v2-options.md`](v2-options.md) · remote config →
+[`v2-hub/remote-config.md`](v2-hub/remote-config.md) · botones HTML →
+[`botones-de-compra.md`](botones-de-compra.md) · reservar por id →
+[`reservar-una-clase-desde-js.md`](reservar-una-clase-desde-js.md) ·
 publicar bundle → [`v2-lanzamiento.md`](v2-lanzamiento.md).
 
 ---
@@ -175,12 +177,15 @@ del socio (así lo exige gafa.fit hoy, igual que v1).
 | `CAPTCHA_PUBLIC_KEY` / `CAPTCHA_SECRET_KEY` | no | Default: par compartido de Buq |
 | `TOKENMOVIL` | no | SSO app |
 | `IMAGES` | no | `{ "provider": "cloudflare" \| "none" }` |
-| `CONCIERGE` | no | Config del asistente. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Ver §11 |
+| `CONCIERGE` | no | `true` \| `{}` \| partial \| objeto completo. **Sin esto el Concierge no existe**, aunque pongas el HTML. Alias: `concierge`. Ver §11. El Hub puede mandar este override; el nodo sigue siendo por página. |
 
 Query string de prueba (no uses en producción):
 
 - `?buq-env=staging` pisa el backend
 - `?hub-url=http://127.0.0.1:8787` pisa el Hub
+
+Merge: defaults del SDK → partial del Hub (`GET /v1/config`) → este JSON →
+query. El `API_SECRET` nunca se pide al Hub. Catálogo: [`v2-options.md`](v2-options.md).
 
 `language` existe en el schema (`es`/`en`) pero **hoy no cambia copy**. No
 lo prometas.
@@ -423,6 +428,11 @@ iframe. **Cargar `gafa-sdk.js` no lo enciende.**
 Hacen falta **las dos** piezas. Si pones el nodo y olvidas la config, el
 bootstrap **tira**: `Concierge config was not found`.
 
+`CONCIERGE` acepta `true`, `{}` o un partial. Los defaults los arma
+`createLiveConciergeConfig()` (catálogo live, textos de la compañía). El
+objeto largo de abajo sigue válido. El Hub puede guardar el mismo
+`true`/`partial`; **no enciende la barra en todo el sitio**.
+
 ### 11.1 Cómo se activa
 
 **1. Nodo HTML** (una vez por página, donde quieras la barra):
@@ -443,7 +453,7 @@ Si el theme v1 sigue cargado, usa el alias para no pelear el shortcode viejo:
 | --- | --- | --- |
 | 1 | `data-gafa-concierge-fixture` / `data-gf-concierge-fixture` en el nodo | Solo demos. Valores: `fitspin`, `demo-studio`. **Nunca** se asume solo. |
 | 2 | `<script data-gafa-concierge-config type="application/json">` (en el nodo o global) | Config suelta, fuera de options |
-| 3 | `CONCIERGE` (o `concierge`) dentro de `[data-gf-options]` | **Camino de producción** |
+| 3 | `CONCIERGE` (o `concierge`) ya mergeado: Hub + `[data-gf-options]` | **Camino de producción.** `true` / `{}` / partial alcanzan. |
 
 Sin esas tres: no hay Concierge. Fitspin **no** es el default del registry.
 
@@ -487,6 +497,25 @@ precios ni IDs.
 ### 11.4 Ejemplo mínimo de producción
 
 Mismo `[data-gf-options]` de siempre. Añade `CONCIERGE` y el nodo.
+
+Camino corto (recomendado). Theme y WhatsApp pueden vivir en el Hub:
+
+```html
+<script data-gf-options type="application/json">
+  {
+    "COMPANY_ID": 190,
+    "API_CLIENT": "…",
+    "API_SECRET": "…",
+    "CONCIERGE": true
+  }
+</script>
+<section data-gf-theme="concierge"></section>
+```
+
+`true` o `{}` = defaults live (toda la compañía). Un partial pisa lo que
+haga falta: `{ "contact": { "whatsapp": "5215512345678" }, "displayName": "Bunker" }`.
+
+Objeto completo (sigue válido; ya no es obligatorio):
 
 ```html
 <script data-gf-options type="application/json">
@@ -665,7 +694,8 @@ Instala el SDK v2 de Buq. Guía: docs/v2-agente.md del repo GafaMX/GFtheme.
 
 5. No CSS de overlays, no MutationObserver, no selectores internos del SDK.
    Concierge está APAGADO salvo nodo data-gf-theme=concierge (o data-gafa-v2)
-   + CONCIERGE en options. WhatsApp es opcional: sin teléfono no hay botón.
+   + CONCIERGE (true, {} o partial). El Hub no enciende la barra en todo el sitio.
+   WhatsApp es opcional: sin teléfono no hay botón.
    catalog.live true + products [] = todos los paquetes de ESTA compañía.
    No inventes un chat. Cross-sell sigue reservado: no pinta.
    No implementes un carrusel paralelo.

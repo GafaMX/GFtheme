@@ -3,7 +3,7 @@
 Sigue siendo **un script**. El Hub no cambia el markup.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@sdk-live/docs/v2-sdk/gafa-sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js"></script>
 <script data-gf-options type="application/json">
   {
     "GAFA_FIT_URL": "https://buq.partners",
@@ -25,10 +25,11 @@ Sigue siendo **un script**. El Hub no cambia el markup.
 
 ## Widgets
 
-El shortcode es `data-gf-theme` (o `data-gafa-v2`). Concierge, cuando exista:
+El shortcode es `data-gf-theme` (o `data-gafa-v2`). Concierge es opt-in por
+página (`CONCIERGE: true` no basta sin el nodo):
 
 ```html
-<section data-gf-theme="concierge" data-bq-brand="fitspin"></section>
+<section data-gf-theme="concierge"></section>
 ```
 
 Lista: [widgets.md](widgets.md). Receta de hosts: [v2-embed](../v2-embed/README.md).

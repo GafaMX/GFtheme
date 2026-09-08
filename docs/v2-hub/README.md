@@ -15,7 +15,7 @@ Código: [`packages/sdk-hub`](../../packages/sdk-hub). El SDK emite a `HUB_URL` 
 - Dónde está instalado el V2 (host, compañía, marca, salón, versión, widgets)
 - Cómo se usa (calendario, login, reserva, compra)
 - Catálogo de widgets y snippets
-- Más adelante: remote config
+- **Remote config** (partial del SDK por compañía). Contrato: [remote-config.md](remote-config.md). Catálogo: [v2-options.md](../v2-options.md).
 - **Lealtad (puntos y niveles en D1).** Canje a crédito de tienda: después.
 - El socio **no** ve puntos todavía (`SHOW_LOYALTY_POINTS` apagado). El admin del Hub sí.
 
@@ -69,4 +69,5 @@ O `?hub-url=http://127.0.0.1:8787`. `ANALYTICS: false` apaga el tracker.
 - [Catálogo de widgets](widgets.md)
 - [Contrato de eventos](events.md)
 - [Lealtad](loyalty.md)
+- [Remote config](remote-config.md)
 - [Cómo se publica el JS](../v2-lanzamiento.md)
