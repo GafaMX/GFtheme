@@ -27,14 +27,24 @@ export const HUB_REMOTE_CONFIG_KEYS = [
   "THEME",
   "CONCIERGE",
   "concierge",
+  "CONCIERGE_SAVED",
   "language",
 ] as const;
+
+/** El sitio no debe ver el borrador: solo el admin lo usa al apagar Concierge. */
+export const HUB_ONLY_CONFIG_KEYS = ["CONCIERGE_SAVED"] as const;
 
 const SECRET_SET = new Set<string>(REMOTE_CONFIG_SECRET_KEYS);
 const ALLOWED_SET = new Set<string>(HUB_REMOTE_CONFIG_KEYS);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export function publicHubConfig(input: unknown): Record<string, unknown> {
+  const next = sanitizeHubRemoteConfig(input);
+  for (const key of HUB_ONLY_CONFIG_KEYS) delete next[key];
+  return next;
 }
 
 export function sanitizeHubRemoteConfig(input: unknown): Record<string, unknown> {

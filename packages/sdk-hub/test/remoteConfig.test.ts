@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseStoredConfig, sanitizeHubRemoteConfig, strippedSecretKeys } from "../src/remoteConfig";
+import { parseStoredConfig, publicHubConfig, sanitizeHubRemoteConfig, strippedSecretKeys } from "../src/remoteConfig";
 
 describe("sanitizeHubRemoteConfig", () => {
   it("nunca deja el secret ni claves fuera del catálogo", () => {
@@ -27,5 +27,18 @@ describe("sanitizeHubRemoteConfig", () => {
     });
     expect(parsed.config).toEqual({ CONCIERGE: true });
     expect(parsed.company_id).toBe(190);
+  });
+
+  it("el GET público no manda el borrador del Concierge apagado", () => {
+    expect(
+      publicHubConfig({
+        CONCIERGE: false,
+        CONCIERGE_SAVED: { displayName: "Eight Flow Yoga" },
+        THEME: { colorScheme: "light" },
+      }),
+    ).toEqual({
+      CONCIERGE: false,
+      THEME: { colorScheme: "light" },
+    });
   });
 });
