@@ -2,8 +2,10 @@
 /**
  * Deploy the SDK Hub Worker + D1.
  *
- *   CLOUDFLARE_API_TOKEN=… node scripts/deploy.mjs --env production
+ *   npm run deploy:production
  *
+ * Auth: sesión OAuth de Wrangler (wrangler login --device) o CLOUDFLARE_API_TOKEN.
+ * Si whoami falla, no adivines: packages/sdk-hub/README.md § “Si Cloudflare caduca”.
  * Optional: CLOUDFLARE_ACCOUNT_ID, ADMIN_PASSWORD, ADMIN_SESSION_SECRET.
  * Los secretos que ya existen en el Worker se conservan: un redeploy no le
  * cambia la contraseña a un Hub que está en el aire.

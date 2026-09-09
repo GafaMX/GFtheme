@@ -21,14 +21,24 @@ Código: [`packages/sdk-hub`](../../packages/sdk-hub). El SDK emite a `HUB_URL` 
 
 ## Production
 
-Token de Cloudflare (Workers + D1) en `CLOUDFLARE_API_TOKEN`:
+El Hub **no** se publica con `cdn-live`. Es `wrangler deploy --env production` desde `packages/sdk-hub` (cuenta Cloudflare BUQ).
 
 ```sh
 cd packages/sdk-hub
-CLOUDFLARE_API_TOKEN=… npm run deploy:production
+npm run deploy:production
 ```
 
-No toca Laravel ni WordPress. El JS de Fitspin se publica en un segundo paso (tracker, sin card de puntos).
+Si `wrangler whoami` dice *not authenticated*, **no** pidas un token a ciegas: el camino que ya funcionó es device login.
+
+```sh
+npx wrangler login --device --browser=false
+```
+
+Abre https://dash.cloudflare.com/oauth2/device/verify, pega el código, confirma con la cuenta BUQ (`i@gafa.mx`). Luego otra vez `npm run deploy:production`. Detalle: [`packages/sdk-hub/README.md`](../../packages/sdk-hub/README.md#si-cloudflare-caduca-wrangler-whoami--not-authenticated).
+
+Opcional: `CLOUDFLARE_API_TOKEN` (*Edit Cloudflare Workers* + *D1 Edit*) en los secrets del environment.
+
+No toca Laravel ni WordPress. El JS de los sitios se publica aparte (`cdn-live`).
 
 ## Local
 
