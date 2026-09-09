@@ -59,8 +59,14 @@ function parseJson(text) {
 }
 
 if (!process.env.CLOUDFLARE_API_TOKEN) {
-  console.error("Falta CLOUDFLARE_API_TOKEN. Crea un token en Cloudflare (Edit Cloudflare Workers + D1).");
-  process.exit(1);
+  const session = wrangler(["whoami"], { allowFail: true });
+  if (!/logged in|OAuth Token/i.test(session)) {
+    console.error(
+      "Falta login de Cloudflare. O pegas CLOUDFLARE_API_TOKEN, o corres: npx wrangler login --device",
+    );
+    process.exit(1);
+  }
+  console.log("Usando la sesión de Wrangler (OAuth). No hace falta CLOUDFLARE_API_TOKEN.");
 }
 
 console.log("== whoami ==");
