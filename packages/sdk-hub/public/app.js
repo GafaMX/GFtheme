@@ -8,7 +8,7 @@ import {
   triChoices,
   unmanagedPaths,
   validateDraft,
-} from "/configModel.js?v=concierge-auto-1";
+} from "/configModel.js?v=concierge-draft-1";
 
 const root = document.getElementById("root");
 

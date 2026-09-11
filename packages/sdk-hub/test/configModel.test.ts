@@ -52,11 +52,33 @@ describe("formulario -> partial", () => {
     expect(configFromDraft({}, draft)).toEqual({ CONCIERGE: { contact: { whatsapp: "5215512345678" } } });
   });
 
-  it("apagar Concierge borra la clave completa", () => {
-    const draft = draftFromConfig({ CONCIERGE: { displayName: "Bunker" } });
+  it("apagar Concierge guarda los textos para prenderlo después", () => {
+    const base = {
+      CONCIERGE: {
+        displayName: "Eight Flow Yoga",
+        contact: { whatsapp: "525512027855" },
+        copy: { assistantName: "Flow" },
+      },
+    };
+    const draft = draftFromConfig(base);
     expect(draft.conciergeEnabled).toBe(true);
+    expect(draft["concierge.displayName"]).toBe("Eight Flow Yoga");
     draft.conciergeEnabled = false;
-    expect(configFromDraft({ CONCIERGE: { displayName: "Bunker" } }, draft)).toEqual({});
+    const off = configFromDraft(base, draft);
+    expect(off).toEqual({
+      CONCIERGE: false,
+      CONCIERGE_SAVED: {
+        displayName: "Eight Flow Yoga",
+        contact: { whatsapp: "525512027855" },
+        copy: { assistantName: "Flow" },
+      },
+    });
+    const again = draftFromConfig(off);
+    expect(again.conciergeEnabled).toBe(false);
+    expect(again["concierge.displayName"]).toBe("Eight Flow Yoga");
+    expect(again["concierge.contact.whatsapp"]).toBe("525512027855");
+    again.conciergeEnabled = true;
+    expect(configFromDraft(off, again)).toEqual(base);
   });
 
   it("normaliza el alias viejo en minúsculas", () => {

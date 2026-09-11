@@ -198,7 +198,7 @@ export const CONFIG_SECTIONS = [
             key: "conciergeEnabled",
             type: "switch",
             label: "Mostrar el Concierge en el sitio",
-            help: "Encendido: la barra del asistente aparece sola en las páginas que ya cargan el SDK, con textos y colores automáticos que puedes ajustar abajo. Apagado: no la mandamos y cada página queda como esté en su propio código. Si hay una página suelta donde no la quieres, tu desarrollador puede excluirla con data-gf-concierge=\"off\".",
+            help: "Encendido: la barra aparece en las páginas que ya cargan el SDK. Apagado: se esconde, pero nombre, WhatsApp y textos se quedan guardados para cuando la vuelvas a prender. Si hay una página suelta donde no la quieres, tu desarrollador puede excluirla con data-gf-concierge=\"off\".",
           },
         ],
       },
@@ -584,11 +584,19 @@ function draftValue(field, raw) {
   return String(raw);
 }
 
+function conciergeFieldSource(source) {
+  const live = isObject(source.CONCIERGE) ? source.CONCIERGE : {};
+  const saved = isObject(source.CONCIERGE_SAVED) ? source.CONCIERGE_SAVED : {};
+  return { CONCIERGE: { ...saved, ...live } };
+}
+
 export function draftFromConfig(config) {
   const source = normalizeConfig(config);
+  const fields = conciergeFieldSource(source);
   const draft = { conciergeEnabled: source.CONCIERGE != null && source.CONCIERGE !== false };
   for (const field of allFields()) {
-    draft[field.key] = draftValue(field, getAtPath(source, field.path));
+    const raw = field.path[0] === "CONCIERGE" ? getAtPath(fields, field.path) : getAtPath(source, field.path);
+    draft[field.key] = draftValue(field, raw);
   }
   return draft;
 }
@@ -616,8 +624,7 @@ function storedValue(field, value) {
 export function configFromDraft(base, draft) {
   const next = normalizeConfig(base);
   const conciergeOn = Boolean(draft.conciergeEnabled);
-  if (!conciergeOn) delete next.CONCIERGE;
-  else if (!isObject(next.CONCIERGE)) next.CONCIERGE = {};
+  if (conciergeOn && !isObject(next.CONCIERGE)) next.CONCIERGE = {};
 
   for (const field of allFields()) {
     const insideConcierge = field.path[0] === "CONCIERGE";
@@ -627,9 +634,35 @@ export function configFromDraft(base, draft) {
     else setAtPath(next, field.path, value);
   }
 
+  if (!conciergeOn) {
+    const saved = {};
+    for (const field of allFields()) {
+      if (field.path[0] !== "CONCIERGE") continue;
+      const value = storedValue(field, draft[field.key]);
+      if (value === undefined) continue;
+      setAtPath(saved, field.path.slice(1), value);
+    }
+    if (isObject(next.CONCIERGE)) {
+      for (const [key, value] of Object.entries(next.CONCIERGE)) {
+        if (saved[key] === undefined) saved[key] = value;
+      }
+    }
+    const hadConcierge = next.CONCIERGE !== undefined || Object.keys(saved).length > 0;
+    if (!hadConcierge) {
+      delete next.CONCIERGE;
+      delete next.CONCIERGE_SAVED;
+      return next;
+    }
+    next.CONCIERGE = false;
+    if (Object.keys(saved).length) next.CONCIERGE_SAVED = saved;
+    else delete next.CONCIERGE_SAVED;
+    return next;
+  }
+
+  delete next.CONCIERGE_SAVED;
   // Vaciar los campos poda el objeto: si no quedó nada, el Concierge sigue
   // encendido con los defaults live.
-  if (conciergeOn && (!isObject(next.CONCIERGE) || !Object.keys(next.CONCIERGE).length)) next.CONCIERGE = true;
+  if (!isObject(next.CONCIERGE) || !Object.keys(next.CONCIERGE).length) next.CONCIERGE = true;
   return next;
 }
 
@@ -674,6 +707,12 @@ export function summarizeConfig(config) {
     out.push({ label: "Concierge", value: "Encendido con todo automático", section: "concierge" });
   } else if (isObject(source.CONCIERGE)) {
     out.push({ label: "Concierge", value: "Encendido y ajustado", section: "concierge" });
+  } else if (source.CONCIERGE === false) {
+    out.push({
+      label: "Concierge",
+      value: isObject(source.CONCIERGE_SAVED) ? "Apagado — ajustes guardados" : "Apagado",
+      section: "concierge",
+    });
   }
   for (const field of allFields()) {
     const raw = getAtPath(source, field.path);
@@ -692,7 +731,7 @@ export function summarizeConfig(config) {
 export function unmanagedPaths(config) {
   const source = normalizeConfig(config);
   const known = new Set(allFields().map((field) => field.path.join(".")));
-  const skipRoots = new Set(["COMPANY_ID", "API_CLIENT"]);
+  const skipRoots = new Set(["COMPANY_ID", "API_CLIENT", "CONCIERGE_SAVED"]);
   const out = [];
   const walk = (node, path) => {
     for (const [key, value] of Object.entries(node)) {
@@ -704,7 +743,7 @@ export function unmanagedPaths(config) {
         const before = out.length;
         walk(value, next);
         if (out.length === before && !Object.keys(value).length) out.push(joined);
-      } else if (joined === "CONCIERGE" && value === true) {
+      } else if (joined === "CONCIERGE" && (value === true || value === false)) {
         continue;
       } else {
         out.push(joined);

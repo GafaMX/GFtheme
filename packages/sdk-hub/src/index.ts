@@ -6,7 +6,7 @@ import { pruneOldEvents } from "./cleanup";
 import { parseAndNormalizeEvents, persistEvents } from "./ingest";
 import { applyLoyalty, d1LoyaltyStore, tierForPoints } from "./loyalty";
 import { allowRequest } from "./rateLimit";
-import { readCompanyConfig, writeCompanyConfig } from "./remoteConfig";
+import { publicHubConfig, readCompanyConfig, writeCompanyConfig } from "./remoteConfig";
 
 export type HubEnv = {
   DB: D1Database;
@@ -59,7 +59,7 @@ app.get("/v1/config", async (c) => {
   return c.json({
     ok: true,
     company_id: companyId,
-    config: row.config,
+    config: publicHubConfig(row.config),
     updated_at: row.updated_at,
   });
 });

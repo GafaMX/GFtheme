@@ -25,14 +25,33 @@ El SDK apunta aquí con `HUB_URL` / `hubUrl` (no uses `GAFA_FIT_URL`).
 
 ## Deploy
 
-Hace falta un `CLOUDFLARE_API_TOKEN` con Workers + D1 (y zona `buq.partners` en la misma cuenta para el custom domain). **No** pongas el password de admin en `wrangler.jsonc` de production: van por `wrangler secret`.
+Cuenta Cloudflare **BUQ** (la que ya tiene `hub.buq.partners`). **No** pongas el password de admin en `wrangler.jsonc` de production: van por `wrangler secret`.
 
 ```sh
 cd packages/sdk-hub
-CLOUDFLARE_API_TOKEN=… npm run deploy:production
+npm run deploy:production
 ```
 
-Eso crea D1 `sdk-hub` si no existe, aplica migraciones, sube secrets y hace `wrangler deploy --env production`.
+### Si Cloudflare caduca (`wrangler whoami` → not authenticated)
+
+Mismo flujo que el 2026-09-09. Desde un Cloud Agent **no** sirve `wrangler login` con callback a localhost: hay que usar **device**.
+
+```sh
+cd packages/sdk-hub
+npx wrangler login --device --browser=false
+```
+
+Wrangler imprime una URL y un código, por ejemplo:
+
+1. Abre https://dash.cloudflare.com/oauth2/device/verify
+2. Pega el código de 8 caracteres
+3. Confirma con `i@gafa.mx` / cuenta BUQ
+
+Cuando el log diga `Successfully logged in.`, corre `npm run deploy:production`. La sesión queda en `~/.config/.wrangler` de esa máquina (un snapshot del environment la puede heredar el siguiente agente).
+
+Alternativa: un `CLOUDFLARE_API_TOKEN` con *Edit Cloudflare Workers* + *D1 Edit*, en los secrets del environment. El script acepta token **o** sesión OAuth.
+
+Eso crea D1 `sdk-hub` si no existe, aplica migraciones, sube secrets solo si faltan, y hace `wrangler deploy --env production`.
 
 Live:
 
