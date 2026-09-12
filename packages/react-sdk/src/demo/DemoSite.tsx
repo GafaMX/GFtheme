@@ -40,6 +40,15 @@ type BrandConfig = {
   calendar: React.ComponentProps<typeof CalendarWidget>;
 };
 
+/** Fitspin activo: paquete “1 clase” (971). Títulos libres de ejemplo. */
+const FITSPIN_CROSS_SELL = {
+  enabled: true,
+  payTitle: "¿Quieres agregar algo más?",
+  thanksTitle: "¿Algo más para después de tu clase?",
+  itemType: "combo" as const,
+  itemId: 971,
+};
+
 const BRANDS: Record<string, BrandConfig> = {
   bunker: {
     label: "Bunker Indoor Golf",
@@ -117,7 +126,13 @@ function DemoShell({
   const [checkout, setCheckout] = useState<{
     preselect?: { type: CartLineType; id: number };
     skipCatalog?: boolean;
-  } | null>(null);
+  } | null>(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("cross-sell") === "1") {
+      return { preselect: { type: "combo", id: 973 }, skipCatalog: true };
+    }
+    return null;
+  });
   const cartCount = useCartStore((s) => s.lines.reduce((sum, line) => sum + line.amount, 0));
   const { scheme } = useGafaTheme();
 
@@ -267,7 +282,12 @@ function DemoShell({
 
         <main className="demo-main" data-page={page}>
           {page === "calendario" ? (
-            <CalendarWidget client={client} captcha={captcha} {...brand.calendar} />
+            <CalendarWidget
+              client={client}
+              captcha={captcha}
+              {...brand.calendar}
+              crossSell={brandKey === "fitspin" ? FITSPIN_CROSS_SELL : undefined}
+            />
           ) : null}
 
           {page === "paquetes" ? (
@@ -305,6 +325,7 @@ function DemoShell({
             preselect={checkout.preselect ?? null}
             skipCatalog={checkout.skipCatalog ?? Boolean(checkout.preselect)}
             gafaPayFrontUrl={config.gafaPayFrontUrl}
+            crossSell={brandKey === "fitspin" ? FITSPIN_CROSS_SELL : undefined}
             onClose={() => setCheckout(null)}
           />
         ) : null}

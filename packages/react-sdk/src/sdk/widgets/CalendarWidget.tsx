@@ -81,6 +81,8 @@ export type CalendarWidgetProps = {
   showDescription?: boolean;
   title?: string;
   description?: string;
+  /** Oferta del Hub en el checkout que abre esta reserva. */
+  crossSell?: unknown;
 };
 
 type CalendarFiltersState = {
@@ -104,6 +106,7 @@ export function CalendarWidget({
   // a proposito para dejar el chrome en dos lineas compactas.
   title: _title,
   description: _description,
+  crossSell,
 }: CalendarWidgetProps) {
   const filters = { service: true, staff: true, ...filtersProp };
   const queryClient = useQueryClient();
@@ -689,6 +692,7 @@ export function CalendarWidget({
           brandSlug={getMeetingBrandSlug(selectedMeeting, activeBrand)}
           locationSlug={getMeetingLocationSlug(selectedMeeting, activeLocation)}
           locationName={selectedMeeting.location?.name ?? activeLocation?.name}
+          crossSell={crossSell}
           onClose={() => setSelectedMeeting(null)}
         />
       ) : null}
@@ -1418,6 +1422,7 @@ export type ReservationFlowProps = {
   onReserved?: () => void;
   /** Compra terminada dentro del checkout de la clase. */
   onPurchased?: () => void;
+  crossSell?: unknown;
 };
 
 /**
@@ -1436,6 +1441,7 @@ export function ReservationFlow({
   onClose,
   onReserved,
   onPurchased,
+  crossSell,
 }: ReservationFlowProps) {
   const queryClient = useQueryClient();
 
@@ -1505,6 +1511,7 @@ export function ReservationFlow({
         meeting={meeting}
         seatObjectId={pendingSeat?.id}
         seatLabel={pendingSeat?.label}
+        crossSell={crossSell}
         onClose={onClose}
         onCompleted={() => {
           queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });

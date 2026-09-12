@@ -95,6 +95,24 @@ describe("formulario -> partial", () => {
     expect(configFromDraft({}, draft)).toEqual({ BRAND_ID: 171 });
   });
 
+  it("guarda la sugerencia del pago con títulos libres y un ID", () => {
+    const draft = draftFromConfig({});
+    draft["CROSS_SELL.enabled"] = "true";
+    draft["CROSS_SELL.payTitle"] = " ¿Donación? ";
+    draft["CROSS_SELL.thanksTitle"] = "¿Proteína?";
+    draft["CROSS_SELL.itemType"] = "combo";
+    draft["CROSS_SELL.itemId"] = "971";
+    expect(configFromDraft({}, draft)).toEqual({
+      CROSS_SELL: {
+        enabled: true,
+        payTitle: "¿Donación?",
+        thanksTitle: "¿Proteína?",
+        itemType: "combo",
+        itemId: 971,
+      },
+    });
+  });
+
   it("conserva los ajustes avanzados que el formulario no pinta", () => {
     const base = {
       CONCIERGE: {

@@ -89,6 +89,27 @@ describe("initialPurchase", () => {
     expect(body.get("test")).toBe("false");
     // Sin meeting: la clave viaja vacía, no ausente.
     expect(body.get("meetings_id")).toBe("");
+    expect(body.get("reservations_id")).toBe("");
+  });
+
+  it("manda reservations_id cuando la reserva ya existe (v1 getFancyForBuyProduct)", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase_id: 88 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      reservationId: 3509997,
+      lines: [{ id: 971, type: "combo", amount: 1 }],
+      paymentTypeId: 6,
+      paymentData: "recibo",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("reservations_id")).toBe("3509997");
+    expect(body.get("meetings_id")).toBe("");
   });
 
   it("manda cart/combo con product_type Eloquent, como el fancy v1", async () => {

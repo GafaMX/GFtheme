@@ -37,6 +37,13 @@ import {
   type GafaPayWidgetProps,
 } from "../payments/gafaPay";
 import { findPurchasableItem, sameCatalogId } from "../cart/findPurchasable";
+import {
+  itemAlreadyInCart,
+  lineTypeOf,
+  parseCrossSell,
+  purchaseAssociation,
+  resolveCrossSellItems,
+} from "../cart/crossSell";
 import { installStripeCardTheme } from "../payments/stripeCardStyle";
 import { humanizeCheckoutError } from "../payments/checkoutErrorMessage";
 import { showToast } from "../toast/toastStore";
@@ -117,6 +124,8 @@ export type CheckoutModalProps = {
   gafaPayFrontUrl?: string;
   /** Default oculto. El embed también lo enciende con SHOW_MEMBERSHIP_OPTIONS. */
   showMembershipOptions?: boolean;
+  /** Oferta del Hub / options: footer del carrito y thank you. */
+  crossSell?: unknown;
   onClose: () => void;
   onCompleted?: (result: { purchaseId?: number | null; reservationId?: number }) => void;
 };
@@ -166,10 +175,12 @@ export function CheckoutModal({
   skipCatalog,
   gafaPayFrontUrl,
   showMembershipOptions: showMembershipOptionsProp,
+  crossSell: crossSellProp,
   onClose,
   onCompleted,
 }: CheckoutModalProps) {
   const showMembershipOptions = readShowMembershipOptions(undefined, showMembershipOptionsProp);
+  const crossSell = useMemo(() => parseCrossSell(crossSellProp), [crossSellProp]);
   const lines = useCartStore((s) => s.lines);
   const reservation = useCartStore((s) => s.reservation);
   const addItem = useCartStore((s) => s.addItem);
@@ -260,6 +271,8 @@ export function CheckoutModal({
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
   } | null>(null);
+  /** Reserva ya creada: las compras extra (thank you → pay) van con reservations_id. */
+  const [linkedReservationId, setLinkedReservationId] = useState<number | undefined>();
 
   // Compra suelta (boton HTML): sin marca/sede explicitas se toma la primera
   // de la compañia, que es lo que un sitio de un solo estudio espera.
@@ -391,7 +404,16 @@ export function CheckoutModal({
   const memberships = classAttached
     ? ((config?.memberships?.length ? config.memberships : catalogQuery.data?.memberships) ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
-  const products = config?.products ?? [];
+  const products = classAttached
+    ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
+    : (catalogQuery.data?.products ?? config?.products ?? []);
+  const offerQuery = useQuery({
+    queryKey: ["checkout", "cross-sell", brandSlug, crossSell?.items],
+    queryFn: () =>
+      resolveCrossSellItems(client, crossSell!.items, { combos, memberships, products }, brandSlug),
+    enabled: Boolean(crossSell && brandSlug && (step === "pay" || step === "thanks")),
+    staleTime: CHECKOUT_CATALOG_STALE_MS,
+  });
   const catalogCurrency = useMemo(() => {
     for (const item of [...combos, ...memberships, ...products]) {
       const resolved = resolveMoneyCurrency(item.raw?.currency ?? item.currency);
@@ -577,10 +599,10 @@ export function CheckoutModal({
     await giftValidateRef.current(candidate, seq, { regenerateIfTaken: true });
   }
 
-  function handleAdd(item: CatalogItem) {
-    if (!brandSlug) return;
-    const type: CartLineType =
-      item.type === "membership" ? "membership" : item.type === "product" ? "product" : "combo";
+  function handleAdd(item: CatalogItem, brandForItem?: string) {
+    const slug = brandForItem ?? brandSlug;
+    if (!slug) return;
+    const type = lineTypeOf(item);
     const price = item.priceFinal ?? item.price ?? 0;
     addItem({
       id: item.id,
@@ -588,11 +610,19 @@ export function CheckoutModal({
       name: item.name,
       price,
       priceLabel: formatMoney(price, currency.prefix, ""),
-      brandSlug,
+      brandSlug: slug,
       locationSlug,
       expirationLabel: item.expirationDays ? `Expira en ${item.expirationDays} días` : undefined,
       raw: item.raw,
     });
+  }
+
+  function handleThanksAdd(item: CatalogItem, brandForItem?: string) {
+    const reservationId = thanks?.reservationId;
+    handleAdd(item, brandForItem);
+    if (reservationId) setLinkedReservationId(reservationId);
+    stayOnPayRef.current = true;
+    setStep("pay");
   }
 
   // Boton HTML de compra: el ID llega solo. Se busca en TODAS las marcas de
@@ -707,7 +737,10 @@ export function CheckoutModal({
           brandSlug,
           locationSlug,
           userId: config?.userProfileId ?? profile.id,
-          meetingId: reservation?.meetingId,
+          ...purchaseAssociation({
+            meetingId: reservation?.meetingId,
+            reservationId: linkedReservationId,
+          }),
           lines: linesSnapshot.map((line) => ({
             id: line.id,
             type: line.type,
@@ -848,7 +881,10 @@ export function CheckoutModal({
       brandSlug,
       locationSlug,
       userId: config?.userProfileId ?? profile.id,
-      meetingId: reservation?.meetingId,
+      ...purchaseAssociation({
+        meetingId: reservation?.meetingId,
+        reservationId: linkedReservationId,
+      }),
       lines: purchaseLinesPayload(),
       paymentTypeId: selectedMethod.id,
       paymentData: data,
@@ -1570,6 +1606,20 @@ export function CheckoutModal({
                 </div>
               ) : null}
 
+              {step === "pay" ? (
+                <CrossSellOffer
+                  placement="pay"
+                  title={crossSell?.payTitle}
+                  offers={(offerQuery.data ?? []).filter((offer) => !itemAlreadyInCart(relevantLines, offer.ref))}
+                  currency={currency}
+                  reservationId={linkedReservationId}
+                  onAdd={(item, brand) => handleAdd(item, brand)}
+                />
+              ) : null}
+              {step === "pay" && linkedReservationId && (offerQuery.data ?? []).every((offer) => itemAlreadyInCart(relevantLines, offer.ref)) ? (
+                <p className="gafa-checkout__cross-sell-link">Se suma a tu reserva #{linkedReservationId}</p>
+              ) : null}
+
               <div className="gafa-checkout__total">
                 {discountAmount > 0 ? (
                   <div className="gafa-checkout__total-row">
@@ -1661,7 +1711,17 @@ export function CheckoutModal({
             </aside>
           </div>
         ) : (
-          <ThanksPanel thanks={thanks} firstName={profileQuery.data?.firstName} currency={currency} onClose={onClose} />
+          <ThanksPanel
+            thanks={thanks}
+            firstName={profileQuery.data?.firstName}
+            currency={currency}
+            onClose={onClose}
+            crossSellTitle={crossSell?.thanksTitle}
+            offers={(offerQuery.data ?? []).filter(
+              (offer) => !itemAlreadyInCart(thanks?.linesSnapshot ?? [], offer.ref),
+            )}
+            onAddOffer={handleThanksAdd}
+          />
         )}
       </div>
     </SdkBodyOverlay>
@@ -2240,6 +2300,9 @@ function ThanksPanel({
   firstName,
   currency,
   onClose,
+  crossSellTitle,
+  offers,
+  onAddOffer,
 }: {
   thanks: {
     purchaseId?: number | null;
@@ -2253,6 +2316,9 @@ function ThanksPanel({
   firstName?: string;
   currency: { prefix: string; suffix: string };
   onClose: () => void;
+  crossSellTitle?: string;
+  offers?: Array<{ item: CatalogItem; brandSlug?: string }>;
+  onAddOffer?: (item: CatalogItem, brandSlug?: string) => void;
 }) {
   const reservation = thanks?.reservationSnapshot;
   const lines = thanks?.linesSnapshot ?? [];
@@ -2318,10 +2384,69 @@ function ThanksPanel({
         </ul>
       ) : null}
 
+      <CrossSellOffer
+        placement="thanks"
+        title={crossSellTitle}
+        offers={offers ?? []}
+        currency={currency}
+        reservationId={thanks?.reservationId}
+        onAdd={(item, brand) => onAddOffer?.(item, brand)}
+      />
+
       <button className="gafa-sdk-button" type="button" onClick={onClose}>
         {reservation ? "Volver al calendario" : "Seguir explorando"}
       </button>
     </div>
+  );
+}
+
+function CrossSellOffer({
+  placement,
+  title,
+  offers,
+  currency,
+  reservationId,
+  onAdd,
+}: {
+  placement: "pay" | "thanks";
+  title?: string;
+  offers: Array<{ item: CatalogItem; brandSlug?: string }>;
+  currency: { prefix: string; suffix: string };
+  reservationId?: number;
+  onAdd: (item: CatalogItem, brandSlug?: string) => void;
+}) {
+  const offer = offers[0];
+  if (!offer) return null;
+  const price = offer.item.priceFinal ?? offer.item.price ?? 0;
+  return (
+    <aside
+      className={
+        placement === "thanks" ? "gafa-checkout-thanks__cross-sell" : "gafa-checkout__cross-sell"
+      }
+      data-placement={placement}
+      aria-label={title || "Sugerencia"}
+    >
+      {title ? <h4>{title}</h4> : null}
+      <div className="gafa-checkout__cross-sell-item">
+        <div className="gafa-checkout__cross-sell-copy">
+          <strong>{offer.item.name}</strong>
+          {offer.item.expirationDays ? <small>Vigencia {offer.item.expirationDays} días</small> : null}
+        </div>
+        <strong className="gafa-checkout__cross-sell-price">
+          {formatMoney(price, currency.prefix, "")}
+        </strong>
+        <button
+          className="gafa-checkout__cross-sell-add"
+          type="button"
+          onClick={() => onAdd(offer.item, offer.brandSlug)}
+        >
+          Agregar
+        </button>
+      </div>
+      {reservationId ? (
+        <p className="gafa-checkout__cross-sell-link">Se suma a tu reserva #{reservationId}</p>
+      ) : null}
+    </aside>
   );
 }
 

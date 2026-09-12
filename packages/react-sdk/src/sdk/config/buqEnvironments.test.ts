@@ -128,4 +128,17 @@ describe("buq environments", () => {
     const config = legacyOptionsToConfig({ COMPANY_ID: 190, CONCIERGE: true });
     expect(config.concierge).toBe(true);
   });
+
+  it("CROSS_SELL del embed llega al config del SDK", () => {
+    const config = legacyOptionsToConfig({
+      COMPANY_ID: 80,
+      CROSS_SELL: { enabled: true, itemType: "combo", itemId: 971, payTitle: "¿Donación?" },
+    });
+    expect(config.crossSell).toEqual({
+      enabled: true,
+      itemType: "combo",
+      itemId: 971,
+      payTitle: "¿Donación?",
+    });
+  });
 });

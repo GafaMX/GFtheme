@@ -110,6 +110,11 @@ export const sdkConfigSchema = z
      * tarjeta + renovar siguen ON, el socio no los ve.
      */
     showMembershipOptions: z.boolean().optional(),
+    /**
+     * Oferta en el footer del carrito (pay) y en thank you.
+     * Títulos libres: donaciones, proteína, etc.
+     */
+    crossSell: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     images: imagesSchema,
     theme: legacyThemeSchema,
     /**
@@ -129,6 +134,7 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   hubUrl: string;
   analyticsEnabled: boolean;
   concierge?: boolean | Record<string, unknown>;
+  crossSell?: boolean | Record<string, unknown>;
 };
 
 const legacyOptionsSchema = z
@@ -150,6 +156,7 @@ const legacyOptionsSchema = z
     THEME: legacyThemeSchema,
     CONCIERGE: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     concierge: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
+    CROSS_SELL: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
   })
   .passthrough();
 
@@ -191,6 +198,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
     concierge: legacyOptions.CONCIERGE ?? legacyOptions.concierge,
+    crossSell: legacyOptions.CROSS_SELL,
   });
 }
 

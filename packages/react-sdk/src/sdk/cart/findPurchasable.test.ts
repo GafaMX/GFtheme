@@ -46,10 +46,24 @@ describe("findPurchasableItem", () => {
       listCombos: async (brandSlug: string) =>
         brandSlug === "fitspin" ? [combo(971, "1 CLASE Lomas")] : [combo(1622, "1 CLASE Cancun")],
       listMemberships: async () => [],
+      listProducts: async () => [],
     } as unknown as GafaClient;
 
     const match = await findPurchasableItem(client, { type: "combo", id: 971 });
     expect(match?.brandSlug).toBe("fitspin");
     expect(match?.item.name).toBe("1 CLASE Lomas");
+  });
+
+  it("encuentra un producto de tienda", async () => {
+    const client = {
+      listBrands: async () => [{ id: 1, name: "Fitspin", slug: "fitspin" }],
+      listCombos: async () => [],
+      listMemberships: async () => [],
+      listProducts: async () => [{ id: 9, name: "Agua", type: "product", price: 40, priceFinal: 40 }],
+    } as unknown as GafaClient;
+
+    const match = await findPurchasableItem(client, { type: "product", id: 9 });
+    expect(match?.type).toBe("product");
+    expect(match?.item.name).toBe("Agua");
   });
 });
