@@ -9,11 +9,13 @@ describe("sanitizeHubRemoteConfig", () => {
         CONCIERGE: {},
         API_SECRET: "leak",
         CAPTCHA_SECRET_KEY: "leak",
-        CROSS_SELL: { enabled: true },
+        CROSS_SELL: { enabled: true, itemId: 971 },
+        WEIRD_KEY: true,
       }),
     ).toEqual({
       THEME: { colorScheme: "dark" },
       CONCIERGE: {},
+      CROSS_SELL: { enabled: true, itemId: 971 },
     });
     expect(strippedSecretKeys({ API_SECRET: "x", THEME: {} })).toEqual(["API_SECRET"]);
   });

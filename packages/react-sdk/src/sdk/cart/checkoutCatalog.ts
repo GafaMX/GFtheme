@@ -9,11 +9,16 @@ export function checkoutCatalogQueryKey(brandSlug: string | undefined) {
 }
 
 export async function fetchCheckoutCatalog(client: GafaClient, brandSlug: string) {
-  const [combos, memberships] = await Promise.all([
+  const [combos, memberships, products] = await Promise.all([
     client.listCombos(brandSlug),
     client.listMemberships(brandSlug),
+    client.listProducts ? client.listProducts(brandSlug) : Promise.resolve([] as CatalogItem[]),
   ]);
-  return { combos, memberships } as { combos: CatalogItem[]; memberships: CatalogItem[] };
+  return { combos, memberships, products } as {
+    combos: CatalogItem[];
+    memberships: CatalogItem[];
+    products: CatalogItem[];
+  };
 }
 
 /** Empieza a bajar el catalogo antes de abrir el fancy, para no pintar vacio. */

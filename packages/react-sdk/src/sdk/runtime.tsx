@@ -271,7 +271,15 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     mountCalendar(target, props = {}) {
       tracker.track({ event: "widget.mounted", widget: "meetings-calendar" });
       tracker.track({ event: "calendar.viewed", widget: "meetings-calendar" });
-      const mounted = mount(target, <CalendarWidget client={client} captcha={captcha} {...props} />);
+      const mounted = mount(
+        target,
+        <CalendarWidget
+          client={client}
+          captcha={captcha}
+          crossSell={props.crossSell ?? config.crossSell}
+          {...props}
+        />,
+      );
       events.emit("buq:sdk:mounted", { widget: "calendar" });
       return mounted;
     },
@@ -441,6 +449,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           onClose={close}
           gafaPayFrontUrl={props.gafaPayFrontUrl ?? config.gafaPayFrontUrl}
           showMembershipOptions={props.showMembershipOptions ?? config.showMembershipOptions}
+          crossSell={props.crossSell ?? config.crossSell}
         />,
       );
 
@@ -483,7 +492,13 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
 
       const mounted = mount(
         host,
-        <ReservationLauncher client={client} captcha={captcha} {...props} onClose={close} />,
+        <ReservationLauncher
+          client={client}
+          captcha={captcha}
+          {...props}
+          crossSell={props.crossSell ?? config.crossSell}
+          onClose={close}
+        />,
       );
 
       afterOverlayPaint(() => events.emit("buq:checkout:opened", { context, handle }));

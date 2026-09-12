@@ -11,11 +11,13 @@ describe("sanitizeHubRemoteConfig", () => {
         API_SECRET: "nope",
         clientSecret: "nope",
         CAPTCHA_SECRET_KEY: "nope",
-        CROSS_SELL: { enabled: true },
+        CROSS_SELL: { enabled: true, itemId: 971 },
+        WEIRD_KEY: true,
       }),
     ).toEqual({
       THEME: { colorScheme: "dark" },
       CONCIERGE: true,
+      CROSS_SELL: { enabled: true, itemId: 971 },
     });
   });
 });

@@ -678,48 +678,28 @@ del calendario.** Si la marca no lo pidió, **no pongas el nodo**.
 
 ## 12. Cross-sell — por desarrollar, contrato reservado
 
-**Estado:** shortcode `cross-sell` en el registry, **sin `mount`**. No hay UI.
+**Estado:** oferta **dentro del checkout** (footer fijo de “Tu pedido” y
+thank you). El shortcode de página `cross-sell` sigue **sin `mount`**.
 
-Objetivo (cuando se construya): sugerir paquetes / membresías / productos
-**dentro del SDK**, con la misma paleta y el mismo checkout. Tres sitios:
-
-1. **Carrito** — “También te puede interesar” debajo de las líneas.
-2. **Gracias** — al terminar una compra o reserva.
-3. **Página** — bloque en landings de paquetes.
-
-Markup reservado (hoy no monta; el bootstrap lo ignora):
-
-```html
-<section
-  data-gf-theme="cross-sell"
-  data-gf-limit="3"
-  data-buq-brand="the-base"
-></section>
-```
-
-Options reservadas (hoy se ignoran; no las uses para lógica del sitio):
+Se configura en el Hub (Tienda → Sugerencia al pagar) o en options:
 
 ```json
 "CROSS_SELL": {
   "enabled": true,
-  "placements": ["cart", "thanks", "page"],
-  "types": ["combo", "membership", "product"],
-  "limit": 3
+  "payTitle": "¿Quieres agregar algo más?",
+  "thanksTitle": "¿Algo más para después de tu clase?",
+  "itemType": "combo",
+  "itemId": 971
 }
 ```
 
-Reglas para el agente **hasta que exista mount**:
+Los títulos son libres. En pay, “Agregar” suma al carrito y actualiza el
+total. En thank you, abre de nuevo el pago de ese ítem. Si hay reserva,
+v1 mandaba `reservations_id` (`getFancyForBuyProduct`); v2 hace lo mismo
+en la compra extra. Si la reserva aún no existe, el extra viaja con
+`meetings_id` en el mismo `/reservate`.
 
-- No armes un carrusel “recomendados” que abra otro checkout.
-- No clones nodos del SDK ni copies precios a mano.
-- Los botones `data-gf-buy` de la página **sí** son válidos: eso no es
-  cross-sell, es compra directa.
-- El checkout actual ya deja “Agregar otro paquete o membresía”: no lo
-  sustituyas.
-
-Cuando se implemente: mismo `THEME`, mismos ids de gafa.fit, mismo
-`openCheckout({ preselect })`. Un publish a `cdn-live` basta. Este
-documento se actualizará y el shortcode pasará a `stable`.
+Hoy es **un** ítem. El bloque de página y varias ofertas vienen después.
 
 ---
 

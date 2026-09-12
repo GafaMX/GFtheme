@@ -358,6 +358,58 @@ export const CONFIG_SECTIONS = [
         ],
       },
       {
+        title: "Sugerencia al pagar",
+        note: "Una oferta fija en el pie del carrito (pago) y en la pantalla de gracias. El título lo escribes tú: donación, proteína, un paquete extra…",
+        fields: [
+          {
+            key: "CROSS_SELL.enabled",
+            path: ["CROSS_SELL", "enabled"],
+            type: "tri",
+            label: "Mostrar una sugerencia en el pago",
+            help: "Aparece abajo, fija, en “Tu pedido” cuando el cliente va a pagar, y otra vez en la página de gracias. Hoy es un solo producto; después podemos sumar más.",
+          },
+          {
+            key: "CROSS_SELL.payTitle",
+            path: ["CROSS_SELL", "payTitle"],
+            type: "text",
+            label: "Título en el pago",
+            help: "Lo que lee el cliente encima de la oferta, en el carrito. Cada estudio lo usa distinto: “¿Donación para el estudio?”, “¿Proteína después de tu clase?”, “¿Quieres agregar algo más?”.",
+            placeholder: "¿Quieres agregar algo más?",
+          },
+          {
+            key: "CROSS_SELL.thanksTitle",
+            path: ["CROSS_SELL", "thanksTitle"],
+            type: "text",
+            label: "Título en la página de gracias",
+            help: "El mismo concepto, pero cuando ya pagó o reservó. También es texto libre.",
+            placeholder: "¿Algo más para después de tu clase?",
+          },
+          {
+            key: "CROSS_SELL.itemType",
+            path: ["CROSS_SELL", "itemType"],
+            type: "select",
+            label: "Tipo de producto",
+            help: "Paquete, membresía o producto de tienda (agua, proteína, donación). Tiene que existir y estar activo en gafa.fit.",
+            choices: options(
+              [
+                ["combo", "Paquete"],
+                ["membership", "Membresía"],
+                ["product", "Producto de tienda"],
+              ],
+              "Paquete",
+            ),
+          },
+          {
+            key: "CROSS_SELL.itemId",
+            path: ["CROSS_SELL", "itemId"],
+            type: "number",
+            label: "Número del producto",
+            help: "El ID de gafa.fit. En Fitspin, por ejemplo, el paquete “1 clase” es 971. Si el ID no existe o ya está en el carrito, no se muestra nada.",
+            placeholder: "971",
+          },
+        ],
+      },
+      {
         title: "Imágenes",
         fields: [
           {
