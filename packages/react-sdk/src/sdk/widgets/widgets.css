@@ -6714,7 +6714,8 @@
   }
 
   /* La sugerencia se queda visible aunque el detalle de lineas esté cerrado. */
-  .gafa-checkout[data-step="pay"] .gafa-checkout__cross-sell {
+  .gafa-checkout[data-step="pay"] .gafa-checkout__cross-sell,
+  .gafa-checkout[data-step="auth"] .gafa-checkout__cross-sell {
     display: grid;
   }
 

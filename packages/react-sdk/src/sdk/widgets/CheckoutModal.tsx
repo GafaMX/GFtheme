@@ -411,7 +411,7 @@ export function CheckoutModal({
     queryKey: ["checkout", "cross-sell", brandSlug, crossSell?.items],
     queryFn: () =>
       resolveCrossSellItems(client, crossSell!.items, { combos, memberships, products }, brandSlug),
-    enabled: Boolean(crossSell && brandSlug && (step === "pay" || step === "thanks")),
+    enabled: Boolean(crossSell && brandSlug && (step === "pay" || step === "auth" || step === "thanks")),
     staleTime: CHECKOUT_CATALOG_STALE_MS,
   });
   const catalogCurrency = useMemo(() => {
@@ -1606,7 +1606,7 @@ export function CheckoutModal({
                 </div>
               ) : null}
 
-              {step === "pay" ? (
+              {step === "pay" || step === "auth" ? (
                 <CrossSellOffer
                   placement="pay"
                   title={crossSell?.payTitle}
@@ -1616,7 +1616,7 @@ export function CheckoutModal({
                   onAdd={(item, brand) => handleAdd(item, brand)}
                 />
               ) : null}
-              {step === "pay" && linkedReservationId && (offerQuery.data ?? []).every((offer) => itemAlreadyInCart(relevantLines, offer.ref)) ? (
+              {(step === "pay" || step === "auth") && linkedReservationId && (offerQuery.data ?? []).every((offer) => itemAlreadyInCart(relevantLines, offer.ref)) ? (
                 <p className="gafa-checkout__cross-sell-link">Se suma a tu reserva #{linkedReservationId}</p>
               ) : null}
 
