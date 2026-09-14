@@ -530,6 +530,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         <CheckoutModal
           client={client}
           {...props}
+          captcha={props.captcha ?? captcha}
           onClose={close}
           gafaPayFrontUrl={props.gafaPayFrontUrl ?? config.gafaPayFrontUrl}
           showMembershipOptions={props.showMembershipOptions ?? config.showMembershipOptions}
