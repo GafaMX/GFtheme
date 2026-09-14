@@ -96,6 +96,31 @@ describe("installStripeCardTheme", () => {
     stop();
   });
 
+  it("no truena si Stripe.elements solo tiene getter (Stripe.js actual)", () => {
+    const created: Array<Record<string, unknown>> = [];
+    const proto = {
+      get elements() {
+        return function elements(this: unknown, _options?: unknown) {
+          return {
+            create: (_type: string, options: Record<string, unknown> = {}) => {
+              created.push(options);
+              return {};
+            },
+          };
+        };
+      },
+    };
+    window.Stripe = ((..._args: unknown[]) => Object.create(proto)) as typeof window.Stripe;
+
+    const stop = installStripeCardTheme("dark");
+    expect(() => window.Stripe!("pk_test")).not.toThrow();
+    window.Stripe!("pk_test").elements?.()?.create("card", {});
+    expect((created[0]?.style as { base?: { color?: string } })?.base?.color).toBe(
+      STRIPE_CARD_STYLE.dark.base.color,
+    );
+    stop();
+  });
+
   it("pasa appearance night a elements() para Payment Element", () => {
     const received: unknown[] = [];
     window.Stripe = ((..._args: unknown[]) => ({
