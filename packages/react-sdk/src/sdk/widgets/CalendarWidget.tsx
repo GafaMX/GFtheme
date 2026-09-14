@@ -534,13 +534,24 @@ export function CalendarWidget({
     setSelectedMeeting(meeting);
   }
 
+  // En vista día el cambio es tan seco que en móvil no se siente el swipe:
+  // un slide corto en la dirección del gesto (sin seguir el dedo) lo marca
+  // sin alargar el gesto. Null en el primer pintado: no animar el mount.
+  const [dayEnter, setDayEnter] = useState<"next" | "prev" | null>(null);
+
+  function enterDay(direction: "next" | "prev") {
+    if (view === "day") setDayEnter(direction);
+  }
+
   function goPrev() {
     allowAutoSkipRef.current = false;
+    enterDay("prev");
     setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)));
   }
 
   function goNext() {
     allowAutoSkipRef.current = false;
+    enterDay("next");
     setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)));
   }
 
@@ -587,6 +598,36 @@ export function CalendarWidget({
       </div>
     ) : null;
 
+  const calendarEmpty = (
+    // Un solo estado vacio con el mismo alto que el calendario: siete columnas
+    // vacias no aportan nada y el brinco de alto se nota feo.
+    <div className="gafa-empty-state gafa-empty-state--calendar">
+      <strong>{hasActiveFilters ? "Sin horarios con estos filtros" : "Sin horarios en estas fechas"}</strong>
+      <span>
+        {hasActiveFilters
+          ? "Prueba quitando algun filtro o cambiando de fecha."
+          : "Prueba con otra fecha u otra ubicacion."}
+      </span>
+      {hasActiveFilters ? (
+        <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={clearFilters}>
+          Limpiar filtros
+        </button>
+      ) : null}
+    </div>
+  );
+
+  const dayBody =
+    visibleMeetings.length === 0 ? (
+      calendarEmpty
+    ) : (
+      <DayColumn
+        date={anchor}
+        loading={isUpdating}
+        meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
+        onSelect={openMeeting}
+      />
+    );
+
   return (
     <WidgetShell>
       <CalendarToolbar
@@ -599,6 +640,7 @@ export function CalendarWidget({
         maxIso={horizonIso}
         onPickDate={(iso) => {
           allowAutoSkipRef.current = false;
+          if (iso !== anchorIso) enterDay(iso > anchorIso ? "next" : "prev");
           setAnchorIso(iso);
         }}
         onPrev={goPrev}
@@ -610,7 +652,9 @@ export function CalendarWidget({
           weekScrolledKeyRef.current = undefined;
           setTodayTick((tick) => tick + 1);
           // Hoy sin cupo → el primer dia con disponibilidad (no un dia vacio).
-          setAnchorIso(firstBookableDayIso && firstBookableDayIso !== todayIso ? firstBookableDayIso : todayIso);
+          const targetIso = firstBookableDayIso && firstBookableDayIso !== todayIso ? firstBookableDayIso : todayIso;
+          if (targetIso !== anchorIso) enterDay(targetIso > anchorIso ? "next" : "prev");
+          setAnchorIso(targetIso);
         }}
         isRefreshing={isUpdating}
         canGoPrev={canGoPrev}
@@ -641,31 +685,14 @@ export function CalendarWidget({
 
       {isLoading || (visibleMeetings.length === 0 && isUpdating) ? (
         <CalendarSkeleton view={view} />
-      ) : visibleMeetings.length === 0 ? (
-        // Un solo estado vacio con el mismo alto que el calendario: siete columnas
-        // vacias no aportan nada y el brinco de alto se nota feo.
-        <div className="gafa-empty-state gafa-empty-state--calendar">
-          <strong>{hasActiveFilters ? "Sin horarios con estos filtros" : "Sin horarios en estas fechas"}</strong>
-          <span>
-            {hasActiveFilters
-              ? "Prueba quitando algun filtro o cambiando de fecha."
-              : "Prueba con otra fecha u otra ubicacion."}
-          </span>
-          {hasActiveFilters ? (
-            <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={clearFilters}>
-              Limpiar filtros
-            </button>
-          ) : null}
-        </div>
       ) : view === "day" ? (
-        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-          <DayColumn
-            date={anchor}
-            loading={isUpdating}
-            meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
-            onSelect={openMeeting}
-          />
+        <div className="gafa-day-swipe" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+          <div key={toIsoDate(anchor)} className="gafa-day-pane" data-enter={dayEnter ?? undefined}>
+            {dayBody}
+          </div>
         </div>
+      ) : visibleMeetings.length === 0 ? (
+        calendarEmpty
       ) : (
         <div className="gafa-week-grid" ref={weekGridRef}>
           {days.map((day) => (
