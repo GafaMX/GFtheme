@@ -408,6 +408,50 @@ Si el usuario elige “Todos”, no se vuelve a aplicar.
 
 Los ids son los de **gafa.fit**, no ids del builder.
 
+### Ganchos CSS de cada tarjeta
+
+Cada `.gafa-meeting-card` trae servicio y franja para pintar u ocultar
+cosas con CSS del sitio (Hybrix: un color AM, otro Open Gym, otro PM;
+ocultar el coach en una página).
+
+| Gancho | Ejemplo | Para |
+| --- | --- | --- |
+| `class="… service-open-gym"` | igual que v1 | servicio |
+| `data-service="open-gym"` | slug sin acentos | servicio |
+| `data-service-id="12"` | id gafa.fit | servicio |
+| `data-daypart="am"\|"tarde"\|"pm"` | cortes 12:00 / 17:00 | hora de la sede |
+| `.gafa-meeting-staff` | fila del coach | ocultar staff |
+| `.gafa-meeting-staff-photo` | foto | ocultar foto |
+| `.gafa-meeting-location` | fila de la sede | ocultar sede |
+
+AM y PM del mismo servicio (“Funcional / Hyrox”) se distinguen con
+`data-daypart`, no con la clase de servicio. Open Gym a las 9:45 es
+`data-daypart="am"` **y** `data-service="open-gym"`: el CSS del servicio
+va primero.
+
+El fondo de la tarjeta es un `button` con `background: var(--gafa-control-bg) !important`.
+No pelees el `background`: cambia la variable.
+
+```css
+.gafa-sdk .gafa-meeting-card[data-daypart="am"] {
+  --gafa-control-bg: #123c3a;
+  --gafa-color-primary: #2dd4bf;
+}
+.gafa-sdk .gafa-meeting-card[data-service="open-gym"] {
+  --gafa-control-bg: #16365c;
+  --gafa-color-primary: #60a5fa;
+}
+.gafa-sdk .gafa-meeting-card[data-daypart="pm"] {
+  --gafa-control-bg: #141a22;
+}
+
+/* En esta página no aplica el coach */
+.gafa-sdk .gafa-meeting-staff,
+.gafa-sdk .gafa-meeting-staff-photo {
+  display: none !important;
+}
+```
+
 ---
 
 ## 8. Catálogo, header, auth — atributos

@@ -1494,6 +1494,7 @@
 }
 
 .gafa-meeting-staff,
+.gafa-meeting-location,
 .gafa-meeting-desc {
   --gafa-type-size: 0.78rem;
   --gafa-fg: var(--gafa-color-muted-text);
