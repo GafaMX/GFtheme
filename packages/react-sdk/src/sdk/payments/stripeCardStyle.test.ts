@@ -137,4 +137,52 @@ describe("installStripeCardTheme", () => {
     });
     stop();
   });
+
+  it("al desmontar no borra Stripe.js que GafaPay acaba de inyectar", () => {
+    const stop = installStripeCardTheme("light");
+    const created: string[] = [];
+    window.Stripe = ((..._args: unknown[]) => {
+      created.push("ok");
+      return { elements: () => ({ create: () => ({}) }) };
+    }) as typeof window.Stripe;
+
+    expect(typeof window.Stripe).toBe("function");
+    stop();
+    expect(typeof window.Stripe).toBe("function");
+    window.Stripe!("pk_test");
+    expect(created).toEqual(["ok"]);
+  });
+
+  it("acepta new Stripe() como el script oficial", () => {
+    function StripeCtor(this: { ok: boolean }) {
+      this.ok = true;
+      return {
+        elements: () => ({
+          create: () => ({}),
+        }),
+      };
+    }
+    window.Stripe = StripeCtor as unknown as typeof window.Stripe;
+    const stop = installStripeCardTheme("light");
+    expect(() => new (window.Stripe as unknown as { new (key: string): unknown })("pk_test")).not.toThrow();
+    stop();
+  });
+
+  it("no pisa Payment Element con el style del Card Element", () => {
+    const created: Array<{ type: string; options: Record<string, unknown> }> = [];
+    window.Stripe = ((..._args: unknown[]) => ({
+      elements: () => ({
+        create: (type: string, options: Record<string, unknown> = {}) => {
+          created.push({ type, options });
+          return { update: () => undefined };
+        },
+      }),
+    })) as typeof window.Stripe;
+
+    const stop = installStripeCardTheme("dark");
+    window.Stripe!("pk_test").elements?.()?.create("payment", { layout: "tabs" });
+    expect(created[0]?.options.style).toBeUndefined();
+    expect(created[0]?.options.layout).toBe("tabs");
+    stop();
+  });
 });

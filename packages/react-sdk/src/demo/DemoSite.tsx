@@ -302,6 +302,7 @@ function DemoShell({
         {checkout ? (
           <CheckoutModal
             client={client}
+            captcha={captcha}
             preselect={checkout.preselect ?? null}
             skipCatalog={checkout.skipCatalog ?? Boolean(checkout.preselect)}
             gafaPayFrontUrl={config.gafaPayFrontUrl}

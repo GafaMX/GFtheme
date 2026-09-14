@@ -1499,6 +1499,7 @@ export function ReservationFlow({
       <CheckoutModal
         key={meeting.id}
         client={client}
+        captcha={captcha}
         brandSlug={brandSlug}
         locationSlug={locationSlug}
         locationName={locationName ?? meeting.location?.name}
