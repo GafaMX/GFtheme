@@ -238,6 +238,17 @@ describe("THEME.colors: defaults y personalización", () => {
     expect(withPrimary["--gafa-color-primary"]).toBe(withBrand["--gafa-color-primary"]);
     expect(withPrimary["--gafa-color-brand"]).toBe(withBrand["--gafa-color-brand"]);
   });
+
+  it("colors.brandText pinta las letras encima del botón", () => {
+    const vars = themeToCssVariables(
+      { colors: { brand: "#c8ff2e", brandText: "#111111" } },
+      "light",
+      { followHostSurface: false },
+    );
+    expect(vars["--gafa-color-primary-text"]).toBe("#111111");
+    expect(vars["--gafa-color-brand-text"]).toBe("#111111");
+    expect(vars["--gafa-color-brand"]).toBe(vars["--gafa-color-primary"]);
+  });
 });
 
 describe("THEME.colors: fallbacks y contrato", () => {

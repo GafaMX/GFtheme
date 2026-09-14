@@ -7,8 +7,9 @@ hace falta, detalle con mapa y créditos, y checkout cuando no hay con qué paga
 ## `openReservation`
 
 ```js
-// window.GafaThemeSDK (o window.GafaSdk) lo deja el bundle IIFE al arrancar.
-const modal = GafaThemeSDK.openReservation({
+// window.GafaSdkReady está desde que carga el script.
+const sdk = await window.GafaSdkReady; // o window.GafaThemeSDK / window.GafaSdk
+const modal = sdk.openReservation({
   meetingId: 84213,
   brandSlug: "fitspin",      // opcional
   locationSlug: "lomas",     // opcional

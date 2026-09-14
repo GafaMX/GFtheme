@@ -19,6 +19,7 @@ export type ReservationLauncherProps = {
   onClose: () => void;
   onReserved?: () => void;
   onPurchased?: () => void;
+  crossSell?: unknown;
 };
 
 /**
@@ -37,6 +38,7 @@ export function ReservationLauncher({
   onClose,
   onReserved,
   onPurchased,
+  crossSell,
 }: ReservationLauncherProps) {
   const meetingQuery = useQuery({
     queryKey: ["calendar", "meeting", String(meetingId), brandSlug ?? null, locationSlug ?? null],
@@ -65,6 +67,7 @@ export function ReservationLauncher({
         onClose={onClose}
         onReserved={onReserved}
         onPurchased={onPurchased}
+        crossSell={crossSell}
       />
     );
   }
