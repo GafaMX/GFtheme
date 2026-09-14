@@ -1260,8 +1260,43 @@
    vistas y estados vacios: sin esto la pagina "brinca" con cada navegacion. */
 .gafa-week-grid,
 .gafa-day-column[data-standalone="true"],
-.gafa-empty-state--calendar {
+.gafa-empty-state--calendar,
+.gafa-day-swipe {
   min-height: 420px;
+}
+
+/* Vista día: al cambiar de fecha (swipe o flechas) el contenido entra un
+   pelín desde el lado del gesto. Rápido a propósito — el swipe ya es corto. */
+.gafa-day-swipe {
+  overflow: hidden;
+}
+
+.gafa-day-pane[data-enter="next"] {
+  animation: gafa-day-enter-next 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gafa-day-pane[data-enter="prev"] {
+  animation: gafa-day-enter-prev 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes gafa-day-enter-next {
+  from {
+    opacity: 0.28;
+    transform: translateX(1.75rem);
+  }
+}
+
+@keyframes gafa-day-enter-prev {
+  from {
+    opacity: 0.28;
+    transform: translateX(-1.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gafa-day-pane[data-enter] {
+    animation: gafa-fade 0.15s ease-out both;
+  }
 }
 
 .gafa-week-grid {
