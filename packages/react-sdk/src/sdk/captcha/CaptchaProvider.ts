@@ -1,3 +1,5 @@
+import { DEFAULT_CAPTCHA_PUBLIC_KEY } from "../config";
+
 export type CaptchaProvider = {
   execute(action: string): Promise<string>;
 };
@@ -9,11 +11,15 @@ export type CaptchaProviderName = "recaptcha-v3" | "turnstile";
  * en el server, ver App\Rules\Captcha), Turnstile queda listo detras del mismo contrato para
  * el dia que se quiera cambiar de proveedor -- eso sí requiere que gafa.fit tambien agregue
  * verificacion de Turnstile en el backend, cambiar solo esta config no basta.
+ *
+ * Siempre hay proveedor: el registro de gafa.fit exige el token. Si el sitio o
+ * el Hub no mandan llave, usamos el par compartido de Buq — no un toast de
+ * “falta captchaPublicKey” en la cara del cliente.
  */
-export function createCaptchaProvider(name: CaptchaProviderName, siteKey?: string): CaptchaProvider | undefined {
-  if (!siteKey) return undefined;
-
-  return name === "turnstile" ? createTurnstileProvider(siteKey) : createRecaptchaV3Provider(siteKey);
+export function createCaptchaProvider(name: CaptchaProviderName = "recaptcha-v3", siteKey?: string): CaptchaProvider {
+  const key = siteKey?.trim() ?? "";
+  if (name === "turnstile" && key) return createTurnstileProvider(key);
+  return createRecaptchaV3Provider(key || DEFAULT_CAPTCHA_PUBLIC_KEY);
 }
 
 const scriptPromises = new Map<string, Promise<void>>();

@@ -1946,12 +1946,18 @@ function PayPanel({
   const slug = selected?.slug;
   const colorScheme = useGafaThemeOptional()?.scheme ?? "light";
 
+  // El wrap de color no debe remountar GafaPay: al cleanup se perdía Stripe.js
+  // y el formulario se quedaba en skeleton (Ocho Soles / theme host).
+  useEffect(() => {
+    if (slug !== "stripe") return;
+    return installStripeCardTheme(colorScheme);
+  }, [slug, colorScheme]);
+
   // Monta la isla: se re-monta solo si cambia el proveedor o las credenciales.
   useEffect(() => {
     if (!slug || !clientId || !clientSecret) return;
     let cancelled = false;
     let stopPaypalCapture: () => void = () => undefined;
-    const stopStripeTheme = slug === "stripe" ? installStripeCardTheme(colorScheme) : () => undefined;
     setLoadState("loading");
 
     loadGafaPay({ clientId, clientSecret, scriptUrl: gafaPayFrontUrl })
@@ -1986,11 +1992,10 @@ function PayPanel({
     return () => {
       cancelled = true;
       stopPaypalCapture();
-      stopStripeTheme();
       islandRef.current?.unmount();
       islandRef.current = null;
     };
-  }, [slug, clientId, clientSecret, gafaPayFrontUrl, colorScheme]);
+  }, [slug, clientId, clientSecret, gafaPayFrontUrl]);
 
   useEffect(() => {
     // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
