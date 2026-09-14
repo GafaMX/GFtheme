@@ -234,8 +234,8 @@ describe("CheckoutModal cross-sell", () => {
     await waitFor(() => {
       expect(useCartStore.getState().lines.some((line) => line.id === 2878)).toBe(true);
     });
-    expect(screen.queryByText("SCULPT")).toBeNull();
-    expect(screen.getByText("3 Clases")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /agregar sculpt/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /agregar 3 clases/i })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /¿quieres agregar algo más\?/i })).toBeTruthy();
   });
 

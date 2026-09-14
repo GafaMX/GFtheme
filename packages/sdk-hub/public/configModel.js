@@ -435,7 +435,7 @@ export const CONFIG_SECTIONS = [
             path: ["CROSS_SELL", "itemType3"],
             type: "select",
             label: "Tercer producto (tipo)",
-            help: "Opcional.",
+            help: "Opcional. Tercer paquete, membresía o producto de tienda.",
             choices: options(
               [
                 ["combo", "Paquete"],
