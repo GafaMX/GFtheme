@@ -24,6 +24,7 @@ import type {
   StaffMember,
   UserCredit,
 } from "../client/types";
+import { meetingCardHooks } from "./calendarMeetingCard";
 import {
   addDays,
   daysInRange,
@@ -1040,10 +1041,14 @@ function MeetingCard({
   const staffPhoto = meeting.staff?.photoUrl;
   const showsPhoto = useRemoteImageEnabled(staffPhoto);
   const notes = meetingClassNotes(meeting);
+  const hooks = meetingCardHooks(meeting);
 
   return (
     <button
-      className="gafa-meeting-card"
+      className={hooks.className}
+      data-service={hooks.service || undefined}
+      data-service-id={hooks.serviceId || undefined}
+      data-daypart={hooks.daypart || undefined}
       data-sold-out={soldOut && !waitlist ? "true" : undefined}
       data-waitlist={waitlist ? "true" : undefined}
       data-passed={passed ? "true" : undefined}
@@ -1070,12 +1075,12 @@ function MeetingCard({
       <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
       {!compact && notes ? <span className="gafa-meeting-desc">{notes}</span> : null}
 
-      <span className="gafa-meeting-detail">
+      <span className="gafa-meeting-detail gafa-meeting-staff">
         <PersonIcon />
         {getStaffName(meeting)}
       </span>
       {meeting.location?.name ? (
-        <span className="gafa-meeting-detail">
+        <span className="gafa-meeting-detail gafa-meeting-location">
           <LocationIcon />
           {meeting.location.name}
         </span>
