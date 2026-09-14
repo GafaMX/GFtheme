@@ -76,10 +76,13 @@ Tres piezas. En este orden:
 
 Al cargar, el bundle:
 
-1. Lee las options.
-2. Monta cada shortcode que tenga `mount`.
-3. Activa botones `[data-gf-buy]`, `[data-gf-reserve]`, `[data-gf-cart]`, `[data-gf-account]`.
-4. Deja `window.GafaThemeSDK` (y `window.GafaSdk`).
+1. Deja `window.GafaSdkReady` (promesa) **desde que corre el script**.
+2. Lee las options (y el Hub, fail-open).
+3. Si el auto-scan está encendido (default), monta cada shortcode que tenga `mount`.
+4. Activa botones `[data-gf-buy]`, `[data-gf-reserve]`, `[data-gf-cart]`, `[data-gf-account]`.
+5. Deja `window.GafaThemeSDK` (y `window.GafaSdk`) y dispara `buq:sdk:ready`.
+
+SPA / cambio de marca: apaga el auto-scan y usa `mount` / `destroy` por página (§2 y §10). El auto-scan del documento no debe pelear con un montaje a mano.
 
 Si llega `?token=` + `?email=` (mail de reset), abre la cuenta solo.
 
@@ -128,6 +131,28 @@ los abre en `document.body`.
 - [ ] Cero CSS contra `.gafa-checkout-overlay` / `.gafa-account-overlay`
 - [ ] Hard refresh. **No** Republish
 - [ ] Concierge: nodo **solo** en la página pedida, nunca en el layout global
+
+### SPA (cambio de página o de marca)
+
+El IIFE escanea el `document` entero. En un router eso duplica roots y deja
+nodos “inicializados” a medias. Apágalo **antes** del script:
+
+```html
+<html data-gf-autoscan="off">
+```
+
+o `window.GAFA_SDK_AUTOSCAN = false`.
+
+```js
+const sdk = await window.GafaSdkReady; // o sdk.ready
+sdk.mount(pageRoot);                  // idempotente
+sdk.destroy(pageRoot);                // al salir; la instancia sigue viva
+```
+
+`destroy` no es `unmountAll()`: desmonta lo de ese root. Si cambian
+`COMPANY_ID` / `API_CLIENT`, un boot nuevo tira la instancia anterior.
+Vuelve a `await window.GafaSdkReady`. Un fallo no deja `data-gafa-sdk-root`
+en el nodo.
 
 ---
 
@@ -246,6 +271,7 @@ El host pinta `--sdk-*` / `html.fitspin-dark`.
 | `colors.*` | CSS | Default si se omite |
 | --- | --- | --- |
 | `brand` | `--gafa-color-primary` + alias `--gafa-color-brand` | paleta del scheme |
+| `brandText` | `--gafa-color-primary-text` + alias `--gafa-color-brand-text` | auto: blanco o negro sobre `brand` |
 | `accent` | `--gafa-color-accent` | = brand |
 | `background` `surface` `surfaceRaised` | `--gafa-color-*` | derivados del scheme |
 | `text` `mutedText` `border` | `--gafa-color-*` | derivados |
@@ -457,7 +483,8 @@ El bundle lo crea solo. No llames `createGafaSdk` otra vez en Buq-Webs/WP
 salvo que sepas que no hay embed.
 
 ```js
-const sdk = window.GafaThemeSDK; // o window.GafaSdk
+const sdk = await window.GafaSdkReady; // o window.GafaThemeSDK cuando ya arrancó
+// window.GafaSdk es el mismo objeto
 
 sdk.openReservation({
   meetingId: 84213,
@@ -472,14 +499,19 @@ sdk.openCheckout({
 });
 
 sdk.openAccount();
-sdk.enablePurchaseButtons(); // el IIFE ya lo hizo
+sdk.enablePurchaseButtons(); // el IIFE ya lo hizo si el auto-scan está on
+sdk.mount(pageRoot);         // SPA: ver §2
+sdk.destroy(pageRoot);
 ```
+
+También: `window.addEventListener("buq:sdk:ready", …)` y `sdk.ready`.
 
 | Método | Para qué |
 | --- | --- |
 | `openReservation({ meetingId, brandSlug?, locationSlug?, locationId? })` | Misma reserva que el calendario, sin calendario |
 | `openCheckout({ brandSlug?, preselect?, skipCatalog?, locationSlug? })` | Carrito / pago |
 | `openAccount()` | Login o perfil |
+| `mount(root, { exclusive? })` / `destroy(root)` | Ciclo de vida por instancia. Idempotentes. Default `exclusive: true` en un HTMLElement para que el auto-scan no entre |
 | `mountCalendar` / `mountAuth` / `mountCatalog` / `mountProfile` | Solo si montas a mano (apps React) |
 | `track` / `heartbeat` | Hub. No tires si falla |
 
@@ -678,48 +710,36 @@ del calendario.** Si la marca no lo pidió, **no pongas el nodo**.
 
 ## 12. Cross-sell — por desarrollar, contrato reservado
 
-**Estado:** shortcode `cross-sell` en el registry, **sin `mount`**. No hay UI.
+**Estado:** oferta **dentro del checkout** (footer fijo de “Tu pedido” y
+thank you). El shortcode de página `cross-sell` sigue **sin `mount`**.
 
-Objetivo (cuando se construya): sugerir paquetes / membresías / productos
-**dentro del SDK**, con la misma paleta y el mismo checkout. Tres sitios:
-
-1. **Carrito** — “También te puede interesar” debajo de las líneas.
-2. **Gracias** — al terminar una compra o reserva.
-3. **Página** — bloque en landings de paquetes.
-
-Markup reservado (hoy no monta; el bootstrap lo ignora):
-
-```html
-<section
-  data-gf-theme="cross-sell"
-  data-gf-limit="3"
-  data-buq-brand="the-base"
-></section>
-```
-
-Options reservadas (hoy se ignoran; no las uses para lógica del sitio):
+Se configura en el Hub (Tienda → Sugerencia al pagar). Ahí se elige el
+paquete, la membresía o el producto **por nombre**; el ID de gafa.fit se
+guarda solo. También se puede poner en options:
 
 ```json
 "CROSS_SELL": {
   "enabled": true,
-  "placements": ["cart", "thanks", "page"],
-  "types": ["combo", "membership", "product"],
-  "limit": 3
+  "payTitle": "¿Quieres agregar algo más?",
+  "thanksTitle": "¿Algo más para después de tu clase?",
+  "itemType": "combo",
+  "itemId": 971,
+  "itemType2": "combo",
+  "itemId2": 972
 }
 ```
 
-Reglas para el agente **hasta que exista mount**:
+También `items: [{ "type": "combo", "id": 971 }, …]`. Hasta tres en el
+Hub. Si hay varios, la lista scrollea. Al agregar uno, los demás se
+quedan (el que ya está en el carrito se oculta).
 
-- No armes un carrusel “recomendados” que abra otro checkout.
-- No clones nodos del SDK ni copies precios a mano.
-- Los botones `data-gf-buy` de la página **sí** son válidos: eso no es
-  cross-sell, es compra directa.
-- El checkout actual ya deja “Agregar otro paquete o membresía”: no lo
-  sustituyas.
+Los títulos son libres. En pay, “Agregar” suma al carrito y actualiza el
+total. En thank you, abre de nuevo el pago de ese ítem. Si hay reserva,
+v1 mandaba `reservations_id` (`getFancyForBuyProduct`); v2 hace lo mismo
+en la compra extra. Si la reserva aún no existe, el extra viaja con
+`meetings_id` en el mismo `/reservate`.
 
-Cuando se implemente: mismo `THEME`, mismos ids de gafa.fit, mismo
-`openCheckout({ preselect })`. Un publish a `cdn-live` basta. Este
-documento se actualizará y el shortcode pasará a `stable`.
+El bloque de página `cross-sell` sigue **sin `mount`**.
 
 ---
 
@@ -785,6 +805,8 @@ Instala el SDK v2 de Buq. Guía: docs/v2-agente.md del repo GafaMX/GFtheme.
    catalog.live true + products [] = todos los paquetes de ESTA compañía.
    No inventes un chat. Cross-sell sigue reservado: no pinta.
    No implementes un carrusel paralelo.
+   SPA: `data-gf-autoscan="off"` + `await window.GafaSdkReady` + `sdk.mount(root)` /
+   `sdk.destroy(root)`. El auto-scan no debe pelear con el montaje a mano.
 
 6. Nunca muestres credit.name interno. Hard refresh para ver el bundle nuevo.
 ```

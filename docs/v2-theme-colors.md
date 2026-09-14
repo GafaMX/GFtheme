@@ -22,6 +22,7 @@ El botón `Entrar` / `Mi cuenta` se personaliza con `THEME.headerControls`
     "logoMaxHeight": 110,
     "colors": {
       "brand": "#F3D15E",
+      "brandText": "#111111",
       "accent": "#F3D15E",
       "background": "#171C35",
       "surface": "#1E2444",
@@ -44,8 +45,9 @@ Vacío (`""`) también. Nunca quedan `undefined` ni transparentes.
 
 | `THEME.colors` | Variable | Uso |
 | --- | --- | --- |
-| `brand` | `--gafa-color-primary` y alias `--gafa-color-brand` | CTA, tabs activos |
-| `accent` | `--gafa-color-accent` | Focus, detalles |
+| `brand` | `--gafa-color-primary` y alias `--gafa-color-brand` | Fondo de CTA: Entrar, Pagar, Reservar, pestaña activa |
+| `brandText` | `--gafa-color-primary-text` y alias `--gafa-color-brand-text` | Letras **encima** de esos botones. Si se omite, blanco o negro según el brillo |
+| `accent` | `--gafa-color-accent` | Focus, detalles, botón secundario |
 | `background` | `--gafa-color-background` | Lienzo |
 | `surface` | `--gafa-color-surface` | Tarjetas, paneles, modal |
 | `surfaceRaised` | `--gafa-color-surface-raised` | Capas elevadas, carrito |
@@ -76,6 +78,6 @@ Vacío (`""`) también. Nunca quedan `undefined` ni transparentes.
 
 ## Compatibilidad
 
-- Solo `brand` + `accent`: como hoy, el resto se deriva.
+- Solo `brand` + `accent`: como hoy, el resto se deriva. `brandText` vacío = contraste automático.
 - Sin `colors`: theme predeterminado actual.
 - IDs, prefiltros, carrito y checkout no cambian.

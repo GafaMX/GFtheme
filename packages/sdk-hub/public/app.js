@@ -8,7 +8,8 @@ import {
   triChoices,
   unmanagedPaths,
   validateDraft,
-} from "/configModel.js?v=concierge-auto-1";
+  parseCatalogToken,
+} from "/configModel.js?v=catalog-pick-1";
 
 const root = document.getElementById("root");
 
@@ -46,6 +47,7 @@ const state = {
   configSaving: false,
   configNotice: "",
   openTip: "",
+  catalog: { company_id: null, status: "idle", items: [], brands: [], warnings: [], error: "" },
   theme: readStoredTheme(),
 };
 
@@ -209,10 +211,12 @@ async function refresh() {
     } else if (state.view === "config") {
       const site = selectedSite();
       if (site?.company_id) {
+        void loadStudioCatalog(site.company_id);
         const row = await api(`/v1/admin/config${qs({ company_id: site.company_id })}`);
         state.remoteConfig = row;
         state.configDraft = draftFromConfig(row.config ?? {});
       } else {
+        state.catalog = { company_id: null, status: "idle", items: [], brands: [], warnings: [], error: "" };
         state.remoteConfig = { company_id: null, config: {}, updated_at: null, stripped: [] };
         state.configDraft = draftFromConfig({});
       }
@@ -1162,22 +1166,43 @@ function paintPreview(node, config) {
   );
   const dark = theme.colorScheme === "dark";
   const brand = colors.brand || (dark ? "#f3d48a" : "#111827");
+  const brandText = colors.brandText || readableOnHex(brand);
   const accent = colors.accent || brand;
-  const background = colors.background || (dark ? "#14161c" : "#ffffff");
-  const surface = colors.surface || (dark ? "#1b1e26" : "#f8fafc");
+  const background = colors.background || (dark ? "#14161c" : "#e8eaef");
+  const surface = colors.surface || (dark ? "#1b1e26" : "#ffffff");
+  const surfaceRaised = colors.surfaceRaised || (dark ? "#262b36" : "#f4f5f7");
   const text = colors.text || (dark ? "#f4f1ea" : "#111827");
   const muted = colors.mutedText || (dark ? "#9aa3b5" : "#6b7280");
-  const border = colors.border || (dark ? "rgba(255,255,255,.12)" : "#e5e7eb");
+  const border = colors.border || (dark ? "#3a4150" : "#e5e7eb");
   const radiusMd = theme.radius?.md || "16px";
   node.style.setProperty("--pv-brand", brand);
+  node.style.setProperty("--pv-brand-text", brandText);
   node.style.setProperty("--pv-accent", accent);
   node.style.setProperty("--pv-bg", background);
   node.style.setProperty("--pv-surface", surface);
+  node.style.setProperty("--pv-raised", surfaceRaised);
   node.style.setProperty("--pv-text", text);
   node.style.setProperty("--pv-muted", muted);
   node.style.setProperty("--pv-border", border);
   node.style.setProperty("--pv-radius", radiusMd);
   if (theme.typography?.fontFamily) node.style.setProperty("--pv-font", theme.typography.fontFamily);
+}
+
+function readableOnHex(hex) {
+  const clean = String(hex || "").replace("#", "").trim();
+  const full =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean;
+  if (full.length !== 6) return "#ffffff";
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return l > 0.62 ? "#0b0b0d" : "#ffffff";
 }
 
 function tip(id, text) {
@@ -1289,11 +1314,167 @@ function colorControl(field) {
   return h("div", { class: "color-row" }, swatch, text, clear);
 }
 
+const CATALOG_KIND_LABEL = {
+  combo: "Paquete",
+  membership: "Membresía",
+  product: "Producto",
+};
+
+let catalogSeq = 0;
+
+async function loadStudioCatalog(companyId, force = false) {
+  if (!companyId) {
+    state.catalog = { company_id: null, status: "idle", items: [], brands: [], warnings: [], error: "" };
+    return;
+  }
+  if (!force && state.catalog.company_id === companyId && (state.catalog.status === "ok" || state.catalog.status === "loading")) {
+    return;
+  }
+  const seq = ++catalogSeq;
+  state.catalog = {
+    company_id: companyId,
+    status: "loading",
+    items: state.catalog.company_id === companyId ? state.catalog.items : [],
+    brands: state.catalog.company_id === companyId ? state.catalog.brands : [],
+    warnings: [],
+    error: "",
+  };
+  try {
+    const row = await api(`/v1/admin/catalog${qs({ company_id: companyId })}`);
+    if (seq !== catalogSeq) return;
+    state.catalog = {
+      company_id: companyId,
+      status: "ok",
+      items: row.items ?? [],
+      brands: row.brands ?? [],
+      warnings: row.warnings ?? [],
+      error: "",
+    };
+  } catch {
+    if (seq !== catalogSeq) return;
+    state.catalog = {
+      company_id: companyId,
+      status: "error",
+      items: [],
+      brands: [],
+      warnings: [],
+      error: "No pude cargar el catálogo de este estudio.",
+    };
+  }
+  if (state.view === "config") render();
+}
+
+function catalogToken(item) {
+  return `${item.type}:${item.id}`;
+}
+
+function catalogItemLabel(item) {
+  const bits = [item.name];
+  if (item.priceLabel) bits.push(item.priceLabel);
+  if (item.hiddenFromHome) bits.push("oculto en el sitio");
+  return bits.join(" · ");
+}
+
+function catalogGroups(items, brands) {
+  const brandCount = brands?.length || new Set(items.map((item) => item.brandName)).size;
+  const multi = brandCount > 1;
+  const kinds = [
+    ["combo", "Paquetes"],
+    ["membership", "Membresías"],
+    ["product", "Productos de tienda"],
+  ];
+  const groups = [];
+  for (const [type, label] of kinds) {
+    const ofType = items.filter((item) => item.type === type);
+    if (!ofType.length) continue;
+    if (!multi) {
+      groups.push({ label, items: ofType });
+      continue;
+    }
+    const names = [...new Set(ofType.map((item) => item.brandName))];
+    for (const name of names) {
+      groups.push({
+        label: `${label} · ${name}`,
+        items: ofType.filter((item) => item.brandName === name),
+      });
+    }
+  }
+  return groups;
+}
+
+function catalogStatusNote() {
+  const catalog = state.catalog;
+  if (!catalog || catalog.status === "idle") return null;
+  if (catalog.status === "loading" && !catalog.items.length) {
+    return h("p", { class: "muted group-note" }, "Cargando paquetes, membresías y productos de este estudio…");
+  }
+  if (catalog.status === "error") {
+    return h(
+      "div",
+      { class: "catalog-status" },
+      h("p", { class: "muted group-note" }, catalog.error),
+      h(
+        "button",
+        {
+          class: "btn ghost",
+          type: "button",
+          onClick: () => {
+            const companyId = selectedSite()?.company_id;
+            if (companyId) void loadStudioCatalog(companyId, true);
+          },
+        },
+        "Reintentar",
+      ),
+    );
+  }
+  if (catalog.warnings?.length) {
+    return h("p", { class: "muted group-note" }, catalog.warnings.join(" "));
+  }
+  return null;
+}
+
+function catalogControl(field) {
+  const value = String(state.configDraft[field.key] ?? "");
+  const items = state.catalog.items ?? [];
+  const groups = catalogGroups(items, state.catalog.brands);
+  const picked = parseCatalogToken(value);
+  const inList = Boolean(picked && items.some((item) => catalogToken(item) === value));
+  const blank = field.optional ? "Ninguno" : "Elige uno";
+  const loading = state.catalog.status === "loading" && !items.length;
+  const options = [
+    h("option", { value: "" }, loading ? "Cargando catálogo…" : blank),
+    picked && !inList
+      ? h(
+          "option",
+          { value },
+          `${CATALOG_KIND_LABEL[picked.type] ?? picked.type} ${picked.id} (ya no está en el catálogo)`,
+        )
+      : null,
+    ...groups.map((group) =>
+      h(
+        "optgroup",
+        { label: group.label },
+        group.items.map((item) => h("option", { value: catalogToken(item) }, catalogItemLabel(item))),
+      ),
+    ),
+  ];
+  return h(
+    "select",
+    {
+      value,
+      disabled: loading ? "" : null,
+      onChange: (event) => setField(field.key, event.target.value),
+    },
+    ...options,
+  );
+}
+
 function fieldControl(field) {
   const value = state.configDraft[field.key] ?? "";
   if (field.type === "switch") return switchControl(field);
   if (field.type === "tri") return triControl(field);
   if (field.type === "color") return colorControl(field);
+  if (field.type === "catalog") return catalogControl(field);
   if (field.type === "select") {
     return h(
       "select",
@@ -1336,6 +1517,7 @@ function configField(field) {
     "div",
     { class: `field field-${field.type}${error ? " has-error" : ""}` },
     h("div", { class: "field-head" }, h("span", { class: "field-label" }, field.label), tip(field.key, field.help)),
+    field.hint ? h("p", { class: "field-hint" }, field.hint) : null,
     h("div", { class: "field-control" }, fieldControl(field)),
     error ? h("p", { class: "field-error" }, error) : null,
   );
@@ -1349,6 +1531,7 @@ function configGroup(group) {
     { class: "panel config-group" },
     h("h4", {}, group.title),
     group.note ? h("p", { class: "muted group-note" }, group.note) : null,
+    group.title === "Sugerencia al pagar" ? catalogStatusNote() : null,
     h("div", { class: `fields${colorsOnly ? " fields-colors" : ""}` }, group.fields.map((field) => configField(field))),
   );
 }
@@ -1360,17 +1543,48 @@ function configPreview() {
     h(
       "div",
       { class: "preview-card" },
-      h("div", { class: "preview-logo" }, "Tu marca"),
-      h("h5", {}, "Clase de las 7:00"),
-      h("p", {}, "Así se van a ver los botones y las tarjetas del SDK dentro del sitio."),
-      h("div", { class: "preview-actions" }, h("span", { class: "preview-btn" }, "Reservar"), h("span", { class: "preview-btn ghost" }, "Ver horarios")),
+      h("span", { class: "preview-kicker" }, "Ventana de checkout / login"),
+      h(
+        "div",
+        { class: "preview-row" },
+        h("h5", {}, "Inicia sesión"),
+        h("span", { class: "preview-tag" }, "títulos"),
+      ),
+      h(
+        "div",
+        { class: "preview-row" },
+        h("p", {}, "Usa el correo con el que reservaste."),
+        h("span", { class: "preview-tag muted" }, "ayudas"),
+      ),
+      h(
+        "div",
+        { class: "preview-field" },
+        h("span", { class: "preview-field-label" }, "Email"),
+        h("span", { class: "preview-field-value" }, "tu@estudio.com"),
+        h("span", { class: "preview-tag" }, "campos"),
+      ),
+      h(
+        "div",
+        { class: "preview-actions" },
+        h(
+          "span",
+          { class: "preview-btn-wrap" },
+          h("span", { class: "preview-btn" }, "Reservar"),
+          h("span", { class: "preview-tag on-brand" }, "fondo + texto del botón"),
+        ),
+        h("span", { class: "preview-btn ghost" }, "Ver horarios"),
+      ),
     ),
   );
   return h(
     "section",
     { class: "panel config-group preview-wrap" },
     h("h4", {}, "Vista previa"),
-    h("p", { class: "muted group-note" }, "Un ejemplo con los colores que llevas. No es el sitio real, es para que veas el contraste."),
+    h(
+      "p",
+      { class: "muted group-note" },
+      "Mini checkout con etiquetas: cada color del formulario pinta una parte. No es el sitio real; sirve para ver el contraste antes de guardar.",
+    ),
     node,
   );
 }

@@ -67,4 +67,17 @@ describe("buildPalette surface overrides", () => {
     expect(palette.inputText).toBe("#AEB4CB");
     expect(palette.inputBorder).toBe("#252C50");
   });
+
+  it("brandText pisa el contraste automático de los botones", () => {
+    const auto = buildPalette({ brand: "#c8ff2e" }, "light");
+    const manual = buildPalette({ brand: "#c8ff2e", brandText: "#111111" }, "light");
+    expect(manual.brandContrast).toBe("#111111");
+    expect(manual.brand).toBe(auto.brand);
+  });
+
+  it("brandText vacío se cae al contraste automático", () => {
+    const auto = buildPalette({ brand: "#c8ff2e" }, "light");
+    const empty = buildPalette({ brand: "#c8ff2e", brandText: "   " }, "light");
+    expect(empty.brandContrast).toBe(auto.brandContrast);
+  });
 });
