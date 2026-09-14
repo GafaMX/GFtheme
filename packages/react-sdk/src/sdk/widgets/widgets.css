@@ -5489,7 +5489,7 @@
 }
 
 .gafa-checkout__cross-sell {
-  max-height: 13.5rem;
+  max-height: 16.5rem;
 }
 
 .gafa-checkout__cross-sell h4,
@@ -5512,7 +5512,8 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0;
+  padding: 0 0.35rem 0 0;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
