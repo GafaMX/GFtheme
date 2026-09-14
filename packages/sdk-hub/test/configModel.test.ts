@@ -113,6 +113,28 @@ describe("formulario -> partial", () => {
     });
   });
 
+  it("guarda un segundo y tercer producto opcionales", () => {
+    const draft = draftFromConfig({});
+    draft["CROSS_SELL.enabled"] = "true";
+    draft["CROSS_SELL.itemType"] = "combo";
+    draft["CROSS_SELL.itemId"] = "971";
+    draft["CROSS_SELL.itemType2"] = "combo";
+    draft["CROSS_SELL.itemId2"] = "972";
+    draft["CROSS_SELL.itemType3"] = "membership";
+    draft["CROSS_SELL.itemId3"] = "670";
+    expect(configFromDraft({}, draft)).toEqual({
+      CROSS_SELL: {
+        enabled: true,
+        itemType: "combo",
+        itemId: 971,
+        itemType2: "combo",
+        itemId2: 972,
+        itemType3: "membership",
+        itemId3: 670,
+      },
+    });
+  });
+
   it("conserva los ajustes avanzados que el formulario no pinta", () => {
     const base = {
       CONCIERGE: {

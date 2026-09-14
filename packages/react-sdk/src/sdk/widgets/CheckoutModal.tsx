@@ -2415,34 +2415,43 @@ function CrossSellOffer({
   reservationId?: number;
   onAdd: (item: CatalogItem, brandSlug?: string) => void;
 }) {
-  const offer = offers[0];
-  if (!offer) return null;
-  const price = offer.item.priceFinal ?? offer.item.price ?? 0;
+  if (!offers.length) return null;
   return (
     <aside
       className={
         placement === "thanks" ? "gafa-checkout-thanks__cross-sell" : "gafa-checkout__cross-sell"
       }
       data-placement={placement}
-      aria-label={title || "Sugerencia"}
+      data-count={offers.length}
+      aria-label={title || "Sugerencias"}
     >
       {title ? <h4>{title}</h4> : null}
-      <div className="gafa-checkout__cross-sell-item">
-        <div className="gafa-checkout__cross-sell-copy">
-          <strong>{offer.item.name}</strong>
-          {offer.item.expirationDays ? <small>Vigencia {offer.item.expirationDays} días</small> : null}
-        </div>
-        <strong className="gafa-checkout__cross-sell-price">
-          {formatMoney(price, currency.prefix, "")}
-        </strong>
-        <button
-          className="gafa-checkout__cross-sell-add"
-          type="button"
-          onClick={() => onAdd(offer.item, offer.brandSlug)}
-        >
-          Agregar
-        </button>
-      </div>
+      <ul className="gafa-checkout__cross-sell-list">
+        {offers.map((offer) => {
+          const price = offer.item.priceFinal ?? offer.item.price ?? 0;
+          return (
+            <li key={`${lineTypeOf(offer.item)}:${offer.item.id}`} className="gafa-checkout__cross-sell-item">
+              <div className="gafa-checkout__cross-sell-copy">
+                <strong>{offer.item.name}</strong>
+                {offer.item.expirationDays ? <small>Vigencia {offer.item.expirationDays} días</small> : null}
+              </div>
+              <div className="gafa-checkout__cross-sell-buy">
+                <strong className="gafa-checkout__cross-sell-price">
+                  {formatMoney(price, currency.prefix, "")}
+                </strong>
+                <button
+                  className="gafa-checkout__cross-sell-add"
+                  type="button"
+                  aria-label={`Agregar ${offer.item.name}`}
+                  onClick={() => onAdd(offer.item, offer.brandSlug)}
+                >
+                  Agregar
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
       {reservationId ? (
         <p className="gafa-checkout__cross-sell-link">Se suma a tu reserva #{reservationId}</p>
       ) : null}

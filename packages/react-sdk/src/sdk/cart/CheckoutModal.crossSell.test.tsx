@@ -189,11 +189,54 @@ describe("CheckoutModal cross-sell", () => {
       expect(screen.getByRole("heading", { name: /¿quieres agregar algo más\?/i })).toBeTruthy();
     });
     expect(screen.getByText("SCULPT")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^agregar$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /agregar sculpt/i }));
     await waitFor(() => {
       expect(useCartStore.getState().lines.some((line) => line.id === 2878)).toBe(true);
     });
     expect(screen.queryByRole("heading", { name: /¿quieres agregar algo más\?/i })).toBeNull();
+  });
+
+  it("si hay varios productos los pinta todos y al agregar uno el otro se queda", async () => {
+    const threeClasses: CatalogItem = {
+      id: 972,
+      name: "3 Clases",
+      type: "combo",
+      price: 950,
+      priceFinal: 950,
+      expirationDays: 60,
+    };
+    useCartStore.setState({ lines: [fiveClasses], reservation: null });
+    renderPay(
+      mockClient({
+        listCombos: async () => [sculpt, threeClasses, { id: 973, name: "5 Clases", type: "combo", price: 0, priceFinal: 0 }],
+        getCheckoutConfig: async () => ({
+          ...checkoutConfig(),
+          combos: [sculpt, threeClasses],
+        }),
+      }),
+      {
+        crossSell: {
+          enabled: true,
+          payTitle: "¿Quieres agregar algo más?",
+          items: [
+            { type: "combo", id: 2878 },
+            { type: "combo", id: 972 },
+          ],
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("SCULPT")).toBeTruthy();
+      expect(screen.getByText("3 Clases")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar sculpt/i }));
+    await waitFor(() => {
+      expect(useCartStore.getState().lines.some((line) => line.id === 2878)).toBe(true);
+    });
+    expect(screen.queryByText("SCULPT")).toBeNull();
+    expect(screen.getByText("3 Clases")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /¿quieres agregar algo más\?/i })).toBeTruthy();
   });
 
   it("en thank you usa el otro título y la siguiente compra manda reservations_id", async () => {
@@ -229,7 +272,7 @@ describe("CheckoutModal cross-sell", () => {
     expect(first.meetingId).toBe(849768);
     expect(first.reservationId).toBeUndefined();
 
-    fireEvent.click(screen.getByRole("button", { name: /^agregar$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /agregar agua/i }));
 
     await waitFor(() => {
       const confirm = screen.getByRole("button", { name: /confirmar pedido/i }) as HTMLButtonElement;

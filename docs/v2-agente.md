@@ -689,9 +689,15 @@ Se configura en el Hub (Tienda → Sugerencia al pagar) o en options:
   "payTitle": "¿Quieres agregar algo más?",
   "thanksTitle": "¿Algo más para después de tu clase?",
   "itemType": "combo",
-  "itemId": 971
+  "itemId": 971,
+  "itemType2": "combo",
+  "itemId2": 972
 }
 ```
+
+También `items: [{ "type": "combo", "id": 971 }, …]`. Hasta tres en el
+Hub. Si hay varios, la lista scrollea. Al agregar uno, los demás se
+quedan (el que ya está en el carrito se oculta).
 
 Los títulos son libres. En pay, “Agregar” suma al carrito y actualiza el
 total. En thank you, abre de nuevo el pago de ese ítem. Si hay reserva,
@@ -699,7 +705,7 @@ v1 mandaba `reservations_id` (`getFancyForBuyProduct`); v2 hace lo mismo
 en la compra extra. Si la reserva aún no existe, el extra viaja con
 `meetings_id` en el mismo `/reservate`.
 
-Hoy es **un** ítem. El bloque de página y varias ofertas vienen después.
+El bloque de página `cross-sell` sigue **sin `mount`**.
 
 ---
 

@@ -46,7 +46,7 @@ Query de prueba (no uses en producción): `?buq-env=` y `?hub-url=`. Nada más.
 | `TOKENMOVIL` | `tokenMovil` | no | sí | SSO app. |
 | `IMAGES` | `images` | no | sí | `{ "provider": "cloudflare" \| "none" }`. |
 | `language` | `language` | no | sí | `es` / `en`. Hoy **no cambia copy**. No lo prometas. |
-| `CROSS_SELL` | `crossSell` | no | sí | Oferta en el footer de “Tu pedido” (pago) y en thank you. Títulos libres + un ID de gafa.fit. |
+| `CROSS_SELL` | `crossSell` | no | sí | Ofertas en el footer de “Tu pedido” (pago) y en thank you. Títulos libres + hasta 3 IDs de gafa.fit. |
 
 Alias del script: `[data-gafa-options]`.
 
@@ -128,7 +128,7 @@ Detalle y ejemplo largo: [`v2-agente.md`](v2-agente.md) §11.
 
 ## `CROSS_SELL`
 
-Oferta de un producto en el **footer fijo** del carrito (paso de pago) y en la página de gracias. Los títulos son texto libre: donación, proteína, un paquete extra, lo que el estudio quiera.
+Hasta **tres** productos en el **footer** del carrito (paso de pago) y en la página de gracias. Los títulos son texto libre: donación, proteína, un paquete extra, lo que el estudio quiera. Si hay varios, la lista scrollea para no aplastar el total.
 
 ```json
 "CROSS_SELL": {
@@ -136,11 +136,15 @@ Oferta de un producto en el **footer fijo** del carrito (paso de pago) y en la p
   "payTitle": "¿Quieres agregar algo más?",
   "thanksTitle": "¿Algo más para después de tu clase?",
   "itemType": "combo",
-  "itemId": 971
+  "itemId": 971,
+  "itemType2": "combo",
+  "itemId2": 972,
+  "itemType3": "combo",
+  "itemId3": 2878
 }
 ```
 
-También acepta `items: [{ "type": "combo", "id": 971 }]`. Si el ID ya está en el carrito o no existe, no se pinta nada.
+También acepta `items: [{ "type": "combo", "id": 971 }, …]`. Si un ID ya está en el carrito o no existe, se omite. Al agregar uno, los demás se quedan.
 
 Si la compra va con una clase, el extra viaja en el mismo `/reservate` (`meetings_id`). Si la reserva ya existe (thank you), la compra extra manda `reservations_id`, como el fancy v1.
 

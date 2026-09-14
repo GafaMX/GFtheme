@@ -40,13 +40,16 @@ type BrandConfig = {
   calendar: React.ComponentProps<typeof CalendarWidget>;
 };
 
-/** Fitspin activo: paquete “1 clase” (971). Títulos libres de ejemplo. */
+/** Fitspin activo: varios ítems para ver la lista con scroll. */
 const FITSPIN_CROSS_SELL = {
   enabled: true,
   payTitle: "¿Quieres agregar algo más?",
   thanksTitle: "¿Algo más para después de tu clase?",
-  itemType: "combo" as const,
-  itemId: 971,
+  items: [
+    { type: "combo" as const, id: 971 },
+    { type: "combo" as const, id: 972 },
+    { type: "combo" as const, id: 2878 },
+  ],
 };
 
 const BRANDS: Record<string, BrandConfig> = {

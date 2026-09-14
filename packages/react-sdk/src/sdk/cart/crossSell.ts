@@ -45,8 +45,9 @@ function readItemRef(value: unknown): CrossSellItemRef | null {
 }
 
 /**
- * Acepta el objeto del Hub (`itemType` + `itemId`) y el contrato largo
- * (`items: [{ type, id }]`). Si está apagado o no hay un ID válido, no hay oferta.
+ * Acepta el objeto del Hub (`itemType` + `itemId`, más 2 y 3 opcionales) y el
+ * contrato largo (`items: [{ type, id }]`). Si está apagado o no hay un ID
+ * válido, no hay oferta.
  */
 export function parseCrossSell(input: unknown): CrossSellConfig | null {
   if (input == null || input === false) return null;
@@ -67,7 +68,10 @@ export function parseCrossSell(input: unknown): CrossSellConfig | null {
   if (Array.isArray(input.items)) {
     for (const raw of input.items) push(readItemRef(raw));
   }
+  // Hub: producto 1 (plano) + 2 y 3 opcionales. items[] gana si ya vinieron.
   push(readItemRef({ type: input.itemType ?? input.type, id: input.itemId ?? input.id }));
+  push(readItemRef({ type: input.itemType2, id: input.itemId2 }));
+  push(readItemRef({ type: input.itemType3, id: input.itemId3 }));
 
   if (!items.length) return null;
   return {

@@ -48,6 +48,28 @@ describe("parseCrossSell", () => {
     });
   });
 
+  it("el Hub puede sumar un 2º y 3º producto sin items[]", () => {
+    expect(
+      parseCrossSell({
+        itemType: "combo",
+        itemId: 971,
+        itemType2: "combo",
+        itemId2: 972,
+        itemType3: "membership",
+        itemId3: 670,
+      }),
+    ).toEqual({
+      enabled: true,
+      payTitle: "",
+      thanksTitle: "",
+      items: [
+        { type: "combo", id: 971 },
+        { type: "combo", id: 972 },
+        { type: "membership", id: 670 },
+      ],
+    });
+  });
+
   it("apagado o sin ID no muestra oferta", () => {
     expect(parseCrossSell({ enabled: false, itemId: 971 })).toBeNull();
     expect(parseCrossSell({ enabled: true })).toBeNull();
