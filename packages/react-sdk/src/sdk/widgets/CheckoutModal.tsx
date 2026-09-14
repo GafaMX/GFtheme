@@ -2425,7 +2425,11 @@ function CrossSellOffer({
       data-count={offers.length}
       aria-label={title || "Sugerencias"}
     >
-      {title ? <h4>{title}</h4> : null}
+      {title ? (
+        <p className="gafa-checkout__cross-sell-title" role="heading" aria-level={4}>
+          {title}
+        </p>
+      ) : null}
       <ul className="gafa-checkout__cross-sell-list">
         {offers.map((offer) => {
           const price = offer.item.priceFinal ?? offer.item.price ?? 0;
@@ -2433,21 +2437,19 @@ function CrossSellOffer({
             <li key={`${lineTypeOf(offer.item)}:${offer.item.id}`} className="gafa-checkout__cross-sell-item">
               <div className="gafa-checkout__cross-sell-copy">
                 <strong>{offer.item.name}</strong>
-                {offer.item.expirationDays ? <small>Vigencia {offer.item.expirationDays} días</small> : null}
+                {offer.item.expirationDays ? <span>Vigencia {offer.item.expirationDays} días</span> : null}
               </div>
-              <div className="gafa-checkout__cross-sell-buy">
-                <strong className="gafa-checkout__cross-sell-price">
-                  {formatMoney(price, currency.prefix, "")}
-                </strong>
-                <button
-                  className="gafa-checkout__cross-sell-add"
-                  type="button"
-                  aria-label={`Agregar ${offer.item.name}`}
-                  onClick={() => onAdd(offer.item, offer.brandSlug)}
-                >
-                  Agregar
-                </button>
-              </div>
+              <strong className="gafa-checkout__cross-sell-price">
+                {formatMoney(price, currency.prefix, "")}
+              </strong>
+              <button
+                className="gafa-checkout__cross-sell-add"
+                type="button"
+                aria-label={`Agregar ${offer.item.name}`}
+                onClick={() => onAdd(offer.item, offer.brandSlug)}
+              >
+                Agregar
+              </button>
             </li>
           );
         })}

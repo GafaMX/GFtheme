@@ -15,7 +15,7 @@ import { AccountModal } from "../sdk/widgets/AccountModal";
 import { CheckoutModal } from "../sdk/widgets/CheckoutModal";
 import { useCartStore } from "../sdk/cart/cartStore";
 import { prefetchCheckoutCatalog } from "../sdk/cart/checkoutCatalog";
-import type { CartLineType } from "../sdk/client/types";
+import type { CartLineType, CatalogItem, CheckoutConfig, GafaClient } from "../sdk/client/types";
 import { createLiveConciergeConfig, FITSPIN_CONCIERGE_CONFIG, type ConciergePartnerConfig } from "../sdk/concierge";
 import "../sdk/theme/theme.css";
 import "../sdk/widgets/widgets.css";
@@ -40,16 +40,19 @@ type BrandConfig = {
   calendar: React.ComponentProps<typeof CalendarWidget>;
 };
 
-/** Fitspin activo: varios ítems para ver la lista con scroll. */
+/** Tienda de prueba: el endpoint público de productos 404 en Fitspin. */
+const FITSPIN_STORE_PRODUCTS: CatalogItem[] = [
+  { id: 9101, name: "Agua", type: "product", price: 40, priceFinal: 40 },
+  { id: 9102, name: "Proteína", type: "product", price: 85, priceFinal: 85 },
+  { id: 9103, name: "Toalla", type: "product", price: 150, priceFinal: 150 },
+];
+
+/** Fitspin activo: productos de tienda, no paquetes. */
 const FITSPIN_CROSS_SELL = {
   enabled: true,
   payTitle: "¿Quieres agregar algo más?",
   thanksTitle: "¿Algo más para después de tu clase?",
-  items: [
-    { type: "combo" as const, id: 971 },
-    { type: "combo" as const, id: 972 },
-    { type: "combo" as const, id: 2878 },
-  ],
+  items: FITSPIN_STORE_PRODUCTS.map((item) => ({ type: "product" as const, id: item.id })),
 };
 
 const BRANDS: Record<string, BrandConfig> = {
@@ -397,11 +400,33 @@ function createDemoClient(brand: BrandConfig, environment: BuqEnvironmentId) {
       ? createLegacyGafaFitAdapter(config, window.GafaFitSDK)
       : undefined;
 
+  const http = createHttpGafaClient(config, legacy);
   return {
     config,
-    client: createHttpGafaClient(config, legacy),
+    client: brand.companyId === 80 ? withFitspinStoreProducts(http) : http,
     captcha: createCaptchaProvider(config.captchaProvider, config.captchaPublicKey),
     queryClient: new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 60_000 } } }),
+  };
+}
+
+/** El /product de Fitspin no es público: sin esto la oferta de tienda no resuelve. */
+function withFitspinStoreProducts(client: GafaClient): GafaClient {
+  const merge = (live: CatalogItem[] | undefined) => {
+    const have = new Set((live ?? []).map((item) => item.id));
+    return [...(live ?? []), ...FITSPIN_STORE_PRODUCTS.filter((item) => !have.has(item.id))];
+  };
+  return {
+    ...client,
+    async listProducts(brandSlug) {
+      const live = client.listProducts ? await client.listProducts(brandSlug) : [];
+      return merge(live);
+    },
+    async getCheckoutConfig(payload) {
+      if (!client.getCheckoutConfig) return undefined as unknown as CheckoutConfig;
+      const config = await client.getCheckoutConfig(payload);
+      if (!config) return config;
+      return { ...config, products: merge(config.products) };
+    },
   };
 }
 
