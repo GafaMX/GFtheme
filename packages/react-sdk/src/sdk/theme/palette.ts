@@ -12,6 +12,11 @@ export type ColorScheme = "light" | "dark";
 export type BrandBaseColors = {
   /** Color principal de la marca: botones, enfasis, elementos activos. */
   brand: string;
+  /**
+   * Letras ENCIMA del botón de marca (Entrar, Pagar, Reservar, pestaña activa).
+   * Si no se da, blanco o negro según el brillo del brand.
+   */
+  brandText?: string;
   /** Segundo color, para detalles. Si no se da, se usa el de marca. */
   accent?: string;
   /** Color de exito (disponibilidad, confirmaciones). */
@@ -136,6 +141,7 @@ function applySurfaceOverrides(base: BrandBaseColors, palette: ResolvedPalette):
 
   return {
     ...palette,
+    brandContrast: definedColor(base.brandText) ?? palette.brandContrast,
     background,
     surface,
     surfaceRaised: definedColor(base.surfaceRaised) ?? palette.surfaceRaised,

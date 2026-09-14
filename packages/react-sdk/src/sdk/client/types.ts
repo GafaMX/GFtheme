@@ -412,6 +412,12 @@ export type InitialPurchasePayload = {
   userId: number;
   meetingId?: number;
   /**
+   * Reserva ya creada (thank you / compra extra). v1 lo manda como
+   * `reservations_id` en `getFancyForBuyProduct`. No se combina con
+   * `meetingId`: eso volvería a reservar la clase.
+   */
+  reservationId?: number;
+  /**
    * Lineas del carrito. El fancy v1 manda cada item completo en `cart` /
    * `combo` / `membership` / `product` (id, amount, name, price_final,
    * product_type Eloquent). Sin eso gafa.fit puede responder 500 después de
@@ -582,6 +588,8 @@ export type GafaClient = {
   getMeeting?(payload: MeetingLookup): Promise<Meeting | null>;
   listCombos(brandSlug: string): Promise<CatalogItem[]>;
   listMemberships(brandSlug: string): Promise<CatalogItem[]>;
+  /** Tienda (proteína, agua, donación). Si el endpoint no existe, []. */
+  listProducts?(brandSlug: string): Promise<CatalogItem[]>;
   getProfile(): Promise<UserProfile | null>;
   listRegistrationFields(brandSlug: string): Promise<CustomFieldGroup[]>;
   listUserCredits(brandSlug: string): Promise<UserCredit[]>;

@@ -146,7 +146,7 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     shortcode: "cross-sell",
     title: "Cross-sell",
     status: "preview",
-    description: "Sugerencias en carrito / gracias / página. Reservado; aún no monta UI.",
+    description: "Oferta en el footer del carrito (pago) y en thank you. Se configura en el Hub (CROSS_SELL).",
   },
 ];
 

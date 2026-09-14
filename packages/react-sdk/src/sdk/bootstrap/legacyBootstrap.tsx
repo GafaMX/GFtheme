@@ -1,11 +1,21 @@
 import type { GafaSdk } from "../runtime";
 import { bootstrapableWidgets, mountRegisteredWidget } from "../widgets/registry";
+import {
+  clearSdkRoot,
+  markSdkRoot,
+  shouldSkipWidgetMount,
+} from "../lifecycle";
 
 export { readFilterFlag } from "./legacyFilterFlag";
 
 export type LegacyBootstrapResult = {
   mounted: number;
   widgets: string[];
+};
+
+export type LegacyBootstrapOptions = {
+  /** `auto` es el IIFE de la página. `explicit` es `sdk.mount(root)`. */
+  mode?: "auto" | "explicit";
 };
 
 const CONCIERGE_NODE = '[data-gf-theme="concierge"], [data-gafa-v2="concierge"]';
@@ -33,17 +43,40 @@ function autoMountConcierge(runtime: GafaSdk, doc: Document): boolean {
   return mountRegisteredWidget(runtime, "concierge", host);
 }
 
-export function bootstrapLegacyWidgets(runtime: GafaSdk, root: ParentNode = document): LegacyBootstrapResult {
+function widgetNodes(root: ParentNode, shortcode: string): HTMLElement[] {
+  const matches = [...root.querySelectorAll<HTMLElement>(`[data-gf-theme="${shortcode}"]`)];
+  if (root instanceof HTMLElement && root.getAttribute("data-gf-theme") === shortcode) {
+    matches.unshift(root);
+  }
+  return matches;
+}
+
+export function bootstrapLegacyWidgets(
+  runtime: GafaSdk,
+  root: ParentNode = document,
+  options: LegacyBootstrapOptions = {},
+): LegacyBootstrapResult {
   const widgets: string[] = [];
+  const mode = options.mode ?? "auto";
 
   // Los [data-gf-theme="purchase-button"] y [data-gf-buy] escuchan por
   // delegacion: una sola vez, aunque el socio vuelva a llamar bootstrap.
   runtime.enablePurchaseButtons(root instanceof Element ? root : undefined);
 
   bootstrapableWidgets().forEach((widget) => {
-    root.querySelectorAll<HTMLElement>(`[data-gf-theme="${widget.shortcode}"]`).forEach((element) => {
-      if (mountRegisteredWidget(runtime, widget.shortcode, element)) {
+    widgetNodes(root, widget.shortcode).forEach((element) => {
+      if (shouldSkipWidgetMount(element, mode)) return;
+      try {
+        if (!mountRegisteredWidget(runtime, widget.shortcode, element)) return;
+        markSdkRoot(element);
         widgets.push(widget.shortcode);
+      } catch (error) {
+        runtime.destroy(element);
+        clearSdkRoot(element);
+        console.warn(
+          `[gafa-sdk] No montó ${widget.shortcode}:`,
+          error instanceof Error ? error.message : error,
+        );
       }
     });
   });
