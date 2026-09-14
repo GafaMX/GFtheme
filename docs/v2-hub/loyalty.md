@@ -4,7 +4,7 @@ Los puntos viven **solo en el Hub**. No hay canje a crédito de tienda todavía 
 
 ## Qué se puntúa
 
-Sin `user_id` no hay puntos. Heartbeats y vistas de calendario **no** suman.
+Sin `user_id` no hay puntos. Heartbeats y vistas de calendario **no** suman. Una reserva **sí** tiene que ir con perfil: nombre y correo en `props`, no solo el id. Si el socio ya tenía sesión (token en localStorage) y el tracker no hidrataba `/me`, el ledger pintaba `Cuenta FJH4` sin correo aunque la reserva fuera de alguien registrado.
 
 | Evento | Default | Tope | Notas |
 | --- | --- | --- | --- |

@@ -4,17 +4,20 @@ import { parseAndNormalizeEvents } from "../src/ingest";
 
 function memoryDb() {
   const sqls: string[] = [];
+  const binds: unknown[][] = [];
   const db: D1Like = {
     prepare(query: string) {
       return {
-        bind(..._values: unknown[]) {
+        bind(...values: unknown[]) {
           return {
             async run() {
               sqls.push(query);
+              binds.push(values);
               return {};
             },
             async all() {
               sqls.push(query);
+              binds.push(values);
               return { results: [] };
             },
           };
@@ -30,7 +33,7 @@ function memoryDb() {
       );
     },
   };
-  return { db, sqls };
+  return { db, sqls, binds };
 }
 
 describe("ingest persist", () => {
@@ -60,5 +63,28 @@ describe("ingest persist", () => {
       parseAndNormalizeEvents({ event: "auth.login_succeeded", company_id: 1 }, {}),
     );
     expect(sqls.some((sql) => sql.includes("installations"))).toBe(false);
+  });
+
+  it("una reserva con perfil guarda nombre y correo en people", async () => {
+    const { db, sqls, binds } = memoryDb();
+    await persistEvents(
+      db,
+      parseAndNormalizeEvents(
+        {
+          event: "reservation.confirmed",
+          company_id: 80,
+          user_id: 44,
+          host: "hybrix.mx",
+          props: {
+            reservation_id: 9,
+            user_name: "Ana Ruiz",
+            user_email: "ana@hybrix.mx",
+          },
+        },
+        {},
+      ),
+    );
+    expect(sqls.some((sql) => sql.includes("INSERT INTO people"))).toBe(true);
+    expect(binds.some((row) => row.includes("Ana Ruiz") && row.includes("ana@hybrix.mx"))).toBe(true);
   });
 });
