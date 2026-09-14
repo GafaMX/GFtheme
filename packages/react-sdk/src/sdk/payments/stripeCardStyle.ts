@@ -94,6 +94,7 @@ const CARD_ELEMENT_TYPES = new Set(["card", "cardNumber", "cardExpiry", "cardCvc
 type StripeLike = {
   (...args: unknown[]): StripeInstance;
   __gafaTheme?: ColorScheme;
+  __gafaOriginal?: StripeLike;
 };
 
 type StripeInstance = {
@@ -110,24 +111,53 @@ declare global {
   }
 }
 
+function unwrapStripe(candidate: unknown): StripeLike | undefined {
+  if (typeof candidate !== "function") return undefined;
+  const fn = candidate as StripeLike;
+  return fn.__gafaOriginal ?? fn;
+}
+
+function invokeStripe(original: StripeLike, args: unknown[], asConstruct: boolean): StripeInstance {
+  if (asConstruct) {
+    return Reflect.construct(original as unknown as new (...a: unknown[]) => StripeInstance, args) as StripeInstance;
+  }
+  try {
+    return original(...args);
+  } catch {
+    return Reflect.construct(original as unknown as new (...a: unknown[]) => StripeInstance, args) as StripeInstance;
+  }
+}
+
 /**
  * Envuelve `window.Stripe` para que cada `elements.create('card')` reciba
  * texto claro u oscuro. Idempotente: si ya esta parcheado al mismo scheme, no
  * hace nada. Stripe.js puede llegar DESPUES (GafaPay lo baja on demand).
+ *
+ * El cleanup NO borra Stripe.js: GafaPay lo inyecta via el setter; si al
+ * desmontar hacemos `delete window.Stripe`, el script ya corrió y el form
+ * se queda en skeleton para siempre.
  */
 export function installStripeCardTheme(scheme: ColorScheme): () => void {
   if (typeof window === "undefined") return () => undefined;
 
-  const wrap = (candidate: unknown): StripeLike | undefined => {
-    if (typeof candidate !== "function") return undefined;
-    const original = candidate as StripeLike;
-    if (original.__gafaTheme === scheme) return original;
+  let raw = unwrapStripe(window.Stripe);
 
-    const patched = ((...args: unknown[]) => {
-      const instance = original(...args);
+  const wrap = (candidate: unknown): StripeLike | undefined => {
+    if (typeof candidate === "function") {
+      const fn = candidate as StripeLike;
+      if (fn.__gafaTheme === scheme && fn.__gafaOriginal) return fn;
+    }
+    const original = unwrapStripe(candidate);
+    if (!original) return undefined;
+    raw = original;
+
+    const patched = function StripePatched(this: unknown, ...args: unknown[]) {
+      const instance = invokeStripe(original, args, Boolean(new.target));
       return wrapStripeInstance(instance, scheme);
-    }) as StripeLike;
+    } as StripeLike;
     Object.assign(patched, original);
+    Object.setPrototypeOf(patched, Object.getPrototypeOf(original));
+    patched.__gafaOriginal = original;
     patched.__gafaTheme = scheme;
     return patched;
   };
@@ -149,26 +179,69 @@ export function installStripeCardTheme(scheme: ColorScheme): () => void {
   });
 
   return () => {
-    if (descriptor) Object.defineProperty(window, "Stripe", descriptor);
-    else delete window.Stripe;
+    const restore = raw ?? unwrapStripe(stored);
+    if (restore) {
+      Object.defineProperty(window, "Stripe", {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: restore,
+      });
+      return;
+    }
+    if (descriptor && descriptor.get !== undefined) {
+      Object.defineProperty(window, "Stripe", descriptor);
+      return;
+    }
+    if (descriptor && !descriptor.get) {
+      Object.defineProperty(window, "Stripe", descriptor);
+      return;
+    }
+    delete window.Stripe;
   };
+}
+
+/**
+ * Stripe.js reciente define `elements` como getter en el prototipo. Asignar
+ * `instance.elements = …` tira "which has only a getter" y tumba el checkout.
+ * Preferimos una propiedad propia que sombrea el getter; si no se puede,
+ * devolvemos un Proxy.
+ */
+function overrideMethod<T extends object>(target: T, key: string, impl: unknown): T {
+  try {
+    Object.defineProperty(target, key, {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: impl,
+    });
+    return target;
+  } catch {
+    return new Proxy(target, {
+      get(obj, prop, receiver) {
+        if (prop === key) return impl;
+        const value = Reflect.get(obj, prop, receiver);
+        return typeof value === "function" ? value.bind(obj) : value;
+      },
+    }) as T;
+  }
 }
 
 function wrapStripeInstance(instance: StripeInstance, scheme: ColorScheme): StripeInstance {
   const originalElements = instance.elements?.bind(instance);
   if (!originalElements) return instance;
-  instance.elements = (options?: unknown) => {
+  return overrideMethod(instance, "elements", (options?: unknown) => {
     const elements = originalElements(mergeStripeElementsOptions(options, scheme));
     const originalCreate = elements.create.bind(elements);
-    elements.create = (type: string, options: Record<string, unknown> = {}) => {
-      const nextOptions = CARD_ELEMENT_TYPES.has(type)
+    return overrideMethod(elements, "create", (type: string, options: Record<string, unknown> = {}) => {
+      const isCard = CARD_ELEMENT_TYPES.has(type);
+      const nextOptions = isCard
         ? { ...options, style: mergeStripeCardStyle(options.style, scheme) }
         : options;
-      return wrapCreatedElement(originalCreate(type, nextOptions), scheme);
-    };
-    return elements;
-  };
-  return instance;
+      const created = originalCreate(type, nextOptions);
+      return isCard ? wrapCreatedElement(created, scheme) : created;
+    });
+  });
 }
 
 type StripeUpdatable = {
@@ -181,10 +254,10 @@ function wrapCreatedElement(element: unknown, scheme: ColorScheme): unknown {
   const card = element as StripeUpdatable;
   if (typeof card.update !== "function") return element;
   const originalUpdate = card.update.bind(card);
-  card.update = (options: Record<string, unknown> = {}) =>
+  return overrideMethod(card, "update", (options: Record<string, unknown> = {}) =>
     originalUpdate({
       ...options,
       style: mergeStripeCardStyle(options.style, scheme),
-    });
-  return element;
+    }),
+  );
 }

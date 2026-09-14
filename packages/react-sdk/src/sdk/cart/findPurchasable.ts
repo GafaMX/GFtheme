@@ -67,11 +67,12 @@ export async function findPurchasableItem(
     : brands;
 
   for (const brand of ordered) {
-    const [combos, memberships] = await Promise.all([
+    const [combos, memberships, products] = await Promise.all([
       client.listCombos(brand.slug),
       client.listMemberships(brand.slug),
+      client.listProducts ? client.listProducts(brand.slug) : Promise.resolve([]),
     ]);
-    const item = matchInPools(preselect, { combos, memberships });
+    const item = matchInPools(preselect, { combos, memberships, products });
     if (!item) continue;
     return { item, type: lineTypeOf(item), brandSlug: brand.slug };
   }

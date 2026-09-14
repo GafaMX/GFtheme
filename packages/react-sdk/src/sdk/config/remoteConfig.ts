@@ -24,6 +24,8 @@ export const HUB_REMOTE_CONFIG_KEYS = [
   "THEME",
   "CONCIERGE",
   "concierge",
+  "CROSS_SELL",
+  "crossSell",
   "language",
   "apiBaseUrl",
   "companyId",
