@@ -154,21 +154,45 @@ export function installStripeCardTheme(scheme: ColorScheme): () => void {
   };
 }
 
+/**
+ * Stripe.js reciente define `elements` como getter en el prototipo. Asignar
+ * `instance.elements = …` tira "which has only a getter" y tumba el checkout.
+ * Preferimos una propiedad propia que sombrea el getter; si no se puede,
+ * devolvemos un Proxy.
+ */
+function overrideMethod<T extends object>(target: T, key: string, impl: unknown): T {
+  try {
+    Object.defineProperty(target, key, {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: impl,
+    });
+    return target;
+  } catch {
+    return new Proxy(target, {
+      get(obj, prop, receiver) {
+        if (prop === key) return impl;
+        const value = Reflect.get(obj, prop, receiver);
+        return typeof value === "function" ? value.bind(obj) : value;
+      },
+    }) as T;
+  }
+}
+
 function wrapStripeInstance(instance: StripeInstance, scheme: ColorScheme): StripeInstance {
   const originalElements = instance.elements?.bind(instance);
   if (!originalElements) return instance;
-  instance.elements = (options?: unknown) => {
+  return overrideMethod(instance, "elements", (options?: unknown) => {
     const elements = originalElements(mergeStripeElementsOptions(options, scheme));
     const originalCreate = elements.create.bind(elements);
-    elements.create = (type: string, options: Record<string, unknown> = {}) => {
+    return overrideMethod(elements, "create", (type: string, options: Record<string, unknown> = {}) => {
       const nextOptions = CARD_ELEMENT_TYPES.has(type)
         ? { ...options, style: mergeStripeCardStyle(options.style, scheme) }
         : options;
       return wrapCreatedElement(originalCreate(type, nextOptions), scheme);
-    };
-    return elements;
-  };
-  return instance;
+    });
+  });
 }
 
 type StripeUpdatable = {
@@ -181,10 +205,10 @@ function wrapCreatedElement(element: unknown, scheme: ColorScheme): unknown {
   const card = element as StripeUpdatable;
   if (typeof card.update !== "function") return element;
   const originalUpdate = card.update.bind(card);
-  card.update = (options: Record<string, unknown> = {}) =>
+  return overrideMethod(card, "update", (options: Record<string, unknown> = {}) =>
     originalUpdate({
       ...options,
       style: mergeStripeCardStyle(options.style, scheme),
-    });
-  return element;
+    }),
+  );
 }
