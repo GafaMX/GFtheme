@@ -98,14 +98,18 @@ export function presentPerson(row: {
   last_host?: string | null;
   last_seen_at?: string | null;
   path?: string | null;
+  props_json?: string | null;
 }): DirectoryPerson {
   const alias = personAlias(row.company_id, row.user_id);
+  const fromProps = identityFromProps(row.props_json);
+  const name = row.display_name?.trim() || fromProps.name;
+  const email = row.email?.trim() || fromProps.email;
   return {
     company_id: row.company_id,
     user_id: row.user_id,
     alias,
-    name: row.display_name?.trim() || `Cuenta ${alias}`,
-    email: row.email?.trim() || null,
+    name: name || `Cuenta ${alias}`,
+    email: email || null,
     host: row.last_host ?? null,
     site: row.last_host ? `${row.last_host}${row.path && row.path !== "/" ? row.path : ""}` : null,
     last_seen_at: row.last_seen_at ?? null,

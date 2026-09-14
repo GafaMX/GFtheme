@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONFIG_SECTIONS,
   allFields,
   configFromDraft,
   draftFromConfig,
@@ -25,6 +26,17 @@ describe("catálogo de opciones", () => {
       expect(field.label.length, field.key).toBeGreaterThan(2);
       expect(field.help.length, field.key).toBeGreaterThan(20);
     }
+  });
+
+  it("parte los colores por dónde aplican y deja pintar el texto del botón", () => {
+    const marca = CONFIG_SECTIONS.find((section) => section.id === "marca");
+    expect(marca?.groups.map((group) => group.title)).toEqual(
+      expect.arrayContaining(["Botones", "Ventanas y fondos", "Letras y líneas", "Avisos"]),
+    );
+    const brandText = allFields().find((field) => field.key === "theme.colors.brandText");
+    expect(brandText?.label).toMatch(/texto sobre el botón/i);
+    expect(brandText?.hint).toMatch(/letras/i);
+    expect(allFields().find((field) => field.key === "theme.colors.brand")?.hint).toMatch(/fondo/i);
   });
 
   it("no expone ningún secreto", () => {
@@ -95,6 +107,54 @@ describe("formulario -> partial", () => {
     expect(configFromDraft({}, draft)).toEqual({ BRAND_ID: 171 });
   });
 
+  it("guarda la sugerencia del pago eligiendo productos, no IDs a mano", () => {
+    const draft = draftFromConfig({});
+    draft["CROSS_SELL.enabled"] = "true";
+    draft["CROSS_SELL.payTitle"] = " ¿Donación? ";
+    draft["CROSS_SELL.thanksTitle"] = "¿Proteína?";
+    draft["CROSS_SELL.item"] = "combo:971";
+    expect(configFromDraft({}, draft)).toEqual({
+      CROSS_SELL: {
+        enabled: true,
+        payTitle: "¿Donación?",
+        thanksTitle: "¿Proteína?",
+        itemType: "combo",
+        itemId: 971,
+      },
+    });
+  });
+
+  it("guarda un segundo y tercer producto opcionales", () => {
+    const draft = draftFromConfig({});
+    draft["CROSS_SELL.enabled"] = "true";
+    draft["CROSS_SELL.item"] = "combo:971";
+    draft["CROSS_SELL.item2"] = "combo:972";
+    draft["CROSS_SELL.item3"] = "membership:670";
+    expect(configFromDraft({}, draft)).toEqual({
+      CROSS_SELL: {
+        enabled: true,
+        itemType: "combo",
+        itemId: 971,
+        itemType2: "combo",
+        itemId2: 972,
+        itemType3: "membership",
+        itemId3: 670,
+      },
+    });
+  });
+
+  it("vuelve a pintar el picker desde itemType + itemId guardados", () => {
+    expect(
+      draftFromConfig({
+        CROSS_SELL: { enabled: true, itemType: "product", itemId: 9101, itemType2: "combo", itemId2: 971 },
+      }),
+    ).toMatchObject({
+      "CROSS_SELL.item": "product:9101",
+      "CROSS_SELL.item2": "combo:971",
+      "CROSS_SELL.item3": "",
+    });
+  });
+
   it("conserva los ajustes avanzados que el formulario no pinta", () => {
     const base = {
       CONCIERGE: {
@@ -144,6 +204,18 @@ describe("avisos para humanos", () => {
     draft["theme.logoUrl"] = "https://buq.mx/logo.svg";
     draft["concierge.contact.whatsapp"] = "5215512345678";
     expect(validateDraft(draft)).toEqual({});
+  });
+
+  it("resume el producto elegido sin pedir el ID a mano", () => {
+    const summary = summarizeConfig({
+      CROSS_SELL: { enabled: true, itemType: "combo", itemId: 971 },
+    });
+    expect(summary).toEqual(
+      expect.arrayContaining([
+        { label: "Mostrar sugerencias en el pago", value: "Sí", section: "tienda", swatch: null },
+        { label: "Primer producto", value: "Paquete 971", section: "tienda", swatch: null },
+      ]),
+    );
   });
 
   it("resume en español lo que está prendido", () => {

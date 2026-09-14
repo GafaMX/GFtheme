@@ -269,6 +269,7 @@ function buildPurchaseFormBody(payload: InitialPurchasePayload): Record<string, 
     _token: payload.csrfToken ?? "",
     users_id: payload.userId,
     meetings_id: payload.meetingId ?? "",
+    reservations_id: payload.reservationId ?? "",
     meeting_data: "",
     payment_types_id: payload.paymentTypeId,
     discountCode: payload.discountCode ?? "",
@@ -933,6 +934,23 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       return unwrap(response)
         .map((item) => normalizeCatalogItem(item, "membership"))
         .filter((item): item is CatalogItem => Boolean(item));
+    },
+
+    async listProducts(brandSlug) {
+      if (!brandSlug) return [];
+      for (const path of [`/brand/${brandSlug}/product`, `/brand/${brandSlug}/products`]) {
+        try {
+          const response = await apiGet<PaginatedResponse<RawCatalogItem>>(path, {
+            only_actives: true,
+          });
+          return unwrap(response)
+            .map((item) => normalizeCatalogItem(item, "product"))
+            .filter((item): item is CatalogItem => Boolean(item));
+        } catch {
+          // El endpoint de tienda no es público en todas las compañías.
+        }
+      }
+      return [];
     },
 
     async listMeetings(filters: MeetingFilters = {}) {
