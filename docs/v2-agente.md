@@ -681,7 +681,9 @@ del calendario.** Si la marca no lo pidió, **no pongas el nodo**.
 **Estado:** oferta **dentro del checkout** (footer fijo de “Tu pedido” y
 thank you). El shortcode de página `cross-sell` sigue **sin `mount`**.
 
-Se configura en el Hub (Tienda → Sugerencia al pagar) o en options:
+Se configura en el Hub (Tienda → Sugerencia al pagar). Ahí se elige el
+paquete, la membresía o el producto **por nombre**; el ID de gafa.fit se
+guarda solo. También se puede poner en options:
 
 ```json
 "CROSS_SELL": {

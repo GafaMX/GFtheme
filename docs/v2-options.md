@@ -128,7 +128,7 @@ Detalle y ejemplo largo: [`v2-agente.md`](v2-agente.md) §11.
 
 ## `CROSS_SELL`
 
-Hasta **tres** productos en el **footer** del carrito (paso de pago) y en la página de gracias. Los títulos son texto libre: donación, proteína, un paquete extra, lo que el estudio quiera. Si hay varios, la lista scrollea para no aplastar el total.
+Hasta **tres** productos en el **footer** del carrito (paso de pago) y en la página de gracias. En el Hub se eligen por nombre (el ID se guarda solo). Los títulos son texto libre: donación, proteína, un paquete extra, lo que el estudio quiera. Si hay varios, la lista scrollea para no aplastar el total.
 
 ```json
 "CROSS_SELL": {

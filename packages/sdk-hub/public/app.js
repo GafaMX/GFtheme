@@ -8,7 +8,8 @@ import {
   triChoices,
   unmanagedPaths,
   validateDraft,
-} from "/configModel.js?v=concierge-auto-1";
+  parseCatalogToken,
+} from "/configModel.js?v=catalog-pick-1";
 
 const root = document.getElementById("root");
 
@@ -46,6 +47,7 @@ const state = {
   configSaving: false,
   configNotice: "",
   openTip: "",
+  catalog: { company_id: null, status: "idle", items: [], brands: [], warnings: [], error: "" },
   theme: readStoredTheme(),
 };
 
@@ -209,10 +211,12 @@ async function refresh() {
     } else if (state.view === "config") {
       const site = selectedSite();
       if (site?.company_id) {
+        void loadStudioCatalog(site.company_id);
         const row = await api(`/v1/admin/config${qs({ company_id: site.company_id })}`);
         state.remoteConfig = row;
         state.configDraft = draftFromConfig(row.config ?? {});
       } else {
+        state.catalog = { company_id: null, status: "idle", items: [], brands: [], warnings: [], error: "" };
         state.remoteConfig = { company_id: null, config: {}, updated_at: null, stripped: [] };
         state.configDraft = draftFromConfig({});
       }
@@ -1289,11 +1293,164 @@ function colorControl(field) {
   return h("div", { class: "color-row" }, swatch, text, clear);
 }
 
+const CATALOG_KIND_LABEL = {
+  combo: "Paquete",
+  membership: "Membresía",
+  product: "Producto",
+};
+
+let catalogSeq = 0;
+
+async function loadStudioCatalog(companyId, force = false) {
+  if (!companyId) {
+    state.catalog = { company_id: null, status: "idle", items: [], brands: [], warnings: [], error: "" };
+    return;
+  }
+  if (!force && state.catalog.company_id === companyId && (state.catalog.status === "ok" || state.catalog.status === "loading")) {
+    return;
+  }
+  const seq = ++catalogSeq;
+  state.catalog = {
+    company_id: companyId,
+    status: "loading",
+    items: state.catalog.company_id === companyId ? state.catalog.items : [],
+    brands: state.catalog.company_id === companyId ? state.catalog.brands : [],
+    warnings: [],
+    error: "",
+  };
+  try {
+    const row = await api(`/v1/admin/catalog${qs({ company_id: companyId })}`);
+    if (seq !== catalogSeq) return;
+    state.catalog = {
+      company_id: companyId,
+      status: "ok",
+      items: row.items ?? [],
+      brands: row.brands ?? [],
+      warnings: row.warnings ?? [],
+      error: "",
+    };
+  } catch {
+    if (seq !== catalogSeq) return;
+    state.catalog = {
+      company_id: companyId,
+      status: "error",
+      items: [],
+      brands: [],
+      warnings: [],
+      error: "No pude cargar el catálogo de este estudio.",
+    };
+  }
+  if (state.view === "config") render();
+}
+
+function catalogToken(item) {
+  return `${item.type}:${item.id}`;
+}
+
+function catalogItemLabel(item) {
+  return item.priceLabel ? `${item.name} · ${item.priceLabel}` : item.name;
+}
+
+function catalogGroups(items, brands) {
+  const brandCount = brands?.length || new Set(items.map((item) => item.brandName)).size;
+  const multi = brandCount > 1;
+  const kinds = [
+    ["combo", "Paquetes"],
+    ["membership", "Membresías"],
+    ["product", "Productos de tienda"],
+  ];
+  const groups = [];
+  for (const [type, label] of kinds) {
+    const ofType = items.filter((item) => item.type === type);
+    if (!ofType.length) continue;
+    if (!multi) {
+      groups.push({ label, items: ofType });
+      continue;
+    }
+    const names = [...new Set(ofType.map((item) => item.brandName))];
+    for (const name of names) {
+      groups.push({
+        label: `${label} · ${name}`,
+        items: ofType.filter((item) => item.brandName === name),
+      });
+    }
+  }
+  return groups;
+}
+
+function catalogStatusNote() {
+  const catalog = state.catalog;
+  if (!catalog || catalog.status === "idle") return null;
+  if (catalog.status === "loading" && !catalog.items.length) {
+    return h("p", { class: "muted group-note" }, "Cargando paquetes, membresías y productos de este estudio…");
+  }
+  if (catalog.status === "error") {
+    return h(
+      "div",
+      { class: "catalog-status" },
+      h("p", { class: "muted group-note" }, catalog.error),
+      h(
+        "button",
+        {
+          class: "btn ghost",
+          type: "button",
+          onClick: () => {
+            const companyId = selectedSite()?.company_id;
+            if (companyId) void loadStudioCatalog(companyId, true);
+          },
+        },
+        "Reintentar",
+      ),
+    );
+  }
+  if (catalog.warnings?.length) {
+    return h("p", { class: "muted group-note" }, catalog.warnings.join(" "));
+  }
+  return null;
+}
+
+function catalogControl(field) {
+  const value = String(state.configDraft[field.key] ?? "");
+  const items = state.catalog.items ?? [];
+  const groups = catalogGroups(items, state.catalog.brands);
+  const picked = parseCatalogToken(value);
+  const inList = Boolean(picked && items.some((item) => catalogToken(item) === value));
+  const blank = field.optional ? "Ninguno" : "Elige uno";
+  const loading = state.catalog.status === "loading" && !items.length;
+  const options = [
+    h("option", { value: "" }, loading ? "Cargando catálogo…" : blank),
+    picked && !inList
+      ? h(
+          "option",
+          { value },
+          `${CATALOG_KIND_LABEL[picked.type] ?? picked.type} ${picked.id} (ya no está en el catálogo)`,
+        )
+      : null,
+    ...groups.map((group) =>
+      h(
+        "optgroup",
+        { label: group.label },
+        group.items.map((item) => h("option", { value: catalogToken(item) }, catalogItemLabel(item))),
+      ),
+    ),
+  ];
+  return h(
+    "select",
+    {
+      value,
+      disabled: loading ? "" : null,
+      onChange: (event) => setField(field.key, event.target.value),
+    },
+    ...options,
+  );
+}
+
 function fieldControl(field) {
   const value = state.configDraft[field.key] ?? "";
   if (field.type === "switch") return switchControl(field);
   if (field.type === "tri") return triControl(field);
   if (field.type === "color") return colorControl(field);
+  if (field.type === "catalog") return catalogControl(field);
   if (field.type === "select") {
     return h(
       "select",
@@ -1349,6 +1506,7 @@ function configGroup(group) {
     { class: "panel config-group" },
     h("h4", {}, group.title),
     group.note ? h("p", { class: "muted group-note" }, group.note) : null,
+    group.title === "Sugerencia al pagar" ? catalogStatusNote() : null,
     h("div", { class: `fields${colorsOnly ? " fields-colors" : ""}` }, group.fields.map((field) => configField(field))),
   );
 }

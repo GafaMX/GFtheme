@@ -95,13 +95,12 @@ describe("formulario -> partial", () => {
     expect(configFromDraft({}, draft)).toEqual({ BRAND_ID: 171 });
   });
 
-  it("guarda la sugerencia del pago con títulos libres y un ID", () => {
+  it("guarda la sugerencia del pago eligiendo productos, no IDs a mano", () => {
     const draft = draftFromConfig({});
     draft["CROSS_SELL.enabled"] = "true";
     draft["CROSS_SELL.payTitle"] = " ¿Donación? ";
     draft["CROSS_SELL.thanksTitle"] = "¿Proteína?";
-    draft["CROSS_SELL.itemType"] = "combo";
-    draft["CROSS_SELL.itemId"] = "971";
+    draft["CROSS_SELL.item"] = "combo:971";
     expect(configFromDraft({}, draft)).toEqual({
       CROSS_SELL: {
         enabled: true,
@@ -116,12 +115,9 @@ describe("formulario -> partial", () => {
   it("guarda un segundo y tercer producto opcionales", () => {
     const draft = draftFromConfig({});
     draft["CROSS_SELL.enabled"] = "true";
-    draft["CROSS_SELL.itemType"] = "combo";
-    draft["CROSS_SELL.itemId"] = "971";
-    draft["CROSS_SELL.itemType2"] = "combo";
-    draft["CROSS_SELL.itemId2"] = "972";
-    draft["CROSS_SELL.itemType3"] = "membership";
-    draft["CROSS_SELL.itemId3"] = "670";
+    draft["CROSS_SELL.item"] = "combo:971";
+    draft["CROSS_SELL.item2"] = "combo:972";
+    draft["CROSS_SELL.item3"] = "membership:670";
     expect(configFromDraft({}, draft)).toEqual({
       CROSS_SELL: {
         enabled: true,
@@ -132,6 +128,18 @@ describe("formulario -> partial", () => {
         itemType3: "membership",
         itemId3: 670,
       },
+    });
+  });
+
+  it("vuelve a pintar el picker desde itemType + itemId guardados", () => {
+    expect(
+      draftFromConfig({
+        CROSS_SELL: { enabled: true, itemType: "product", itemId: 9101, itemType2: "combo", itemId2: 971 },
+      }),
+    ).toMatchObject({
+      "CROSS_SELL.item": "product:9101",
+      "CROSS_SELL.item2": "combo:971",
+      "CROSS_SELL.item3": "",
     });
   });
 
@@ -184,6 +192,18 @@ describe("avisos para humanos", () => {
     draft["theme.logoUrl"] = "https://buq.mx/logo.svg";
     draft["concierge.contact.whatsapp"] = "5215512345678";
     expect(validateDraft(draft)).toEqual({});
+  });
+
+  it("resume el producto elegido sin pedir el ID a mano", () => {
+    const summary = summarizeConfig({
+      CROSS_SELL: { enabled: true, itemType: "combo", itemId: 971 },
+    });
+    expect(summary).toEqual(
+      expect.arrayContaining([
+        { label: "Mostrar sugerencias en el pago", value: "Sí", section: "tienda", swatch: null },
+        { label: "Primer producto", value: "Paquete 971", section: "tienda", swatch: null },
+      ]),
+    );
   });
 
   it("resume en español lo que está prendido", () => {

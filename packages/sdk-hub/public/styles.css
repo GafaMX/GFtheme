@@ -538,7 +538,14 @@ a.widget-card:hover { border-color: var(--focus-soft); }
   text-transform: uppercase;
   color: var(--accent-text);
 }
-.group-note { margin: 8px 0 0; font-size: 13px; line-height: 1.5; max-width: 74ch; }
+.catalog-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.catalog-status .group-note { margin: 0; }
 .fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -546,7 +553,7 @@ a.widget-card:hover { border-color: var(--focus-soft); }
   margin-top: 18px;
 }
 .fields-colors { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.field-longtext, .field-switch { grid-column: 1 / -1; }
+.field-longtext, .field-switch, .field-catalog { grid-column: 1 / -1; }
 
 .field { display: grid; gap: 8px; align-content: start; }
 .field-head { display: flex; align-items: center; gap: 6px; }

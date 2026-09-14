@@ -32,6 +32,40 @@ function color(key, path, label, help, placeholder) {
   return { key, path, type: "color", label, help, placeholder };
 }
 
+function catalogPick(slot, label, help) {
+  const suffix = slot === 1 ? "" : String(slot);
+  return {
+    key: `CROSS_SELL.item${suffix}`,
+    type: "catalog",
+    path: ["CROSS_SELL", `itemId${suffix}`],
+    typePath: ["CROSS_SELL", `itemType${suffix}`],
+    idPath: ["CROSS_SELL", `itemId${suffix}`],
+    label,
+    help,
+    optional: slot > 1,
+  };
+}
+
+const CATALOG_KIND_LABEL = {
+  combo: "Paquete",
+  membership: "Membresía",
+  product: "Producto",
+};
+
+export function encodeCatalogToken(type, id) {
+  const kind = typeof type === "string" ? type.trim() : "";
+  const n = Number(id);
+  if (!CATALOG_KIND_LABEL[kind] || !Number.isFinite(n) || n <= 0) return "";
+  return `${kind}:${n}`;
+}
+
+export function parseCatalogToken(value) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  const match = raw.match(/^(combo|membership|product):(\d+)$/);
+  if (!match) return null;
+  return { type: match[1], id: Number(match[2]) };
+}
+
 function radius(key, label, help, placeholder) {
   return {
     key: `radius.${key}`,
@@ -359,7 +393,7 @@ export const CONFIG_SECTIONS = [
       },
       {
         title: "Sugerencia al pagar",
-        note: "Hasta tres productos en el pie de “Tu pedido” (pago) y en la página de gracias. El título lo escribes tú: donación, proteína, un paquete extra… Si pones varios, la lista scrollea para no aplastar el total.",
+        note: "Hasta tres cosas del catálogo de este estudio, en el pie de “Tu pedido” (pago) y en la página de gracias. El título lo escribes tú: donación, proteína, un paquete extra… El ID se guarda solo.",
         fields: [
           {
             key: "CROSS_SELL.enabled",
@@ -384,75 +418,9 @@ export const CONFIG_SECTIONS = [
             help: "El mismo concepto, pero cuando ya pagó o reservó. También es texto libre.",
             placeholder: "¿Algo más para después de tu clase?",
           },
-          {
-            key: "CROSS_SELL.itemType",
-            path: ["CROSS_SELL", "itemType"],
-            type: "select",
-            label: "Tipo de producto",
-            help: "Paquete, membresía o producto de tienda (agua, proteína, donación). Tiene que existir y estar activo en gafa.fit.",
-            choices: options(
-              [
-                ["combo", "Paquete"],
-                ["membership", "Membresía"],
-                ["product", "Producto de tienda"],
-              ],
-              "Paquete",
-            ),
-          },
-          {
-            key: "CROSS_SELL.itemId",
-            path: ["CROSS_SELL", "itemId"],
-            type: "number",
-            label: "Número del primer producto",
-            help: "El ID de gafa.fit. En Fitspin, por ejemplo, el paquete “1 clase” es 971. Si el ID no existe o ya está en el carrito, se omite.",
-            placeholder: "971",
-          },
-          {
-            key: "CROSS_SELL.itemType2",
-            path: ["CROSS_SELL", "itemType2"],
-            type: "select",
-            label: "Segundo producto (tipo)",
-            help: "Opcional. Otro paquete, membresía o producto de tienda.",
-            choices: options(
-              [
-                ["combo", "Paquete"],
-                ["membership", "Membresía"],
-                ["product", "Producto de tienda"],
-              ],
-              "Ninguno",
-            ),
-          },
-          {
-            key: "CROSS_SELL.itemId2",
-            path: ["CROSS_SELL", "itemId2"],
-            type: "number",
-            label: "Número del segundo producto",
-            help: "Opcional. Si lo dejas vacío, no se suma un segundo.",
-            placeholder: "972",
-          },
-          {
-            key: "CROSS_SELL.itemType3",
-            path: ["CROSS_SELL", "itemType3"],
-            type: "select",
-            label: "Tercer producto (tipo)",
-            help: "Opcional. Tercer paquete, membresía o producto de tienda.",
-            choices: options(
-              [
-                ["combo", "Paquete"],
-                ["membership", "Membresía"],
-                ["product", "Producto de tienda"],
-              ],
-              "Ninguno",
-            ),
-          },
-          {
-            key: "CROSS_SELL.itemId3",
-            path: ["CROSS_SELL", "itemId3"],
-            type: "number",
-            label: "Número del tercer producto",
-            help: "Opcional. Si hay más de dos, la lista scrollea en el carrito.",
-            placeholder: "2878",
-          },
+          catalogPick(1, "Primer producto", "Elige del catálogo de este estudio. El número de gafa.fit se guarda solo; tú no lo tienes que copiar."),
+          catalogPick(2, "Segundo producto", "Opcional. Otro paquete, membresía o producto. Si lo dejas vacío, no se suma un segundo."),
+          catalogPick(3, "Tercer producto", "Opcional. Si hay más de dos, la lista scrollea en el carrito para no aplastar el total."),
         ],
       },
       {
@@ -686,6 +654,10 @@ export function draftFromConfig(config) {
   const source = normalizeConfig(config);
   const draft = { conciergeEnabled: source.CONCIERGE != null && source.CONCIERGE !== false };
   for (const field of allFields()) {
+    if (field.type === "catalog") {
+      draft[field.key] = encodeCatalogToken(getAtPath(source, field.typePath), getAtPath(source, field.idPath));
+      continue;
+    }
     draft[field.key] = draftValue(field, getAtPath(source, field.path));
   }
   return draft;
@@ -720,6 +692,17 @@ export function configFromDraft(base, draft) {
   for (const field of allFields()) {
     const insideConcierge = field.path[0] === "CONCIERGE";
     if (insideConcierge && !conciergeOn) continue;
+    if (field.type === "catalog") {
+      const picked = parseCatalogToken(draft[field.key]);
+      if (!picked) {
+        deleteAtPath(next, field.typePath);
+        deleteAtPath(next, field.idPath);
+      } else {
+        setAtPath(next, field.typePath, picked.type);
+        setAtPath(next, field.idPath, picked.id);
+      }
+      continue;
+    }
     const value = storedValue(field, draft[field.key]);
     if (value === undefined) deleteAtPath(next, field.path);
     else setAtPath(next, field.path, value);
@@ -747,6 +730,8 @@ export function validateDraft(draft) {
       errors[field.key] = "Solo números, con la lada del país y sin el +. Ejemplo: 5215512345678.";
     } else if (field.type === "number" && !(Number.isFinite(Number(raw)) && Number(raw) > 0)) {
       errors[field.key] = "Tiene que ser un número mayor que cero.";
+    } else if (field.type === "catalog" && !parseCatalogToken(raw)) {
+      errors[field.key] = "Elige un paquete, membresía o producto de la lista.";
     } else if (field.type === "px" && !(Number.isFinite(Number(raw)) && Number(raw) >= 0)) {
       errors[field.key] = "Tiene que ser un número de píxeles, por ejemplo 16.";
     }
@@ -757,6 +742,11 @@ export function validateDraft(draft) {
 function labelForValue(field, raw) {
   if (field.type === "tri") return raw === true ? "Sí" : "No";
   if (field.type === "px") return `${draftValue(field, raw)} px`;
+  if (field.type === "catalog") {
+    const picked = parseCatalogToken(raw) ?? parseCatalogToken(encodeCatalogToken(undefined, raw));
+    if (!picked) return String(raw);
+    return `${CATALOG_KIND_LABEL[picked.type]} ${picked.id}`;
+  }
   if (field.choices) {
     const match = field.choices.find((choice) => choice.value === String(raw));
     return match ? match.label : String(raw);
@@ -774,6 +764,17 @@ export function summarizeConfig(config) {
     out.push({ label: "Concierge", value: "Encendido y ajustado", section: "concierge" });
   }
   for (const field of allFields()) {
+    if (field.type === "catalog") {
+      const token = encodeCatalogToken(getAtPath(source, field.typePath), getAtPath(source, field.idPath));
+      if (!token) continue;
+      out.push({
+        label: field.label,
+        value: labelForValue(field, token),
+        section: field.section,
+        swatch: null,
+      });
+      continue;
+    }
     const raw = getAtPath(source, field.path);
     if (raw == null || typeof raw === "object") continue;
     out.push({
@@ -789,7 +790,12 @@ export function summarizeConfig(config) {
 /** Claves guardadas que este formulario no pinta: se conservan al guardar. */
 export function unmanagedPaths(config) {
   const source = normalizeConfig(config);
-  const known = new Set(allFields().map((field) => field.path.join(".")));
+  const known = new Set();
+  for (const field of allFields()) {
+    if (field.path) known.add(field.path.join("."));
+    if (field.typePath) known.add(field.typePath.join("."));
+    if (field.idPath) known.add(field.idPath.join("."));
+  }
   const skipRoots = new Set(["COMPANY_ID", "API_CLIENT"]);
   const out = [];
   const walk = (node, path) => {

@@ -9,16 +9,20 @@ export type ConfigFieldType =
   | "px"
   | "color"
   | "select"
+  | "catalog"
   | "tri"
   | "switch";
 
 export type ConfigField = {
   key: string;
   path?: string[];
+  typePath?: string[];
+  idPath?: string[];
   type: ConfigFieldType;
   label: string;
   help: string;
   placeholder?: string;
+  optional?: boolean;
   choices?: ConfigChoice[];
 };
 
@@ -60,3 +64,5 @@ export function validateDraft(draft: ConfigDraft): Record<string, string>;
 export function summarizeConfig(config: unknown): ConfigSummaryItem[];
 export function unmanagedPaths(config: unknown): string[];
 export function sameConfig(a: unknown, b: unknown): boolean;
+export function encodeCatalogToken(type: unknown, id: unknown): string;
+export function parseCatalogToken(value: unknown): { type: string; id: number } | null;
