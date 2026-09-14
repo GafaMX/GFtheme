@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONFIG_SECTIONS,
   allFields,
   configFromDraft,
   draftFromConfig,
@@ -25,6 +26,17 @@ describe("catálogo de opciones", () => {
       expect(field.label.length, field.key).toBeGreaterThan(2);
       expect(field.help.length, field.key).toBeGreaterThan(20);
     }
+  });
+
+  it("parte los colores por dónde aplican y deja pintar el texto del botón", () => {
+    const marca = CONFIG_SECTIONS.find((section) => section.id === "marca");
+    expect(marca?.groups.map((group) => group.title)).toEqual(
+      expect.arrayContaining(["Botones", "Ventanas y fondos", "Letras y líneas", "Avisos"]),
+    );
+    const brandText = allFields().find((field) => field.key === "theme.colors.brandText");
+    expect(brandText?.label).toMatch(/texto sobre el botón/i);
+    expect(brandText?.hint).toMatch(/letras/i);
+    expect(allFields().find((field) => field.key === "theme.colors.brand")?.hint).toMatch(/fondo/i);
   });
 
   it("no expone ningún secreto", () => {

@@ -28,8 +28,8 @@ function options(pairs, blank) {
   return [{ value: "", label: blank }, ...pairs.map(([value, label]) => ({ value, label }))];
 }
 
-function color(key, path, label, help, placeholder) {
-  return { key, path, type: "color", label, help, placeholder };
+function color(key, path, label, help, placeholder, hint) {
+  return { key, path, type: "color", label, help, placeholder, hint };
 }
 
 function catalogPick(slot, label, help) {
@@ -89,7 +89,7 @@ export const CONFIG_SECTIONS = [
   {
     id: "marca",
     label: "Marca",
-    blurb: "Cómo se ve el SDK dentro del sitio: colores, logo, tipografía y bordes.",
+    blurb: "Cómo se ve el SDK dentro del sitio. Los colores están partidos por dónde aplican (botones, ventana, letras). Lo vacío se calcula solo.",
     groups: [
       {
         title: "Claro u oscuro",
@@ -150,20 +150,123 @@ export const CONFIG_SECTIONS = [
         ],
       },
       {
-        title: "Colores",
-        note: "Lo que dejes vacío se calcula solo a partir del color de marca. No hace falta llenar todo.",
+        title: "Botones",
+        note: "El color de marca es el fondo del botón. Las letras encima se eligen solas (blanco o negro) salvo que las pongas tú. Míralo en la vista previa de al lado: el recuadro “Reservar” es este par.",
         fields: [
-          color("theme.colors.brand", ["THEME", "colors", "brand"], "Color de marca", "El principal: botones, ligas y detalles importantes.", "#111827"),
-          color("theme.colors.accent", ["THEME", "colors", "accent"], "Color de acento", "El segundo color, para detalles. Si lo dejas vacío se usa el de marca.", "#f97316"),
-          color("theme.colors.background", ["THEME", "colors", "background"], "Fondo", "El fondo de las pantallas del SDK. Úsalo solo si el sitio tiene un fondo muy distinto.", "#ffffff"),
-          color("theme.colors.surface", ["THEME", "colors", "surface"], "Fondo de tarjetas", "El color de las tarjetas y cajas que van encima del fondo.", "#f8fafc"),
-          color("theme.colors.surfaceRaised", ["THEME", "colors", "surfaceRaised"], "Fondo de campos", "Cajitas de texto, menús y todo lo que se ve “levantado”.", "#ffffff"),
-          color("theme.colors.text", ["THEME", "colors", "text"], "Texto", "El color de las letras normales.", "#111827"),
-          color("theme.colors.mutedText", ["THEME", "colors", "mutedText"], "Texto secundario", "Las letras chiquitas y grises: ayudas, fechas, notas.", "#6b7280"),
-          color("theme.colors.border", ["THEME", "colors", "border"], "Líneas", "El color de los bordes y separadores.", "#e5e7eb"),
-          color("theme.colors.success", ["THEME", "colors", "success"], "Éxito", "Verde de “todo salió bien”: confirmaciones y lugares disponibles.", "#16a34a"),
-          color("theme.colors.warning", ["THEME", "colors", "warning"], "Aviso", "Amarillo de “ojo con esto”: pocos lugares, avisos.", "#f59e0b"),
-          color("theme.colors.danger", ["THEME", "colors", "danger"], "Error", "Rojo de “algo falló”: errores y cancelaciones.", "#dc2626"),
+          color(
+            "theme.colors.brand",
+            ["THEME", "colors", "brand"],
+            "Fondo del botón",
+            "Pinta el fondo de Entrar, Pagar, Reservar, Crear cuenta y la pestaña activa del checkout. No pinta el texto de la ventana ni los campos. Si el sitio ya manda un color, déjalo vacío.",
+            "#111827",
+            "Dónde: fondo de Entrar / Pagar / Reservar / Crear cuenta.",
+          ),
+          color(
+            "theme.colors.brandText",
+            ["THEME", "colors", "brandText"],
+            "Texto sobre el botón",
+            "Las letras ENCIMA de esos mismos botones (Entrar, Pagar, Reservar). No es el título de la ventana ni el Entrar del header del sitio. Si lo dejas vacío, el SDK pone blanco o negro para que se lea sobre el fondo. Un lima claro casi siempre pide negro.",
+            "#111111",
+            "Dónde: letras de Entrar / Pagar / Reservar. Vacío = automático.",
+          ),
+          color(
+            "theme.colors.accent",
+            ["THEME", "colors", "accent"],
+            "Botón secundario",
+            "Detalles y el botón de contorno (por ejemplo “Ver horarios”). Si lo dejas vacío, copia el fondo del botón principal.",
+            "#f97316",
+            "Dónde: ligas, foco y el botón fantasma al lado del principal.",
+          ),
+        ],
+      },
+      {
+        title: "Ventanas y fondos",
+        note: "Tres capas: el velo detrás, el recuadro de la ventana, y las cajitas de adentro (Email, Contraseña). La vista previa las etiqueta.",
+        fields: [
+          color(
+            "theme.colors.background",
+            ["THEME", "colors", "background"],
+            "Velo / fondo detrás",
+            "El fondo detrás de la ventana de login, checkout y cuenta. Casi nunca hace falta tocarlo: el SDK lo saca del color de marca.",
+            "#ffffff",
+            "Dónde: el área alrededor de la ventana, no el recuadro.",
+          ),
+          color(
+            "theme.colors.surface",
+            ["THEME", "colors", "surface"],
+            "Recuadro de la ventana",
+            "El panel de login, checkout y “Tu pedido”. Es el fondo grande de la tarjeta, no el de los campos.",
+            "#f8fafc",
+            "Dónde: la tarjeta de login / checkout / cuenta.",
+          ),
+          color(
+            "theme.colors.surfaceRaised",
+            ["THEME", "colors", "surfaceRaised"],
+            "Cajitas de adentro",
+            "Campos de Email y Contraseña, líneas del pedido y menús que se ven un poco más altos que la ventana.",
+            "#ffffff",
+            "Dónde: inputs de Email / Contraseña y cajas internas.",
+          ),
+        ],
+      },
+      {
+        title: "Letras y líneas",
+        note: "Esto es el texto de la ventana, no el de los botones. El de los botones está en “Texto sobre el botón”.",
+        fields: [
+          color(
+            "theme.colors.text",
+            ["THEME", "colors", "text"],
+            "Títulos y texto",
+            "Títulos y letras normales dentro de la ventana: “Inicia sesión”, “Tu pedido”, nombres de clase. No pinta las letras del botón Pagar.",
+            "#111827",
+            "Dónde: títulos (“Inicia sesión”, “Tu pedido”).",
+          ),
+          color(
+            "theme.colors.mutedText",
+            ["THEME", "colors", "mutedText"],
+            "Subtítulos y ayudas",
+            "Letras chiquitas: “o continúa con correo”, fechas, notas, precios secundarios.",
+            "#6b7280",
+            "Dónde: textos grises de ayuda, no los títulos.",
+          ),
+          color(
+            "theme.colors.border",
+            ["THEME", "colors", "border"],
+            "Bordes de campos",
+            "Líneas de los inputs y separadores dentro de la ventana.",
+            "#e5e7eb",
+            "Dónde: borde de Email / Contraseña y divisores.",
+          ),
+        ],
+      },
+      {
+        title: "Avisos",
+        note: "Colores de estado. Si los dejas vacíos se calculan solos.",
+        fields: [
+          color(
+            "theme.colors.success",
+            ["THEME", "colors", "success"],
+            "Éxito",
+            "Verde de “todo salió bien”: confirmaciones y lugares disponibles en el calendario.",
+            "#16a34a",
+            "Dónde: confirmaciones y lugares libres.",
+          ),
+          color(
+            "theme.colors.warning",
+            ["THEME", "colors", "warning"],
+            "Aviso",
+            "Amarillo de “ojo con esto”: pocos lugares, avisos.",
+            "#f59e0b",
+            "Dónde: pocos lugares y avisos.",
+          ),
+          color(
+            "theme.colors.danger",
+            ["THEME", "colors", "danger"],
+            "Error",
+            "Rojo de “algo falló”: errores de pago, cancelaciones, toasts de error.",
+            "#dc2626",
+            "Dónde: errores y cancelaciones.",
+          ),
         ],
       },
       {
@@ -393,7 +496,7 @@ export const CONFIG_SECTIONS = [
       },
       {
         title: "Sugerencia al pagar",
-        note: "Hasta tres cosas del catálogo de este estudio, en el pie de “Tu pedido” (pago) y en la página de gracias. El título lo escribes tú: donación, proteína, un paquete extra… El ID se guarda solo.",
+        note: "Hasta tres cosas del catálogo de este estudio, en el pie de “Tu pedido” (pago) y en la página de gracias. El título lo escribes tú. Traemos también lo que está oculto del Home. Si no salen productos de tienda (ropa, merch), es porque gafa.fit no publica ese listado — no es un filtro nuestro.",
         fields: [
           {
             key: "CROSS_SELL.enabled",

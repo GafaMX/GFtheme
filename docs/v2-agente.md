@@ -271,6 +271,7 @@ El host pinta `--sdk-*` / `html.fitspin-dark`.
 | `colors.*` | CSS | Default si se omite |
 | --- | --- | --- |
 | `brand` | `--gafa-color-primary` + alias `--gafa-color-brand` | paleta del scheme |
+| `brandText` | `--gafa-color-primary-text` + alias `--gafa-color-brand-text` | auto: blanco o negro sobre `brand` |
 | `accent` | `--gafa-color-accent` | = brand |
 | `background` `surface` `surfaceRaised` | `--gafa-color-*` | derivados del scheme |
 | `text` `mutedText` `border` | `--gafa-color-*` | derivados |

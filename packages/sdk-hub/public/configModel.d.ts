@@ -22,6 +22,7 @@ export type ConfigField = {
   label: string;
   help: string;
   placeholder?: string;
+  hint?: string;
   optional?: boolean;
   choices?: ConfigChoice[];
 };

@@ -1166,22 +1166,43 @@ function paintPreview(node, config) {
   );
   const dark = theme.colorScheme === "dark";
   const brand = colors.brand || (dark ? "#f3d48a" : "#111827");
+  const brandText = colors.brandText || readableOnHex(brand);
   const accent = colors.accent || brand;
-  const background = colors.background || (dark ? "#14161c" : "#ffffff");
-  const surface = colors.surface || (dark ? "#1b1e26" : "#f8fafc");
+  const background = colors.background || (dark ? "#14161c" : "#e8eaef");
+  const surface = colors.surface || (dark ? "#1b1e26" : "#ffffff");
+  const surfaceRaised = colors.surfaceRaised || (dark ? "#262b36" : "#f4f5f7");
   const text = colors.text || (dark ? "#f4f1ea" : "#111827");
   const muted = colors.mutedText || (dark ? "#9aa3b5" : "#6b7280");
-  const border = colors.border || (dark ? "rgba(255,255,255,.12)" : "#e5e7eb");
+  const border = colors.border || (dark ? "#3a4150" : "#e5e7eb");
   const radiusMd = theme.radius?.md || "16px";
   node.style.setProperty("--pv-brand", brand);
+  node.style.setProperty("--pv-brand-text", brandText);
   node.style.setProperty("--pv-accent", accent);
   node.style.setProperty("--pv-bg", background);
   node.style.setProperty("--pv-surface", surface);
+  node.style.setProperty("--pv-raised", surfaceRaised);
   node.style.setProperty("--pv-text", text);
   node.style.setProperty("--pv-muted", muted);
   node.style.setProperty("--pv-border", border);
   node.style.setProperty("--pv-radius", radiusMd);
   if (theme.typography?.fontFamily) node.style.setProperty("--pv-font", theme.typography.fontFamily);
+}
+
+function readableOnHex(hex) {
+  const clean = String(hex || "").replace("#", "").trim();
+  const full =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean;
+  if (full.length !== 6) return "#ffffff";
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return l > 0.62 ? "#0b0b0d" : "#ffffff";
 }
 
 function tip(id, text) {
@@ -1348,7 +1369,10 @@ function catalogToken(item) {
 }
 
 function catalogItemLabel(item) {
-  return item.priceLabel ? `${item.name} · ${item.priceLabel}` : item.name;
+  const bits = [item.name];
+  if (item.priceLabel) bits.push(item.priceLabel);
+  if (item.hiddenFromHome) bits.push("oculto en el sitio");
+  return bits.join(" · ");
 }
 
 function catalogGroups(items, brands) {
@@ -1493,6 +1517,7 @@ function configField(field) {
     "div",
     { class: `field field-${field.type}${error ? " has-error" : ""}` },
     h("div", { class: "field-head" }, h("span", { class: "field-label" }, field.label), tip(field.key, field.help)),
+    field.hint ? h("p", { class: "field-hint" }, field.hint) : null,
     h("div", { class: "field-control" }, fieldControl(field)),
     error ? h("p", { class: "field-error" }, error) : null,
   );
@@ -1518,17 +1543,48 @@ function configPreview() {
     h(
       "div",
       { class: "preview-card" },
-      h("div", { class: "preview-logo" }, "Tu marca"),
-      h("h5", {}, "Clase de las 7:00"),
-      h("p", {}, "Así se van a ver los botones y las tarjetas del SDK dentro del sitio."),
-      h("div", { class: "preview-actions" }, h("span", { class: "preview-btn" }, "Reservar"), h("span", { class: "preview-btn ghost" }, "Ver horarios")),
+      h("span", { class: "preview-kicker" }, "Ventana de checkout / login"),
+      h(
+        "div",
+        { class: "preview-row" },
+        h("h5", {}, "Inicia sesión"),
+        h("span", { class: "preview-tag" }, "títulos"),
+      ),
+      h(
+        "div",
+        { class: "preview-row" },
+        h("p", {}, "Usa el correo con el que reservaste."),
+        h("span", { class: "preview-tag muted" }, "ayudas"),
+      ),
+      h(
+        "div",
+        { class: "preview-field" },
+        h("span", { class: "preview-field-label" }, "Email"),
+        h("span", { class: "preview-field-value" }, "tu@estudio.com"),
+        h("span", { class: "preview-tag" }, "campos"),
+      ),
+      h(
+        "div",
+        { class: "preview-actions" },
+        h(
+          "span",
+          { class: "preview-btn-wrap" },
+          h("span", { class: "preview-btn" }, "Reservar"),
+          h("span", { class: "preview-tag on-brand" }, "fondo + texto del botón"),
+        ),
+        h("span", { class: "preview-btn ghost" }, "Ver horarios"),
+      ),
     ),
   );
   return h(
     "section",
     { class: "panel config-group preview-wrap" },
     h("h4", {}, "Vista previa"),
-    h("p", { class: "muted group-note" }, "Un ejemplo con los colores que llevas. No es el sitio real, es para que veas el contraste."),
+    h(
+      "p",
+      { class: "muted group-note" },
+      "Mini checkout con etiquetas: cada color del formulario pinta una parte. No es el sitio real; sirve para ver el contraste antes de guardar.",
+    ),
     node,
   );
 }

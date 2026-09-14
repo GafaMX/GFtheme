@@ -12,6 +12,8 @@ export type GafaCatalogItem = {
   brandId?: number;
   brandSlug: string;
   brandName: string;
+  /** Activo, pero oculto del Home / front. El picker del Hub igual lo muestra. */
+  hiddenFromHome?: boolean;
 };
 
 export type GafaBrand = {
@@ -86,7 +88,7 @@ export async function fetchGafaCatalog(input: {
       input.companyId,
       brand,
       "product",
-      ["/product", "/products"],
+      ["/product", "/products", "/producto", "/productos"],
       fetchImpl,
       warnings,
     );
@@ -100,7 +102,9 @@ export async function fetchGafaCatalog(input: {
 
   items.sort(compareCatalogItems);
   if (!items.some((item) => item.type === "product")) {
-    warnings.push("Este estudio no publica productos de tienda en gafa.fit.");
+    warnings.push(
+      "gafa.fit no publica un listado de productos de tienda para este estudio (ropa, merch, etc.). No es un filtro del Home: el endpoint no existe, así que el Hub no puede traerlos. Paquetes y membresías sí salen aunque estén ocultos en el sitio.",
+    );
   }
   return { items, brands: selected, warnings: unique(warnings) };
 }
@@ -220,6 +224,7 @@ type RawCatalogItem = {
   price?: unknown;
   price_final?: unknown;
   hide_in_front?: unknown;
+  hide_in_home?: unknown;
 };
 
 function normalizeBrand(raw: RawBrand): GafaBrand | null {
@@ -233,7 +238,7 @@ function normalizeBrand(raw: RawBrand): GafaBrand | null {
 }
 
 function normalizeItem(raw: RawCatalogItem, type: CatalogKind, brand: GafaBrand): GafaCatalogItem | null {
-  if (truthy(raw.hide_in_front)) return null;
+  // El picker es backoffice: trae también lo oculto del Home / front.
   const id = Number(raw.id);
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   if (!Number.isFinite(id) || id <= 0 || !name) return null;
@@ -247,6 +252,7 @@ function normalizeItem(raw: RawCatalogItem, type: CatalogKind, brand: GafaBrand)
     brandId: brand.id,
     brandSlug: brand.slug,
     brandName: brand.name,
+    hiddenFromHome: truthy(raw.hide_in_front) || truthy(raw.hide_in_home),
   };
 }
 

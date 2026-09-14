@@ -32,7 +32,7 @@ describe("gafaApiBaseUrl", () => {
 });
 
 describe("fetchGafaCatalog", () => {
-  it("junta paquetes y membresías, oculta hide_in_front y tolera productos 404", async () => {
+  it("junta paquetes y membresías, incluye lo oculto del Home y tolera productos 404", async () => {
     const fetchImpl: typeof fetch = async (input) => {
       const url = new URL(String(input));
       const path = url.pathname;
@@ -48,14 +48,19 @@ describe("fetchGafaCatalog", () => {
         return json(
           page([
             { id: 971, name: "1 clase", price: 330, price_final: 330, hide_in_front: 0 },
-            { id: 1644, name: "CORTESIA", price: 0, hide_in_front: 1 },
+            { id: 1644, name: "CORTESIA", price: 0, hide_in_front: 1, hide_in_home: 1 },
           ]),
         );
       }
       if (path === "/api/brand/fitspin/membership") {
         return json(page([{ id: 670, name: "Membresía pm", price_final: 1699 }]));
       }
-      if (path === "/api/brand/fitspin/product" || path === "/api/brand/fitspin/products") {
+      if (
+        path === "/api/brand/fitspin/product" ||
+        path === "/api/brand/fitspin/products" ||
+        path === "/api/brand/fitspin/producto" ||
+        path === "/api/brand/fitspin/productos"
+      ) {
         return json({ message: "not found" }, 404);
       }
       return json({ message: path }, 500);
@@ -70,10 +75,45 @@ describe("fetchGafaCatalog", () => {
     expect(catalog.brands.map((brand) => brand.slug)).toEqual(["fitspin"]);
     expect(catalog.items.map((item) => `${item.type}:${item.id}:${item.name}`)).toEqual([
       "combo:971:1 clase",
+      "combo:1644:CORTESIA",
       "membership:670:Membresía pm",
     ]);
     expect(catalog.items[0]?.priceLabel).toBe("$330");
-    expect(catalog.warnings.some((line) => /productos de tienda/i.test(line))).toBe(true);
+    expect(catalog.items.find((item) => item.id === 1644)?.hiddenFromHome).toBe(true);
+    expect(catalog.warnings.some((line) => /no publica un listado de productos de tienda/i.test(line))).toBe(true);
+  });
+
+  it("trae productos de tienda aunque estén ocultos del Home", async () => {
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = new URL(String(input));
+      const path = url.pathname;
+      if (path === "/api/brand") {
+        return json(page([{ id: 86, name: "Fitspin Cdmx", slug: "fitspin", status: "active" }]));
+      }
+      if (path === "/api/brand/fitspin/combos") return json(page([]));
+      if (path === "/api/brand/fitspin/membership") return json(page([]));
+      if (path === "/api/brand/fitspin/product") {
+        return json(
+          page([
+            { id: 9101, name: "TOP BÁSICO", price: 890, hide_in_front: 1, hide_in_home: 1 },
+            { id: 9102, name: "LEGGINGS", price: 1200, hide_in_front: 0 },
+          ]),
+        );
+      }
+      return json({ message: path }, 500);
+    };
+
+    const catalog = await fetchGafaCatalog({
+      companyId: 80,
+      apiBaseUrl: "https://buq.partners",
+      fetchImpl,
+    });
+    expect(catalog.items.map((item) => `${item.type}:${item.id}:${item.name}`)).toEqual([
+      "product:9102:LEGGINGS",
+      "product:9101:TOP BÁSICO",
+    ]);
+    expect(catalog.items.find((item) => item.id === 9101)?.hiddenFromHome).toBe(true);
+    expect(catalog.warnings).toEqual([]);
   });
 
   it("pagina el catálogo y manda GAFAFIT-COMPANY", async () => {
