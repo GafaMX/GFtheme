@@ -96,6 +96,31 @@ describe("installStripeCardTheme", () => {
     stop();
   });
 
+  it("no truena si Stripe.elements solo tiene getter (Stripe.js actual)", () => {
+    const created: Array<Record<string, unknown>> = [];
+    const proto = {
+      get elements() {
+        return function elements(this: unknown, _options?: unknown) {
+          return {
+            create: (_type: string, options: Record<string, unknown> = {}) => {
+              created.push(options);
+              return {};
+            },
+          };
+        };
+      },
+    };
+    window.Stripe = ((..._args: unknown[]) => Object.create(proto)) as typeof window.Stripe;
+
+    const stop = installStripeCardTheme("dark");
+    expect(() => window.Stripe!("pk_test")).not.toThrow();
+    window.Stripe!("pk_test").elements?.()?.create("card", {});
+    expect((created[0]?.style as { base?: { color?: string } })?.base?.color).toBe(
+      STRIPE_CARD_STYLE.dark.base.color,
+    );
+    stop();
+  });
+
   it("pasa appearance night a elements() para Payment Element", () => {
     const received: unknown[] = [];
     window.Stripe = ((..._args: unknown[]) => ({
@@ -110,6 +135,54 @@ describe("installStripeCardTheme", () => {
     expect(received[0]).toMatchObject({
       appearance: { theme: "night", variables: { colorText: STRIPE_CARD_STYLE.dark.base.color } },
     });
+    stop();
+  });
+
+  it("al desmontar no borra Stripe.js que GafaPay acaba de inyectar", () => {
+    const stop = installStripeCardTheme("light");
+    const created: string[] = [];
+    window.Stripe = ((..._args: unknown[]) => {
+      created.push("ok");
+      return { elements: () => ({ create: () => ({}) }) };
+    }) as typeof window.Stripe;
+
+    expect(typeof window.Stripe).toBe("function");
+    stop();
+    expect(typeof window.Stripe).toBe("function");
+    window.Stripe!("pk_test");
+    expect(created).toEqual(["ok"]);
+  });
+
+  it("acepta new Stripe() como el script oficial", () => {
+    function StripeCtor(this: { ok: boolean }) {
+      this.ok = true;
+      return {
+        elements: () => ({
+          create: () => ({}),
+        }),
+      };
+    }
+    window.Stripe = StripeCtor as unknown as typeof window.Stripe;
+    const stop = installStripeCardTheme("light");
+    expect(() => new (window.Stripe as unknown as { new (key: string): unknown })("pk_test")).not.toThrow();
+    stop();
+  });
+
+  it("no pisa Payment Element con el style del Card Element", () => {
+    const created: Array<{ type: string; options: Record<string, unknown> }> = [];
+    window.Stripe = ((..._args: unknown[]) => ({
+      elements: () => ({
+        create: (type: string, options: Record<string, unknown> = {}) => {
+          created.push({ type, options });
+          return { update: () => undefined };
+        },
+      }),
+    })) as typeof window.Stripe;
+
+    const stop = installStripeCardTheme("dark");
+    window.Stripe!("pk_test").elements?.()?.create("payment", { layout: "tabs" });
+    expect(created[0]?.options.style).toBeUndefined();
+    expect(created[0]?.options.layout).toBe("tabs");
     stop();
   });
 });

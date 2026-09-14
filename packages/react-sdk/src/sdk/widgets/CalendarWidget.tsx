@@ -24,6 +24,7 @@ import type {
   StaffMember,
   UserCredit,
 } from "../client/types";
+import { meetingCardHooks } from "./calendarMeetingCard";
 import {
   addDays,
   daysInRange,
@@ -81,6 +82,8 @@ export type CalendarWidgetProps = {
   showDescription?: boolean;
   title?: string;
   description?: string;
+  /** Oferta del Hub en el checkout que abre esta reserva. */
+  crossSell?: unknown;
 };
 
 type CalendarFiltersState = {
@@ -104,6 +107,7 @@ export function CalendarWidget({
   // a proposito para dejar el chrome en dos lineas compactas.
   title: _title,
   description: _description,
+  crossSell,
 }: CalendarWidgetProps) {
   const filters = { service: true, staff: true, ...filtersProp };
   const queryClient = useQueryClient();
@@ -534,13 +538,24 @@ export function CalendarWidget({
     setSelectedMeeting(meeting);
   }
 
+  // En vista día el cambio es tan seco que en móvil no se siente el swipe:
+  // un slide corto en la dirección del gesto (sin seguir el dedo) lo marca
+  // sin alargar el gesto. Null en el primer pintado: no animar el mount.
+  const [dayEnter, setDayEnter] = useState<"next" | "prev" | null>(null);
+
+  function enterDay(direction: "next" | "prev") {
+    if (view === "day") setDayEnter(direction);
+  }
+
   function goPrev() {
     allowAutoSkipRef.current = false;
+    enterDay("prev");
     setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)));
   }
 
   function goNext() {
     allowAutoSkipRef.current = false;
+    enterDay("next");
     setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)));
   }
 
@@ -587,6 +602,36 @@ export function CalendarWidget({
       </div>
     ) : null;
 
+  const calendarEmpty = (
+    // Un solo estado vacio con el mismo alto que el calendario: siete columnas
+    // vacias no aportan nada y el brinco de alto se nota feo.
+    <div className="gafa-empty-state gafa-empty-state--calendar">
+      <strong>{hasActiveFilters ? "Sin horarios con estos filtros" : "Sin horarios en estas fechas"}</strong>
+      <span>
+        {hasActiveFilters
+          ? "Prueba quitando algun filtro o cambiando de fecha."
+          : "Prueba con otra fecha u otra ubicacion."}
+      </span>
+      {hasActiveFilters ? (
+        <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={clearFilters}>
+          Limpiar filtros
+        </button>
+      ) : null}
+    </div>
+  );
+
+  const dayBody =
+    visibleMeetings.length === 0 ? (
+      calendarEmpty
+    ) : (
+      <DayColumn
+        date={anchor}
+        loading={isUpdating}
+        meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
+        onSelect={openMeeting}
+      />
+    );
+
   return (
     <WidgetShell>
       <CalendarToolbar
@@ -599,6 +644,7 @@ export function CalendarWidget({
         maxIso={horizonIso}
         onPickDate={(iso) => {
           allowAutoSkipRef.current = false;
+          if (iso !== anchorIso) enterDay(iso > anchorIso ? "next" : "prev");
           setAnchorIso(iso);
         }}
         onPrev={goPrev}
@@ -610,7 +656,9 @@ export function CalendarWidget({
           weekScrolledKeyRef.current = undefined;
           setTodayTick((tick) => tick + 1);
           // Hoy sin cupo → el primer dia con disponibilidad (no un dia vacio).
-          setAnchorIso(firstBookableDayIso && firstBookableDayIso !== todayIso ? firstBookableDayIso : todayIso);
+          const targetIso = firstBookableDayIso && firstBookableDayIso !== todayIso ? firstBookableDayIso : todayIso;
+          if (targetIso !== anchorIso) enterDay(targetIso > anchorIso ? "next" : "prev");
+          setAnchorIso(targetIso);
         }}
         isRefreshing={isUpdating}
         canGoPrev={canGoPrev}
@@ -641,31 +689,14 @@ export function CalendarWidget({
 
       {isLoading || (visibleMeetings.length === 0 && isUpdating) ? (
         <CalendarSkeleton view={view} />
-      ) : visibleMeetings.length === 0 ? (
-        // Un solo estado vacio con el mismo alto que el calendario: siete columnas
-        // vacias no aportan nada y el brinco de alto se nota feo.
-        <div className="gafa-empty-state gafa-empty-state--calendar">
-          <strong>{hasActiveFilters ? "Sin horarios con estos filtros" : "Sin horarios en estas fechas"}</strong>
-          <span>
-            {hasActiveFilters
-              ? "Prueba quitando algun filtro o cambiando de fecha."
-              : "Prueba con otra fecha u otra ubicacion."}
-          </span>
-          {hasActiveFilters ? (
-            <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={clearFilters}>
-              Limpiar filtros
-            </button>
-          ) : null}
-        </div>
       ) : view === "day" ? (
-        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-          <DayColumn
-            date={anchor}
-            loading={isUpdating}
-            meetings={meetingsByIsoDay.get(toIsoDate(anchor)) ?? []}
-            onSelect={openMeeting}
-          />
+        <div className="gafa-day-swipe" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+          <div key={toIsoDate(anchor)} className="gafa-day-pane" data-enter={dayEnter ?? undefined}>
+            {dayBody}
+          </div>
         </div>
+      ) : visibleMeetings.length === 0 ? (
+        calendarEmpty
       ) : (
         <div className="gafa-week-grid" ref={weekGridRef}>
           {days.map((day) => (
@@ -689,6 +720,7 @@ export function CalendarWidget({
           brandSlug={getMeetingBrandSlug(selectedMeeting, activeBrand)}
           locationSlug={getMeetingLocationSlug(selectedMeeting, activeLocation)}
           locationName={selectedMeeting.location?.name ?? activeLocation?.name}
+          crossSell={crossSell}
           onClose={() => setSelectedMeeting(null)}
         />
       ) : null}
@@ -1040,10 +1072,14 @@ function MeetingCard({
   const staffPhoto = meeting.staff?.photoUrl;
   const showsPhoto = useRemoteImageEnabled(staffPhoto);
   const notes = meetingClassNotes(meeting);
+  const hooks = meetingCardHooks(meeting);
 
   return (
     <button
-      className="gafa-meeting-card"
+      className={hooks.className}
+      data-service={hooks.service || undefined}
+      data-service-id={hooks.serviceId || undefined}
+      data-daypart={hooks.daypart || undefined}
       data-sold-out={soldOut && !waitlist ? "true" : undefined}
       data-waitlist={waitlist ? "true" : undefined}
       data-passed={passed ? "true" : undefined}
@@ -1070,12 +1106,12 @@ function MeetingCard({
       <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
       {!compact && notes ? <span className="gafa-meeting-desc">{notes}</span> : null}
 
-      <span className="gafa-meeting-detail">
+      <span className="gafa-meeting-detail gafa-meeting-staff">
         <PersonIcon />
         {getStaffName(meeting)}
       </span>
       {meeting.location?.name ? (
-        <span className="gafa-meeting-detail">
+        <span className="gafa-meeting-detail gafa-meeting-location">
           <LocationIcon />
           {meeting.location.name}
         </span>
@@ -1418,6 +1454,7 @@ export type ReservationFlowProps = {
   onReserved?: () => void;
   /** Compra terminada dentro del checkout de la clase. */
   onPurchased?: () => void;
+  crossSell?: unknown;
 };
 
 /**
@@ -1436,6 +1473,7 @@ export function ReservationFlow({
   onClose,
   onReserved,
   onPurchased,
+  crossSell,
 }: ReservationFlowProps) {
   const queryClient = useQueryClient();
 
@@ -1499,12 +1537,14 @@ export function ReservationFlow({
       <CheckoutModal
         key={meeting.id}
         client={client}
+        captcha={captcha}
         brandSlug={brandSlug}
         locationSlug={locationSlug}
         locationName={locationName ?? meeting.location?.name}
         meeting={meeting}
         seatObjectId={pendingSeat?.id}
         seatLabel={pendingSeat?.label}
+        crossSell={crossSell}
         onClose={onClose}
         onCompleted={() => {
           queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });

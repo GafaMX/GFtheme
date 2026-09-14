@@ -27,6 +27,7 @@ export const HUB_REMOTE_CONFIG_KEYS = [
   "THEME",
   "CONCIERGE",
   "concierge",
+  "CROSS_SELL",
   "language",
 ] as const;
 
