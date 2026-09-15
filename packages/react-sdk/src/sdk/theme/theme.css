@@ -414,7 +414,7 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__avatar:not(.gafa-pay-na
   display: grid !important;
   flex: 0 0 var(--gafa-avatar-size, 48px) !important;
   grid-template-areas: "stack" !important;
-  place-items: center !important;
+  place-items: stretch !important;
   height: var(--gafa-avatar-size, 48px) !important;
   isolation: isolate !important;
   margin: 0 !important;
@@ -429,6 +429,7 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__avatar:not(.gafa-pay-na
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__photo:not(.gafa-pay-native *) {
+  align-self: stretch !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: cover !important;
@@ -437,10 +438,13 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__photo:not(.gafa-pay-nat
   grid-area: stack !important;
   height: 100% !important;
   inset: auto !important;
+  justify-self: stretch !important;
   left: auto !important;
   margin: 0 !important;
   max-height: none !important;
   max-width: none !important;
+  min-height: var(--gafa-avatar-size, 48px) !important;
+  min-width: var(--gafa-avatar-size, 48px) !important;
   position: static !important;
   top: auto !important;
   width: 100% !important;

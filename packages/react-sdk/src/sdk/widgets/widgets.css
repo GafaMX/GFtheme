@@ -1527,7 +1527,6 @@
 
 .gafa-multiselect__avatar {
   --gafa-avatar-size: 48px;
-  align-items: center;
   background: color-mix(in srgb, var(--gafa-color-primary) 16%, var(--gafa-color-surface));
   border-radius: 50%;
   color: var(--gafa-color-primary);
@@ -1537,13 +1536,12 @@
   font-weight: 800;
   grid-template-areas: "stack";
   height: var(--gafa-avatar-size);
-  place-items: center;
   isolation: isolate;
-  justify-content: center;
   letter-spacing: 0;
   min-height: var(--gafa-avatar-size);
   min-width: var(--gafa-avatar-size);
   overflow: hidden;
+  place-items: stretch;
   position: relative;
   width: var(--gafa-avatar-size);
 }
@@ -1558,17 +1556,23 @@
 }
 
 .gafa-multiselect__initials {
+  align-self: center;
+  justify-self: center;
   line-height: 1;
   z-index: 0;
 }
 
 .gafa-multiselect__photo {
+  align-self: stretch;
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
   border-radius: 50%;
   display: block;
   height: 100%;
+  justify-self: stretch;
+  min-height: var(--gafa-avatar-size, 48px);
+  min-width: var(--gafa-avatar-size, 48px);
   width: 100%;
   z-index: 1;
 }
