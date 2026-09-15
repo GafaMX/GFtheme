@@ -195,6 +195,32 @@ describe("getMeeting", () => {
     expect(start).not.toBe("2026-09-15");
   });
 
+  it("acepta el slug corto del Concierge (lomas) contra el slug de la API (fitspin-lomas)", async () => {
+    const fetchMock = stubApi([
+      [
+        /\/location\?/,
+        {
+          data: [
+            { id: 122, name: "Lomas", slug: "fitspin-lomas", calendar_days: 8 },
+            { id: 119, name: "Polanco", slug: "fitspin-polanco", calendar_days: 8 },
+          ],
+        },
+      ],
+      [/\/location\/122\/meetings/, [MEETING]],
+    ]);
+
+    const meeting = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "lomas",
+    });
+
+    expect(meeting?.id).toBe(84213);
+    expect(meeting?.locationSlug).toBe("fitspin-lomas");
+    expect(fetchMock.mock.calls.some(([url]) => /\/location\/122\/meetings/.test(String(url)))).toBe(true);
+    expect(fetchMock.mock.calls.some(([url]) => /\/location\/119\/meetings/.test(String(url)))).toBe(false);
+  });
+
   it("marca hasSeatMap false cuando el salon no tiene mapa", async () => {
     stubApi([
       [/\/location\?/, LOCATIONS],

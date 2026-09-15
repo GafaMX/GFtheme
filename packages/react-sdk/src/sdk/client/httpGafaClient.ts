@@ -429,6 +429,26 @@ type RawMeeting = {
   location?: { id: number; name: string };
 };
 
+/** Concierge/studios usan "lomas"; la API publica "fitspin-lomas". */
+function locationSlugMatches(actual: string, requested: string): boolean {
+  if (!actual || !requested) return false;
+  if (actual === requested) return true;
+  return actual.endsWith(`-${requested}`) || requested.endsWith(`-${actual}`);
+}
+
+function meetingLocationCandidates(locations: Location[], payload: MeetingLookup): Location[] {
+  const byId =
+    payload.locationId != null
+      ? locations.filter((location) => location.id === Number(payload.locationId))
+      : [];
+  const bySlug = payload.locationSlug
+    ? locations.filter((location) => locationSlugMatches(location.slug, payload.locationSlug!))
+    : [];
+  const seen = new Set(byId.map((location) => location.id));
+  const matched = [...byId, ...bySlug.filter((location) => !seen.has(location.id))];
+  return matched.length > 0 ? matched : locations;
+}
+
 /**
  * Cliente HTTP directo a la API publica de gafa.fit (routes/api.php), sin depender del
  * script legacy window.GafaFitSDK. Cubre solo lectura de catalogo (brand/location/staff/
@@ -1002,11 +1022,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
       for (const brandSlug of brandSlugs) {
         const locations = await httpClient.listLocations(brandSlug);
-        const candidates = payload.locationSlug
-          ? locations.filter((location) => location.slug === payload.locationSlug)
-          : payload.locationId != null
-            ? locations.filter((location) => location.id === Number(payload.locationId))
-            : locations;
+        const candidates = meetingLocationCandidates(locations, payload);
 
         for (const location of candidates) {
           const from = addLocalDays(new Date(), -1);
