@@ -1243,7 +1243,7 @@
   box-shadow: var(--gafa-shadow-pop);
   display: grid;
   gap: var(--gafa-space-3);
-  min-width: 360px;
+  min-width: 380px;
   overflow: visible;
   padding: var(--gafa-space-3);
   position: absolute;
@@ -1352,15 +1352,15 @@
   box-shadow: var(--gafa-shadow-pop);
   display: flex;
   flex-direction: column;
-  height: 320px;
+  height: 400px;
   left: 0;
   min-width: 100%;
   overflow: hidden;
-  padding: 8px;
+  padding: 10px;
   position: absolute;
   right: auto;
   top: calc(100% + 6px);
-  width: max(100%, 360px);
+  width: max(100%, 400px);
   z-index: 30;
 }
 
@@ -1398,7 +1398,7 @@
   font: inherit;
   font-size: 0.84rem;
   font-weight: 600;
-  height: 36px;
+  height: 40px;
   min-width: 0;
   outline: none;
   padding: 0;
@@ -1411,12 +1411,17 @@
 }
 
 .gafa-multiselect__list {
-  display: grid;
+  display: flex;
   flex: 1;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   min-height: 0;
   overflow: auto;
   padding-right: 2px;
+}
+
+.gafa-multiselect[data-avatars="true"] .gafa-multiselect__list {
+  gap: 6px;
 }
 
 .gafa-multiselect__empty {
@@ -1428,41 +1433,49 @@
 }
 
 .gafa-multiselect__option {
-  --gafa-type-size: 0.9rem;
-  --gafa-control-font-size: 0.9rem;
-  --gafa-control-padding: 10px 12px;
+  --gafa-type-size: 0.95rem;
+  --gafa-type-leading: 1.35;
+  --gafa-control-font-size: 0.95rem;
+  --gafa-control-line-height: 1.35;
+  --gafa-control-padding: 12px 14px;
   --gafa-control-bg: transparent;
   --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
   --gafa-fg: var(--gafa-color-text);
-  --gafa-control-radius: 12px;
-  --gafa-control-min-height: 44px;
-  --gafa-avatar-size: 44px;
+  --gafa-control-radius: 14px;
+  --gafa-control-min-height: 52px;
+  --gafa-avatar-size: 48px;
   align-items: center;
   animation: gafa-multiselect-option-in 0.18s ease both;
   animation-delay: calc(var(--gafa-option-i, 0) * 16ms);
   background: transparent;
   border: 0;
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--gafa-color-text);
   cursor: pointer;
-  display: grid;
+  display: flex;
+  flex-wrap: nowrap;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  gap: 12px;
-  grid-template-columns: 20px minmax(0, 1fr);
-  min-height: 44px;
-  padding: 10px 12px;
+  gap: 14px;
+  isolation: isolate;
+  line-height: 1.35;
+  min-height: 52px;
+  overflow: visible;
+  padding: 12px 14px;
+  position: relative;
   text-align: left;
+  transform: none;
   width: 100%;
 }
 
 .gafa-multiselect[data-avatars="true"] .gafa-multiselect__option {
-  gap: 14px;
-  grid-template-columns: 20px var(--gafa-avatar-size, 44px) minmax(0, 1fr);
-  min-height: 64px;
-  padding: 8px 12px;
+  --gafa-control-min-height: 76px;
+  --gafa-control-padding: 12px 14px;
+  gap: 16px;
+  min-height: 76px;
+  padding: 12px 14px;
 }
 
 @keyframes gafa-multiselect-option-in {
@@ -1490,10 +1503,11 @@
   border-radius: 6px;
   color: var(--gafa-color-primary-text);
   display: inline-flex;
+  flex: 0 0 20px;
   flex-shrink: 0;
-  height: 18px;
+  height: 20px;
   justify-content: center;
-  width: 18px;
+  width: 20px;
 }
 
 .gafa-multiselect__check[data-checked="true"] {
@@ -1502,30 +1516,34 @@
 }
 
 .gafa-multiselect__name {
-  flex: 1;
+  flex: 1 1 auto;
+  line-height: 1.35;
   min-width: 0;
   overflow: hidden;
+  padding-left: 2px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .gafa-multiselect__avatar {
-  --gafa-avatar-size: 44px;
-  --gafa-img-fit: cover;
-  --gafa-img-height: var(--gafa-avatar-size);
-  --gafa-img-radius: 50%;
-  --gafa-img-width: var(--gafa-avatar-size);
+  --gafa-avatar-size: 48px;
+  align-items: center;
   background: color-mix(in srgb, var(--gafa-color-primary) 16%, var(--gafa-color-surface));
   border-radius: 50%;
   color: var(--gafa-color-primary);
   display: grid;
-  flex-shrink: 0;
-  font-size: 0.72rem;
+  flex: 0 0 var(--gafa-avatar-size);
+  font-size: 0.78rem;
   font-weight: 800;
+  grid-template-areas: "stack";
   height: var(--gafa-avatar-size);
-  letter-spacing: 0;
-  overflow: hidden;
   place-items: center;
+  isolation: isolate;
+  justify-content: center;
+  letter-spacing: 0;
+  min-height: var(--gafa-avatar-size);
+  min-width: var(--gafa-avatar-size);
+  overflow: hidden;
   position: relative;
   width: var(--gafa-avatar-size);
 }
@@ -1534,24 +1552,25 @@
   background: color-mix(in srgb, var(--gafa-color-border) 55%, var(--gafa-color-surface));
 }
 
-.gafa-multiselect__initials {
-  grid-area: 1 / 1;
-  line-height: 1;
+.gafa-multiselect__initials,
+.gafa-multiselect__photo {
+  grid-area: stack;
 }
 
-.gafa-multiselect__photo,
-.gafa-multiselect__avatar img {
-  --gafa-img-fit: cover;
-  --gafa-img-radius: 50%;
+.gafa-multiselect__initials {
+  line-height: 1;
+  z-index: 0;
+}
+
+.gafa-multiselect__photo {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   border-radius: 50%;
   display: block;
-  grid-area: 1 / 1;
-  height: var(--gafa-avatar-size, 44px);
-  max-height: var(--gafa-avatar-size, 44px);
-  max-width: var(--gafa-avatar-size, 44px);
-  object-fit: cover;
-  position: static;
-  width: var(--gafa-avatar-size, 44px);
+  height: 100%;
+  width: 100%;
+  z-index: 1;
 }
 
 .gafa-multiselect__stack {

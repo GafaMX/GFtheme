@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { RemoteImage } from "../images/ImagesProvider";
+import { buildThumbnailUrl } from "../images/imageProxy";
+import { useImagesConfig, useTransformSupport } from "../images/ImagesProvider";
 import { normalizeServiceName } from "./calendarServiceQuery";
 
 export type FilterMultiOption = {
@@ -177,7 +178,13 @@ export function FilterMultiSelect({
               onClick={() => onChange([])}
             >
               <CheckMark checked={allSelected} />
-              {showAvatars ? <span className="gafa-multiselect__avatar gafa-multiselect__avatar--blank" aria-hidden="true" /> : null}
+              {showAvatars ? (
+                <span
+                  className="gafa-multiselect__avatar gafa-multiselect__avatar--blank"
+                  style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, ["--gafa-avatar-size" as string]: "48px" }}
+                  aria-hidden="true"
+                />
+              ) : null}
               <span className="gafa-multiselect__name">{allLabel}</span>
             </button>
             {visibleOptions.map((option, index) => {
@@ -193,7 +200,7 @@ export function FilterMultiSelect({
                   onClick={() => toggle(option.id)}
                 >
                   <CheckMark checked={checked} />
-                  {showAvatars ? <FilterOptionAvatar name={option.name} photoUrl={option.photoUrl} size={44} /> : null}
+                  {showAvatars ? <FilterOptionAvatar name={option.name} photoUrl={option.photoUrl} size={48} /> : null}
                   <span className="gafa-multiselect__name">{option.name}</span>
                 </button>
               );
@@ -208,23 +215,52 @@ export function FilterMultiSelect({
   );
 }
 
+function cssUrl(src: string): string {
+  return `url(${JSON.stringify(src)})`;
+}
+
+/**
+ * Avatar del filtro: no usamos `<img>`. En embeds, Elementor/Hello posicionan
+ * las fotos en absoluto y se apilan encima del checkbox. Un span con
+ * `background-image` se queda en su columna.
+ */
 export function FilterOptionAvatar({
   name,
   photoUrl,
-  size = 44,
+  size = 48,
 }: {
   name: string;
   photoUrl?: string;
   size?: number;
 }) {
+  const config = useImagesConfig();
+  const transformSupport = useTransformSupport();
+  const thumbnail =
+    !photoUrl || transformSupport === "unsupported"
+      ? null
+      : buildThumbnailUrl(
+          photoUrl,
+          { width: size * 2, height: size * 2, fit: "cover", gravity: "face" },
+          config,
+        );
+  const src = thumbnail ?? (config.allowUnoptimizedOriginals ? photoUrl : null) ?? null;
+
   return (
     <span
       className="gafa-multiselect__avatar"
-      style={{ width: size, height: size, ["--gafa-avatar-size" as string]: `${size}px` }}
+      style={{
+        width: size,
+        height: size,
+        minWidth: size,
+        minHeight: size,
+        ["--gafa-avatar-size" as string]: `${size}px`,
+      }}
       aria-hidden="true"
     >
       <span className="gafa-multiselect__initials">{initials(name)}</span>
-      <RemoteImage className="gafa-multiselect__photo" src={photoUrl} size={size} gravity="face" alt="" />
+      {src ? (
+        <span className="gafa-multiselect__photo" data-photo="true" style={{ backgroundImage: cssUrl(src) }} />
+      ) : null}
     </span>
   );
 }

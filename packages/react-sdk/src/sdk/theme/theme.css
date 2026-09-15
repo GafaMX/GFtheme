@@ -376,48 +376,80 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct__avatar {
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__option:not(.gafa-pay-native *) {
   align-items: center !important;
-  display: grid !important;
-  gap: 12px !important;
-  grid-template-columns: 20px minmax(0, 1fr) !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 14px !important;
   height: auto !important;
-  justify-content: start !important;
+  isolation: isolate !important;
+  justify-content: flex-start !important;
   max-width: none !important;
-  min-height: 44px !important;
+  min-height: 52px !important;
   overflow: visible !important;
-  padding: 10px 12px !important;
+  padding: 12px 14px !important;
+  position: relative !important;
+  transform: none !important;
   width: 100% !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect[data-avatars="true"] .gafa-multiselect__option:not(.gafa-pay-native *) {
-  gap: 14px !important;
-  grid-template-columns: 20px var(--gafa-avatar-size, 44px) minmax(0, 1fr) !important;
-  min-height: 64px !important;
-  padding: 8px 12px !important;
+  gap: 16px !important;
+  min-height: 76px !important;
+  padding: 12px 14px !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__check:not(.gafa-pay-native *) {
+  flex: 0 0 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  max-height: 20px !important;
+  max-width: 20px !important;
+  min-height: 20px !important;
+  min-width: 20px !important;
+  position: static !important;
+  width: 20px !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__avatar:not(.gafa-pay-native *) {
   display: grid !important;
-  flex: 0 0 var(--gafa-avatar-size, 44px) !important;
-  height: var(--gafa-avatar-size, 44px) !important;
-  max-height: var(--gafa-avatar-size, 44px) !important;
-  max-width: var(--gafa-avatar-size, 44px) !important;
-  overflow: hidden !important;
+  flex: 0 0 var(--gafa-avatar-size, 48px) !important;
+  grid-template-areas: "stack" !important;
   place-items: center !important;
+  height: var(--gafa-avatar-size, 48px) !important;
+  isolation: isolate !important;
+  margin: 0 !important;
+  max-height: var(--gafa-avatar-size, 48px) !important;
+  max-width: var(--gafa-avatar-size, 48px) !important;
+  min-height: var(--gafa-avatar-size, 48px) !important;
+  min-width: var(--gafa-avatar-size, 48px) !important;
+  overflow: hidden !important;
   position: relative !important;
-  width: var(--gafa-avatar-size, 44px) !important;
+  transform: none !important;
+  width: var(--gafa-avatar-size, 48px) !important;
 }
 
-html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-multiselect__photo {
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__photo:not(.gafa-pay-native *) {
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
   border-radius: 50% !important;
   display: block !important;
-  grid-area: 1 / 1 !important;
-  height: var(--gafa-avatar-size, 44px) !important;
+  grid-area: stack !important;
+  height: 100% !important;
   inset: auto !important;
-  max-height: var(--gafa-avatar-size, 44px) !important;
-  max-width: var(--gafa-avatar-size, 44px) !important;
-  object-fit: cover !important;
+  left: auto !important;
+  margin: 0 !important;
+  max-height: none !important;
+  max-width: none !important;
   position: static !important;
-  width: var(--gafa-avatar-size, 44px) !important;
+  top: auto !important;
+  width: 100% !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__name:not(.gafa-pay-native *) {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  padding-left: 2px !important;
 }
 
 /* Wordmark del estudio: Elementor/Hello pone img{width:100%} y la aislación
