@@ -66,6 +66,19 @@ export function resolveCalendarServiceId(
   return selected ?? fallback;
 }
 
+/**
+ * Varios servicios a la vez. `null` = "Todos" y no se reaplica el default.
+ * Array vacío también es "Todos" (el usuario destildó todo).
+ */
+export function resolveCalendarServiceIds(
+  selected: number[] | null | undefined,
+  fallback?: number,
+): number[] {
+  if (selected === null) return [];
+  if (selected !== undefined) return selected;
+  return fallback != null ? [fallback] : [];
+}
+
 export function normalizeServiceName(value: string): string {
   return value
     .normalize("NFD")
@@ -95,8 +108,12 @@ export function meetingMatchesService(
     serviceId?: string | number;
     serviceName?: string;
   },
-  filter: { serviceId?: number; serviceName?: string },
+  filter: { serviceId?: number; serviceIds?: number[] | null; serviceName?: string },
 ): boolean {
+  if (filter.serviceIds && filter.serviceIds.length > 0) {
+    const id = meeting.service?.id ?? (meeting.serviceId != null ? Number(meeting.serviceId) : undefined);
+    return id != null && filter.serviceIds.includes(Number(id));
+  }
   if (filter.serviceId != null) {
     const id = meeting.service?.id ?? (meeting.serviceId != null ? Number(meeting.serviceId) : undefined);
     return id === filter.serviceId;

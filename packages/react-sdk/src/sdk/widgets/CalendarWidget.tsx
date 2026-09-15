@@ -49,8 +49,9 @@ import {
   matchServiceIdByName,
   meetingMatchesService,
   readCalendarServiceQueryFromWindow,
-  resolveCalendarServiceId,
+  resolveCalendarServiceIds,
 } from "./calendarServiceQuery";
+import { FilterMultiSelect } from "./FilterMultiSelect";
 
 export type CalendarWidgetProps = {
   client?: GafaClient;
@@ -87,8 +88,9 @@ type CalendarFiltersState = {
   brandSlug?: string;
   /** `null` = el usuario eligió "Todos"; no reaplicar URL / default. */
   locationId?: number | null;
-  serviceId?: number | null;
-  staffId?: number;
+  /** `null` = "Todos" a propósito. `undefined` hereda URL / default. */
+  serviceIds?: number[] | null;
+  staffIds?: number[] | null;
 };
 
 export function CalendarWidget({
@@ -113,7 +115,7 @@ export function CalendarWidget({
 
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>(() => ({
     locationId: readCalendarLocationIdFromWindow() ?? filters.locationId,
-    serviceId: serviceFallbackId,
+    serviceIds: serviceFallbackId != null ? [serviceFallbackId] : undefined,
   }));
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [view, setView] = useState<CalendarView>(initialView);
@@ -348,39 +350,42 @@ export function CalendarWidget({
 
   // URL (?service=12 / ?filter_service=Pilates+Reformer) y
   // filter-bq-service-default arrancan el select. "Todos" (null) no se reaplica.
-  const selectedServiceId = resolveCalendarServiceId(
-    selectedFilters.serviceId,
+  const selectedServiceIds = resolveCalendarServiceIds(
+    selectedFilters.serviceIds,
     serviceFallbackId ?? matchServiceIdByName(serviceFallbackName, serviceOptions),
   );
   const selectedServiceName =
-    selectedFilters.serviceId === null || selectedServiceId != null ? undefined : serviceFallbackName;
+    selectedFilters.serviceIds === null || selectedServiceIds.length > 0 ? undefined : serviceFallbackName;
+  const selectedStaffIds =
+    selectedFilters.staffIds === null
+      ? []
+      : (selectedFilters.staffIds ?? (filters.staffId != null ? [filters.staffId] : []));
 
   const visibleMeetings = useMemo(() => {
     const meetings = applyLocalMeetingFilters(meetingsQuery.data ?? [], {
-      serviceId: selectedServiceId,
+      serviceIds: selectedServiceIds,
       serviceName: selectedServiceName,
-      staffId: selectedFilters.staffId ?? filters.staffId,
+      staffIds: selectedStaffIds,
     }).filter((meeting) => matchesTimeOfDay(getMeetingStart(meeting), timeOfDay, meeting.timezone));
 
     const sorted = [...meetings].sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
     return limit ? sorted.slice(0, limit) : sorted;
-  }, [
-    filters.staffId,
-    limit,
-    meetingsQuery.data,
-    selectedFilters.staffId,
-    selectedServiceId,
-    selectedServiceName,
-    timeOfDay,
-  ]);
+  }, [limit, meetingsQuery.data, selectedServiceIds, selectedServiceName, selectedStaffIds, timeOfDay]);
 
   const staffOptions = useMemo(() => {
-    const names = new Map<number, string>();
+    const byId = new Map<number, { id: number; name: string; photoUrl?: string }>();
     (meetingsQuery.data ?? []).forEach((meeting) => {
       const id = meeting.staff?.id ?? meeting.staffId;
-      if (id) names.set(Number(id), getStaffName(meeting));
+      if (!id) return;
+      const key = Number(id);
+      const existing = byId.get(key);
+      byId.set(key, {
+        id: key,
+        name: getStaffName(meeting),
+        photoUrl: meeting.staff?.photoUrl || existing?.photoUrl,
+      });
     });
-    return [...names.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [meetingsQuery.data]);
 
   // Franjas con clases en la ventana cargada: no mostrar "Noche" si no hay ninguna.
@@ -398,10 +403,10 @@ export function CalendarWidget({
     if (!timeOfDayOptions.has(timeOfDay)) setTimeOfDay("all");
   }, [timeOfDay, timeOfDayOptions]);
 
-  const hasActiveFilters = Boolean(selectedServiceId) || Boolean(selectedFilters.staffId) || timeOfDay !== "all";
+  const hasActiveFilters = selectedServiceIds.length > 0 || selectedStaffIds.length > 0 || timeOfDay !== "all";
 
   function clearFilters() {
-    setSelectedFilters((current) => ({ ...current, serviceId: null, staffId: undefined }));
+    setSelectedFilters((current) => ({ ...current, serviceIds: null, staffIds: null }));
     setTimeOfDay("all");
   }
 
@@ -627,7 +632,7 @@ export function CalendarWidget({
               allowAutoSkipRef.current = true;
               setSelectedFilters(updater);
             }}
-            selected={{ ...selectedFilters, serviceId: selectedServiceId }}
+            selected={{ ...selectedFilters, serviceIds: selectedServiceIds, staffIds: selectedStaffIds }}
             serviceOptions={serviceOptions}
             staffOptions={staffOptions}
             timeOfDay={timeOfDay}
@@ -1173,7 +1178,7 @@ function CalendarFilterBar({
   onChange: React.Dispatch<React.SetStateAction<CalendarFiltersState>>;
   selected: CalendarFiltersState;
   serviceOptions: Array<{ id: number; name: string }>;
-  staffOptions: Array<{ id: number; name: string }>;
+  staffOptions: Array<{ id: number; name: string; photoUrl?: string }>;
   timeOfDay: TimeOfDay;
   timeOfDayOptions: Set<Exclude<TimeOfDay, "all">>;
   onTimeOfDayChange(value: TimeOfDay): void;
@@ -1181,8 +1186,10 @@ function CalendarFilterBar({
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  const selectedServiceIds = selected.serviceIds ?? [];
+  const selectedStaffIds = selected.staffIds ?? [];
   const activeCount =
-    Number(Boolean(selected.serviceId)) + Number(Boolean(selected.staffId)) + Number(timeOfDay !== "all");
+    Number(selectedServiceIds.length > 0) + Number(selectedStaffIds.length > 0) + Number(timeOfDay !== "all");
 
   // Cerrar al hacer click fuera: el panel flota encima del calendario.
   useEffect(() => {
@@ -1281,51 +1288,37 @@ function CalendarFilterBar({
             </label>
           ) : null}
 
-          {showService || selected.serviceId ? (
-            <label className="gafa-calendar-filter">
-              <span>Servicio</span>
-              <select
-                value={selected.serviceId ?? ""}
-                onChange={(event) =>
-                  onChange((current) => ({
-                    ...current,
-                    serviceId: event.target.value === "" ? null : toOptionalNumber(event.target.value),
-                  }))
-                }
-              >
-                <option value="">Todos</option>
-                {serviceOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-                {selected.serviceId && !serviceOptions.some((option) => option.id === selected.serviceId) ? (
-                  <option value={selected.serviceId}>Sin horarios en estas fechas</option>
-                ) : null}
-              </select>
-            </label>
+          {showService || selectedServiceIds.length > 0 ? (
+            <FilterMultiSelect
+              name="service"
+              label="Servicio"
+              options={mergeMissingFilterOptions(serviceOptions, selectedServiceIds)}
+              selectedIds={selectedServiceIds}
+              countLabel={(count) => (count === 1 ? "1 servicio" : `${count} servicios`)}
+              onChange={(ids) =>
+                onChange((current) => ({
+                  ...current,
+                  serviceIds: ids.length ? ids : null,
+                }))
+              }
+            />
           ) : null}
 
-          {showStaff || selected.staffId ? (
-            <label className="gafa-calendar-filter">
-              <span>Staff</span>
-              <select
-                value={selected.staffId ?? ""}
-                onChange={(event) =>
-                  onChange((current) => ({ ...current, staffId: toOptionalNumber(event.target.value) }))
-                }
-              >
-                <option value="">Todos</option>
-                {staffOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-                {selected.staffId && !staffOptions.some((option) => option.id === selected.staffId) ? (
-                  <option value={selected.staffId}>Sin horarios en estas fechas</option>
-                ) : null}
-              </select>
-            </label>
+          {showStaff || selectedStaffIds.length > 0 ? (
+            <FilterMultiSelect
+              name="staff"
+              label="Staff"
+              showAvatars
+              options={mergeMissingFilterOptions(staffOptions, selectedStaffIds)}
+              selectedIds={selectedStaffIds}
+              countLabel={(count) => (count === 1 ? "1 coach" : `${count} coaches`)}
+              onChange={(ids) =>
+                onChange((current) => ({
+                  ...current,
+                  staffIds: ids.length ? ids : null,
+                }))
+              }
+            />
           ) : null}
 
           {showTimeOfDay ? (
@@ -1352,7 +1345,7 @@ function CalendarFilterBar({
               className="gafa-sdk-button gafa-sdk-button--secondary"
               type="button"
               onClick={() => {
-                onChange((current) => ({ ...current, serviceId: null, staffId: undefined }));
+                onChange((current) => ({ ...current, serviceIds: null, staffIds: null }));
                 onTimeOfDayChange("all");
               }}
             >
@@ -2422,19 +2415,34 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
 
 function applyLocalMeetingFilters(
   meetings: Meeting[],
-  filters: Pick<CalendarFiltersState, "serviceId" | "staffId"> & { serviceName?: string },
+  filters: Pick<CalendarFiltersState, "serviceIds" | "staffIds"> & { serviceName?: string },
 ): Meeting[] {
   return meetings.filter((meeting) => {
-    if (!meetingMatchesService(meeting, { serviceId: filters.serviceId ?? undefined, serviceName: filters.serviceName })) {
+    if (
+      !meetingMatchesService(meeting, {
+        serviceIds: filters.serviceIds ?? undefined,
+        serviceName: filters.serviceName,
+      })
+    ) {
       return false;
     }
 
-    if (filters.staffId && meeting.staff?.id !== filters.staffId && meeting.staffId !== filters.staffId) {
-      return false;
+    if (filters.staffIds && filters.staffIds.length > 0) {
+      const staffId = meeting.staff?.id ?? (meeting.staffId != null ? Number(meeting.staffId) : undefined);
+      if (staffId == null || !filters.staffIds.includes(Number(staffId))) return false;
     }
 
     return true;
   });
+}
+
+function mergeMissingFilterOptions<T extends { id: number; name: string }>(
+  options: T[],
+  selectedIds: number[],
+): Array<T | { id: number; name: string }> {
+  const missing = selectedIds.filter((id) => !options.some((option) => option.id === id));
+  if (missing.length === 0) return options;
+  return [...options, ...missing.map((id) => ({ id, name: "Sin horarios en estas fechas" }))];
 }
 
 function findActiveBrand(brands: Brand[], selectedSlug?: string, defaultId?: number): Brand | undefined {
@@ -2511,7 +2519,12 @@ function demoMeetings(range: DateRange): Meeting[] {
       available: 6,
       capacity: 14,
       location: demoLocations()[0],
-      staff: { id: 1, name: "Coach Demo" },
+      staff: {
+        id: 1,
+        name: "Coach Demo",
+        photoUrl:
+          "https://buqstorage.blob.core.windows.net/buq-imagenes/public/prod-server/80/applibreriascatalogtablesbrandcatalogstaff/2847/picture_web.jpg",
+      },
       service: { id: 1, name: "Training" },
       description:
         "Trae toalla y zapatos de indoor. Esta clase es de alta intensidad — si es tu primera vez, avísale al coach.",
