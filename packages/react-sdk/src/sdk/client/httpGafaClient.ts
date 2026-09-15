@@ -55,6 +55,7 @@ import {
 } from "./tokenStorage";
 import { readHasSeatMap } from "./seatMapHint";
 import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
+import { addLocalDays, parseLocalIsoDate, toLocalIsoDate } from "../localDate";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -966,10 +967,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         );
       }
 
-      const start = filters.from ?? filters.startDate ?? new Date().toISOString().slice(0, 10);
-      const defaultEnd = new Date(start);
-      defaultEnd.setDate(defaultEnd.getDate() + 14);
-      const end = filters.to ?? filters.endDate ?? defaultEnd.toISOString().slice(0, 10);
+      const start = filters.from ?? filters.startDate ?? toLocalIsoDate(new Date());
+      const defaultEnd = addLocalDays(parseLocalIsoDate(start), 14);
+      const end = filters.to ?? filters.endDate ?? toLocalIsoDate(defaultEnd);
 
       const raw = await apiGet<RawMeeting[]>(`/brand/${brandSlug}/location/${locationId}/meetings`, {
         start,
@@ -988,7 +988,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
      * La API no expone una clase suelta por id: solo el listado por sede. Se
      * recorren las sedes candidatas dentro de su ventana publicada
      * (`calendar_days`) hasta encontrarla, que es donde el calendario podria
-     * mostrarla de todos modos.
+     * mostrarla de todos modos. Las fechas son locales del navegador (el
+     * calendario también) y se incluye el día de ayer: a medianoche UTC el
+     * “hoy” UTC ya no cubre el día que el socio ve en México.
      */
     async getMeeting(payload: MeetingLookup): Promise<Meeting | null> {
       const meetingId = Number(payload.meetingId);
@@ -1007,14 +1009,13 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             : locations;
 
         for (const location of candidates) {
-          const from = new Date();
-          const to = new Date(from);
-          to.setDate(to.getDate() + (location.calendarDays ?? 14));
+          const from = addLocalDays(new Date(), -1);
+          const to = addLocalDays(new Date(), location.calendarDays ?? 14);
 
           const meetings = await httpClient.listMeetings({
             locationId: location.id,
-            from: from.toISOString().slice(0, 10),
-            to: to.toISOString().slice(0, 10),
+            from: toLocalIsoDate(from),
+            to: toLocalIsoDate(to),
           });
 
           const found = meetings.find((meeting) => Number(meeting.id) === meetingId);
