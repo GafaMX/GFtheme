@@ -379,53 +379,53 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__option:not(.gafa-pay-na
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
-  gap: 14px !important;
+  gap: 10px !important;
   height: auto !important;
   isolation: isolate !important;
   justify-content: flex-start !important;
   max-width: none !important;
-  min-height: 52px !important;
+  min-height: 36px !important;
   overflow: visible !important;
-  padding: 12px 14px !important;
+  padding: 7px 10px !important;
   position: relative !important;
   transform: none !important;
   width: 100% !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect[data-avatars="true"] .gafa-multiselect__option:not(.gafa-pay-native *) {
-  gap: 16px !important;
-  min-height: 76px !important;
-  padding: 12px 14px !important;
+  gap: 10px !important;
+  min-height: 48px !important;
+  padding: 6px 10px !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__check:not(.gafa-pay-native *) {
-  flex: 0 0 20px !important;
-  height: 20px !important;
+  flex: 0 0 16px !important;
+  height: 16px !important;
   margin: 0 !important;
-  max-height: 20px !important;
-  max-width: 20px !important;
-  min-height: 20px !important;
-  min-width: 20px !important;
+  max-height: 16px !important;
+  max-width: 16px !important;
+  min-height: 16px !important;
+  min-width: 16px !important;
   position: static !important;
-  width: 20px !important;
+  width: 16px !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__avatar:not(.gafa-pay-native *) {
   display: grid !important;
-  flex: 0 0 var(--gafa-avatar-size, 48px) !important;
+  flex: 0 0 var(--gafa-avatar-size, 36px) !important;
   grid-template-areas: "stack" !important;
   place-items: stretch !important;
-  height: var(--gafa-avatar-size, 48px) !important;
+  height: var(--gafa-avatar-size, 36px) !important;
   isolation: isolate !important;
   margin: 0 !important;
-  max-height: var(--gafa-avatar-size, 48px) !important;
-  max-width: var(--gafa-avatar-size, 48px) !important;
-  min-height: var(--gafa-avatar-size, 48px) !important;
-  min-width: var(--gafa-avatar-size, 48px) !important;
+  max-height: var(--gafa-avatar-size, 36px) !important;
+  max-width: var(--gafa-avatar-size, 36px) !important;
+  min-height: var(--gafa-avatar-size, 36px) !important;
+  min-width: var(--gafa-avatar-size, 36px) !important;
   overflow: hidden !important;
   position: relative !important;
   transform: none !important;
-  width: var(--gafa-avatar-size, 48px) !important;
+  width: var(--gafa-avatar-size, 36px) !important;
 }
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__photo:not(.gafa-pay-native *) {
@@ -443,8 +443,8 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__photo:not(.gafa-pay-nat
   margin: 0 !important;
   max-height: none !important;
   max-width: none !important;
-  min-height: var(--gafa-avatar-size, 48px) !important;
-  min-width: var(--gafa-avatar-size, 48px) !important;
+  min-height: var(--gafa-avatar-size, 36px) !important;
+  min-width: var(--gafa-avatar-size, 36px) !important;
   position: static !important;
   top: auto !important;
   width: 100% !important;
@@ -453,7 +453,7 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__photo:not(.gafa-pay-nat
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__name:not(.gafa-pay-native *) {
   flex: 1 1 auto !important;
   min-width: 0 !important;
-  padding-left: 2px !important;
+  padding-left: 0 !important;
 }
 
 /* Wordmark del estudio: Elementor/Hello pone img{width:100%} y la aislación

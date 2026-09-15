@@ -181,7 +181,7 @@ export function FilterMultiSelect({
               {showAvatars ? (
                 <span
                   className="gafa-multiselect__avatar gafa-multiselect__avatar--blank"
-                  style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, ["--gafa-avatar-size" as string]: "48px" }}
+                  style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, ["--gafa-avatar-size" as string]: "36px" }}
                   aria-hidden="true"
                 />
               ) : null}
@@ -200,7 +200,7 @@ export function FilterMultiSelect({
                   onClick={() => toggle(option.id)}
                 >
                   <CheckMark checked={checked} />
-                  {showAvatars ? <FilterOptionAvatar name={option.name} photoUrl={option.photoUrl} size={48} /> : null}
+                  {showAvatars ? <FilterOptionAvatar name={option.name} photoUrl={option.photoUrl} size={36} /> : null}
                   <span className="gafa-multiselect__name">{option.name}</span>
                 </button>
               );
@@ -227,7 +227,7 @@ function cssUrl(src: string): string {
 export function FilterOptionAvatar({
   name,
   photoUrl,
-  size = 48,
+  size = 36,
 }: {
   name: string;
   photoUrl?: string;
@@ -269,7 +269,7 @@ function CheckMark({ checked }: { checked: boolean }) {
   return (
     <span className="gafa-multiselect__check" data-checked={checked ? "true" : undefined} aria-hidden="true">
       {checked ? (
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
           <path
             d="M3.5 8.2 6.4 11.2 12.5 4.8"
             stroke="currentColor"

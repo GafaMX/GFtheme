@@ -1243,7 +1243,7 @@
   box-shadow: var(--gafa-shadow-pop);
   display: grid;
   gap: var(--gafa-space-3);
-  min-width: 380px;
+  min-width: 320px;
   overflow: visible;
   padding: var(--gafa-space-3);
   position: absolute;
@@ -1352,15 +1352,16 @@
   box-shadow: var(--gafa-shadow-pop);
   display: flex;
   flex-direction: column;
-  height: 400px;
+  height: auto;
   left: 0;
+  max-height: 280px;
   min-width: 100%;
   overflow: hidden;
-  padding: 10px;
+  padding: 6px;
   position: absolute;
   right: auto;
   top: calc(100% + 6px);
-  width: max(100%, 400px);
+  width: 100%;
   z-index: 30;
 }
 
@@ -1384,7 +1385,7 @@
   display: flex;
   flex-shrink: 0;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   padding: 0 0.65rem;
 }
 
@@ -1398,7 +1399,7 @@
   font: inherit;
   font-size: 0.84rem;
   font-weight: 600;
-  height: 40px;
+  height: 34px;
   min-width: 0;
   outline: none;
   padding: 0;
@@ -1414,14 +1415,10 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
   min-height: 0;
   overflow: auto;
   padding-right: 2px;
-}
-
-.gafa-multiselect[data-avatars="true"] .gafa-multiselect__list {
-  gap: 6px;
 }
 
 .gafa-multiselect__empty {
@@ -1433,37 +1430,37 @@
 }
 
 .gafa-multiselect__option {
-  --gafa-type-size: 0.95rem;
-  --gafa-type-leading: 1.35;
-  --gafa-control-font-size: 0.95rem;
-  --gafa-control-line-height: 1.35;
-  --gafa-control-padding: 12px 14px;
+  --gafa-type-size: 0.88rem;
+  --gafa-type-leading: 1.25;
+  --gafa-control-font-size: 0.88rem;
+  --gafa-control-line-height: 1.25;
+  --gafa-control-padding: 7px 10px;
   --gafa-control-bg: transparent;
   --gafa-control-border: 0 solid transparent;
   --gafa-control-fg: var(--gafa-color-text);
   --gafa-fg: var(--gafa-color-text);
-  --gafa-control-radius: 14px;
-  --gafa-control-min-height: 52px;
-  --gafa-avatar-size: 48px;
+  --gafa-control-radius: 10px;
+  --gafa-control-min-height: 36px;
+  --gafa-avatar-size: 36px;
   align-items: center;
   animation: gafa-multiselect-option-in 0.18s ease both;
   animation-delay: calc(var(--gafa-option-i, 0) * 16ms);
   background: transparent;
   border: 0;
-  border-radius: 14px;
+  border-radius: 10px;
   color: var(--gafa-color-text);
   cursor: pointer;
   display: flex;
   flex-wrap: nowrap;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  gap: 14px;
+  gap: 10px;
   isolation: isolate;
-  line-height: 1.35;
-  min-height: 52px;
+  line-height: 1.25;
+  min-height: 36px;
   overflow: visible;
-  padding: 12px 14px;
+  padding: 7px 10px;
   position: relative;
   text-align: left;
   transform: none;
@@ -1471,11 +1468,11 @@
 }
 
 .gafa-multiselect[data-avatars="true"] .gafa-multiselect__option {
-  --gafa-control-min-height: 76px;
-  --gafa-control-padding: 12px 14px;
-  gap: 16px;
-  min-height: 76px;
-  padding: 12px 14px;
+  --gafa-control-min-height: 48px;
+  --gafa-control-padding: 6px 10px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px;
 }
 
 @keyframes gafa-multiselect-option-in {
@@ -1500,14 +1497,14 @@
   align-items: center;
   background: var(--gafa-color-surface);
   border: 1.5px solid var(--gafa-color-border);
-  border-radius: 6px;
+  border-radius: 5px;
   color: var(--gafa-color-primary-text);
   display: inline-flex;
-  flex: 0 0 20px;
+  flex: 0 0 16px;
   flex-shrink: 0;
-  height: 20px;
+  height: 16px;
   justify-content: center;
-  width: 20px;
+  width: 16px;
 }
 
 .gafa-multiselect__check[data-checked="true"] {
@@ -1517,22 +1514,21 @@
 
 .gafa-multiselect__name {
   flex: 1 1 auto;
-  line-height: 1.35;
+  line-height: 1.25;
   min-width: 0;
   overflow: hidden;
-  padding-left: 2px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .gafa-multiselect__avatar {
-  --gafa-avatar-size: 48px;
+  --gafa-avatar-size: 36px;
   background: color-mix(in srgb, var(--gafa-color-primary) 16%, var(--gafa-color-surface));
   border-radius: 50%;
   color: var(--gafa-color-primary);
   display: grid;
   flex: 0 0 var(--gafa-avatar-size);
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 800;
   grid-template-areas: "stack";
   height: var(--gafa-avatar-size);
@@ -1571,8 +1567,8 @@
   display: block;
   height: 100%;
   justify-self: stretch;
-  min-height: var(--gafa-avatar-size, 48px);
-  min-width: var(--gafa-avatar-size, 48px);
+  min-height: var(--gafa-avatar-size, 36px);
+  min-width: var(--gafa-avatar-size, 36px);
   width: 100%;
   z-index: 1;
 }
