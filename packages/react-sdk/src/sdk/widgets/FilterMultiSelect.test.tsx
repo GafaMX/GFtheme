@@ -25,20 +25,24 @@ const COACHES: FilterMultiOption[] = [
 function Harness({
   options = SERVICES,
   showAvatars = false,
+  searchable = false,
   initial = [] as number[],
 }: {
   options?: FilterMultiOption[];
   showAvatars?: boolean;
+  searchable?: boolean;
   initial?: number[];
 }) {
   const [selectedIds, setSelectedIds] = useState(initial);
   return (
     <FilterMultiSelect
-      name="service"
-      label="Servicio"
+      name={showAvatars ? "staff" : "service"}
+      label={showAvatars ? "Staff" : "Servicio"}
       options={options}
       selectedIds={selectedIds}
       showAvatars={showAvatars}
+      searchable={searchable}
+      searchPlaceholder="Buscar coach"
       onChange={setSelectedIds}
     />
   );
@@ -75,9 +79,23 @@ describe("FilterMultiSelect", () => {
 
   it("en coaches pinta foto si hay y iniciales si no", () => {
     render(<Harness options={COACHES} showAvatars initial={[1, 2]} />);
-    fireEvent.click(screen.getByRole("button", { name: "Servicio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Staff" }));
     const photos = document.querySelectorAll(".gafa-multiselect__photo");
     expect(photos.length).toBeGreaterThan(0);
     expect(screen.getAllByText("AP").length).toBeGreaterThan(0);
+  });
+
+  it("el buscador solo aparece en coaches y filtra por nombre", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: "Servicio" }));
+    expect(screen.queryByLabelText("Buscar coach")).toBeNull();
+    cleanup();
+
+    render(<Harness options={COACHES} showAvatars searchable />);
+    fireEvent.click(screen.getByRole("button", { name: "Staff" }));
+    const search = screen.getByLabelText("Buscar coach");
+    fireEvent.change(search, { target: { value: "ana" } });
+    expect(screen.getByRole("option", { name: "Ana Pérez" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "Alex Ruiz" })).toBeNull();
   });
 });

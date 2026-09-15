@@ -1111,7 +1111,9 @@
   display: flex;
   gap: var(--gafa-space-2);
   min-width: 0;
+  overflow: visible;
   position: relative;
+  z-index: 4;
 }
 
 .gafa-filterbar-location {
@@ -1241,7 +1243,8 @@
   box-shadow: var(--gafa-shadow-pop);
   display: grid;
   gap: var(--gafa-space-3);
-  min-width: 300px;
+  min-width: 320px;
+  overflow: visible;
   padding: var(--gafa-space-3);
   position: absolute;
   right: 0;
@@ -1258,6 +1261,7 @@
 .gafa-multiselect {
   display: grid;
   gap: 6px;
+  position: relative;
 }
 
 .gafa-multiselect__label,
@@ -1341,14 +1345,85 @@
 }
 
 .gafa-multiselect__menu {
+  animation: gafa-multiselect-menu-in 0.16s ease;
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-md);
-  box-shadow: var(--gafa-shadow-soft);
+  box-shadow: var(--gafa-shadow-pop);
+  display: flex;
+  flex-direction: column;
+  height: 248px;
+  left: 0;
+  overflow: hidden;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 100%;
+  z-index: 30;
+}
+
+@keyframes gafa-multiselect-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gafa-multiselect__search {
+  align-items: center;
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  border-radius: 10px;
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 0 0.65rem;
+}
+
+.gafa-multiselect__search input {
+  --gafa-field-bg: transparent;
+  --gafa-field-border: 0 solid transparent;
+  background: transparent;
+  border: 0;
+  color: var(--gafa-color-text);
+  flex: 1;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  height: 36px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  width: 100%;
+}
+
+.gafa-multiselect__search input::placeholder {
+  color: var(--gafa-color-muted-text);
+  opacity: 0.8;
+}
+
+.gafa-multiselect__list {
   display: grid;
-  max-height: 260px;
+  flex: 1;
+  gap: 2px;
+  min-height: 0;
   overflow: auto;
-  padding: 4px;
+  padding-right: 2px;
+}
+
+.gafa-multiselect__empty {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0.7rem 0.55rem;
 }
 
 .gafa-multiselect__option {
@@ -1361,6 +1436,8 @@
   --gafa-fg: var(--gafa-color-text);
   --gafa-control-radius: 10px;
   align-items: center;
+  animation: gafa-multiselect-option-in 0.2s ease both;
+  animation-delay: calc(var(--gafa-option-i, 0) * 18ms);
   background: transparent;
   border: 0;
   border-radius: 10px;
@@ -1374,6 +1451,23 @@
   padding: 0.5rem 0.55rem;
   text-align: left;
   width: 100%;
+}
+
+.gafa-multiselect[data-avatars="true"] .gafa-multiselect__option {
+  gap: 12px;
+  min-height: 52px;
+  padding: 0.45rem 0.55rem;
+}
+
+@keyframes gafa-multiselect-option-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .gafa-multiselect__option:hover {
@@ -1422,15 +1516,15 @@
   color: var(--gafa-color-primary);
   display: inline-grid;
   flex-shrink: 0;
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  height: 28px;
+  height: 40px;
   justify-items: center;
   letter-spacing: 0;
   overflow: hidden;
   place-items: center;
   position: relative;
-  width: 28px;
+  width: 40px;
 }
 
 .gafa-multiselect__initials {

@@ -1309,6 +1309,8 @@ function CalendarFilterBar({
               name="staff"
               label="Staff"
               showAvatars
+              searchable
+              searchPlaceholder="Buscar coach"
               options={mergeMissingFilterOptions(staffOptions, selectedStaffIds)}
               selectedIds={selectedStaffIds}
               countLabel={(count) => (count === 1 ? "1 coach" : `${count} coaches`)}

@@ -1,5 +1,6 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { RemoteImage } from "../images/ImagesProvider";
+import { normalizeServiceName } from "./calendarServiceQuery";
 
 export type FilterMultiOption = {
   id: number;
@@ -16,6 +17,8 @@ export type FilterMultiSelectProps = {
   selectedIds: number[];
   onChange(ids: number[]): void;
   showAvatars?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
   countLabel?(count: number): string;
 };
 
@@ -33,6 +36,8 @@ function initials(name: string): string {
  * Select multiopción del SDK: no usamos `<select>` nativo. El del OS cambia
  * por dispositivo, no admite fotos ni varias marcas a la vez, y se sale del
  * panel de filtros.
+ *
+ * El menú flota en absoluto: abrir opciones no estira el panel de Filtros.
  */
 export function FilterMultiSelect({
   label,
@@ -42,21 +47,53 @@ export function FilterMultiSelect({
   selectedIds,
   onChange,
   showAvatars = false,
+  searchable = false,
+  searchPlaceholder = "Buscar",
   countLabel,
 }: FilterMultiSelectProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const selected = options.filter((option) => selectedIds.includes(option.id));
   const allSelected = selectedIds.length === 0;
+
+  const visibleOptions = useMemo(() => {
+    const needle = normalizeServiceName(query);
+    if (!needle) return options;
+    return options.filter((option) => normalizeServiceName(option.name).includes(needle));
+  }, [options, query]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onPeerOpen = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== name) setOpen(false);
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("gafa-multiselect-open", onPeerOpen);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("gafa-multiselect-open", onPeerOpen);
+    };
+  }, [name, open]);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    document.dispatchEvent(new CustomEvent("gafa-multiselect-open", { detail: name }));
+    if (searchable) searchRef.current?.focus();
+  }, [name, open, searchable]);
 
   function setIds(next: number[]) {
     onChange(next.length === options.length ? [] : next);
@@ -77,7 +114,13 @@ export function FilterMultiSelect({
       : (countLabel?.(selected.length) ?? `${selected.length} seleccionados`);
 
   return (
-    <div className="gafa-multiselect" data-name={name} data-open={open ? "true" : undefined}>
+    <div
+      ref={rootRef}
+      className="gafa-multiselect"
+      data-name={name}
+      data-open={open ? "true" : undefined}
+      data-avatars={showAvatars ? "true" : undefined}
+    >
       <span className="gafa-multiselect__label">{label}</span>
       <button
         type="button"
@@ -92,7 +135,7 @@ export function FilterMultiSelect({
           {showAvatars && selected.length > 0 ? (
             <span className="gafa-multiselect__stack" aria-hidden="true">
               {selected.slice(0, 3).map((option) => (
-                <FilterOptionAvatar key={option.id} name={option.name} photoUrl={option.photoUrl} size={22} />
+                <FilterOptionAvatar key={option.id} name={option.name} photoUrl={option.photoUrl} size={26} />
               ))}
             </span>
           ) : null}
@@ -103,34 +146,61 @@ export function FilterMultiSelect({
       </button>
 
       {open ? (
-        <div className="gafa-multiselect__menu" id={listId} role="listbox" aria-label={label} aria-multiselectable="true">
-          <button
-            type="button"
-            className="gafa-multiselect__option"
-            role="option"
-            aria-selected={allSelected}
-            onClick={() => onChange([])}
-          >
-            <CheckMark checked={allSelected} />
-            <span className="gafa-multiselect__name">{allLabel}</span>
-          </button>
-          {options.map((option) => {
-            const checked = selectedIds.includes(option.id);
-            return (
-              <button
-                key={option.id}
-                type="button"
-                className="gafa-multiselect__option"
-                role="option"
-                aria-selected={checked}
-                onClick={() => toggle(option.id)}
-              >
-                <CheckMark checked={checked} />
-                {showAvatars ? <FilterOptionAvatar name={option.name} photoUrl={option.photoUrl} /> : null}
-                <span className="gafa-multiselect__name">{option.name}</span>
-              </button>
-            );
-          })}
+        <div
+          className="gafa-multiselect__menu"
+          id={listId}
+          role="listbox"
+          aria-label={label}
+          aria-multiselectable="true"
+        >
+          {searchable ? (
+            <label className="gafa-multiselect__search">
+              <SearchIcon />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => event.stopPropagation()}
+              />
+            </label>
+          ) : null}
+          <div className="gafa-multiselect__list">
+            <button
+              type="button"
+              className="gafa-multiselect__option"
+              role="option"
+              aria-selected={allSelected}
+              style={{ ["--gafa-option-i" as string]: 0 }}
+              onClick={() => onChange([])}
+            >
+              <CheckMark checked={allSelected} />
+              <span className="gafa-multiselect__name">{allLabel}</span>
+            </button>
+            {visibleOptions.map((option, index) => {
+              const checked = selectedIds.includes(option.id);
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  className="gafa-multiselect__option"
+                  role="option"
+                  aria-selected={checked}
+                  style={{ ["--gafa-option-i" as string]: index + 1 }}
+                  onClick={() => toggle(option.id)}
+                >
+                  <CheckMark checked={checked} />
+                  {showAvatars ? <FilterOptionAvatar name={option.name} photoUrl={option.photoUrl} size={40} /> : null}
+                  <span className="gafa-multiselect__name">{option.name}</span>
+                </button>
+              );
+            })}
+            {visibleOptions.length === 0 ? (
+              <p className="gafa-multiselect__empty">Sin coincidencias</p>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>
@@ -140,7 +210,7 @@ export function FilterMultiSelect({
 export function FilterOptionAvatar({
   name,
   photoUrl,
-  size = 28,
+  size = 40,
 }: {
   name: string;
   photoUrl?: string;
@@ -176,6 +246,15 @@ function ChevronIcon() {
   return (
     <svg className="gafa-multiselect__chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path d="M4 6.2 8 10.2 12 6.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="4.2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m10.2 10.2 3 3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
