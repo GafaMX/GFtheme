@@ -16,6 +16,7 @@ import { ProfileWidget, type ProfileWidgetProps } from "./widgets/ProfileWidget"
 import { AccountModal, type AccountModalProps } from "./widgets/AccountModal";
 import { CheckoutModal, type CheckoutModalProps } from "./widgets/CheckoutModal";
 import { ReservationLauncher, type ReservationLauncherProps } from "./widgets/ReservationLauncher";
+import { ReservationSuccessOverlay } from "./widgets/ReservationSuccessOverlay";
 import { PurchaseButtonWidget, type PurchaseButtonWidgetProps } from "./widgets/PurchaseButtonWidget";
 import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderControls";
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
@@ -31,6 +32,7 @@ import {
   type ConciergeHandle,
   type ConciergeMountOptions,
 } from "./concierge/mount";
+import type { ReservationSuccessOptions } from "./concierge/adapter";
 import { createSdkTracker, type SdkTracker } from "./analytics/tracker";
 import { instrumentClient } from "./analytics/instrumentClient";
 import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
@@ -74,6 +76,8 @@ export type GafaSdk = {
   openReservation(props: ReservationOptions): CheckoutOpenHandle;
   /** Variante promise-friendly para integraciones externas como Concierge. */
   openReservationCheckout(props: ReservationOptions): Promise<CheckoutOpenHandle>;
+  /** Confirmación compacta después de reservar desde Concierge (sin reabrir el flujo). */
+  openReservationSuccess(props: ReservationSuccessOptions): CheckoutOpenHandle;
   /**
    * Activa los botones de compra en HTML plano ([data-gf-buy] con
    * data-gf-combo-id / data-gf-membership-id / data-gf-product-id).
@@ -112,6 +116,7 @@ export type CheckoutOptions = Omit<CheckoutModalProps, "client" | "onClose">;
 export type ReservationOptions = Omit<ReservationLauncherProps, "client" | "captcha" | "onClose"> & {
   onClose?: () => void;
 };
+export type { ReservationSuccessOptions };
 export type HeaderControlsMountProps = Pick<HeaderControlsProps, "showCart"> & AccountModalOptions;
 
 export type MountedWidget = {
@@ -606,6 +611,36 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           reject(error);
         }
       });
+    },
+    openReservationSuccess({ onClose, ...props }) {
+      const context: CheckoutOpenContext = {
+        kind: "reservation",
+      };
+      events.emit("buq:checkout:opening", context);
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+
+      const close = () => {
+        if (activeReservation === handle) activeReservation = null;
+        queueMicrotask(() => {
+          mounted.unmount();
+          host.remove();
+          events.emit("buq:checkout:closed", context);
+        });
+        onClose?.();
+      };
+
+      activeReservation?.close();
+      const handle: CheckoutOpenHandle = { type: "reservation", context, close };
+      activeReservation = handle;
+
+      const mounted = mount(
+        host,
+        <ReservationSuccessOverlay {...props} onClose={close} />,
+      );
+
+      afterOverlayPaint(() => events.emit("buq:checkout:opened", { context, handle }));
+      return handle;
     },
     mountConcierge(options) {
       return sdk.concierge.mount(options);

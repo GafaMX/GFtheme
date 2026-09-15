@@ -294,4 +294,26 @@ describe("openReservation", () => {
       );
     });
   });
+
+  it("openReservationSuccess pinta la confirmación compacta", async () => {
+    const handle = boot().openReservationSuccess({
+      className: "Bunker",
+      when: "08:30",
+      coach: "Alex",
+      creditName: "10 clases",
+      creditKind: "credit",
+      remainingBefore: 5,
+    });
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-reservation-success]")).toBeTruthy();
+      expect(overlayText()).toContain("¡Reserva confirmada!");
+      expect(overlayText()).toContain("Bunker");
+      expect(overlayText()).toContain("10 clases");
+      expect(overlayText()).toContain("4 créditos");
+    });
+    handle.close();
+    await waitFor(() => {
+      expect(document.querySelector("[data-gafa-reservation-success]")).toBeNull();
+    });
+  });
 });
