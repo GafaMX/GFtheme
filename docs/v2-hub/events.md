@@ -25,7 +25,7 @@ El SDK manda un batch. Si el Hub no responde, **la reserva no se rompe**.
 }
 ```
 
-Sin email ni nombre. `user_id` solo si hay sesión (id numérico de gafa). **Login, reserva, cancelación y compra deben llevar `user_id`** — sin él el Hub no otorga puntos.
+Sin email ni nombre. `user_id` solo si hay sesión (id numérico de gafa). **Login, reserva, cancelación y compra deben llevar `user_id`** — sin él el Hub no otorga puntos. Si hay perfil, el SDK también manda `props.user_name` y `props.user_email` para que Lealtad no pinte `Cuenta XXXX`.
 
 Heartbeats y `calendar.viewed` no suman lealtad. Ver [Lealtad](loyalty.md).
 

@@ -11,7 +11,9 @@ export type {
   HeaderControlsMountProps,
   MountedWidget,
   ReservationOptions,
+  ReservationSuccessOptions,
   RuntimeOptions,
+  SdkMountOptions,
   ConciergeHandle,
   ConciergeMountOptions,
 } from "./runtime";
@@ -19,6 +21,8 @@ export { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 export type { PurchaseIntent, ReserveIntent } from "./cart/purchaseButtons";
 export { ReservationLauncher } from "./widgets/ReservationLauncher";
 export type { ReservationLauncherProps } from "./widgets/ReservationLauncher";
+export { ReservationSuccessOverlay } from "./widgets/ReservationSuccessOverlay";
+export type { ReservationSuccessOverlayProps } from "./widgets/ReservationSuccessOverlay";
 export { ReservationFlow } from "./widgets/CalendarWidget";
 export type { ReservationFlowProps } from "./widgets/CalendarWidget";
 export { AccountModal } from "./widgets/AccountModal";
@@ -40,6 +44,13 @@ export { BUQ_ENVIRONMENTS, parseBuqEnvironmentId, resolveBuqEnvironment } from "
 export type { BuqEnvironment, BuqEnvironmentId } from "./config/buqEnvironments";
 export { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 export type { LegacyBootstrapResult } from "./bootstrap/legacyBootstrap";
+export {
+  aliasV2Shortcodes,
+  isAutoScanEnabled,
+  isSdkRootMounted,
+  SDK_EXPLICIT_ATTR,
+  SDK_ROOT_ATTR,
+} from "./lifecycle";
 export { WIDGET_CATALOG, mountRegisteredWidget } from "./widgets/registry";
 export type { WidgetDefinition, WidgetStatus } from "./widgets/registry";
 export { createSdkTracker } from "./analytics/tracker";

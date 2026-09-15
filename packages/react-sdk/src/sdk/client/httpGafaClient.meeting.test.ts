@@ -40,6 +40,7 @@ function stubApi(routes: Array<[RegExp, unknown]>) {
 
 describe("getMeeting", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -155,6 +156,69 @@ describe("getMeeting", () => {
       locationSlug: "polanco",
     });
     expect(meeting?.description).toBeUndefined();
+  });
+
+  it("encuentra la clase del día local aunque UTC ya sea el día siguiente", async () => {
+    // 02:24 UTC del 15 sep = todavía 14 sep de noche en México. El calendario
+    // pide el 14; getMeeting con toISOString() pedía el 15 y devolvía vacío.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-15T02:24:00.000Z"));
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (/\/location\?/.test(url)) return jsonResponse(LOCATIONS);
+      if (/\/meetings/.test(url)) {
+        const start = new URL(url).searchParams.get("start") ?? "";
+        if (start <= "2026-09-14") {
+          return jsonResponse([{ ...MEETING, id: 84213, meeting_start: "2026-09-14 19:00:00" }]);
+        }
+        return jsonResponse([]);
+      }
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const meeting = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+    });
+
+    expect(meeting?.id).toBe(84213);
+    const meetingsUrl = fetchMock.mock.calls
+      .map(([url]) => String(url))
+      .find((url) => /\/meetings/.test(url));
+    expect(meetingsUrl).toBeDefined();
+    const start = new URL(meetingsUrl!).searchParams.get("start");
+    expect(start).toBeDefined();
+    expect(start! <= "2026-09-14").toBe(true);
+    expect(start).not.toBe("2026-09-15");
+  });
+
+  it("acepta el slug corto del Concierge (lomas) contra el slug de la API (fitspin-lomas)", async () => {
+    const fetchMock = stubApi([
+      [
+        /\/location\?/,
+        {
+          data: [
+            { id: 122, name: "Lomas", slug: "fitspin-lomas", calendar_days: 8 },
+            { id: 119, name: "Polanco", slug: "fitspin-polanco", calendar_days: 8 },
+          ],
+        },
+      ],
+      [/\/location\/122\/meetings/, [MEETING]],
+    ]);
+
+    const meeting = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "lomas",
+    });
+
+    expect(meeting?.id).toBe(84213);
+    expect(meeting?.locationSlug).toBe("fitspin-lomas");
+    expect(fetchMock.mock.calls.some(([url]) => /\/location\/122\/meetings/.test(String(url)))).toBe(true);
+    expect(fetchMock.mock.calls.some(([url]) => /\/location\/119\/meetings/.test(String(url)))).toBe(false);
   });
 
   it("marca hasSeatMap false cuando el salon no tiene mapa", async () => {

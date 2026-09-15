@@ -70,6 +70,11 @@ siguen ON). Para mostrarlas, en `data-gf-options`:
 es el piloto; el publish llega a todas las páginas v2. Receta:
 [`docs/v2-lanzamiento.md`](../v2-lanzamiento.md).
 
+Si el host es un SPA (cambio de página o de marca sin recargar):
+`data-gf-autoscan="off"` (o `window.GAFA_SDK_AUTOSCAN = false`), luego
+`await window.GafaSdkReady`, `sdk.mount(root)` al entrar y `sdk.destroy(root)`
+al salir. Contrato: [`docs/v2-agente.md`](../v2-agente.md) §2 y §10.
+
 Colores de marca: `THEME.colors` en `data-gf-options` (fondos, superficies,
 inputs). Contrato: [`docs/v2-theme-colors.md`](../v2-theme-colors.md). No CSS
 de overlays ni `MutationObserver`.

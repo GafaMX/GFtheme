@@ -19,6 +19,7 @@ export type SdkTracker = {
   sessionId: string;
   track(input: TrackInput): void;
   heartbeat(widgets: string[]): void;
+  getUser(): HubUser;
   setUserId(userId: number | null): void;
   setUser(user: HubUser): void;
   flush(): void;
@@ -131,13 +132,13 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
     if (next.email !== undefined) userEmail = next.email?.trim() || null;
     try {
       if (next.id == null) {
-        sessionStorage.removeItem(USER_KEY);
-        sessionStorage.removeItem(USER_PROFILE_KEY);
+        storageRemove(USER_KEY);
+        storageRemove(USER_PROFILE_KEY);
         userName = null;
         userEmail = null;
       } else {
-        sessionStorage.setItem(USER_KEY, String(next.id));
-        sessionStorage.setItem(USER_PROFILE_KEY, JSON.stringify({ name: userName, email: userEmail }));
+        storageSet(USER_KEY, String(next.id));
+        storageSet(USER_PROFILE_KEY, JSON.stringify({ name: userName, email: userEmail }));
       }
     } catch {
       // ignore
@@ -155,6 +156,9 @@ export function createSdkTracker(config: TrackerConfig): SdkTracker {
       });
       flush();
     },
+    getUser() {
+      return { id: userId, name: userName, email: userEmail };
+    },
     setUserId(next) {
       applyUser({ id: next });
     },
@@ -167,25 +171,63 @@ export const noopTracker: SdkTracker = {
   sessionId: "noop",
   track() {},
   heartbeat() {},
+  getUser() {
+    return { id: null, name: null, email: null };
+  },
   setUserId() {},
   setUser() {},
   flush() {},
 };
 
-function readStoredUserId(): number | null {
+function storageGet(key: string): string | null {
   try {
-    const raw = sessionStorage.getItem(USER_KEY);
-    const id = raw ? Number(raw) : NaN;
-    return Number.isFinite(id) && id > 0 ? id : null;
+    return localStorage.getItem(key) ?? sessionStorage.getItem(key);
   } catch {
-    return null;
+    try {
+      return sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
   }
 }
 
-function readStoredProfile(): { name: string | null; email: string | null } {
+function storageSet(key: string, value: string): void {
   try {
-    const raw = sessionStorage.getItem(USER_PROFILE_KEY);
-    if (!raw) return { name: null, email: null };
+    localStorage.setItem(key, value);
+    return;
+  } catch {
+    // fallback
+  }
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // ignore
+  }
+}
+
+function storageRemove(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
+function readStoredUserId(): number | null {
+  const raw = storageGet(USER_KEY);
+  const id = raw ? Number(raw) : NaN;
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function readStoredProfile(): { name: string | null; email: string | null } {
+  const raw = storageGet(USER_PROFILE_KEY);
+  if (!raw) return { name: null, email: null };
+  try {
     const parsed = JSON.parse(raw) as { name?: unknown; email?: unknown };
     return {
       name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : null,

@@ -16,6 +16,7 @@ import { ProfileWidget, type ProfileWidgetProps } from "./widgets/ProfileWidget"
 import { AccountModal, type AccountModalProps } from "./widgets/AccountModal";
 import { CheckoutModal, type CheckoutModalProps } from "./widgets/CheckoutModal";
 import { ReservationLauncher, type ReservationLauncherProps } from "./widgets/ReservationLauncher";
+import { ReservationSuccessOverlay } from "./widgets/ReservationSuccessOverlay";
 import { PurchaseButtonWidget, type PurchaseButtonWidgetProps } from "./widgets/PurchaseButtonWidget";
 import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderControls";
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
@@ -31,8 +32,18 @@ import {
   type ConciergeHandle,
   type ConciergeMountOptions,
 } from "./concierge/mount";
+import type { ReservationSuccessOptions } from "./concierge/adapter";
 import { createSdkTracker, type SdkTracker } from "./analytics/tracker";
 import { instrumentClient } from "./analytics/instrumentClient";
+import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
+import {
+  aliasV2Shortcodes,
+  clearSdkRoot,
+  markExplicitRoot,
+  markSdkRoot,
+  nodeContainsMount,
+  type SdkMountOptions,
+} from "./lifecycle";
 import "./theme/theme.css";
 import "./widgets/widgets.css";
 import "./concierge/concierge.css";
@@ -65,6 +76,8 @@ export type GafaSdk = {
   openReservation(props: ReservationOptions): CheckoutOpenHandle;
   /** Variante promise-friendly para integraciones externas como Concierge. */
   openReservationCheckout(props: ReservationOptions): Promise<CheckoutOpenHandle>;
+  /** Confirmación compacta después de reservar desde Concierge (sin reabrir el flujo). */
+  openReservationSuccess(props: ReservationSuccessOptions): CheckoutOpenHandle;
   /**
    * Activa los botones de compra en HTML plano ([data-gf-buy] con
    * data-gf-combo-id / data-gf-membership-id / data-gf-product-id).
@@ -78,6 +91,21 @@ export type GafaSdk = {
   /** Eventos de uso hacia el SDK Hub. Nunca tira si el Hub está caído. */
   track: SdkTracker["track"];
   heartbeat(widgets: string[]): void;
+  /**
+   * Listo para `mount` / `openCheckout`. El IIFE también expone
+   * `window.GafaSdkReady` (misma promesa) desde que carga el script.
+   */
+  ready: Promise<GafaSdk>;
+  /**
+   * Monta los shortcodes dentro de `root`. Idempotente: un nodo ya montado
+   * no se vuelve a crear. Un fallo limpia ese nodo y no lo deja “inicializado”.
+   */
+  mount(root?: string | Element | Document, options?: SdkMountOptions): { widgets: string[] };
+  /**
+   * Desmonta lo que cuelga de `root` (el nodo o sus hijos). Idempotente.
+   * No tira el SDK entero: para eso sigue `unmountAll()`.
+   */
+  destroy(root?: string | Element | Document): void;
   unmountAll(): void;
 };
 
@@ -88,6 +116,7 @@ export type CheckoutOptions = Omit<CheckoutModalProps, "client" | "onClose">;
 export type ReservationOptions = Omit<ReservationLauncherProps, "client" | "captcha" | "onClose"> & {
   onClose?: () => void;
 };
+export type { ReservationSuccessOptions };
 export type HeaderControlsMountProps = Pick<HeaderControlsProps, "showCart"> & AccountModalOptions;
 
 export type MountedWidget = {
@@ -101,9 +130,13 @@ export type RuntimeOptions = {
   useMockClient?: boolean;
 };
 
+export type { SdkMountOptions };
+
 export type GafaSdkEventName =
+  | "buq:sdk:ready"
   | "buq:sdk:mounted"
   | "buq:sdk:unmounted"
+  | "buq:sdk:destroyed"
   | "buq:checkout:opening"
   | "buq:checkout:opened"
   | "buq:checkout:closed"
@@ -222,6 +255,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   // con la sesion, y pueden haberse cacheado antes de autenticar.
   subscribeToAuthChanges(() => queryClient.invalidateQueries());
   const mounts = new Set<MountedWidget>();
+  const mountsByElement = new WeakMap<Element, MountedWidget>();
   const conciergeHosts = new Set<HTMLElement>();
   prefetchCheckoutCatalog(queryClient, client);
   const unsubCartWarm = useCartStore.subscribe(() => {
@@ -230,33 +264,88 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
 
   function mount(target: string | Element, node: ReactNode): MountedWidget {
     const element = resolveTarget(target);
-    const root = createRoot(element);
-    const mounted: MountedWidget = {
-      root,
-      element,
-      unmount() {
-        root.unmount();
-        mounts.delete(mounted);
+    const existing = mountsByElement.get(element);
+    if (existing) return existing;
+
+    let root: Root | undefined;
+    try {
+      root = createRoot(element);
+      const mounted: MountedWidget = {
+        root,
+        element,
+        unmount() {
+          try {
+            root?.unmount();
+          } catch {
+            /* root ya no está en el DOM */
+          }
+          mounts.delete(mounted);
+          mountsByElement.delete(element);
+          if (element instanceof HTMLElement) clearSdkRoot(element);
+        }
+      };
+
+      root.render(
+        <React.StrictMode>
+          <QueryClientProvider client={queryClient}>
+            <ImagesProvider images={config.images} apiBaseUrl={config.apiBaseUrl}>
+              <ThemeProvider
+                theme={config.theme}
+                storageScope={`${config.companyId}:${config.publicClientId ?? "x"}`}
+              >
+                {node}
+              </ThemeProvider>
+            </ImagesProvider>
+          </QueryClientProvider>
+        </React.StrictMode>
+      );
+
+      mounts.add(mounted);
+      mountsByElement.set(element, mounted);
+      if (element instanceof HTMLElement) markSdkRoot(element);
+      return mounted;
+    } catch (error) {
+      try {
+        root?.unmount();
+      } catch {
+        /* createRoot a medias */
       }
-    };
+      mountsByElement.delete(element);
+      if (element instanceof HTMLElement) clearSdkRoot(element);
+      throw error;
+    }
+  }
 
-    root.render(
-      <React.StrictMode>
-        <QueryClientProvider client={queryClient}>
-          <ImagesProvider images={config.images} apiBaseUrl={config.apiBaseUrl}>
-            <ThemeProvider
-              theme={config.theme}
-              storageScope={`${config.companyId}:${config.publicClientId ?? "x"}`}
-            >
-              {node}
-            </ThemeProvider>
-          </ImagesProvider>
-        </QueryClientProvider>
-      </React.StrictMode>
-    );
+  function resolveMountRoot(target?: string | Element | Document): Document | Element {
+    if (target == null) {
+      if (typeof document === "undefined") throw new Error("Gafa SDK mount: no hay document.");
+      return document;
+    }
+    if (typeof target !== "string") return target;
+    const found = document.querySelector(target);
+    if (!found) throw new Error(`Gafa SDK target not found: ${target}`);
+    return found;
+  }
 
-    mounts.add(mounted);
-    return mounted;
+  function destroyScope(target?: string | Element | Document): void {
+    const scope = resolveMountRoot(target);
+    Array.from(mounts).forEach((mounted) => {
+      if (nodeContainsMount(scope, mounted.element)) mounted.unmount();
+    });
+    Array.from(conciergeHosts).forEach((host) => {
+      if (nodeContainsMount(scope, host)) {
+        host.remove();
+        conciergeHosts.delete(host);
+      }
+    });
+    const marked = `[data-gafa-sdk-root], [data-gafa-sdk-explicit]`;
+    if (scope instanceof HTMLElement) {
+      clearSdkRoot(scope);
+      scope.querySelectorAll<HTMLElement>(marked).forEach((node) => clearSdkRoot(node));
+    } else if (scope instanceof Document) {
+      scope.querySelectorAll<HTMLElement>(marked).forEach((node) => clearSdkRoot(node));
+    }
+    events.emit("buq:sdk:destroyed", { root: scope });
   }
 
   const sdk: GafaSdk = {
@@ -271,7 +360,15 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     mountCalendar(target, props = {}) {
       tracker.track({ event: "widget.mounted", widget: "meetings-calendar" });
       tracker.track({ event: "calendar.viewed", widget: "meetings-calendar" });
-      const mounted = mount(target, <CalendarWidget client={client} captcha={captcha} {...props} />);
+      const mounted = mount(
+        target,
+        <CalendarWidget
+          client={client}
+          captcha={captcha}
+          crossSell={props.crossSell ?? config.crossSell}
+          {...props}
+        />,
+      );
       events.emit("buq:sdk:mounted", { widget: "calendar" });
       return mounted;
     },
@@ -438,9 +535,11 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         <CheckoutModal
           client={client}
           {...props}
+          captcha={props.captcha ?? captcha}
           onClose={close}
           gafaPayFrontUrl={props.gafaPayFrontUrl ?? config.gafaPayFrontUrl}
           showMembershipOptions={props.showMembershipOptions ?? config.showMembershipOptions}
+          crossSell={props.crossSell ?? config.crossSell}
         />,
       );
 
@@ -483,7 +582,13 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
 
       const mounted = mount(
         host,
-        <ReservationLauncher client={client} captcha={captcha} {...props} onClose={close} />,
+        <ReservationLauncher
+          client={client}
+          captcha={captcha}
+          {...props}
+          crossSell={props.crossSell ?? config.crossSell}
+          onClose={close}
+        />,
       );
 
       afterOverlayPaint(() => events.emit("buq:checkout:opened", { context, handle }));
@@ -506,6 +611,36 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           reject(error);
         }
       });
+    },
+    openReservationSuccess({ onClose, ...props }) {
+      const context: CheckoutOpenContext = {
+        kind: "reservation",
+      };
+      events.emit("buq:checkout:opening", context);
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+
+      const close = () => {
+        if (activeReservation === handle) activeReservation = null;
+        queueMicrotask(() => {
+          mounted.unmount();
+          host.remove();
+          events.emit("buq:checkout:closed", context);
+        });
+        onClose?.();
+      };
+
+      activeReservation?.close();
+      const handle: CheckoutOpenHandle = { type: "reservation", context, close };
+      activeReservation = handle;
+
+      const mounted = mount(
+        host,
+        <ReservationSuccessOverlay {...props} onClose={close} />,
+      );
+
+      afterOverlayPaint(() => events.emit("buq:checkout:opened", { context, handle }));
+      return handle;
     },
     mountConcierge(options) {
       return sdk.concierge.mount(options);
@@ -600,6 +735,26 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     heartbeat(widgets) {
       tracker.heartbeat(widgets);
     },
+    get ready() {
+      return Promise.resolve(sdk);
+    },
+    mount(root, options = {}) {
+      const scope = resolveMountRoot(root);
+      aliasV2Shortcodes(scope);
+      const exclusive = options.exclusive !== false && scope instanceof HTMLElement;
+      try {
+        if (exclusive) markExplicitRoot(scope);
+        const result = bootstrapLegacyWidgets(sdk, scope, { mode: "explicit" });
+        events.emit("buq:sdk:mounted", { widgets: result.widgets, root: scope });
+        return { widgets: result.widgets };
+      } catch (error) {
+        if (exclusive) clearSdkRoot(scope);
+        throw error;
+      }
+    },
+    destroy(root) {
+      destroyScope(root);
+    },
     unmountAll() {
       purchaseButtonsStop?.();
       purchaseButtonsStop = null;
@@ -610,6 +765,11 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       Array.from(mounts).forEach((mounted) => mounted.unmount());
       conciergeHosts.forEach((host) => host.remove());
       conciergeHosts.clear();
+      if (typeof document !== "undefined") {
+        document.querySelectorAll<HTMLElement>(`[data-gafa-sdk-root], [data-gafa-sdk-explicit]`).forEach((node) =>
+          clearSdkRoot(node),
+        );
+      }
       queryClient.clear();
       tracker.flush();
     }

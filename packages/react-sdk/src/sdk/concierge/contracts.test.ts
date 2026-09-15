@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConciergePartnerConfig, ConciergeResponseSchema } from "./contracts";
+import { ConciergeActionSchema, ConciergePartnerConfig, ConciergeResponseSchema } from "./contracts";
 import { DEMO_CONCIERGE_CONFIG, FITSPIN_CONCIERGE_CONFIG } from "./fixtures";
 
 describe("concierge contracts", () => {
@@ -51,5 +51,26 @@ describe("concierge contracts", () => {
     expect(withoutExperience.experience).toBeUndefined();
     expect(FITSPIN_CONCIERGE_CONFIG.experience?.groups?.[0]?.label).toBe("Clases");
     expect(DEMO_CONCIERGE_CONFIG.experience?.openingActions?.[1]?.label).toBe("Buy a pass");
+  });
+
+  it("acepta confirmación y selección de crédito en el chat", () => {
+    expect(ConciergeActionSchema.parse({
+      kind: "confirm_reservation",
+      meetingId: 88,
+      brandSlug: "demo",
+      locationSlug: "downtown",
+      selectedCredit: "credits--1",
+      time: "08:30",
+      className: "Bunker",
+    }).kind).toBe("confirm_reservation");
+    expect(ConciergeActionSchema.parse({
+      kind: "select_credit",
+      creditId: "credits--1",
+      creditName: "10 clases",
+      creditKind: "credit",
+      meetingId: 88,
+      brandSlug: "demo",
+      locationSlug: "downtown",
+    }).kind).toBe("select_credit");
   });
 });

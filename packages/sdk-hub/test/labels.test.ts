@@ -62,6 +62,18 @@ describe("directory", () => {
       name: "Ana Ruiz",
       email: "ana@fitspin.mx",
     });
+    expect(
+      presentPerson({
+        company_id: 80,
+        user_id: 44,
+        display_name: null,
+        email: null,
+        props_json: JSON.stringify({ user_name: "Ana Ruiz", user_email: "ana@fitspin.mx" }),
+      }),
+    ).toMatchObject({
+      name: "Ana Ruiz",
+      email: "ana@fitspin.mx",
+    });
   });
 });
 

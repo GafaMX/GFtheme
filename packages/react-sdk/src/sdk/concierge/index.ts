@@ -59,10 +59,26 @@ export {
 export type {
   AdapterOutcome,
   AdapterScheduleResult,
+  ConfirmReservationOutcome,
   ConciergeAdapterOptions,
   ConciergeBrowserAdapter,
   ConciergeSdkBridge,
+  InspectMeetingResult,
+  ReservationSuccessOptions,
 } from "./adapter";
+export {
+  confirmReservationLabel,
+  creditChipLabel,
+  planReservationCase,
+  reservationCaseCopy,
+  selectedCreditCopy,
+} from "./reservationCase";
+export type {
+  ConciergeReservationCredit,
+  PlanReservationCaseInput,
+  ReservationCase,
+  ReservationCaseKind,
+} from "./reservationCase";
 export { conciergeProducts } from "./products";
 export { ConciergeCommandBar, ConciergeWidget } from "./ConciergeWidget";
 export type { ConciergeWidgetProps } from "./ConciergeWidget";
