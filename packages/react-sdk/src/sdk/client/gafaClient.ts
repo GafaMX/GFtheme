@@ -335,6 +335,14 @@ function demoMeetings(): Meeting[] {
       startsAt: first.toISOString(),
       durationMinutes: 50,
       staffName: "Coach Demo",
+      staff: {
+        id: 1,
+        name: "Coach",
+        lastname: "Demo",
+        photoUrl:
+          "https://buqstorage.blob.core.windows.net/buq-imagenes/public/prod-server/80/applibreriascatalogtablesbrandcatalogstaff/2847/picture_web.jpg",
+      },
+      service: { id: 1, name: "Training" },
       serviceName: "Training",
       description:
         "Trae toalla y zapatos de indoor. Esta clase es de alta intensidad — si es tu primera vez, avísale al coach.",
@@ -356,6 +364,8 @@ function demoMeetings(): Meeting[] {
       startsAt: second.toISOString(),
       durationMinutes: 45,
       staffName: "Coach Ana",
+      staff: { id: 2, name: "Coach", lastname: "Ana" },
+      service: { id: 2, name: "Wellness" },
       serviceName: "Wellness",
       availability: "waitlist",
       available: 0,

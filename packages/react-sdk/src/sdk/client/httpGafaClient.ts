@@ -398,6 +398,17 @@ function mapUserCredit(raw: RawUserCredit, index: number): UserCredit {
   };
 }
 
+type RawStaffCatalog = {
+  id: number;
+  name: string;
+  lastname?: string;
+  description?: string;
+  job?: string;
+  picture_web?: string | null;
+  picture?: string | null;
+  pic?: string | null;
+};
+
 type RawMeeting = {
   id: number;
   start?: string;
@@ -417,7 +428,7 @@ type RawMeeting = {
   waitlist_available?: boolean | number | string;
   is_waitlist_available?: boolean | number | string;
   service?: { id: number; name: string };
-  staff?: { id: number; name: string; lastname?: string; description?: string; job?: string; picture_web?: string | null };
+  staff?: RawStaffCatalog;
   room?: { id: number; name: string; maps_id?: number | null; map_id?: number | null; has_map?: boolean | number | null };
   rooms_id?: number | null;
   maps_id?: number | null;
@@ -759,7 +770,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             name: raw.staff.name,
             lastname: raw.staff.lastname,
             bio: raw.staff.description ?? raw.staff.job,
-            photoUrl: raw.staff.picture_web ?? undefined,
+            photoUrl: raw.staff.picture_web || raw.staff.picture || raw.staff.pic || undefined,
           }
         : undefined,
       staffId: raw.staff?.id,
@@ -907,8 +918,14 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async listStaff(brandSlug) {
       if (!brandSlug) return [];
-      const response = await apiGet<PaginatedResponse<StaffMember>>(`/brand/${brandSlug}/staff`);
-      return unwrap(response);
+      const response = await apiGet<PaginatedResponse<RawStaffCatalog>>(`/brand/${brandSlug}/staff`);
+      return unwrap(response).map((staff) => ({
+        id: staff.id,
+        name: staff.name,
+        lastname: staff.lastname,
+        bio: staff.description ?? staff.job,
+        photoUrl: staff.picture_web || staff.picture || staff.pic || undefined,
+      }));
     },
 
     async listServices(brandSlug) {
