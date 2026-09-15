@@ -367,7 +367,8 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk img:not(.gafa-pay-native *) {
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-meeting-staff-photo,
 html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-widget-logo,
-html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct__avatar {
+html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct__avatar,
+html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-multiselect__photo {
   border-radius: var(--gafa-img-radius, 50%) !important;
   height: var(--gafa-img-height, 36px) !important;
   object-fit: var(--gafa-img-fit, cover) !important;

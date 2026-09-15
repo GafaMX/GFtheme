@@ -1412,6 +1412,10 @@
 }
 
 .gafa-multiselect__avatar {
+  --gafa-img-fit: cover;
+  --gafa-img-height: 100%;
+  --gafa-img-radius: 50%;
+  --gafa-img-width: 100%;
   align-items: center;
   background: color-mix(in srgb, var(--gafa-color-primary) 16%, var(--gafa-color-surface));
   border-radius: 50%;
