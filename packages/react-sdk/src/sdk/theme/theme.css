@@ -367,12 +367,57 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk img:not(.gafa-pay-native *) {
 
 html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-meeting-staff-photo,
 html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-widget-logo,
-html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct__avatar,
-html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-multiselect__photo {
+html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct__avatar {
   border-radius: var(--gafa-img-radius, 50%) !important;
   height: var(--gafa-img-height, 36px) !important;
   object-fit: var(--gafa-img-fit, cover) !important;
   width: var(--gafa-img-width, 36px) !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__option:not(.gafa-pay-native *) {
+  align-items: center !important;
+  display: grid !important;
+  gap: 12px !important;
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  height: auto !important;
+  justify-content: start !important;
+  max-width: none !important;
+  min-height: 44px !important;
+  overflow: visible !important;
+  padding: 10px 12px !important;
+  width: 100% !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect[data-avatars="true"] .gafa-multiselect__option:not(.gafa-pay-native *) {
+  gap: 14px !important;
+  grid-template-columns: 20px var(--gafa-avatar-size, 44px) minmax(0, 1fr) !important;
+  min-height: 64px !important;
+  padding: 8px 12px !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-multiselect__avatar:not(.gafa-pay-native *) {
+  display: grid !important;
+  flex: 0 0 var(--gafa-avatar-size, 44px) !important;
+  height: var(--gafa-avatar-size, 44px) !important;
+  max-height: var(--gafa-avatar-size, 44px) !important;
+  max-width: var(--gafa-avatar-size, 44px) !important;
+  overflow: hidden !important;
+  place-items: center !important;
+  position: relative !important;
+  width: var(--gafa-avatar-size, 44px) !important;
+}
+
+html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-multiselect__photo {
+  border-radius: 50% !important;
+  display: block !important;
+  grid-area: 1 / 1 !important;
+  height: var(--gafa-avatar-size, 44px) !important;
+  inset: auto !important;
+  max-height: var(--gafa-avatar-size, 44px) !important;
+  max-width: var(--gafa-avatar-size, 44px) !important;
+  object-fit: cover !important;
+  position: static !important;
+  width: var(--gafa-avatar-size, 44px) !important;
 }
 
 /* Wordmark del estudio: Elementor/Hello pone img{width:100%} y la aislación

@@ -177,6 +177,7 @@ export function FilterMultiSelect({
               onClick={() => onChange([])}
             >
               <CheckMark checked={allSelected} />
+              {showAvatars ? <span className="gafa-multiselect__avatar gafa-multiselect__avatar--blank" aria-hidden="true" /> : null}
               <span className="gafa-multiselect__name">{allLabel}</span>
             </button>
             {visibleOptions.map((option, index) => {
@@ -192,7 +193,7 @@ export function FilterMultiSelect({
                   onClick={() => toggle(option.id)}
                 >
                   <CheckMark checked={checked} />
-                  {showAvatars ? <FilterOptionAvatar name={option.name} photoUrl={option.photoUrl} size={40} /> : null}
+                  {showAvatars ? <FilterOptionAvatar name={option.name} photoUrl={option.photoUrl} size={44} /> : null}
                   <span className="gafa-multiselect__name">{option.name}</span>
                 </button>
               );
@@ -210,14 +211,18 @@ export function FilterMultiSelect({
 export function FilterOptionAvatar({
   name,
   photoUrl,
-  size = 40,
+  size = 44,
 }: {
   name: string;
   photoUrl?: string;
   size?: number;
 }) {
   return (
-    <span className="gafa-multiselect__avatar" style={{ width: size, height: size }} aria-hidden="true">
+    <span
+      className="gafa-multiselect__avatar"
+      style={{ width: size, height: size, ["--gafa-avatar-size" as string]: `${size}px` }}
+      aria-hidden="true"
+    >
       <span className="gafa-multiselect__initials">{initials(name)}</span>
       <RemoteImage className="gafa-multiselect__photo" src={photoUrl} size={size} gravity="face" alt="" />
     </span>
