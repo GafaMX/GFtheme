@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFilterFlag } from "./legacyFilterFlag";
+import { parseFilterFlagValue, readFilterFlag } from "./legacyFilterFlag";
 
 function el(html: string): HTMLElement {
   const wrap = document.createElement("div");
@@ -26,5 +26,13 @@ describe("readFilterFlag", () => {
     const node = el(`<section filter-bq-service="false" filter-bq-staff="0"></section>`);
     expect(readFilterFlag(node, "filter-bq-service", true)).toBe(false);
     expect(readFilterFlag(node, "filter-bq-staff", true)).toBe(false);
+  });
+
+  it("el false de hasAttribute (Buq-Webs / Fitspin) no apaga servicio ni staff", () => {
+    expect(parseFilterFlagValue(false, true)).toBe(true);
+    expect(parseFilterFlagValue(undefined, true)).toBe(true);
+    expect(parseFilterFlagValue("false", true)).toBe(false);
+    expect(parseFilterFlagValue("off", true)).toBe(false);
+    expect(parseFilterFlagValue(true, true)).toBe(true);
   });
 });

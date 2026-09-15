@@ -208,4 +208,23 @@ describe("filtros multiopción de calendario", () => {
       ),
     ).toBe(true);
   });
+
+  it("Fitspin /reservar: service:false de hasAttribute no esconde Servicio ni Staff", async () => {
+    sdk = createGafaSdk(CONFIG, { client: clientWithServices() });
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    sdk.mountCalendar(root, {
+      view: "week",
+      allowViewChange: false,
+      filters: { location: true, service: false, staff: false },
+    });
+
+    await waitFor(() => {
+      expect(root.querySelectorAll(".gafa-meeting-card").length).toBe(3);
+    });
+
+    fireEvent.click(root.querySelector('[aria-label="Filtros"]')!);
+    expect(root.querySelector('[data-name="service"]')).toBeTruthy();
+    expect(root.querySelector('[data-name="staff"]')).toBeTruthy();
+  });
 });

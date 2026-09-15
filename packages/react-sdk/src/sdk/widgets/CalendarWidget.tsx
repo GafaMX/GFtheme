@@ -52,6 +52,7 @@ import {
   readCalendarServiceQueryFromWindow,
   resolveCalendarServiceIds,
 } from "./calendarServiceQuery";
+import { parseFilterFlagValue } from "../bootstrap/legacyFilterFlag";
 import { FilterMultiSelect } from "./FilterMultiSelect";
 
 export type CalendarWidgetProps = {
@@ -111,7 +112,11 @@ export function CalendarWidget({
   description: _description,
   crossSell,
 }: CalendarWidgetProps) {
-  const filters = { service: true, staff: true, ...filtersProp };
+  const filters = {
+    ...filtersProp,
+    service: parseFilterFlagValue(filtersProp.service, true),
+    staff: parseFilterFlagValue(filtersProp.staff, true),
+  };
   const queryClient = useQueryClient();
   const serviceQuery = readCalendarServiceQueryFromWindow();
   const serviceFallbackId = serviceQuery.serviceId ?? filters.serviceId;
