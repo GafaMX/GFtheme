@@ -5,6 +5,7 @@ import {
   parseCalendarServiceDefault,
   readCalendarServiceQueryFromSearch,
   resolveCalendarServiceId,
+  resolveCalendarServiceIds,
   resolveCalendarServiceQuery,
   serviceNamesMatch,
 } from "./calendarServiceQuery";
@@ -95,6 +96,20 @@ describe("serviceNamesMatch / matchServiceIdByName", () => {
   });
 });
 
+describe("resolveCalendarServiceIds", () => {
+  it("hereda el default de URL mientras el usuario no toca el select", () => {
+    expect(resolveCalendarServiceIds(undefined, 42)).toEqual([42]);
+  });
+
+  it("respeta varios servicios elegidos", () => {
+    expect(resolveCalendarServiceIds([8, 11], 42)).toEqual([8, 11]);
+  });
+
+  it("Todos explícito no vuelve al servicio de la URL", () => {
+    expect(resolveCalendarServiceIds(null, 42)).toEqual([]);
+  });
+});
+
 describe("meetingMatchesService", () => {
   const reformer = { service: { id: 10, name: "Pilates Reformer" } };
   const barre = { serviceId: 11, serviceName: "Barre" };
@@ -103,6 +118,13 @@ describe("meetingMatchesService", () => {
     expect(meetingMatchesService(reformer, { serviceId: 10 })).toBe(true);
     expect(meetingMatchesService(barre, { serviceId: 10 })).toBe(false);
     expect(meetingMatchesService(barre, { serviceId: 11 })).toBe(true);
+  });
+
+  it("filtra por varios ids a la vez", () => {
+    expect(meetingMatchesService(reformer, { serviceIds: [10, 11] })).toBe(true);
+    expect(meetingMatchesService(barre, { serviceIds: [10, 11] })).toBe(true);
+    expect(meetingMatchesService(barre, { serviceIds: [10] })).toBe(false);
+    expect(meetingMatchesService(reformer, { serviceIds: [] })).toBe(true);
   });
 
   it("filtra por nombre cuando no hay id (v1)", () => {

@@ -1111,7 +1111,9 @@
   display: flex;
   gap: var(--gafa-space-2);
   min-width: 0;
+  overflow: visible;
   position: relative;
+  z-index: 4;
 }
 
 .gafa-filterbar-location {
@@ -1241,7 +1243,8 @@
   box-shadow: var(--gafa-shadow-pop);
   display: grid;
   gap: var(--gafa-space-3);
-  min-width: 270px;
+  min-width: 320px;
+  overflow: visible;
   padding: var(--gafa-space-3);
   position: absolute;
   right: 0;
@@ -1254,14 +1257,379 @@
   gap: var(--gafa-space-1);
 }
 
+/* Select multiopción propio: reemplaza el <select> nativo de servicio/staff. */
+.gafa-multiselect {
+  display: grid;
+  gap: 6px;
+  position: relative;
+}
+
+.gafa-multiselect__label,
+.gafa-calendar-filter > span {
+  --gafa-type-size: 0.78rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.gafa-multiselect__trigger {
+  --gafa-type-size: 0.88rem;
+  --gafa-control-font-size: 0.88rem;
+  --gafa-control-padding: 0.45rem 0.7rem;
+  --gafa-control-bg: var(--gafa-color-input-background, var(--gafa-color-surface));
+  --gafa-control-border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  --gafa-control-fg: var(--gafa-color-input-text, var(--gafa-color-text));
+  --gafa-fg: var(--gafa-color-input-text, var(--gafa-color-text));
+  --gafa-control-radius: var(--gafa-radius-md);
+  align-items: center;
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  border-radius: var(--gafa-radius-md);
+  color: var(--gafa-color-input-text, var(--gafa-color-text));
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0.4rem 0.7rem;
+  text-align: left;
+  width: 100%;
+}
+
+.gafa-multiselect__trigger:hover,
+.gafa-multiselect__trigger[aria-expanded="true"] {
+  --gafa-control-border: 1px solid var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-multiselect__value {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gafa-multiselect__summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-multiselect__badge {
+  --gafa-type-size: 0.68rem;
+  background: var(--gafa-color-primary);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-primary-text);
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 18px;
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.gafa-multiselect__chevron {
+  color: var(--gafa-color-muted-text);
+  flex-shrink: 0;
+  transition: transform 0.16s ease;
+}
+
+.gafa-multiselect[data-open="true"] .gafa-multiselect__chevron {
+  transform: rotate(180deg);
+}
+
+.gafa-multiselect__menu {
+  animation: gafa-multiselect-menu-in 0.16s ease;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  box-shadow: var(--gafa-shadow-pop);
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  left: 0;
+  max-height: 280px;
+  min-width: 100%;
+  overflow: hidden;
+  padding: 6px;
+  position: absolute;
+  right: auto;
+  top: calc(100% + 6px);
+  width: 100%;
+  z-index: 30;
+}
+
+@keyframes gafa-multiselect-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gafa-multiselect__search {
+  align-items: center;
+  background: var(--gafa-color-input-background, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-input-border, var(--gafa-color-border));
+  border-radius: 10px;
+  color: var(--gafa-color-muted-text);
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 0 0.65rem;
+}
+
+.gafa-multiselect__search input {
+  --gafa-field-bg: transparent;
+  --gafa-field-border: 0 solid transparent;
+  background: transparent;
+  border: 0;
+  color: var(--gafa-color-text);
+  flex: 1;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  height: 34px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  width: 100%;
+}
+
+.gafa-multiselect__search input::placeholder {
+  color: var(--gafa-color-muted-text);
+  opacity: 0.8;
+}
+
+.gafa-multiselect__list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.gafa-multiselect__empty {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0.7rem 0.55rem;
+}
+
+.gafa-multiselect__option {
+  --gafa-type-size: 0.88rem;
+  --gafa-type-leading: 1.25;
+  --gafa-control-font-size: 0.88rem;
+  --gafa-control-line-height: 1.25;
+  --gafa-control-padding: 7px 10px;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: 10px;
+  --gafa-control-min-height: 36px;
+  --gafa-avatar-size: 36px;
+  align-items: center;
+  animation: gafa-multiselect-option-in 0.18s ease both;
+  animation-delay: calc(var(--gafa-option-i, 0) * 16ms);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: flex;
+  flex-wrap: nowrap;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  gap: 10px;
+  isolation: isolate;
+  line-height: 1.25;
+  min-height: 36px;
+  overflow: visible;
+  padding: 7px 10px;
+  position: relative;
+  text-align: left;
+  transform: none;
+  width: 100%;
+}
+
+.gafa-multiselect[data-avatars="true"] .gafa-multiselect__option {
+  --gafa-control-min-height: 48px;
+  --gafa-control-padding: 6px 10px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px;
+}
+
+@keyframes gafa-multiselect-option-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.gafa-multiselect__option:hover {
+  background: color-mix(in srgb, var(--gafa-color-primary) 8%, transparent);
+}
+
+.gafa-multiselect__option[aria-selected="true"] {
+  background: color-mix(in srgb, var(--gafa-color-primary) 12%, transparent);
+  color: var(--gafa-color-primary);
+}
+
+.gafa-multiselect__check {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1.5px solid var(--gafa-color-border);
+  border-radius: 5px;
+  color: var(--gafa-color-primary-text);
+  display: inline-flex;
+  flex: 0 0 16px;
+  flex-shrink: 0;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
+}
+
+.gafa-multiselect__check[data-checked="true"] {
+  background: var(--gafa-color-primary);
+  border-color: var(--gafa-color-primary);
+}
+
+.gafa-multiselect__name {
+  flex: 1 1 auto;
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-multiselect__avatar {
+  --gafa-avatar-size: 36px;
+  background: color-mix(in srgb, var(--gafa-color-primary) 16%, var(--gafa-color-surface));
+  border-radius: 50%;
+  color: var(--gafa-color-primary);
+  display: grid;
+  flex: 0 0 var(--gafa-avatar-size);
+  font-size: 0.68rem;
+  font-weight: 800;
+  grid-template-areas: "stack";
+  height: var(--gafa-avatar-size);
+  isolation: isolate;
+  letter-spacing: 0;
+  min-height: var(--gafa-avatar-size);
+  min-width: var(--gafa-avatar-size);
+  overflow: hidden;
+  place-items: stretch;
+  position: relative;
+  width: var(--gafa-avatar-size);
+}
+
+.gafa-multiselect__avatar--blank {
+  background: color-mix(in srgb, var(--gafa-color-border) 55%, var(--gafa-color-surface));
+}
+
+.gafa-multiselect__initials,
+.gafa-multiselect__photo {
+  grid-area: stack;
+}
+
+.gafa-multiselect__initials {
+  align-self: center;
+  justify-self: center;
+  line-height: 1;
+  z-index: 0;
+}
+
+.gafa-multiselect__photo {
+  align-self: stretch;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  border-radius: 50%;
+  display: block;
+  height: 100%;
+  justify-self: stretch;
+  min-height: var(--gafa-avatar-size, 36px);
+  min-width: var(--gafa-avatar-size, 36px);
+  width: 100%;
+  z-index: 1;
+}
+
+.gafa-multiselect__stack {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.gafa-multiselect__stack .gafa-multiselect__avatar {
+  box-shadow: 0 0 0 2px var(--gafa-color-input-background, var(--gafa-color-surface));
+}
+
+.gafa-multiselect__stack .gafa-multiselect__avatar + .gafa-multiselect__avatar {
+  margin-left: -8px;
+}
+
 /* La rejilla de semana scrollea en horizontal en movil: 7 columnas no caben en
    una pantalla de telefono sin volverlas ilegibles. */
 /* El cuerpo del calendario mantiene un alto minimo constante entre cargas,
    vistas y estados vacios: sin esto la pagina "brinca" con cada navegacion. */
 .gafa-week-grid,
 .gafa-day-column[data-standalone="true"],
-.gafa-empty-state--calendar {
+.gafa-empty-state--calendar,
+.gafa-day-swipe {
   min-height: 420px;
+}
+
+/* Vista día: al cambiar de fecha (swipe o flechas) el contenido entra un
+   pelín desde el lado del gesto. Rápido a propósito — el swipe ya es corto. */
+.gafa-day-swipe {
+  overflow: hidden;
+}
+
+.gafa-day-pane[data-enter="next"] {
+  animation: gafa-day-enter-next 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gafa-day-pane[data-enter="prev"] {
+  animation: gafa-day-enter-prev 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes gafa-day-enter-next {
+  from {
+    opacity: 0.28;
+    transform: translateX(1.75rem);
+  }
+}
+
+@keyframes gafa-day-enter-prev {
+  from {
+    opacity: 0.28;
+    transform: translateX(-1.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gafa-day-pane[data-enter] {
+    animation: gafa-fade 0.15s ease-out both;
+  }
 }
 
 .gafa-week-grid {
@@ -1494,6 +1862,7 @@
 }
 
 .gafa-meeting-staff,
+.gafa-meeting-location,
 .gafa-meeting-desc {
   --gafa-type-size: 0.78rem;
   --gafa-fg: var(--gafa-color-muted-text);
@@ -5410,7 +5779,7 @@
   border-left: 1px solid var(--gafa-color-border);
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
   min-height: 0;
   /* La columna NO scrollea completa: lo unico que scrollea es la lista de
      lineas, para que total y "Ir a pagar" queden siempre a la vista. */
@@ -5466,6 +5835,7 @@
 .gafa-checkout__cart-head,
 .gafa-checkout__reserve-chip,
 .gafa-checkout__extras,
+.gafa-checkout__cross-sell-link,
 .gafa-checkout__total,
 .gafa-checkout__cta,
 .gafa-checkout__cta-wrap,
@@ -5473,6 +5843,152 @@
 .gafa-checkout__error,
 .gafa-checkout__env-warn {
   flex-shrink: 0;
+}
+
+/* Misma escala que las líneas del carrito. Si hay varios, scrollea. */
+.gafa-checkout__cross-sell,
+.gafa-checkout-thanks__cross-sell {
+  border-top: 1px solid var(--gafa-color-border);
+  display: grid;
+  flex: 0 1 auto;
+  gap: 0.15rem;
+  min-height: 0;
+  padding: 0.55rem 0 0.1rem;
+}
+
+.gafa-checkout__cross-sell {
+  max-height: 11.5rem;
+}
+
+.gafa-checkout__cross-sell-title,
+.gafa-checkout-thanks__cross-sell .gafa-checkout__cross-sell-title {
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-heading-size: 0.8rem;
+  --gafa-heading-weight: 600;
+  --gafa-type-size: 0.8rem;
+  color: var(--gafa-color-text);
+  font-family: var(--gafa-font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.3;
+  margin: 0 0 0.15rem;
+}
+
+.gafa-checkout__cross-sell-list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 0.2rem 0 0;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.gafa-checkout__cross-sell-item {
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--gafa-color-border) 55%, transparent);
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.45rem 0;
+}
+
+.gafa-checkout__cross-sell-item:last-child {
+  border-bottom: 0;
+}
+
+.gafa-checkout__cross-sell-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.gafa-checkout__cross-sell-copy strong {
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-type-size: 0.8rem;
+  color: var(--gafa-color-text);
+  display: block;
+  font-family: var(--gafa-font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-checkout__cross-sell-copy span {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.7rem;
+  color: var(--gafa-color-muted-text);
+  font-size: 0.7rem;
+}
+
+.gafa-checkout__cross-sell-price {
+  --gafa-type-size: 0.8rem;
+  flex: 0 0 auto;
+  font-family: var(--gafa-font-body);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gafa-checkout__cross-sell-add {
+  --gafa-control-bg: var(--gafa-color-primary);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-primary-text);
+  --gafa-control-font-size: 0.7rem;
+  --gafa-control-line-height: 1;
+  --gafa-control-min-height: 26px;
+  --gafa-control-padding: 0.28rem 0.7rem;
+  --gafa-control-radius: 999px;
+  --gafa-fg: var(--gafa-color-primary-text);
+  --gafa-type-size: 0.7rem;
+  background: var(--gafa-color-primary);
+  border: 0;
+  border-radius: 999px;
+  color: var(--gafa-color-primary-text);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-family: var(--gafa-font-body);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  min-height: 26px;
+  padding: 0.28rem 0.7rem;
+  white-space: nowrap;
+}
+
+.gafa-checkout__cross-sell-add:hover {
+  filter: brightness(0.96);
+}
+
+.gafa-checkout__cross-sell-link,
+.gafa-checkout-thanks__cross-sell .gafa-checkout__cross-sell-link {
+  --gafa-fg: var(--gafa-color-muted-text);
+  color: var(--gafa-color-muted-text);
+  font-size: 0.7rem;
+  margin: 0.15rem 0 0;
+}
+
+.gafa-checkout-thanks__cross-sell {
+  margin-top: 0.5rem;
+  max-width: 26rem;
+  padding-top: 0.7rem;
+  text-align: left;
+  width: 100%;
+}
+
+.gafa-checkout-thanks__cross-sell .gafa-checkout__cross-sell-list {
+  max-height: 12rem;
 }
 
 .gafa-checkout__cart-head {
@@ -5724,7 +6240,7 @@
 
 .gafa-checkout__extras {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.7rem;
 }
 
 .gafa-checkout-promo {
@@ -6591,9 +7107,9 @@
     border-left: 0;
     border-top: 1px solid var(--gafa-color-border);
     box-shadow: 0 -12px 28px -22px rgb(0 0 0 / 0.8);
-    gap: 0.6rem;
+    gap: 0.75rem;
     max-height: 62dvh;
-    padding: 0.75rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.85rem 1rem calc(0.95rem + env(safe-area-inset-bottom, 0px));
   }
 
   /* El resumen plegable: catalogo y pago. En desktop sigue en display:none. */
@@ -6628,6 +7144,21 @@
   /* En catalogo el total ya vive en la barra; no lo duplicamos. En pago
      se deja: ahi acompaña a «Pagar». */
   .gafa-checkout[data-step="shop"] .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__total {
+    display: none;
+  }
+
+  /* La sugerencia se queda visible aunque el detalle de lineas esté cerrado.
+     Descuento, GiftCard y “otro paquete” se van al expandir: si no, el pie
+     se atasca (términos + oferta + total + pagar). */
+  .gafa-checkout[data-step="pay"] .gafa-checkout__cross-sell,
+  .gafa-checkout[data-step="auth"] .gafa-checkout__cross-sell {
+    display: grid;
+    max-height: 8.5rem;
+    padding-top: 0.5rem;
+  }
+
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout-promo,
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__backlink {
     display: none;
   }
 

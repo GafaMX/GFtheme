@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { bootGafaSdk, bootGafaSdkFromDom, startEmbedWhenReady, type EmbedHostWindow } from "./embed";
 import { parseGafaSdkConfig } from "./config";
@@ -22,6 +22,9 @@ describe("embed drop-in", () => {
     host.GafaThemeSDK?.unmountAll();
     delete host.GafaThemeSDK;
     delete host.GafaSdk;
+    delete host.GafaSdkReady;
+    delete host.GAFA_SDK_AUTOSCAN;
+    document.documentElement.removeAttribute("data-gf-autoscan");
     document.body.innerHTML = "";
   });
 
@@ -259,5 +262,115 @@ describe("embed drop-in", () => {
     const mounted = document.querySelector<HTMLElement>("#header-js .gafa-sdk");
     expect(mounted?.style.getPropertyValue("--gafa-header-account-background")).toBe("#8D6363");
     expect(document.querySelector(".gafa-header-cart")).toBeNull();
+  });
+
+  describe("readiness y ciclo de vida por root", () => {
+    it("expone GafaSdkReady y buq:sdk:ready, y reusa la misma identidad", async () => {
+      mountHost(`<div data-gf-theme="login-register"></div>`);
+      const readyEvents: Event[] = [];
+      window.addEventListener("buq:sdk:ready", (event) => {
+        readyEvents.push(event);
+      });
+
+      const first = bootGafaSdkFromDom(document, window, { useMockClient: true });
+      const fromWindow = await (window as EmbedHostWindow).GafaSdkReady;
+      expect(fromWindow).toBe(first);
+      expect(await first.ready).toBe(first);
+      expect(readyEvents.length).toBeGreaterThan(0);
+
+      const second = bootGafaSdkFromDom(document, window, { useMockClient: true });
+      expect(second).toBe(first);
+      expect(await (window as EmbedHostWindow).GafaSdkReady).toBe(first);
+    });
+
+    it("cambia de instancia al cambiar de compañía", async () => {
+      mountHost(`<div data-gf-theme="login-register"></div>`);
+      const first = bootGafaSdkFromDom(document, window, { useMockClient: true });
+      const unmount = vi.spyOn(first, "unmountAll");
+      const second = bootGafaSdk(
+        parseGafaSdkConfig({ companyId: 190, publicClientId: "otro-cliente" }),
+        document,
+        window,
+        { useMockClient: true },
+      );
+      expect(unmount).toHaveBeenCalled();
+      expect(second).not.toBe(first);
+      expect(await (window as EmbedHostWindow).GafaSdkReady).toBe(second);
+      expect(second.config.companyId).toBe(190);
+    });
+
+    it("con auto-scan apagado no monta widgets; mount(root) sí, y es idempotente", async () => {
+      (window as EmbedHostWindow).GAFA_SDK_AUTOSCAN = false;
+      mountHost();
+      const spa = document.createElement("div");
+      spa.innerHTML = `<div data-gf-theme="login-register"></div>`;
+      document.body.appendChild(spa);
+
+      const sdk = bootGafaSdkFromDom(document, window, { useMockClient: true });
+      expect(spa.querySelector("[data-gf-theme='login-register']")?.childElementCount).toBe(0);
+
+      const firstMount = sdk.mount(spa);
+      expect(firstMount.widgets).toContain("login-register");
+      await waitFor(() => {
+        expect(spa.querySelector("[data-gf-theme='login-register']")?.childElementCount).toBeGreaterThan(0);
+      });
+      expect(spa.getAttribute("data-gafa-sdk-explicit")).toBe("1");
+
+      const again = sdk.mount(spa);
+      expect(again.widgets).toEqual([]);
+      expect(spa.querySelectorAll("[data-gf-theme='login-register'] .gafa-sdk").length).toBe(1);
+    });
+
+    it("el auto-scan no entra a un root montado en exclusive", async () => {
+      (window as EmbedHostWindow).GAFA_SDK_AUTOSCAN = false;
+      mountHost();
+      const spa = document.createElement("div");
+      spa.innerHTML = `<div data-gf-theme="login-register"></div>`;
+      document.body.appendChild(spa);
+      const sdk = bootGafaSdkFromDom(document, window, { useMockClient: true });
+      sdk.mount(spa);
+      await waitFor(() => {
+        expect(spa.querySelector("[data-gf-theme='login-register']")?.childElementCount).toBeGreaterThan(0);
+      });
+
+      delete (window as EmbedHostWindow).GAFA_SDK_AUTOSCAN;
+      bootGafaSdkFromDom(document, window, { useMockClient: true });
+      expect(spa.querySelectorAll("[data-gf-theme='login-register'] .gafa-sdk").length).toBe(1);
+    });
+
+    it("mount sobre el shortcode mismo, destroy idempotente y remount", async () => {
+      (window as EmbedHostWindow).GAFA_SDK_AUTOSCAN = false;
+      mountHost();
+      const calendar = document.createElement("div");
+      calendar.setAttribute("data-gf-theme", "meetings-calendar");
+      document.body.appendChild(calendar);
+
+      const sdk = bootGafaSdkFromDom(document, window, { useMockClient: true });
+      expect(calendar.childElementCount).toBe(0);
+      sdk.mount(calendar);
+      await waitFor(() => {
+        expect(calendar.childElementCount).toBeGreaterThan(0);
+      });
+      expect(calendar.getAttribute("data-gafa-sdk-root")).toBe("1");
+
+      sdk.destroy(calendar);
+      expect(calendar.getAttribute("data-gafa-sdk-root")).toBeNull();
+      expect(calendar.getAttribute("data-gafa-sdk-explicit")).toBeNull();
+      sdk.destroy(calendar);
+
+      sdk.mount(calendar);
+      await waitFor(() => {
+        expect(calendar.childElementCount).toBeGreaterThan(0);
+      });
+    });
+
+    it("un mount que falla no deja el root marcado", () => {
+      (window as EmbedHostWindow).GAFA_SDK_AUTOSCAN = false;
+      mountHost();
+      const sdk = bootGafaSdkFromDom(document, window, { useMockClient: true });
+      expect(() => sdk.mount("#no-existe-este-nodo")).toThrow(/not found/i);
+      expect(document.querySelector("[data-gafa-sdk-root]")).toBeNull();
+      expect(document.querySelector("[data-gafa-sdk-explicit]")).toBeNull();
+    });
   });
 });

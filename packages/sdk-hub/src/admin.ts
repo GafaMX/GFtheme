@@ -208,6 +208,7 @@ export function mountAdmin(
         widget: string | null;
         display_name?: string | null;
         email?: string | null;
+        props_json?: string | null;
       };
       const person = rec.user_id
         ? presentPerson({
@@ -217,6 +218,7 @@ export function mountAdmin(
             email: rec.email,
             last_host: rec.host,
             path: rec.path,
+            props_json: rec.props_json,
           })
         : null;
       return {
@@ -388,7 +390,7 @@ export function mountAdmin(
       ) || 0;
     const meta = pageMeta(total, page, perPage);
     const { results } = await c.env.DB.prepare(
-      `SELECT l.idempotency_key, l.company_id, l.user_id, l.event_name, l.points, l.day, l.ts,
+      `SELECT l.idempotency_key, l.company_id, l.user_id, l.event_name, l.points, l.day, l.ts, l.props_json,
               p.display_name, p.email, p.last_host
        FROM loyalty_ledger l
        LEFT JOIN people p ON p.company_id = l.company_id AND p.user_id = l.user_id
@@ -406,6 +408,7 @@ export function mountAdmin(
         display_name?: string | null;
         email?: string | null;
         last_host?: string | null;
+        props_json?: string | null;
       };
       const person = presentPerson({
         company_id: rec.company_id,
@@ -413,6 +416,7 @@ export function mountAdmin(
         display_name: rec.display_name,
         email: rec.email,
         last_host: rec.last_host,
+        props_json: rec.props_json,
       });
       return {
         ...row,

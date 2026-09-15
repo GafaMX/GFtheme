@@ -146,7 +146,7 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     shortcode: "cross-sell",
     title: "Cross-sell",
     status: "preview",
-    description: "Sugerencias en carrito / gracias / página. Reservado; aún no monta UI.",
+    description: "Oferta en el footer del carrito (pago) y en thank you. Se configura en el Hub (CROSS_SELL).",
   },
 ];
 
@@ -202,8 +202,8 @@ function mountCalendar(runtime: GafaSdk, element: HTMLElement) {
     filters: {
       brand: element.hasAttribute("filter-bq-brand"),
       location: element.hasAttribute("filter-bq-location"),
-      service: readFilterFlag(element, "filter-bq-service", true),
-      staff: readFilterFlag(element, "filter-bq-staff", true),
+      service: readFilterFlag(element, "filter-bq-service", true) ? true : "false",
+      staff: readFilterFlag(element, "filter-bq-staff", true) ? true : "false",
       room: element.hasAttribute("filter-bq-room"),
       brandId: toNumber(element.getAttribute("filter-bq-brand-default")),
       locationId: readCalendarLocationIdFromWindow() ?? toNumber(element.getAttribute("filter-bq-location-default")),

@@ -6,6 +6,7 @@ import { pruneOldEvents } from "./cleanup";
 import { parseAndNormalizeEvents, persistEvents } from "./ingest";
 import { applyLoyalty, d1LoyaltyStore, tierForPoints } from "./loyalty";
 import { allowRequest } from "./rateLimit";
+import { fetchGafaCatalog, gafaApiBaseUrl } from "./gafaCatalog";
 import { readCompanyConfig, writeCompanyConfig } from "./remoteConfig";
 
 export type HubEnv = {
@@ -275,6 +276,34 @@ app.put("/v1/admin/config", async (c) => {
     updatedBy: "admin",
   });
   return c.json({ ok: true, ...saved });
+});
+
+app.get("/v1/admin/catalog", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+  const companyId = Number(c.req.query("company_id"));
+  if (!Number.isFinite(companyId) || companyId <= 0) {
+    return c.json({ ok: false, error: "company_required" }, 400);
+  }
+  const row = await readCompanyConfig(c.env.DB, companyId);
+  try {
+    const catalog = await fetchGafaCatalog({
+      companyId,
+      apiBaseUrl: gafaApiBaseUrl(row.config),
+    });
+    return c.json({ ok: true, company_id: companyId, ...catalog });
+  } catch {
+    return c.json(
+      {
+        ok: false,
+        error: "catalog_unavailable",
+        company_id: companyId,
+        items: [],
+        brands: [],
+        warnings: ["No pude leer el catálogo de gafa.fit. Reintenta en un momento."],
+      },
+      502,
+    );
+  }
 });
 
 app.all("*", async (c) => {
