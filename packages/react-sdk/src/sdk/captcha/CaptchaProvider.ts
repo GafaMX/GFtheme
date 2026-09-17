@@ -6,6 +6,8 @@ export type CaptchaProvider = {
 
 export type CaptchaProviderName = "recaptcha-v3" | "turnstile";
 
+const CAPTCHA_USER_ERROR = "No pudimos validar el captcha. Recarga e inténtalo de nuevo.";
+
 /**
  * Abstraccion de captcha: reCAPTCHA v3 es el default (es lo unico que gafa.fit valida hoy
  * en el server, ver App\Rules\Captcha), Turnstile queda listo detras del mismo contrato para
@@ -58,14 +60,31 @@ declare global {
   }
 }
 
+function toCaptchaError(err: unknown): Error {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  if (
+    message.startsWith("No se pudo") ||
+    message.startsWith("Turnstile") ||
+    message.startsWith("No pudimos")
+  ) {
+    return err instanceof Error ? err : new Error(message);
+  }
+  return new Error(CAPTCHA_USER_ERROR);
+}
+
 function createRecaptchaV3Provider(siteKey: string): CaptchaProvider {
   return {
     async execute(action: string) {
-      await loadScriptOnce(`https://www.google.com/recaptcha/api.js?render=${siteKey}`);
-
-      await new Promise<void>((resolve) => window.grecaptcha!.ready(resolve));
-
-      return window.grecaptcha!.execute(siteKey, { action });
+      try {
+        await loadScriptOnce(`https://www.google.com/recaptcha/api.js?render=${siteKey}`);
+        if (!window.grecaptcha) {
+          throw new Error(CAPTCHA_USER_ERROR);
+        }
+        await new Promise<void>((resolve) => window.grecaptcha!.ready(resolve));
+        return await window.grecaptcha!.execute(siteKey, { action });
+      } catch (err) {
+        throw toCaptchaError(err);
+      }
     },
   };
 }
@@ -76,11 +95,15 @@ function createTurnstileProvider(siteKey: string): CaptchaProvider {
       return loadScriptOnce("https://challenges.cloudflare.com/turnstile/v0/api.js").then(
         () =>
           new Promise<string>((resolve, reject) => {
+            if (!window.turnstile) {
+              reject(new Error(CAPTCHA_USER_ERROR));
+              return;
+            }
             const container = document.createElement("div");
             container.style.display = "none";
             document.body.appendChild(container);
 
-            const widgetId = window.turnstile!.render(container, {
+            const widgetId = window.turnstile.render(container, {
               sitekey: siteKey,
               size: "invisible",
               action,
@@ -96,7 +119,7 @@ function createTurnstileProvider(siteKey: string): CaptchaProvider {
               },
             });
 
-            window.turnstile!.execute(container);
+            window.turnstile.execute(container);
           }),
       );
     },

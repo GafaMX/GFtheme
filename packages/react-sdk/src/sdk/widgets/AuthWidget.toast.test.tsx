@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as captchaModule from "../captcha/CaptchaProvider";
 import type { GafaClient } from "../client/types";
 import { ThemeProvider } from "../theme/theme";
 import { resetToastHostForTests } from "../toast/ToastHost";
@@ -11,6 +12,7 @@ afterEach(() => {
   cleanup();
   clearToasts();
   resetToastHostForTests();
+  vi.restoreAllMocks();
 });
 
 function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
@@ -68,5 +70,32 @@ describe("AuthWidget toasts (login/registro)", () => {
     expect(document.querySelector(".gafa-toast")?.textContent).toMatch(/marcados en rojo/);
     expect(document.querySelector(".gafa-sdk-form .gafa-sdk-state--error")).toBeNull();
     expect(document.querySelectorAll('.gafa-float[data-invalid="true"]').length).toBeGreaterThan(0);
+  });
+
+  it("registro sin captcha prop usa el default, no pide captchaPublicKey", async () => {
+    const execute = vi.fn().mockResolvedValue("captcha-token");
+    vi.spyOn(captchaModule, "createCaptchaProvider").mockReturnValue({ execute });
+    const register = vi.fn().mockResolvedValue(undefined);
+    const login = vi.fn().mockResolvedValue({ access_token: "x" });
+    renderAuth(mockClient({ register, login }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Crear cuenta" }));
+    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Ana" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ana@buq.mx" } });
+    fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "secret1" } });
+    fireEvent.change(screen.getByLabelText("Confirmar contraseña"), { target: { value: "secret1" } });
+    fireEvent.submit(document.querySelector(".gafa-sdk-form") as HTMLFormElement);
+
+    await waitFor(() => {
+      expect(execute).toHaveBeenCalledWith("register");
+    });
+    expect(register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "ana@buq.mx",
+        captchaToken: "captcha-token",
+      }),
+    );
+    expect(document.querySelector(".gafa-toast")?.textContent ?? "").not.toMatch(/captchaPublicKey/i);
+    expect(document.querySelector(".gafa-toast")?.textContent ?? "").not.toMatch(/Falta configurar el captcha/i);
   });
 });

@@ -89,6 +89,26 @@ describe("buq environments", () => {
     expect(config.captchaSecretKey).toBe(DEFAULT_CAPTCHA_SECRET_KEY);
   });
 
+  it("usa el par default si el Hub manda solo la llave publica", () => {
+    const config = legacyOptionsToConfig({
+      COMPANY_ID: 1,
+      CAPTCHA_PUBLIC_KEY: "hub-only-public-key",
+    });
+
+    expect(config.captchaPublicKey).toBe(DEFAULT_CAPTCHA_PUBLIC_KEY);
+    expect(config.captchaSecretKey).toBe(DEFAULT_CAPTCHA_SECRET_KEY);
+  });
+
+  it("usa el par default si camelCase trae publica sin secret", () => {
+    const config = legacyOptionsToConfig({
+      COMPANY_ID: 1,
+      captchaPublicKey: "from-js-config",
+    });
+
+    expect(config.captchaPublicKey).toBe(DEFAULT_CAPTCHA_PUBLIC_KEY);
+    expect(config.captchaSecretKey).toBe(DEFAULT_CAPTCHA_SECRET_KEY);
+  });
+
   it("recorta llaves de captcha configuradas explicitamente", () => {
     const config = parseGafaSdkConfig({
       companyId: 1,

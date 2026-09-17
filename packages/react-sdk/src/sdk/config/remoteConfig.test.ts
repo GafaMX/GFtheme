@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fetchHubRemoteConfig, mergeSdkOptionLayers, sanitizeHubRemoteConfig } from "./remoteConfig";
 import { queryOptionOverrides, readEmbedOptionsFromDom } from "./embedOptions";
+import { DEFAULT_CAPTCHA_PUBLIC_KEY, DEFAULT_CAPTCHA_SECRET_KEY } from "../config";
 
 describe("sanitizeHubRemoteConfig", () => {
   it("tira secretos y claves que no son del catálogo", () => {
@@ -18,6 +19,18 @@ describe("sanitizeHubRemoteConfig", () => {
       THEME: { colorScheme: "dark" },
       CONCIERGE: true,
       CROSS_SELL: { enabled: true, itemId: 971 },
+    });
+  });
+
+  it("tira CAPTCHA_PUBLIC_KEY vacía para no pisar el default del SDK", () => {
+    expect(
+      sanitizeHubRemoteConfig({
+        CAPTCHA_PUBLIC_KEY: "  ",
+        captchaPublicKey: "",
+        THEME: { colorScheme: "dark" },
+      }),
+    ).toEqual({
+      THEME: { colorScheme: "dark" },
     });
   });
 });
@@ -103,6 +116,43 @@ describe("readEmbedOptionsFromDom", () => {
     expect(config.clientSecret).toBe("from-page");
     expect(config.theme).toEqual(expect.objectContaining({ colorScheme: "dark" }));
     expect(config.concierge).toBe(true);
+    document.body.innerHTML = "";
+  });
+
+  it("Hub con solo CAPTCHA_PUBLIC_KEY no rompe el par default", async () => {
+    document.body.innerHTML = `
+      <script data-gf-options type="application/json">${JSON.stringify({
+        COMPANY_ID: 190,
+        API_CLIENT: "203",
+        API_SECRET: "from-page",
+      })}</script>
+    `;
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        config: { CAPTCHA_PUBLIC_KEY: "hub-only-public" },
+      }),
+    })) as unknown as typeof fetch;
+    const config = await readEmbedOptionsFromDom(document, { fetchImpl, search: "" });
+    expect(config.captchaPublicKey).toBe(DEFAULT_CAPTCHA_PUBLIC_KEY);
+    expect(config.captchaSecretKey).toBe(DEFAULT_CAPTCHA_SECRET_KEY);
+    document.body.innerHTML = "";
+  });
+
+  it("página con las dos llaves de captcha sí pisa el default", async () => {
+    document.body.innerHTML = `
+      <script data-gf-options type="application/json">${JSON.stringify({
+        COMPANY_ID: 190,
+        API_CLIENT: "203",
+        API_SECRET: "from-page",
+        CAPTCHA_PUBLIC_KEY: "partner-public",
+        CAPTCHA_SECRET_KEY: "partner-secret",
+      })}</script>
+    `;
+    const config = await readEmbedOptionsFromDom(document, { fetchRemote: false, search: "" });
+    expect(config.captchaPublicKey).toBe("partner-public");
+    expect(config.captchaSecretKey).toBe("partner-secret");
     document.body.innerHTML = "";
   });
 

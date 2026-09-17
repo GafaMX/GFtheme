@@ -222,6 +222,8 @@ const client = {
   },
   updateProfile: async () => ({ id: 1, name: "Gabriel Arrechea", email: "gabriel+fitspin@buq.mx" }),
   logout: async () => undefined,
+  register: async () => undefined,
+  login: async () => ({ access_token: "preview" }),
   getCheckoutConfig: async () => ({
     brandSlug: "fitspin",
     locationSlug: "lomas",
@@ -261,6 +263,9 @@ const client = {
   },
   reservatePurchase: async () => ({ purchaseId: 88 }),
 } as unknown as GafaClient;
+
+/** El preview no carga reCAPTCHA de Google: el default del SDK ya cubre prod. */
+const previewCaptcha = { execute: async () => "preview-captcha" };
 
 function Preview() {
   const params = new URLSearchParams(window.location.search);
@@ -365,6 +370,7 @@ function Preview() {
           <main className="demo-main" style={{ minHeight: "70vh" }} />
           <AccountModal
             client={client}
+            captcha={previewCaptcha}
             open={open}
             onClose={() => setOpen(false)}
             title="Fitspin"
@@ -373,6 +379,7 @@ function Preview() {
           {checkoutOpen ? (
             <CheckoutModal
               client={client}
+              captcha={previewCaptcha}
               brandSlug="fitspin"
               locationSlug="lomas"
               locationName="Lomas"
