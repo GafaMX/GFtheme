@@ -41,8 +41,8 @@ Query de prueba (no uses en producción): `?buq-env=` y `?hub-url=`. Nada más.
 | `GAFAPAY_FRONT_URL` | `gafaPayFrontUrl` | no | sí | Pisa el script de Stripe/PayPal. |
 | `HUB_URL` | `hubUrl` | no | sí | Analytics + remote config. Default `https://hub.buq.partners`. Query `?hub-url=` gana. |
 | `ANALYTICS` | `analyticsEnabled` | no | sí | `false` apaga heartbeats. |
-| `CAPTCHA_PUBLIC_KEY` | `captchaPublicKey` | no | sí | Default: par compartido de Buq. |
-| `CAPTCHA_SECRET_KEY` | `captchaSecretKey` | no | **prohibido** | Default compartido. gafa.fit la pide desde el browser. |
+| `CAPTCHA_PUBLIC_KEY` | `captchaPublicKey` | no | sí | Default: par compartido de Buq. Sola (sin secret en la página) se ignora. |
+| `CAPTCHA_SECRET_KEY` | `captchaSecretKey` | no | **prohibido** | Default compartido. gafa.fit la pide desde el browser. Hay que mandar las **dos** para pisar el default. |
 | `TOKENMOVIL` | `tokenMovil` | no | sí | SSO app. |
 | `IMAGES` | `images` | no | sí | `{ "provider": "cloudflare" \| "none" }`. |
 | `language` | `language` | no | sí | `es` / `en`. Hoy **no cambia copy**. No lo prometas. |

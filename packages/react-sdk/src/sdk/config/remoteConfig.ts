@@ -42,6 +42,7 @@ export const HUB_REMOTE_CONFIG_KEYS = [
 
 const SECRET_SET = new Set<string>(REMOTE_CONFIG_SECRET_KEYS);
 const ALLOWED_SET = new Set<string>(HUB_REMOTE_CONFIG_KEYS);
+const BLANK_CAPTCHA_KEYS = new Set(["CAPTCHA_PUBLIC_KEY", "captchaPublicKey"]);
 
 export function stripRemoteConfigSecrets<T extends Record<string, unknown>>(input: T): T {
   const next: Record<string, unknown> = {};
@@ -59,6 +60,9 @@ export function sanitizeHubRemoteConfig(input: unknown): Record<string, unknown>
   const next: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(stripped)) {
     if (!ALLOWED_SET.has(key) || value === undefined) continue;
+    // `""` no es un override: si se queda, Zod/merge lo tratan como “sí hay
+    // llave” y el registro parte el par default (público sin secret).
+    if (BLANK_CAPTCHA_KEYS.has(key) && typeof value === "string" && !value.trim()) continue;
     next[key] = value;
   }
   return next;
