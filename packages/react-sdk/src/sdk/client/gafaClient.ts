@@ -91,6 +91,7 @@ export function createMockGafaClient(): GafaClient {
         name: "Informacion adicional",
         fields: [
           { id: 10, name: "Telefono", type: "number", required: true, options: [] },
+          { id: 12, name: "CUMPLEAÑOS", type: "date", required: true, options: [] },
           {
             id: 11,
             name: "Como nos conociste",
