@@ -967,16 +967,28 @@
   text-align: center;
 }
 
-/* El fancy de reserva y Mi cuenta recortan overflow; Elementor a veces pone
-   transform en un ancestro. El calendario sale por portal a document.body
-   (DateField) con z-index por encima del overlay (2147483000). */
+/* DateField porta a document.body. El host cubre el viewport ENCIMA del
+   overlay de cuenta/login (2147483000): si queda `position:static`, el
+   z-index del popup se compara dentro de un stacking context por debajo
+   del overlay y no se puede tocar el día.
+   `.gafa-datepicker` (el del calendario de clases) trae `top: calc(100% + 8px)`,
+   `left: 50%` y `transform`. Sin resetearlos, al abrir el cumpleaños hacia
+   arriba en móvil el widget se va fuera de pantalla. */
 .gafa-datepicker-host {
-  position: static;
+  inset: 0;
+  isolation: isolate;
+  position: fixed;
+  z-index: 2147483646;
 }
 
 .gafa-datepicker--floating {
+  bottom: auto;
+  left: auto;
   position: fixed;
-  z-index: 2147483646;
+  right: auto;
+  top: auto;
+  transform: none;
+  z-index: 1;
 }
 
 .gafa-datepicker__selects {

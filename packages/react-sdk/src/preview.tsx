@@ -131,6 +131,7 @@ const client = {
       description: "Lo que la marca pide además de los datos de siempre.",
       fields: [
         { id: 21272, name: "Teléfono de emergencia", type: "number", required: true, options: [] },
+        { id: 21274, name: "CUMPLEAÑOS", type: "date", required: true, options: [] },
         {
           id: 21273,
           name: "¿Cómo nos conociste?",
