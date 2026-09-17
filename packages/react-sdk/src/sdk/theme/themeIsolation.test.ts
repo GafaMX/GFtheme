@@ -119,6 +119,13 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(/\.gafa-datepicker__day \{[\s\S]{0,500}width:\s*30px/);
   });
 
+  it("el DateField flotante resetea top/transform y cubre el overlay", () => {
+    expect(widgetsCss).toMatch(/\.gafa-datepicker-host \{[\s\S]{0,200}position:\s*fixed/);
+    expect(widgetsCss).toMatch(/\.gafa-datepicker-host \{[\s\S]{0,200}inset:\s*0/);
+    expect(widgetsCss).toMatch(/\.gafa-datepicker--floating \{[\s\S]{0,200}transform:\s*none/);
+    expect(widgetsCss).toMatch(/\.gafa-datepicker--floating \{[\s\S]{0,200}top:\s*auto/);
+  });
+
   it("los checks del checkout son redondos y no los aplasta Elementor", () => {
     expect(widgetsCss).toMatch(/\.gafa-check-box[\s\S]{0,280}border-radius:\s*8px/);
     expect(themeCss).toMatch(/\.gafa-check-box:not\(\.gafa-pay-native \*\) \{[\s\S]{0,280}border-radius:\s*8px/);

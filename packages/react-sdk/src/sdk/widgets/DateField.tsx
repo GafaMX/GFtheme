@@ -45,9 +45,12 @@ function formatDate(value: string): string {
  * `input[type=date]`: el nativo cambia por OS, no respeta el tema y tapa el
  * formulario.
  *
- * El popup SIEMPRE va a `document.body`. El fancy de reserva y Mi cuenta
- * recortan overflow; Elementor a veces pone `transform` en un ancestro y
- * entonces `position:fixed` dentro de `.gafa-sdk` se va fuera de pantalla.
+ * El popup SIEMPRE va a `document.body` dentro de un host a pantalla
+ * completa (encima del overlay de cuenta). El fancy recorta overflow;
+ * Elementor a veces pone `transform` en un ancestro. Además hay que
+ * resetear el `top`/`transform` de `.gafa-datepicker` (pensado para el
+ * calendario de clases): si no, en móvil el cumpleaños abre hacia arriba
+ * y el widget queda fuera de pantalla.
  */
 export function DateField({
   label,
@@ -62,9 +65,12 @@ export function DateField({
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const [rect, setRect] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(
-    null,
-  );
+  const [rect, setRect] = useState<{
+    top: number | "auto";
+    bottom: number | "auto";
+    left: number;
+    width: number;
+  } | null>(null);
   const [skin, setSkin] = useState<SdkSkin>({ scheme: "dark" });
 
   const maxIso = mode === "birth" ? toIsoDate(new Date()) : yearsAhead(5);
@@ -78,12 +84,15 @@ export function DateField({
     const reposition = () => {
       const anchor = buttonRef.current?.getBoundingClientRect();
       if (!anchor) return;
-      const left = Math.min(Math.max(anchor.left, 12), window.innerWidth - popoverWidth - 12);
+      const left = Math.min(Math.max(anchor.left, 12), Math.max(12, window.innerWidth - popoverWidth - 12));
       const spaceBelow = window.innerHeight - anchor.bottom;
       const openUpward = spaceBelow < 320 && anchor.top > spaceBelow;
       setRect({
-        top: openUpward ? undefined : anchor.bottom + 6,
-        bottom: openUpward ? window.innerHeight - anchor.top + 6 : undefined,
+        // Siempre un valor concreto: si `top` queda `undefined`, React lo omite
+        // y gana el `top: calc(100% + 8px)` del datepicker de clases, que manda
+        // el popup debajo del viewport (el cumpleaños en el registro móvil).
+        top: openUpward ? "auto" : anchor.bottom + 6,
+        bottom: openUpward ? window.innerHeight - anchor.top + 6 : "auto",
         left,
         width: popoverWidth,
       });
@@ -100,20 +109,11 @@ export function DateField({
 
   useEffect(() => {
     if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
-      setOpen(false);
-    };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   return (
@@ -136,11 +136,25 @@ export function DateField({
 
       {open && rect && typeof document !== "undefined"
         ? createPortal(
-            <div className="gafa-sdk gafa-datepicker-host" data-color-scheme={skin.scheme} style={skin.style}>
+            <div
+              className="gafa-sdk gafa-datepicker-host"
+              data-color-scheme={skin.scheme}
+              style={skin.style}
+              onPointerDown={(event) => {
+                if (event.target === event.currentTarget) setOpen(false);
+              }}
+            >
               <div
                 ref={popoverRef}
                 className="gafa-datepicker gafa-datepicker--floating"
-                style={{ top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width }}
+                style={{
+                  top: rect.top,
+                  bottom: rect.bottom,
+                  left: rect.left,
+                  right: "auto",
+                  width: rect.width,
+                  transform: "none",
+                }}
               >
                 <MonthCalendar
                   selectedIso={value || undefined}
