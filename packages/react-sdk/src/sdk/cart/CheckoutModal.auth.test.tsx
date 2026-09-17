@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { GafaClient } from "../client/types";
 import { CheckoutModal } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
@@ -82,5 +82,46 @@ describe("CheckoutModal auth step", () => {
       expect(screen.getAllByRole("heading", { name: "Recupera tu contraseña" })).toHaveLength(1);
     });
     expect(screen.queryByRole("heading", { name: "Inicia sesión para pagar" })).toBeNull();
+  });
+
+  it("al crear cuenta usa el captcha del checkout, no pide configurarlo", async () => {
+    const execute = vi.fn().mockResolvedValue("captcha-token");
+    const register = vi.fn().mockResolvedValue(undefined);
+    const login = vi.fn().mockResolvedValue(undefined);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CheckoutModal
+          client={
+            {
+              ...mockClient(),
+              register,
+              login,
+            } as unknown as GafaClient
+          }
+          captcha={{ execute }}
+          brandSlug="fitspin-cancun"
+          locationSlug="cancun"
+          skipCatalog
+          onClose={() => undefined}
+        />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Crear cuenta" }));
+    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Gabriel" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "gabriel@buq.mx" } });
+    fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "secret1" } });
+    fireEvent.change(screen.getByLabelText("Confirmar contraseña"), { target: { value: "secret1" } });
+    fireEvent.click(document.querySelector(".gafa-sdk-form button[type='submit']")!);
+
+    await waitFor(() => {
+      expect(execute).toHaveBeenCalledWith("register");
+    });
+    expect(register).toHaveBeenCalled();
+    expect(screen.queryByText(/captchaPublicKey/i)).toBeNull();
   });
 });

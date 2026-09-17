@@ -35,7 +35,7 @@ import type {
   UserActivityTotals,
   UpdateProfilePayload,
 } from "./types";
-import type { GafaSdkConfig } from "../config";
+import { DEFAULT_CAPTCHA_SECRET_KEY, type GafaSdkConfig } from "../config";
 import { buildCheckDiscountUrl, parseDiscountCheckResponse } from "../cart/discountCode";
 import {
   buildCheckGiftUrl,
@@ -363,6 +363,10 @@ const API_MESSAGE_TRANSLATIONS: Record<string, string> = {
   "El email no concuerda con nuestros registros.": "Este correo no está registrado.",
   "El password no concuerda con nuestros registros.": "La contraseña es incorrecta.",
   "The given data was invalid.": "Revisa los datos ingresados.",
+  "The g-recaptcha-response field is required.": "No pudimos validar el captcha. Recarga e inténtalo de nuevo.",
+  "The g-recaptcha-response field is required": "No pudimos validar el captcha. Recarga e inténtalo de nuevo.",
+  "validation.captcha": "No pudimos validar el captcha. Recarga e inténtalo de nuevo.",
+  "The captcha is invalid.": "No pudimos validar el captcha. Recarga e inténtalo de nuevo.",
   "The email has already been taken.": "Ese correo ya está registrado.",
   "The email must be a valid email address.": "Escribe un correo válido.",
   "The password confirmation does not match.": "Las contraseñas no coinciden.",
@@ -372,7 +376,13 @@ const API_MESSAGE_TRANSLATIONS: Record<string, string> = {
 };
 
 function translateApiMessage(message: string): string {
-  return API_MESSAGE_TRANSLATIONS[message.trim()] ?? message;
+  const trimmed = message.trim();
+  const mapped = API_MESSAGE_TRANSLATIONS[trimmed];
+  if (mapped) return mapped;
+  if (/g-recaptcha-response|recaptcha|captcha_secret_key|\bcaptcha\b/i.test(trimmed)) {
+    return "No pudimos validar el captcha. Recarga e inténtalo de nuevo.";
+  }
+  return trimmed;
 }
 
 /**
@@ -1495,7 +1505,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         tokenmovil: config.tokenMovil ?? "",
         g_recaptcha_response: payload.captchaToken,
         "g-recaptcha-response": payload.captchaToken,
-        captcha_secret_key: config.captchaSecretKey,
+        captcha_secret_key: config.captchaSecretKey || DEFAULT_CAPTCHA_SECRET_KEY,
         remote_addr: "",
       });
     },

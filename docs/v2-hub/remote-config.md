@@ -13,6 +13,7 @@ Plan vivo. Si el código choca con este contrato, **se actualiza este archivo** 
 | Merge | defaults SDK → Hub → `[data-gf-options]` → query (`?buq-env`, `?hub-url`). |
 | HTML mínimo de prod | `COMPANY_ID` + `API_CLIENT` + `API_SECRET`. |
 | Secret | `API_SECRET` / `clientSecret` / `CAPTCHA_SECRET_KEY` **nunca** van al Hub (ni GET ni PUT). |
+| Captcha | `CAPTCHA_PUBLIC_KEY` vacía se tira. Pública suelta (sin secret en el HTML) **no** pisa el par default de Buq: si no, el registro 422. |
 | Concierge en HTML | `CONCIERGE: true \| {} \| partial`. Defaults: `createLiveConciergeConfig()`. |
 | Nodo HTML | Widgets con lugar en el layout (`login-register`, calendario, catálogo) siguen pidiendo su `data-gf-theme`. El Concierge **no**: flota, así que encenderlo en el Hub lo pinta en todo el sitio. |
 | Admin | Primero en Hub (`hub.buq.partners`). Buq-Webs más tarde, **mismo PUT**. |

@@ -27,11 +27,31 @@ const imagesSchema = z
   })
   .optional();
 
-function stringWithBlankDefault(defaultValue: string) {
-  return z.string().optional().transform((value) => {
-    const trimmed = value?.trim();
-    return trimmed ? trimmed : defaultValue;
-  });
+function trimConfigString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * gafa.fit valida el token con el secret que manda el browser. El par tiene
+ * que coincidir: una llave pública del Hub sin secret en la página (el Hub
+ * no guarda secretos) o un `""` que pisa el default deja el registro en 422.
+ * Las dos o ninguna: si falta una, se usa el par compartido de Buq.
+ */
+export function resolveCaptchaKeys(input?: {
+  captchaPublicKey?: unknown;
+  captchaSecretKey?: unknown;
+  CAPTCHA_PUBLIC_KEY?: unknown;
+  CAPTCHA_SECRET_KEY?: unknown;
+} | null): { captchaPublicKey: string; captchaSecretKey: string } {
+  const captchaPublicKey = trimConfigString(input?.captchaPublicKey ?? input?.CAPTCHA_PUBLIC_KEY);
+  const captchaSecretKey = trimConfigString(input?.captchaSecretKey ?? input?.CAPTCHA_SECRET_KEY);
+  if (captchaPublicKey && captchaSecretKey) {
+    return { captchaPublicKey, captchaSecretKey };
+  }
+  return {
+    captchaPublicKey: DEFAULT_CAPTCHA_PUBLIC_KEY,
+    captchaSecretKey: DEFAULT_CAPTCHA_SECRET_KEY,
+  };
 }
 
 const legacyThemeSchema = z
@@ -84,12 +104,10 @@ export const sdkConfigSchema = z
     brandId: z.union([z.string(), z.number()]).transform(Number).optional(),
     tokenMovil: z.string().nullable().optional(),
     captchaProvider: z.enum(["recaptcha-v3", "turnstile"]).default("recaptcha-v3"),
-    // Default al par compartido de Buq: el captcha queda operativo sin que la
-    // integracion configure nada. Un socio puede sobreescribirlo con su propio par.
-    captchaPublicKey: stringWithBlankDefault(DEFAULT_CAPTCHA_PUBLIC_KEY),
-    // Igual que clientSecret: gafa.fit valida el reCAPTCHA en el server usando esta secret key
-    // que el cliente le manda en cada registro (ver App\Rules\Captcha). Viene asi del backend.
-    captchaSecretKey: stringWithBlankDefault(DEFAULT_CAPTCHA_SECRET_KEY),
+    // Vacío / ausente / solo una de las dos: parseGafaSdkConfig pone el par
+    // compartido. Un socio pisa con las DOS llaves juntas, no con una suelta.
+    captchaPublicKey: z.string().optional(),
+    captchaSecretKey: z.string().optional(),
     language: z.enum(["es", "en"]).default("es"),
     /**
      * Backend de Buq. Default production. `staging` = buq.com.mx (Stripe nuevo),
@@ -128,6 +146,8 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   gafaPayFrontUrl: string;
   hubUrl: string;
   analyticsEnabled: boolean;
+  captchaPublicKey: string;
+  captchaSecretKey: string;
   concierge?: boolean | Record<string, unknown>;
 };
 
@@ -159,8 +179,10 @@ export type LegacyGfOptions = z.input<typeof legacyOptionsSchema>;
 export function parseGafaSdkConfig(input: unknown): GafaSdkConfig {
   const parsed = sdkConfigSchema.parse(input);
   const resolved = withBuqEnvironment(parsed);
+  const captcha = resolveCaptchaKeys(parsed);
   return {
     ...parsed,
+    ...captcha,
     environment: resolved.environment,
     apiBaseUrl: resolved.apiBaseUrl,
     gafaPayFrontUrl: resolved.gafaPayFrontUrl,
@@ -173,6 +195,7 @@ export const parseSdkConfig = parseGafaSdkConfig;
 
 export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
   const legacyOptions = legacyOptionsSchema.parse(input);
+  const raw = input && typeof input === "object" && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
 
   return parseGafaSdkConfig({
     apiBaseUrl: legacyOptions.GAFA_FIT_URL,
@@ -181,8 +204,8 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     clientSecret: legacyOptions.API_SECRET,
     brandId: legacyOptions.BRAND_ID,
     tokenMovil: legacyOptions.TOKENMOVIL,
-    captchaPublicKey: legacyOptions.CAPTCHA_PUBLIC_KEY,
-    captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY,
+    captchaPublicKey: legacyOptions.CAPTCHA_PUBLIC_KEY ?? raw.captchaPublicKey,
+    captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY ?? raw.captchaSecretKey,
     environment: legacyOptions.BUQ_ENV,
     gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL,
     hubUrl: legacyOptions.HUB_URL,

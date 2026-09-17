@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { CustomField, CustomFieldValues, GafaClient } from "../client/types";
-import type { CaptchaProvider } from "../captcha/CaptchaProvider";
+import { createCaptchaProvider, type CaptchaProvider } from "../captcha/CaptchaProvider";
 import { showToast } from "../toast/toastStore";
 import { ToastHost } from "../toast/ToastHost";
 import { WidgetShell } from "./WidgetShell";
@@ -465,11 +465,8 @@ function RegisterForm({
     setStatus("submitting");
 
     try {
-      if (!captcha) {
-        throw new Error("Falta configurar el captcha (captchaPublicKey) para poder registrarte.");
-      }
-
-      const captchaToken = await captcha.execute("register");
+      const provider = captcha ?? createCaptchaProvider();
+      const captchaToken = await provider.execute("register");
 
       await client.register({
         email,
