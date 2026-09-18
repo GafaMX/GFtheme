@@ -114,6 +114,17 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     );
   });
 
+  it("login y registro centran los links de abajo y el hero de reserva", () => {
+    expect(widgetsCss).toMatch(/\.gafa-auth-links \{[\s\S]{0,280}justify-content:\s*center/);
+    expect(widgetsCss).toMatch(/\.gafa-auth-links \{[\s\S]{0,280}flex-direction:\s*column/);
+    expect(widgetsCss).toMatch(/\.gafa-auth-links \{[\s\S]{0,280}text-align:\s*center/);
+    expect(widgetsCss).not.toMatch(/\.gafa-auth-links \{[\s\S]{0,200}justify-content:\s*space-between/);
+    expect(widgetsCss).toMatch(
+      /\.gafa-reservation-hero\[data-auth="true"\] \{[\s\S]{0,200}padding-right:\s*0/,
+    );
+    expect(widgetsCss).toMatch(/\.gafa-reservation-auth-meta \{[\s\S]{0,400}text-align:\s*center/);
+  });
+
   it("el calendario mensual tiene tope de ancho, no se estira al contenedor", () => {
     expect(widgetsCss).toMatch(/\.gafa-datepicker \{[\s\S]{0,400}width:\s*264px/);
     expect(widgetsCss).toMatch(/\.gafa-datepicker__day \{[\s\S]{0,500}width:\s*30px/);

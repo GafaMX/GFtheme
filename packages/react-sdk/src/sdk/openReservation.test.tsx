@@ -49,6 +49,7 @@ describe("openReservation", () => {
     await waitFor(() => {
       expect(overlayText()).toContain("Inicia sesión para reservar");
       expect(overlayText()).toContain("Functional Training");
+      expect(document.querySelector(".gafa-reservation-auth-meta")).toBeTruthy();
     });
   });
 

@@ -469,22 +469,21 @@
   }
 }
 
-/* Links discretos bajo los formularios de cuenta. */
+/* Links discretos bajo los formularios de cuenta. Login y registro
+   se centran igual: el space-between dejaba “¿Olvidaste…?” a la izquierda. */
 .gafa-auth-links {
   --gafa-type-size: 0.84rem;
   align-items: center;
   --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
   font-size: 0.84rem;
-  gap: var(--gafa-space-2);
-  justify-content: space-between;
-  margin: 0;
-}
-
-.gafa-auth-links:has(> :only-child) {
+  gap: 0.45rem;
   justify-content: center;
+  margin: 0.15rem 0 0;
+  text-align: center;
 }
 
 .gafa-auth-link {
@@ -2177,7 +2176,35 @@
 }
 
 .gafa-reservation-hero[data-auth="true"] {
+  gap: var(--gafa-space-2);
   justify-items: center;
+  padding-right: 0;
+  text-align: center;
+}
+
+.gafa-reservation-hero[data-auth="true"] .gafa-eyebrow {
+  margin: 0;
+}
+
+.gafa-reservation-hero[data-auth="true"] h3 {
+  text-wrap: balance;
+  width: 100%;
+}
+
+.gafa-reservation-auth-meta {
+  --gafa-type-size: 0.88rem;
+  --gafa-type-leading: 1.35;
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  display: grid;
+  font-size: 0.88rem;
+  font-weight: 500;
+  gap: 0.12rem;
+  justify-items: center;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 22rem;
   text-align: center;
 }
 
@@ -7323,18 +7350,14 @@
   width: 100%;
 }
 
-/* El hero del contenedor ya es el encabezado del paso de cuenta: la tarjeta del
-   AuthWidget no necesita repetir marco dentro del modal (mismo criterio que en
-   la cuenta). El padding se queda: es el ancho con el que se midieron los
-   campos y los links de abajo. */
+/* El hero del contenedor ya es el encabezado del paso de cuenta: la tarjeta
+   del AuthWidget no repite marco. Sin padding lateral, título y form
+   comparten el mismo eje. */
 .gafa-checkout-auth .gafa-widget-card,
 .gafa-reservation-sheet .gafa-widget-card {
   background: transparent;
   border: none;
   box-shadow: none;
-}
-
-.gafa-checkout-auth .gafa-widget-card {
   max-width: none;
   padding-inline: 0;
   width: 100%;

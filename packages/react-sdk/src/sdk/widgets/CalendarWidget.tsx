@@ -2326,9 +2326,11 @@ function ReservationAuthGate({
           <StudioLogo client={client} brandSlug={brandSlug} alt="" />
           <span className="gafa-eyebrow">Casi listo</span>
           <h3 id="reservation-auth-title">{RESERVATION_AUTH_TITLES[authStage]}</h3>
-          <p>
-            {meeting.name} · {formatDate(getMeetingStart(meeting))} ·{" "}
-            {formatTime(getMeetingStart(meeting), meeting.timezone)}
+          <p className="gafa-reservation-auth-meta">
+            <span>{meeting.name}</span>
+            <span>
+              {formatDate(getMeetingStart(meeting))} · {formatTime(getMeetingStart(meeting), meeting.timezone)}
+            </span>
           </p>
         </div>
 
