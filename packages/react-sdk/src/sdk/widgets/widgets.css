@@ -482,7 +482,12 @@
   font-size: 0.84rem;
   gap: 0.45rem;
   justify-content: center;
-  margin: 0.15rem 0 0;
+  margin: 0.35rem 0 0;
+  text-align: center;
+  width: 100%;
+}
+
+.gafa-auth-links > * {
   text-align: center;
 }
 
@@ -2176,17 +2181,24 @@
 }
 
 .gafa-reservation-hero[data-auth="true"] {
-  gap: var(--gafa-space-2);
+  gap: 0.2rem;
   justify-items: center;
   padding-right: 0;
   text-align: center;
 }
 
+.gafa-reservation-hero[data-auth="true"] .gafa-studio-logo {
+  margin-bottom: 0.55rem;
+}
+
 .gafa-reservation-hero[data-auth="true"] .gafa-eyebrow {
-  margin: 0;
+  letter-spacing: 0.14em;
+  margin: 0 0 0.15rem;
+  width: 100%;
 }
 
 .gafa-reservation-hero[data-auth="true"] h3 {
+  text-align: center;
   text-wrap: balance;
   width: 100%;
 }
@@ -2203,9 +2215,10 @@
   gap: 0.12rem;
   justify-items: center;
   line-height: 1.35;
-  margin: 0;
+  margin: 0.25rem 0 0.1rem;
   max-width: 22rem;
   text-align: center;
+  width: 100%;
 }
 
 .gafa-reservation-hero h3 {
@@ -3261,13 +3274,35 @@
    pone el modal. */
 .gafa-account-modal__auth {
   overflow-y: auto;
-  padding: var(--gafa-space-2);
+  padding: var(--gafa-space-5) var(--gafa-space-4) var(--gafa-space-4);
+  text-align: center;
 }
 
 .gafa-account-modal__auth .gafa-widget-card {
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+.gafa-account-modal__auth .gafa-widget-header,
+.gafa-account-modal__auth .gafa-widget-heading,
+.gafa-account-modal__auth .gafa-widget-heading > div {
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.gafa-account-modal__auth .gafa-widget-heading {
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.gafa-account-modal__auth .gafa-eyebrow {
+  margin: 0 0 0.1rem;
+}
+
+.gafa-account-modal__auth .gafa-widget-card h2 {
+  text-align: center;
 }
 
 /* ----- layout de la cuenta */

@@ -123,6 +123,9 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
       /\.gafa-reservation-hero\[data-auth="true"\] \{[\s\S]{0,200}padding-right:\s*0/,
     );
     expect(widgetsCss).toMatch(/\.gafa-reservation-auth-meta \{[\s\S]{0,400}text-align:\s*center/);
+    expect(widgetsCss).toMatch(
+      /\.gafa-account-modal__auth \.gafa-widget-header,[\s\S]{0,160}text-align:\s*center/,
+    );
   });
 
   it("el calendario mensual tiene tope de ancho, no se estira al contenedor", () => {
