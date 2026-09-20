@@ -7,6 +7,7 @@ import { CheckoutModal } from "./sdk/widgets/CheckoutModal";
 import { HeaderControls } from "./sdk/widgets/HeaderControls";
 import { useCartStore } from "./sdk/cart/cartStore";
 import type { GafaClient } from "./sdk/client/types";
+import { fitspinWordmarkDataUri } from "./demo/fitspinWordmark";
 import "./sdk/theme/theme.css";
 import "./sdk/widgets/widgets.css";
 import "./demo/demo.css";
@@ -342,16 +343,8 @@ function Preview() {
         allowUserColorScheme: false,
         logoMaxWidth: 220,
         logoMaxHeight: 110,
-        logoUrl:
-          "data:image/svg+xml," +
-          encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#111827">FITSPIN</text></svg>',
-          ),
-        logoUrlDark:
-          "data:image/svg+xml," +
-          encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#fffaf4">FITSPIN</text></svg>',
-          ),
+        logoUrl: fitspinWordmarkDataUri("#111827"),
+        logoUrlDark: fitspinWordmarkDataUri("#fffaf4", "#d1d5db"),
       }}
     >
       <QueryClientProvider client={queryClient}>

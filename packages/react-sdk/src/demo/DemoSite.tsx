@@ -17,6 +17,7 @@ import { useCartStore } from "../sdk/cart/cartStore";
 import { prefetchCheckoutCatalog } from "../sdk/cart/checkoutCatalog";
 import type { CartLineType, CatalogItem, CheckoutConfig, GafaClient } from "../sdk/client/types";
 import { createLiveConciergeConfig, FITSPIN_CONCIERGE_CONFIG, type ConciergePartnerConfig } from "../sdk/concierge";
+import { fitspinWordmarkDataUri } from "./fitspinWordmark";
 import "../sdk/theme/theme.css";
 import "../sdk/widgets/widgets.css";
 import "./demo.css";
@@ -73,16 +74,8 @@ const BRANDS: Record<string, BrandConfig> = {
     theme: {
       colors: { brand: "#f2b705", accent: "#111827" },
       colorScheme: "light",
-      logoUrl:
-        "data:image/svg+xml," +
-        encodeURIComponent(
-          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#111827">FITSPIN</text></svg>',
-        ),
-      logoUrlDark:
-        "data:image/svg+xml," +
-        encodeURIComponent(
-          '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44"><text x="0" y="34" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" font-weight="800" fill="#fffaf4">FITSPIN</text></svg>',
-        ),
+      logoUrl: fitspinWordmarkDataUri("#111827"),
+      logoUrlDark: fitspinWordmarkDataUri("#fffaf4", "#d1d5db"),
     },
     // Fitspin abre en semana a proposito: demuestra que la vista inicial es
     // configuracion por socio, no un comportamiento fijo del SDK.

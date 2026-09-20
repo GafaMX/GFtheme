@@ -40,5 +40,9 @@ export function StudioLogo({
   const src = useStudioLogo(client, brandSlug);
   if (!src) return null;
 
-  return <img className="gafa-studio-logo" src={src} alt={alt} />;
+  return (
+    <div className="gafa-studio-logo-wrap">
+      <img className="gafa-studio-logo" src={src} alt={alt} />
+    </div>
+  );
 }

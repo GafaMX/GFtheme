@@ -2153,6 +2153,16 @@
   width: 32px;
 }
 
+/* Fila a todo el ancho: el PNG/SVG se centra en el mismo eje que el título,
+   aunque el archivo traiga aire a un lado del wordmark. */
+.gafa-studio-logo-wrap {
+  display: flex;
+  justify-content: center;
+  justify-self: center;
+  margin: 0 0 0.35rem;
+  width: 100%;
+}
+
 .gafa-studio-logo {
   --gafa-img-fit: contain;
   --gafa-img-max-height: var(--gafa-logo-max-height, 64px);
@@ -2160,8 +2170,7 @@
   --gafa-img-radius: 0;
   display: block;
   height: auto;
-  justify-self: center;
-  margin: 0 auto 0.35rem;
+  margin: 0 auto;
   max-height: var(--gafa-logo-max-height, 64px);
   max-width: min(var(--gafa-logo-max-width, 180px), 60vw);
   object-fit: contain;
@@ -2169,8 +2178,8 @@
   width: auto;
 }
 
-.gafa-account-modal__auth .gafa-studio-logo,
-.gafa-checkout__hero .gafa-studio-logo {
+.gafa-account-modal__auth .gafa-studio-logo-wrap,
+.gafa-checkout__hero .gafa-studio-logo-wrap {
   margin-bottom: 0.75rem;
 }
 
@@ -2187,7 +2196,7 @@
   text-align: center;
 }
 
-.gafa-reservation-hero[data-auth="true"] .gafa-studio-logo {
+.gafa-reservation-hero[data-auth="true"] .gafa-studio-logo-wrap {
   margin-bottom: 0.55rem;
 }
 

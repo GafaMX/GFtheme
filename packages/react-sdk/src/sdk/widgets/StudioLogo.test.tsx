@@ -30,6 +30,7 @@ describe("StudioLogo sigue el esquema", () => {
     expect(view.container.querySelector(".gafa-studio-logo")?.getAttribute("src")).toBe(
       "https://cdn.example/logo-light.png",
     );
+    expect(view.container.querySelector(".gafa-studio-logo-wrap")).toBeTruthy();
   });
 
   it("en dark usa logoUrlDark", () => {

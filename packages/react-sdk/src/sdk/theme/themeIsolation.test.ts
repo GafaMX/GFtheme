@@ -63,6 +63,8 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(
       /\.gafa-studio-logo \{[\s\S]{0,400}max-width:\s*min\(var\(--gafa-logo-max-width, 180px\), 60vw\)/,
     );
+    expect(widgetsCss).toMatch(/\.gafa-studio-logo-wrap \{[\s\S]{0,200}justify-content:\s*center/);
+    expect(widgetsCss).toMatch(/\.gafa-studio-logo-wrap \{[\s\S]{0,200}width:\s*100%/);
     expect(themeCss).not.toMatch(/img\.gafa-studio-logo \{[\s\S]{0,200}max-height:\s*40px !important/);
     expect(widgetsCss).not.toMatch(/\.gafa-studio-logo \{[\s\S]{0,200}max-height:\s*40px;/);
   });
