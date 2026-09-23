@@ -222,4 +222,26 @@ describe("CheckoutModal catalog loading", () => {
       expect(screen.getByText(/no hay productos disponibles/i)).toBeTruthy();
     });
   });
+
+  it("si listProducts viene vacío, usa productsSelection del fancy", async () => {
+    const client = {
+      ...mockClient(Promise.resolve([])),
+      getProfile: async () => ({ id: 1, name: "Gabriel", email: "g@buq.mx" }),
+      getCheckoutConfig: async () => ({
+        brandSlug: "fitspin-cancun",
+        locationSlug: "cancun",
+        products: [{ id: 9, name: "Agua", type: "product", price: 40, priceFinal: 40, priceLabel: "$40" }],
+        combos: [],
+        memberships: [],
+        paymentMethods: [],
+      }),
+    } as unknown as GafaClient;
+
+    renderShop(client);
+
+    fireEvent.click(await screen.findByRole("tab", { name: /productos/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Agua")).toBeTruthy();
+    });
+  });
 });

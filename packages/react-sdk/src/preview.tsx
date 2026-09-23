@@ -125,6 +125,10 @@ const client = {
     { id: 9, name: "Ilimitada mensual", type: "membership" as const, price: 1899, priceFinal: 1899, priceLabel: "$1,899", expirationDays: 30 },
     { id: 10, name: "Trimestral", type: "membership" as const, price: 4999, priceFinal: 4999, priceLabel: "$4,999", expirationDays: 90 },
   ],
+  listProducts: async () => [
+    { id: 9, name: "Agua", type: "product" as const, price: 40, priceFinal: 40, priceLabel: "$40" },
+    { id: 50, name: "Botella", type: "product" as const, price: 350, priceFinal: 350, priceLabel: "$350" },
+  ],
   listRegistrationFields: async () => [
     {
       id: 47,

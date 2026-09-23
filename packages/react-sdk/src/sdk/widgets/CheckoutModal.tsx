@@ -405,9 +405,11 @@ export function CheckoutModal({
   const memberships = classAttached
     ? ((config?.memberships?.length ? config.memberships : catalogQuery.data?.memberships) ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
+  // /product(s) no es público en varias compañías (404 → []). Un array vacío
+  // no es nullish, así que hay que caer a productsSelection del fancy.
   const products = classAttached
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
-    : (catalogQuery.data?.products ?? config?.products ?? []);
+    : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
   const offerQuery = useQuery({
     queryKey: ["checkout", "cross-sell", brandSlug, crossSell?.items],
     queryFn: () =>
