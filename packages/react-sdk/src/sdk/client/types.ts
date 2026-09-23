@@ -588,7 +588,7 @@ export type GafaClient = {
   getMeeting?(payload: MeetingLookup): Promise<Meeting | null>;
   listCombos(brandSlug: string): Promise<CatalogItem[]>;
   listMemberships(brandSlug: string): Promise<CatalogItem[]>;
-  /** Tienda (agua, proteína, etc.). Opcional: si el endpoint no existe, []. */}
+  /** Tienda (agua, proteína, etc.). Opcional: si el endpoint no existe, []. */
   listProducts?(brandSlug: string): Promise<CatalogItem[]>;
   getProfile(): Promise<UserProfile | null>;
   listRegistrationFields(brandSlug: string): Promise<CustomFieldGroup[]>;
