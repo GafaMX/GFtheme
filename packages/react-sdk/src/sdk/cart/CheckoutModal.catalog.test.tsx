@@ -26,12 +26,16 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function mockClient(combos: Promise<CatalogItem[]>): GafaClient {
+function mockClient(
+  combos: Promise<CatalogItem[]>,
+  extras?: { products?: CatalogItem[]; memberships?: CatalogItem[] },
+): GafaClient {
   return {
     listBrands: async () => [{ id: 1, name: "Fitspin Cancún", slug: "fitspin-cancun" }],
     listLocations: async () => [{ id: 200, name: "Cancún", slug: "cancun", brandSlug: "fitspin-cancun" }],
     listCombos: async () => combos,
-    listMemberships: async () => [],
+    listMemberships: async () => extras?.memberships ?? [],
+    listProducts: async () => extras?.products ?? [],
     getProfile: async () => null,
   } as unknown as GafaClient;
 }
@@ -185,5 +189,37 @@ describe("CheckoutModal catalog loading", () => {
     expect(aside?.getAttribute("data-open")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: /ocultar productos del carrito/i }));
     expect(aside?.getAttribute("data-open")).not.toBe("true");
+  });
+
+  it("muestra la pestaña de Productos junto a Paquetes y Membresías", async () => {
+    renderShop(
+      mockClient(Promise.resolve([]), {
+        products: [{ id: 9, name: "Agua", type: "product", price: 40, priceFinal: 40, priceLabel: "$40" }],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /productos/i })).toBeTruthy();
+    });
+    expect(screen.getByRole("tab", { name: /paquetes/i })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /membresías/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: /productos/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Agua")).toBeTruthy();
+    });
+    expect(screen.getByRole("tab", { name: /productos/i }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("la pestaña de Productos existe aunque el catálogo de tienda venga vacío", async () => {
+    renderShop(mockClient(Promise.resolve([])));
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /productos/i })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("tab", { name: /productos/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/no hay productos disponibles/i)).toBeTruthy();
+    });
   });
 });

@@ -75,6 +75,18 @@ export function createMockGafaClient(): GafaClient {
         currency: "MXN",
       },
     ],
+    listProducts: async () => [
+      {
+        id: 9,
+        name: "Agua",
+        description: "Producto de tienda.",
+        price: 40,
+        priceFinal: 40,
+        priceLabel: "$40 MXN",
+        currency: "MXN",
+        type: "product",
+      },
+    ],
     listMeetings: async () => demoMeetings(),
     getMeeting: async ({ meetingId }) =>
       demoMeetings().find((meeting) => Number(meeting.id) === Number(meetingId)) ?? null,

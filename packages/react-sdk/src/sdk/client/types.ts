@@ -588,7 +588,7 @@ export type GafaClient = {
   getMeeting?(payload: MeetingLookup): Promise<Meeting | null>;
   listCombos(brandSlug: string): Promise<CatalogItem[]>;
   listMemberships(brandSlug: string): Promise<CatalogItem[]>;
-  /** Tienda (proteína, agua, donación). Si el endpoint no existe, []. */
+  /** Tienda (agua, proteína, etc.). Opcional: si el endpoint no existe, []. */}
   listProducts?(brandSlug: string): Promise<CatalogItem[]>;
   getProfile(): Promise<UserProfile | null>;
   listRegistrationFields(brandSlug: string): Promise<CustomFieldGroup[]>;
@@ -609,6 +609,8 @@ export type GafaClient = {
     brandSlug: string;
     locationSlug: string;
     meetingId?: string | number;
+    /** Pide el fancy de tienda (v1 `default_store_tab`) para traer productsSelection. */
+    defaultStoreTab?: string;
   }): Promise<CheckoutConfig>;
   checkDiscountCode?(payload: {
     brandSlug: string;

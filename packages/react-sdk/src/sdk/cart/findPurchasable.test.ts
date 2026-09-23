@@ -54,7 +54,7 @@ describe("findPurchasableItem", () => {
     expect(match?.item.name).toBe("1 CLASE Lomas");
   });
 
-  it("encuentra un producto de tienda", async () => {
+  it("resuelve un producto de tienda por listProducts", async () => {
     const client = {
       listBrands: async () => [{ id: 1, name: "Fitspin", slug: "fitspin" }],
       listCombos: async () => [],

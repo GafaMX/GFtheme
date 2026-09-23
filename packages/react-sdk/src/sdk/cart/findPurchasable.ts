@@ -70,7 +70,7 @@ export async function findPurchasableItem(
     const [combos, memberships, products] = await Promise.all([
       client.listCombos(brand.slug),
       client.listMemberships(brand.slug),
-      client.listProducts ? client.listProducts(brand.slug) : Promise.resolve([]),
+      client.listProducts ? client.listProducts(brand.slug) : Promise.resolve([] as CatalogItem[]),
     ]);
     const item = matchInPools(preselect, { combos, memberships, products });
     if (!item) continue;

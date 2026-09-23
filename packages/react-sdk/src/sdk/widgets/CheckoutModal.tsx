@@ -361,6 +361,7 @@ export function CheckoutModal({
           brandSlug: brandSlug!,
           locationSlug: locationSlug!,
           meetingId: classAttached ? meeting?.id : undefined,
+          defaultStoreTab: classAttached ? undefined : "products",
         });
       } catch (error) {
         // Clase llena / waitlist: el create-form a veces no arma el fancy y
@@ -394,7 +395,7 @@ export function CheckoutModal({
   const catalogQuery = useQuery({
     queryKey: checkoutCatalogQueryKey(brandSlug),
     queryFn: () => fetchCheckoutCatalog(client, brandSlug!),
-    enabled: Boolean(brandSlug) && (!classAttached || configQuery.isError),
+    enabled: Boolean(brandSlug),
     staleTime: CHECKOUT_CATALOG_STALE_MS,
   });
 
@@ -1216,18 +1217,16 @@ export function CheckoutModal({
                         Membresías
                         {memberships.length ? <em>{memberships.length}</em> : null}
                       </button>
-                      {products.length ? (
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={tab === "products"}
-                          data-active={tab === "products" ? "true" : undefined}
-                          onClick={() => setTab("products")}
-                        >
-                          Productos
-                          <em>{products.length}</em>
-                        </button>
-                      ) : null}
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={tab === "products"}
+                        data-active={tab === "products" ? "true" : undefined}
+                        onClick={() => setTab("products")}
+                      >
+                        Productos
+                        {products.length ? <em>{products.length}</em> : null}
+                      </button>
                     </div>
 
                     <label className="gafa-checkout-search">

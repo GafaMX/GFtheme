@@ -965,6 +965,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async listProducts(brandSlug) {
       if (!brandSlug) return [];
+      // Algunas compañías exponen /product, otras /products; si no es público
+      // (404) el checkout sigue con productsSelection del create-form-template.
       for (const path of [`/brand/${brandSlug}/product`, `/brand/${brandSlug}/products`]) {
         try {
           const response = await apiGet<PaginatedResponse<RawCatalogItem>>(path, {
@@ -974,7 +976,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             .map((item) => normalizeCatalogItem(item, "product"))
             .filter((item): item is CatalogItem => Boolean(item));
         } catch {
-          // El endpoint de tienda no es público en todas las compañías.
+          // siguiente ruta — 404 si el endpoint no es público en esa compañía
         }
       }
       return [];
@@ -1572,6 +1574,11 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       );
       url.searchParams.set("users_id", String(profile.id));
       if (payload.meetingId != null) url.searchParams.set("meetings_id", String(payload.meetingId));
+      // Sin esto el fancy de tienda no arma productsSelection (v1 manda
+      // default_store_tab al abrir paquetes/membresías/productos).
+      if (payload.meetingId == null) {
+        url.searchParams.set("default_store_tab", payload.defaultStoreTab ?? "products");
+      }
 
       const response = await fetch(url.toString(), { headers: authHeaders() });
       if (!response.ok) {
@@ -1605,7 +1612,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const validMemberships = membershipsRaw
         .map((item) => normalizeCatalogItem(item, "membership"))
         .filter((item): item is CatalogItem => Boolean(item));
-      const productsRaw = parseJsonBlock<RawCatalogItem[]>(readFancyBlock(doc, "productsSelection")) ?? [];
+      const productsRaw =
+        parseJsonBlock<RawCatalogItem[]>(readFancyBlock(doc, "productsSelection")) ??
+        parseJsonBlock<RawCatalogItem[]>(readFancyBlock(doc, "productSelection")) ??
+        [];
       const validProducts = productsRaw
         .map((item) => normalizeCatalogItem(item, "product"))
         .filter((item): item is CatalogItem => Boolean(item));

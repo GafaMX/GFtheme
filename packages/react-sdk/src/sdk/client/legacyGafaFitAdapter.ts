@@ -30,6 +30,7 @@ type LegacyGafaFitSdk = {
   GetBrandServiceList?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: Service[] }>) => void;
   GetBrandCombolist?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: CatalogItem[] }>) => void;
   GetBrandMembershipList?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: CatalogItem[] }>) => void;
+  GetBrandProductList?: (brandSlug: string, options: Record<string, unknown>, cb: LegacyCallback<{ data: CatalogItem[] }>) => void;
   GetMeetingsInLocation?: (
     locationId: number,
     startDate: string,
@@ -129,6 +130,13 @@ export function createLegacyGafaFitAdapter(config: GafaSdkConfig, legacySdk?: un
         sdk.GetBrandMembershipList?.(brandSlug, { per_page: 10000, only_actives: true, propagate: true }, cb),
       );
       return result.data.map((item) => ({ ...item, type: "membership" as const }));
+    },
+    async listProducts(brandSlug: string) {
+      if (!sdk.GetBrandProductList) return [];
+      const result = await callbackToPromise<{ data: CatalogItem[] }>((cb) =>
+        sdk.GetBrandProductList?.(brandSlug, { per_page: 10000, only_actives: true, propagate: true }, cb),
+      );
+      return result.data.map((item) => ({ ...item, type: "product" as const }));
     },
     async listMeetings(filters = {}) {
       if (!filters.locationId || !sdk.GetMeetingsInLocation) return [];
