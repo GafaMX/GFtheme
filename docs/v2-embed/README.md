@@ -102,5 +102,5 @@ El SDK v2 de Buq se monta con UN script remoto. No copies packages/react-sdk.
    <script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js"></script>
    No uses @v2/main (404), @v2 (jsDelivr lo congela), ni tags rc.* (inmutables).
 4. No cargues v1 y v2 sobre los mismos nodos.
-5. No pulses Republish en Buq-Webs (cae todas las marcas). Publica en cdn-live.
+5. No pulses Republish en Buq-Webs (cae todas las marcas). Publica en v2/main y cdn-live juntas.
 ```

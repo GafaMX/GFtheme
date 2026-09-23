@@ -40,6 +40,10 @@ publicar bundle → [`v2-lanzamiento.md`](v2-lanzamiento.md).
    Hace falta el nodo `data-gf-theme="concierge"` (o `data-gafa-v2`) **y**
    una config `CONCIERGE`. Ver §11. No inventes un chat paralelo.
    **Cross-sell** sigue reservado: hoy no pinta.
+9. **`v2/main` y `cdn-live` salen juntas. Siempre.** Un merge a `v2/main`
+   avanza `cdn-live` en el mismo paso. Un publish a `cdn-live` también
+   aterriza en `v2/main`. No dejes una rama adelante de la otra.
+   Receta: [`v2-lanzamiento.md`](v2-lanzamiento.md).
 
 ---
 

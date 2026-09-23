@@ -30,6 +30,16 @@ Sitios que siguen en v1 (`main.min.js`) no cargan esta URL y no se enteran del p
 6. **No hagas Stop + Run** “por si acaso”. El secreto ya apunta a `cdn-live`; no hace falta tocar Replit.
 7. **No crees `cdn-live-2`, `cdn-live-3`, etc.** jsDelivr cachea ramas (hasta 12 h en el edge, 7 días en el browser). Rotar el nombre obliga a editar **todos** los sitios. El loader + bundle stampado existe precisamente para no hacer eso. La rama `cdn-live-2` que quedó de un apuro se puede ignorar.
 
+## Regla permanente: `v2/main` y `cdn-live` salen juntas
+
+**SIEMPRE.** Un cambio que llega a `v2/main` también avanza `cdn-live`. Un hotfix que se publica a `cdn-live` también aterriza en `v2/main`. No se deja una rama adelante de la otra.
+
+- `v2/main` es la fuente durable del SDK v2. Los PRs van ahí.
+- `cdn-live` es el puntero que sirve jsDelivr (Buq-Webs + WordPress).
+- Después de cada merge/publish, **las dos ramas apuntan al mismo commit**.
+- No hay “solo live” ni “solo main”. Eso ya pasó y dejó 47 commits de hotfix fuera de `v2/main`.
+- `master` es v1. No entra en esta regla.
+
 ## Receta de cada lanzamiento
 
 Desde `packages/react-sdk`:
@@ -46,8 +56,12 @@ Luego, en la raíz del repo:
 git add docs/v2-sdk/gafa-sdk.js docs/v2-sdk/gafa-sdk.bundle.js docs/v2-sdk/gafa-sdk.bundle.*.js docs/v2-sdk/VERSION.txt
 git commit -m "chore(v2): republicar gafa-sdk.js"
 git push origin HEAD          # tu rama de trabajo / PR
-git push origin HEAD:refs/heads/cdn-live
+# Tras mergear el PR a v2/main (o si publicas desde v2/main):
+git push origin v2/main
+git push origin v2/main:refs/heads/cdn-live
 ```
+
+Los dos `git push` de arriba van **siempre en el mismo paso**. Si uno falla, no se cierra el release: se reintenta el que faltó hasta que `v2/main` y `cdn-live` sean el mismo SHA.
 
 No hace falta purge de jsDelivr sobre `gafa-sdk.js` (el loader no cambia). Tampoco hace falta cambiar el secreto ni el `src` de WordPress.
 
@@ -70,10 +84,11 @@ No hace falta Republish para que el resto de marcas v2 lo tomen: el próximo loa
 ## Rama `cdn-live`
 
 - Puntero **mutable** a “lo que sirve Buq-Webs y los WP ahora” (todas las marcas v2).
-- Fast-forward desde el commit que acaba de publicar el embed.
-- No es la rama de producto (`v2/main`). Los PRs siguen yendo a `v2/main`.
+- Fast-forward desde el **mismo** commit que acaba de entrar en `v2/main`.
+- Los PRs siguen yendo a `v2/main`. El merge a `v2/main` **incluye** el push a `cdn-live` en el mismo paso (regla de arriba).
 - No uses `--force` contra `cdn-live`.
 - No la renombres. El `src` de los sitios apunta a `@cdn-live`.
+- No publiques un hotfix solo a `cdn-live`. Si el cambio es urgente, mergea primero a `v2/main` (o cherry-pick ahí) y luego fast-forward `cdn-live`.
 
 ## Checkout: dos POSTs distintos
 
