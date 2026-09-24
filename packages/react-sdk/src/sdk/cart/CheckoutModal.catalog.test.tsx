@@ -191,7 +191,28 @@ describe("CheckoutModal catalog loading", () => {
     expect(aside?.getAttribute("data-open")).not.toBe("true");
   });
 
-  it("muestra la pestaña de Productos junto a Paquetes y Membresías", async () => {
+  it("muestra solo las pestañas que tienen items", async () => {
+    renderShop(
+      mockClient(Promise.resolve([{ id: 1, name: "5 Clases", type: "combo", price: 1350, priceFinal: 1350 }]), {
+        memberships: [{ id: 2, name: "Ilimitada", type: "membership", price: 1899, priceFinal: 1899 }],
+        products: [{ id: 9, name: "Agua", type: "product", price: 40, priceFinal: 40, priceLabel: "$40" }],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /paquetes/i })).toBeTruthy();
+    });
+    expect(screen.getByRole("tab", { name: /membresías/i })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /productos/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: /productos/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Agua")).toBeTruthy();
+    });
+    expect(screen.getByRole("tab", { name: /productos/i }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("no pinta un tab vacío: Paquetes, Membresías o Productos", async () => {
     renderShop(
       mockClient(Promise.resolve([]), {
         products: [{ id: 9, name: "Agua", type: "product", price: 40, priceFinal: 40, priceLabel: "$40" }],
@@ -201,26 +222,21 @@ describe("CheckoutModal catalog loading", () => {
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: /productos/i })).toBeTruthy();
     });
-    expect(screen.getByRole("tab", { name: /paquetes/i })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: /membresías/i })).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("tab", { name: /productos/i }));
-    await waitFor(() => {
-      expect(screen.getByText("Agua")).toBeTruthy();
-    });
+    expect(screen.queryByRole("tab", { name: /paquetes/i })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /membresías/i })).toBeNull();
     expect(screen.getByRole("tab", { name: /productos/i }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText("Agua")).toBeTruthy();
   });
 
-  it("la pestaña de Productos existe aunque el catálogo de tienda venga vacío", async () => {
+  it("sin catálogo no deja tabs vacíos", async () => {
     renderShop(mockClient(Promise.resolve([])));
 
     await waitFor(() => {
-      expect(screen.getByRole("tab", { name: /productos/i })).toBeTruthy();
+      expect(screen.queryByText(/cargando catálogo/i)).toBeNull();
     });
-    fireEvent.click(screen.getByRole("tab", { name: /productos/i }));
-    await waitFor(() => {
-      expect(screen.getByText(/no hay productos disponibles/i)).toBeTruthy();
-    });
+    expect(screen.queryByRole("tab", { name: /paquetes/i })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /membresías/i })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /productos/i })).toBeNull();
   });
 
   it("si listProducts viene vacío, usa productsSelection del fancy", async () => {

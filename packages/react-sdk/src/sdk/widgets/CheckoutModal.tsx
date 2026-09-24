@@ -410,6 +410,14 @@ export function CheckoutModal({
   const products = classAttached
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
+  useEffect(() => {
+    const available: CatalogTab[] = [];
+    if (combos.length) available.push("packages");
+    if (memberships.length) available.push("memberships");
+    if (products.length) available.push("products");
+    if (!available.length || available.includes(tab)) return;
+    setTab(available[0]);
+  }, [tab, combos.length, memberships.length, products.length]);
   const offerQuery = useQuery({
     queryKey: ["checkout", "cross-sell", brandSlug, crossSell?.items],
     queryFn: () =>
@@ -1198,7 +1206,9 @@ export function CheckoutModal({
               ) : step === "shop" ? (
                 <>
                   <div className="gafa-checkout__toolbar">
+                    {combos.length || memberships.length || products.length ? (
                     <div className="gafa-checkout-tabs" role="tablist" aria-label="Tipo de producto">
+                      {combos.length ? (
                       <button
                         type="button"
                         role="tab"
@@ -1207,8 +1217,10 @@ export function CheckoutModal({
                         onClick={() => setTab("packages")}
                       >
                         Paquetes
-                        {combos.length ? <em>{combos.length}</em> : null}
+                        <em>{combos.length}</em>
                       </button>
+                      ) : null}
+                      {memberships.length ? (
                       <button
                         type="button"
                         role="tab"
@@ -1217,8 +1229,10 @@ export function CheckoutModal({
                         onClick={() => setTab("memberships")}
                       >
                         Membresías
-                        {memberships.length ? <em>{memberships.length}</em> : null}
+                        <em>{memberships.length}</em>
                       </button>
+                      ) : null}
+                      {products.length ? (
                       <button
                         type="button"
                         role="tab"
@@ -1227,9 +1241,11 @@ export function CheckoutModal({
                         onClick={() => setTab("products")}
                       >
                         Productos
-                        {products.length ? <em>{products.length}</em> : null}
+                        <em>{products.length}</em>
                       </button>
+                      ) : null}
                     </div>
+                    ) : null}
 
                     <label className="gafa-checkout-search">
                       <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
