@@ -113,6 +113,17 @@ Los precios salen del `prefijo` / `code3` de la marca (`Q`+`GTQ`, `€`+`EUR`, `
 
 Van **encendidos por defecto**. En el HTML de Buq-Webs no hace falta `filter-bq-service` / `filter-bq-staff`. Para apagarlos: `="false"`.
 
+Para preseleccionar una sede (el `?filter_location=San+Jose+Insurgentes` de v1), **en cualquier marca**:
+
+```
+https://primeraposicion.info/reservar?filter_location=San+Jose+Insurgentes
+https://web.buq.mx/fitspin/reservar?location=200
+```
+
+- URL por **nombre** (compat v1): `?filter_location=San+Jose+Insurgentes`.
+- URL por **id** (canónico v2): `?location=200`. También `location_id` / `locationId`.
+- HTML: `filter-bq-location-default="200"` o `filter-bq-location-default="San José Insurgentes"`.
+
 Para preseleccionar un servicio (el `?filter_service=Pilates+Reformer` de v1):
 
 ```

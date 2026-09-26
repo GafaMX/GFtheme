@@ -43,7 +43,8 @@ import {
 } from "./calendarRange";
 import {
   calendarLocationSelectValue,
-  readCalendarLocationIdFromWindow,
+  matchLocation,
+  readCalendarLocationQueryFromWindow,
   resolveCalendarLocationId,
 } from "./calendarLocationQuery";
 import {
@@ -68,6 +69,8 @@ export type CalendarWidgetProps = {
     room?: boolean | string;
     brandId?: number;
     locationId?: number;
+    /** Nombre v1 (`filter_location=San+Jose+Insurgentes` / `filter-bq-location-default`). */
+    locationName?: string;
     serviceId?: number;
     /** Nombre v1 (`filter_service=Pilates+Reformer` / `filter-bq-service-default`). */
     serviceName?: string;
@@ -121,9 +124,13 @@ export function CalendarWidget({
   const serviceQuery = readCalendarServiceQueryFromWindow();
   const serviceFallbackId = serviceQuery.serviceId ?? filters.serviceId;
   const serviceFallbackName = serviceQuery.serviceName ?? filters.serviceName;
+  const locationQuery = readCalendarLocationQueryFromWindow();
+  const locationFallbackQuery =
+    locationQuery.locationId != null || locationQuery.locationName
+      ? locationQuery
+      : { locationId: filters.locationId, locationName: filters.locationName };
 
   const [selectedFilters, setSelectedFilters] = useState<CalendarFiltersState>(() => ({
-    locationId: readCalendarLocationIdFromWindow() ?? filters.locationId,
     serviceIds: serviceFallbackId != null ? [serviceFallbackId] : undefined,
   }));
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
@@ -224,7 +231,19 @@ export function CalendarWidget({
   });
 
   const bookableLocations = bookableLocationsQuery.data?.locations ?? [];
+  const catalogLocations = locationsQuery.data ?? [];
   const horizonMeetings = bookableLocationsQuery.data?.horizonMeetings ?? [];
+  const matchedFallbackLocation = useMemo(
+    () =>
+      matchLocation(locationFallbackQuery, bookableLocations) ??
+      matchLocation(locationFallbackQuery, catalogLocations),
+    [
+      bookableLocations,
+      catalogLocations,
+      locationFallbackQuery.locationId,
+      locationFallbackQuery.locationName,
+    ],
+  );
 
   // Homónimas entre marcas (mismo nombre, distinto id): una sola opción; al
   // elegirla se piden meetings de todos los ids bookable con ese nombre.
@@ -240,14 +259,21 @@ export function CalendarWidget({
   const locations = useMemo(() => {
     const seen = new Set<string>();
     const unique: Location[] = [];
-    for (const location of bookableLocations) {
+    const source = [...bookableLocations];
+    if (
+      matchedFallbackLocation &&
+      !source.some((location) => Number(location.id) === Number(matchedFallbackLocation.id))
+    ) {
+      source.push(matchedFallbackLocation);
+    }
+    for (const location of source) {
       const key = locationNameKey(location.name);
       if (seen.has(key)) continue;
       seen.add(key);
       unique.push(location);
     }
     return unique;
-  }, [bookableLocations]);
+  }, [bookableLocations, matchedFallbackLocation]);
 
   // Marcas que aparecen en sedes con clases: no ofrecer un filtro muerto.
   const bookableBrands = useMemo(() => {
@@ -256,19 +282,33 @@ export function CalendarWidget({
     return (brandsQuery.data ?? []).filter((brand) => slugs.has(brand.slug));
   }, [bookableLocations, brandsQuery.data]);
 
-  // URL (?location=200) y filter-bq-location-default arrancan el select en esa
-  // sede. Si el usuario elige "Todos" (null) no se vuelve a aplicar ese default.
-  const locationFallbackId = readCalendarLocationIdFromWindow() ?? filters.locationId;
+  // URL (?location=200 / ?filter_location=Nombre) y filter-bq-location-default
+  // arrancan el select en esa sede. Si el usuario elige "Todos" (null) no se
+  // vuelve a aplicar ese default. El id efectivo sale del match contra el
+  // catálogo (nombre v1 o id), no se escribe en state al montar: si se
+  // sembrara y el bookable tardara, el efecto de abajo lo volvía a Todos.
+  const locationFallbackId = matchedFallbackLocation?.id;
   const selectedLocationId = resolveCalendarLocationId(selectedFilters.locationId, locationFallbackId);
   const showAllLocations = selectedLocationId == null;
 
   const activeLocation = useMemo(() => {
     if (showAllLocations) return undefined;
-    const match = bookableLocations.find((location) => location.id === selectedLocationId);
+    const match =
+      matchLocation({ locationId: selectedLocationId }, bookableLocations) ??
+      matchLocation({ locationId: selectedLocationId }, locations) ??
+      matchLocation({ locationId: selectedLocationId }, catalogLocations) ??
+      matchedFallbackLocation;
     if (!match) return undefined;
     // El <select> solo tiene el representante (primer id) de cada nombre.
     return locations.find((location) => locationNameKey(location.name) === locationNameKey(match.name)) ?? match;
-  }, [bookableLocations, locations, selectedLocationId, showAllLocations]);
+  }, [
+    bookableLocations,
+    catalogLocations,
+    locations,
+    matchedFallbackLocation,
+    selectedLocationId,
+    showAllLocations,
+  ]);
 
   const locationSelectValue =
     selectedFilters.locationId === null
@@ -283,17 +323,18 @@ export function CalendarWidget({
     return locationsByName.get(locationNameKey(activeLocation.name)) ?? [activeLocation];
   }, [activeLocation, bookableLocations, locationsByName, showAllLocations]);
 
-  // Si la sede elegida deja de ser bookable (o venia de un id fantasma), volver
-  // a "Todos" para no quedarse en un select invalido.
+  // Si el usuario eligió una sede que ya no está en el select, volver a
+  // "Todos". No toca el default de la URL (selectedFilters.locationId
+  // undefined): ese se resuelve por match y no se siembra en state.
   useEffect(() => {
     if (!bookableLocationsQuery.isSuccess) return;
     const selectedId = selectedFilters.locationId;
     if (selectedId == null) return;
-    const stillThere = bookableLocations.some((location) => location.id === selectedId);
+    const stillThere = locations.some((location) => Number(location.id) === Number(selectedId));
     if (!stillThere) {
       setSelectedFilters((current) => ({ ...current, locationId: null }));
     }
-  }, [bookableLocations, bookableLocationsQuery.isSuccess, selectedFilters.locationId]);
+  }, [bookableLocationsQuery.isSuccess, locations, selectedFilters.locationId]);
 
   const locationGroupIds = activeLocationGroup.map((location) => location.id).join(",");
 

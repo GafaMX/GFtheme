@@ -181,7 +181,7 @@ elemento** del shortcode, no en un wrapper del kit.
 <section
   data-gf-theme="meetings-calendar"
   filter-bq-location
-  filter-bq-location-default="235"
+  filter-bq-location-default="San José Insurgentes"
   data-bq-calendar-view="week"
 ></section>
 ```
@@ -396,7 +396,7 @@ Van en el `<section data-gf-theme="meetings-calendar">`.
 | `filter-bq-service` | **on** | Select de servicio. `="false"` lo apaga |
 | `filter-bq-staff` | **on** | Select de coach. `="false"` lo apaga |
 | `filter-bq-room` | off | Reservado (sala). Hoy no pinta UI |
-| `filter-bq-location-default="235"` | — | Sede inicial (id gafa.fit) |
+| `filter-bq-location-default` | — | Sede inicial: id gafa.fit o nombre (v1) |
 | `filter-bq-brand-default` | — | Marca inicial (id) |
 | `filter-bq-service-default` | — | Servicio inicial (id) |
 | `filter-bq-staff-default` | — | Coach inicial (id) |
@@ -406,9 +406,12 @@ Van en el `<section data-gf-theme="meetings-calendar">`.
 | `data-gf-limit` | — | Tope de clases (número) |
 | `data-bq-show-description` | — | Se acepta; la nota de clase se pinta si la API la manda |
 
-La URL también arranca la sede: `?location=235` (o `location_id` / `locationId`)
-y el servicio: `?service=123` (o `service_id` / `filter_service`).
-Si el usuario elige “Todos”, no se vuelve a aplicar.
+La URL también arranca la sede y el servicio, **en todas las marcas**:
+
+- Sede: `?location=235` (id) o el query v1 `?filter_location=San+Jose+Insurgentes` (nombre). También `location_id` / `locationId`.
+- Servicio: `?service=123` (o `service_id` / `filter_service`).
+
+No inventes otro query. Si el usuario elige “Todos”, no se vuelve a aplicar.
 
 Los ids son los de **gafa.fit**, no ids del builder.
 

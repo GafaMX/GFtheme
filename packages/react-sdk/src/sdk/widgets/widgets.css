@@ -1137,15 +1137,18 @@
   background: var(--gafa-color-surface);
   border: 1px solid var(--gafa-color-border);
   border-radius: var(--gafa-radius-pill);
+  box-sizing: border-box;
   --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
-  flex: 0 1 auto;
+  flex: 0 1 11rem;
   gap: 6px;
   height: 36px;
-  min-width: 68px;
+  max-width: min(12.5rem, 52vw);
+  min-width: 0;
   overflow: hidden;
   padding: 0 0.45rem 0 0.7rem;
+  width: min(12.5rem, 52vw);
 }
 
 .gafa-filterbar-location svg {
@@ -1163,6 +1166,7 @@
   border: none;
   --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
+  flex: 1 1 auto;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 600;
@@ -1172,6 +1176,8 @@
   overflow: hidden;
   padding-right: 0.3rem;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
 }
 
 .gafa-filterbar-toggle {
@@ -1214,7 +1220,10 @@
 }
 
 .gafa-filterbar-skeleton--location {
-  width: 108px;
+  flex: 0 1 11rem;
+  max-width: min(12.5rem, 52vw);
+  min-width: 0;
+  width: min(12.5rem, 52vw);
 }
 
 .gafa-filterbar-skeleton--toggle {
