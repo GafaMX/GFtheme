@@ -102,6 +102,16 @@ export function locationTokensMatch(left?: string | null, right?: string | null)
   return normalizeLocationToken(left) === normalizeLocationToken(right);
 }
 
+/**
+ * Texto corto del select: las primeras dos palabras.
+ * "San José Insurgentes" → "San José". El nombre completo sigue en el title.
+ */
+export function compactLocationLabel(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 2) return words.join(" ");
+  return words.slice(0, 2).join(" ");
+}
+
 export function matchLocation<T extends { id: number; name: string; slug?: string }>(
   query: CalendarLocationQuery,
   locations: T[],

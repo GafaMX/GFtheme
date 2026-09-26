@@ -700,6 +700,7 @@
 
 .gafa-calendar-toolbar__filters {
   display: flex;
+  flex: 1 1 auto;
   justify-content: flex-end;
   margin-left: auto;
   min-width: 0;
@@ -1125,6 +1126,7 @@
 .gafa-filterbar {
   align-items: center;
   display: flex;
+  flex-wrap: nowrap;
   gap: var(--gafa-space-2);
   min-width: 0;
   overflow: visible;
@@ -1141,15 +1143,15 @@
   --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
-  flex: 0 1 9.5rem;
+  flex: 0 1 auto;
   gap: 6px;
   height: 36px;
-  max-width: min(10.25rem, 44vw);
+  max-width: min(7.25rem, 34vw);
   min-width: 0;
   overflow: hidden;
-  padding: 0 0.55rem 0 0.7rem;
+  padding: 0 0.45rem 0 0.6rem;
   position: relative;
-  width: min(10.25rem, 44vw);
+  width: auto;
 }
 
 .gafa-filterbar-location svg {
@@ -1222,10 +1224,10 @@
 }
 
 .gafa-filterbar-skeleton--location {
-  flex: 0 1 9.5rem;
-  max-width: min(10.25rem, 44vw);
+  flex: 0 1 auto;
+  max-width: min(7.25rem, 34vw);
   min-width: 0;
-  width: min(10.25rem, 44vw);
+  width: 6.5rem;
 }
 
 .gafa-filterbar-skeleton--toggle {

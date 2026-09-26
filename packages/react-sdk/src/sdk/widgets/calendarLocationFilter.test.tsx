@@ -116,7 +116,10 @@ describe("filtro de sede por URL / default", () => {
 
     await waitFor(() => {
       expect(locationSelect(root).value).toBe("8");
-      expect(locationLabel(root)).toBe("San José Insurgentes");
+      expect(locationLabel(root)).toBe("San José");
+      expect(root.querySelector(".gafa-filterbar-location__value")?.getAttribute("title")).toBe(
+        "San José Insurgentes",
+      );
       const places = meetingLocations(root);
       expect(places.length).toBeGreaterThan(0);
       expect(places.every((place) => place.includes("San José Insurgentes"))).toBe(true);

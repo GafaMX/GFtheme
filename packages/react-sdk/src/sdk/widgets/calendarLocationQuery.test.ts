@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calendarLocationSelectValue,
+  compactLocationLabel,
   locationTokensMatch,
   matchLocation,
   parseCalendarLocationDefault,
@@ -95,6 +96,15 @@ describe("calendarLocationSelectValue", () => {
 
   it("pinta Todos cuando el usuario lo elige", () => {
     expect(calendarLocationSelectValue(null, 200)).toBe("");
+  });
+});
+
+describe("compactLocationLabel", () => {
+  it("deja solo las primeras dos palabras", () => {
+    expect(compactLocationLabel("San José Insurgentes")).toBe("San José");
+    expect(compactLocationLabel("  Roma Norte  ")).toBe("Roma Norte");
+    expect(compactLocationLabel("Polanco")).toBe("Polanco");
+    expect(compactLocationLabel("Todos")).toBe("Todos");
   });
 });
 

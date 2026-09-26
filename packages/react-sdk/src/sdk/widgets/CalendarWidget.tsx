@@ -43,6 +43,7 @@ import {
 } from "./calendarRange";
 import {
   calendarLocationSelectValue,
+  compactLocationLabel,
   matchLocation,
   readCalendarLocationQueryFromWindow,
   resolveCalendarLocationId,
@@ -1321,7 +1322,7 @@ function CalendarFilterBar({
         <label className="gafa-filterbar-location">
           <LocationIcon />
           <span className="gafa-filterbar-location__value" title={locationSelectLabel}>
-            {locationSelectLabel}
+            {compactLocationLabel(locationSelectLabel)}
           </span>
           <select
             aria-label="Ubicación"
