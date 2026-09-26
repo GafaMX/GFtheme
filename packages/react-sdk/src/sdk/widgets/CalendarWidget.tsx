@@ -1285,6 +1285,10 @@ function CalendarFilterBar({
 
   // Con una sola sede el select no aporta; con varias, "Todos" es el default.
   const showLocation = Boolean(filters.location) && locations.length > 1;
+  const locationSelectLabel =
+    locationSelectValue === ""
+      ? "Todos"
+      : (locations.find((location) => String(location.id) === locationSelectValue)?.name ?? "Todos");
   const showBrand = Boolean(filters.brand) && brands.length > 1;
   // El boton solo aparece cuando hay algo real que filtrar: con un unico
   // servicio y sin coaches distintos no aporta nada. Si hay filtros activos se
@@ -1316,6 +1320,9 @@ function CalendarFilterBar({
       {showLocation ? (
         <label className="gafa-filterbar-location">
           <LocationIcon />
+          <span className="gafa-filterbar-location__value" title={locationSelectLabel}>
+            {locationSelectLabel}
+          </span>
           <select
             aria-label="Ubicación"
             value={locationSelectValue}

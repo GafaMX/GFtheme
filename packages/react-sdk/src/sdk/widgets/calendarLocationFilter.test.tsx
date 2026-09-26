@@ -89,6 +89,10 @@ function locationSelect(root: HTMLElement): HTMLSelectElement {
   return root.querySelector('.gafa-filterbar-location select') as HTMLSelectElement;
 }
 
+function locationLabel(root: HTMLElement): string {
+  return root.querySelector(".gafa-filterbar-location__value")?.textContent?.trim() ?? "";
+}
+
 function meetingNames(root: HTMLElement): string[] {
   return Array.from(root.querySelectorAll(".gafa-meeting-name")).map((node) => node.textContent ?? "");
 }
@@ -112,6 +116,7 @@ describe("filtro de sede por URL / default", () => {
 
     await waitFor(() => {
       expect(locationSelect(root).value).toBe("8");
+      expect(locationLabel(root)).toBe("San José Insurgentes");
       const places = meetingLocations(root);
       expect(places.length).toBeGreaterThan(0);
       expect(places.every((place) => place.includes("San José Insurgentes"))).toBe(true);
@@ -155,6 +160,7 @@ describe("filtro de sede por URL / default", () => {
 
     await waitFor(() => {
       expect(locationSelect(root).value).toBe("");
+      expect(locationLabel(root)).toBe("Todos");
       const places = meetingLocations(root);
       expect(places.some((place) => place.includes("Roma Norte"))).toBe(true);
       expect(places.some((place) => place.includes("San José Insurgentes"))).toBe(true);

@@ -1141,42 +1141,44 @@
   --gafa-fg: var(--gafa-color-muted-text);
   color: var(--gafa-color-muted-text);
   display: inline-flex;
-  flex: 0 1 11rem;
+  flex: 0 1 9.5rem;
   gap: 6px;
   height: 36px;
-  max-width: min(12.5rem, 52vw);
+  max-width: min(10.25rem, 44vw);
   min-width: 0;
   overflow: hidden;
-  padding: 0 0.45rem 0 0.7rem;
-  width: min(12.5rem, 52vw);
+  padding: 0 0.55rem 0 0.7rem;
+  position: relative;
+  width: min(10.25rem, 44vw);
 }
 
 .gafa-filterbar-location svg {
   flex-shrink: 0;
 }
 
-.gafa-filterbar-location select {
-  --gafa-type-size: 0.82rem;
-  --gafa-field-bg: transparent;
-  --gafa-field-border: 0 solid transparent;
-  --gafa-field-fg: var(--gafa-color-text);
-  --gafa-field-radius: 0px;
-  appearance: none;
-  background: transparent;
-  border: none;
+/* El select nativo no trunca: el texto visible va en el span. */
+.gafa-filterbar-location__value {
   --gafa-fg: var(--gafa-color-text);
   color: var(--gafa-color-text);
   flex: 1 1 auto;
-  font: inherit;
   font-size: 0.82rem;
   font-weight: 600;
-  max-width: 100%;
   min-width: 0;
-  outline: none;
   overflow: hidden;
-  padding-right: 0.3rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gafa-filterbar-location select {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  inset: 0;
+  opacity: 0;
+  position: absolute;
   width: 100%;
 }
 
@@ -1220,10 +1222,10 @@
 }
 
 .gafa-filterbar-skeleton--location {
-  flex: 0 1 11rem;
-  max-width: min(12.5rem, 52vw);
+  flex: 0 1 9.5rem;
+  max-width: min(10.25rem, 44vw);
   min-width: 0;
-  width: min(12.5rem, 52vw);
+  width: min(10.25rem, 44vw);
 }
 
 .gafa-filterbar-skeleton--toggle {
