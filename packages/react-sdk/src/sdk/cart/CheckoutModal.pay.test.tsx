@@ -248,16 +248,15 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
       }),
     });
     renderPay(client);
-    await waitUntilPayReady();
-
-    fireEvent.click(payButton());
 
     await waitFor(() => {
-      expect(document.body.textContent ?? "").toMatch(/ha llegado a su límite/i);
+      expect(screen.getByRole("alert").textContent ?? "").toMatch(/ha llegado a su límite/i);
     });
+    expect(screen.getByRole("heading", { name: /lo sentimos/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /pagar/i })).toBeNull();
     expect(stripe).not.toHaveBeenCalled();
     expect(client.reservatePurchase).not.toHaveBeenCalled();
-    expect(payButton().disabled).toBe(false);
+    expect(mocks.loadGafaPay).not.toHaveBeenCalled();
     expect(document.querySelector("[data-charge-hold='true']")).toBeNull();
   });
 

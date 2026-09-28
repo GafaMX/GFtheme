@@ -156,6 +156,20 @@ const AUTH_COPY: Record<AuthStage, { title: string; description: string }> = {
   },
 };
 
+function cartPurchaseKey(lines: CartLine[]): string {
+  return lines.map((line) => `${line.type}:${line.id}:${line.amount}`).join("|");
+}
+
+/** Frase de Buq (límite de paquete o membresía ya activa) para la pantalla de bloqueo. */
+function purchaseRuleMessage(err: unknown): string {
+  const text = (err instanceof Error ? err.message : "").replace(/\s+/g, " ").trim();
+  if (!text || /failed to fetch|networkerror|load failed|typeerror/i.test(text)) {
+    return "No pudimos revisar si puedes comprar esto. Cierra e inténtalo de nuevo.";
+  }
+  if (text.length <= 220 && !/ERROR-\d+|undefined is not/i.test(text)) return text;
+  return humanizeCheckoutError(text);
+}
+
 /**
  * Checkout nativo v2 (reemplaza al Fancy legacy). Cuando nace de una clase,
  * el catalogo trae SOLO los paquetes/membresias que esa clase acepta
@@ -209,6 +223,10 @@ export function CheckoutModal({
   const [preselectStatus, setPreselectStatus] = useState<"idle" | "loading" | "ready" | "miss">(
     preselect ? "loading" : "idle",
   );
+  /** Pantalla v1 «Lo sentimos»: el clic no abre catálogo ni formulario de pago. */
+  const [purchaseNotice, setPurchaseNotice] = useState<{ title: string; message: string } | null>(null);
+  const [purchaseChecking, setPurchaseChecking] = useState(false);
+  const purchaseClearKey = useRef<string | null>(null);
   const [tab, setTab] = useState<CatalogTab>("packages");
   const [authStage, setAuthStage] = useState<AuthStage>("login");
   const [query, setQuery] = useState("");
@@ -386,6 +404,7 @@ export function CheckoutModal({
   const relevantLines = classAttached
     ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
     : lines;
+  const purchaseKey = cartPurchaseKey(relevantLines);
   const membershipPurchase = cartHasMembership(relevantLines);
   const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
 
@@ -498,6 +517,20 @@ export function CheckoutModal({
     !waitingOnGift &&
     !paying &&
     (isFreeTotal ? Boolean(config) : Boolean(selectedMethod) && paymentReady);
+  const purchaseAlreadyClear = purchaseClearKey.current === purchaseKey && purchaseKey.length > 0;
+  const holdPayForm =
+    step === "pay" &&
+    !registerOnly &&
+    !purchaseNotice &&
+    Boolean(client.previewPurchase) &&
+    relevantLines.length > 0 &&
+    (profileQuery.isPending ||
+      (isSignedIn &&
+        !configQuery.isError &&
+        (configQuery.isLoading || purchaseChecking || !purchaseAlreadyClear)));
+  const reviewingDirect =
+    Boolean(preselect) && !purchaseNotice && preselectStatus !== "idle" && preselectStatus !== "ready";
+  const reviewingPurchase = reviewingDirect || holdPayForm;
 
   function resolvedGiftCode(): string | null {
     if (!convertGift || giftStatus !== "ok") return null;
@@ -646,9 +679,11 @@ export function CheckoutModal({
     void findPurchasableItem(client, preselect, brandSlugProp ?? lockedBrandSlug).then((match) => {
       if (cancelled) return;
       if (!match) {
+        // userPosibilities ya lo ocultó (tope de compras). No abrir el catálogo:
+        // v1 mostraba el error en el clic, sin formulario de pago.
+        preselectDone.current = true;
         setPreselectStatus("miss");
         stayOnPayRef.current = false;
-        setStep("shop");
         return;
       }
       preselectDone.current = true;
@@ -674,6 +709,88 @@ export function CheckoutModal({
     // currency.prefix es estable por marca; addItem viene del store.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preselect, client, brandSlugProp]);
+
+  // Compra directa que no está en el catálogo de la sesión: igual preguntamos
+  // a Buq. 422 = límite o membresía repetida. 200 = el producto no existe.
+  useEffect(() => {
+    if (purchaseNotice || preselectStatus !== "miss" || !preselect) return;
+    if (profileQuery.isLoading) return;
+    if (!isSignedIn || !client.previewPurchase) {
+      setPurchaseNotice({
+        title: "Lo sentimos",
+        message: "Este producto ya no está disponible.",
+      });
+      return;
+    }
+    if (!profileQuery.data || !brandSlug || !locationSlug) return;
+    if (configQuery.isLoading) return;
+    if (configQuery.isError) {
+      setPurchaseNotice({
+        title: "Lo sentimos",
+        message: "No pudimos revisar si puedes comprar esto. Cierra e inténtalo de nuevo.",
+      });
+      return;
+    }
+
+    let cancelled = false;
+    const profile = profileQuery.data;
+    const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
+    setPurchaseChecking(true);
+    void client
+      .previewPurchase({
+        brandSlug,
+        locationSlug,
+        userId: config?.userProfileId ?? profile.id,
+        ...purchaseAssociation({
+          meetingId: reservation?.meetingId,
+          reservationId: linkedReservationId,
+        }),
+        lines: [
+          {
+            id: preselect.id,
+            type: preselect.type,
+            amount: 1,
+            companiesId: config?.companiesId,
+          },
+        ],
+        paymentTypeId,
+        csrfToken: config?.csrfToken ?? null,
+        subscribe: preselect.type === "membership",
+        setPayment: preselect.type === "membership",
+        seatObjectId: reservation?.seatObjectId,
+      })
+      .then(() => {
+        if (cancelled) return;
+        setPurchaseChecking(false);
+        setPurchaseNotice({
+          title: "Lo sentimos",
+          message: "Este producto ya no está disponible.",
+        });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setPurchaseChecking(false);
+        setPurchaseNotice({ title: "Lo sentimos", message: purchaseRuleMessage(err) });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // El veredicto es por el id del botón, no por cada render del carrito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    purchaseNotice,
+    preselectStatus,
+    preselect?.id,
+    preselect?.type,
+    profileQuery.isLoading,
+    profileQuery.data,
+    isSignedIn,
+    brandSlug,
+    locationSlug,
+    configQuery.isLoading,
+    configQuery.isError,
+    client,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -1006,6 +1123,10 @@ export function CheckoutModal({
     if (!profile || !brandSlug || !locationSlug) {
       throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
     }
+    const key = cartPurchaseKey(relevantLines);
+    const hasExtras =
+      (discountStatus === "ok" && discountCode.trim().length > 0) || Boolean(resolvedGiftCode());
+    if (!hasExtras && purchaseClearKey.current === key) return;
     const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
     await client.previewPurchase({
       brandSlug,
@@ -1024,7 +1145,50 @@ export function CheckoutModal({
       setPayment: membershipPurchase ? saveCard : false,
       seatObjectId: reservation?.seatObjectId,
     });
+    if (!hasExtras) purchaseClearKey.current = key;
   }
+
+  // Al entrar a pagar (membresía que sigue en el catálogo, o carrito ya armado)
+  // las reglas corren antes de pintar la tarjeta. registerOnly ya cobró.
+  useEffect(() => {
+    if (purchaseNotice || step !== "pay" || registerOnly) return;
+    if (!client.previewPurchase || !isSignedIn || !profileQuery.data) return;
+    if (!brandSlug || !locationSlug || relevantLines.length === 0) return;
+    if (configQuery.isLoading || configQuery.isError) return;
+    if (purchaseClearKey.current === purchaseKey) {
+      setPurchaseChecking(false);
+      return;
+    }
+    let cancelled = false;
+    setPurchaseChecking(true);
+    void assertCanPurchase()
+      .then(() => {
+        if (cancelled) return;
+        setPurchaseChecking(false);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setPurchaseChecking(false);
+        setPurchaseNotice({ title: "Lo sentimos", message: purchaseRuleMessage(err) });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // assertCanPurchase lee el carrito y la config de este render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    purchaseNotice,
+    step,
+    registerOnly,
+    isSignedIn,
+    profileQuery.data,
+    brandSlug,
+    locationSlug,
+    configQuery.isLoading,
+    configQuery.isError,
+    client,
+    purchaseKey,
+  ]);
 
   async function proceedToPay() {
     if (registerOnly && hostedPendingRef.current?.purchaseId) {
@@ -1129,6 +1293,7 @@ export function CheckoutModal({
   }
 
   function handlePayClick() {
+    if (reviewingPurchase || purchaseNotice) return;
     if (!relevantLines.length) {
       reportPayError("Agrega un paquete o membresía para continuar.");
       return;
@@ -1182,14 +1347,24 @@ export function CheckoutModal({
       }}
     >
       <ToastHost />
-      <div className="gafa-checkout" data-step={step}>
+      <div className="gafa-checkout" data-step={purchaseNotice ? "blocked" : step}>
         {blockDismiss ? null : (
           <button className="gafa-checkout__close" type="button" aria-label="Cerrar" onClick={requestClose}>
             <CloseIcon />
           </button>
         )}
 
-        {step !== "thanks" ? (
+        {purchaseNotice ? (
+          <div className="gafa-checkout-block" role="alert">
+            <div className="gafa-checkout-block__copy">
+              <h2 id="gafa-checkout-title">{purchaseNotice.title}</h2>
+              <p>{purchaseNotice.message}</p>
+            </div>
+            <button className="gafa-sdk-button gafa-checkout__cta" type="button" onClick={requestClose}>
+              Cerrar
+            </button>
+          </div>
+        ) : step !== "thanks" ? (
           <div className="gafa-checkout__layout">
             <section className="gafa-checkout__main">
               {reservation ? (
@@ -1369,6 +1544,8 @@ export function CheckoutModal({
                     </p>
                   ) : null}
                 </>
+              ) : reviewingPurchase ? (
+                <PaySkeleton withMethods={!isFreeTotal} label="Revisando tu compra…" />
               ) : isFreeTotal ? (
                 <div className="gafa-checkout-free" role="status">
                   <span className="gafa-checkout-free__mark" aria-hidden="true">
@@ -1387,8 +1564,6 @@ export function CheckoutModal({
                     <p>No hace falta tarjeta ni PayPal.</p>
                   </div>
                 </div>
-              ) : preselectStatus === "loading" ? (
-                <PaySkeleton withMethods label="Preparando tu compra…" />
               ) : (
                 <PayPanel
                   methods={paymentMethods}
@@ -1520,7 +1695,7 @@ export function CheckoutModal({
                 </div>
               ) : null}
 
-              {preselectStatus === "loading" ? (
+              {reviewingDirect && relevantLines.length === 0 ? (
                 <div className="gafa-checkout-line-skel" aria-busy="true" aria-live="polite">
                   <span className="gafa-sr-only">Agregando tu plan…</span>
                   <span className="gafa-skeleton gafa-checkout-line-skel__name" aria-hidden="true" />
@@ -1730,6 +1905,7 @@ export function CheckoutModal({
                     type="button"
                     disabled={
                       paying ||
+                      reviewingPurchase ||
                       relevantLines.length === 0 ||
                       (!registerOnly && !waitingOnTerms && !canPay)
                     }
@@ -1757,7 +1933,7 @@ export function CheckoutModal({
                 </div>
               )}
 
-              {!blockDismiss && (step === "pay" || step === "auth") ? (
+              {!blockDismiss && !reviewingPurchase && (step === "pay" || step === "auth") ? (
                 <button
                   className="gafa-checkout__backlink"
                   type="button"

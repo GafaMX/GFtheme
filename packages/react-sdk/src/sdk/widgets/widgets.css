@@ -5485,6 +5485,44 @@
   margin: 0;
 }
 
+.gafa-checkout-block {
+  align-content: center;
+  display: grid;
+  flex: 1;
+  gap: 1.25rem;
+  justify-items: center;
+  padding: 2.75rem 1.75rem 2.25rem;
+  text-align: center;
+}
+
+.gafa-checkout-block__copy {
+  display: grid;
+  gap: 0.55rem;
+  max-width: 28rem;
+}
+
+.gafa-checkout-block h2 {
+  font-family: var(--gafa-heading-font-family);
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.gafa-checkout-block p {
+  --gafa-fg: var(--gafa-color-muted-text);
+
+  color: var(--gafa-color-muted-text);
+  font-size: 0.98rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.gafa-checkout-block .gafa-checkout__cta {
+  max-width: 16rem;
+}
+
 .gafa-checkout__toolbar {
   align-items: center;
   display: flex;

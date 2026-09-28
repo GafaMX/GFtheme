@@ -200,16 +200,10 @@ describe("CheckoutModal total $0 (sin tarjeta)", () => {
     renderCheckout(client);
 
     await waitFor(() => {
-      expect(
-        (screen.getByRole("button", { name: /confirmar pedido/i }) as HTMLButtonElement).disabled,
-      ).toBe(false);
+      expect(screen.getByRole("alert").textContent ?? "").toMatch(/ya cuentas con una igual activa/i);
     });
-
-    fireEvent.click(screen.getByRole("button", { name: /confirmar pedido/i }));
-
-    await waitFor(() => {
-      expect(document.body.textContent ?? "").toMatch(/ya cuentas con una igual activa/i);
-    });
+    expect(screen.getByRole("heading", { name: /lo sentimos/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /confirmar pedido/i })).toBeNull();
     expect(client.reservatePurchase).not.toHaveBeenCalled();
     expect(screen.queryByText(/gracias por tu compra/i)).toBeNull();
   });
