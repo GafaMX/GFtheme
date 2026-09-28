@@ -83,6 +83,7 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
       phone: "5550000000",
     }),
     getCheckoutConfig: async () => checkoutConfig(),
+    previewPurchase: vi.fn(async () => undefined),
     reservatePurchase: vi.fn(async () => ({ purchaseId: 88 })),
     initialPurchase: vi.fn(async () => ({ purchaseId: 88, checkoutToken: "chk_1" })),
     pollInitialPurchaseStatus: vi.fn(async () => ({ code: 1, reservationId: 77 })),
@@ -236,6 +237,51 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     });
     expect(screen.queryByRole("button", { name: /procesando/i })).toBeNull();
     expect(payButton().disabled).toBe(false);
+  });
+
+  it("no cobra si Buq bloquea el paquete o la membresía", async () => {
+    const stripe = vi.fn();
+    window._handleStripePayment = stripe;
+    const client = mockClient({
+      previewPurchase: vi.fn(async () => {
+        throw new Error("Este producto no puede ser comprado porque ha llegado a su límite.");
+      }),
+    });
+    renderPay(client);
+    await waitUntilPayReady();
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(document.body.textContent ?? "").toMatch(/ha llegado a su límite/i);
+    });
+    expect(stripe).not.toHaveBeenCalled();
+    expect(client.reservatePurchase).not.toHaveBeenCalled();
+    expect(payButton().disabled).toBe(false);
+    expect(document.querySelector("[data-charge-hold='true']")).toBeNull();
+  });
+
+  it("el preflight pasa antes de abrir Stripe", async () => {
+    const order: string[] = [];
+    const client = mockClient({
+      previewPurchase: vi.fn(async () => {
+        order.push("preview");
+      }),
+    });
+    renderPay(client);
+    await waitUntilPayReady();
+
+    window._handleStripePayment = async () => {
+      order.push("stripe");
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" } });
+    };
+
+    fireEvent.click(payButton());
+
+    await waitFor(() => {
+      expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
+    });
+    expect(order).toEqual(["preview", "stripe"]);
   });
 
   it("tras el cobro de GafaPay llama reservate (paymentByCard/Token) y muestra el thank you", async () => {

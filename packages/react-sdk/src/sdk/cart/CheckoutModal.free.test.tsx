@@ -86,6 +86,7 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
       phone: "5550000000",
     }),
     getCheckoutConfig: async () => checkoutConfig(),
+    previewPurchase: vi.fn(async () => undefined),
     checkDiscountCode: vi.fn(async ({ code }) => ({
       valid: true,
       code,
@@ -182,10 +183,35 @@ describe("CheckoutModal total $0 (sin tarjeta)", () => {
         paymentData: undefined,
       }),
     );
+    expect(client.previewPurchase).toHaveBeenCalled();
     expect(client.initialPurchase).not.toHaveBeenCalled();
     expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
     expect(screen.getByText(/pedido quedó registrado/i)).toBeTruthy();
     expect(screen.getByText(/\$0\s*MXN/)).toBeTruthy();
+  });
+
+  it("con total $0 tampoco registra un paquete bloqueado", async () => {
+    useCartStore.setState({ lines: [freeLine], reservation: null });
+    const client = mockClient({
+      previewPurchase: vi.fn(async () => {
+        throw new Error("Lo sentimos, no puedes adquirir esta membresía porque ya cuentas con una igual activa.");
+      }),
+    });
+    renderCheckout(client);
+
+    await waitFor(() => {
+      expect(
+        (screen.getByRole("button", { name: /confirmar pedido/i }) as HTMLButtonElement).disabled,
+      ).toBe(false);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    await waitFor(() => {
+      expect(document.body.textContent ?? "").toMatch(/ya cuentas con una igual activa/i);
+    });
+    expect(client.reservatePurchase).not.toHaveBeenCalled();
+    expect(screen.queryByText(/gracias por tu compra/i)).toBeNull();
   });
 
   it("con descuento 100% quita la tarjeta y reserva sin payment_data", async () => {

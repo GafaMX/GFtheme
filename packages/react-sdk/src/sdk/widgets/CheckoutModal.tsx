@@ -996,6 +996,36 @@ export function CheckoutModal({
       : undefined);
   }
 
+  /**
+   * Mismas reglas que `/reservate` (primera vez, tope de compras, membresía
+   * ya activa) pero sin cargo. Si Buq responde 422, no se abre GafaPay.
+   */
+  async function assertCanPurchase() {
+    if (!client.previewPurchase) return;
+    const profile = profileQuery.data;
+    if (!profile || !brandSlug || !locationSlug) {
+      throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
+    }
+    const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
+    await client.previewPurchase({
+      brandSlug,
+      locationSlug,
+      userId: config?.userProfileId ?? profile.id,
+      ...purchaseAssociation({
+        meetingId: reservation?.meetingId,
+        reservationId: linkedReservationId,
+      }),
+      lines: purchaseLinesPayload(),
+      paymentTypeId,
+      csrfToken: config?.csrfToken ?? null,
+      discountCode: discountStatus === "ok" ? discountCode.trim() : null,
+      giftCode: resolvedGiftCode(),
+      subscribe: membershipPurchase ? autoRenew : false,
+      setPayment: membershipPurchase ? saveCard : false,
+      seatObjectId: reservation?.seatObjectId,
+    });
+  }
+
   async function proceedToPay() {
     if (registerOnly && hostedPendingRef.current?.purchaseId) {
       setPaying(true);
@@ -1036,6 +1066,13 @@ export function CheckoutModal({
     }
     if (isFreeTotal) {
       setPaying(true);
+      try {
+        await assertCanPurchase();
+      } catch (err) {
+        setPaying(false);
+        reportPayError(err instanceof Error ? err.message : "No pudimos completar la compra.");
+        return;
+      }
       await completePurchase(undefined);
       return;
     }
@@ -1047,6 +1084,13 @@ export function CheckoutModal({
       return;
     }
     setPaying(true);
+    try {
+      await assertCanPurchase();
+    } catch (err) {
+      setPaying(false);
+      reportPayError(err instanceof Error ? err.message : "No pudimos completar la compra.");
+      return;
+    }
     if (selectedMethod?.slug === "recurrente") {
       startHostedPopupWatch();
     } else if (selectedMethod?.slug === "paypal") {

@@ -9,6 +9,7 @@ import {
 import { createHttpConciergeAsk, createLocalConciergeAsk, type ConciergeAskFn } from "./ask";
 import { assertConciergeOriginAllowed } from "./domConfig";
 import { hydrateConciergeCatalog, shouldHydrateConcierge } from "./hydrate";
+import { subscribeToAuthChanges } from "../client/tokenStorage";
 import { ConciergeSchemeToggle } from "./ConciergeWidget";
 import { ColorSchemeToggle, useGafaThemeOptional } from "../theme/theme";
 
@@ -109,6 +110,7 @@ export function ConciergeHost({
     : setLocalScheme;
   const [open, setOpen] = useState(false);
   const [catalogNonce, setCatalogNonce] = useState(0);
+  const [authEpoch, setAuthEpoch] = useState(0);
   const openCatalog = useCallback(() => {
     setOpen(true);
     setCatalogNonce((current) => current + 1);
@@ -136,6 +138,8 @@ export function ConciergeHost({
     ensureFancySibling();
   }, []);
 
+  useEffect(() => subscribeToAuthChanges(() => setAuthEpoch((current) => current + 1)), []);
+
   useEffect(() => {
     setScheme(initialConfig.theme.mode === "dark" ? "dark" : "light");
   }, [initialConfig.theme.mode]);
@@ -159,7 +163,7 @@ export function ConciergeHost({
     return () => {
       cancelled = true;
     };
-  }, [hydrateFromClient, initialConfig, sdk]);
+  }, [authEpoch, hydrateFromClient, initialConfig, sdk]);
 
   return (
     <>

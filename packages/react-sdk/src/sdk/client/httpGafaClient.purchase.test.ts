@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHttpGafaClient } from "./httpGafaClient";
+import { clearStoredToken, writeStoredToken } from "./tokenStorage";
 
 function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -372,5 +373,131 @@ describe("pollInitialPurchaseStatus", () => {
 
     expect(status?.code).toBe(1);
     expect(status?.reservationId).toBe(77);
+  });
+});
+
+describe("previewPurchase", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearStoredToken();
+  });
+
+  it("manda test=true y trata purchase null como éxito (aún no hay cargo)", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase: null, reservation: null }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      client().previewPurchase?.({
+        brandSlug: "fitspin",
+        locationSlug: "polanco",
+        userId: 4412,
+        lines: [{ id: 971, type: "combo", amount: 1 }],
+        paymentTypeId: 3,
+        paymentData: { stripeToken: "tok_no_debe_ir" },
+        checkoutToken: "chk_no",
+      }),
+    ).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/reservation/reservate");
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("test")).toBe("true");
+    expect(body.get("payment_data")).toBeNull();
+    expect(body.get("payment_data[stripeToken]")).toBeNull();
+    expect(body.get("checkout_token")).toBeNull();
+    expect(body.get("combos_id[0]")).toBe("971");
+  });
+
+  it("propaga el 422 de paquete bloqueado o membresía repetida", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponseStatus(
+          {
+            message: "The given data was invalid.",
+            errors: {
+              user: ["Lo sentimos, no puedes adquirir esta membresía porque ya cuentas con una igual activa."],
+            },
+          },
+          422,
+        ),
+      ),
+    );
+
+    await expect(
+      client().previewPurchase?.({
+        brandSlug: "fitspin",
+        locationSlug: "polanco",
+        userId: 4412,
+        lines: [{ id: 358, type: "membership", amount: 1 }],
+        paymentTypeId: 3,
+      }),
+    ).rejects.toThrow(/ya cuentas con una igual activa/);
+  });
+});
+
+function jsonResponseStatus(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+describe("catálogo con reglas de compra", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearStoredToken();
+  });
+
+  it("sin sesión pide el catálogo público", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponseStatus({ data: [{ id: 1, name: "Primera vez", price: 100, price_final: 100 }] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().listCombos("fitspin");
+    await client().listMemberships("fitspin");
+
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(urls.some((url) => url.includes("/combos/userPosibilities"))).toBe(false);
+    expect(urls.some((url) => url.includes("/membership/userPosibilities"))).toBe(false);
+    expect(urls.some((url) => url.includes("/brand/fitspin/combos?"))).toBe(true);
+    expect(urls.some((url) => url.includes("/brand/fitspin/membership?"))).toBe(true);
+  });
+
+  it("con sesión pide userPosibilities", async () => {
+    writeStoredToken("tok-test");
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("userPosibilities")) {
+        return jsonResponseStatus({ data: [{ id: 2, name: "Visible", price: 10, price_final: 10 }] });
+      }
+      return jsonResponseStatus({ data: [{ id: 9, name: "No deberia", price: 10, price_final: 10 }] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const combos = await client().listCombos("fitspin");
+    const memberships = await client().listMemberships("fitspin");
+
+    expect(combos[0]?.name).toBe("Visible");
+    expect(memberships[0]?.name).toBe("Visible");
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(urls.some((url) => url.includes("/combos/userPosibilities"))).toBe(true);
+    expect(urls.some((url) => url.includes("/membership/userPosibilities"))).toBe(true);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer tok-test");
+  });
+
+  it("si el token ya no vale, cae al catálogo público", async () => {
+    writeStoredToken("tok-viejo");
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("userPosibilities")) return jsonResponseStatus({ message: "Unauthenticated." }, 401);
+      return jsonResponseStatus({ data: [{ id: 3, name: "Publico", price: 10, price_final: 10 }] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const combos = await client().listCombos("fitspin");
+    expect(combos[0]?.name).toBe("Publico");
   });
 });

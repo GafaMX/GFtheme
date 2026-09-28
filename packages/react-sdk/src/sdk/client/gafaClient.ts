@@ -278,6 +278,7 @@ export function createMockGafaClient(): GafaClient {
       return { valid: false, code: compact, httpStatus: 404, message: "Gift card not found" };
     },
     generateGiftCode: async () => "K7M2P9QX",
+    previewPurchase: async () => undefined,
     reservatePurchase: async () => ({ purchaseId: 1 }),
     initialPurchase: async () => ({ purchaseId: 1, checkoutToken: "demo" }),
     pollInitialPurchaseStatus: async () => ({ code: 1, reservationId: 99 }),

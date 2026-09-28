@@ -280,7 +280,7 @@ function buildPurchaseFormBody(payload: InitialPurchasePayload): Record<string, 
     subscriptionId: payload.subscriptionId ?? "",
     subscribe: payload.subscribe ? "true" : "false",
     set_payment: payload.setPayment ? "true" : "false",
-    test: "false",
+    test: payload.dryRun ? "true" : "false",
     combos_id: partitioned.combosId,
     combos_amounts: partitioned.combosAmounts,
     memberships_id: partitioned.membershipsId,
@@ -904,6 +904,36 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return response.json();
   }
 
+  /**
+   * Sin sesión: catálogo público. Con sesión: `userPosibilities`, el mismo
+   * listado que el theme v1 (`GetBrandComboListforUser` /
+   * `GetBrandMembershipListForUser`). Ahí Buq aplica mínimo/máximo de compras
+   * y categoría. La ruta pública no autentica, así que un Bearer ahí no filtra.
+   */
+  async function listPurchaseCatalog(brandSlug: string, kind: "combo" | "membership"): Promise<CatalogItem[]> {
+    const type = kind === "combo" ? "combo" : "membership";
+    const publicPath = kind === "combo" ? `/brand/${brandSlug}/combos` : `/brand/${brandSlug}/membership`;
+    const authedPath =
+      kind === "combo"
+        ? `/brand/${brandSlug}/combos/userPosibilities`
+        : `/brand/${brandSlug}/membership/userPosibilities`;
+
+    const load = async (path: string) => {
+      const response = await apiGet<PaginatedResponse<RawCatalogItem>>(path, { only_actives: true });
+      return unwrap(response)
+        .map((item) => normalizeCatalogItem(item, type))
+        .filter((item): item is CatalogItem => Boolean(item));
+    };
+
+    if (!syncTokenFromStorage()) return load(publicPath);
+    try {
+      return await load(authedPath);
+    } catch (error) {
+      if (error instanceof GafaApiError && error.status === 401) return load(publicPath);
+      throw error;
+    }
+  }
+
   const httpClient: GafaClient = {
     async listBrands() {
       const response = await apiGet<PaginatedResponse<RawBrand>>("/brand");
@@ -946,21 +976,11 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async listCombos(brandSlug) {
-      const response = await apiGet<PaginatedResponse<RawCatalogItem>>(`/brand/${brandSlug}/combos`, {
-        only_actives: true,
-      });
-      return unwrap(response)
-        .map((item) => normalizeCatalogItem(item, "combo"))
-        .filter((item): item is CatalogItem => Boolean(item));
+      return listPurchaseCatalog(brandSlug, "combo");
     },
 
     async listMemberships(brandSlug) {
-      const response = await apiGet<PaginatedResponse<RawCatalogItem>>(`/brand/${brandSlug}/membership`, {
-        only_actives: true,
-      });
-      return unwrap(response)
-        .map((item) => normalizeCatalogItem(item, "membership"))
-        .filter((item): item is CatalogItem => Boolean(item));
+      return listPurchaseCatalog(brandSlug, "membership");
     },
 
     async listProducts(brandSlug) {
@@ -1757,6 +1777,24 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         throw new Error("El servidor no confirmó la compra.");
       }
       return result;
+    },
+
+    /**
+     * Paridad con `SelectPaymentStep`: `test=true` corre las reglas y Buq
+     * devuelve 200 con purchase null, o 422 si el paquete/membresía está
+     * bloqueado. Un 200 sin id NO es fallo: todavía no hay compra.
+     */
+    async previewPurchase(payload: InitialPurchasePayload) {
+      const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/reservate`;
+      await apiPostFormUrl<Record<string, unknown> | null>(
+        url,
+        buildPurchaseFormBody({
+          ...payload,
+          dryRun: true,
+          paymentData: undefined,
+          checkoutToken: undefined,
+        }),
+      );
     },
 
     async initialPurchase(payload: InitialPurchasePayload) {

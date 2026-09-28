@@ -453,6 +453,11 @@ export type InitialPurchasePayload = {
   seatObjectId?: number;
   subscribe?: boolean;
   setPayment?: boolean;
+  /**
+   * Mismo POST que el fancy v1 al abrir el paso de pago (`test: true`).
+   * Buq corre canBuy / membresía duplicada y corta antes de crear la compra.
+   */
+  dryRun?: boolean;
 };
 
 export type InitialPurchaseResult = {
@@ -645,6 +650,11 @@ export type GafaClient = {
    * En el back dispara `paymentByCard` o `paymentByToken` del Stripe viejo.
    */
   reservatePurchase?(payload: InitialPurchasePayload): Promise<InitialPurchaseResult>;
+  /**
+   * Preflight de `/reservate` con `test=true`, antes de GafaPay.
+   * 200 (purchase null) = se puede cobrar. 422 = regla de bloqueo; no hay cargo.
+   */
+  previewPurchase?(payload: InitialPurchasePayload): Promise<void>;
   /** Solo Recurrente / checkout alojado: crea la compra pendiente. */
   initialPurchase?(payload: InitialPurchasePayload): Promise<InitialPurchaseResult>;
   pollInitialPurchaseStatus?(payload: {
