@@ -1,7 +1,6 @@
 .DS_STORE
 build
 node_modules
-package-lock.json
 scripts/flow/*/.flowconfig
 *~
 *.pyc
@@ -11,6 +10,8 @@ __benchmarks__
 build/
 remote-repo/
 coverage/
+packages/react-sdk/dist/
+packages/react-sdk/dist-embed/
 .module-cache
 fixtures/dom/public/react-dom.js
 fixtures/dom/public/react.js
@@ -26,3 +27,12 @@ chrome-user-data
 *.swo
 dist/index.html
 src/index.html
+.env
+.env.local
+.env.*.local
+packages/react-sdk/.env
+packages/react-sdk/.env.local
+packages/sdk-hub/.dev.vars
+packages/sdk-hub/.wrangler
+packages/sdk-hub/node_modules
+/package-lock.json
