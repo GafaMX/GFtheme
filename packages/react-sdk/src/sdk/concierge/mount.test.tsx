@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, waitFor } from "@testing-library/react";
 import { createGafaSdk, type GafaSdk } from "../runtime";
 import { themePreferenceStorageKey } from "../theme/theme";
+import { writeStoredToken, clearStoredToken } from "../client/tokenStorage";
+import { createMockGafaClient } from "../client/gafaClient";
 import { DEMO_CONCIERGE_CONFIG, FITSPIN_CONCIERGE_CONFIG } from "./fixtures";
 import { resolveConciergeConfig } from "./mount";
 
@@ -18,6 +20,7 @@ afterEach(() => {
   sdk?.unmountAll();
   sdk = null;
   document.body.innerHTML = "";
+  clearStoredToken();
   localStorage.removeItem(themePreferenceStorageKey("1:demo-client"));
   localStorage.removeItem(themePreferenceStorageKey("8801:demo-client"));
 });
@@ -306,5 +309,145 @@ describe("sdk.concierge.mount", () => {
     });
     expect(document.querySelector('[aria-label="WhatsApp"]')).toBeNull();
     expect(document.querySelector("[data-gafa-concierge-cta]")).toBeTruthy();
+  });
+
+  it("confirma en el chat una clase sin mapa y un crédito, luego el popup de éxito", async () => {
+    writeStoredToken("token-de-prueba");
+    const mock = createMockGafaClient();
+    const createReservation = vi.fn(async () => ({ reservationId: 11, isWaitlist: false }));
+    sdk = createGafaSdk(CONFIG, {
+      client: {
+        ...mock,
+        listLocations: async () => [{ id: 122, name: "LOMAS", slug: "lomas", brandSlug: "fitspin" }],
+        listMeetings: async () => [{
+          id: 88,
+          name: "Bunker",
+          startsAt: "2026-09-14T08:30:00-06:00",
+          serviceName: "Bunker",
+          staffName: "Alex",
+          available: 4,
+          hasSeatMap: false,
+          brandSlug: "fitspin",
+          locationSlug: "lomas",
+          location: { id: 122, name: "LOMAS", slug: "lomas" },
+        }],
+        getMeeting: async () => ({
+          id: 88,
+          name: "Bunker",
+          startsAt: "2026-09-14T08:30:00-06:00",
+          serviceName: "Bunker",
+          staffName: "Alex",
+          available: 4,
+          hasSeatMap: false,
+          brandSlug: "fitspin",
+          locationSlug: "lomas",
+        }),
+        getReservationContext: async () => ({
+          meetingId: 88,
+          brandSlug: "fitspin",
+          locationSlug: "lomas",
+          userProfileId: 1,
+          seatMap: null,
+          paymentOptions: [{ id: "credits--1", kind: "credit" as const, name: "10 clases", remaining: 5 }],
+          waitlistAvailable: false,
+        }),
+        createReservation,
+      },
+    });
+    const handle = sdk.concierge.mount({
+      config: {
+        ...FITSPIN_CONCIERGE_CONFIG,
+        studios: FITSPIN_CONCIERGE_CONFIG.studios.filter((studio) => studio.locationId === "122"),
+      },
+    });
+    handle.open();
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Horarios de hoy");
+    });
+    fireEvent.click(
+      Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Horarios de hoy")!,
+    );
+    const row = await waitFor(() => {
+      const node = document.querySelector<HTMLButtonElement>("[data-gafa-concierge-meeting='88']");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    fireEvent.click(row);
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Puedo reservarte Bunker a las 08:30 con tu paquete 10 clases");
+    });
+    expect(document.querySelector(".gafa-reservation-overlay")).toBeNull();
+    fireEvent.click(
+      Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Confirmar reserva")!,
+    );
+    await waitFor(() => {
+      expect(createReservation).toHaveBeenCalledWith(expect.objectContaining({
+        meetingId: 88,
+        userProfileId: 1,
+        selectedCredit: "credits--1",
+      }));
+      expect(document.querySelector("[data-gafa-reservation-success]")).toBeTruthy();
+      expect(document.body.textContent).toContain("¡Reserva confirmada!");
+      expect(document.querySelector("[data-gafa-concierge-dialog]")).toBeNull();
+    });
+  });
+
+  it("con mapa abre el salón y no confirma en el hilo", async () => {
+    writeStoredToken("token-de-prueba");
+    const mock = createMockGafaClient();
+    sdk = createGafaSdk(CONFIG, {
+      client: {
+        ...mock,
+        listLocations: async () => [{ id: 122, name: "LOMAS", slug: "lomas", brandSlug: "fitspin" }],
+        listMeetings: async () => [{
+          id: 88,
+          name: "Spin",
+          startsAt: "2026-09-14T07:00:00-06:00",
+          serviceName: "Spin",
+          staffName: "Alex",
+          available: 6,
+          hasSeatMap: true,
+          brandSlug: "fitspin",
+          locationSlug: "lomas",
+          location: { id: 122, name: "LOMAS", slug: "lomas" },
+        }],
+        getMeeting: async () => ({
+          id: 88,
+          name: "Spin",
+          startsAt: "2026-09-14T07:00:00-06:00",
+          serviceName: "Spin",
+          staffName: "Alex",
+          available: 6,
+          hasSeatMap: true,
+          brandSlug: "fitspin",
+          locationSlug: "lomas",
+        }),
+      },
+    });
+    const handle = sdk.concierge.mount({
+      config: {
+        ...FITSPIN_CONCIERGE_CONFIG,
+        studios: FITSPIN_CONCIERGE_CONFIG.studios.filter((studio) => studio.locationId === "122"),
+      },
+    });
+    handle.open();
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Horarios de hoy");
+    });
+    fireEvent.click(
+      Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Horarios de hoy")!,
+    );
+    const row = await waitFor(() => {
+      const node = document.querySelector<HTMLButtonElement>("[data-gafa-concierge-meeting='88']");
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    fireEvent.click(row);
+    await waitFor(() => {
+      expect(document.querySelector(".gafa-reservation-overlay")).toBeTruthy();
+      expect(document.querySelector("[data-gafa-concierge-dialog]")).toBeNull();
+    });
+    expect(document.querySelector(".gafa-reservation-overlay")?.textContent).toMatch(/Detalle de reserva|Spin|Inicia sesión/);
+    expect(document.querySelector("[data-gafa-reservation-success]")).toBeNull();
   });
 });

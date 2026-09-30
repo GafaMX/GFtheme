@@ -127,6 +127,7 @@ export const ConciergeScheduleContextSchema = z.object({
         meetingId: z.number().int().positive().optional(),
         brandSlug: id.optional(),
         locationSlug: id.optional(),
+        hasSeatMap: z.boolean().optional(),
       }),
     )
     .max(100),
@@ -156,11 +157,33 @@ export const ConciergeBuyActionSchema = z.discriminatedUnion("productType", [
   }),
 ]);
 
+const ConciergeMeetingActionFields = {
+  meetingId: z.number().int().positive(),
+  brandSlug: id,
+  locationSlug: id,
+  time: z.string().max(40).optional(),
+  className: z.string().max(160).optional(),
+  coach: z.string().max(160).optional(),
+  waitlist: z.boolean().optional(),
+};
+
 export const ConciergeActionSchema = z.union([
   ConciergeBuyActionSchema,
   z.object({
     kind: z.enum(["reservar", "comprar", "cuenta", "whatsapp", "horarios_hoy"]),
     locationId: id.optional(),
+  }),
+  z.object({
+    kind: z.literal("confirm_reservation"),
+    selectedCredit: z.string().min(1).max(200).optional(),
+    ...ConciergeMeetingActionFields,
+  }),
+  z.object({
+    kind: z.literal("select_credit"),
+    creditId: z.string().min(1).max(200),
+    creditName: z.string().max(160).optional(),
+    creditKind: z.enum(["credit", "membership"]).optional(),
+    ...ConciergeMeetingActionFields,
   }),
   z.object({ kind: z.literal("say"), text: z.string().min(1).max(300) }),
 ]);
@@ -213,6 +236,7 @@ export const ConciergeScheduleItemSchema = z.object({
   meetingId: z.number().int().positive().optional(),
   brandSlug: id.optional(),
   locationSlug: id.optional(),
+  hasSeatMap: z.boolean().optional(),
 });
 
 export const ConciergeCardSchema = z.discriminatedUnion("type", [

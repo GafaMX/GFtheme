@@ -21,6 +21,7 @@ import {
   Sparkles,
   UserRound,
   X,
+  Check,
 } from "lucide-react";
 import {
   ConciergeResponseSchema,
@@ -28,6 +29,7 @@ import {
   type ConciergeCardData,
   type ConciergePartnerConfig,
   type ConciergeProduct,
+  type ConciergeScheduleItem,
 } from "./contracts";
 import {
   completeAdapterHandoff,
@@ -38,6 +40,12 @@ import {
 import { type ConciergeAskFn } from "./ask";
 import { timeoutSignal } from "./ask";
 import { conciergeProducts } from "./products";
+import {
+  confirmReservationLabel,
+  creditChipLabel,
+  reservationCaseCopy,
+  selectedCreditCopy,
+} from "./reservationCase";
 import {
   actionAllowed,
   allLocationsLabel,
@@ -110,6 +118,7 @@ function actionIcon(kind: ConciergeActionData["kind"]) {
   if (kind === "comprar" || kind === "buy_package") return ShoppingBag;
   if (kind === "cuenta") return UserRound;
   if (kind === "whatsapp") return MessageCircle;
+  if (kind === "confirm_reservation" || kind === "select_credit") return Check;
   return CalendarDays;
 }
 
@@ -152,6 +161,51 @@ function conciergeSurfaceVars(
     "--concierge-field-bg": dark ? "#2a2a2a" : "#ffffff",
     "--concierge-line": dark ? "#3a3a3a" : "#e5e5e5",
   } as CSSProperties;
+}
+
+function meetingActionFields(item: ConciergeScheduleItem, waitlist?: boolean) {
+  return {
+    meetingId: item.meetingId!,
+    brandSlug: item.brandSlug!,
+    locationSlug: item.locationSlug!,
+    time: item.time,
+    className: item.className,
+    coach: item.coach,
+    waitlist,
+  };
+}
+
+function scheduleItemFromAction(
+  action: Extract<ConciergeActionData, { kind: "confirm_reservation" | "select_credit" }>,
+): ConciergeScheduleItem {
+  return {
+    time: action.time ?? "",
+    className: action.className ?? "Clase",
+    coach: action.coach ?? "",
+    availableSpots: null,
+    meetingId: action.meetingId,
+    brandSlug: action.brandSlug,
+    locationSlug: action.locationSlug,
+  };
+}
+
+function purchaseChipsForLocation(
+  config: ConciergePartnerConfig,
+  locationId: string,
+): Array<{ label: string; action: ConciergeActionData }> {
+  return conciergeProducts(config)
+    .filter((product) => product.locationId === locationId)
+    .slice(0, 8)
+    .map((product) => ({
+      label: `${product.name} · ${product.price}`,
+      action: {
+        kind: "buy_package" as const,
+        productType: product.type,
+        productId: product.id,
+        brandSlug: product.brandSlug,
+        locationId: product.locationId,
+      },
+    }));
 }
 
 function packageFor(
@@ -328,12 +382,14 @@ function StudiosCard({ card }: { card: Extract<ConciergeCardData, { type: "studi
 
 function ScheduleCard({
   card,
-  adapter,
-  onHandoff,
+  inspectingId,
+  onPick,
+  onOpenCalendar,
 }: {
   card: Extract<ConciergeCardData, { type: "schedule" }>;
-  adapter: ConciergeBrowserAdapter;
-  onHandoff: () => void;
+  inspectingId?: number | null;
+  onPick: (item: ConciergeScheduleItem) => void;
+  onOpenCalendar: () => void;
 }) {
   return (
     <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--concierge-line)]">
@@ -341,31 +397,32 @@ function ScheduleCard({
         <span>{card.locationName}</span><span className="opacity-60">{card.date}</span>
       </div>
       <div className="max-h-[280px] overflow-y-auto">
-        {card.items.map((item) => (
-          <button
-            key={`${item.meetingId ?? item.time}-${item.className}`}
-            type="button"
-            onClick={async () => {
-              completeAdapterHandoff(
-                await adapter.reserveMeeting(item),
-                onHandoff,
-                () => adapter.openCalendar(card.locationId, card.date),
-              );
-            }}
-            className="group flex w-full items-center gap-3 border-b border-[var(--concierge-line)] px-3 py-3 text-left last:border-b-0 hover:bg-[var(--concierge-soft)]"
-          >
-            <strong className="w-[54px] text-[14px] tabular-nums">{item.time}</strong>
-            <span className="min-w-0 flex-1">
-              <strong className="block truncate text-[13px]">{item.className}</strong>
-              <span className="block truncate text-[11px] opacity-60">
-                {item.coach}{item.availableSpots !== null ? ` · ${item.availableSpots ? `${item.availableSpots} libres` : "Lleno"}` : ""}
+        {card.items.map((item) => {
+          const busy = inspectingId != null && item.meetingId === inspectingId;
+          return (
+            <button
+              key={`${item.meetingId ?? item.time}-${item.className}`}
+              type="button"
+              data-gafa-concierge-meeting={item.meetingId}
+              disabled={inspectingId != null}
+              onClick={() => onPick(item)}
+              className="group flex w-full items-center gap-3 border-b border-[var(--concierge-line)] px-3 py-3 text-left last:border-b-0 hover:bg-[var(--concierge-soft)] disabled:opacity-60"
+            >
+              <strong className="w-[54px] text-[14px] tabular-nums">{item.time}</strong>
+              <span className="min-w-0 flex-1">
+                <strong className="block truncate text-[13px]">{item.className}</strong>
+                <span className="block truncate text-[11px] opacity-60">
+                  {busy
+                    ? "Revisando…"
+                    : `${item.coach}${item.availableSpots !== null ? ` · ${item.availableSpots ? `${item.availableSpots} libres` : "Lleno"}` : ""}`}
+                </span>
               </span>
-            </span>
-            <ChevronRight className="h-4 w-4 opacity-50 transition-transform group-hover:translate-x-0.5" />
-          </button>
-        ))}
+              <ChevronRight className="h-4 w-4 opacity-50 transition-transform group-hover:translate-x-0.5" />
+            </button>
+          );
+        })}
       </div>
-      <button type="button" onClick={() => adapter.openCalendar(card.locationId, card.date)} className="w-full bg-[var(--concierge-soft)] px-3 py-2 text-[10px] font-bold uppercase opacity-70">
+      <button type="button" onClick={onOpenCalendar} className="w-full bg-[var(--concierge-soft)] px-3 py-2 text-[10px] font-bold uppercase opacity-70">
         Ver calendario completo →
       </button>
     </div>
@@ -378,18 +435,29 @@ function Card({
   adapter,
   onHandoff,
   onStay,
+  inspectingId,
+  onPickClass,
 }: {
   card: ConciergeCardData;
   config: ConciergePartnerConfig;
   adapter: ConciergeBrowserAdapter;
   onHandoff: () => void;
   onStay: () => void;
+  inspectingId?: number | null;
+  onPickClass?: (item: ConciergeScheduleItem, locationId: string, date: string) => void;
 }) {
   if (card.type === "packages") {
     return <PackagesCard card={card} config={config} adapter={adapter} onHandoff={onHandoff} onStay={onStay} />;
   }
   if (card.type === "studios") return <StudiosCard card={card} />;
-  return <ScheduleCard card={card} adapter={adapter} onHandoff={onHandoff} />;
+  return (
+    <ScheduleCard
+      card={card}
+      inspectingId={inspectingId}
+      onPick={(item) => onPickClass?.(item, card.locationId, card.date)}
+      onOpenCalendar={() => adapter.openCalendar(card.locationId, card.date)}
+    />
+  );
 }
 
 export function ConciergeWidget(props: ConciergeWidgetProps) {
@@ -413,6 +481,7 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  const [inspectingId, setInspectingId] = useState<number | null>(null);
   const history = useRef<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const scroll = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLElement>(null);
@@ -471,6 +540,81 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
   const stayInChat = useCallback(() => {
     appendAssistant("El checkout no se abrió. Puedes intentar de nuevo desde el catálogo.");
   }, [appendAssistant]);
+
+  const fallbackReserve = useCallback(async (
+    item: ConciergeScheduleItem,
+    locationId?: string,
+    date?: string,
+  ) => {
+    completeAdapterHandoff(
+      await adapter.reserveMeeting(item),
+      handoffToSdkModal,
+      () => adapter.openCalendar(locationId, date),
+    );
+  }, [adapter, handoffToSdkModal]);
+
+  const pickClass = useCallback(async (
+    item: ConciergeScheduleItem,
+    locationId: string,
+    date: string,
+  ) => {
+    if (inspectingId != null) return;
+    setInspectingId(item.meetingId ?? 0);
+    try {
+      const inspection = await adapter.inspectMeeting(item);
+      if (inspection.status !== "ok") {
+        await fallbackReserve(item, locationId, date);
+        return;
+      }
+      const { plan } = inspection;
+      if (plan.kind === "need_auth" || plan.kind === "open_reservation") {
+        appendAssistant(reservationCaseCopy(plan, item));
+        await fallbackReserve(item, locationId, date);
+        return;
+      }
+      if (plan.kind === "full") {
+        appendAssistant(reservationCaseCopy(plan, item), {
+          chips: [{ label: "Horarios de hoy", action: { kind: "horarios_hoy", locationId } }],
+        });
+        return;
+      }
+      if (plan.kind === "need_purchase") {
+        const chips = purchaseChipsForLocation(config, locationId);
+        appendAssistant(reservationCaseCopy(plan, item), {
+          catalog: chips.length === 0,
+          chips: chips.length ? chips : undefined,
+        });
+        return;
+      }
+      if (plan.kind === "pick_credit") {
+        appendAssistant(reservationCaseCopy(plan, item), {
+          chips: plan.credits.map((credit) => ({
+            label: creditChipLabel(credit),
+            action: {
+              kind: "select_credit" as const,
+              creditId: credit.id,
+              creditName: credit.name,
+              creditKind: credit.kind,
+              ...meetingActionFields(item, plan.waitlist),
+            },
+          })),
+        });
+        return;
+      }
+      appendAssistant(reservationCaseCopy(plan, item), {
+        chips: [{
+          label: confirmReservationLabel(plan.waitlist),
+          action: {
+            kind: "confirm_reservation" as const,
+            selectedCredit: plan.credits[0]?.id,
+            ...meetingActionFields(item, plan.waitlist),
+          },
+        }],
+      });
+    } finally {
+      setInspectingId(null);
+    }
+  }, [adapter, appendAssistant, config, fallbackReserve, inspectingId]);
 
   useEffect(() => {
     if (!open || messages.length) return;
@@ -539,6 +683,47 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
     if (action.kind === "whatsapp") return adapter.openWhatsapp();
     if (action.kind === "cuenta") {
       completeAdapterHandoff(adapter.openAccount(), handoffToSdkModal, () => adapter.openWhatsapp());
+      return;
+    }
+    if (action.kind === "select_credit") {
+      appendAssistant(
+        selectedCreditCopy(
+          { name: action.creditName ?? "ese crédito", kind: action.creditKind ?? "credit" },
+          action.waitlist,
+        ),
+        {
+          chips: [{
+            label: confirmReservationLabel(action.waitlist),
+            action: {
+              kind: "confirm_reservation",
+              selectedCredit: action.creditId,
+              meetingId: action.meetingId,
+              brandSlug: action.brandSlug,
+              locationSlug: action.locationSlug,
+              time: action.time,
+              className: action.className,
+              coach: action.coach,
+              waitlist: action.waitlist,
+            },
+          }],
+        },
+      );
+      return;
+    }
+    if (action.kind === "confirm_reservation") {
+      const outcome = await adapter.confirmReservation(
+        scheduleItemFromAction(action),
+        action.selectedCredit,
+      );
+      if (outcome.opened && !outcome.fallback) {
+        handoffToSdkModal();
+        return;
+      }
+      if (outcome.opened) {
+        appendAssistant(outcome.isWaitlist ? "Listo, te apunté a la lista de espera." : "¡Reserva confirmada!");
+        return;
+      }
+      appendAssistant(outcome.error ?? "No pude completar la reserva. Puedes intentar de nuevo.");
       return;
     }
     if (!("productType" in action)) return;
@@ -692,6 +877,8 @@ export function ConciergeWidget(props: ConciergeWidgetProps) {
                     adapter={adapter}
                     onHandoff={handoffToSdkModal}
                     onStay={stayInChat}
+                    inspectingId={inspectingId}
+                    onPickClass={(item, locationId, date) => void pickClass(item, locationId, date)}
                   />
                 )}
                 {message.chips?.length ? (

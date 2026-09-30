@@ -46,6 +46,9 @@ export function actionAllowed(config: ConciergePartnerConfig, action: ConciergeA
   if (action.kind === "reservar" || action.kind === "horarios_hoy") {
     return config.capabilities.schedule;
   }
+  if (action.kind === "confirm_reservation" || action.kind === "select_credit") {
+    return config.capabilities.schedule && config.capabilities.directReservation;
+  }
   if (action.kind === "comprar" || action.kind === "buy_package") {
     return config.capabilities.packages;
   }

@@ -55,6 +55,7 @@ import {
 } from "./tokenStorage";
 import { readHasSeatMap } from "./seatMapHint";
 import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
+import { addLocalDays, parseLocalIsoDate, toLocalIsoDate } from "../localDate";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -448,6 +449,26 @@ type RawMeeting = {
   map?: unknown;
   location?: { id: number; name: string };
 };
+
+/** Concierge/studios usan "lomas"; la API publica "fitspin-lomas". */
+function locationSlugMatches(actual: string, requested: string): boolean {
+  if (!actual || !requested) return false;
+  if (actual === requested) return true;
+  return actual.endsWith(`-${requested}`) || requested.endsWith(`-${actual}`);
+}
+
+function meetingLocationCandidates(locations: Location[], payload: MeetingLookup): Location[] {
+  const byId =
+    payload.locationId != null
+      ? locations.filter((location) => location.id === Number(payload.locationId))
+      : [];
+  const bySlug = payload.locationSlug
+    ? locations.filter((location) => locationSlugMatches(location.slug, payload.locationSlug!))
+    : [];
+  const seen = new Set(byId.map((location) => location.id));
+  const matched = [...byId, ...bySlug.filter((location) => !seen.has(location.id))];
+  return matched.length > 0 ? matched : locations;
+}
 
 /**
  * Cliente HTTP directo a la API publica de gafa.fit (routes/api.php), sin depender del
@@ -1015,10 +1036,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         );
       }
 
-      const start = filters.from ?? filters.startDate ?? new Date().toISOString().slice(0, 10);
-      const defaultEnd = new Date(start);
-      defaultEnd.setDate(defaultEnd.getDate() + 14);
-      const end = filters.to ?? filters.endDate ?? defaultEnd.toISOString().slice(0, 10);
+      const start = filters.from ?? filters.startDate ?? toLocalIsoDate(new Date());
+      const defaultEnd = addLocalDays(parseLocalIsoDate(start), 14);
+      const end = filters.to ?? filters.endDate ?? toLocalIsoDate(defaultEnd);
 
       const raw = await apiGet<RawMeeting[]>(`/brand/${brandSlug}/location/${locationId}/meetings`, {
         start,
@@ -1037,7 +1057,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
      * La API no expone una clase suelta por id: solo el listado por sede. Se
      * recorren las sedes candidatas dentro de su ventana publicada
      * (`calendar_days`) hasta encontrarla, que es donde el calendario podria
-     * mostrarla de todos modos.
+     * mostrarla de todos modos. Las fechas son locales del navegador (el
+     * calendario también) y se incluye el día de ayer: a medianoche UTC el
+     * “hoy” UTC ya no cubre el día que el socio ve en México.
      */
     async getMeeting(payload: MeetingLookup): Promise<Meeting | null> {
       const meetingId = Number(payload.meetingId);
@@ -1049,21 +1071,16 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
       for (const brandSlug of brandSlugs) {
         const locations = await httpClient.listLocations(brandSlug);
-        const candidates = payload.locationSlug
-          ? locations.filter((location) => location.slug === payload.locationSlug)
-          : payload.locationId != null
-            ? locations.filter((location) => location.id === Number(payload.locationId))
-            : locations;
+        const candidates = meetingLocationCandidates(locations, payload);
 
         for (const location of candidates) {
-          const from = new Date();
-          const to = new Date(from);
-          to.setDate(to.getDate() + (location.calendarDays ?? 14));
+          const from = addLocalDays(new Date(), -1);
+          const to = addLocalDays(new Date(), location.calendarDays ?? 14);
 
           const meetings = await httpClient.listMeetings({
             locationId: location.id,
-            from: from.toISOString().slice(0, 10),
-            to: to.toISOString().slice(0, 10),
+            from: toLocalIsoDate(from),
+            to: toLocalIsoDate(to),
           });
 
           const found = meetings.find((meeting) => Number(meeting.id) === meetingId);

@@ -1,5 +1,13 @@
+import type { Meeting, ReservationPaymentOption } from "../client/types";
+import { isSoldOut } from "../client/meetingAvailability";
 import type { ConciergePartnerConfig, ConciergeProduct, ConciergeScheduleItem } from "./contracts";
 import { whatsappNumber } from "./experience";
+import { planReservationCase, type ConciergeReservationCredit, type ReservationCase } from "./reservationCase";
+import type { ReservationSuccessOverlayProps } from "../widgets/ReservationSuccessOverlay";
+
+export type ReservationSuccessOptions = Omit<ReservationSuccessOverlayProps, "onClose"> & {
+  onClose?: () => void;
+};
 
 export type ConciergeSdkBridge = {
   client: {
@@ -12,11 +20,37 @@ export type ConciergeSdkBridge = {
       name?: string;
       staffName?: string;
       available?: number;
+      hasSeatMap?: boolean;
       locationSlug?: string;
       brandSlug?: string;
       location?: { slug?: string };
     }>>;
+    getMeeting?(payload: {
+      meetingId: string | number;
+      brandSlug?: string;
+      locationSlug?: string;
+    }): Promise<Meeting | null>;
     getProfile(): Promise<{ firstName?: string } | null>;
+    getReservationContext?(payload: {
+      meetingId: string | number;
+      brandSlug: string;
+      locationSlug: string;
+    }): Promise<{
+      meetingId: number;
+      brandSlug: string;
+      locationSlug: string;
+      userProfileId: number;
+      seatMap: unknown;
+      paymentOptions: ReservationPaymentOption[];
+      waitlistAvailable: boolean;
+    }>;
+    createReservation?(payload: {
+      brandSlug: string;
+      locationSlug: string;
+      meetingId: string | number;
+      userProfileId: number;
+      selectedCredit?: string;
+    }): Promise<{ reservationId: number; isWaitlist: boolean }>;
     listCombos?(brand: string): Promise<Array<{ id: number; name: string; description?: string; price?: number; priceLabel?: string }>>;
     listMemberships?(brand: string): Promise<Array<{ id: number; name: string; description?: string; price?: number; priceLabel?: string }>>;
     openReservationCheckout?(opts: {
@@ -38,10 +72,18 @@ export type ConciergeSdkBridge = {
     brandSlug: string;
     locationSlug: string;
   }): Promise<unknown>;
+  openReservationSuccess?(props: ReservationSuccessOptions): { close(): void };
   enablePurchaseButtons?(root?: Document | Element): () => void;
 };
 
 export type AdapterOutcome = { opened: boolean; fallback: boolean };
+export type ConfirmReservationOutcome = AdapterOutcome & {
+  error?: string;
+  isWaitlist?: boolean;
+};
+export type InspectMeetingResult =
+  | { status: "ok"; plan: ReservationCase; item: ConciergeScheduleItem }
+  | { status: "unavailable" };
 export type AdapterScheduleResult =
   | { status: "ok"; items: ConciergeScheduleItem[] }
   | { status: "sdk_unavailable" | "upstream_error"; items: [] };
@@ -50,6 +92,8 @@ export interface ConciergeBrowserAdapter {
   getProfile(): Promise<{ firstName?: string } | null>;
   listLocations(brandSlug: string): Promise<unknown[]>;
   listMeetings(locationId: string, date: string): Promise<AdapterScheduleResult>;
+  inspectMeeting(item: ConciergeScheduleItem): Promise<InspectMeetingResult>;
+  confirmReservation(item: ConciergeScheduleItem, selectedCredit?: string): Promise<ConfirmReservationOutcome>;
   openAccount(): AdapterOutcome;
   buyProduct(product: ConciergeProduct): Promise<AdapterOutcome>;
   reserveMeeting(item: ConciergeScheduleItem): Promise<AdapterOutcome>;
@@ -124,9 +168,59 @@ export function ensureFancySibling(): HTMLElement | null {
   return fancy;
 }
 
+function toCredits(options: ReservationPaymentOption[]): ConciergeReservationCredit[] {
+  return options.map((option) => ({
+    id: option.id,
+    kind: option.kind,
+    name: option.name,
+    remaining: option.remaining,
+  }));
+}
+
+function canInspectMeeting(
+  config: ConciergePartnerConfig,
+  item: ConciergeScheduleItem,
+  sdk: ConciergeSdkBridge | null | undefined,
+): boolean {
+  return Boolean(
+    sdk &&
+    config.capabilities.directReservation &&
+    config.capabilities.schedule &&
+    item.meetingId &&
+    item.brandSlug &&
+    item.locationSlug,
+  );
+}
+
 export function createConciergeBrowserAdapter(options: ConciergeAdapterOptions): ConciergeBrowserAdapter {
   const { config, sdk, navigate, resolveHardPath = (path) => path } = options;
   const webview = Boolean(options.webview);
+
+  async function openReservationPopup(item: ConciergeScheduleItem): Promise<AdapterOutcome> {
+    if (
+      !sdk ||
+      !config.capabilities.directReservation ||
+      !config.capabilities.schedule ||
+      !item.meetingId ||
+      !item.brandSlug ||
+      !item.locationSlug
+    ) {
+      return { opened: false, fallback: true };
+    }
+    try {
+      const opener = sdk.openReservationCheckout ?? sdk.client.openReservationCheckout;
+      if (!opener) return { opened: false, fallback: true };
+      await opener({
+        meetingId: item.meetingId,
+        brandSlug: item.brandSlug,
+        locationSlug: item.locationSlug,
+      });
+      const opened = await waitForModal();
+      return { opened, fallback: !opened };
+    } catch {
+      return { opened: false, fallback: true };
+    }
+  }
 
   return {
     async getProfile() {
@@ -171,6 +265,7 @@ export function createConciergeBrowserAdapter(options: ConciergeAdapterOptions):
               availableSpots: typeof meeting.available === "number" ? Math.max(0, meeting.available) : null,
               meetingId: meeting.id,
               brandSlug: meeting.brandSlug ?? studio.brandSlug,
+              ...(typeof meeting.hasSeatMap === "boolean" ? { hasSeatMap: meeting.hasSeatMap } : {}),
               locationSlug:
                 meeting.locationSlug ??
                 meeting.location?.slug ??
@@ -180,6 +275,131 @@ export function createConciergeBrowserAdapter(options: ConciergeAdapterOptions):
         };
       } catch {
         return { status: "upstream_error", items: [] };
+      }
+    },
+    async inspectMeeting(item) {
+      if (!canInspectMeeting(config, item, sdk) || !sdk) {
+        return { status: "unavailable" };
+      }
+
+      let signedIn: boolean | "unknown" = false;
+      try {
+        signedIn = Boolean(await sdk.client.getProfile());
+      } catch {
+        signedIn = "unknown";
+      }
+      if (signedIn === "unknown") {
+        return {
+          status: "ok",
+          item,
+          plan: planReservationCase({
+            signedIn: true,
+            hasMap: item.hasSeatMap === true,
+            soldOut: item.availableSpots === 0,
+            waitlistAvailable: false,
+            paymentOptions: [],
+            contextReady: false,
+          }),
+        };
+      }
+      if (!signedIn) {
+        return {
+          status: "ok",
+          item,
+          plan: planReservationCase({
+            signedIn: false,
+            hasMap: item.hasSeatMap === true,
+            soldOut: item.availableSpots === 0,
+            waitlistAvailable: false,
+            paymentOptions: [],
+            contextReady: false,
+          }),
+        };
+      }
+
+      const meetingId = item.meetingId!;
+      const brandSlug = item.brandSlug!;
+      const locationSlug = item.locationSlug!;
+      const [meetingResult, contextResult] = await Promise.allSettled([
+        sdk.client.getMeeting
+          ? sdk.client.getMeeting({ meetingId, brandSlug, locationSlug })
+          : Promise.resolve(null),
+        sdk.client.getReservationContext
+          ? sdk.client.getReservationContext({ meetingId, brandSlug, locationSlug })
+          : Promise.resolve(null),
+      ]);
+      const meeting = meetingResult.status === "fulfilled" ? meetingResult.value : null;
+      const context = contextResult.status === "fulfilled" ? contextResult.value : null;
+      const hasMap =
+        item.hasSeatMap === true ||
+        meeting?.hasSeatMap === true ||
+        Boolean(context?.seatMap);
+      const soldOut = meeting
+        ? isSoldOut({
+            ...meeting,
+            available: meeting.available ?? item.availableSpots ?? undefined,
+          })
+        : item.availableSpots === 0;
+
+      return {
+        status: "ok",
+        item,
+        plan: planReservationCase({
+          signedIn: true,
+          hasMap,
+          soldOut,
+          waitlistAvailable: Boolean(context?.waitlistAvailable),
+          paymentOptions: context ? toCredits(context.paymentOptions) : [],
+          contextReady: Boolean(context),
+        }),
+      };
+    },
+    async confirmReservation(item, selectedCredit) {
+      if (!canInspectMeeting(config, item, sdk) || !sdk) {
+        return { opened: false, fallback: true, error: "No pude confirmar esa reserva." };
+      }
+      const getContext = sdk.client.getReservationContext;
+      const create = sdk.client.createReservation;
+      if (!getContext || !create || !item.meetingId || !item.brandSlug || !item.locationSlug) {
+        return openReservationPopup(item);
+      }
+      try {
+        const context = await getContext({
+          meetingId: item.meetingId,
+          brandSlug: item.brandSlug,
+          locationSlug: item.locationSlug,
+        });
+        const credit = selectedCredit
+          ? context.paymentOptions.find((option) => option.id === selectedCredit)
+          : context.paymentOptions.length === 1
+            ? context.paymentOptions[0]
+            : undefined;
+        const result = await create({
+          brandSlug: context.brandSlug,
+          locationSlug: context.locationSlug,
+          meetingId: context.meetingId,
+          userProfileId: context.userProfileId,
+          selectedCredit:
+            selectedCredit ??
+            (context.paymentOptions.length > 1 ? credit?.id : undefined),
+        });
+        sdk.openReservationSuccess?.({
+          className: item.className,
+          when: item.time,
+          coach: item.coach,
+          isWaitlist: result.isWaitlist,
+          creditName: credit?.name,
+          creditKind: credit?.kind,
+          remainingBefore: credit?.remaining,
+        });
+        const opened = await waitForModal();
+        return { opened: true, fallback: !opened, isWaitlist: result.isWaitlist };
+      } catch (error) {
+        return {
+          opened: false,
+          fallback: true,
+          error: error instanceof Error ? error.message : "No pudimos completar la reserva.",
+        };
       }
     },
     openAccount() {
@@ -250,29 +470,7 @@ export function createConciergeBrowserAdapter(options: ConciergeAdapterOptions):
       }
     },
     async reserveMeeting(item) {
-      if (
-        !sdk ||
-        !config.capabilities.directReservation ||
-        !config.capabilities.schedule ||
-        !item.meetingId ||
-        !item.brandSlug ||
-        !item.locationSlug
-      ) {
-        return { opened: false, fallback: true };
-      }
-      try {
-        const opener = sdk.openReservationCheckout ?? sdk.client.openReservationCheckout;
-        if (!opener) return { opened: false, fallback: true };
-        await opener({
-          meetingId: item.meetingId,
-          brandSlug: item.brandSlug,
-          locationSlug: item.locationSlug,
-        });
-        const opened = await waitForModal();
-        return { opened, fallback: !opened };
-      } catch {
-        return { opened: false, fallback: true };
-      }
+      return openReservationPopup(item);
     },
     openCalendar(locationId, date) {
       if (!config.capabilities.schedule || !config.fallbacks.calendar) return;

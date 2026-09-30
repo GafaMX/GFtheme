@@ -43,6 +43,18 @@ describe("concierge experience", () => {
     expect(openingChips(disabled)).toEqual([]);
     expect(actionAllowed(disabled, { kind: "comprar" })).toBe(false);
     expect(actionAllowed(disabled, { kind: "horarios_hoy" })).toBe(false);
+    expect(actionAllowed(DEMO_CONCIERGE_CONFIG, {
+      kind: "confirm_reservation",
+      meetingId: 1,
+      brandSlug: "demo",
+      locationSlug: "downtown",
+    })).toBe(false);
+    expect(actionAllowed(FITSPIN_CONCIERGE_CONFIG, {
+      kind: "confirm_reservation",
+      meetingId: 1,
+      brandSlug: "fitspin",
+      locationSlug: "lomas",
+    })).toBe(true);
   });
 
   it("sin teléfono no hay WhatsApp aunque la capability esté encendida", () => {

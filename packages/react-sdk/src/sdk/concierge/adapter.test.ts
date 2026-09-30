@@ -195,3 +195,189 @@ describe("ConciergeSdkAdapter", () => {
     expect(events).toEqual(["close", "fallback"]);
   });
 });
+
+const BUNKER = {
+  time: "08:30",
+  className: "Bunker",
+  coach: "Alex",
+  availableSpots: 4,
+  meetingId: 88,
+  brandSlug: "demo",
+  locationSlug: "downtown",
+  hasSeatMap: false,
+};
+
+function liveDemoConfig() {
+  return {
+    ...DEMO_CONCIERGE_CONFIG,
+    capabilities: { ...DEMO_CONCIERGE_CONFIG.capabilities, directReservation: true },
+  };
+}
+
+function inspectSdk(overrides: Partial<ConciergeSdkBridge["client"]> & {
+  openReservationSuccess?: ConciergeSdkBridge["openReservationSuccess"];
+  openReservationCheckout?: ConciergeSdkBridge["openReservationCheckout"];
+}): ConciergeSdkBridge {
+  const { openReservationSuccess, openReservationCheckout, ...client } = overrides;
+  return {
+    client: {
+      async listLocations() { return []; },
+      async listMeetings() { return []; },
+      async getProfile() { return { firstName: "Ana" }; },
+      async openReservationCheckout() {},
+      ...client,
+    },
+    openAccount() {},
+    openReservationCheckout,
+    openReservationSuccess,
+  };
+}
+
+describe("inspectMeeting / confirmReservation", () => {
+  it("sin sesión no pide contexto y clasifica need_auth", async () => {
+    const getReservationContext = vi.fn();
+    const adapter = createConciergeBrowserAdapter({
+      config: liveDemoConfig(),
+      sdk: inspectSdk({
+        async getProfile() { return null; },
+        getReservationContext,
+      }),
+      navigate() {},
+    });
+    const result = await adapter.inspectMeeting(BUNKER);
+    expect(getReservationContext).not.toHaveBeenCalled();
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") expect(result.plan.kind).toBe("need_auth");
+  });
+
+  it("con mapa abre el salón", async () => {
+    const adapter = createConciergeBrowserAdapter({
+      config: liveDemoConfig(),
+      sdk: inspectSdk({
+        async getReservationContext() {
+          return {
+            meetingId: 88,
+            brandSlug: "demo",
+            locationSlug: "downtown",
+            userProfileId: 1,
+            seatMap: { id: 1, name: "Salón", rows: 2, columns: 2, capacity: 4, objects: [] },
+            paymentOptions: [{ id: "credits--1", kind: "credit", name: "10 clases", remaining: 5 }],
+            waitlistAvailable: false,
+          };
+        },
+      }),
+      navigate() {},
+    });
+    const result = await adapter.inspectMeeting({ ...BUNKER, hasSeatMap: true });
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.plan.kind).toBe("open_reservation");
+      expect(result.plan.reason).toBe("map");
+    }
+  });
+
+  it("camino feliz: sin mapa y un crédito", async () => {
+    const adapter = createConciergeBrowserAdapter({
+      config: liveDemoConfig(),
+      sdk: inspectSdk({
+        async getMeeting() {
+          return {
+            id: 88,
+            name: "Bunker",
+            startsAt: "2026-09-14T08:30:00",
+            available: 4,
+            hasSeatMap: false,
+          };
+        },
+        async getReservationContext() {
+          return {
+            meetingId: 88,
+            brandSlug: "demo",
+            locationSlug: "downtown",
+            userProfileId: 1,
+            seatMap: null,
+            paymentOptions: [{ id: "credits--1", kind: "credit", name: "10 clases", remaining: 5 }],
+            waitlistAvailable: false,
+          };
+        },
+      }),
+      navigate() {},
+    });
+    const result = await adapter.inspectMeeting(BUNKER);
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.plan).toMatchObject({
+        kind: "confirm_in_chat",
+        waitlist: false,
+        credits: [{ id: "credits--1", name: "10 clases" }],
+      });
+    }
+  });
+
+  it("confirma en el chat y abre el popup de éxito", async () => {
+    const createReservation = vi.fn(async () => ({ reservationId: 11, isWaitlist: false }));
+    const adapter = createConciergeBrowserAdapter({
+      config: liveDemoConfig(),
+      sdk: inspectSdk({
+        async getReservationContext() {
+          return {
+            meetingId: 88,
+            brandSlug: "demo",
+            locationSlug: "downtown",
+            userProfileId: 7,
+            seatMap: null,
+            paymentOptions: [{ id: "credits--1", kind: "credit", name: "10 clases", remaining: 5 }],
+            waitlistAvailable: false,
+          };
+        },
+        createReservation,
+        openReservationSuccess(props) {
+          const overlay = document.createElement("div");
+          overlay.className = "gafa-reservation-overlay";
+          overlay.textContent = props.isWaitlist ? "lista" : "¡Reserva confirmada!";
+          document.body.appendChild(overlay);
+          return { close() { overlay.remove(); } };
+        },
+      }),
+      navigate() {},
+    });
+    const outcome = await adapter.confirmReservation(BUNKER, "credits--1");
+    expect(createReservation).toHaveBeenCalledWith({
+      brandSlug: "demo",
+      locationSlug: "downtown",
+      meetingId: 88,
+      userProfileId: 7,
+      selectedCredit: "credits--1",
+    });
+    expect(outcome).toEqual({ opened: true, fallback: false, isWaitlist: false });
+    expect(document.body.textContent).toContain("¡Reserva confirmada!");
+  });
+
+  it("si createReservation falla se queda en el chat", async () => {
+    const adapter = createConciergeBrowserAdapter({
+      config: liveDemoConfig(),
+      sdk: inspectSdk({
+        async getReservationContext() {
+          return {
+            meetingId: 88,
+            brandSlug: "demo",
+            locationSlug: "downtown",
+            userProfileId: 7,
+            seatMap: null,
+            paymentOptions: [{ id: "credits--1", kind: "credit", name: "10 clases", remaining: 5 }],
+            waitlistAvailable: false,
+          };
+        },
+        async createReservation() {
+          throw new Error("Ese crédito ya no aplica.");
+        },
+      }),
+      navigate() {},
+    });
+    expect(await adapter.confirmReservation(BUNKER)).toEqual({
+      opened: false,
+      fallback: true,
+      error: "Ese crédito ya no aplica.",
+    });
+  });
+});

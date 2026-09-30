@@ -11,6 +11,7 @@ export type {
   HeaderControlsMountProps,
   MountedWidget,
   ReservationOptions,
+  ReservationSuccessOptions,
   RuntimeOptions,
   SdkMountOptions,
   ConciergeHandle,
@@ -20,6 +21,8 @@ export { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 export type { PurchaseIntent, ReserveIntent } from "./cart/purchaseButtons";
 export { ReservationLauncher } from "./widgets/ReservationLauncher";
 export type { ReservationLauncherProps } from "./widgets/ReservationLauncher";
+export { ReservationSuccessOverlay } from "./widgets/ReservationSuccessOverlay";
+export type { ReservationSuccessOverlayProps } from "./widgets/ReservationSuccessOverlay";
 export { ReservationFlow } from "./widgets/CalendarWidget";
 export type { ReservationFlowProps } from "./widgets/CalendarWidget";
 export { AccountModal } from "./widgets/AccountModal";
