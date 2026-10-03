@@ -55,6 +55,7 @@ import {
 } from "./tokenStorage";
 import { readHasSeatMap } from "./seatMapHint";
 import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
+import { staffLabel } from "./staffLabel";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -145,7 +146,7 @@ type RawUserMembership = {
   membership: { name: string };
 };
 
-type RawStaff = { name?: string; lastname?: string; job?: string | null };
+type RawStaff = { name?: string; lastname?: string; job?: string | null; apodo?: string | null };
 
 type RawReservation = {
   id: number;
@@ -415,6 +416,7 @@ type RawStaffCatalog = {
   lastname?: string;
   description?: string;
   job?: string;
+  apodo?: string;
   picture_web?: string | null;
   picture?: string | null;
   pic?: string | null;
@@ -624,13 +626,6 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return encoded;
   }
 
-  function staffLabel(staff?: RawStaff | null): string | undefined {
-    if (!staff) return undefined;
-    if (staff.job) return staff.job;
-    const name = [staff.name, staff.lastname].filter(Boolean).join(" ");
-    return name || undefined;
-  }
-
   function locationLabel(location?: { name?: string } | string | null): string | undefined {
     if (!location) return undefined;
     return typeof location === "string" ? location : location.name;
@@ -780,12 +775,14 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
             id: raw.staff.id,
             name: raw.staff.name,
             lastname: raw.staff.lastname,
+            job: raw.staff.job ?? undefined,
+            apodo: raw.staff.apodo ?? undefined,
             bio: raw.staff.description ?? raw.staff.job,
             photoUrl: raw.staff.picture_web || raw.staff.picture || raw.staff.pic || undefined,
           }
         : undefined,
       staffId: raw.staff?.id,
-      staffName: raw.staff ? [raw.staff.name, raw.staff.lastname].filter(Boolean).join(" ") : undefined,
+      staffName: staffLabel(raw.staff),
       location,
       locationSlug: location?.slug,
       available: typeof available === "number" && Number.isFinite(available) ? available : undefined,
@@ -964,6 +961,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         id: staff.id,
         name: staff.name,
         lastname: staff.lastname,
+        job: staff.job ?? undefined,
+        apodo: staff.apodo ?? undefined,
         bio: staff.description ?? staff.job,
         photoUrl: staff.picture_web || staff.picture || staff.pic || undefined,
       }));
