@@ -295,4 +295,88 @@ describe("openReservation", () => {
       );
     });
   });
+
+  it("con varios lugares reserva el lote y no pide mail", async () => {
+    writeStoredToken("token-de-prueba");
+    const { createMockGafaClient } = await import("./client/gafaClient");
+    const mock = createMockGafaClient();
+    const createReservation = vi.fn(async () => ({ reservationId: 99, isWaitlist: false }));
+    const client = { ...mock, createReservation };
+    sdk = createGafaSdk(CONFIG, { client });
+    sdk.openReservation({ meetingId: 1, brandSlug: "demo-studio", locationSlug: "roma-norte" });
+
+    await waitFor(() => {
+      expect(document.querySelector('[aria-label="Lugar 3"]')).toBeTruthy();
+    });
+    for (const label of ["1", "2", "3"]) {
+      const seat = document.querySelector(`[aria-label="Lugar ${label}"]`) as HTMLButtonElement;
+      seat.click();
+      await waitFor(() => {
+        expect(seat.getAttribute("aria-selected")).toBe("true");
+      });
+    }
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Reservar 3 lugares");
+      expect(overlayText()).toContain("Invitados (opcional)");
+    });
+
+    const reserve = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Reservar 3 lugares"),
+    );
+    reserve?.click();
+
+    await waitFor(() => {
+      expect(createReservation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meetingId: 1,
+          seatObjectId: 1,
+          seatObjectIds: [1, 2, 3],
+        }),
+      );
+    });
+  });
+
+  it("con membresía sola e invitados manda a comprar, no reserva nativa", async () => {
+    writeStoredToken("token-de-prueba");
+    const { createMockGafaClient } = await import("./client/gafaClient");
+    const mock = createMockGafaClient();
+    const createReservation = vi.fn(async () => ({ reservationId: 99, isWaitlist: false }));
+    const client = {
+      ...mock,
+      createReservation,
+      getReservationContext: async (payload: Parameters<NonNullable<typeof mock.getReservationContext>>[0]) => {
+        const context = await mock.getReservationContext!(payload);
+        return {
+          ...context,
+          paymentOptions: [{ id: "memberships--1--2099-01-01", kind: "membership" as const, name: "Ili" }],
+        };
+      },
+    };
+    sdk = createGafaSdk(CONFIG, { client });
+    sdk.openReservation({ meetingId: 1, brandSlug: "demo-studio", locationSlug: "roma-norte" });
+
+    await waitFor(() => {
+      expect(document.querySelector('[aria-label="Lugar 2"]')).toBeTruthy();
+    });
+    const first = document.querySelector('[aria-label="Lugar 1"]') as HTMLButtonElement;
+    const second = document.querySelector('[aria-label="Lugar 2"]') as HTMLButtonElement;
+    first.click();
+    await waitFor(() => expect(first.getAttribute("aria-selected")).toBe("true"));
+    second.click();
+    await waitFor(() => expect(second.getAttribute("aria-selected")).toBe("true"));
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Comprar 2 lugares");
+    });
+    const buy = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Comprar 2 lugares"),
+    );
+    buy?.click();
+
+    await waitFor(() => {
+      expect(document.querySelector(".gafa-checkout-overlay")).toBeTruthy();
+    });
+    expect(createReservation).not.toHaveBeenCalled();
+  });
 });

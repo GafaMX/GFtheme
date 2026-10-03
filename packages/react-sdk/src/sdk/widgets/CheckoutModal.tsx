@@ -22,6 +22,7 @@ import { SdkBodyOverlay } from "./SdkBodyOverlay";
 import { StudioLogo } from "./StudioLogo";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { isSoldOut, offersWaitlist } from "../client/meetingAvailability";
+import { findOneCreditCombo, resolveSeatObjectIds } from "../reservation/simultaneousSeats";
 import {
   loadGafaPay,
   mountGafaPayWidget,
@@ -112,7 +113,9 @@ export type CheckoutModalProps = {
   /** Si viene del calendario: pre-carga contexto de reserva. */
   meeting?: Meeting | null;
   seatObjectId?: number;
+  seatObjectIds?: number[];
   seatLabel?: string;
+  invitedData?: Record<string, { name: string; email: string }>;
   /** Producto que dispara la compra (boton HTML): se agrega solo al abrir. */
   preselect?: { type: CartLineType; id: number } | null;
   /**
@@ -161,6 +164,24 @@ function cartPurchaseKey(lines: CartLine[]): string {
 }
 
 /** Frase de Buq (límite de paquete o membresía ya activa) para la pantalla de bloqueo. */
+function reservationPurchaseSeats(reservation: CartReservationContext | null) {
+  const ids = resolveSeatObjectIds({
+    seatObjectId: reservation?.seatObjectId,
+    seatObjectIds: reservation?.seatObjectIds,
+  });
+  return {
+    seatObjectId: ids[0],
+    seatObjectIds: ids.length ? ids : undefined,
+    invitedData: reservation?.invitedData,
+  };
+}
+
+function reservationSeatCaption(reservation: CartReservationContext): string {
+  if (!reservation.seatLabel) return "";
+  const many = resolveSeatObjectIds(reservation).length > 1;
+  return ` · ${many ? "Lugares" : "Lugar"} ${reservation.seatLabel}`;
+}
+
 function purchaseRuleMessage(err: unknown): string {
   const text = (err instanceof Error ? err.message : "").replace(/\s+/g, " ").trim();
   if (!text || /failed to fetch|networkerror|load failed|typeerror/i.test(text)) {
@@ -184,7 +205,9 @@ export function CheckoutModal({
   locationName,
   meeting,
   seatObjectId,
+  seatObjectIds,
   seatLabel,
+  invitedData,
   preselect,
   skipCatalog,
   gafaPayFrontUrl,
@@ -349,10 +372,22 @@ export function CheckoutModal({
       locationSlug,
       locationName: locationName ?? meeting.location?.name,
       staffName: meeting.staffName,
-      seatObjectId,
+      seatObjectId: resolveSeatObjectIds({ seatObjectId, seatObjectIds })[0],
+      seatObjectIds: resolveSeatObjectIds({ seatObjectId, seatObjectIds }),
       seatLabel,
+      invitedData,
     });
-  }, [meeting, brandSlug, locationSlug, locationName, seatObjectId, seatLabel, setReservation]);
+  }, [
+    meeting,
+    brandSlug,
+    locationSlug,
+    locationName,
+    seatObjectId,
+    seatObjectIds,
+    seatLabel,
+    invitedData,
+    setReservation,
+  ]);
 
   // Al pasar a pago/login, cierra el detalle de lineas. En movil el listado
   // se come el formulario; en desktop el CSS lo ignora y el carrito sigue
@@ -418,12 +453,18 @@ export function CheckoutModal({
     staleTime: CHECKOUT_CATALOG_STALE_MS,
   });
 
+  const guestSeatCount = resolveSeatObjectIds({
+    seatObjectId: reservation?.seatObjectId,
+    seatObjectIds: reservation?.seatObjectIds,
+  }).length;
+  const hideMembershipsForGuests = guestSeatCount > 1;
   const combos = classAttached
     ? ((config?.combos?.length ? config.combos : catalogQuery.data?.combos) ?? [])
     : (catalogQuery.data?.combos ?? config?.combos ?? []);
-  const memberships = classAttached
+  const membershipsRaw = classAttached
     ? ((config?.memberships?.length ? config.memberships : catalogQuery.data?.memberships) ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
+  const memberships = hideMembershipsForGuests ? [] : membershipsRaw;
   // /product(s) no es público en varias compañías (404 → []). Un array vacío
   // no es nullish, así que hay que caer a productsSelection del fancy.
   const products = classAttached
@@ -454,6 +495,32 @@ export function CheckoutModal({
   const brandCurrency = brandsQuery.data?.find((brand) => brand.slug === brandSlug)?.currency;
   const currency =
     config?.currency ?? brandCurrency ?? catalogCurrency ?? { prefix: "$", suffix: "MXN", code: "MXN" };
+
+  const guestPackDone = useRef(false);
+  useEffect(() => {
+    if (guestPackDone.current || preselect || !brandSlug) return;
+    if (guestSeatCount <= 1 || !combos.length) return;
+    if (lines.some((line) => line.type === "combo")) {
+      guestPackDone.current = true;
+      return;
+    }
+    const oneCredit = findOneCreditCombo(combos);
+    if (!oneCredit) return;
+    guestPackDone.current = true;
+    const price = oneCredit.priceFinal ?? oneCredit.price ?? 0;
+    addItem({
+      id: oneCredit.id,
+      type: "combo",
+      name: oneCredit.name,
+      price,
+      priceLabel: formatMoney(price, currency.prefix, ""),
+      brandSlug,
+      locationSlug,
+      amount: guestSeatCount,
+      expirationLabel: oneCredit.expirationDays ? `Expira en ${oneCredit.expirationDays} días` : undefined,
+      raw: oneCredit.raw,
+    });
+  }, [addItem, brandSlug, combos, currency.prefix, guestSeatCount, lines, locationSlug, preselect]);
 
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
   // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
@@ -757,7 +824,7 @@ export function CheckoutModal({
         csrfToken: config?.csrfToken ?? null,
         subscribe: preselect.type === "membership",
         setPayment: preselect.type === "membership",
-        seatObjectId: reservation?.seatObjectId,
+        ...reservationPurchaseSeats(reservation),
       })
       .then(() => {
         if (cancelled) return;
@@ -886,7 +953,7 @@ export function CheckoutModal({
           giftCode: resolvedGiftCode(),
           subscribe: membershipPurchase ? autoRenew : recurring,
           setPayment: membershipPurchase ? saveCard : recurring,
-          seatObjectId: reservation?.seatObjectId,
+          ...reservationPurchaseSeats(reservation),
         }),
       );
 
@@ -1020,7 +1087,7 @@ export function CheckoutModal({
       discountCode: discountStatus === "ok" ? discountCode.trim() : null,
       giftCode: resolvedGiftCode(),
       checkoutToken,
-      seatObjectId: reservation?.seatObjectId,
+      ...reservationPurchaseSeats(reservation),
       subscribe: membershipPurchase ? autoRenew : false,
       setPayment: membershipPurchase ? saveCard : false,
     };
@@ -1143,7 +1210,7 @@ export function CheckoutModal({
       giftCode: resolvedGiftCode(),
       subscribe: membershipPurchase ? autoRenew : false,
       setPayment: membershipPurchase ? saveCard : false,
-      seatObjectId: reservation?.seatObjectId,
+      ...reservationPurchaseSeats(reservation),
     });
     if (!hasExtras) purchaseClearKey.current = key;
   }
@@ -1688,7 +1755,7 @@ export function CheckoutModal({
                     <strong>{reservation.serviceName ?? reservation.meetingName}</strong>
                     <small>
                       {formatMeetingWhen(reservation.startsAt, reservation.timezone)}
-                      {reservation.seatLabel ? ` · Lugar ${reservation.seatLabel}` : ""}
+                      {reservationSeatCaption(reservation)}
                     </small>
                   </div>
                   {blockDismiss ? null : <RemoveClassButton onClick={dropPendingClass} />}
@@ -2600,7 +2667,7 @@ function ThanksPanel({
           <p>
             {formatMeetingWhen(reservation.startsAt, reservation.timezone)}
             {reservation.locationName ? ` · ${reservation.locationName}` : ""}
-            {reservation.seatLabel ? ` · Lugar ${reservation.seatLabel}` : ""}
+            {reservationSeatCaption(reservation)}
           </p>
           {thanks?.reservationId ? <small>Reserva #{thanks.reservationId}</small> : null}
         </div>
