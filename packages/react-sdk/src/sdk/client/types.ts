@@ -460,6 +460,10 @@ export type InitialPurchasePayload = {
   checkoutToken?: string | null;
   selectedCredit?: string;
   seatObjectId?: number;
+  /** Varios lugares (invitados). Si viene, gana sobre `seatObjectId`. */
+  seatObjectIds?: number[];
+  /** Nombre/mail opcionales por índice de lugar (el 0 es el anfitrión). */
+  invitedData?: Record<string, { name: string; email: string }>;
   subscribe?: boolean;
   setPayment?: boolean;
   /**
@@ -573,6 +577,8 @@ export type ReservationContext = {
   paymentOptions: ReservationPaymentOption[];
   /** true si el meeting esta lleno y el servidor ofrece lista de espera. */
   waitlistAvailable: boolean;
+  /** Tope de lugares en una reserva (`brands.simultaneous_reservations`). */
+  simultaneousReservations: number;
 };
 
 export type CreateReservationPayload = {
@@ -582,6 +588,9 @@ export type CreateReservationPayload = {
   userProfileId: number;
   /** maps_objects_id del lugar elegido; omitir cuando no hay mapa. */
   seatObjectId?: number;
+  /** Varios lugares (invitados). Si viene, gana sobre `seatObjectId`. */
+  seatObjectIds?: number[];
+  invitedData?: Record<string, { name: string; email: string }>;
   /** Con que pagar cuando hay varias opciones (ReservationPaymentOption.id). */
   selectedCredit?: string;
 };

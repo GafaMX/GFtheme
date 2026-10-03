@@ -13,6 +13,14 @@ import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage"
 import { reservationShowsSeatMapLayout } from "../client/seatMapHint";
 import { fullClassAction, getAvailabilityText, isSoldOut, offersWaitlist, showsWaitlistPill } from "../client/meetingAvailability";
 import { staffLabel } from "../client/staffLabel";
+import {
+  buildInvitedData,
+  formatSeatLabels,
+  guestsHaveInvalidEmail,
+  paymentOptionsForSeats,
+  toggleSeatSelection,
+  type InvitedGuest,
+} from "../reservation/simultaneousSeats";
 import type {
   Brand,
   CreateReservationResult,
@@ -1600,10 +1608,11 @@ export function ReservationFlow({
   const [step, setStep] = useState<"auth" | "detail" | "checkout">(() =>
     client && !readStoredToken() ? "auth" : "detail",
   );
-  // El preview se desmonta al pasar a pagar: si no levantamos el lugar acá,
+  // El preview se desmonta al pasar a pagar: si no levantamos los lugares acá,
   // `/reservate` nace sin `map_objectsSelected` y la reserva sale en la lista
   // sin posición (el mapa no la ve → se sobrevende el mismo lugar).
-  const [pendingSeat, setPendingSeat] = useState<SeatMapObject | null>(null);
+  const [pendingSeats, setPendingSeats] = useState<SeatMapObject[]>([]);
+  const [pendingInvited, setPendingInvited] = useState<Record<number, InvitedGuest>>({});
 
   // Login desde cualquier otra parte de la pagina mientras el gate esta
   // abierto: seguir al detalle en vez de dejarlo pidiendo sesion.
@@ -1637,8 +1646,10 @@ export function ReservationFlow({
         locationSlug={locationSlug}
         locationName={locationName ?? meeting.location?.name}
         meeting={meeting}
-        seatObjectId={pendingSeat?.id}
-        seatLabel={pendingSeat?.label}
+        seatObjectId={pendingSeats[0]?.id}
+        seatObjectIds={pendingSeats.map((seat) => seat.id)}
+        seatLabel={formatSeatLabels(pendingSeats.map((seat) => seat.label))}
+        invitedData={buildInvitedData(pendingInvited)}
         crossSell={crossSell}
         onClose={onClose}
         onCompleted={() => {
@@ -1659,11 +1670,12 @@ export function ReservationFlow({
       brandSlug={brandSlug}
       locationSlug={locationSlug}
       onClose={onClose}
-      onContinue={(seat) => {
+      onContinue={(seats, invited) => {
         // Sin cliente no hay a donde ir; con sesion, el unico camino que queda
         // es comprar (el detalle ya descarto creditos aplicables).
         if (!client) return;
-        setPendingSeat(seat ?? null);
+        setPendingSeats(seats);
+        setPendingInvited(invited);
         setStep(isSignedIn ? "checkout" : "auth");
       }}
       onReserved={() => {
@@ -1694,14 +1706,15 @@ function ReservationPreviewModal({
   locationSlug?: string;
   onClose: () => void;
   /** Camino de compra / login: lo maneja el padre (gate o fancy). */
-  onContinue: (seat?: SeatMapObject | null) => void;
+  onContinue: (seats: SeatMapObject[], invited: Record<number, InvitedGuest>) => void;
   onReserved?: () => void;
 }) {
   const brandSlug = meeting.location?.brand?.slug ?? meeting.brandSlug ?? brandSlugProp;
   const locationSlug = meeting.location?.slug ?? meeting.locationSlug ?? locationSlugProp;
 
   const [step, setStep] = useState<ReservationStep>("detail");
-  const [selectedSeat, setSelectedSeat] = useState<SeatMapObject | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<SeatMapObject[]>([]);
+  const [invitedByIndex, setInvitedByIndex] = useState<Record<number, InvitedGuest>>({});
   const [result, setResult] = useState<CreateReservationResult | null>(null);
   const [flowError, setFlowError] = useState<string>();
 
@@ -1727,7 +1740,11 @@ function ReservationPreviewModal({
 
   const context = contextQuery.data;
   const seatMap = context?.seatMap ?? null;
-  const paymentOptions = context?.paymentOptions ?? [];
+  const seatLimit = context?.simultaneousReservations ?? 1;
+  const allowGuests = Boolean(seatMap) && seatLimit > 1;
+  const allPaymentOptions = context?.paymentOptions ?? [];
+  const seatCount = Math.max(selectedSeats.length, 1);
+  const paymentOptions = paymentOptionsForSeats(allPaymentOptions, allowGuests ? selectedSeats.length : 1);
   // Con UNA sola opcion no se pregunta nada; con varias el usuario decide.
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const needsPaymentChoice = paymentOptions.length > 1;
@@ -1765,17 +1782,20 @@ function ReservationPreviewModal({
     waitlist: waitlistCard || joinWaitlistNow || buyToWaitlist || classFullNoWaitlist,
   });
 
-  async function confirmReservation(seat: SeatMapObject | null) {
+  async function confirmReservation(seats: SeatMapObject[]) {
     if (!client?.createReservation || !context) return;
     setStep("processing");
     setFlowError(undefined);
     try {
+      const ids = seats.map((seat) => seat.id);
       const created = await client.createReservation({
         brandSlug: context.brandSlug,
         locationSlug: context.locationSlug,
         meetingId: context.meetingId,
         userProfileId: context.userProfileId,
-        seatObjectId: seat?.id,
+        seatObjectId: ids[0],
+        seatObjectIds: ids.length ? ids : undefined,
+        invitedData: buildInvitedData(invitedByIndex),
         // Solo se manda cuando el usuario eligio entre varias; con una sola
         // el servidor la resuelve igual que siempre.
         selectedCredit: needsPaymentChoice ? (activeOption?.id ?? undefined) : undefined,
@@ -1791,31 +1811,35 @@ function ReservationPreviewModal({
 
   function handlePrimary() {
     if (!isSignedIn) {
-      onContinue(selectedSeat);
+      onContinue(selectedSeats, invitedByIndex);
       return;
     }
     if (joinWaitlistNow) {
-      void confirmReservation(null);
+      void confirmReservation([]);
       return;
     }
     if (buyToWaitlist || !canReserveNative) {
-      // Compra: el padre abre el fancy con la clase anclada y el lugar
-      // elegido. Tras pagar, `/reservate` manda `map_objectsSelected`.
-      onContinue(selectedSeat);
+      // Compra: el padre abre el checkout con la clase anclada y los lugares
+      // elegidos. Tras pagar, `/reservate` manda `map_objectsSelected`.
+      onContinue(selectedSeats, invitedByIndex);
       return;
     }
-    void confirmReservation(needsSeat ? selectedSeat : null);
+    void confirmReservation(needsSeat ? selectedSeats : []);
   }
 
   // Con mapa vivo (clase no llena / no waitlist) el lugar es obligatorio
   // también al comprar: si no, Buq crea la reserva sin posición.
   const seatRequired = needsSeat && !joinWaitlistNow && !buyToWaitlist;
 
+  const selectedLabels = formatSeatLabels(selectedSeats.map((seat) => seat.label));
+  const invalidGuestEmail = guestsHaveInvalidEmail(invitedByIndex);
+
   const primaryDisabled =
     step === "processing" ||
     (isSignedIn && contextQuery.isLoading) ||
     classFullNoWaitlist ||
-    (seatRequired && !selectedSeat) ||
+    (seatRequired && selectedSeats.length === 0) ||
+    invalidGuestEmail ||
     (canReserveNative && needsPaymentChoice && !activeOption);
 
   const primaryLabel = !isSignedIn
@@ -1833,15 +1857,19 @@ function ReservationPreviewModal({
               ? needsPaymentChoice && !activeOption
                 ? "Elige cómo reservar"
                 : needsSeat
-                  ? selectedSeat
-                    ? `Reservar lugar ${selectedSeat.label}`
+                  ? selectedSeats.length
+                    ? selectedSeats.length > 1
+                      ? `Reservar ${selectedSeats.length} lugares`
+                      : `Reservar lugar ${selectedLabels}`
                     : "Elige tu lugar en el mapa"
                   : activeOption?.kind === "membership"
                     ? "Reservar con mi membresía"
                     : "Reservar con mi paquete"
               : needsSeat
-                ? selectedSeat
-                  ? `Comprar lugar ${selectedSeat.label}`
+                ? selectedSeats.length
+                  ? selectedSeats.length > 1
+                    ? `Comprar ${selectedSeats.length} lugares`
+                    : `Comprar lugar ${selectedLabels}`
                   : "Elige tu lugar en el mapa"
                 : "Comprar y reservar";
 
@@ -1964,6 +1992,11 @@ function ReservationPreviewModal({
                         ? contextQuery.error.message
                         : "No pudimos revisar tus paquetes."}
                     </p>
+                  ) : allowGuests && selectedSeats.length > 1 ? (
+                    <p className="gafa-reservation-hint">
+                      Para {selectedSeats.length} lugares necesitas {selectedSeats.length} créditos de
+                      paquete. Cómpralos y reserva todos juntos.
+                    </p>
                   ) : (
                     <p className="gafa-reservation-hint">
                       No tienes créditos ni membresía para esta clase.
@@ -1976,7 +2009,12 @@ function ReservationPreviewModal({
               </div>
 
               {needsSeat && seatMap ? (
-                <SeatMapInline map={seatMap} selected={selectedSeat} onSelect={setSelectedSeat} />
+                <SeatMapInline
+                  map={seatMap}
+                  selected={selectedSeats}
+                  limit={seatLimit}
+                  onSelect={setSelectedSeats}
+                />
               ) : wideLayout && contextLoading ? (
                 <div className="gafa-seatmap-skeleton" aria-hidden="true">
                   <div className="gafa-seatmap-skeleton__legend">
@@ -1990,6 +2028,14 @@ function ReservationPreviewModal({
                     ))}
                   </div>
                 </div>
+              ) : null}
+
+              {allowGuests && selectedSeats.length > 1 ? (
+                <GuestInviteFields
+                  seats={selectedSeats}
+                  guests={invitedByIndex}
+                  onChange={setInvitedByIndex}
+                />
               ) : null}
 
               {joinWaitlistNow ? (
@@ -2031,11 +2077,12 @@ function ReservationPreviewModal({
               {formatTime(getMeetingStart(meeting), meeting.timezone)}
             </p>
 
-            {selectedSeat?.label || activeOption ? (
+            {selectedSeats.length || activeOption ? (
               <div className="gafa-reservation-success__card">
-                {selectedSeat?.label ? (
+                {selectedLabels ? (
                   <p className="gafa-reservation-success__seat">
-                    Tu lugar: <strong>{selectedSeat.label}</strong>
+                    {selectedSeats.length > 1 ? "Tus lugares: " : "Tu lugar: "}
+                    <strong>{selectedLabels}</strong>
                   </p>
                 ) : null}
                 {activeOption ? (
@@ -2047,9 +2094,9 @@ function ReservationPreviewModal({
                     ) : typeof activeOption.remaining === "number" ? (
                       <>
                         Usaste tu paquete <strong>{activeOption.name}</strong>: te{" "}
-                        {activeOption.remaining - 1 === 1 ? "queda" : "quedan"}{" "}
-                        <strong>{activeOption.remaining - 1}</strong>{" "}
-                        {activeOption.remaining - 1 === 1 ? "crédito" : "créditos"}.
+                        {activeOption.remaining - seatCount === 1 ? "queda" : "quedan"}{" "}
+                        <strong>{Math.max(0, activeOption.remaining - seatCount)}</strong>{" "}
+                        {activeOption.remaining - seatCount === 1 ? "crédito" : "créditos"}.
                       </>
                     ) : (
                       <>
@@ -2061,7 +2108,7 @@ function ReservationPreviewModal({
               </div>
             ) : null}
 
-            <AddToCalendarRow meeting={meeting} seatLabel={selectedSeat?.label} />
+            <AddToCalendarRow meeting={meeting} seatLabel={selectedLabels || undefined} />
 
             <button className="gafa-sdk-button gafa-reservation-success__done" type="button" onClick={onClose}>
               Listo
@@ -2268,14 +2315,69 @@ function SeatImage({
  * que la marca sube en gafa.fit: vacio / ocupado / elegido. Sin imagen, cae a
  * los circulos con estilo del tema.
  */
+function GuestInviteFields({
+  seats,
+  guests,
+  onChange,
+}: {
+  seats: SeatMapObject[];
+  guests: Record<number, InvitedGuest>;
+  onChange(next: Record<number, InvitedGuest>): void;
+}) {
+  function patch(index: number, field: keyof InvitedGuest, value: string) {
+    const current = guests[index] ?? { name: "", email: "" };
+    onChange({ ...guests, [index]: { ...current, [field]: value } });
+  }
+
+  return (
+    <div className="gafa-reservation-guests">
+      <p className="gafa-reservation-guests__title">Invitados (opcional)</p>
+      <p className="gafa-reservation-guests__hint">
+        El primer lugar es tuyo. Nombre y mail no son obligatorios.
+      </p>
+      {seats.slice(1).map((seat, offset) => {
+        const index = offset + 1;
+        const guest = guests[index] ?? { name: "", email: "" };
+        const emailBad = Boolean(guest.email.trim()) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guest.email.trim());
+        return (
+          <fieldset className="gafa-reservation-guest" key={seat.id}>
+            <legend>Lugar {seat.label || index + 1}</legend>
+            <label>
+              Nombre
+              <input
+                type="text"
+                autoComplete="name"
+                value={guest.name}
+                onChange={(event) => patch(index, "name", event.target.value)}
+              />
+            </label>
+            <label>
+              Mail
+              <input
+                type="email"
+                autoComplete="email"
+                value={guest.email}
+                aria-invalid={emailBad || undefined}
+                onChange={(event) => patch(index, "email", event.target.value)}
+              />
+            </label>
+          </fieldset>
+        );
+      })}
+    </div>
+  );
+}
+
 function SeatMapInline({
   map,
   selected,
+  limit,
   onSelect,
 }: {
   map: SeatMap;
-  selected: SeatMapObject | null;
-  onSelect(seat: SeatMapObject | null): void;
+  selected: SeatMapObject[];
+  limit: number;
+  onSelect(seats: SeatMapObject[]): void;
 }) {
   // La leyenda usa las MISMAS imagenes de la marca que el mapa: nuestros
   // circulos genericos mentian (en Fitspin el gris es disponible, no ocupado).
@@ -2301,7 +2403,7 @@ function SeatMapInline({
           ) : (
             <i className="gafa-seatmap__dot gafa-seatmap__dot--selected" />
           )}{" "}
-          Tu lugar
+          {limit > 1 ? "Tus lugares" : "Tu lugar"}
         </span>
       </div>
 
@@ -2311,6 +2413,7 @@ function SeatMapInline({
         <div
           className="gafa-seatmap__grid"
           role="listbox"
+          aria-multiselectable={limit > 1 ? true : undefined}
           aria-label="Lugares del salón"
           style={
             {
@@ -2347,7 +2450,7 @@ function SeatMapInline({
           }
 
           const disabled = seat.isBlocked || seat.isOccupied;
-          const isSelected = selected?.id === seat.id;
+          const isSelected = selected.some((item) => item.id === seat.id);
           const stateImage = disabled
             ? seat.imageDisabled || seat.image
             : isSelected
@@ -2367,7 +2470,7 @@ function SeatMapInline({
               data-selected={isSelected ? "true" : undefined}
               data-has-image={stateImage ? "true" : undefined}
               disabled={disabled}
-              onClick={() => onSelect(isSelected ? null : seat)}
+              onClick={() => onSelect(toggleSeatSelection(selected, seat, limit))}
             >
               {stateImage ? <SeatImage src={stateImage} width={44} /> : null}
               <span className="gafa-seatmap__seat-label">{seat.label}</span>
