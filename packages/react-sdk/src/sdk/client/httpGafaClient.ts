@@ -55,6 +55,7 @@ import {
 } from "./tokenStorage";
 import { readHasSeatMap } from "./seatMapHint";
 import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
+import { resolveSeatObjectIds, readSimultaneousReservations } from "../reservation/simultaneousSeats";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -275,7 +276,7 @@ function buildPurchaseFormBody(payload: InitialPurchasePayload): Record<string, 
     discountCode: payload.discountCode ?? "",
     giftCode: payload.giftCode ?? "",
     selected_credit: payload.selectedCredit ?? "",
-    invited_data: "",
+    invited_data: payload.invitedData ?? "",
     signature: "",
     subscriptionId: payload.subscriptionId ?? "",
     subscribe: payload.subscribe ? "true" : "false",
@@ -297,8 +298,9 @@ function buildPurchaseFormBody(payload: InitialPurchasePayload): Record<string, 
   if (payload.checkoutToken) {
     body.checkout_token = payload.checkoutToken;
   }
-  if (payload.seatObjectId != null) {
-    body.map_objectsSelected = [{ id: payload.seatObjectId }];
+  const seatIds = resolveSeatObjectIds(payload);
+  if (seatIds.length) {
+    body.map_objectsSelected = seatIds.map((id) => ({ id }));
   }
   if (payload.paymentData != null) {
     body.payment_data = payload.paymentData;
@@ -1473,6 +1475,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         seatMap,
         paymentOptions,
         waitlistAvailable: readWaitlistAvailable(meetingData) === true,
+        simultaneousReservations: readSimultaneousReservations(readBlock("location")),
       };
     },
 
@@ -1488,8 +1491,15 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         set_payment: false,
         test: false,
       };
-      if (payload.seatObjectId != null) {
-        body["map_objectsSelected[0][id]"] = payload.seatObjectId;
+      const seatIds = resolveSeatObjectIds(payload);
+      seatIds.forEach((id, index) => {
+        body[`map_objectsSelected[${index}][id]`] = id;
+      });
+      if (payload.invitedData) {
+        for (const [index, guest] of Object.entries(payload.invitedData)) {
+          if (guest.name) body[`invited_data[${index}][name]`] = guest.name;
+          if (guest.email) body[`invited_data[${index}][email]`] = guest.email;
+        }
       }
       if (payload.selectedCredit) {
         body.selected_credit = payload.selectedCredit;

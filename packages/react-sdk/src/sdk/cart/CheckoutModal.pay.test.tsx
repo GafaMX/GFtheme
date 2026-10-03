@@ -114,6 +114,7 @@ function renderPay(
     onClose?: () => void;
     meeting?: Meeting | null;
     seatObjectId?: number;
+    seatObjectIds?: number[];
     seatLabel?: string;
   } = {},
 ) {
@@ -129,6 +130,7 @@ function renderPay(
         skipCatalog={true}
         meeting={extras.meeting}
         seatObjectId={extras.seatObjectId}
+        seatObjectIds={extras.seatObjectIds}
         seatLabel={extras.seatLabel}
         showMembershipOptions={extras.showMembershipOptions}
         onClose={extras.onClose ?? (() => undefined)}
@@ -328,6 +330,34 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     await waitFor(() => expect(client.reservatePurchase).toHaveBeenCalled());
     expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0]).toEqual(
       expect.objectContaining({ meetingId: 849768, seatObjectId: 42 }),
+    );
+  });
+
+  it("al pagar invitados manda los N lugares", async () => {
+    const client = mockClient();
+    renderPay(client, {
+      meeting: {
+        id: 849768,
+        name: "HELIPUERTO BICI",
+        startsAt: "2026-08-29T09:30:00",
+        timezone: "America/Mexico_City",
+        serviceName: "HELIPUERTO BICI",
+      },
+      seatObjectIds: [10, 11, 12],
+      seatLabel: "10, 11 y 12",
+    });
+    await waitUntilPayReady();
+    expect(screen.getByText(/Lugares 10, 11 y 12/)).toBeTruthy();
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({ message: { stripeToken: "tok_visa" } });
+    };
+    fireEvent.click(payButton());
+
+    await waitFor(() => expect(client.reservatePurchase).toHaveBeenCalled());
+    expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0]).toEqual(
+      expect.objectContaining({ meetingId: 849768, seatObjectIds: [10, 11, 12] }),
     );
   });
 
