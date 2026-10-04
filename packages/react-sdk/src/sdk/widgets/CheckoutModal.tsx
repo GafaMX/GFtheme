@@ -1765,6 +1765,7 @@ export function CheckoutModal({
                 <div className="gafa-checkout__extras">
                   {config?.discountCodesEnabled !== false && client.checkDiscountCode ? (
                     <PromoDisclosure
+                      kind="discount"
                       linkLabel="¿Tienes un código de descuento?"
                       open={discountOpen}
                       onToggle={() => setDiscountOpen((v) => !v)}
@@ -1790,6 +1791,7 @@ export function CheckoutModal({
 
                   {config?.giftCardsEnabled ? (
                     <PromoDisclosure
+                      kind="gift"
                       linkLabel="Convertir en GiftCard"
                       open={convertGift}
                       onToggle={() => {
@@ -2437,6 +2439,7 @@ function PayPanel({
 }
 
 function PromoDisclosure({
+  kind,
   linkLabel,
   open,
   onToggle,
@@ -2451,6 +2454,7 @@ function PromoDisclosure({
   applyLabel,
   applyAriaLabel,
 }: {
+  kind?: "discount" | "gift";
   linkLabel: string;
   open: boolean;
   onToggle: () => void;
@@ -2467,7 +2471,7 @@ function PromoDisclosure({
 }) {
   if (status === "ok" && hint && !persistField) {
     return (
-      <small className="gafa-checkout-promo__applied" data-status="ok">
+      <small className="gafa-checkout-promo__applied" data-kind={kind} data-status="ok">
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M2 7.5L5.5 11L12 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -2477,7 +2481,7 @@ function PromoDisclosure({
   }
 
   return (
-    <div className="gafa-checkout-promo" data-status={status}>
+    <div className="gafa-checkout-promo" data-kind={kind} data-status={status}>
       <div className="gafa-checkout-promo__head">
         <button className="gafa-checkout-promo__link" type="button" aria-expanded={open} onClick={onToggle}>
           {linkLabel}

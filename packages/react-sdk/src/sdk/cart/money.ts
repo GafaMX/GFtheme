@@ -67,18 +67,27 @@ export function resolveMoneyCurrency(raw: unknown): MoneyCurrency | null {
   return null;
 }
 
-export function formatMoney(amount: number, prefix = "$", suffix = ""): string {
+/** En España y la zona euro el símbolo va detrás: 85€, no €85. */
+export function currencySymbolGoesAfter(prefix: string, code = ""): boolean {
+  const symbol = prefix.trim();
+  const normalized = code.trim().toUpperCase();
+  return symbol === "€" || normalized === "EUR";
+}
+
+export function formatMoney(amount: number, prefix = "$", suffix = "", code = ""): string {
   const formatted = new Intl.NumberFormat("es-MX", {
     minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(amount);
-  const withPrefix = `${prefix}${formatted}`;
-  return suffix ? `${withPrefix} ${suffix}` : withPrefix;
+  const withSymbol = currencySymbolGoesAfter(prefix, code)
+    ? `${formatted}€`
+    : `${prefix}${formatted}`;
+  return suffix ? `${withSymbol} ${suffix}` : withSymbol;
 }
 
 export function formatCatalogAmount(amount: number | undefined, currencyRaw: unknown): string | undefined {
   if (amount == null) return undefined;
   const currency = resolveMoneyCurrency(currencyRaw);
   if (!currency) return formatMoney(amount, "$", "");
-  return formatMoney(amount, currency.prefix, "");
+  return formatMoney(amount, currency.prefix, "", currency.code);
 }

@@ -195,6 +195,34 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(screen.getByText("SCULPT")).toBeTruthy();
   });
 
+  it("el código de descuento se puede abrir sin desplegar el carrito", async () => {
+    renderPay(
+      mockClient({
+        getCheckoutConfig: async () => ({
+          ...checkoutConfig(),
+          discountCodesEnabled: true,
+          urls: {
+            ...checkoutConfig().urls,
+            checkDiscountCode:
+              "https://buq.partners/api/brand/fitspin/location/polanco/reservation/check-discount-code/_|_/4412",
+          },
+        }),
+        checkDiscountCode: async () => ({ valid: false, code: "X", message: "no" }),
+      }),
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /pagar/i })).toBeTruthy();
+    });
+
+    const aside = document.querySelector(".gafa-checkout__cart");
+    expect(aside?.getAttribute("data-open")).not.toBe("true");
+    const discount = screen.getByRole("button", { name: /¿tienes un código de descuento\?/i });
+    expect(discount.closest(".gafa-checkout-promo")?.getAttribute("data-kind")).toBe("discount");
+    fireEvent.click(discount);
+    expect(aside?.getAttribute("data-open")).not.toBe("true");
+    expect(screen.getByPlaceholderText(/código/i)).toBeTruthy();
+  });
+
   it("monta GafaPayFront con onStartPayAction (GafaPay lo llama sin optional chaining)", async () => {
     renderPay(mockClient());
     await waitUntilPayReady();
