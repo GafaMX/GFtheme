@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>Preview — reservas simultáneas (no es live)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #101828;
+        --muted: #667085;
+        --line: #e6e8ec;
+        --brand: #f2b705;
+      }
+      * { box-sizing: border-box; }
+      body {
+        background: #fff;
+        color: var(--ink);
+        font-family: Inter, system-ui, sans-serif;
+        margin: 0;
+      }
+      .wrap { margin: 0 auto; max-width: 1120px; padding: 0 1.1rem 4rem; }
+      header.top {
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        padding: 0.9rem 0;
+      }
+      .logo { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em; }
+      .logo span { color: var(--brand); }
+      .build {
+        background: #fff7e8;
+        border: 1px solid #f2b705;
+        border-radius: 12px;
+        font-size: 0.78rem;
+        margin: 1rem 0 1.6rem;
+        padding: 0.75rem 0.9rem;
+      }
+      .build code { font-size: 0.76rem; overflow-wrap: anywhere; }
+      .build b { display: block; margin-bottom: 0.2rem; }
+      h2 { font-size: 1.35rem; letter-spacing: -0.02em; margin: 2.2rem 0 0.9rem; }
+      p.lead { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; max-width: 44rem; }
+      footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.78rem; margin-top: 3rem; padding-top: 1rem; }
+    </style>
+    <script data-gf-options type="application/json">
+      {
+        "GAFA_FIT_URL": "https://buq.partners",
+        "COMPANY_ID": 80,
+        "API_CLIENT": "74",
+        "API_SECRET": "hI8M3iAEVlWIIfxBLesaxhtEIVpEEPwRyHyxw523"
+      }
+    </script>
+    <script src="./reservas-simultaneas.js"></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <div class="logo">FIT<span>SPIN</span> · preview reservas</div>
+        <div data-gf-theme="login-register"></div>
+      </header>
+
+      <div class="build">
+        <b>No está en live.</b>
+        Este puente carga el IIFE de <code>ga/reservas-simultaneas-96a2</code>, no
+        <code>cdn-live</code>. Fitspin tiene tope 100: elige 2 o 3 lugares de una clase con mapa.
+        Nombre/mail de invitados son opcionales. Si no hay N créditos, checkout mete N paquetes de 1.
+        Membresía no entra en el lote. Diagnóstico: <code>?debug=1</code>.
+      </div>
+
+      <h2>Calendario</h2>
+      <p class="lead">Entra, abre una clase con mapa y marca más de un lugar.</p>
+      <section
+        data-gf-theme="meetings-calendar"
+        data-bq-calendar-view="day"
+        filter-bq-location
+        filter-bq-service
+        filter-bq-staff
+      ></section>
+    </div>
+
+    <script>
+      (function () {
+        if (new URLSearchParams(location.search).get("debug") !== "1") return;
+        var INTERESTING = /(initial-purchase|create-form-template|reservate)/;
+        var entries = [];
+        var panel = document.createElement("div");
+        panel.style.cssText =
+          "position:fixed;right:0;bottom:0;z-index:99999;width:min(560px,100vw);" +
+          "max-height:52vh;overflow:auto;background:#0b1020;color:#d7e0f5;" +
+          "font:12px/1.45 ui-monospace,Menlo,monospace;padding:10px 12px;" +
+          "border-top-left-radius:12px;box-shadow:0 -8px 30px rgba(0,0,0,.35)";
+        panel.innerHTML =
+          '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+          "<b style=\"flex:1\">Diagnóstico</b>" +
+          '<button id="dbg-copy">Copiar</button></div>' +
+          '<pre id="dbg-log" style="margin:0;white-space:pre-wrap">Esperando…</pre>';
+        document.addEventListener("DOMContentLoaded", function () {
+          document.body.appendChild(panel);
+          document.getElementById("dbg-copy").onclick = function () {
+            navigator.clipboard.writeText(entries.join("\n\n"));
+          };
+        });
+        var nativeFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+          var url = typeof input === "string" ? input : (input && input.url) || "";
+          if (!INTERESTING.test(url)) return nativeFetch(input, init);
+          var body = init && init.body ? String(init.body) : "";
+          entries.push("→ " + url + (body ? "\n   " + body.slice(0, 800) : ""));
+          var log = document.getElementById("dbg-log");
+          if (log) log.textContent = entries.join("\n\n");
+          return nativeFetch(input, init);
+        };
+      })();
+    </script>
+  </body>
+</html>
