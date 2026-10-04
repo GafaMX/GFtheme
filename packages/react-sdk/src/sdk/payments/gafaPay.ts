@@ -109,7 +109,18 @@ declare global {
 }
 
 export const DEFAULT_GAFAPAY_FRONT_URL = "https://frontpay.buq.partners/main.js";
-const PAY_FORM_LOAD_ERROR = "No se pudo cargar el formulario de pago. Inténtalo de nuevo.";
+export const PAY_FORM_LOAD_ERROR = "No se pudo cargar el formulario de pago. Inténtalo de nuevo.";
+export const WIDGET_CONTENT_TIMEOUT_MS = 9000;
+export const WIDGET_CONTENT_TIMEOUT_MOBILE_MS = 16000;
+const MOBILE_VIEWPORT_MAX = 768;
+
+/** En móvil GafaPay + Stripe.js suelen tardar más (4G, unpkg, js.stripe.com). */
+export function widgetContentTimeoutMs(
+  width = typeof window !== "undefined" ? window.innerWidth : WIDGET_CONTENT_TIMEOUT_MS,
+): number {
+  return width <= MOBILE_VIEWPORT_MAX ? WIDGET_CONTENT_TIMEOUT_MOBILE_MS : WIDGET_CONTENT_TIMEOUT_MS;
+}
+
 const REACT16_SOURCES = [
   {
     react: "https://unpkg.com/react@16.8.6/umd/react.production.min.js",
@@ -440,7 +451,10 @@ export type GafaPayIsland = {
  * queda vacio para siempre). Como no expone estado, se observa el DOM: si en
  * unos segundos no aparecio el formulario del proveedor, es que no arranco.
  */
-export function waitForWidgetContent(container: Element, timeoutMs = 9000): Promise<void> {
+export function waitForWidgetContent(
+  container: Element,
+  timeoutMs = widgetContentTimeoutMs(),
+): Promise<void> {
   const isReady = () => Boolean(container.querySelector("iframe, form, input, button"));
   if (isReady()) return Promise.resolve();
 

@@ -27,9 +27,11 @@ import {
   mountGafaPayWidget,
   triggerGafaPayConfirm,
   waitForWidgetContent,
+  widgetContentTimeoutMs,
   ensureLegacyPaypalCheckout,
   installPayPalButtonCapture,
   isPaypalCheckoutCancelMessage,
+  PAY_FORM_LOAD_ERROR,
   PAYPAL_CTA_HIT_ID,
   type GafaPayIsland,
   type GafaPayLineItem,
@@ -2143,6 +2145,7 @@ function PayPanel({
   };
 }) {
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [mountNonce, setMountNonce] = useState(0);
   const selected = methods.find((method) => method.id === selectedMethodId) ?? null;
   const mountRef = useRef<HTMLDivElement | null>(null);
   const islandRef = useRef<GafaPayIsland | null>(null);
@@ -2250,41 +2253,61 @@ function PayPanel({
     return installStripeCardTheme(colorScheme);
   }, [slug, colorScheme]);
 
-  // Monta la isla: se re-monta solo si cambia el proveedor o las credenciales.
+  // Monta la isla: se re-monta si cambia el proveedor, las credenciales o
+  // Reintentar. Un fallo de red/timeout se reintenta una vez en silencio.
   useEffect(() => {
     if (!slug || !clientId || !clientSecret) return;
     let cancelled = false;
     let stopPaypalCapture: () => void = () => undefined;
     setLoadState("loading");
 
-    loadGafaPay({ clientId, clientSecret, scriptUrl: gafaPayFrontUrl })
-      .then(async (runtime) => {
-        if (cancelled || !mountRef.current) return;
-        // PaypalPayment del frontpay exige checkout.js ANTES de pintar el
-        // <div id="paypal">; si no, window.paypal es el DIV y revienta.
-        if (slug === "paypal") await ensureLegacyPaypalCheckout();
-        if (cancelled || !mountRef.current) return;
-        if (slug === "paypal") stopPaypalCapture = installPayPalButtonCapture();
-        const container = mountRef.current;
-        islandRef.current?.unmount();
-        islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
-        await waitForWidgetContent(container);
+    const reportLoadError = (error: unknown) => {
+      const raw = error instanceof Error ? error.message : undefined;
+      showToast(
+        humanizeCheckoutError(
+          raw && /render/i.test(raw)
+            ? "PayPal no terminó de cargar. Cierra el checkout e inténtalo de nuevo."
+            : raw,
+        ),
+        "error",
+      );
+    };
+
+    const mountOnce = async () => {
+      const runtime = await loadGafaPay({ clientId, clientSecret, scriptUrl: gafaPayFrontUrl });
+      if (cancelled || !mountRef.current) return;
+      // PaypalPayment del frontpay exige checkout.js ANTES de pintar el
+      // <div id="paypal">; si no, window.paypal es el DIV y revienta.
+      if (slug === "paypal") await ensureLegacyPaypalCheckout();
+      if (cancelled || !mountRef.current) return;
+      stopPaypalCapture();
+      if (slug === "paypal") stopPaypalCapture = installPayPalButtonCapture();
+      const container = mountRef.current;
+      islandRef.current?.unmount();
+      islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
+      await waitForWidgetContent(container, widgetContentTimeoutMs());
+    };
+
+    (async () => {
+      try {
+        await mountOnce();
         if (cancelled) return;
         setLoadState("ready");
-      })
-      .catch((error: unknown) => {
+      } catch {
         if (cancelled) return;
-        setLoadState("error");
-        const raw = error instanceof Error ? error.message : undefined;
-        showToast(
-          humanizeCheckoutError(
-            raw && /render/i.test(raw)
-              ? "PayPal no terminó de cargar. Cierra el checkout e inténtalo de nuevo."
-              : raw,
-          ),
-          "error",
-        );
-      });
+        try {
+          await new Promise((resolve) => window.setTimeout(resolve, 400));
+          if (cancelled) return;
+          await mountOnce();
+          if (cancelled) return;
+          setLoadState("ready");
+        } catch (second) {
+          if (cancelled) return;
+          setLoadState("error");
+          reportLoadError(second);
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -2292,7 +2315,7 @@ function PayPanel({
       islandRef.current?.unmount();
       islandRef.current = null;
     };
-  }, [slug, clientId, clientSecret, gafaPayFrontUrl]);
+  }, [slug, clientId, clientSecret, gafaPayFrontUrl, mountNonce]);
 
   useEffect(() => {
     // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
@@ -2430,6 +2453,22 @@ function PayPanel({
 
         {loadState === "loading" ? (
           <PaySkeleton label="Conectando con el procesador de pago…" />
+        ) : null}
+
+        {loadState === "error" ? (
+          <div className="gafa-checkout-pay-retry" role="alert">
+            <p className="gafa-sdk-state gafa-sdk-state--error">{PAY_FORM_LOAD_ERROR}</p>
+            <button
+              className="gafa-sdk-button"
+              type="button"
+              onClick={() => {
+                setLoadState("loading");
+                setMountNonce((current) => current + 1);
+              }}
+            >
+              Reintentar
+            </button>
+          </div>
         ) : null}
       </div>
     </div>

@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PAYPAL_CTA_HIT_ID,
+  PAY_FORM_LOAD_ERROR,
+  WIDGET_CONTENT_TIMEOUT_MOBILE_MS,
+  WIDGET_CONTENT_TIMEOUT_MS,
   installPayPalButtonCapture,
   isPaypalCheckoutCancelMessage,
   triggerGafaPayConfirm,
   triggerPayPalCheckout,
+  waitForWidgetContent,
+  widgetContentTimeoutMs,
   type PayPalButtonOptions,
 } from "./gafaPay";
 
@@ -166,5 +171,37 @@ describe("isPaypalCheckoutCancelMessage", () => {
   it("reconoce la cancelación de GafaPayFront", () => {
     expect(isPaypalCheckoutCancelMessage("Se canceló el pago con PayPal.")).toBe(true);
     expect(isPaypalCheckoutCancelMessage("Ocurrió un error al completar el pago")).toBe(false);
+  });
+});
+
+describe("widgetContentTimeoutMs", () => {
+  it("da más tiempo en móvil que en desktop", () => {
+    expect(widgetContentTimeoutMs(375)).toBe(WIDGET_CONTENT_TIMEOUT_MOBILE_MS);
+    expect(widgetContentTimeoutMs(768)).toBe(WIDGET_CONTENT_TIMEOUT_MOBILE_MS);
+    expect(widgetContentTimeoutMs(1280)).toBe(WIDGET_CONTENT_TIMEOUT_MS);
+  });
+});
+
+describe("waitForWidgetContent", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("resuelve cuando aparece un iframe", async () => {
+    const box = document.createElement("div");
+    document.body.appendChild(box);
+    const pending = waitForWidgetContent(box, 1000);
+    box.appendChild(document.createElement("iframe"));
+    await expect(pending).resolves.toBeUndefined();
+    box.remove();
+  });
+
+  it("rechaza con el toast de formulario si no aparece nada", async () => {
+    vi.useFakeTimers();
+    const box = document.createElement("div");
+    const pending = waitForWidgetContent(box, 50);
+    const expectReject = expect(pending).rejects.toThrow(PAY_FORM_LOAD_ERROR);
+    await vi.advanceTimersByTimeAsync(50);
+    await expectReject;
   });
 });

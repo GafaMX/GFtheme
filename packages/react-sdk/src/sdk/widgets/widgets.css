@@ -7468,6 +7468,22 @@
   display: none;
 }
 
+.gafa-checkout-pay-retry {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.15rem 0 0.35rem;
+}
+
+.gafa-checkout-pay-retry .gafa-sdk-state--error {
+  margin: 0;
+}
+
+.gafa-checkout-pay-retry .gafa-sdk-button {
+  justify-self: start;
+  min-height: 2.5rem;
+  padding-inline: 1.1rem;
+}
+
 /* Mientras carga se mantiene montado pero fuera de vista: desmontarlo
    reiniciaria el iframe de Stripe en cada render. PayPal (checkout.js)
    mide el contenedor al pintar: si la isla vale height:0, logo y “Pagar”

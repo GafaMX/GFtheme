@@ -204,6 +204,39 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(lastProps?.order.lineItems[0]?.product_type).toBe("App\\Models\\Combos\\Combos");
   });
 
+  it("si el formulario no carga a la primera, reintenta solo y habilita Pagar", async () => {
+    mocks.waitForWidgetContent
+      .mockRejectedValueOnce(new Error("No se pudo cargar el formulario de pago. Inténtalo de nuevo."))
+      .mockResolvedValueOnce(undefined);
+
+    renderPay(mockClient());
+    await waitUntilPayReady();
+
+    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(2);
+    expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: /reintentar/i })).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("si el reintento también falla, muestra Reintentar y vuelve a montar al pulsar", async () => {
+    mocks.waitForWidgetContent.mockRejectedValue(
+      new Error("No se pudo cargar el formulario de pago. Inténtalo de nuevo."),
+    );
+
+    renderPay(mockClient());
+
+    const retry = await waitFor(() => screen.getByRole("button", { name: /reintentar/i }));
+    expect(screen.getAllByText(/no se pudo cargar el formulario de pago/i).length).toBeGreaterThan(0);
+    expect(payButton().disabled).toBe(true);
+    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(2);
+
+    mocks.waitForWidgetContent.mockResolvedValue(undefined);
+    fireEvent.click(retry);
+    await waitUntilPayReady();
+    expect(screen.queryByRole("button", { name: /reintentar/i })).toBeNull();
+    expect(mocks.loadGafaPay.mock.calls.length).toBeGreaterThanOrEqual(3);
+  });
+
   it("el CVC inválido sale en toast, sin ERROR-05 ni texto junto al botón", async () => {
     renderPay(mockClient());
     await waitUntilPayReady();
