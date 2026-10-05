@@ -23,6 +23,33 @@ export function toIsoDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Día de calendario en la zona de la sede. `toIsoDate` usa el reloj del
+ * navegador: 6:00 en Madrid es 22:00 del día anterior en México, y la clase
+ * desaparecía del martes si quien mira está en CDMX.
+ */
+export function toIsoDateInZone(date: Date, timeZone?: string): string {
+  if (!timeZone) return toIsoDate(date);
+  try {
+    const label = date.toLocaleDateString("en-CA", { timeZone });
+    if (/^\d{4}-\d{2}-\d{2}$/.test(label)) return label;
+  } catch {
+    // zona inválida → reloj local
+  }
+  return toIsoDate(date);
+}
+
+/** Día en el que debe pintarse una clase (TZ de la marca si viene). */
+export function meetingDateKey(startsAt: string, timeZone?: string): string | null {
+  if (!startsAt) return null;
+  const date = new Date(startsAt.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) {
+    const fallback = startsAt.slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(fallback) ? fallback : null;
+  }
+  return toIsoDateInZone(date, timeZone);
+}
+
 export function parseIsoDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(year, (month ?? 1) - 1, day ?? 1);
@@ -63,9 +90,16 @@ export function rangeForView(anchor: Date, view: CalendarView): DateRange {
  * cero reuniones, y start=10&end=16 devuelve solo hasta el 15. Verificado contra
  * produccion. Por eso el rango que se pide no es el mismo que el que se muestra:
  * hay que sumarle un dia al final o se pierde siempre el ultimo dia visible.
+ *
+ * También pedimos el día anterior. El API guarda `start_date` en
+ * America/Mexico_City: 6:00 Madrid del martes queda como 22:00 del lunes.
+ * Sin ese colchón el day view del martes no recibe la clase.
  */
 export function fetchRangeFor(range: DateRange): DateRange {
-  return { from: range.from, to: toIsoDate(addDays(parseIsoDate(range.to), 1)) };
+  return {
+    from: toIsoDate(addDays(parseIsoDate(range.from), -1)),
+    to: toIsoDate(addDays(parseIsoDate(range.to), 1)),
+  };
 }
 
 export function shiftAnchor(anchor: Date, view: CalendarView, direction: 1 | -1): Date {

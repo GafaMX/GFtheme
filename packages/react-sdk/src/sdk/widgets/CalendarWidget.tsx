@@ -32,6 +32,7 @@ import {
   fetchRangeFor,
   isToday,
   matchesTimeOfDay,
+  meetingDateKey,
   parseIsoDate,
   rangeForView,
   shiftAnchor,
@@ -210,7 +211,9 @@ export function CalendarWidget({
       }
 
       const today = new Date();
-      const from = toIsoDate(today);
+      // Día anterior: clases madrugadoras de Europa se guardan el día previo
+      // en la TZ del API (México). Ver fetchRangeFor.
+      const from = toIsoDate(addDays(today, -1));
       const checks = await Promise.all(
         all.map(async (location) => {
           const horizonDays = Math.max(1, location.calendarDays ?? 30);
@@ -545,7 +548,8 @@ export function CalendarWidget({
   const meetingsByIsoDay = useMemo(() => {
     const groups = new Map<string, Meeting[]>();
     visibleMeetings.forEach((meeting) => {
-      const key = toIsoDate(new Date(getMeetingStart(meeting).replace(" ", "T")));
+      const key = meetingDayIso(meeting);
+      if (!key) return;
       groups.set(key, [...(groups.get(key) ?? []), meeting]);
     });
     return groups;
@@ -2568,14 +2572,7 @@ function locationNameKey(name: string): string {
 }
 
 function meetingDayIso(meeting: Meeting): string | null {
-  const raw = getMeetingStart(meeting);
-  if (!raw) return null;
-  const date = new Date(raw.replace(" ", "T"));
-  if (Number.isNaN(date.getTime())) {
-    const fallback = raw.slice(0, 10);
-    return /^\d{4}-\d{2}-\d{2}$/.test(fallback) ? fallback : null;
-  }
-  return toIsoDate(date);
+  return meetingDateKey(getMeetingStart(meeting), meeting.timezone);
 }
 
 function dayHasBookableMeetings(
