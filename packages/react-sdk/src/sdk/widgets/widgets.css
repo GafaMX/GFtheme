@@ -7282,8 +7282,9 @@
   }
 
   /* La sugerencia se queda visible aunque el detalle de lineas esté cerrado.
-     Descuento, GiftCard y “otro paquete” se van al expandir: si no, el pie
-     se atasca (términos + oferta + total + pagar). */
+     GiftCard y “otro paquete” se van al expandir: si no, el pie se atasca
+     (términos + oferta + total + pagar). El descuento no: en movil no hay
+     otra forma de verlo sin abrir todo el carrito encima del pago. */
   .gafa-checkout[data-step="pay"] .gafa-checkout__cross-sell,
   .gafa-checkout[data-step="auth"] .gafa-checkout__cross-sell {
     display: grid;
@@ -7291,7 +7292,7 @@
     padding-top: 0.5rem;
   }
 
-  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout-promo,
+  .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout-promo:not([data-kind="discount"]),
   .gafa-checkout__cart:not([data-open="true"]) .gafa-checkout__backlink {
     display: none;
   }
