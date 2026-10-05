@@ -12,6 +12,7 @@ import { RemoteImage, useRemoteImageEnabled } from "../images/ImagesProvider";
 import { readStoredToken, subscribeToAuthChanges } from "../client/tokenStorage";
 import { reservationShowsSeatMapLayout } from "../client/seatMapHint";
 import { fullClassAction, getAvailabilityText, isSoldOut, offersWaitlist, showsWaitlistPill } from "../client/meetingAvailability";
+import { staffLabel } from "../client/staffLabel";
 import type {
   Brand,
   CreateReservationResult,
@@ -2452,10 +2453,7 @@ function getMeetingStart(meeting: Meeting): string {
 }
 
 function getStaffName(meeting: Meeting): string {
-  if (meeting.staffName) return meeting.staffName;
-  if (!meeting.staff) return "Staff por confirmar";
-
-  return [meeting.staff.name, meeting.staff.lastname].filter(Boolean).join(" ");
+  return staffLabel(meeting.staff) ?? meeting.staffName ?? "Staff por confirmar";
 }
 
 function getMeetingBrandSlug(meeting: Meeting, activeBrand?: Brand): string {

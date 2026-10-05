@@ -12,6 +12,7 @@ import type { GafaSdkConfig } from "../config";
 import { readStoredToken } from "./tokenStorage";
 import { readHasSeatMap } from "./seatMapHint";
 import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
+import { staffLabel } from "./staffLabel";
 
 type LegacyCallback<T> = (error: unknown, result: T) => void;
 
@@ -278,10 +279,7 @@ function normalizeLegacyMeeting(meeting: Meeting): Meeting {
     ...meeting,
     startsAt,
     serviceName: meeting.serviceName ?? meeting.service?.name,
-    staffName:
-      meeting.staffName ??
-      [meeting.staff?.name, meeting.staff?.lastname].filter(Boolean).join(" ") ??
-      undefined,
+    staffName: staffLabel(meeting.staff) ?? meeting.staffName ?? undefined,
     hasSeatMap: meeting.hasSeatMap ?? readHasSeatMap(meeting),
     waitlistAvailable,
     availability:

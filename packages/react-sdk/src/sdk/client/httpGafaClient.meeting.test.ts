@@ -143,6 +143,38 @@ describe("getMeeting", () => {
     expect(full?.available).toBe(0);
   });
 
+  it("usa el Título (job) del coach en lugar del nombre legal", async () => {
+    stubApi([
+      [/\/location\?/, LOCATIONS],
+      [
+        /\/location\/235\/meetings/,
+        [{ ...MEETING, staff: { id: 9, name: "Isabel", lastname: "García", job: "ISA" } }],
+      ],
+    ]);
+
+    const meeting = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+    });
+    expect(meeting?.staffName).toBe("ISA");
+    expect(meeting?.staff?.job).toBe("ISA");
+  });
+
+  it("cae al nombre legal si el coach no tiene Título", async () => {
+    stubApi([
+      [/\/location\?/, LOCATIONS],
+      [/\/location\/235\/meetings/, [MEETING]],
+    ]);
+
+    const meeting = await client().getMeeting?.({
+      meetingId: 84213,
+      brandSlug: "fitspin",
+      locationSlug: "polanco",
+    });
+    expect(meeting?.staffName).toBe("Ana");
+  });
+
   it("omite description vacía para no pintar una línea en blanco", async () => {
     stubApi([
       [/\/location\?/, LOCATIONS],

@@ -37,6 +37,9 @@ export type StaffMember = {
   id: number;
   name: string;
   lastname?: string;
+  /** Título / apodo del coach. Si viene, el calendario lo muestra en lugar del nombre. */
+  job?: string | null;
+  apodo?: string | null;
   bio?: string;
   photoUrl?: string;
 };
