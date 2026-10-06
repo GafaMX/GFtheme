@@ -36,7 +36,9 @@ import {
   parseIsoDate,
   rangeForView,
   shiftAnchor,
+  skipEndedWeekDays,
   timeOfDayFor,
+  todayIsoInZone,
   toIsoDate,
   TIME_OF_DAY_LABELS,
   type CalendarView,
@@ -142,7 +144,6 @@ export function CalendarWidget({
   const [anchorIso, setAnchorIso] = useState(() => toIsoDate(new Date()));
 
   const anchor = useMemo(() => parseIsoDate(anchorIso), [anchorIso]);
-  const range = useMemo(() => rangeForView(anchor, view), [anchor, view]);
 
   const brandsQuery = useQuery({
     queryKey: ["calendar", "brands"],
@@ -328,6 +329,26 @@ export function CalendarWidget({
     return locationsByName.get(locationNameKey(activeLocation.name)) ?? [activeLocation];
   }, [activeLocation, bookableLocations, locationsByName, showAllLocations]);
 
+  const activeLocationIdSet = useMemo(
+    () => new Set(activeLocationGroup.map((location) => location.id)),
+    [activeLocationGroup],
+  );
+
+  // Hoy en la TZ de la marca (Fitspin CDMX, Bunker, Madrid…). Sin esto el
+  // navegador en Europa pinta martes mientras la sede sigue en lunes, o al
+  // revés: un lunes ya cerrado sigue en la semana.
+  const brandTimeZone = useMemo(() => {
+    if (activeBrand?.timeZone) return activeBrand.timeZone;
+    return horizonMeetings.find((meeting) => meeting.timezone)?.timezone;
+  }, [activeBrand?.timeZone, horizonMeetings]);
+  const todayIso = todayIsoInZone(new Date(), brandTimeZone);
+
+  const range = useMemo(() => {
+    const base = rangeForView(anchor, view, new Date(), brandTimeZone);
+    if (view !== "week") return base;
+    return skipEndedWeekDays(base, (iso) => weekDayHasEnded(iso, todayIso, horizonMeetings, activeLocationIdSet));
+  }, [activeLocationIdSet, anchor, brandTimeZone, horizonMeetings, todayIso, view]);
+
   // Si el usuario eligió una sede que ya no está en el select, volver a
   // "Todos". No toca el default de la URL (selectedFilters.locationId
   // undefined): ese se resuelve por match y no se siembra en state.
@@ -377,9 +398,9 @@ export function CalendarWidget({
   useEffect(() => {
     if (!client || !locationGroupIds) return;
 
-    const next = rangeForView(shiftAnchor(anchor, view, 1), view);
-    const previous = rangeForView(shiftAnchor(anchor, view, -1), view);
-    const today = toIsoDate(new Date());
+    const next = rangeForView(shiftAnchor(anchor, view, 1), view, new Date(), brandTimeZone);
+    const previous = rangeForView(shiftAnchor(anchor, view, -1), view, new Date(), brandTimeZone);
+    const today = todayIso;
 
     [next, previous]
       .filter((target) => target.to >= today)
@@ -387,7 +408,7 @@ export function CalendarWidget({
         queryClient.prefetchQuery({ ...meetingsQueryOptions(target), staleTime: 2 * 60 * 1000 });
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchor, view, locationGroupIds, client, queryClient, activeLocationGroup]);
+  }, [anchor, brandTimeZone, view, locationGroupIds, client, queryClient, activeLocationGroup, todayIso]);
 
   // Las opciones de los filtros salen de las clases ya cargadas, no del catalogo
   // completo de la marca: asi nunca se ofrece un servicio o un coach que no tiene
@@ -469,9 +490,19 @@ export function CalendarWidget({
   // habria clases finalizadas) y hacia adelante la sede solo publica horarios
   // hasta su horizonte (calendar_days). Fuera de eso, la flecha se deshabilita
   // en vez de llevar a una semana vacia.
-  const todayIso = toIsoDate(new Date());
+  const didNavigateRef = useRef(false);
+  const alignedToBrandTodayRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (anchorIso < todayIso) setAnchorIso(todayIso);
+    if (anchorIso < todayIso) {
+      setAnchorIso(todayIso);
+      return;
+    }
+    // Una vez por "hoy" de la marca: si el reloj del navegador iba adelantado,
+    // bajamos el ancla para que skipEnded pueda esconder el lunes Finalizada.
+    // No se repite, para no pelear con el auto-salto de la vista día.
+    if (alignedToBrandTodayRef.current === todayIso) return;
+    alignedToBrandTodayRef.current = todayIso;
+    if (!didNavigateRef.current && anchorIso !== todayIso) setAnchorIso(todayIso);
   }, [anchorIso, todayIso]);
   const horizonDays = useMemo(() => {
     if (activeLocation?.calendarDays != null) return Math.max(1, activeLocation.calendarDays);
@@ -481,19 +512,14 @@ export function CalendarWidget({
     return Math.max(1, ...(fromBookable.length ? fromBookable : [30]));
   }, [activeLocation?.calendarDays, bookableLocations]);
   const horizonIso = useMemo(
-    () => toIsoDate(addDays(new Date(), horizonDays - 1)),
-    [horizonDays],
+    () => toIsoDate(addDays(parseIsoDate(todayIso), horizonDays - 1)),
+    [horizonDays, todayIso],
   );
   const canGoPrev =
     view === "week"
       ? toIsoDate(shiftAnchor(anchor, view, -1)) >= todayIso
-      : rangeForView(shiftAnchor(anchor, view, -1), view).to >= todayIso;
-  const canGoNext = rangeForView(shiftAnchor(anchor, view, 1), view).from <= horizonIso;
-
-  const activeLocationIdSet = useMemo(
-    () => new Set(activeLocationGroup.map((location) => location.id)),
-    [activeLocationGroup],
-  );
+      : rangeForView(shiftAnchor(anchor, view, -1), view, new Date(), brandTimeZone).to >= todayIso;
+  const canGoNext = rangeForView(shiftAnchor(anchor, view, 1), view, new Date(), brandTimeZone).from <= horizonIso;
 
   // Dias del horizonte que SI tienen clases reservables para la seleccion
   // actual de sede: alimenta el salto automatico y el date-picker.
@@ -611,12 +637,14 @@ export function CalendarWidget({
 
   function goPrev() {
     allowAutoSkipRef.current = false;
+    didNavigateRef.current = true;
     enterDay("prev");
     setAnchorIso(toIsoDate(shiftAnchor(anchor, view, -1)));
   }
 
   function goNext() {
     allowAutoSkipRef.current = false;
+    didNavigateRef.current = true;
     enterDay("next");
     setAnchorIso(toIsoDate(shiftAnchor(anchor, view, 1)));
   }
@@ -706,6 +734,7 @@ export function CalendarWidget({
         maxIso={horizonIso}
         onPickDate={(iso) => {
           allowAutoSkipRef.current = false;
+          didNavigateRef.current = true;
           if (iso !== anchorIso) enterDay(iso > anchorIso ? "next" : "prev");
           setAnchorIso(iso);
         }}
@@ -713,6 +742,7 @@ export function CalendarWidget({
         onNext={goNext}
         onToday={() => {
           allowAutoSkipRef.current = true;
+          didNavigateRef.current = false;
           // En semana, "Hoy" tambien re-encuadra el scroll al dia disponible
           // aunque ya estemos en la misma ventana de 7 dias.
           weekScrolledKeyRef.current = undefined;
@@ -2584,6 +2614,25 @@ function locationNameKey(name: string): string {
 
 function meetingDayIso(meeting: Meeting): string | null {
   return meetingDateKey(getMeetingStart(meeting), meeting.timezone);
+}
+
+/** Día cerrado: ya pasó, o todas las clases de hoy están Finalizada. */
+function weekDayHasEnded(
+  iso: string,
+  todayIso: string,
+  meetings: Meeting[],
+  locationIds: Set<number>,
+): boolean {
+  if (iso < todayIso) return true;
+  if (iso > todayIso) return false;
+  const dayMeetings = meetings.filter((meeting) => {
+    if (locationIds.size > 0) {
+      const locationId = meeting.location?.id;
+      if (locationId == null || !locationIds.has(locationId)) return false;
+    }
+    return meetingDayIso(meeting) === iso;
+  });
+  return dayMeetings.length > 0 && dayMeetings.every((meeting) => Boolean(meeting.passed));
 }
 
 function dayHasBookableMeetings(

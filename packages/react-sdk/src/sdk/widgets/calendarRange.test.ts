@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { addDays, fetchRangeFor, meetingDateKey, rangeForView, shiftAnchor, toIsoDate, toIsoDateInZone } from "./calendarRange";
+import {
+  addDays,
+  fetchRangeFor,
+  meetingDateKey,
+  rangeForView,
+  shiftAnchor,
+  skipEndedWeekDays,
+  todayIsoInZone,
+  toIsoDate,
+  toIsoDateInZone,
+} from "./calendarRange";
 
 describe("toIsoDateInZone", () => {
   // 6:00 CEST del martes 6 oct = 04:00 UTC = 22:00 CDMX del lunes 5.
@@ -71,6 +81,38 @@ describe("rangeForView week", () => {
   it("desde hoy no hay semana anterior (el ancla caería antes de hoy)", () => {
     expect(toIsoDate(shiftAnchor(thursday, "week", -1)) < toIsoDate(thursday)).toBe(true);
     expect(toIsoDate(addDays(thursday, -7))).toBe("2026-09-24");
+  });
+
+  it("usa la TZ de la marca, no la del instante UTC", () => {
+    // Martes 6 oct 02:00 UTC = lunes 5 oct 20:00 en CDMX, martes en Madrid.
+    const tuesdayUtc = new Date("2026-10-06T02:00:00Z");
+    const monday = new Date(2026, 9, 5, 9, 0, 0);
+    expect(todayIsoInZone(tuesdayUtc, "America/Mexico_City")).toBe("2026-10-05");
+    expect(todayIsoInZone(tuesdayUtc, "Europe/Madrid")).toBe("2026-10-06");
+    expect(rangeForView(monday, "week", tuesdayUtc, "America/Mexico_City")).toEqual({
+      from: "2026-10-05",
+      to: "2026-10-11",
+    });
+    expect(rangeForView(monday, "week", tuesdayUtc, "Europe/Madrid")).toEqual({
+      from: "2026-10-06",
+      to: "2026-10-12",
+    });
+  });
+});
+
+describe("skipEndedWeekDays", () => {
+  it("si el primer día ya terminó, arranca al siguiente y sigue cubriendo 7", () => {
+    expect(skipEndedWeekDays({ from: "2026-10-05", to: "2026-10-11" }, (iso) => iso === "2026-10-05")).toEqual({
+      from: "2026-10-06",
+      to: "2026-10-12",
+    });
+  });
+
+  it("no recorta si el día de consulta sigue abierto", () => {
+    expect(skipEndedWeekDays({ from: "2026-10-06", to: "2026-10-12" }, () => false)).toEqual({
+      from: "2026-10-06",
+      to: "2026-10-12",
+    });
   });
 });
 
