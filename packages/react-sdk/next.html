@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es" data-backend="buq-next">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buq SDK v2 — preview Buq Next (fixtures)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #f4f1ea;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+      .demo-shell {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 18px 14px 36px;
+        display: grid;
+        gap: 18px;
+      }
+      .demo-banner {
+        background: #16352b;
+        color: #f4f1ea;
+        border-radius: 16px;
+        padding: 14px 18px;
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+      .demo-banner code {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        padding: 1px 6px;
+      }
+      .demo-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .demo-nav a {
+        background: #fffaf4;
+        border: 1px solid #d9d0c3;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #16352b;
+        text-decoration: none;
+      }
+      .demo-section-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6d655c;
+        font-weight: 700;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body data-backend="buq-next">
+    <main class="demo-shell">
+      <div class="demo-banner">
+        Preview local F0' — <strong>buqNextClient</strong> con fixtures de Next Studio
+        (<code>next-studio-e0f9</code>). No pega a gafa.fit ni a dev-new. Login, reserva,
+        compra, wallet y puntos responden
+        <code>no disponible en Buq Next aún</code>. Analytics apagado. No es un publish.
+      </div>
+      <nav class="demo-nav">
+        <a href="#calendar-next">Calendario</a>
+        <a href="#packages-next">Paquetes</a>
+        <a href="#memberships-next">Membresías</a>
+        <a href="#staff-next">Coaches</a>
+        <a href="#auth-next">Login</a>
+        <a href="#profile-next">Perfil</a>
+        <a href="/playground.html">Playground mock</a>
+      </nav>
+
+      <p class="demo-section-label">Calendario por sede</p>
+      <section id="calendar-next"></section>
+
+      <p class="demo-section-label">Catálogo — paquetes</p>
+      <section id="packages-next"></section>
+
+      <p class="demo-section-label">Catálogo — membresías</p>
+      <section id="memberships-next"></section>
+
+      <p class="demo-section-label">Coaches</p>
+      <section id="staff-next"></section>
+
+      <p class="demo-section-label">Login (aún no disponible)</p>
+      <section id="auth-next"></section>
+
+      <p class="demo-section-label">Perfil (aún no disponible)</p>
+      <section id="profile-next"></section>
+    </main>
+    <script data-gf-options data-backend="buq-next" type="application/json">
+      {
+        "COMPANY_ID": 9001,
+        "API_CLIENT": "buq-next-preview",
+        "BUQ_ENV": "next-dev",
+        "BACKEND": "buq-next",
+        "ANALYTICS": false
+      }
+    </script>
+    <script type="module" src="/src/main.next.tsx"></script>
+  </body>
+</html>

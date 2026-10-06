@@ -39,6 +39,11 @@ export {
 } from "./config/remoteConfig";
 export { BUQ_ENVIRONMENTS, parseBuqEnvironmentId, resolveBuqEnvironment } from "./config/buqEnvironments";
 export type { BuqEnvironment, BuqEnvironmentId } from "./config/buqEnvironments";
+export { parseSdkBackendId, resolveSdkBackend } from "./config/sdkBackend";
+export type { SdkBackendId } from "./config/sdkBackend";
+export { createBuqNextClient } from "./client/buqNextClient";
+export { BuqNextUnavailableError, BUQ_NEXT_UNAVAILABLE_MESSAGE } from "./client/buqNextUnavailable";
+export { cartLineToLineaSolicitudVenta, lineaSolicitudVentaToCartRef } from "./client/buqNextMap";
 export { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 export type { LegacyBootstrapResult } from "./bootstrap/legacyBootstrap";
 export {

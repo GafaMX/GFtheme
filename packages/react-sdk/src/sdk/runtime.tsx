@@ -6,6 +6,8 @@ import { createGafaClient } from "./client/gafaClient";
 import type { CartLineType, CheckoutPayload, GafaClient, ReservationCheckoutPayload } from "./client/types";
 import { createLegacyGafaFitAdapter } from "./client/legacyGafaFitAdapter";
 import { createHttpGafaClient } from "./client/httpGafaClient";
+import { createBuqNextClient } from "./client/buqNextClient";
+import { resolveSdkBackend, type SdkBackendId } from "./config/sdkBackend";
 import { createCaptchaProvider } from "./captcha/CaptchaProvider";
 import { subscribeToAuthChanges, configureTokenStorage } from "./client/tokenStorage";
 import { ThemeProvider } from "./theme/theme";
@@ -123,6 +125,11 @@ export type MountedWidget = {
 export type RuntimeOptions = {
   client?: GafaClient;
   useMockClient?: boolean;
+  /**
+   * Opt-in explícito al cliente de Buq Next (F0', fixtures).
+   * Default / omitido = gafa.fit. Nunca se infiere del entorno ni del Hub.
+   */
+  backend?: SdkBackendId;
 };
 
 export type { SdkMountOptions };
@@ -817,6 +824,14 @@ function readLegacyLocation(location?: string | number): { locationId?: number; 
 function createClient(config: GafaSdkConfig, options: RuntimeOptions): GafaClient {
   if (options.useMockClient) {
     return createGafaClient(config);
+  }
+
+  const backend = resolveSdkBackend({
+    runtimeBackend: options.backend,
+    configBackend: config.backend,
+  });
+  if (backend === "buq-next") {
+    return createBuqNextClient(config);
   }
 
   // El cliente HTTP nuevo cubre catalogo/calendario/login/registro/password en directo

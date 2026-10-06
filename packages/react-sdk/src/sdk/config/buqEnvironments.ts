@@ -1,9 +1,13 @@
 /**
- * Los tres backends de Buq. El default del SDK es production (lanzamiento).
+ * Los backends de Buq. El default del SDK es production (lanzamiento).
  *
  *   production   buq.partners   (gafa.fit)
  *   staging      buq.com.mx     (listo para subir: Stripe nuevo + Laravel)
  *   development  buq.technology
+ *   next-dev     dev-new.buq.partners  (Buq Next; no cambia el cliente solo)
+ *
+ * El entorno NO elige `buqNextClient`. Eso pide `BACKEND: "buq-next"`,
+ * `data-backend="buq-next"` o `?backend=buq-next`.
  *
  * Como cambiar:
  *   - data-gf-options: `{ "BUQ_ENV": "staging", ...credenciales }`
@@ -12,7 +16,7 @@
  *   - `GAFAPAY_FRONT_URL` pisa el front de pagos de ese entorno
  */
 
-export const BUQ_ENVIRONMENT_IDS = ["production", "staging", "development"] as const;
+export const BUQ_ENVIRONMENT_IDS = ["production", "staging", "development", "next-dev"] as const;
 export type BuqEnvironmentId = (typeof BUQ_ENVIRONMENT_IDS)[number];
 
 export type BuqEnvironment = {
@@ -56,6 +60,14 @@ export const BUQ_ENVIRONMENTS: Record<BuqEnvironmentId, BuqEnvironment> = {
     gafaPayFrontUrl: "https://frontpay.buq.partners/main.js",
     hubUrl: "https://hub.buq.technology",
   },
+  "next-dev": {
+    id: "next-dev",
+    label: "Buq Next (dev-new)",
+    apiBaseUrl: "https://dev-new.buq.partners/",
+    gafaFitSdkUrl: "https://dev-new.buq.partners/sdk/dist/main.js",
+    gafaPayFrontUrl: "https://frontpay.buq.partners/main.js",
+    hubUrl: "https://hub.buq.com.mx",
+  },
 };
 
 export const DEFAULT_BUQ_ENVIRONMENT: BuqEnvironmentId = "production";
@@ -74,6 +86,11 @@ const ENV_ALIASES: Record<string, BuqEnvironmentId> = {
   dev: "development",
   technology: "development",
   "buq.technology": "development",
+  "next-dev": "next-dev",
+  nextdev: "next-dev",
+  next: "next-dev",
+  "dev-new": "next-dev",
+  "dev-new.buq.partners": "next-dev",
 };
 
 export function parseBuqEnvironmentId(value: unknown): BuqEnvironmentId | undefined {
@@ -85,6 +102,7 @@ export function buqEnvironmentFromApiUrl(apiBaseUrl: string | undefined): BuqEnv
   if (!apiBaseUrl) return undefined;
   try {
     const host = new URL(apiBaseUrl, "https://buq.partners").hostname.toLowerCase();
+    if (host === "dev-new.buq.partners" || host.endsWith(".dev-new.buq.partners")) return "next-dev";
     if (host === "buq.com.mx" || host.endsWith(".buq.com.mx")) return "staging";
     if (host === "buq.technology" || host.endsWith(".buq.technology")) return "development";
     if (host === "buq.partners" || host.endsWith(".buq.partners") || host === "gafa.fit" || host.endsWith(".gafa.fit")) {

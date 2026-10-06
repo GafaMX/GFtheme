@@ -10,6 +10,7 @@ Hay una iniciativa activa para reemplazar el theme legacy (Webpack4/Babel6/React
 
 - **Dónde vive:** `packages/react-sdk/` (monorepo simple, no afecta `src/`/`dist/` del theme legacy).
 - **Rama de trabajo activa:** `v2/main`. Es la rama durable del SDK v2. Las `cursor/*` (account-mobile-nav, checkout, cdn, environments, etc.) son históricas: se trabaja encima de `v2/main`. **`master` no se toca** — sigue siendo el theme legacy de producción.
+- **Rama larga Buq Next (2026-10-06, F0'):** `v2/buq-next`. Integra el SDK a Buq Next **sin** tocar `v2/main` ni `cdn-live`. Los PRs de esta iniciativa van **contra `v2/buq-next`**, nunca contra `v2/main`. No `publish:embed`, no deploy, no Hub. Cliente: `packages/react-sdk/src/sdk/client/buqNextClient.ts`. Preview: `/next.html`. Opt-in explícito (`BACKEND: "buq-next"`, `data-backend="buq-next"`, `?backend=buq-next` o `createGafaSdk(..., { backend: "buq-next" })`). Default intacto = `httpGafaClient` (gafa.fit). Entorno `next-dev` (`https://dev-new.buq.partners`) **no** cambia el cliente. El Hub no puede mandar `BACKEND`.
 - **Integración (2026-09-04):** `v2/main` ya trae `cdn-live` (checkout + hold de PayPal), el Dashboard Hub y **Concierge nativo** (PR #241). Lo enciende `CONCIERGE` (ver *Remote config*); WhatsApp opcional; `catalog.live` + `products: []` hidrata toda la compañía. Guía: `docs/v2-agente.md` §11. Features nuevos se ramifican desde `v2/main`. El Worker del Hub se despliega aparte (`packages/sdk-hub`, no Republish).
 - **Regla permanente (2026-09-23):** `v2/main` y `cdn-live` **salen juntas**. Un merge a `v2/main` avanza `cdn-live` en el mismo paso; un hotfix a `cdn-live` también aterriza en `v2/main`. Después de cada release las dos ramas apuntan al mismo SHA. No dejes hotfixes solo en live (eso dejó 47 commits fuera de `v2/main`). No uses `--force` contra `cdn-live`. Receta: `docs/v2-lanzamiento.md`.
 - **Remote config (2026-09-08):** el Hub guarda un **partial** por compañía (no el objeto resuelto). Merge: defaults SDK → Hub → `[data-gf-options]` → query (`?buq-env`, `?hub-url`). HTML mínimo: `COMPANY_ID` + `API_CLIENT` + `API_SECRET`. El secret **nunca** va al Hub. `CONCIERGE: true | {} | partial` usa `createLiveConciergeConfig()`; encenderlo en el Hub **sí** pinta la barra (flota, así que sin nodo el bootstrap cuelga uno del `body`; `data-gf-concierge="off"` excluye una página). Contrato: `docs/v2-hub/remote-config.md`. Catálogo: `docs/v2-options.md`. Admin primero en `hub.buq.partners` (mismo PUT que usará Buq-Webs después). No Republish.
@@ -36,14 +37,17 @@ Hay una iniciativa activa para reemplazar el theme legacy (Webpack4/Babel6/React
   - `vite.embed.config.ts` — IIFE `gafa-sdk.js` con React **dentro**, drop-in como el theme v1. Es el artefacto que se lanza a socios. Cómo pegarlo en WP / Replit / HTML: `docs/v2-embed/README.md`. Cómo publicarlo: `docs/v2-lanzamiento.md`.
 - **No copiar `packages/react-sdk/src` a Replit** (`lib/gafa-react-sdk`). Relanzar Replit reinicia toda la app multi-sitio; V2 se actualiza reemplazando `docs/v2-sdk/gafa-sdk.js`. Replit se queda para sitios que no son V2.
 - **Cómo correr el preview local:**
-  ```bash
-  cd packages/react-sdk
-  npm install
-  npm run dev            # Vite en :5173 (o el puerto libre), demo en index.html con useMockClient:true
-  npm test && npm run typecheck
-  npm run publish:embed  # IIFE → ../../docs/v2-sdk/gafa-sdk.js (lo que se pega en WP)
-  ```
-  El `index.html`/`main.tsx` del paquete montan los 4 widgets con datos mock (`createGafaSdk(..., { useMockClient: true })`) — útil para iterar diseño sin depender de gafa.fit. Para conectar a datos reales hay que resolver el punto de "cliente real" de abajo.
+```bash
+ cd packages/react-sdk
+ npm install
+ npm run dev            # Vite en :5173 (o el puerto libre)
+ # /playground.html  mock
+ # /next.html        buqNextClient (fixtures Buq Next, F0', rama v2/buq-next)
+ # /live.html        gafa.fit real
+ npm test && npm run typecheck
+ npm run publish:embed  # IIFE → ../../docs/v2-sdk/gafa-sdk.js — NO correrlo en trabajo Buq Next
+ ```
+ El `index.html`/`main.tsx` del paquete montan los 4 widgets con datos mock (`createGafaSdk(..., { useMockClient: true })`) — útil para iterar diseño sin depender de gafa.fit. `/next.html` monta el mismo SDK con `backend: "buq-next"` y fixtures de Next Studio (`next-studio-e0f9`): calendario, paquetes, membresías, productos, coaches y salones. Login/reserva/compra/wallet/puntos tiran `BuqNextUnavailableError` (`no disponible en Buq Next aún`).
 - **Estado real por widget (verificado corriendo el preview, no solo leyendo código):**
   | Widget | Estado | Notas |
   |---|---|---|
