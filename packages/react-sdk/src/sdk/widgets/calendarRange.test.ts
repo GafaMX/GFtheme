@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, fetchRangeFor, meetingDateKey, rangeForView, shiftAnchor, toIsoDate, toIsoDateInZone } from "./calendarRange";
+import { fetchRangeFor, meetingDateKey, toIsoDateInZone } from "./calendarRange";
 
 describe("toIsoDateInZone", () => {
   // 6:00 CEST del martes 6 oct = 04:00 UTC = 22:00 CDMX del lunes 5.
@@ -31,46 +31,6 @@ describe("meetingDateKey", () => {
 
   it("si el ISO no parsea, usa los primeros 10 caracteres", () => {
     expect(meetingDateKey("2026-10-06 no-es-fecha")).toBe("2026-10-06");
-  });
-});
-
-describe("rangeForView week", () => {
-  const thursday = new Date(2026, 9, 1, 12, 0, 0);
-
-  it("arranca el día de consulta y cubre 7 días, no lunes–domingo", () => {
-    expect(rangeForView(thursday, "week", thursday)).toEqual({
-      from: "2026-10-01",
-      to: "2026-10-07",
-    });
-  });
-
-  it("un lunes coincide con la semana civil, pero sigue siendo 7 desde hoy", () => {
-    const monday = new Date(2026, 9, 5, 9, 0, 0);
-    expect(rangeForView(monday, "week", monday)).toEqual({
-      from: "2026-10-05",
-      to: "2026-10-11",
-    });
-  });
-
-  it("si el ancla quedó en el pasado, recorta hasta hoy", () => {
-    const lastMonday = new Date(2026, 8, 28, 9, 0, 0);
-    expect(rangeForView(lastMonday, "week", thursday)).toEqual({
-      from: "2026-10-01",
-      to: "2026-10-07",
-    });
-  });
-
-  it("la siguiente ventana son otros 7 días hacia adelante", () => {
-    const next = new Date(2026, 9, 8, 12, 0, 0);
-    expect(rangeForView(next, "week", thursday)).toEqual({
-      from: "2026-10-08",
-      to: "2026-10-14",
-    });
-  });
-
-  it("desde hoy no hay semana anterior (el ancla caería antes de hoy)", () => {
-    expect(toIsoDate(shiftAnchor(thursday, "week", -1)) < toIsoDate(thursday)).toBe(true);
-    expect(toIsoDate(addDays(thursday, -7))).toBe("2026-09-24");
   });
 });
 

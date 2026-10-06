@@ -61,7 +61,7 @@ export function addDays(date: Date, days: number): Date {
   return next;
 }
 
-/** Lunes como primer dia: el date-picker mensual sigue esa rejilla. */
+/** Lunes como primer dia: es lo que usan los calendarios de los socios. */
 export function startOfWeek(date: Date): Date {
   const start = new Date(date);
   const weekday = (start.getDay() + 6) % 7;
@@ -71,19 +71,18 @@ export function startOfWeek(date: Date): Date {
 }
 
 /**
- * Semana = 7 días desde el día de consulta, no lunes–domingo. A mitad de
- * semana el lunes–miércoles ya pasaron y no se reservan (Fitspin / v1).
- * Si el ancla quedó atrás de hoy, la ventana arranca hoy.
+ * Rango que hay que pedir para la ventana visible, y solo para esa. Antes se
+ * pedia `calendar_days` entero (21 dias en Bunker) aunque en pantalla solo
+ * cupieran unos pocos.
  */
-export function rangeForView(anchor: Date, view: CalendarView, today: Date = new Date()): DateRange {
+export function rangeForView(anchor: Date, view: CalendarView): DateRange {
   if (view === "day") {
     const day = toIsoDate(anchor);
     return { from: day, to: day };
   }
 
-  const todayIso = toIsoDate(today);
-  const startIso = toIsoDate(anchor) < todayIso ? todayIso : toIsoDate(anchor);
-  return { from: startIso, to: toIsoDate(addDays(parseIsoDate(startIso), 6)) };
+  const start = startOfWeek(anchor);
+  return { from: toIsoDate(start), to: toIsoDate(addDays(start, 6)) };
 }
 
 /**

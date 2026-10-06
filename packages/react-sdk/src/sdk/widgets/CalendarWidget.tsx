@@ -470,9 +470,6 @@ export function CalendarWidget({
   // hasta su horizonte (calendar_days). Fuera de eso, la flecha se deshabilita
   // en vez de llevar a una semana vacia.
   const todayIso = toIsoDate(new Date());
-  useEffect(() => {
-    if (anchorIso < todayIso) setAnchorIso(todayIso);
-  }, [anchorIso, todayIso]);
   const horizonDays = useMemo(() => {
     if (activeLocation?.calendarDays != null) return Math.max(1, activeLocation.calendarDays);
     const fromBookable = bookableLocations
@@ -484,10 +481,7 @@ export function CalendarWidget({
     () => toIsoDate(addDays(new Date(), horizonDays - 1)),
     [horizonDays],
   );
-  const canGoPrev =
-    view === "week"
-      ? toIsoDate(shiftAnchor(anchor, view, -1)) >= todayIso
-      : rangeForView(shiftAnchor(anchor, view, -1), view).to >= todayIso;
+  const canGoPrev = rangeForView(shiftAnchor(anchor, view, -1), view).to >= todayIso;
   const canGoNext = rangeForView(shiftAnchor(anchor, view, 1), view).from <= horizonIso;
 
   const activeLocationIdSet = useMemo(
@@ -543,9 +537,10 @@ export function CalendarWidget({
 
   const days = useMemo(() => daysInRange(range), [range]);
 
-  // Vista semana: la primera columna ya es el día de consulta. El scroll
-  // solo se usa si hoy no tiene cupo y hay que encuadrar el primer día
-  // reservable. Una vez por ventana; si el usuario scrollea, no se pelea.
+  // Vista semana: al pintar una semana nueva, el scroll horizontal arranca en
+  // el primer dia con disponibilidad (hoy, normalmente) en vez de en lunes,
+  // para ver lo reservable sin scrollear. Solo una vez por semana visible:
+  // si el usuario ya scrolleo a mano, no se lo peleamos en cada refetch.
   const weekGridRef = useRef<HTMLDivElement>(null);
   const weekScrolledKeyRef = useRef<string | undefined>(undefined);
   // "Hoy" fuerza el re-encuadre aunque la semana visible no cambie.
@@ -714,17 +709,11 @@ export function CalendarWidget({
         onToday={() => {
           allowAutoSkipRef.current = true;
           // En semana, "Hoy" tambien re-encuadra el scroll al dia disponible
-          // aunque ya estemos en la misma ventana de 7 dias.
+          // aunque ya estemos en la misma semana.
           weekScrolledKeyRef.current = undefined;
           setTodayTick((tick) => tick + 1);
-          // Día: si hoy ya no tiene cupo, salta al primer día con horarios.
-          // Semana: siempre arranca en el día de consulta (7 visibles).
-          const targetIso =
-            view === "week"
-              ? todayIso
-              : firstBookableDayIso && firstBookableDayIso !== todayIso
-                ? firstBookableDayIso
-                : todayIso;
+          // Hoy sin cupo → el primer dia con disponibilidad (no un dia vacio).
+          const targetIso = firstBookableDayIso && firstBookableDayIso !== todayIso ? firstBookableDayIso : todayIso;
           if (targetIso !== anchorIso) enterDay(targetIso > anchorIso ? "next" : "prev");
           setAnchorIso(targetIso);
         }}
