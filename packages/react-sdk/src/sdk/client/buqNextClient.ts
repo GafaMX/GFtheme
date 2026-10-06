@@ -109,7 +109,7 @@ export function createBuqNextClient(
         id: clase.numericId,
         name: servicio?.nombre ?? "Clase",
         brandSlug: brand.slug,
-        startsAt: classStartsAt(clase.diasDesdeHoy, clase.hora, now),
+        startsAt: classStartsAt(clase.diasDesdeHoy, clase.hora, now, clase.zonaHoraria),
         timezone: clase.zonaHoraria,
         durationMinutes: servicio?.duracionMinutos,
         description: clase.nota,
@@ -162,7 +162,7 @@ export function createBuqNextClient(
       const from = filters.from ?? filters.startDate;
       const to = filters.to ?? filters.endDate;
       return meetings().filter((meeting) => {
-        if (!meetingInRange(meeting.startsAt, from, to)) return false;
+        if (!meetingInRange(meeting.startsAt, from, to, meeting.timezone)) return false;
         if (filters.serviceId != null && Number(meeting.serviceId) !== Number(filters.serviceId)) {
           return false;
         }

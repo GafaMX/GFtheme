@@ -108,20 +108,69 @@ export function lineaSolicitudVentaToCartRef(
   };
 }
 
-export function classStartsAt(diasDesdeHoy: number, hora: string, now = new Date()): string {
-  const [hours, minutes] = hora.split(":").map(Number);
-  const date = new Date(now);
-  date.setDate(date.getDate() + diasDesdeHoy);
-  date.setHours(hours || 0, minutes || 0, 0, 0);
-  return date.toISOString();
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
 }
 
-export function isoDateOnly(value: string): string {
+/** Día de calendario del reloj local (el mismo que usa el widget con `toIsoDate`). */
+function calendarDateLocal(now: Date, daysFromToday: number): string {
+  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysFromToday);
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+/** Offset de `timeZone` en `instant` (ms a sumar a UTC para obtener la hora de pared). */
+function timeZoneOffsetMs(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(instant);
+  const read = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+  const hour = read("hour") % 24;
+  const asUtc = Date.UTC(read("year"), read("month") - 1, read("day"), hour, read("minute"), read("second"));
+  return asUtc - instant.getTime();
+}
+
+/**
+ * Instante ISO de una hora de pared en la zona de la sede. Así el calendario
+ * pinta 07:00 en CDMX aunque el preview corra en UTC.
+ */
+export function classStartsAt(
+  diasDesdeHoy: number,
+  hora: string,
+  now = new Date(),
+  timeZone = "America/Mexico_City",
+): string {
+  const [hours, minutes] = hora.split(":").map(Number);
+  const day = calendarDateLocal(now, diasDesdeHoy);
+  const wall = `${day}T${pad2(hours || 0)}:${pad2(minutes || 0)}:00`;
+  const utcGuess = new Date(`${wall}Z`);
+  const instant = new Date(utcGuess.getTime() - timeZoneOffsetMs(utcGuess, timeZone));
+  return instant.toISOString();
+}
+
+export function isoDateOnly(value: string, timeZone?: string): string {
+  if (!timeZone) return value.slice(0, 10);
+  try {
+    const date = new Date(value.includes("T") ? value : value.replace(" ", "T"));
+    if (!Number.isNaN(date.getTime())) {
+      const label = date.toLocaleDateString("en-CA", { timeZone });
+      if (/^\d{4}-\d{2}-\d{2}$/.test(label)) return label;
+    }
+  } catch {
+    // fallback
+  }
   return value.slice(0, 10);
 }
 
-export function meetingInRange(startsAt: string, from?: string, to?: string): boolean {
-  const day = isoDateOnly(startsAt);
+export function meetingInRange(startsAt: string, from?: string, to?: string, timeZone?: string): boolean {
+  const day = isoDateOnly(startsAt, timeZone);
   if (from && day < isoDateOnly(from)) return false;
   if (to && day > isoDateOnly(to)) return false;
   return true;

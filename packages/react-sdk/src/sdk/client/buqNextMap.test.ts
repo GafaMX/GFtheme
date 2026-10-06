@@ -4,6 +4,7 @@ import {
   CART_LINE_TO_VENTA_TIPO,
   VENTA_TIPO_TO_CART_LINE,
   cartLineToLineaSolicitudVenta,
+  classStartsAt,
   indexBuqNextIds,
   lineaSolicitudVentaToCartRef,
   ofertaToCatalogItem,
@@ -63,5 +64,18 @@ describe("CartLine ↔ lineaSolicitudVenta", () => {
     const item = ofertaToCatalogItem(NEXT_STUDIO_FIXTURES.ofertas[0]);
     expect(item.raw?.id).toBe("oferta-paquete-5-0001");
     expect(item.id).toBe(9701);
+  });
+});
+
+describe("classStartsAt", () => {
+  it("07:00 de pared en CDMX no se corre a UTC", () => {
+    const iso = classStartsAt(0, "07:00", new Date("2026-10-06T18:00:00.000Z"), "America/Mexico_City");
+    const hour = new Date(iso).toLocaleTimeString("es-MX", {
+      timeZone: "America/Mexico_City",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: false,
+    });
+    expect(hour.replace(/^24/, "00")).toMatch(/07:00/);
   });
 });
