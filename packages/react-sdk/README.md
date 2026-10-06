@@ -11,6 +11,7 @@ Foundation for the next GFTheme SDK: a modern, embeddable React package that can
 - Brand theme tokens mapped to scoped CSS variables.
 - Initial mobile-first widgets for calendar, catalog, auth, profile, and purchase buttons.
 - Mock client for local development and a legacy `window.GafaFitSDK` adapter seam.
+- Opt-in `buqNextClient` (F0', rama `v2/buq-next`) that reads local Buq Next fixtures. Default remains gafa.fit.
 
 ## Calendar scope
 
@@ -146,7 +147,44 @@ npm run typecheck
 npm test
 npm run build
 npm run build:embed
-npm run publish:embed
 ```
 
-The current API client intentionally returns mock data unless a host injects the legacy `window.GafaFitSDK`. The next implementation step is to replace the mock client with real gafa.fit/gafa.pay HTTP adapters.
+`npm run publish:embed` publica el IIFE a `docs/v2-sdk/` y **no se corre** en el trabajo de Buq Next. Un merge a `v2/main` llega a `cdn-live` y a los sitios de clientes.
+
+Local:
+
+| URL | Cliente | Para qué |
+| --- | --- | --- |
+| `/` o `/playground.html` | mock (`useMockClient`) | Diseño sin API |
+| `/preview.html` | fixtures de cuenta | Overlay de perfil / checkout |
+| `/live.html` | `httpGafaClient` → gafa.fit | Compañía de prueba real |
+| **`/next.html`** | **`buqNextClient` (fixtures Buq Next)** | F0' — calendario y catálogo de Next Studio |
+
+```sh
+cd packages/react-sdk
+npm install
+npm run dev
+# abrir http://localhost:5173/next.html
+# o http://localhost:5173/playground.html?backend=buq-next
+```
+
+`?backend=buq-next`, `data-backend="buq-next"` o `{ "BACKEND": "buq-next" }` en `data-gf-options` son el único interruptor. `BUQ_ENV: "next-dev"` solo apunta la URL a `https://dev-new.buq.partners`; **no** cambia el cliente. El Hub no puede mandar `BACKEND`.
+
+### `buqNextClient` — cubierto vs pendiente (F0')
+
+Lee fixtures con la forma del contrato público de Buq Next (sede `next-studio-e0f9`): calendario por sede, catálogo (paquetes / membresías / productos), coaches y salones. Mapea `CartLine` ↔ `lineaSolicitudVenta` (`combo→paquete`, `membership→membresia`, `product→producto`; id numérico ↔ uuid).
+
+| Método `GafaClient` | F0' |
+| --- | --- |
+| `listBrands` / `listLocations` / `listServices` / `listStaff` | fixtures |
+| `listMeetings` / `getMeeting` | fixtures (por sede, filtros servicio/coach/salón) |
+| `listCombos` / `listMemberships` / `listProducts` | fixtures |
+| `login` / `register` / password / `getProfile` / `updateProfile` / `listRegistrationFields` | error tipado |
+| `listUserCredits` / `Memberships` / `Reservations` / `Purchases` / `getUserActivityTotals` | error tipado |
+| `getReservationContext` / `createReservation` / `cancelReservation` / `cancelWaitlist` | error tipado |
+| `getCheckoutConfig` / descuentos / gift / `reservatePurchase` / `previewPurchase` / Recurrente | error tipado |
+| Store credit / puntos | no hay método nativo; `getProfile` (donde vive el saldo) tira el mismo error |
+
+El error es `BuqNextUnavailableError` (`code: BUQ_NEXT_UNAVAILABLE`, mensaje `no disponible en Buq Next aún`). Los widgets lo muestran; no tumba calendario ni catálogo. `logout` es no-op.
+
+This package still defaults to the real gafa.fit HTTP client (`createHttpGafaClient`) unless a host injects a mock or opts into `buq-next`.

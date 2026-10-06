@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { GafaBrandTheme } from "./theme/theme";
 import { withBuqEnvironment, type BuqEnvironmentId } from "./config/buqEnvironments";
+import { parseSdkBackendId, type SdkBackendId } from "./config/sdkBackend";
 import { coerceFlag } from "./cart/membershipPayOptions";
 
 /**
@@ -112,8 +113,14 @@ export const sdkConfigSchema = z
     /**
      * Backend de Buq. Default production. `staging` = buq.com.mx (Stripe nuevo),
      * `development` = buq.technology. Tambien se puede poner solo `GAFA_FIT_URL`.
+     * `next-dev` = https://dev-new.buq.partners (preview Buq Next; no cambia el cliente).
      */
     environment: z.string().optional(),
+    /**
+     * Cliente de datos. Default `gafa` (httpGafaClient). `buq-next` es opt-in
+     * de preview (rama `v2/buq-next`); el Hub no puede mandarlo.
+     */
+    backend: z.string().optional(),
     /** Script de GafaPayFront (Stripe/PayPal). Default: el del entorno. */
     gafaPayFrontUrl: z.string().optional(),
     /**
@@ -147,6 +154,7 @@ export const sdkConfigSchema = z
 export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   theme?: GafaBrandTheme;
   environment: BuqEnvironmentId;
+  backend?: SdkBackendId;
   apiBaseUrl: string;
   gafaPayFrontUrl: string;
   hubUrl: string;
@@ -168,6 +176,8 @@ const legacyOptionsSchema = z
     CAPTCHA_PUBLIC_KEY: z.string().optional(),
     CAPTCHA_SECRET_KEY: z.string().optional(),
     BUQ_ENV: z.string().optional(),
+    BACKEND: z.string().optional(),
+    backend: z.string().optional(),
     GAFAPAY_FRONT_URL: z.string().optional(),
     HUB_URL: z.string().optional(),
     ANALYTICS: z.union([z.boolean(), z.string()]).optional(),
@@ -191,6 +201,7 @@ export function parseGafaSdkConfig(input: unknown): GafaSdkConfig {
     ...parsed,
     ...captcha,
     environment: resolved.environment,
+    backend: parseSdkBackendId(parsed.backend),
     apiBaseUrl: resolved.apiBaseUrl,
     gafaPayFrontUrl: resolved.gafaPayFrontUrl,
     hubUrl: resolved.hubUrl,
@@ -214,6 +225,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     captchaPublicKey: legacyOptions.CAPTCHA_PUBLIC_KEY ?? raw.captchaPublicKey,
     captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY ?? raw.captchaSecretKey,
     environment: legacyOptions.BUQ_ENV,
+    backend: parseSdkBackendId(legacyOptions.BACKEND ?? legacyOptions.backend),
     gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL,
     hubUrl: legacyOptions.HUB_URL,
     analyticsEnabled: parseAnalyticsFlag(legacyOptions.ANALYTICS),

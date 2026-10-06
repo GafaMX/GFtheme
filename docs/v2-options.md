@@ -6,6 +6,8 @@ Merge: **defaults SDK → Hub → este JSON → query**. Contrato: [`v2-hub/remo
 
 Query de prueba (no uses en producción): `?buq-env=` y `?hub-url=`. Nada más.
 
+`BACKEND` / `?backend=` / `data-backend` **no** están en este catálogo ni en el Hub. Solo preview local de la rama `v2/buq-next` (`docs` del paquete: `packages/react-sdk/README.md`). Default de producción = gafa.fit.
+
 ---
 
 ## HTML mínimo de producción
@@ -37,7 +39,7 @@ Query de prueba (no uses en producción): `?buq-env=` y `?hub-url=`. Nada más.
 | `THEME` | `theme` | no | sí | Paleta, logo, lock. Detalle abajo y en [`v2-agente.md`](v2-agente.md#5-theme--colores-logo-lock). |
 | `CONCIERGE` / `concierge` | `concierge` | no | sí | `true` \| `{}` \| partial \| objeto completo. Ver abajo. |
 | `SHOW_MEMBERSHIP_OPTIONS` | `showMembershipOptions` | no | sí | `true` muestra el link de membresía. |
-| `BUQ_ENV` | `environment` | no | sí | `production` · `staging` · `development`. Query `?buq-env=` gana. |
+| `BUQ_ENV` | `environment` | no | sí | `production` · `staging` · `development`. `next-dev` es solo la rama `v2/buq-next` (URL `dev-new.buq.partners`; no cambia el cliente). Query `?buq-env=` gana. |
 | `GAFAPAY_FRONT_URL` | `gafaPayFrontUrl` | no | sí | Pisa el script de Stripe/PayPal. |
 | `HUB_URL` | `hubUrl` | no | sí | Analytics + remote config. Default `https://hub.buq.partners`. Query `?hub-url=` gana. |
 | `ANALYTICS` | `analyticsEnabled` | no | sí | `false` apaga heartbeats. |

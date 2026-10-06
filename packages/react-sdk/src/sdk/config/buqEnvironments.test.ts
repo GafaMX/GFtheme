@@ -23,12 +23,15 @@ describe("buq environments", () => {
     expect(parseBuqEnvironmentId("com.mx")).toBe("staging");
     expect(parseBuqEnvironmentId("technology")).toBe("development");
     expect(parseBuqEnvironmentId("partners")).toBe("production");
+    expect(parseBuqEnvironmentId("next-dev")).toBe("next-dev");
+    expect(parseBuqEnvironmentId("dev-new")).toBe("next-dev");
   });
 
   it("deduce el entorno de GAFA_FIT_URL", () => {
     expect(resolveBuqEnvironment({ apiBaseUrl: "https://buq.com.mx/" }).id).toBe("staging");
     expect(resolveBuqEnvironment({ apiBaseUrl: "https://buq.technology/" }).id).toBe("development");
     expect(resolveBuqEnvironment({ apiBaseUrl: "https://buq.partners/" }).id).toBe("production");
+    expect(resolveBuqEnvironment({ apiBaseUrl: "https://dev-new.buq.partners/" }).id).toBe("next-dev");
   });
 
   it("?buq-env=staging gana sobre el JSON", () => {
