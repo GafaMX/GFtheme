@@ -21,6 +21,7 @@ import { DateField } from "./DateField";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { ACCOUNT_HISTORY_CHUNK, remainingAccountHistory, visibleAccountHistory } from "../account/accountHistory";
 import { WidgetShell } from "./WidgetShell";
+import { useTurnstileAccess, type TurnstileAccess } from "../account/turnstileAccess";
 
 export type ProfileWidgetProps = {
   client?: GafaClient;
@@ -161,6 +162,9 @@ export function ProfileWidget({
     queryFn: () => client!.getProfile(),
     enabled: Boolean(client),
   });
+  // Sólo The Base (company 204): QR del torniquete. Para el resto no hace nada.
+  const turnstileQuery = useTurnstileAccess(companyId, profileQuery.data?.id);
+  const turnstile = turnstileQuery.data?.vigente ? turnstileQuery.data : null;
 
   const loyaltyQuery = useQuery({
     queryKey: ["loyalty", hubUrl, companyId, profileQuery.data?.id],
@@ -522,7 +526,11 @@ export function ProfileWidget({
         </div>
       </section>
 
-      {qrReservation ? <QrModal reservation={qrReservation} onClose={() => setQrReservation(null)} /> : null}
+      {turnstile ? <TurnstileAccessCard access={turnstile} /> : null}
+
+      {qrReservation ? (
+        <QrModal reservation={qrReservation} turnstile={turnstile} onClose={() => setQrReservation(null)} />
+      ) : null}
 
       {pendingCancel ? (
         <ConfirmDialog
@@ -1637,10 +1645,35 @@ function PasswordForm({
   );
 }
 
-function QrModal({ reservation, onClose }: { reservation: UserReservation; onClose(): void }) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(
-    reservation.qrHash!,
-  )}`;
+function TurnstileAccessCard({ access }: { access: TurnstileAccess }) {
+  return (
+    <section className="gafa-acct-qr gafa-acct-turnstile" aria-label="Tu acceso al gimnasio">
+      <p className="gafa-eyebrow">Tu acceso al gimnasio</p>
+      {access.png ? (
+        <img className="gafa-acct-qr__image" src={access.png} alt="Código QR de acceso" />
+      ) : (
+        <a className="gafa-sdk-button" href={access.pagina} target="_blank" rel="noreferrer">
+          Abrir mi QR de acceso
+        </a>
+      )}
+      <p className="gafa-acct-qr__when">Acércalo al lector de la puerta y del torno.</p>
+    </section>
+  );
+}
+
+function QrModal({
+  reservation,
+  turnstile,
+  onClose,
+}: {
+  reservation: UserReservation;
+  turnstile?: TurnstileAccess | null;
+  onClose(): void;
+}) {
+  // The Base: el QR que abre el torno sustituye al hash de la reserva.
+  const qrUrl =
+    turnstile?.png ??
+    `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(reservation.qrHash!)}`;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1659,7 +1692,7 @@ function QrModal({ reservation, onClose }: { reservation: UserReservation; onClo
       }}
     >
       <div className="gafa-acct-qr" role="dialog" aria-modal="true" aria-label="Código QR de tu clase">
-        <p className="gafa-eyebrow">Muestra este código en recepción</p>
+        <p className="gafa-eyebrow">{turnstile?.png ? "Muestra este código en el torno" : "Muestra este código en recepción"}</p>
         <h3>{reservation.serviceName}</h3>
         <p className="gafa-acct-qr__when">
           {capitalize(formatWeekday(reservation.startsAt, reservation.timezone))} ·{" "}
