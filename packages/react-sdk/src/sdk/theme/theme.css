@@ -478,12 +478,6 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk svg.gafa-acct-qr__image {
   width: 240px !important;
 }
 
-html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-acct-checkin img.gafa-acct-qr__image,
-html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-acct-checkin svg.gafa-acct-qr__image {
-  height: min(240px, 70vw) !important;
-  width: min(240px, 70vw) !important;
-}
-
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-seatmap__seat img,
 html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-seatmap__fixture-img {
   height: 100% !important;

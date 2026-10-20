@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import type { GafaClient, UserProfile, UserReservation } from "../client/types";
+import type { GafaClient, UserMembership, UserProfile, UserReservation } from "../client/types";
 import { ProfileWidget } from "./ProfileWidget";
 
 beforeAll(() => {
@@ -29,12 +29,22 @@ const reservation: UserReservation = {
   canCancel: true,
 };
 
-function mockClient(profile: UserProfile, reservations: UserReservation[] = []): GafaClient {
+const membership: UserMembership = {
+  id: 9,
+  name: "Mensual The Base",
+  expiresAt: "2099-12-01",
+};
+
+function mockClient(
+  profile: UserProfile,
+  reservations: UserReservation[] = [],
+  memberships: UserMembership[] = [],
+): GafaClient {
   return {
     getProfile: async () => profile,
     listBrands: async () => [{ id: 225, name: "The Base", slug: "the-base" }],
     listUserCredits: async () => [],
-    listUserMemberships: async () => [],
+    listUserMemberships: async () => memberships,
     listUserReservations: async () => reservations,
     listUserPurchases: async () => [],
     listLocations: async () => [],
@@ -58,19 +68,23 @@ function mockClient(profile: UserProfile, reservations: UserReservation[] = []):
   } as GafaClient;
 }
 
-function renderProfile(profile: UserProfile, reservations: UserReservation[] = []) {
+function renderProfile(
+  profile: UserProfile,
+  reservations: UserReservation[] = [],
+  memberships: UserMembership[] = [],
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <ProfileWidget client={mockClient(profile, reservations)} brandSlug="the-base" />
+      <ProfileWidget client={mockClient(profile, reservations, memberships)} brandSlug="the-base" />
     </QueryClientProvider>,
   );
 }
 
 describe("perfil: QR de torniquete", () => {
-  it("pinta el QR y el número cuando turnstile_card_no viene en el perfil", async () => {
+  it("no inventa una card nueva en Mi actividad", async () => {
     renderProfile({
       id: 1,
       name: "Ana Ruiz",
@@ -80,29 +94,34 @@ describe("perfil: QR de torniquete", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Tu código de acceso")).toBeTruthy();
-    });
-
-    expect(screen.getByText("1234567")).toBeTruthy();
-    expect(screen.getByRole("img", { name: "Código QR de acceso" }).tagName).toBe("svg");
-    expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
-  });
-
-  it("no cambia nada si el campo falta o es null", async () => {
-    renderProfile({
-      id: 1,
-      name: "Ana Ruiz",
-      firstName: "Ana",
-      email: "ana@fitspin.mx",
-      turnstileCardNo: null,
-    });
-
-    await waitFor(() => {
       expect(screen.getByText("Sin clases reservadas")).toBeTruthy();
     });
 
     expect(screen.queryByLabelText("Tu código de acceso")).toBeNull();
-    expect(screen.queryByAltText("Código QR de acceso")).toBeNull();
+    expect(screen.queryByText("Tu QR de acceso")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ver mi QR" })).toBeNull();
+  });
+
+  it("con membresía y sin reserva, Ver mi QR abre el modal existente", async () => {
+    renderProfile(
+      {
+        id: 1,
+        name: "Ana Ruiz",
+        firstName: "Ana",
+        email: "ana@thebase.mx",
+        turnstileCardNo: "1234567",
+      },
+      [],
+      [membership],
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Ver mi QR" }));
+
+    expect(screen.getByRole("dialog", { name: "Código QR de tu clase" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Código QR de la reserva" }).tagName).toBe("svg");
+    expect(screen.getByText("1234567")).toBeTruthy();
+    expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
+    expect(screen.queryByLabelText("Tu código de acceso")).toBeNull();
   });
 
   it("el QR de la reserva usa el número de torniquete, no el hash", async () => {
@@ -122,7 +141,44 @@ describe("perfil: QR de torniquete", () => {
     expect(screen.getByRole("img", { name: "Código QR de la reserva" }).tagName).toBe("svg");
     expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
     expect(document.body.innerHTML).not.toContain("hash-de-clase");
-    expect(screen.getAllByText("87654321").length).toBeGreaterThan(0);
+    expect(screen.getByText("87654321")).toBeTruthy();
+  });
+
+  it("muestra Ver mi QR si hay turnstile_card_no aunque la reserva no tenga hash", async () => {
+    const withoutHash = { ...reservation, qrHash: undefined };
+    renderProfile(
+      {
+        id: 1,
+        name: "Ana Ruiz",
+        firstName: "Ana",
+        email: "ana@thebase.mx",
+        turnstileCardNo: "1234567",
+      },
+      [withoutHash],
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Ver mi QR" }));
+    expect(screen.getByRole("img", { name: "Código QR de la reserva" }).tagName).toBe("svg");
+    expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
+  });
+
+  it("en Mis clases también muestra Ver QR sin hash_qr si hay torniquete", async () => {
+    const withoutHash = { ...reservation, qrHash: undefined };
+    renderProfile(
+      {
+        id: 1,
+        name: "Ana Ruiz",
+        firstName: "Ana",
+        email: "ana@thebase.mx",
+        turnstileCardNo: "1234567",
+      },
+      [withoutHash],
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Mis clases" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Ver QR" }));
+    expect(screen.getByRole("img", { name: "Código QR de la reserva" }).tagName).toBe("svg");
+    expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
   });
 
   it("sin turnstile_card_no el QR de la reserva sigue usando el hash", async () => {

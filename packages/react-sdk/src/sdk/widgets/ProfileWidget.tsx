@@ -434,7 +434,6 @@ export function ProfileWidget({
           {tab === "overview" ? (
             <OverviewPanel
               profile={profile}
-              checkInCardNo={turnstileCardNoOf(profile)}
               nextClass={upcoming[0] ?? waitlist[0]}
               upcomingCount={upcoming.length}
               waitlistCount={waitlist.length}
@@ -469,6 +468,7 @@ export function ProfileWidget({
               errorPast={pastQuery.isError}
               cancelPendingId={cancelMutation.isPending ? cancelMutation.variables?.id : undefined}
               paymentLabel={paymentLabel}
+              checkInCardNo={turnstileCardNoOf(profile)}
               onCancel={setPendingCancel}
               onShowQr={setQrReservation}
               onExploreClasses={goToClasses}
@@ -567,7 +567,6 @@ export function ProfileWidget({
 
 function OverviewPanel({
   profile,
-  checkInCardNo,
   nextClass,
   upcomingCount,
   waitlistCount,
@@ -587,8 +586,6 @@ function OverviewPanel({
   onExplorePackages,
 }: {
   profile: UserProfile;
-  /** Numero de torniquete del backend; si viene, el QR de acceso lo usa tal cual. */
-  checkInCardNo?: string | null;
   nextClass?: UserReservation;
   upcomingCount: number;
   waitlistCount: number;
@@ -627,10 +624,11 @@ function OverviewPanel({
         }))
       : [];
 
+  const checkInCardNo = turnstileCardNoOf(profile);
+  const showMembershipQr = Boolean(checkInCardNo && memberships.length > 0);
+
   return (
     <div className="gafa-acct-overview">
-      {checkInCardNo ? <CheckInQrCard cardNo={checkInCardNo} /> : null}
-
       <section className="gafa-acct-next" aria-label="Tu próxima clase">
         <div className="gafa-acct-next__label">
           <span className="gafa-acct-next__label-text">
@@ -662,7 +660,7 @@ function OverviewPanel({
               ) : null}
             </div>
             <div className="gafa-acct-next__actions">
-              {nextClass.qrHash && !nextClass.isWaitlist ? (
+              {canShowReservationQr(nextClass, checkInCardNo) ? (
                 <button className="gafa-sdk-button" type="button" onClick={() => onShowQr(nextClass)}>
                   Ver mi QR
                 </button>
@@ -694,9 +692,19 @@ function OverviewPanel({
               <p>Sin clases reservadas</p>
               <span className="gafa-muted">Reserva desde el calendario y aparecerá aquí con tu QR.</span>
             </div>
-            <button className="gafa-sdk-button gafa-acct-next__empty-cta" type="button" onClick={onExploreClasses}>
-              Reservar
-            </button>
+            {showMembershipQr ? (
+              <button
+                className="gafa-sdk-button gafa-acct-next__empty-cta"
+                type="button"
+                onClick={() => onShowQr(MEMBERSHIP_QR)}
+              >
+                Ver mi QR
+              </button>
+            ) : (
+              <button className="gafa-sdk-button gafa-acct-next__empty-cta" type="button" onClick={onExploreClasses}>
+                Reservar
+              </button>
+            )}
           </div>
         )}
 
@@ -974,6 +982,7 @@ function ClassesPanel({
   errorPast,
   cancelPendingId,
   paymentLabel,
+  checkInCardNo,
   onCancel,
   onShowQr,
   onExploreClasses,
@@ -990,6 +999,7 @@ function ClassesPanel({
   errorPast: boolean;
   cancelPendingId?: number;
   paymentLabel(reservation: UserReservation): string | null;
+  checkInCardNo?: string | null;
   onCancel(reservation: UserReservation): void;
   onShowQr(reservation: UserReservation): void;
   onExploreClasses(): void;
@@ -1036,6 +1046,7 @@ function ClassesPanel({
                 reservation={reservation}
                 paymentLabel={paymentLabel(reservation)}
                 cancelPending={cancelPendingId === reservation.id}
+                checkInCardNo={checkInCardNo}
                 onCancel={onCancel}
                 onShowQr={onShowQr}
               />
@@ -1175,6 +1186,7 @@ function ReservationCard({
   paymentLabel,
   historic = false,
   cancelPending,
+  checkInCardNo,
   onCancel,
   onShowQr,
 }: {
@@ -1183,10 +1195,12 @@ function ReservationCard({
   paymentLabel?: string | null;
   historic?: boolean;
   cancelPending?: boolean;
+  checkInCardNo?: string | null;
   onCancel?(reservation: UserReservation): void;
   onShowQr?(reservation: UserReservation): void;
 }) {
-  const showActions = !historic && !reservation.cancelled && (onCancel || onShowQr);
+  const showQr = Boolean(onShowQr && canShowReservationQr(reservation, checkInCardNo));
+  const showActions = !historic && !reservation.cancelled && (onCancel || showQr);
 
   return (
     <article
@@ -1225,8 +1239,8 @@ function ReservationCard({
 
       {showActions ? (
         <div className="gafa-acct-class__actions">
-          {reservation.qrHash && onShowQr ? (
-            <button className="gafa-sdk-button" type="button" onClick={() => onShowQr(reservation)}>
+          {showQr ? (
+            <button className="gafa-sdk-button" type="button" onClick={() => onShowQr?.(reservation)}>
               Ver QR
             </button>
           ) : null}
@@ -1650,16 +1664,6 @@ function PasswordForm({
   );
 }
 
-function CheckInQrCard({ cardNo }: { cardNo: string }) {
-  return (
-    <section className="gafa-acct-checkin" aria-label="Tu código de acceso">
-      <p className="gafa-eyebrow">Tu QR de acceso</p>
-      <LocalQr value={cardNo} label="Código QR de acceso" />
-      <p className="gafa-acct-checkin__number">{cardNo}</p>
-    </section>
-  );
-}
-
 /** QR en el navegador: el número de torniquete no se manda a ningún tercero. */
 function LocalQr({ value, label }: { value: string; label: string }) {
   return (
@@ -1705,11 +1709,13 @@ function QrModal({
     >
       <div className="gafa-acct-qr" role="dialog" aria-modal="true" aria-label="Código QR de tu clase">
         <p className="gafa-eyebrow">Muestra este código en recepción</p>
-        <h3>{reservation.serviceName}</h3>
-        <p className="gafa-acct-qr__when">
-          {capitalize(formatWeekday(reservation.startsAt, reservation.timezone))} ·{" "}
-          {formatTime(reservation.startsAt, reservation.timezone)}
-        </p>
+        {reservation.serviceName ? <h3>{reservation.serviceName}</h3> : null}
+        {reservation.startsAt ? (
+          <p className="gafa-acct-qr__when">
+            {capitalize(formatWeekday(reservation.startsAt, reservation.timezone))} ·{" "}
+            {formatTime(reservation.startsAt, reservation.timezone)}
+          </p>
+        ) : null}
         {cardNo ? (
           <LocalQr value={cardNo} label="Código QR de la reserva" />
         ) : (
@@ -1719,7 +1725,7 @@ function QrModal({
             alt="Código QR de la reserva"
           />
         )}
-        {cardNo ? <p className="gafa-acct-checkin__number">{cardNo}</p> : null}
+        {cardNo ? <p className="gafa-acct-qr__seat">{cardNo}</p> : null}
         {reservation.seatLabel ? <p className="gafa-acct-qr__seat">Lugar {reservation.seatLabel}</p> : null}
         <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
           Cerrar
@@ -1927,6 +1933,21 @@ function turnstileCardNoOf(profile: UserProfile): string | null {
   if (value == null) return null;
   const trimmed = String(value).trim();
   return trimmed || null;
+}
+
+/** Abre el QrModal existente cuando hay membresía y no hay reserva. */
+const MEMBERSHIP_QR: UserReservation = {
+  id: 0,
+  serviceName: "",
+  startsAt: "",
+  brandSlug: "",
+  isWaitlist: false,
+  isOverbooking: false,
+};
+
+function canShowReservationQr(reservation: UserReservation, cardNo?: string | null): boolean {
+  if (reservation.isWaitlist && !cardNo) return false;
+  return Boolean(reservation.qrHash || cardNo);
 }
 
 /** Solo el hash de reserva de otras marcas. Nunca el número de torniquete. */
