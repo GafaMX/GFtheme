@@ -418,6 +418,15 @@ export function ProfileWidget({
             </h2>
             <p>{section.subtitle}</p>
           </div>
+          {turnstileCardNoOf(profile) && !futureQuery.isLoading && upcoming.length === 0 ? (
+            <button
+              type="button"
+              className="gafa-sdk-button gafa-acct__buy"
+              onClick={() => setQrReservation(ACCESS_QR)}
+            >
+              Mi QR de acceso
+            </button>
+          ) : null}
           {tab === "purchases" ? (
             <button
               type="button"
@@ -625,7 +634,6 @@ function OverviewPanel({
       : [];
 
   const checkInCardNo = turnstileCardNoOf(profile);
-  const showMembershipQr = Boolean(checkInCardNo && memberships.length > 0);
 
   return (
     <div className="gafa-acct-overview">
@@ -692,19 +700,9 @@ function OverviewPanel({
               <p>Sin clases reservadas</p>
               <span className="gafa-muted">Reserva desde el calendario y aparecerá aquí con tu QR.</span>
             </div>
-            {showMembershipQr ? (
-              <button
-                className="gafa-sdk-button gafa-acct-next__empty-cta"
-                type="button"
-                onClick={() => onShowQr(MEMBERSHIP_QR)}
-              >
-                Ver mi QR
-              </button>
-            ) : (
-              <button className="gafa-sdk-button gafa-acct-next__empty-cta" type="button" onClick={onExploreClasses}>
-                Reservar
-              </button>
-            )}
+            <button className="gafa-sdk-button gafa-acct-next__empty-cta" type="button" onClick={onExploreClasses}>
+              Reservar
+            </button>
           </div>
         )}
 
@@ -1935,8 +1933,8 @@ function turnstileCardNoOf(profile: UserProfile): string | null {
   return trimmed || null;
 }
 
-/** Abre el QrModal existente cuando hay membresía y no hay reserva. */
-const MEMBERSHIP_QR: UserReservation = {
+/** Abre el QrModal existente cuando no hay reserva. */
+const ACCESS_QR: UserReservation = {
   id: 0,
   serviceName: "",
   startsAt: "",

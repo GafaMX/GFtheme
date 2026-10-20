@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import type { GafaClient, UserMembership, UserProfile, UserReservation } from "../client/types";
+import type { GafaClient, UserProfile, UserReservation } from "../client/types";
 import { ProfileWidget } from "./ProfileWidget";
 
 beforeAll(() => {
@@ -29,22 +29,12 @@ const reservation: UserReservation = {
   canCancel: true,
 };
 
-const membership: UserMembership = {
-  id: 9,
-  name: "Mensual The Base",
-  expiresAt: "2099-12-01",
-};
-
-function mockClient(
-  profile: UserProfile,
-  reservations: UserReservation[] = [],
-  memberships: UserMembership[] = [],
-): GafaClient {
+function mockClient(profile: UserProfile, reservations: UserReservation[] = []): GafaClient {
   return {
     getProfile: async () => profile,
     listBrands: async () => [{ id: 225, name: "The Base", slug: "the-base" }],
     listUserCredits: async () => [],
-    listUserMemberships: async () => memberships,
+    listUserMemberships: async () => [],
     listUserReservations: async () => reservations,
     listUserPurchases: async () => [],
     listLocations: async () => [],
@@ -68,23 +58,19 @@ function mockClient(
   } as GafaClient;
 }
 
-function renderProfile(
-  profile: UserProfile,
-  reservations: UserReservation[] = [],
-  memberships: UserMembership[] = [],
-) {
+function renderProfile(profile: UserProfile, reservations: UserReservation[] = []) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <ProfileWidget client={mockClient(profile, reservations, memberships)} brandSlug="the-base" />
+      <ProfileWidget client={mockClient(profile, reservations)} brandSlug="the-base" />
     </QueryClientProvider>,
   );
 }
 
 describe("perfil: QR de torniquete", () => {
-  it("no inventa una card nueva en Mi actividad", async () => {
+  it("sin reserva muestra Mi QR de acceso y abre el modal existente", async () => {
     renderProfile({
       id: 1,
       name: "Ana Ruiz",
@@ -93,34 +79,30 @@ describe("perfil: QR de torniquete", () => {
       turnstileCardNo: "1234567",
     });
 
-    await waitFor(() => {
-      expect(screen.getByText("Sin clases reservadas")).toBeTruthy();
-    });
-
-    expect(screen.queryByLabelText("Tu código de acceso")).toBeNull();
-    expect(screen.queryByText("Tu QR de acceso")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Ver mi QR" })).toBeNull();
-  });
-
-  it("con membresía y sin reserva, Ver mi QR abre el modal existente", async () => {
-    renderProfile(
-      {
-        id: 1,
-        name: "Ana Ruiz",
-        firstName: "Ana",
-        email: "ana@thebase.mx",
-        turnstileCardNo: "1234567",
-      },
-      [],
-      [membership],
-    );
-
-    fireEvent.click(await screen.findByRole("button", { name: "Ver mi QR" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Mi QR de acceso" }));
 
     expect(screen.getByRole("dialog", { name: "Código QR de tu clase" })).toBeTruthy();
     expect(screen.getByRole("img", { name: "Código QR de la reserva" }).tagName).toBe("svg");
     expect(screen.getByText("1234567")).toBeTruthy();
     expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
+    expect(screen.queryByLabelText("Tu código de acceso")).toBeNull();
+    expect(screen.getByText("Sin clases reservadas")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reservar" })).toBeTruthy();
+  });
+
+  it("no muestra el botón si turnstile_card_no falta", async () => {
+    renderProfile({
+      id: 1,
+      name: "Ana Ruiz",
+      firstName: "Ana",
+      email: "ana@fitspin.mx",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Sin clases reservadas")).toBeTruthy();
+    });
+
+    expect(screen.queryByRole("button", { name: "Mi QR de acceso" })).toBeNull();
     expect(screen.queryByLabelText("Tu código de acceso")).toBeNull();
   });
 
@@ -142,6 +124,7 @@ describe("perfil: QR de torniquete", () => {
     expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
     expect(document.body.innerHTML).not.toContain("hash-de-clase");
     expect(screen.getByText("87654321")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Mi QR de acceso" })).toBeNull();
   });
 
   it("muestra Ver mi QR si hay turnstile_card_no aunque la reserva no tenga hash", async () => {
