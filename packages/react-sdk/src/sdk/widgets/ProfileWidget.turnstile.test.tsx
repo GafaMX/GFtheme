@@ -179,4 +179,24 @@ describe("perfil: QR de torniquete", () => {
     expect(image.src).toContain(encodeURIComponent("hash-de-clase"));
     expect(screen.queryByText("hash-de-clase")).toBeNull();
   });
+  it("no muestra Ver mi QR en lista de espera aunque haya turnstile_card_no", async () => {
+    renderProfile(
+      {
+        id: 1,
+        name: "Ana Ruiz",
+        firstName: "Ana",
+        email: "ana@thebase.mx",
+        turnstileCardNo: "87654321",
+      },
+      [{ ...reservation, isWaitlist: true }],
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Open Gym").length).toBeGreaterThan(0);
+    });
+
+    expect(screen.queryByRole("button", { name: "Ver mi QR" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ver QR" })).toBeNull();
+    expect(screen.queryByText("87654321")).toBeNull();
+  });
 });
