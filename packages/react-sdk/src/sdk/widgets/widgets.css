@@ -5033,6 +5033,11 @@
   width: 240px;
 }
 
+svg.gafa-acct-qr__image {
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
 .gafa-acct-qr__seat {
   font-weight: 700;
   margin: 0 0 var(--gafa-space-2);

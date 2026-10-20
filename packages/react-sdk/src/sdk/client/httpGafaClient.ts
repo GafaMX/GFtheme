@@ -127,6 +127,8 @@ type RawUserProfile = {
    */
   custom_fields?: unknown;
   catalog_values?: unknown;
+  /** Marcas en TURNSTILE_BRANDS; null/ausente en el resto. No inventarlo. */
+  turnstile_card_no?: string | number | null;
 };
 
 type RawUserCredit = {
@@ -561,7 +563,23 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       storeCreditTotal: store,
       memberSince: raw.created_at,
       customFields: readCustomFieldValues(raw),
+      turnstileCardNo: readTurnstileCardNo(raw.turnstile_card_no),
     };
+  }
+
+  /**
+   * El backend manda el numero ya generado. Aqui solo se lee: string tal cual,
+   * o number → string. Null/vacio/ausente se respeta; no se calcula nada.
+   */
+  function readTurnstileCardNo(value: unknown): string | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed ? trimmed : null;
+    }
+    return undefined;
   }
 
   /**

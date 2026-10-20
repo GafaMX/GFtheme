@@ -470,7 +470,8 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-studio-logo {
   width: auto !important;
 }
 
-html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct-qr__image {
+html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct-qr__image,
+html body .gafa-sdk.gafa-sdk.gafa-sdk svg.gafa-acct-qr__image {
   background: #fff !important;
   height: 240px !important;
   object-fit: contain !important;
