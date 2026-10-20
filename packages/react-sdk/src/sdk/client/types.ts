@@ -145,6 +145,12 @@ export type UserProfile = {
    * grupo y campo. Vacio si el API no los devuelve en `/me`.
    */
   customFields?: CustomFieldValues;
+  /**
+   * Numero de tarjeta de torniquete (`GET /api/me` → `turnstile_card_no`).
+   * Lo genera el backend (7-8 digitos) solo para marcas en TURNSTILE_BRANDS.
+   * `null` / ausente = esta marca no usa torniquete; no calcularlo aqui.
+   */
+  turnstileCardNo?: string | null;
 };
 
 export type UserCredit = {

@@ -4976,6 +4976,48 @@
   }
 }
 
+/* ----- QR de acceso (torniquete: turnstile_card_no) */
+
+.gafa-acct-checkin {
+  background: var(--gafa-color-surface-raised);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-lg);
+  display: grid;
+  gap: var(--gafa-space-2);
+  justify-items: center;
+  padding: var(--gafa-space-4);
+  text-align: center;
+}
+
+.gafa-acct-checkin .gafa-eyebrow {
+  margin: 0;
+}
+
+.gafa-acct-checkin .gafa-acct-qr__image {
+  height: min(240px, 70vw);
+  margin: var(--gafa-space-1) 0;
+  max-width: 100%;
+  width: min(240px, 70vw);
+}
+
+.gafa-acct-checkin__number {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .gafa-acct-checkin {
+    padding: var(--gafa-space-3);
+  }
+
+  .gafa-acct-checkin__number {
+    font-size: 1.05rem;
+  }
+}
+
 /* ----- QR */
 
 .gafa-acct-qr-overlay {

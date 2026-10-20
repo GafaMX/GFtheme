@@ -433,6 +433,7 @@ export function ProfileWidget({
           {tab === "overview" ? (
             <OverviewPanel
               profile={profile}
+              checkInCardNo={turnstileCardNoOf(profile)}
               nextClass={upcoming[0] ?? waitlist[0]}
               upcomingCount={upcoming.length}
               waitlistCount={waitlist.length}
@@ -522,7 +523,13 @@ export function ProfileWidget({
         </div>
       </section>
 
-      {qrReservation ? <QrModal reservation={qrReservation} onClose={() => setQrReservation(null)} /> : null}
+      {qrReservation ? (
+        <QrModal
+          reservation={qrReservation}
+          cardNo={turnstileCardNoOf(profile)}
+          onClose={() => setQrReservation(null)}
+        />
+      ) : null}
 
       {pendingCancel ? (
         <ConfirmDialog
@@ -559,6 +566,7 @@ export function ProfileWidget({
 
 function OverviewPanel({
   profile,
+  checkInCardNo,
   nextClass,
   upcomingCount,
   waitlistCount,
@@ -578,6 +586,8 @@ function OverviewPanel({
   onExplorePackages,
 }: {
   profile: UserProfile;
+  /** Numero de torniquete del backend; si viene, el QR de acceso lo usa tal cual. */
+  checkInCardNo?: string | null;
   nextClass?: UserReservation;
   upcomingCount: number;
   waitlistCount: number;
@@ -618,6 +628,8 @@ function OverviewPanel({
 
   return (
     <div className="gafa-acct-overview">
+      {checkInCardNo ? <CheckInQrCard cardNo={checkInCardNo} /> : null}
+
       <section className="gafa-acct-next" aria-label="Tu próxima clase">
         <div className="gafa-acct-next__label">
           <span className="gafa-acct-next__label-text">
@@ -1637,10 +1649,27 @@ function PasswordForm({
   );
 }
 
-function QrModal({ reservation, onClose }: { reservation: UserReservation; onClose(): void }) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(
-    reservation.qrHash!,
-  )}`;
+function CheckInQrCard({ cardNo }: { cardNo: string }) {
+  return (
+    <section className="gafa-acct-checkin" aria-label="Tu código de acceso">
+      <p className="gafa-eyebrow">Tu QR de acceso</p>
+      <img className="gafa-acct-qr__image" src={qrCodeUrl(cardNo)} alt="Código QR de acceso" />
+      <p className="gafa-acct-checkin__number">{cardNo}</p>
+    </section>
+  );
+}
+
+function QrModal({
+  reservation,
+  cardNo,
+  onClose,
+}: {
+  reservation: UserReservation;
+  cardNo?: string | null;
+  onClose(): void;
+}) {
+  const payload = cardNo || reservation.qrHash!;
+  const qrUrl = qrCodeUrl(payload);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1666,6 +1695,7 @@ function QrModal({ reservation, onClose }: { reservation: UserReservation; onClo
           {formatTime(reservation.startsAt, reservation.timezone)}
         </p>
         <img className="gafa-acct-qr__image" src={qrUrl} alt="Código QR de la reserva" />
+        {cardNo ? <p className="gafa-acct-checkin__number">{cardNo}</p> : null}
         {reservation.seatLabel ? <p className="gafa-acct-qr__seat">Lugar {reservation.seatLabel}</p> : null}
         <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
           Cerrar
@@ -1865,6 +1895,19 @@ function countdownLabel(value: string): string {
 
   const days = Math.round(hours / 24);
   return days === 1 ? "Falta 1 día" : `Faltan ${days} días`;
+}
+
+/** El backend ya generó el número; aquí solo se lee, no se calcula. */
+function turnstileCardNoOf(profile: UserProfile): string | null {
+  const value = profile.turnstileCardNo;
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+  return trimmed || null;
+}
+
+/** Misma API que el QR de reserva: no hay librería QR en el repo. */
+function qrCodeUrl(data: string, size = 260): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encodeURIComponent(data)}`;
 }
 
 function initials(profile: UserProfile): string {
