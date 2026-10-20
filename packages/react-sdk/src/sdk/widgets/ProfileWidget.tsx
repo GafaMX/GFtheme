@@ -418,15 +418,6 @@ export function ProfileWidget({
             </h2>
             <p>{section.subtitle}</p>
           </div>
-          {turnstileCardNoOf(profile) && !futureQuery.isLoading && upcoming.length === 0 ? (
-            <button
-              type="button"
-              className="gafa-sdk-button gafa-acct__buy"
-              onClick={() => setQrReservation(ACCESS_QR)}
-            >
-              Mi QR de acceso
-            </button>
-          ) : null}
           {tab === "purchases" ? (
             <button
               type="button"
@@ -1932,16 +1923,6 @@ function turnstileCardNoOf(profile: UserProfile): string | null {
   const trimmed = String(value).trim();
   return trimmed || null;
 }
-
-/** Abre el QrModal existente cuando no hay reserva. */
-const ACCESS_QR: UserReservation = {
-  id: 0,
-  serviceName: "",
-  startsAt: "",
-  brandSlug: "",
-  isWaitlist: false,
-  isOverbooking: false,
-};
 
 function canShowReservationQr(reservation: UserReservation, cardNo?: string | null): boolean {
   if (reservation.isWaitlist && !cardNo) return false;
