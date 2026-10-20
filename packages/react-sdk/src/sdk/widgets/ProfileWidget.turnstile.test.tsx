@@ -70,7 +70,7 @@ function renderProfile(profile: UserProfile, reservations: UserReservation[] = [
 }
 
 describe("perfil: QR de torniquete", () => {
-  it("sin reserva muestra Mi QR de acceso y abre el modal existente", async () => {
+  it("sin reserva no muestra ningún QR de acceso aunque haya turnstile_card_no", async () => {
     renderProfile({
       id: 1,
       name: "Ana Ruiz",
@@ -79,15 +79,13 @@ describe("perfil: QR de torniquete", () => {
       turnstileCardNo: "1234567",
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Mi QR de acceso" }));
+    await waitFor(() => {
+      expect(screen.getByText("Sin clases reservadas")).toBeTruthy();
+    });
 
-    expect(screen.getByRole("dialog", { name: "Código QR de tu clase" })).toBeTruthy();
-    expect(screen.getByRole("img", { name: "Código QR de la reserva" }).tagName).toBe("svg");
-    expect(screen.getByText("1234567")).toBeTruthy();
-    expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
-    expect(screen.queryByLabelText("Tu código de acceso")).toBeNull();
-    expect(screen.getByText("Sin clases reservadas")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Reservar" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Mi QR de acceso" })).toBeNull();
+    expect(screen.queryByText("1234567")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("no muestra el botón si turnstile_card_no falta", async () => {
