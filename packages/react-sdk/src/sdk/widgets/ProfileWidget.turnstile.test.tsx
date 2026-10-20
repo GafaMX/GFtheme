@@ -84,9 +84,8 @@ describe("perfil: QR de torniquete", () => {
     });
 
     expect(screen.getByText("1234567")).toBeTruthy();
-    const image = screen.getByAltText("Código QR de acceso") as HTMLImageElement;
-    expect(image.src).toContain(encodeURIComponent("1234567"));
-    expect(image.src).not.toContain(encodeURIComponent("hash-de-clase"));
+    expect(screen.getByRole("img", { name: "Código QR de acceso" }).tagName).toBe("svg");
+    expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
   });
 
   it("no cambia nada si el campo falta o es null", async () => {
@@ -120,9 +119,9 @@ describe("perfil: QR de torniquete", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Ver mi QR" }));
 
-    const image = (await screen.findByAltText("Código QR de la reserva")) as HTMLImageElement;
-    expect(image.src).toContain(encodeURIComponent("87654321"));
-    expect(image.src).not.toContain(encodeURIComponent("hash-de-clase"));
+    expect(screen.getByRole("img", { name: "Código QR de la reserva" }).tagName).toBe("svg");
+    expect(document.body.innerHTML).not.toMatch(/qrserver\.com/i);
+    expect(document.body.innerHTML).not.toContain("hash-de-clase");
     expect(screen.getAllByText("87654321").length).toBeGreaterThan(0);
   });
 

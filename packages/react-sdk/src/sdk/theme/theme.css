@@ -470,14 +470,16 @@ html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-studio-logo {
   width: auto !important;
 }
 
-html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct-qr__image {
+html body .gafa-sdk.gafa-sdk.gafa-sdk img.gafa-acct-qr__image,
+html body .gafa-sdk.gafa-sdk.gafa-sdk svg.gafa-acct-qr__image {
   background: #fff !important;
   height: 240px !important;
   object-fit: contain !important;
   width: 240px !important;
 }
 
-html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-acct-checkin img.gafa-acct-qr__image {
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-acct-checkin img.gafa-acct-qr__image,
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-acct-checkin svg.gafa-acct-qr__image {
   height: min(240px, 70vw) !important;
   width: min(240px, 70vw) !important;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CustomFieldGroup,
@@ -1653,9 +1654,27 @@ function CheckInQrCard({ cardNo }: { cardNo: string }) {
   return (
     <section className="gafa-acct-checkin" aria-label="Tu código de acceso">
       <p className="gafa-eyebrow">Tu QR de acceso</p>
-      <img className="gafa-acct-qr__image" src={qrCodeUrl(cardNo)} alt="Código QR de acceso" />
+      <LocalQr value={cardNo} label="Código QR de acceso" />
       <p className="gafa-acct-checkin__number">{cardNo}</p>
     </section>
+  );
+}
+
+/** QR en el navegador: el número de torniquete no se manda a ningún tercero. */
+function LocalQr({ value, label }: { value: string; label: string }) {
+  return (
+    <QRCodeSVG
+      className="gafa-acct-qr__image"
+      value={value}
+      size={240}
+      marginSize={2}
+      level="M"
+      bgColor="#ffffff"
+      fgColor="#000000"
+      title={label}
+      role="img"
+      aria-label={label}
+    />
   );
 }
 
@@ -1668,9 +1687,6 @@ function QrModal({
   cardNo?: string | null;
   onClose(): void;
 }) {
-  const payload = cardNo || reservation.qrHash!;
-  const qrUrl = qrCodeUrl(payload);
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -1694,7 +1710,15 @@ function QrModal({
           {capitalize(formatWeekday(reservation.startsAt, reservation.timezone))} ·{" "}
           {formatTime(reservation.startsAt, reservation.timezone)}
         </p>
-        <img className="gafa-acct-qr__image" src={qrUrl} alt="Código QR de la reserva" />
+        {cardNo ? (
+          <LocalQr value={cardNo} label="Código QR de la reserva" />
+        ) : (
+          <img
+            className="gafa-acct-qr__image"
+            src={reservationQrUrl(reservation.qrHash!)}
+            alt="Código QR de la reserva"
+          />
+        )}
         {cardNo ? <p className="gafa-acct-checkin__number">{cardNo}</p> : null}
         {reservation.seatLabel ? <p className="gafa-acct-qr__seat">Lugar {reservation.seatLabel}</p> : null}
         <button className="gafa-sdk-button gafa-sdk-button--secondary" type="button" onClick={onClose}>
@@ -1905,9 +1929,9 @@ function turnstileCardNoOf(profile: UserProfile): string | null {
   return trimmed || null;
 }
 
-/** Misma API que el QR de reserva: no hay librería QR en el repo. */
-function qrCodeUrl(data: string, size = 260): string {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encodeURIComponent(data)}`;
+/** Solo el hash de reserva de otras marcas. Nunca el número de torniquete. */
+function reservationQrUrl(hash: string, size = 260): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encodeURIComponent(hash)}`;
 }
 
 function initials(profile: UserProfile): string {
