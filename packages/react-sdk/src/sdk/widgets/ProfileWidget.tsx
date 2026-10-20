@@ -1925,7 +1925,7 @@ function turnstileCardNoOf(profile: UserProfile): string | null {
 }
 
 function canShowReservationQr(reservation: UserReservation, cardNo?: string | null): boolean {
-  if (reservation.isWaitlist && !cardNo) return false;
+  if (reservation.isWaitlist) return false;
   return Boolean(reservation.qrHash || cardNo);
 }
 
