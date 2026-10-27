@@ -5,6 +5,7 @@ import {
   markSdkRoot,
   shouldSkipWidgetMount,
 } from "../lifecycle";
+import { hasPasswordResetLink } from "../auth/passwordResetLink";
 
 export { readFilterFlag } from "./legacyFilterFlag";
 
@@ -87,13 +88,11 @@ export function bootstrapLegacyWidgets(
     widgets.push("concierge");
   }
 
-  // El mail de "restablecer contraseña" llega con ?token=&email= a la home,
-  // que en los sitios viejos solo tiene el boton de cuenta en el header.
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("token") && params.get("email")) {
-      runtime.openAccount();
-    }
+  // El mail de "restablecer contraseña" llega con token + email (a veces mal
+  // armado, ver passwordResetLink) a la home, que en los sitios viejos solo
+  // tiene el boton de cuenta en el header.
+  if (hasPasswordResetLink()) {
+    runtime.openAccount();
   }
 
   return { mounted: widgets.length, widgets };
