@@ -82,6 +82,20 @@ const BRANDS: Record<string, BrandConfig> = {
     // configuracion por socio, no un comportamiento fijo del SDK.
     calendar: { view: "week", filters: { location: true, service: true, staff: true } },
   },
+  oasis: {
+    label: "Oasis",
+    companyId: 235,
+    // Credenciales públicas que web.buq.mx/oasis expone en data-gf-options.
+    apiClient: "3491",
+    apiSecret: "4PtoTfnqhsS9jGowCkx7IXFbznJFjUUOzQtcCUwh",
+    theme: {
+      colors: { brand: "#293c8b", accent: "#293c8b" },
+      colorScheme: "light",
+      logoUrl: "https://web.buq.mx/oasis/logo-dark.png",
+      logoUrlDark: "https://web.buq.mx/oasis/logo-light.png",
+    },
+    calendar: { view: "week", filters: { location: true, service: true, staff: true } },
+  },
 };
 
 export function DemoSite() {
