@@ -32,8 +32,11 @@ function readScriptConfig(root: ParentNode, host?: Element): unknown {
 const TRUSTED_PREVIEW_ORIGIN =
   /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$|^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/i;
 
+/** Link fijo de staging (demo.html de la rama `staging`, Worker gftheme-staging). */
+const STAGING_DEMO_ORIGINS = new Set(["https://gftheme-staging.i-f47.workers.dev"]);
+
 export function isTrustedConciergePreviewOrigin(origin: string): boolean {
-  return TRUSTED_PREVIEW_ORIGIN.test(origin);
+  return TRUSTED_PREVIEW_ORIGIN.test(origin) || STAGING_DEMO_ORIGINS.has(origin);
 }
 
 export function assertConciergeOriginAllowed(config: ConciergePartnerConfig, origin = typeof window === "undefined" ? "" : window.location.origin): void {
