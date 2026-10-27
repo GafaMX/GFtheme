@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { useCartStore } from "../cart/cartStore";
 import { subscribeCartAdds, trackCheckoutOpenedWhenReady } from "./cartEvents";
+import { bindBrandCurrency, resetBrandCurrencyForTests } from "./pixels/brandCurrency";
 import type { TrackInput } from "./events";
 
 function addPackage(overrides: Partial<{ id: number; price: number; currency: string }> = {}) {
@@ -20,6 +21,7 @@ function addPackage(overrides: Partial<{ id: number; price: number; currency: st
 afterEach(() => {
   useCartStore.setState({ lines: [], reservation: null });
   localStorage.removeItem("gafa-sdk:cart-v1");
+  resetBrandCurrencyForTests();
 });
 
 describe("checkout vs carrito", () => {
@@ -63,5 +65,35 @@ describe("checkout vs carrito", () => {
       content_ids: ["10"],
       num_items: 1,
     });
+  });
+
+  it("sin currency en la línea: MXN por default, EUR si la marca está ligada", () => {
+    const mxn: TrackInput[] = [];
+    const stopAdds = subscribeCartAdds((input) => mxn.push(input));
+    useCartStore.getState().addItem({
+      id: 1,
+      type: "combo",
+      name: "Pack",
+      price: 330,
+      priceLabel: "$330",
+      brandSlug: "fitspin",
+    });
+    expect(mxn[0]?.props?.currency).toBe("MXN");
+    stopAdds();
+
+    useCartStore.setState({ lines: [], reservation: null });
+    bindBrandCurrency({ code: "EUR", prefix: "€", suffix: "EUR" });
+    const eur: TrackInput[] = [];
+    const stopEur = subscribeCartAdds((input) => eur.push(input));
+    useCartStore.getState().addItem({
+      id: 2,
+      type: "combo",
+      name: "Oasis",
+      price: 40,
+      priceLabel: "40€",
+      brandSlug: "oasis",
+    });
+    expect(eur[0]?.props?.currency).toBe("EUR");
+    stopEur();
   });
 });

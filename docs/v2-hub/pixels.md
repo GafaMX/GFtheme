@@ -59,7 +59,7 @@ No se dispara en `reservation.waitlisted` ni `checkout.failed`. Un error de un p
 
 ### Params
 
-`value` (número), `currency` (la de la marca: `MXN` o `EUR`, nunca fija), `content_ids`, `content_type` (`product` \| `class`), `num_items`, `transaction_id` = `purchase_id`.
+`value` (número), `currency` (siempre: la de la marca — `brand.currency` / checkout, `MXN` o `EUR` — y si no hay dato, `MXN`). Va en `view_content`, `add_to_cart`, `initiate_checkout`, `purchase` y la conversión de Ads. `content_ids`, `content_type` (`product` \| `class`), `num_items`, `transaction_id` = `purchase_id`.
 
 ### Dedup / CAPI
 

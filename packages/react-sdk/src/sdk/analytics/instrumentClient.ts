@@ -2,6 +2,7 @@ import { readStoredToken } from "../client/tokenStorage";
 import type { GafaClient, UserProfile } from "../client/types";
 import type { HubUser, SdkTracker } from "./tracker";
 import { cartCommerceProps } from "./cartEvents";
+import { bindBrandCurrency, bindCurrencyFromBrands } from "./pixels/brandCurrency";
 
 function applyProfile(tracker: SdkTracker, profile: UserProfile | null | undefined): HubUser {
   if (profile?.id == null || profile.id <= 0) return tracker.getUser();
@@ -30,6 +31,11 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
 
   const next: GafaClient = {
     ...client,
+    async listBrands() {
+      const brands = await client.listBrands();
+      bindCurrencyFromBrands(brands);
+      return brands;
+    },
     async getProfile() {
       const profile = await getProfile();
       applyProfile(tracker, profile);
@@ -102,6 +108,15 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
         props: { meeting_id: payload.meetingId, reservation_id: result.reservationId },
       });
       return result;
+    };
+  }
+
+  if (client.getCheckoutConfig) {
+    const getCheckoutConfig = client.getCheckoutConfig.bind(client);
+    next.getCheckoutConfig = async (payload) => {
+      const config = await getCheckoutConfig(payload);
+      if (config?.currency) bindBrandCurrency(config.currency);
+      return config;
     };
   }
 

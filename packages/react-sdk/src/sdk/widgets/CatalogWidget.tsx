@@ -46,6 +46,7 @@ export function CatalogWidget({
               ...item,
               brandName: brand.name,
               brandSlug: brand.slug,
+              currency: money?.code ?? item.currency,
               priceLabel:
                 amount != null ? formatMoney(amount, money?.prefix ?? "$", "") : item.priceLabel,
             };

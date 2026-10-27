@@ -37,7 +37,7 @@ import { instrumentClient } from "./analytics/instrumentClient";
 import { bindActiveTracker } from "./analytics/activeTracker";
 import { cartCommerceProps, subscribeCartAdds, trackCheckoutOpenedWhenReady } from "./analytics/cartEvents";
 import { findPurchasableItem } from "./cart/findPurchasable";
-import { createPixelRuntime, installConsentSurface, type PixelConsent } from "./analytics/pixels";
+import { bindCurrencyFromBrands, createPixelRuntime, installConsentSurface, resetBrandCurrency, type PixelConsent } from "./analytics/pixels";
 import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 import {
   aliasV2Shortcodes,
@@ -254,6 +254,9 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   let stopCheckoutOpenedWait: () => void = () => undefined;
   const rawClient = options.client ?? createClient(config, options);
   const client = instrumentClient(rawClient, tracker);
+  if (config.analyticsEnabled) {
+    void client.listBrands().then(bindCurrencyFromBrands).catch(() => undefined);
+  }
   tracker.track({ event: "page_view", widget: "sdk" });
   const captcha = createCaptchaProvider(config.captchaProvider, config.captchaPublicKey);
   const queryClient = new QueryClient({
@@ -786,6 +789,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       unsubCartPixels();
       stopConsent();
       pixels.destroy();
+      resetBrandCurrency();
       bindActiveTracker(null);
       tracker.flush();
     }

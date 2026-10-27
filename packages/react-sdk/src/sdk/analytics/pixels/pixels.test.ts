@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSdkTracker } from "../tracker";
-import { createPixelRuntime, installConsentSurface, mapTrackerEvent, readPixelsConfig } from "./index";
+import {
+  bindBrandCurrency,
+  bindCurrencyFromBrands,
+  createPixelRuntime,
+  installConsentSurface,
+  mapTrackerEvent,
+  readPixelsConfig,
+  resetBrandCurrencyForTests,
+  resolvePixelCurrency,
+} from "./index";
 import { createPageViewGate, resetPixelDedupForTests, stablePixelEventId } from "./eventId";
 import { hashEmail, normalizeEmail, normalizePhone, sha256Hex } from "./hash";
 import { currencyFromUnknown, payloadHasPii, stripPii } from "./map";
@@ -43,8 +52,26 @@ function boot(extra: Record<string, unknown> = {}) {
   return { runtime, tracker };
 }
 
+function currenciesInLog(eventName: string): unknown[] {
+  return readPixelDebugLog()
+    .filter((row) => row.args.includes(eventName))
+    .map((row) => {
+      const params = row.args.find((arg) => arg && typeof arg === "object" && "currency" in (arg as object)) as
+        | { currency?: string }
+        | undefined;
+      return params?.currency;
+    });
+}
+
+function expectCurrency(eventName: string, code: string) {
+  const found = currenciesInLog(eventName);
+  expect(found.length).toBeGreaterThan(0);
+  expect(found.every((item) => item === code)).toBe(true);
+}
+
 afterEach(() => {
   resetPixelDedupForTests();
+  resetBrandCurrencyForTests();
   vi.restoreAllMocks();
   document.querySelectorAll("script[data-buq-pixel]").forEach((node) => node.remove());
   const w = pixelWindow();
@@ -208,6 +235,57 @@ describe("hash y moneda", () => {
       props: { purchase_id: 2, value: 330, currency: "MXN" },
     });
     expect(mxn?.payload.currency).toBe("MXN");
+  });
+});
+
+describe("moneda de la marca", () => {
+  it("sin dato en el evento: fallback MXN en los 4 eventos de comercio y Ads conversion", () => {
+    expect(resolvePixelCurrency(undefined)).toBe("MXN");
+    const { tracker } = boot();
+    tracker.track({ event: "catalog.item_opened", props: { item_id: 1, value: 330 } });
+    tracker.track({ event: "cart.item_added", props: { item_id: 1, value: 330, num_items: 1 } });
+    tracker.track({ event: "checkout.opened", props: { value: 330, num_items: 1 } });
+    tracker.track({ event: "checkout.paid", props: { purchase_id: 9, value: 330 } });
+    expectCurrency("ViewContent", "MXN");
+    expectCurrency("AddToCart", "MXN");
+    expectCurrency("InitiateCheckout", "MXN");
+    expectCurrency("Purchase", "MXN");
+    expectCurrency("conversion", "MXN");
+    expect(mapTrackerEvent({ event: "catalog.item_opened", props: { value: 10 } })?.payload.currency).toBe("MXN");
+  });
+
+  it("marca MXN (Fitspin) pinta y manda MXN aunque el item no traiga currency", () => {
+    bindCurrencyFromBrands([{ currency: { prefix: "$", suffix: "MXN", code: "MXN" } }]);
+    const { tracker } = boot();
+    tracker.track({ event: "catalog.item_opened", props: { item_id: 973, value: 330 } });
+    tracker.track({ event: "checkout.paid", props: { purchase_id: 3, value: 330 } });
+    expectCurrency("ViewContent", "MXN");
+    expectCurrency("Purchase", "MXN");
+    expectCurrency("conversion", "MXN");
+  });
+
+  it("marca EUR (Oasis) pinta y manda EUR, no MXN", () => {
+    bindBrandCurrency({ prefix: "€", suffix: "EUR", code: "EUR" });
+    expect(resolvePixelCurrency(undefined)).toBe("EUR");
+    const { tracker } = boot();
+    tracker.track({ event: "catalog.item_opened", props: { item_id: 4, value: 40 } });
+    tracker.track({ event: "cart.item_added", props: { item_id: 4, value: 40, num_items: 1 } });
+    tracker.track({ event: "checkout.opened", props: { value: 40, num_items: 1 } });
+    tracker.track({ event: "checkout.paid", props: { purchase_id: 11, value: 40 } });
+    expectCurrency("ViewContent", "EUR");
+    expectCurrency("AddToCart", "EUR");
+    expectCurrency("InitiateCheckout", "EUR");
+    expectCurrency("Purchase", "EUR");
+    expectCurrency("conversion", "EUR");
+    expect(mapTrackerEvent({ event: "checkout.opened", props: { value: 40 } })?.payload.currency).toBe("EUR");
+  });
+
+  it("si el evento ya trae currency, esa gana sobre la marca", () => {
+    bindBrandCurrency("MXN");
+    expect(
+      mapTrackerEvent({ event: "checkout.paid", props: { purchase_id: 1, value: 1, currency: "EUR" } })?.payload
+        .currency,
+    ).toBe("EUR");
   });
 });
 

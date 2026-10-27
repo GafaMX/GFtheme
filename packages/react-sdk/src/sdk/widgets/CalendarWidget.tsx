@@ -640,6 +640,7 @@ export function CalendarWidget({
         meeting_id: meeting.id,
         content_ids: [String(meeting.id)],
         content_type: "class",
+        currency: activeBrand?.currency?.code,
       },
     });
   }

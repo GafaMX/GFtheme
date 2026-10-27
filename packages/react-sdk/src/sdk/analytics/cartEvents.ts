@@ -1,6 +1,6 @@
 import { cartSubtotal, useCartStore, type CartLine } from "../cart/cartStore";
 import type { CartLineType } from "../client/types";
-import { currencyFromUnknown } from "./pixels/map";
+import { currencyFromUnknown, resolvePixelCurrency } from "./pixels/map";
 import type { TrackInput } from "./events";
 
 export type CartPreselect = { type: CartLineType; id: number };
@@ -23,14 +23,14 @@ export function cartHasItem(
 export function cartCommerceProps(lines: CartLine[] = useCartStore.getState().lines): Record<string, unknown> {
   const content_ids = lines.map((line) => String(line.id));
   const num_items = lines.reduce((sum, line) => sum + line.amount, 0);
-  const currency = lines.map(currencyFromLine).find(Boolean);
+  const currency = resolvePixelCurrency(lines.map(currencyFromLine).find(Boolean));
   const props: Record<string, unknown> = {
     content_type: "product",
     num_items,
     value: cartSubtotal(lines),
+    currency,
   };
   if (content_ids.length) props.content_ids = content_ids;
-  if (currency) props.currency = currency;
   return props;
 }
 
@@ -44,7 +44,6 @@ export function subscribeCartAdds(track: (input: TrackInput) => void): () => voi
         const prev = amounts.get(line.key) ?? 0;
         if (line.amount > prev) {
           const added = line.amount - prev;
-          const currency = currencyFromLine(line);
           track({
             event: "cart.item_added",
             widget: "checkout",
@@ -55,7 +54,7 @@ export function subscribeCartAdds(track: (input: TrackInput) => void): () => voi
               value: line.price * added,
               item_id: line.id,
               item_type: line.type,
-              ...(currency ? { currency } : {}),
+              currency: resolvePixelCurrency(currencyFromLine(line)),
             },
           });
         }
