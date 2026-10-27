@@ -81,6 +81,8 @@ body[data-demo-scheme="dark"] {
   align-items: center;
   display: flex;
   gap: var(--gafa-space-2);
+  position: relative;
+  z-index: 10050;
 }
 
 .demo-brand-select {
@@ -159,10 +161,36 @@ body[data-demo-scheme="dark"] {
   width: 38px;
 }
 
+.demo-consent {
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  height: 38px;
+  padding: 0 0.8rem;
+  position: relative;
+  white-space: nowrap;
+  z-index: 10050;
+}
+
 @media (max-width: 620px) {
   .demo-account__label,
   .demo-brand-select {
     display: none;
+  }
+
+  .demo-consent {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    height: 34px;
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .demo-nav {

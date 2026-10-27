@@ -6,7 +6,7 @@ import type { PixelBridge, PixelConsent, PixelsConfig } from "./types";
 
 export { readPixelsConfig, PIXEL_REMOTE_CONFIG_KEYS, PIXEL_SECRET_KEYS } from "./config";
 export { mapTrackerEvent, commerceFromProps, currencyFromUnknown, stripPii, payloadHasPii } from "./map";
-export { stablePixelEventId, resetPixelDedupForTests } from "./eventId";
+export { stablePixelEventId, resetPixelDedupForTests, createPageViewGate } from "./eventId";
 export { sha256Hex, hashEmail, hashPhone, normalizeEmail, normalizePhone } from "./hash";
 export { installPixelDebugMocks, readPixelDebugLog } from "./debug";
 export { hostHasProvider, scriptsInjected } from "./loaders";

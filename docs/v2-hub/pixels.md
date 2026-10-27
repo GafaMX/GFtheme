@@ -90,15 +90,15 @@ El demo de staging enciende píxeles con IDs `DEMO_*` e instala mocks de `fbq` /
 
 | Evento | Cómo dispararlo en Fitspin (MXN) |
 | --- | --- |
-| `page_view` | Cargar la página. Cambiar Calendario ↔ Paquetes. |
+| `page_view` | Cargar la página (una sola vez). Cambiar Calendario ↔ Paquetes dispara otra. |
 | `view_content` | Clic en una clase, o “Comprar” en un paquete. |
 | `add_to_cart` | El paquete entra al carrito (preselect o catálogo del checkout). |
-| `initiate_checkout` | Se abre el checkout (carrito o compra). |
+| `initiate_checkout` | Después de `add_to_cart`, con value/currency/items del carrito. |
 | `complete_registration` | Registrarse en Mi cuenta. |
 | `schedule` | Reservar una clase con crédito (no waitlist). |
 | `purchase` | Pagar un paquete hasta `checkout.paid` (`code === 1`). Recargar el thank-you no debe repetir Purchase. |
 
-Consentimiento obligatorio: `?brand=fitspin&pixels-consent=required`. Sin el botón “Dar consentimiento de marketing” no debe haber PageView.
+Consentimiento obligatorio: `?brand=fitspin&pixels-consent=required`. El botón “Dar consentimiento de marketing” está en el header (no lo tapa la barra de Concierge). Sin ese clic no debe haber PageView.
 
 También vale Meta Test Events / Tag Assistant si pones IDs reales en el Hub (`PIXELS_ENABLED: true` + IDs). Fitspin es MXN.
 

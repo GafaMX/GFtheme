@@ -744,6 +744,11 @@ export function CheckoutModal({
   const preselectDone = useRef(false);
   useEffect(() => {
     if (!preselect || preselectDone.current) return;
+    if (itemAlreadyInCart(useCartStore.getState().lines, preselect)) {
+      preselectDone.current = true;
+      setPreselectStatus("ready");
+      return;
+    }
     let cancelled = false;
     setPreselectStatus("loading");
     void findPurchasableItem(client, preselect, brandSlugProp ?? lockedBrandSlug).then((match) => {
@@ -769,7 +774,10 @@ export function CheckoutModal({
         brandSlug: match.brandSlug,
         locationSlug: locationSlugProp,
         expirationLabel: match.item.expirationDays ? `Expira en ${match.item.expirationDays} días` : undefined,
-        raw: match.item.raw,
+        raw: {
+          ...(match.item.raw ?? {}),
+          ...(match.item.currency ? { currency: match.item.currency } : {}),
+        },
       });
       setPreselectStatus("ready");
     });

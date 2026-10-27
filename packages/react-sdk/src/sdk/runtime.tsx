@@ -35,7 +35,8 @@ import {
 import { createSdkTracker, type SdkTracker } from "./analytics/tracker";
 import { instrumentClient } from "./analytics/instrumentClient";
 import { bindActiveTracker } from "./analytics/activeTracker";
-import { cartCommerceProps, subscribeCartAdds } from "./analytics/cartEvents";
+import { cartCommerceProps, subscribeCartAdds, trackCheckoutOpenedWhenReady } from "./analytics/cartEvents";
+import { findPurchasableItem } from "./cart/findPurchasable";
 import { createPixelRuntime, installConsentSurface, type PixelConsent } from "./analytics/pixels";
 import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 import {
@@ -250,6 +251,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   const stopConsent =
     pixels.config.enabled && typeof window !== "undefined" ? installConsentSurface(pixels) : () => undefined;
   const unsubCartPixels = config.analyticsEnabled ? subscribeCartAdds(tracker.track) : () => undefined;
+  let stopCheckoutOpenedWait: () => void = () => undefined;
   const rawClient = options.client ?? createClient(config, options);
   const client = instrumentClient(rawClient, tracker);
   tracker.track({ event: "page_view", widget: "sdk" });
@@ -523,17 +525,29 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         preselect: props.preselect,
       };
       events.emit("buq:checkout:opening", context);
-      tracker.track({
-        event: "checkout.opened",
-        widget: "checkout",
-        props: cartCommerceProps(),
-      });
+      activeCheckout?.close();
+      stopCheckoutOpenedWait();
+      stopCheckoutOpenedWait = trackCheckoutOpenedWhenReady(tracker.track, props.preselect ?? null);
+      if (props.preselect && !useCartStore.getState().lines.some((line) => line.type === props.preselect?.type && line.id === props.preselect.id)) {
+        void findPurchasableItem(client, props.preselect, props.brandSlug).then((match) => {
+          if (match) return;
+          stopCheckoutOpenedWait();
+          stopCheckoutOpenedWait = () => undefined;
+          tracker.track({
+            event: "checkout.opened",
+            widget: "checkout",
+            props: cartCommerceProps(),
+          });
+        }).catch(() => undefined);
+      }
       silenceLegacyFancy();
       prefetchCheckoutCatalog(queryClient, client, props.brandSlug);
       const host = document.createElement("div");
       document.body.appendChild(host);
 
       const close = () => {
+        stopCheckoutOpenedWait();
+        stopCheckoutOpenedWait = () => undefined;
         if (activeCheckout === handle) activeCheckout = null;
         // Igual que openAccount: desmontar en el mismo tick del handler de
         // React revienta con "synchronously unmount a root while rendering".
@@ -544,7 +558,6 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         });
       };
 
-      activeCheckout?.close();
       const handle: CheckoutOpenHandle = { type: "checkout", context, close };
       activeCheckout = handle;
 
@@ -768,6 +781,8 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         );
       }
       queryClient.clear();
+      stopCheckoutOpenedWait();
+      stopCheckoutOpenedWait = () => undefined;
       unsubCartPixels();
       stopConsent();
       pixels.destroy();

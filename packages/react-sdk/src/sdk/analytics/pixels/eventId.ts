@@ -62,6 +62,30 @@ export function shouldSendOnce(name: PixelEventName, eventId: string): boolean {
   return true;
 }
 
+/**
+ * Una PageView por carga, otra solo si cambia `props.view`.
+ * El `page_view` de boot (`__load__`) y el eco de la vista inicial se fusionan.
+ */
+export function createPageViewGate() {
+  let lastKey: string | null = null;
+  return {
+    allow(input: TrackInput): boolean {
+      const view = typeof input.props?.view === "string" ? input.props.view.trim() : "";
+      const key = view || "__load__";
+      if (lastKey === key) return false;
+      if (lastKey === "__load__" && view) {
+        lastKey = key;
+        return false;
+      }
+      lastKey = key;
+      return true;
+    },
+    reset() {
+      lastKey = null;
+    },
+  };
+}
+
 export function resetPixelDedupForTests(): void {
   try {
     sessionStorage.removeItem(SENT_KEY);

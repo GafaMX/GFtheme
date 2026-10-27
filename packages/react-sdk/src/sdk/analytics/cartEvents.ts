@@ -1,9 +1,23 @@
 import { cartSubtotal, useCartStore, type CartLine } from "../cart/cartStore";
+import type { CartLineType } from "../client/types";
 import { currencyFromUnknown } from "./pixels/map";
 import type { TrackInput } from "./events";
 
+export type CartPreselect = { type: CartLineType; id: number };
+
 function currencyFromLine(line: CartLine): string | undefined {
-  return currencyFromUnknown(line.raw?.currency) ?? currencyFromUnknown(line.raw);
+  return (
+    currencyFromUnknown(line.raw?.currency) ??
+    currencyFromUnknown(line.raw?.code3) ??
+    currencyFromUnknown(line.raw)
+  );
+}
+
+export function cartHasItem(
+  preselect: CartPreselect,
+  lines: CartLine[] = useCartStore.getState().lines,
+): boolean {
+  return lines.some((line) => line.type === preselect.type && line.id === preselect.id);
 }
 
 export function cartCommerceProps(lines: CartLine[] = useCartStore.getState().lines): Record<string, unknown> {
@@ -54,4 +68,44 @@ export function subscribeCartAdds(track: (input: TrackInput) => void): () => voi
       // el carrito no debe romper
     }
   });
+}
+
+export function emitCheckoutOpened(track: (input: TrackInput) => void): void {
+  track({
+    event: "checkout.opened",
+    widget: "checkout",
+    props: cartCommerceProps(),
+  });
+}
+
+/**
+ * `initiate_checkout` espera a que el preselect esté en el carrito para ir
+ * DESPUÉS de `add_to_cart` y llevar value/currency/items reales.
+ * Sin preselect (o si ya está en el carrito) dispara ya.
+ */
+export function trackCheckoutOpenedWhenReady(
+  track: (input: TrackInput) => void,
+  preselect?: CartPreselect | null,
+): () => void {
+  if (!preselect || cartHasItem(preselect)) {
+    emitCheckoutOpened(track);
+    return () => undefined;
+  }
+
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    unsub();
+    emitCheckoutOpened(track);
+  };
+
+  const unsub = useCartStore.subscribe((state) => {
+    if (cartHasItem(preselect, state.lines)) finish();
+  });
+
+  return () => {
+    done = true;
+    unsub();
+  };
 }
