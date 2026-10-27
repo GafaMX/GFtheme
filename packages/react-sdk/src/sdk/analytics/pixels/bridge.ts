@@ -1,7 +1,7 @@
 import type { TrackInput } from "../events";
 import type { PixelBridge, PixelConsent, PixelEventName, PixelPayload, PixelsConfig } from "./types";
 import { mapTrackerEvent, payloadHasPii, stripPii } from "./map";
-import { shouldSendOnce } from "./eventId";
+import { createPageViewGate, shouldSendOnce } from "./eventId";
 import { hashEmail, hashPhone } from "./hash";
 import {
   getFbq,
@@ -126,6 +126,7 @@ export function createPixelBridge(config: PixelsConfig): PixelBridge {
   let consentEmail: string | null = null;
   let consentPhone: string | null = null;
   let destroyed = false;
+  const pageViewGate = createPageViewGate();
 
   function canLoad(): boolean {
     return !destroyed && config.enabled && (config.consentMode === "implied" || marketing);
@@ -150,6 +151,7 @@ export function createPixelBridge(config: PixelsConfig): PixelBridge {
     try {
       const mapped = mapTrackerEvent(input);
       if (!mapped) return;
+      if (mapped.name === "page_view" && !pageViewGate.allow(input)) return;
       if (!shouldSendOnce(mapped.name, mapped.payload.event_id)) return;
       if (config.metaPixelId) fireMeta(mapped.name, mapped.payload);
       if (config.tiktokPixelId) fireTikTok(mapped.name, mapped.payload);
@@ -213,6 +215,7 @@ export function createPixelBridge(config: PixelsConfig): PixelBridge {
     destroy() {
       destroyed = true;
       queued.length = 0;
+      pageViewGate.reset();
     },
   };
 }

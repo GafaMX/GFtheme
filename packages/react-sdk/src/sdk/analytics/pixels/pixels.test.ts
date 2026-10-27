@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSdkTracker } from "../tracker";
 import { createPixelRuntime, installConsentSurface, mapTrackerEvent, readPixelsConfig } from "./index";
-import { resetPixelDedupForTests, stablePixelEventId } from "./eventId";
+import { createPageViewGate, resetPixelDedupForTests, stablePixelEventId } from "./eventId";
 import { hashEmail, normalizeEmail, normalizePhone, sha256Hex } from "./hash";
 import { currencyFromUnknown, payloadHasPii, stripPii } from "./map";
 import { installPixelDebugMocks, readPixelDebugLog } from "./debug";
@@ -74,6 +74,43 @@ describe("mapa de eventos", () => {
     expect(mapTrackerEvent({ event: "reservation.waitlisted" })).toBeNull();
     expect(mapTrackerEvent({ event: "checkout.failed" })).toBeNull();
     expect(mapTrackerEvent({ event: "auth.login_succeeded" })).toBeNull();
+  });
+});
+
+describe("page_view dedupe", () => {
+  it("dispara una sola PageView por carga aunque lleguen dos event_id distintos", () => {
+    const { tracker } = boot();
+    tracker.track({ event: "page_view", widget: "sdk" });
+    tracker.track({ event: "page_view", widget: "demo", props: { view: "calendario" } });
+    const pageViews = readPixelDebugLog().filter((row) => row.args.includes("PageView"));
+    expect(pageViews).toHaveLength(1);
+    const eventIds = new Set(
+      pageViews.map((row) => {
+        const extra = row.args.find((arg) => arg && typeof arg === "object" && "eventID" in (arg as object)) as
+          | { eventID?: string }
+          | undefined;
+        return extra?.eventID;
+      }),
+    );
+    expect(eventIds.size).toBe(1);
+  });
+
+  it("dispara otra PageView solo al cambiar de vista", () => {
+    const { tracker } = boot();
+    tracker.track({ event: "page_view", widget: "sdk" });
+    tracker.track({ event: "page_view", widget: "demo", props: { view: "calendario" } });
+    tracker.track({ event: "page_view", widget: "demo", props: { view: "calendario" } });
+    tracker.track({ event: "page_view", widget: "demo", props: { view: "paquetes" } });
+    const pageViews = readPixelDebugLog().filter((row) => row.args.includes("PageView"));
+    expect(pageViews).toHaveLength(2);
+  });
+
+  it("el gate fusiona boot + vista inicial y deja pasar el cambio", () => {
+    const gate = createPageViewGate();
+    expect(gate.allow({ event: "page_view" })).toBe(true);
+    expect(gate.allow({ event: "page_view", props: { view: "calendario" } })).toBe(false);
+    expect(gate.allow({ event: "page_view", props: { view: "calendario" } })).toBe(false);
+    expect(gate.allow({ event: "page_view", props: { view: "paquetes" } })).toBe(true);
   });
 });
 

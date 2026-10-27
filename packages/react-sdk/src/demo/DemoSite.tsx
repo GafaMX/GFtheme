@@ -139,7 +139,7 @@ function DemoShell({
     ? "required"
     : "implied";
   const sdkRef = useRef<GafaSdk | null>(null);
-  const [sdkTick, setSdkTick] = useState(0);
+  const [, setSdkTick] = useState(0);
   const sdk = sdkRef.current;
   const client = sdk?.client ?? rawClient;
 
@@ -214,14 +214,16 @@ function DemoShell({
     prefetchCheckoutCatalog(queryClient, client);
   }, [client, queryClient, cartCount]);
 
-  const skipFirstPageView = useRef(true);
+  const lastTrackedView = useRef<Page | null>(null);
   useEffect(() => {
-    if (skipFirstPageView.current) {
-      skipFirstPageView.current = false;
+    if (lastTrackedView.current === null) {
+      lastTrackedView.current = page;
       return;
     }
+    if (lastTrackedView.current === page) return;
+    lastTrackedView.current = page;
     sdkRef.current?.track({ event: "page_view", widget: "demo", props: { view: page } });
-  }, [page, sdkTick]);
+  }, [page]);
 
   // El fondo de la pagina lo pone el demo, no el SDK: en un sitio real es el
   // propio sitio el que lo define.
@@ -281,6 +283,20 @@ function DemoShell({
               </select>
 
               <ColorSchemeToggle />
+
+              {pixelsConsentMode === "required" ? (
+                <button
+                  type="button"
+                  className="demo-consent"
+                  data-demo-consent=""
+                  onClick={() => {
+                    sdkRef.current?.setConsent({ marketing: true });
+                    window.BuqSDK?.setConsent?.({ marketing: true });
+                  }}
+                >
+                  Dar consentimiento de marketing
+                </button>
+              ) : null}
 
               {cartCount > 0 ? (
                 <button
@@ -378,18 +394,6 @@ function DemoShell({
 
         <footer className="demo-footer">
           Sitio de prueba del SDK v2 · {brand.label} · {config.environment} · {config.apiBaseUrl}
-          {pixelsConsentMode === "required" ? (
-            <button
-              type="button"
-              className="demo-brand-select"
-              onClick={() => {
-                sdkRef.current?.setConsent({ marketing: true });
-                window.BuqSDK?.setConsent?.({ marketing: true });
-              }}
-            >
-              Dar consentimiento de marketing
-            </button>
-          ) : null}
         </footer>
         <PixelDebugPanel />
 
