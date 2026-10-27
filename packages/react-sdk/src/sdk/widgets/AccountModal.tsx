@@ -4,6 +4,7 @@ import type { GafaClient } from "../client/types";
 import type { CaptchaProvider } from "../captcha/CaptchaProvider";
 import { subscribeToAuthChanges } from "../client/tokenStorage";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
+import { hasPasswordResetLink } from "../auth/passwordResetLink";
 import { AuthWidget } from "./AuthWidget";
 import { ProfileWidget } from "./ProfileWidget";
 import { SdkBodyOverlay } from "./SdkBodyOverlay";
@@ -50,6 +51,9 @@ export function AccountModal({
   const queryClient = useQueryClient();
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  // Link del correo de "olvidé mi contraseña": el cambio va primero aunque
+  // haya sesión abierta (si no, el socio veía su perfil e ignoraba el token).
+  const [resetPending, setResetPending] = useState(hasPasswordResetLink);
 
   useEffect(() => {
     if (!client) return;
@@ -111,7 +115,7 @@ export function AccountModal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        data-state={signedIn ? "account" : "auth"}
+        data-state={signedIn && !resetPending ? "account" : "auth"}
         ref={sheetRef}
         tabIndex={-1}
       >
@@ -119,7 +123,18 @@ export function AccountModal({
           <CloseIcon />
         </button>
 
-        {signedIn === null ? (
+        {resetPending ? (
+          <div className="gafa-account-modal__auth">
+            <StudioLogo client={client} brandSlug={brandSlug} alt="" />
+            <AuthWidget
+              client={client}
+              captcha={captcha}
+              brandSlug={brandSlug}
+              initialView="login"
+              onAuthenticated={() => setResetPending(false)}
+            />
+          </div>
+        ) : signedIn === null ? (
           <div className="gafa-account-modal__loading">
             <span className="gafa-skeleton gafa-account-modal__loading-bar" />
             <span className="gafa-skeleton gafa-account-modal__loading-bar" />
