@@ -1,3 +1,4 @@
+import { findIneligibleLines, isEligibilityRejection } from "../cart/eligibility";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -923,7 +924,7 @@ export function CheckoutModal({
     }
   }
 
-  function purchaseLinesPayload() {
+  function purchaseLinesPayload(subset: CartLine[] = relevantLines) {
     const rawFor = (line: CartLine): Record<string, unknown> | undefined => {
       if (line.raw) return line.raw;
       const pools =
@@ -938,7 +939,7 @@ export function CheckoutModal({
       }
       return undefined;
     };
-    return relevantLines.map((line) => ({
+    return subset.map((line) => ({
       id: line.id,
       type: line.type,
       amount: line.amount,
@@ -1119,6 +1120,56 @@ export function CheckoutModal({
    * Mismas reglas que `/reservate` (primera vez, tope de compras, membresía
    * ya activa) pero sin cargo. Si Buq responde 422, no se abre GafaPay.
    */
+  /** Pregunta a Buq por un subconjunto del carrito (sin cobro). */
+  async function previewLines(subset: CartLine[]) {
+    if (!client.previewPurchase) return;
+    const profile = profileQuery.data;
+    if (!profile || !brandSlug || !locationSlug) {
+      throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
+    }
+    const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
+    const membership = cartHasMembership(subset);
+    await client.previewPurchase({
+      brandSlug,
+      locationSlug,
+      userId: config?.userProfileId ?? profile.id,
+      ...purchaseAssociation({
+        meetingId: reservation?.meetingId,
+        reservationId: linkedReservationId,
+      }),
+      lines: purchaseLinesPayload(subset),
+      paymentTypeId,
+      csrfToken: config?.csrfToken ?? null,
+      discountCode: null,
+      giftCode: null,
+      subscribe: membership ? autoRenew : false,
+      setPayment: membership ? saveCard : false,
+      seatObjectId: reservation?.seatObjectId,
+    });
+  }
+
+  /**
+   * Buq rechazó el carrito por una regla de producto: averigua qué línea fue,
+   * la saca del carrito (también del guardado) y avisa solo de esa. Devuelve
+   * true si quedó algo válido para seguir pagando.
+   */
+  async function purgeRejectedLines(
+    err: unknown,
+  ): Promise<{ kept: boolean; message: string; drop: () => void } | null> {
+    if (!isEligibilityRejection(err) || relevantLines.length === 0) return null;
+    const { bad, error } = await findIneligibleLines(relevantLines, err, (line) => previewLines([line]));
+    if (!bad.length) return null;
+    const names = bad.map((line) => line.name).join(", ");
+    const reason = purchaseRuleMessage(error);
+    const kept = bad.length < relevantLines.length;
+    return {
+      kept,
+      message: kept ? `Quitamos ${names} de tu carrito. ${reason}` : reason,
+      // El que llama avisa primero y luego borra: borrar re-renderiza el carrito.
+      drop: () => bad.forEach((line) => removeItem(line.key)),
+    };
+  }
+
   async function assertCanPurchase() {
     if (!client.previewPurchase) return;
     const profile = profileQuery.data;
@@ -1168,10 +1219,19 @@ export function CheckoutModal({
         if (cancelled) return;
         setPurchaseChecking(false);
       })
-      .catch((err: unknown) => {
+      .catch(async (err: unknown) => {
+        if (cancelled) return;
+        const purged = await purgeRejectedLines(err).catch(() => null);
         if (cancelled) return;
         setPurchaseChecking(false);
-        setPurchaseNotice({ title: "Lo sentimos", message: purchaseRuleMessage(err) });
+        if (purged?.kept) {
+          // Lo válido sigue: el efecto vuelve a correr con el carrito limpio.
+          showToast(purged.message, "error");
+          purged.drop();
+          return;
+        }
+        setPurchaseNotice({ title: "Lo sentimos", message: purged?.message ?? purchaseRuleMessage(err) });
+        purged?.drop();
       });
     return () => {
       cancelled = true;
@@ -1253,8 +1313,15 @@ export function CheckoutModal({
     try {
       await assertCanPurchase();
     } catch (err) {
+      const purged = await purgeRejectedLines(err).catch(() => null);
       setPaying(false);
-      reportPayError(err instanceof Error ? err.message : "No pudimos completar la compra.");
+      if (purged && !purged.kept) {
+        setPurchaseNotice({ title: "Lo sentimos", message: purged.message });
+        purged.drop();
+        return;
+      }
+      reportPayError(purged?.message ?? (err instanceof Error ? err.message : "No pudimos completar la compra."));
+      purged?.drop();
       return;
     }
     if (selectedMethod?.slug === "recurrente") {
