@@ -1,7 +1,7 @@
 import type { CartLine } from "./cartStore";
 
 /** Errores locales que no dicen nada del producto (sesión, red, config). */
-const TRANSIENT = /failed to fetch|networkerror|load failed|typeerror|timeout|recarga e inténtalo|no pudimos revisar/i;
+const TRANSIENT = /failed to fetch|networkerror|load failed|typeerror|timeout|recarga e inténtalo|no pudimos revisar|unexpected token|not valid json|problema con el servidor/i;
 
 /**
  * ¿Buq rechazó la compra por una regla del producto (uso restringido, tope,
