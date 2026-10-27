@@ -15,6 +15,12 @@ describe("assertConciergeOriginAllowed", () => {
     ).not.toThrow();
   });
 
+  it("acepta solo el link fijo de staging, no cualquier workers.dev", () => {
+    expect(isTrustedConciergePreviewOrigin("https://gftheme-staging.i-f47.workers.dev")).toBe(true);
+    expect(isTrustedConciergePreviewOrigin("https://otro.i-f47.workers.dev")).toBe(false);
+    expect(isTrustedConciergePreviewOrigin("https://gftheme-staging.evil.workers.dev")).toBe(false);
+  });
+
   it("sigue bloqueando origenes que no estan en el allowlist", () => {
     expect(isTrustedConciergePreviewOrigin("https://evil.example.com")).toBe(false);
     expect(() => assertConciergeOriginAllowed(DEMO_CONCIERGE_CONFIG, "https://evil.example.com")).toThrow(
