@@ -7,6 +7,7 @@ import type { CartLineType, CheckoutPayload, GafaClient, ReservationCheckoutPayl
 import { createLegacyGafaFitAdapter } from "./client/legacyGafaFitAdapter";
 import { createHttpGafaClient } from "./client/httpGafaClient";
 import { createCaptchaProvider } from "./captcha/CaptchaProvider";
+import { startCartGuard } from "./cart/cartGuard";
 import { subscribeToAuthChanges, configureTokenStorage } from "./client/tokenStorage";
 import { ThemeProvider } from "./theme/theme";
 import { AuthWidget, type AuthWidgetProps } from "./widgets/AuthWidget";
@@ -249,6 +250,9 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   // Login/logout invalidan toda la cache: perfil, creditos y reservas cambian
   // con la sesion, y pueden haberse cacheado antes de autenticar.
   subscribeToAuthChanges(() => queryClient.invalidateQueries());
+  // Saca del carrito (también el guardado) lo que Buq no deja comprar.
+  const cartGuard = typeof window !== "undefined" ? startCartGuard({ client }) : null;
+  const unsubGuardAuth = subscribeToAuthChanges(() => cartGuard?.recheck());
   const mounts = new Set<MountedWidget>();
   const mountsByElement = new WeakMap<Element, MountedWidget>();
   const conciergeHosts = new Set<HTMLElement>();
@@ -724,6 +728,8 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       purchaseButtonsStop?.();
       purchaseButtonsStop = null;
       unsubCartWarm();
+      unsubGuardAuth();
+      cartGuard?.stop();
       activeCheckout = null;
       activeAccount = null;
       activeReservation = null;
