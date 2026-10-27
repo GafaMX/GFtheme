@@ -6,6 +6,11 @@ import { showToast } from "../toast/toastStore";
 import { ToastHost } from "../toast/ToastHost";
 import { WidgetShell } from "./WidgetShell";
 import { CustomFieldInput } from "./CustomFieldInput";
+import {
+  clearPasswordResetLink,
+  passwordResetReturnUrl,
+  readPasswordResetLink,
+} from "../auth/passwordResetLink";
 
 export type AuthView = "login" | "register" | "password-recovery" | "profile";
 
@@ -37,32 +42,11 @@ export type AuthWidgetProps = {
 
 type FormStatus = "idle" | "submitting" | "success" | "error";
 
-/**
- * Si la URL trae `token` + `email` es el link del correo de "olvidé mi
- * contraseña" (return_url + params que agrega gafa.fit): hay que aterrizar
- * directo en el formulario de nueva contraseña.
- */
-function readPasswordResetLink(): { token: string; email: string } | null {
-  if (typeof window === "undefined") return null;
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("token");
-  const email = params.get("email");
-  return token && email ? { token, email } : null;
-}
-
 function stageTitle(stage: AuthStage): string {
   if (stage === "register") return "Crea tu cuenta";
   if (stage === "password-recovery") return "Recupera tu contraseña";
   if (stage === "password-reset") return "Elige tu nueva contraseña";
   return "Inicia sesión";
-}
-
-function clearPasswordResetLink() {
-  if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  url.searchParams.delete("token");
-  url.searchParams.delete("email");
-  window.history.replaceState(null, "", url.toString());
 }
 
 export function AuthWidget({
@@ -654,7 +638,7 @@ function PasswordRecoveryForm({ client }: { client?: GafaClient }) {
     setError(undefined);
 
     try {
-      await client.requestPasswordReset({ email, returnUrl: window.location.href });
+      await client.requestPasswordReset({ email, returnUrl: passwordResetReturnUrl() });
       setStatus("success");
     } catch (err) {
       setStatus("error");

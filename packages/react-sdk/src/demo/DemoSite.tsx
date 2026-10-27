@@ -18,6 +18,7 @@ import { prefetchCheckoutCatalog } from "../sdk/cart/checkoutCatalog";
 import type { CartLineType, CatalogItem, CheckoutConfig, GafaClient } from "../sdk/client/types";
 import { createLiveConciergeConfig, FITSPIN_CONCIERGE_CONFIG, type ConciergePartnerConfig } from "../sdk/concierge";
 import { fitspinWordmarkDataUri } from "./fitspinWordmark";
+import { hasPasswordResetLink } from "../sdk/auth/passwordResetLink";
 import "../sdk/theme/theme.css";
 import "../sdk/widgets/widgets.css";
 import "./demo.css";
@@ -115,10 +116,7 @@ function DemoShell({
   const [page, setPage] = useState<Page>("calendario");
   // El link del correo de restablecer contraseña llega con ?token=&email=:
   // hay que abrir la cuenta de una vez, no dejar al socio en el calendario.
-  const [accountOpen, setAccountOpen] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return Boolean(params.get("token") && params.get("email"));
-  });
+  const [accountOpen, setAccountOpen] = useState(hasPasswordResetLink);
   const [signedIn, setSignedIn] = useState(false);
   // Compra suelta (sin reserva): el catalogo abre el checkout con el item ya
   // puesto, y el boton del header lo reabre con lo que quedo guardado.
