@@ -461,6 +461,35 @@ type RawMeeting = {
  * service/meetings/combos/membership), que no requieren OAuth: basta el header
  * GAFAFIT-COMPANY. Login y checkout siguen sin implementarse aqui (ver `legacy` fallback).
  */
+/**
+ * PHP a veces imprime un Warning en HTML (`<br /> <b>Warning</b>…`) antes del
+ * JSON. Se intenta rescatar el JSON que viene detrás; si no hay, error amable
+ * en lugar de "Unexpected token '<'".
+ */
+export async function readJsonSafe<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  if (!text.trim()) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    const start = text.search(/[{[]/);
+    if (start > 0) {
+      try {
+        const parsed = JSON.parse(text.slice(start)) as T;
+        console.warn("[gafa-sdk] respuesta con HTML antes del JSON:", text.slice(0, start).replace(/<[^>]+>/g, "").trim().slice(0, 300));
+        return parsed;
+      } catch {
+        // sigue al error amable
+      }
+    }
+    console.warn("[gafa-sdk] respuesta no JSON:", response.url, response.status, text.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim().slice(0, 300));
+    throw new GafaApiError(
+      "Tuvimos un problema con el servidor. Inténtalo de nuevo en unos minutos.",
+      response.status >= 500 ? response.status : 502,
+    );
+  }
+}
+
 export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient): GafaClient {
   const baseUrl = config.apiBaseUrl.replace(/\/$/, "");
   // La API anida location/meetings bajo brand/{slug}; el widget solo conoce el locationId,
@@ -498,7 +527,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
   }
 
   async function parseErrorBody(response: Response): Promise<GafaApiError> {
-    const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    const body = (await readJsonSafe<unknown>(response).catch(() => null)) as ApiErrorBody | null;
     const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined;
     const message = firstFieldError ?? body?.message ?? `gafa.fit API ${response.status}`;
     return new GafaApiError(translateApiMessage(message), response.status, body?.errors);
@@ -516,7 +545,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       throw await parseErrorBody(response);
     }
 
-    return response.json();
+    return readJsonSafe(response);
   }
 
   async function apiPost<T>(path: string, body: Record<string, string | number | boolean | undefined>): Promise<T> {
@@ -536,7 +565,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     }
 
     if (response.status === 204) return undefined as T;
-    return response.json();
+    return readJsonSafe(response);
   }
 
   function normalizeProfile(raw: RawUserProfile): UserProfile {
@@ -905,7 +934,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     });
     const response = await fetch(url.toString(), { headers: authHeaders() });
     if (!response.ok) throw await parseErrorBody(response);
-    return response.json();
+    return readJsonSafe(response);
   }
 
   async function apiPostFormUrl<T>(absoluteOrPath: string, body: Record<string, unknown>): Promise<T> {
@@ -918,7 +947,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     });
     if (!response.ok) throw await parseErrorBody(response);
     if (response.status === 204) return undefined as T;
-    return response.json();
+    return readJsonSafe(response);
   }
 
   /**
@@ -1750,7 +1779,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         lines: payload.lines,
       });
       const response = await fetch(url.toString(), { headers: authHeaders() });
-      const data: unknown = await response.json().catch(() => null);
+      const data: unknown = await readJsonSafe<unknown>(response).catch(() => null);
       return parseDiscountCheckResponse(payload.code, response.ok, data);
     },
 
@@ -1763,7 +1792,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         urlTemplate: payload.urlTemplate,
       });
       const response = await fetch(url.toString(), { headers: authHeaders() });
-      const data: unknown = await response.json().catch(() => null);
+      const data: unknown = await readJsonSafe<unknown>(response).catch(() => null);
       return parseGiftCodeCheckResponse(payload.code, response.ok, response.status, data);
     },
 
@@ -1775,7 +1804,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         urlTemplate: payload.urlTemplate,
       });
       const response = await fetch(url.toString(), { headers: authHeaders() });
-      const data: unknown = await response.json().catch(() => null);
+      const data: unknown = await readJsonSafe<unknown>(response).catch(() => null);
       if (!response.ok) {
         const body = data as { message?: string; errors?: Record<string, string[]> } | null;
         const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined;
