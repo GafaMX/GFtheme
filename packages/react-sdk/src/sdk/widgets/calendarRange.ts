@@ -61,7 +61,7 @@ export function addDays(date: Date, days: number): Date {
   return next;
 }
 
-/** Lunes como primer dia: es lo que usan los calendarios de los socios. */
+/** Lunes como primer dia: el date-picker mensual sigue esa rejilla. */
 export function startOfWeek(date: Date): Date {
   const start = new Date(date);
   const weekday = (start.getDay() + 6) % 7;
@@ -70,18 +70,44 @@ export function startOfWeek(date: Date): Date {
   return start;
 }
 
+/** Día de consulta en la zona de la marca (o el reloj local si no hay zona). */
+export function todayIsoInZone(now: Date = new Date(), timeZone?: string): string {
+  return toIsoDateInZone(now, timeZone);
+}
+
 /**
- * Rango que hay que pedir para la ventana visible, y solo para esa. Antes se
- * pedia `calendar_days` entero (21 dias en Bunker) aunque en pantalla solo
- * cupieran unos pocos.
+ * Semana = 7 días desde el día de consulta, no lunes–domingo. A mitad de
+ * semana el lunes–miércoles ya pasaron y no se reservan (Fitspin / v1).
+ * Si el ancla quedó atrás de hoy, la ventana arranca hoy.
+ * `today` / `timeZone` evitan que el reloj del navegador pinte un lunes
+ * ya cerrado cuando la sede ya está en martes (o al revés).
  */
-export function rangeForView(anchor: Date, view: CalendarView): DateRange {
+export function rangeForView(
+  anchor: Date,
+  view: CalendarView,
+  today: Date = new Date(),
+  timeZone?: string,
+): DateRange {
   if (view === "day") {
     const day = toIsoDate(anchor);
     return { from: day, to: day };
   }
 
-  const start = startOfWeek(anchor);
+  const todayIso = todayIsoInZone(today, timeZone);
+  const startIso = toIsoDate(anchor) < todayIso ? todayIso : toIsoDate(anchor);
+  return { from: startIso, to: toIsoDate(addDays(parseIsoDate(startIso), 6)) };
+}
+
+/**
+ * Si el primer día de la ventana ya terminó (todas las clases Finalizada),
+ * la semana arranca al día siguiente y sigue cubriendo 7 días.
+ */
+export function skipEndedWeekDays(range: DateRange, isEnded: (iso: string) => boolean): DateRange {
+  let start = parseIsoDate(range.from);
+  for (let i = 0; i < 7; i++) {
+    if (!isEnded(toIsoDate(start))) break;
+    start = addDays(start, 1);
+  }
   return { from: toIsoDate(start), to: toIsoDate(addDays(start, 6)) };
 }
 
