@@ -4,6 +4,7 @@ import { createGafaSdk, type GafaSdk } from "../../runtime";
 import { useCartStore } from "../../cart/cartStore";
 import { createMockGafaClient } from "../../client/gafaClient";
 import { installPixelDebugMocks, readPixelDebugLog } from "./debug";
+import { resetBrandCurrencyForTests } from "./brandCurrency";
 import { resetPixelDedupForTests } from "./eventId";
 
 const PIXEL_CONFIG = {
@@ -44,6 +45,7 @@ afterEach(async () => {
   useCartStore.setState({ lines: [], reservation: null });
   localStorage.removeItem("gafa-sdk:cart-v1");
   resetPixelDedupForTests();
+  resetBrandCurrencyForTests();
   await Promise.resolve();
   document.body.innerHTML = "";
   const w = window as Window & { fbq?: unknown; ttq?: unknown; gtag?: unknown; __BUQ_PIXEL_LOG?: unknown };

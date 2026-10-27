@@ -176,7 +176,11 @@ export function createPixelBridge(config: PixelsConfig): PixelBridge {
       if (!mapped) return input;
       return {
         ...input,
-        props: { ...(input.props ?? {}), event_id: mapped.payload.event_id },
+        props: {
+          ...(input.props ?? {}),
+          event_id: mapped.payload.event_id,
+          ...(mapped.payload.currency ? { currency: mapped.payload.currency } : {}),
+        },
       };
     },
     handle(input) {

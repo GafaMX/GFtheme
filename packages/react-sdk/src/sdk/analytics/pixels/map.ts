@@ -1,7 +1,16 @@
-import { resolveMoneyCurrency } from "../../cart/money";
 import type { SdkAnalyticsEventName, TrackInput } from "../events";
 import type { MappedPixelEvent, PixelCommerce, PixelEventName } from "./types";
+import { currencyFromUnknown, resolvePixelCurrency } from "./brandCurrency";
 import { stablePixelEventId } from "./eventId";
+
+export { currencyFromUnknown, resolvePixelCurrency } from "./brandCurrency";
+
+const COMMERCE_EVENTS: ReadonlySet<PixelEventName> = new Set([
+  "view_content",
+  "add_to_cart",
+  "initiate_checkout",
+  "purchase",
+]);
 
 const IGNORED: ReadonlySet<SdkAnalyticsEventName> = new Set([
   "reservation.waitlisted",
@@ -37,16 +46,6 @@ function asStringList(value: unknown): string[] | undefined {
   return [String(value)];
 }
 
-/** ISO real de la marca. Nunca inventa MXN. */
-export function currencyFromUnknown(raw: unknown): string | undefined {
-  if (typeof raw === "string") {
-    const money = resolveMoneyCurrency(raw);
-    return money?.code || (raw.trim() ? raw.trim().toUpperCase() : undefined);
-  }
-  const money = resolveMoneyCurrency(raw);
-  return money?.code;
-}
-
 export function commerceFromProps(props: Record<string, unknown> | undefined): PixelCommerce {
   const p = props ?? {};
   const contentType = p.content_type === "class" || p.content_type === "product" ? p.content_type : undefined;
@@ -71,11 +70,15 @@ export function mapTrackerEvent(input: TrackInput): MappedPixelEvent | null {
   const name = SOURCE_TO_PIXEL[input.event];
   if (!name) return null;
   const eventId = stablePixelEventId(name, input);
+  const commerce = commerceFromProps(input.props);
+  if (COMMERCE_EVENTS.has(name)) {
+    commerce.currency = resolvePixelCurrency(commerce.currency ?? input.props?.currency);
+  }
   return {
     name,
     source: input,
     payload: {
-      ...commerceFromProps(input.props),
+      ...commerce,
       event_id: eventId,
     },
   };
