@@ -198,3 +198,21 @@ body[data-demo-scheme="dark"] {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
 }
+
+.demo-pixel-log {
+  background: var(--gafa-color-surface);
+  border-top: 1px solid var(--gafa-color-border);
+  color: var(--gafa-color-muted-text, inherit);
+  font-size: 0.75rem;
+  padding: 0.75rem 1.25rem 1.5rem;
+}
+
+.demo-pixel-log ol {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.demo-pixel-log code {
+  color: var(--gafa-color-text);
+  font-weight: 600;
+}

@@ -22,6 +22,7 @@ describe("embed drop-in", () => {
     host.GafaThemeSDK?.unmountAll();
     delete host.GafaThemeSDK;
     delete host.GafaSdk;
+    delete host.BuqSDK;
     delete host.GafaSdkReady;
     delete host.GAFA_SDK_AUTOSCAN;
     document.documentElement.removeAttribute("data-gf-autoscan");

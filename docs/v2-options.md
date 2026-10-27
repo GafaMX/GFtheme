@@ -41,6 +41,13 @@ Query de prueba (no uses en producción): `?buq-env=` y `?hub-url=`. Nada más.
 | `GAFAPAY_FRONT_URL` | `gafaPayFrontUrl` | no | sí | Pisa el script de Stripe/PayPal. |
 | `HUB_URL` | `hubUrl` | no | sí | Analytics + remote config. Default `https://hub.buq.partners`. Query `?hub-url=` gana. |
 | `ANALYTICS` | `analyticsEnabled` | no | sí | `false` apaga heartbeats. |
+| `PIXELS_ENABLED` | `pixelsEnabled` | no | sí | Default `false`. Enciende Meta/TikTok/GA4. |
+| `PIXELS_CONSENT_MODE` | `pixelsConsentMode` | no | sí | `required` (default) \| `implied`. |
+| `META_PIXEL_ID` | `metaPixelId` | no | sí | ID público de Meta. |
+| `TIKTOK_PIXEL_ID` | `tiktokPixelId` | no | sí | ID público de TikTok. |
+| `GA4_MEASUREMENT_ID` | `ga4MeasurementId` | no | sí | `G-XXXX`. |
+| `GOOGLE_ADS_ID` | `googleAdsId` | no | sí | `AW-XXXX`. |
+| `GOOGLE_ADS_PURCHASE_LABEL` | `googleAdsPurchaseLabel` | no | sí | Label de la conversión de compra. |
 | `CAPTCHA_PUBLIC_KEY` | `captchaPublicKey` | no | sí | Default: par compartido de Buq. Sola (sin secret en la página) se ignora. |
 | `CAPTCHA_SECRET_KEY` | `captchaSecretKey` | no | **prohibido** | Default compartido. gafa.fit la pide desde el browser. Hay que mandar las **dos** para pisar el default. |
 | `TOKENMOVIL` | `tokenMovil` | no | sí | SSO app. |

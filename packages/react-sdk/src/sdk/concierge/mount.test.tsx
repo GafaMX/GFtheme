@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { fireEvent, waitFor } from "@testing-library/react";
 import { createGafaSdk, type GafaSdk } from "../runtime";
 import { themePreferenceStorageKey } from "../theme/theme";
+import { useCartStore } from "../cart/cartStore";
 import { DEMO_CONCIERGE_CONFIG, FITSPIN_CONCIERGE_CONFIG } from "./fixtures";
 import { resolveConciergeConfig } from "./mount";
 
@@ -14,9 +15,11 @@ function boot(): GafaSdk {
   return sdk;
 }
 
-afterEach(() => {
+afterEach(async () => {
   sdk?.unmountAll();
   sdk = null;
+  useCartStore.setState({ lines: [], reservation: null });
+  await Promise.resolve();
   document.body.innerHTML = "";
   localStorage.removeItem(themePreferenceStorageKey("1:demo-client"));
   localStorage.removeItem(themePreferenceStorageKey("8801:demo-client"));
@@ -202,6 +205,9 @@ describe("sdk.concierge.mount", () => {
         .find((candidate) => candidate.textContent?.trim() === "Comprar");
       expect(button).toBeTruthy();
       return button!;
+    });
+    await waitFor(() => {
+      expect(buy.isConnected).toBe(true);
     });
     fireEvent.click(buy);
     await waitFor(() => {

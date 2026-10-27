@@ -39,7 +39,10 @@ Heartbeats y `calendar.viewed` no suman lealtad. Ver [Lealtad](loyalty.md).
 | `auth.login_succeeded` · `auth.login_failed` · `auth.registered` · `auth.logged_out` | negocio |
 | `reservation.previewed` · `reservation.confirmed` · `reservation.waitlisted` · `reservation.cancelled` | negocio |
 | `checkout.opened` · `checkout.paid` · `checkout.failed` | negocio |
-| `catalog.item_opened` · `purchase_button.clicked` | uso |
+| `catalog.item_opened` · `cart.item_added` · `purchase_button.clicked` | uso |
+| `page_view` | uso (píxeles + Hub) |
+
+Los eventos de negocio que reenvían píxeles llevan `props.event_id` (`buq_purchase_<id>`, `buq_schedule_<id>`, …) para deduplicar CAPI. Ver [Píxeles](pixels.md).
 | `concierge.opened` · `concierge.message_sent` | futuro |
 
 CORS abierto. Rate limit por IP y `company_id`. El Hub guarda el *camino*; la caja sigue en Laravel.
