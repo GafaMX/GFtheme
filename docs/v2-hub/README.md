@@ -68,6 +68,7 @@ O `?hub-url=http://127.0.0.1:8787`. `ANALYTICS: false` apaga el tracker.
 - [Instalación del embed](install.md) — el contrato de un script no cambia
 - [Catálogo de widgets](widgets.md)
 - [Contrato de eventos](events.md)
+- [Píxeles de marketing](pixels.md)
 - [Lealtad](loyalty.md)
 - [Remote config](remote-config.md)
 - [Cómo se publica el JS](../v2-lanzamiento.md)

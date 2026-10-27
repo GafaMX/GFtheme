@@ -60,6 +60,7 @@ import {
 } from "./calendarServiceQuery";
 import { parseFilterFlagValue } from "../bootstrap/legacyFilterFlag";
 import { FilterMultiSelect } from "./FilterMultiSelect";
+import { trackSdkEvent } from "../analytics/activeTracker";
 
 export type CalendarWidgetProps = {
   client?: GafaClient;
@@ -624,6 +625,16 @@ export function CalendarWidget({
   /** Clic en una clase: el flujo completo (login, detalle y compra) vive en `ReservationFlow`. */
   function openMeeting(meeting: Meeting) {
     setSelectedMeeting(meeting);
+    trackSdkEvent({
+      event: "calendar.meeting_opened",
+      widget: "calendar",
+      props: {
+        meeting_id: meeting.id,
+        content_ids: [String(meeting.id)],
+        content_type: "class",
+        currency: activeBrand?.currency?.code,
+      },
+    });
   }
 
   // En vista día el cambio es tan seco que en móvil no se siente el swipe:

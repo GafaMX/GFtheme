@@ -54,6 +54,13 @@ export { createSdkTracker } from "./analytics/tracker";
 export type { SdkTracker, TrackerConfig } from "./analytics/tracker";
 export { SDK_ANALYTICS_EVENTS } from "./analytics/events";
 export type { SdkAnalyticsEventName } from "./analytics/events";
+export {
+  createPixelRuntime,
+  readPixelsConfig,
+  mapTrackerEvent,
+  installPixelDebugMocks,
+} from "./analytics/pixels";
+export type { PixelEventName, PixelsConfig, PixelConsent, CapiEventHook } from "./analytics/pixels";
 export { SDK_VERSION } from "./version";
 export type { GafaBrandTheme, GafaHeaderControlsTheme } from "./theme/theme";
 export type { GafaClient } from "./client/types";

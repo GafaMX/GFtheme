@@ -34,6 +34,10 @@ import {
 } from "./concierge/mount";
 import { createSdkTracker, type SdkTracker } from "./analytics/tracker";
 import { instrumentClient } from "./analytics/instrumentClient";
+import { bindActiveTracker } from "./analytics/activeTracker";
+import { cartCommerceProps, subscribeCartAdds, trackCheckoutOpenedWhenReady } from "./analytics/cartEvents";
+import { findPurchasableItem } from "./cart/findPurchasable";
+import { bindCurrencyFromBrands, createPixelRuntime, installConsentSurface, resetBrandCurrency, type PixelConsent } from "./analytics/pixels";
 import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 import {
   aliasV2Shortcodes,
@@ -88,6 +92,8 @@ export type GafaSdk = {
   /** Eventos de uso hacia el SDK Hub. Nunca tira si el Hub está caído. */
   track: SdkTracker["track"];
   heartbeat(widgets: string[]): void;
+  /** Consentimiento de marketing para píxeles. También `window.BuqSDK.setConsent`. */
+  setConsent(consent: PixelConsent): void;
   /**
    * Listo para `mount` / `openCheckout`. El IIFE también expone
    * `window.GafaSdkReady` (misma promesa) desde que carga el script.
@@ -230,14 +236,28 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
   const events = createEventBus();
   configureTokenStorage(config.apiBaseUrl);
   setGafaPayFrontUrl(config.gafaPayFrontUrl);
-  const tracker = createSdkTracker({
+  const rawTracker = createSdkTracker({
     hubUrl: config.hubUrl,
     companyId: config.companyId,
     brandId: config.brandId,
     enabled: config.analyticsEnabled,
   });
+  const pixels = createPixelRuntime({
+    analyticsEnabled: config.analyticsEnabled,
+    options: { ...input, ...config } as Record<string, unknown>,
+  });
+  const tracker = pixels.wrap(rawTracker);
+  bindActiveTracker(tracker.track);
+  const stopConsent =
+    pixels.config.enabled && typeof window !== "undefined" ? installConsentSurface(pixels) : () => undefined;
+  const unsubCartPixels = config.analyticsEnabled ? subscribeCartAdds(tracker.track) : () => undefined;
+  let stopCheckoutOpenedWait: () => void = () => undefined;
   const rawClient = options.client ?? createClient(config, options);
   const client = instrumentClient(rawClient, tracker);
+  if (config.analyticsEnabled) {
+    void client.listBrands().then(bindCurrencyFromBrands).catch(() => undefined);
+  }
+  tracker.track({ event: "page_view", widget: "sdk" });
   const captcha = createCaptchaProvider(config.captchaProvider, config.captchaPublicKey);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -508,13 +528,29 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         preselect: props.preselect,
       };
       events.emit("buq:checkout:opening", context);
-      tracker.track({ event: "checkout.opened", widget: "checkout" });
+      activeCheckout?.close();
+      stopCheckoutOpenedWait();
+      stopCheckoutOpenedWait = trackCheckoutOpenedWhenReady(tracker.track, props.preselect ?? null);
+      if (props.preselect && !useCartStore.getState().lines.some((line) => line.type === props.preselect?.type && line.id === props.preselect.id)) {
+        void findPurchasableItem(client, props.preselect, props.brandSlug).then((match) => {
+          if (match) return;
+          stopCheckoutOpenedWait();
+          stopCheckoutOpenedWait = () => undefined;
+          tracker.track({
+            event: "checkout.opened",
+            widget: "checkout",
+            props: cartCommerceProps(),
+          });
+        }).catch(() => undefined);
+      }
       silenceLegacyFancy();
       prefetchCheckoutCatalog(queryClient, client, props.brandSlug);
       const host = document.createElement("div");
       document.body.appendChild(host);
 
       const close = () => {
+        stopCheckoutOpenedWait();
+        stopCheckoutOpenedWait = () => undefined;
         if (activeCheckout === handle) activeCheckout = null;
         // Igual que openAccount: desmontar en el mismo tick del handler de
         // React revienta con "synchronously unmount a root while rendering".
@@ -525,7 +561,6 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         });
       };
 
-      activeCheckout?.close();
       const handle: CheckoutOpenHandle = { type: "checkout", context, close };
       activeCheckout = handle;
 
@@ -557,7 +592,11 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       tracker.track({
         event: "calendar.meeting_opened",
         widget: "calendar",
-        props: { meeting_id: props.meetingId },
+        props: {
+          meeting_id: props.meetingId,
+          content_ids: props.meetingId != null ? [String(props.meetingId)] : undefined,
+          content_type: "class",
+        },
       });
       silenceLegacyFancy();
       const host = document.createElement("div");
@@ -704,6 +743,9 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     heartbeat(widgets) {
       tracker.heartbeat(widgets);
     },
+    setConsent(consent) {
+      pixels.setConsent(consent);
+    },
     get ready() {
       return Promise.resolve(sdk);
     },
@@ -742,6 +784,13 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
         );
       }
       queryClient.clear();
+      stopCheckoutOpenedWait();
+      stopCheckoutOpenedWait = () => undefined;
+      unsubCartPixels();
+      stopConsent();
+      pixels.destroy();
+      resetBrandCurrency();
+      bindActiveTracker(null);
       tracker.flush();
     }
   };

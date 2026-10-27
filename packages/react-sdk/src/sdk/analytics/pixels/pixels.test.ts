@@ -1,0 +1,361 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createSdkTracker } from "../tracker";
+import {
+  bindBrandCurrency,
+  bindCurrencyFromBrands,
+  createPixelRuntime,
+  installConsentSurface,
+  mapTrackerEvent,
+  readPixelsConfig,
+  resetBrandCurrencyForTests,
+  resolvePixelCurrency,
+} from "./index";
+import { createPageViewGate, resetPixelDedupForTests, stablePixelEventId } from "./eventId";
+import { hashEmail, normalizeEmail, normalizePhone, sha256Hex } from "./hash";
+import { currencyFromUnknown, payloadHasPii, stripPii } from "./map";
+import { installPixelDebugMocks, readPixelDebugLog } from "./debug";
+import { scriptsInjected } from "./loaders";
+import type { TrackInput } from "../events";
+
+function pixelWindow() {
+  return window as Window & {
+    fbq?: (...args: unknown[]) => void;
+    ttq?: { track: (...args: unknown[]) => void; page: (...args: unknown[]) => void };
+    gtag?: (...args: unknown[]) => void;
+    BuqSDK?: { setConsent?(consent: { marketing?: boolean }): void };
+    __BUQ_PIXEL_LOG?: Array<{ provider: string; args: unknown[] }>;
+  };
+}
+
+function enabledOptions(extra: Record<string, unknown> = {}) {
+  return {
+    PIXELS_ENABLED: true,
+    PIXELS_CONSENT_MODE: "implied",
+    META_PIXEL_ID: "111",
+    TIKTOK_PIXEL_ID: "222",
+    GA4_MEASUREMENT_ID: "G-TEST",
+    GOOGLE_ADS_ID: "AW-TEST",
+    GOOGLE_ADS_PURCHASE_LABEL: "buy",
+    ...extra,
+  };
+}
+
+function boot(extra: Record<string, unknown> = {}) {
+  installPixelDebugMocks();
+  const runtime = createPixelRuntime({
+    analyticsEnabled: true,
+    options: enabledOptions(extra),
+  });
+  const tracker = runtime.wrap(
+    createSdkTracker({ hubUrl: "https://hub.example", companyId: 80, enabled: true }),
+  );
+  return { runtime, tracker };
+}
+
+function currenciesInLog(eventName: string): unknown[] {
+  return readPixelDebugLog()
+    .filter((row) => row.args.includes(eventName))
+    .map((row) => {
+      const params = row.args.find((arg) => arg && typeof arg === "object" && "currency" in (arg as object)) as
+        | { currency?: string }
+        | undefined;
+      return params?.currency;
+    });
+}
+
+function expectCurrency(eventName: string, code: string) {
+  const found = currenciesInLog(eventName);
+  expect(found.length).toBeGreaterThan(0);
+  expect(found.every((item) => item === code)).toBe(true);
+}
+
+afterEach(() => {
+  resetPixelDedupForTests();
+  resetBrandCurrencyForTests();
+  vi.restoreAllMocks();
+  document.querySelectorAll("script[data-buq-pixel]").forEach((node) => node.remove());
+  const w = pixelWindow();
+  delete w.fbq;
+  delete w.ttq;
+  delete w.gtag;
+  delete w.BuqSDK;
+  delete w.__BUQ_PIXEL_LOG;
+  sessionStorage.clear();
+});
+
+describe("mapa de eventos", () => {
+  it("traduce los 7 eventos canónicos y ignora waitlist/failed", () => {
+    const cases: Array<[TrackInput["event"], string]> = [
+      ["page_view", "page_view"],
+      ["catalog.item_opened", "view_content"],
+      ["calendar.meeting_opened", "view_content"],
+      ["cart.item_added", "add_to_cart"],
+      ["checkout.opened", "initiate_checkout"],
+      ["checkout.paid", "purchase"],
+      ["reservation.confirmed", "schedule"],
+      ["auth.registered", "complete_registration"],
+    ];
+    for (const [event, name] of cases) {
+      expect(mapTrackerEvent({ event, props: { purchase_id: 9, reservation_id: 3 } })?.name).toBe(name);
+    }
+    expect(mapTrackerEvent({ event: "reservation.waitlisted" })).toBeNull();
+    expect(mapTrackerEvent({ event: "checkout.failed" })).toBeNull();
+    expect(mapTrackerEvent({ event: "auth.login_succeeded" })).toBeNull();
+  });
+});
+
+describe("page_view dedupe", () => {
+  it("dispara una sola PageView por carga aunque lleguen dos event_id distintos", () => {
+    const { tracker } = boot();
+    tracker.track({ event: "page_view", widget: "sdk" });
+    tracker.track({ event: "page_view", widget: "demo", props: { view: "calendario" } });
+    const pageViews = readPixelDebugLog().filter((row) => row.args.includes("PageView"));
+    expect(pageViews).toHaveLength(1);
+    const eventIds = new Set(
+      pageViews.map((row) => {
+        const extra = row.args.find((arg) => arg && typeof arg === "object" && "eventID" in (arg as object)) as
+          | { eventID?: string }
+          | undefined;
+        return extra?.eventID;
+      }),
+    );
+    expect(eventIds.size).toBe(1);
+  });
+
+  it("dispara otra PageView solo al cambiar de vista", () => {
+    const { tracker } = boot();
+    tracker.track({ event: "page_view", widget: "sdk" });
+    tracker.track({ event: "page_view", widget: "demo", props: { view: "calendario" } });
+    tracker.track({ event: "page_view", widget: "demo", props: { view: "calendario" } });
+    tracker.track({ event: "page_view", widget: "demo", props: { view: "paquetes" } });
+    const pageViews = readPixelDebugLog().filter((row) => row.args.includes("PageView"));
+    expect(pageViews).toHaveLength(2);
+  });
+
+  it("el gate fusiona boot + vista inicial y deja pasar el cambio", () => {
+    const gate = createPageViewGate();
+    expect(gate.allow({ event: "page_view" })).toBe(true);
+    expect(gate.allow({ event: "page_view", props: { view: "calendario" } })).toBe(false);
+    expect(gate.allow({ event: "page_view", props: { view: "calendario" } })).toBe(false);
+    expect(gate.allow({ event: "page_view", props: { view: "paquetes" } })).toBe(true);
+  });
+});
+
+describe("event_id", () => {
+  it("es estable para purchase y schedule", () => {
+    expect(
+      stablePixelEventId("purchase", { event: "checkout.paid", props: { purchase_id: 88 } }),
+    ).toBe("buq_purchase_88");
+    expect(
+      stablePixelEventId("schedule", { event: "reservation.confirmed", props: { reservation_id: 12 } }),
+    ).toBe("buq_schedule_12");
+    const other = stablePixelEventId("view_content", { event: "catalog.item_opened" });
+    expect(other.startsWith("buq_view_content_")).toBe(true);
+  });
+
+  it("no dispara purchase dos veces al recargar", () => {
+    const first = boot();
+    first.tracker.track({ event: "checkout.paid", widget: "checkout", props: { purchase_id: 77, value: 330, currency: "MXN" } });
+    const afterFirst = readPixelDebugLog().filter((row) => row.args.includes("Purchase") || row.args.includes("CompletePayment") || row.args.includes("purchase"));
+    expect(afterFirst.length).toBeGreaterThan(0);
+
+    const second = boot();
+    second.tracker.track({ event: "checkout.paid", widget: "checkout", props: { purchase_id: 77, value: 330, currency: "MXN" } });
+    const purchases = readPixelDebugLog().filter((row) => row.args.includes("Purchase"));
+    expect(purchases).toHaveLength(1);
+  });
+});
+
+describe("carga", () => {
+  it("no carga scripts sin consentimiento en modo required", () => {
+    installPixelDebugMocks();
+    const runtime = createPixelRuntime({
+      analyticsEnabled: true,
+      options: enabledOptions({ PIXELS_CONSENT_MODE: "required" }),
+    });
+    const tracker = runtime.wrap(createSdkTracker({ hubUrl: "https://hub.example", companyId: 1 }));
+    tracker.track({ event: "page_view" });
+    expect(scriptsInjected()).toEqual([]);
+    expect(runtime.bridge.getConsent().marketing).toBe(false);
+  });
+
+  it("no carga nada sin ID ni con PIXELS_ENABLED false", () => {
+    const none = createPixelRuntime({
+      analyticsEnabled: true,
+      options: { PIXELS_ENABLED: true, PIXELS_CONSENT_MODE: "implied" },
+    });
+    none.wrap(createSdkTracker({ hubUrl: "https://hub.example", companyId: 1 })).track({ event: "page_view" });
+    expect(scriptsInjected()).toEqual([]);
+
+    const off = createPixelRuntime({
+      analyticsEnabled: true,
+      options: enabledOptions({ PIXELS_ENABLED: false }),
+    });
+    off.wrap(createSdkTracker({ hubUrl: "https://hub.example", companyId: 1 })).track({ event: "page_view" });
+    expect(scriptsInjected()).toEqual([]);
+  });
+
+  it("ANALYTICS false apaga los píxeles", () => {
+    const runtime = createPixelRuntime({
+      analyticsEnabled: false,
+      options: enabledOptions(),
+    });
+    expect(runtime.config.enabled).toBe(false);
+  });
+
+  it("reutiliza fbq/gtag/ttq del host y no inyecta script", () => {
+    installPixelDebugMocks();
+    boot();
+    expect(scriptsInjected()).toEqual([]);
+    expect(typeof pixelWindow().fbq).toBe("function");
+  });
+});
+
+describe("hash y moneda", () => {
+  it("SHA-256 del email normalizado", async () => {
+    expect(normalizeEmail("  Ana@Fitspin.MX ")).toBe("ana@fitspin.mx");
+    expect(normalizePhone("+52 55 1122 3344")).toBe("525511223344");
+    const hex = await sha256Hex("ana@fitspin.mx");
+    expect(hex).toMatch(/^[a-f0-9]{64}$/);
+    expect(await hashEmail("  Ana@Fitspin.MX ")).toBe(hex);
+  });
+
+  it("usa EUR o MXN reales, nunca una fija", () => {
+    expect(currencyFromUnknown("EUR")).toBe("EUR");
+    expect(currencyFromUnknown("MXN")).toBe("MXN");
+    expect(currencyFromUnknown({ code3: "EUR" })).toBe("EUR");
+    expect(currencyFromUnknown(undefined)).toBeUndefined();
+    const mapped = mapTrackerEvent({
+      event: "checkout.paid",
+      props: { purchase_id: 1, value: 40, currency: "EUR" },
+    });
+    expect(mapped?.payload.currency).toBe("EUR");
+    const mxn = mapTrackerEvent({
+      event: "checkout.paid",
+      props: { purchase_id: 2, value: 330, currency: "MXN" },
+    });
+    expect(mxn?.payload.currency).toBe("MXN");
+  });
+});
+
+describe("moneda de la marca", () => {
+  it("sin dato en el evento: fallback MXN en los 4 eventos de comercio y Ads conversion", () => {
+    expect(resolvePixelCurrency(undefined)).toBe("MXN");
+    const { tracker } = boot();
+    tracker.track({ event: "catalog.item_opened", props: { item_id: 1, value: 330 } });
+    tracker.track({ event: "cart.item_added", props: { item_id: 1, value: 330, num_items: 1 } });
+    tracker.track({ event: "checkout.opened", props: { value: 330, num_items: 1 } });
+    tracker.track({ event: "checkout.paid", props: { purchase_id: 9, value: 330 } });
+    expectCurrency("ViewContent", "MXN");
+    expectCurrency("AddToCart", "MXN");
+    expectCurrency("InitiateCheckout", "MXN");
+    expectCurrency("Purchase", "MXN");
+    expectCurrency("conversion", "MXN");
+    expect(mapTrackerEvent({ event: "catalog.item_opened", props: { value: 10 } })?.payload.currency).toBe("MXN");
+  });
+
+  it("marca MXN (Fitspin) pinta y manda MXN aunque el item no traiga currency", () => {
+    bindCurrencyFromBrands([{ currency: { prefix: "$", suffix: "MXN", code: "MXN" } }]);
+    const { tracker } = boot();
+    tracker.track({ event: "catalog.item_opened", props: { item_id: 973, value: 330 } });
+    tracker.track({ event: "checkout.paid", props: { purchase_id: 3, value: 330 } });
+    expectCurrency("ViewContent", "MXN");
+    expectCurrency("Purchase", "MXN");
+    expectCurrency("conversion", "MXN");
+  });
+
+  it("marca EUR (Oasis) pinta y manda EUR, no MXN", () => {
+    bindBrandCurrency({ prefix: "€", suffix: "EUR", code: "EUR" });
+    expect(resolvePixelCurrency(undefined)).toBe("EUR");
+    const { tracker } = boot();
+    tracker.track({ event: "catalog.item_opened", props: { item_id: 4, value: 40 } });
+    tracker.track({ event: "cart.item_added", props: { item_id: 4, value: 40, num_items: 1 } });
+    tracker.track({ event: "checkout.opened", props: { value: 40, num_items: 1 } });
+    tracker.track({ event: "checkout.paid", props: { purchase_id: 11, value: 40 } });
+    expectCurrency("ViewContent", "EUR");
+    expectCurrency("AddToCart", "EUR");
+    expectCurrency("InitiateCheckout", "EUR");
+    expectCurrency("Purchase", "EUR");
+    expectCurrency("conversion", "EUR");
+    expect(mapTrackerEvent({ event: "checkout.opened", props: { value: 40 } })?.payload.currency).toBe("EUR");
+  });
+
+  it("si el evento ya trae currency, esa gana sobre la marca", () => {
+    bindBrandCurrency("MXN");
+    expect(
+      mapTrackerEvent({ event: "checkout.paid", props: { purchase_id: 1, value: 1, currency: "EUR" } })?.payload
+        .currency,
+    ).toBe("EUR");
+  });
+});
+
+describe("privacidad", () => {
+  it("no manda PII en claro en el payload", () => {
+    const dirty = stripPii({
+      value: 10,
+      currency: "MXN",
+      email: "ana@fitspin.mx",
+      user_email: "ana@fitspin.mx",
+      user_name: "Ana",
+      phone: "5511223344",
+    });
+    expect(dirty).toEqual({ value: 10, currency: "MXN" });
+    expect(payloadHasPii({ email: "a@b.c" })).toBe(true);
+    expect(payloadHasPii({ value: 10, currency: "MXN" })).toBe(false);
+
+    const { tracker } = boot();
+    tracker.track({
+      event: "checkout.paid",
+      props: {
+        purchase_id: 5,
+        value: 330,
+        currency: "MXN",
+        user_email: "ana@fitspin.mx",
+        user_name: "Ana Ruiz",
+      },
+    });
+    const blob = JSON.stringify(readPixelDebugLog());
+    expect(blob).not.toMatch(/ana@fitspin\.mx/i);
+    expect(blob).not.toMatch(/Ana Ruiz/);
+    expect(blob).not.toMatch(/5511223344/);
+  });
+
+  it("setConsent y buq:consent:granted habilitan el envío", () => {
+    installPixelDebugMocks();
+    const runtime = createPixelRuntime({
+      analyticsEnabled: true,
+      options: enabledOptions({ PIXELS_CONSENT_MODE: "required" }),
+    });
+    const tracker = runtime.wrap(createSdkTracker({ hubUrl: "https://hub.example", companyId: 1 }));
+    installConsentSurface(runtime);
+    tracker.track({ event: "page_view" });
+    expect(readPixelDebugLog().some((row) => row.args.includes("PageView"))).toBe(false);
+    pixelWindow().BuqSDK?.setConsent?.({ marketing: true });
+    expect(readPixelDebugLog().some((row) => row.args.includes("PageView"))).toBe(true);
+  });
+});
+
+describe("config", () => {
+  it("lee keys HTML y camelCase; default pixels off y consent required", () => {
+    expect(readPixelsConfig({})).toMatchObject({ enabled: false, consentMode: "required" });
+    expect(
+      readPixelsConfig({
+        pixelsEnabled: true,
+        metaPixelId: "9",
+        pixelsConsentMode: "implied",
+      }),
+    ).toMatchObject({ enabled: true, metaPixelId: "9", consentMode: "implied" });
+  });
+
+  it("deja event_id en props del Hub", () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    vi.stubGlobal("fetch", fetchMock);
+    const { tracker } = boot();
+    tracker.track({ event: "checkout.paid", props: { purchase_id: 42, currency: "MXN", value: 1 } });
+    tracker.flush();
+    const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body)) as {
+      events: Array<{ props?: { event_id?: string } }>;
+    };
+    expect(body.events[0].props?.event_id).toBe("buq_purchase_42");
+  });
+});

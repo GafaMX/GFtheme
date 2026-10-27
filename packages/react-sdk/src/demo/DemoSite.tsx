@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createGafaSdk } from "../sdk";
+import { createGafaSdk, type GafaSdk } from "../sdk";
+import { installPixelDebugMocks, readPixelDebugLog } from "../sdk/analytics/pixels";
 import { createHttpGafaClient } from "../sdk/client/httpGafaClient";
 import { createLegacyGafaFitAdapter } from "../sdk/client/legacyGafaFitAdapter";
 import { createCaptchaProvider } from "../sdk/captcha/CaptchaProvider";
@@ -133,7 +134,57 @@ function DemoShell({
   const cartCount = useCartStore((s) => s.lines.reduce((sum, line) => sum + line.amount, 0));
   const { scheme } = useGafaTheme();
 
-  const { client, captcha, queryClient, config } = useDemoClient(brand, environment);
+  const { client: rawClient, captcha, queryClient, config } = useDemoClient(brand, environment);
+  const pixelsConsentMode = new URLSearchParams(window.location.search).get("pixels-consent") === "required"
+    ? "required"
+    : "implied";
+  const sdkRef = useRef<GafaSdk | null>(null);
+  const [, setSdkTick] = useState(0);
+  const sdk = sdkRef.current;
+  const client = sdk?.client ?? rawClient;
+
+  useEffect(() => {
+    installPixelDebugMocks();
+    const next = createGafaSdk(
+      {
+        environment,
+        companyId: brand.companyId,
+        publicClientId: brand.apiClient,
+        clientSecret: brand.apiSecret,
+        analyticsEnabled: true,
+        pixelsEnabled: true,
+        pixelsConsentMode,
+        metaPixelId: "DEMO_META",
+        tiktokPixelId: "DEMO_TT",
+        ga4MeasurementId: "G-DEMO",
+        googleAdsId: "AW-DEMO",
+        googleAdsPurchaseLabel: "demo_purchase",
+        theme: {
+          colorScheme: brand.theme.colorScheme,
+          logoUrl: brand.theme.logoUrl,
+          logoUrlDark: brand.theme.logoUrlDark,
+          colors: brand.theme.colors as Record<string, string> | undefined,
+        },
+      },
+      { client: rawClient },
+    );
+    sdkRef.current = next;
+    setSdkTick((value) => value + 1);
+    window.BuqSDK = next;
+    window.GafaThemeSDK = next;
+    const handle = next.concierge.mount({
+      config: conciergeConfigFor(brandKey),
+      hydrateFromClient: true,
+      navigate(path) {
+        setPage(path.includes("paquete") || path.includes("package") ? "paquetes" : "calendario");
+      },
+    });
+    return () => {
+      handle.destroy();
+      next.unmountAll();
+      if (sdkRef.current === next) sdkRef.current = null;
+    };
+  }, [brand.apiClient, brand.apiSecret, brand.companyId, brandKey, rawClient, environment, pixelsConsentMode]);
 
   useEffect(() => {
     // Mismo criterio que AccountModal/CalendarWidget: un hipo de red no debe
@@ -163,33 +214,16 @@ function DemoShell({
     prefetchCheckoutCatalog(queryClient, client);
   }, [client, queryClient, cartCount]);
 
+  const lastTrackedView = useRef<Page | null>(null);
   useEffect(() => {
-    const sdk = createGafaSdk(
-      {
-        environment,
-        companyId: brand.companyId,
-        publicClientId: brand.apiClient,
-        clientSecret: brand.apiSecret,
-        theme: {
-          colorScheme: brand.theme.colorScheme,
-          logoUrl: brand.theme.logoUrl,
-          logoUrlDark: brand.theme.logoUrlDark,
-          colors: brand.theme.colors as Record<string, string> | undefined,
-        },
-      },
-      { client },
-    );
-    const handle = sdk.concierge.mount({
-      config: conciergeConfigFor(brandKey),
-      hydrateFromClient: true,
-      navigate(path) {
-        setPage(path.includes("paquete") || path.includes("package") ? "paquetes" : "calendario");
-      },
-    });
-    return () => {
-      handle.destroy();
-    };
-  }, [brand.apiClient, brand.apiSecret, brand.companyId, brandKey, client, environment]);
+    if (lastTrackedView.current === null) {
+      lastTrackedView.current = page;
+      return;
+    }
+    if (lastTrackedView.current === page) return;
+    lastTrackedView.current = page;
+    sdkRef.current?.track({ event: "page_view", widget: "demo", props: { view: page } });
+  }, [page]);
 
   // El fondo de la pagina lo pone el demo, no el SDK: en un sitio real es el
   // propio sitio el que lo define.
@@ -250,12 +284,31 @@ function DemoShell({
 
               <ColorSchemeToggle />
 
+              {pixelsConsentMode === "required" ? (
+                <button
+                  type="button"
+                  className="demo-consent"
+                  data-demo-consent=""
+                  onClick={() => {
+                    sdkRef.current?.setConsent({ marketing: true });
+                    window.BuqSDK?.setConsent?.({ marketing: true });
+                  }}
+                >
+                  Dar consentimiento de marketing
+                </button>
+              ) : null}
+
               {cartCount > 0 ? (
                 <button
                   className="demo-cart"
                   type="button"
                   title="Tu carrito"
-                  onClick={() => setCheckout({ skipCatalog: true })}
+                  onClick={() => {
+                    sdkRef.current?.openCheckout({
+                      skipCatalog: true,
+                      crossSell: brandKey === "fitspin" ? FITSPIN_CROSS_SELL : undefined,
+                    });
+                  }}
                 >
                   <CartIcon />
                   <span className="demo-cart__count">{cartCount}</span>
@@ -292,13 +345,24 @@ function DemoShell({
               <CatalogWidget
                 client={client}
                 type="packages"
-                onBuy={(item) => setCheckout({ preselect: { type: "combo", id: item.id } })}
-
+                onBuy={(item) => {
+                  sdkRef.current?.openCheckout({
+                    preselect: { type: "combo", id: item.id },
+                    skipCatalog: true,
+                    crossSell: brandKey === "fitspin" ? FITSPIN_CROSS_SELL : undefined,
+                  });
+                }}
               />
               <CatalogWidget
                 client={client}
                 type="memberships"
-                onBuy={(item) => setCheckout({ preselect: { type: "membership", id: item.id } })}
+                onBuy={(item) => {
+                  sdkRef.current?.openCheckout({
+                    preselect: { type: "membership", id: item.id },
+                    skipCatalog: true,
+                    crossSell: brandKey === "fitspin" ? FITSPIN_CROSS_SELL : undefined,
+                  });
+                }}
               />
             </div>
           ) : null}
@@ -331,6 +395,7 @@ function DemoShell({
         <footer className="demo-footer">
           Sitio de prueba del SDK v2 · {brand.label} · {config.environment} · {config.apiBaseUrl}
         </footer>
+        <PixelDebugPanel />
 
         {/* OJO: sin contenedor fancy global. FancyOverlay crea el suyo, y el
             inyector legacy exige EXACTAMENTE UN [data-gf-theme="fancy"] en el
@@ -420,6 +485,36 @@ function withFitspinStoreProducts(client: GafaClient): GafaClient {
       return { ...config, products: merge(config.products) };
     },
   };
+}
+
+function PixelDebugPanel() {
+  const [entries, setEntries] = useState(() => readPixelDebugLog());
+  useEffect(() => {
+    const timer = window.setInterval(() => setEntries([...readPixelDebugLog()]), 500);
+    return () => window.clearInterval(timer);
+  }, []);
+  if (!entries.length) return null;
+  return (
+    <aside className="demo-pixel-log" aria-label="Pixel debug log">
+      <strong>Píxeles (mock)</strong>
+      <ol>
+        {entries.slice(-12).map((entry, index) => (
+          <li key={`${entry.at}-${index}`}>
+            <code>{entry.provider}</code> {entry.args.map((arg) => stringifyArg(arg)).join(" · ")}
+          </li>
+        ))}
+      </ol>
+    </aside>
+  );
+}
+
+function stringifyArg(value: unknown): string {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function CartIcon() {

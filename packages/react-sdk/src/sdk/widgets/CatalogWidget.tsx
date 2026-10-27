@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CatalogItem, GafaClient } from "../client/types";
 import { formatMoney, resolveMoneyCurrency } from "../cart/money";
+import { trackSdkEvent } from "../analytics/activeTracker";
 import { WidgetShell } from "./WidgetShell";
 
 export type CatalogKind = "packages" | "memberships" | "services" | "staff";
@@ -45,6 +46,7 @@ export function CatalogWidget({
               ...item,
               brandName: brand.name,
               brandSlug: brand.slug,
+              currency: money?.code ?? item.currency,
               priceLabel:
                 amount != null ? formatMoney(amount, money?.prefix ?? "$", "") : item.priceLabel,
             };
@@ -94,7 +96,21 @@ export function CatalogWidget({
               className="gafa-sdk-button"
               type="button"
               disabled={!onBuy}
-              onClick={() => onBuy?.(item)}
+              onClick={() => {
+                trackSdkEvent({
+                  event: "catalog.item_opened",
+                  widget: "catalog",
+                  props: {
+                    item_id: item.id,
+                    item_type: item.type,
+                    content_ids: [String(item.id)],
+                    content_type: "product",
+                    value: item.priceFinal ?? item.price,
+                    currency: item.currency,
+                  },
+                });
+                onBuy?.(item);
+              }}
             >
               {item.type === "membership" ? "Suscribirme" : "Comprar"}
             </button>

@@ -593,6 +593,73 @@ export const CONFIG_SECTIONS = [
         ],
       },
       {
+        title: "Píxeles de marketing",
+        note: "IDs públicos de Meta, TikTok y Google. El token de CAPI nunca se guarda aquí: solo vive en el servidor.",
+        fields: [
+          {
+            key: "PIXELS_ENABLED",
+            path: ["PIXELS_ENABLED"],
+            type: "tri",
+            label: "Encender píxeles",
+            help: "Reenvía los eventos del Hub a Meta, TikTok y Google. Viene apagado. Si ANALYTICS está en no, los píxeles tampoco cargan.",
+          },
+          {
+            key: "PIXELS_CONSENT_MODE",
+            path: ["PIXELS_CONSENT_MODE"],
+            type: "select",
+            label: "Consentimiento",
+            help: "“Obligatorio” no carga scripts hasta BuqSDK.setConsent({marketing:true}) o el evento buq:consent:granted. “Implícito” carga en cuanto hay un ID.",
+            choices: options(
+              [
+                ["required", "Obligatorio (recomendado)"],
+                ["implied", "Implícito"],
+              ],
+              "Sin cambio — obligatorio",
+            ),
+          },
+          {
+            key: "META_PIXEL_ID",
+            path: ["META_PIXEL_ID"],
+            type: "text",
+            label: "Meta Pixel ID",
+            help: "El número público del píxel de Facebook/Instagram. Si el sitio ya cargó fbq, el SDK lo reutiliza y no vuelve a inyectar el script.",
+            placeholder: "1234567890",
+          },
+          {
+            key: "TIKTOK_PIXEL_ID",
+            path: ["TIKTOK_PIXEL_ID"],
+            type: "text",
+            label: "TikTok Pixel ID",
+            help: "El ID público del píxel de TikTok. Igual: si ttq ya está en la página, no se recarga.",
+            placeholder: "CXXXXXXXX",
+          },
+          {
+            key: "GA4_MEASUREMENT_ID",
+            path: ["GA4_MEASUREMENT_ID"],
+            type: "text",
+            label: "GA4 Measurement ID",
+            help: "El identificador de Google Analytics 4, tipo G-XXXX. Si gtag ya existe, solo se configura este ID.",
+            placeholder: "G-XXXXXXXX",
+          },
+          {
+            key: "GOOGLE_ADS_ID",
+            path: ["GOOGLE_ADS_ID"],
+            type: "text",
+            label: "Google Ads ID",
+            help: "El ID de la cuenta de Google Ads, tipo AW-XXXX. La conversión de compra usa también la etiqueta de abajo.",
+            placeholder: "AW-XXXXXXXX",
+          },
+          {
+            key: "GOOGLE_ADS_PURCHASE_LABEL",
+            path: ["GOOGLE_ADS_PURCHASE_LABEL"],
+            type: "text",
+            label: "Etiqueta de conversión de compra",
+            help: "La label de la conversión de Google Ads que se dispara solo en checkout.paid (code === 1).",
+            placeholder: "AbCdEfGhIjkLmNoP",
+          },
+        ],
+      },
+      {
         title: "Servidores",
         note: "Cámbialos solo para pruebas. Vacío = el servidor que le toca a producción.",
         fields: [

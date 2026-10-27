@@ -1,6 +1,8 @@
 import { readStoredToken } from "../client/tokenStorage";
 import type { GafaClient, UserProfile } from "../client/types";
 import type { HubUser, SdkTracker } from "./tracker";
+import { cartCommerceProps } from "./cartEvents";
+import { bindBrandCurrency, bindCurrencyFromBrands } from "./pixels/brandCurrency";
 
 function applyProfile(tracker: SdkTracker, profile: UserProfile | null | undefined): HubUser {
   if (profile?.id == null || profile.id <= 0) return tracker.getUser();
@@ -29,6 +31,11 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
 
   const next: GafaClient = {
     ...client,
+    async listBrands() {
+      const brands = await client.listBrands();
+      bindCurrencyFromBrands(brands);
+      return brands;
+    },
     async getProfile() {
       const profile = await getProfile();
       applyProfile(tracker, profile);
@@ -104,6 +111,15 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
     };
   }
 
+  if (client.getCheckoutConfig) {
+    const getCheckoutConfig = client.getCheckoutConfig.bind(client);
+    next.getCheckoutConfig = async (payload) => {
+      const config = await getCheckoutConfig(payload);
+      if (config?.currency) bindBrandCurrency(config.currency);
+      return config;
+    };
+  }
+
   if (client.initialPurchase) {
     const initialPurchase = client.initialPurchase.bind(client);
     next.initialPurchase = async (payload) => {
@@ -128,6 +144,8 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
           props: {
             reservation_id: result.reservationId,
             purchase_id: payload.pendingPurchaseId,
+            transaction_id: payload.pendingPurchaseId,
+            ...cartCommerceProps(),
           },
         });
       } else if (result.code === -1 || (result.message && result.code !== 0)) {

@@ -9,6 +9,12 @@ export const REMOTE_CONFIG_SECRET_KEYS = [
   "clientSecret",
   "CAPTCHA_SECRET_KEY",
   "captchaSecretKey",
+  "META_CAPI_TOKEN",
+  "metaCapiToken",
+  "TIKTOK_ACCESS_TOKEN",
+  "tiktokAccessToken",
+  "GOOGLE_ADS_API_SECRET",
+  "googleAdsApiSecret",
 ] as const;
 
 export const HUB_REMOTE_CONFIG_KEYS = [
@@ -22,6 +28,13 @@ export const HUB_REMOTE_CONFIG_KEYS = [
   "GAFAPAY_FRONT_URL",
   "HUB_URL",
   "ANALYTICS",
+  "PIXELS_ENABLED",
+  "PIXELS_CONSENT_MODE",
+  "META_PIXEL_ID",
+  "TIKTOK_PIXEL_ID",
+  "GA4_MEASUREMENT_ID",
+  "GOOGLE_ADS_ID",
+  "GOOGLE_ADS_PURCHASE_LABEL",
   "SHOW_MEMBERSHIP_OPTIONS",
   "IMAGES",
   "THEME",

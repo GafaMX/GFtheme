@@ -120,6 +120,20 @@ describe("buq environments", () => {
     expect(config.captchaSecretKey).toBe("secret-test-key");
   });
 
+  it("PIXELS_ENABLED y los IDs públicos llegan al config", () => {
+    const config = legacyOptionsToConfig({
+      COMPANY_ID: 80,
+      PIXELS_ENABLED: true,
+      PIXELS_CONSENT_MODE: "implied",
+      META_PIXEL_ID: "111",
+      GA4_MEASUREMENT_ID: "G-TEST",
+    });
+    expect(config.pixelsEnabled).toBe(true);
+    expect(config.pixelsConsentMode).toBe("implied");
+    expect(config.metaPixelId).toBe("111");
+    expect(config.ga4MeasurementId).toBe("G-TEST");
+  });
+
   it("HUB_URL pisa el default y ANALYTICS=false apaga el tracker", () => {
     const config = legacyOptionsToConfig({
       COMPANY_ID: 80,
