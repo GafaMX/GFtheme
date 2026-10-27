@@ -13,6 +13,7 @@ import {
 export type EmbedHostWindow = {
   GafaThemeSDK?: GafaSdk;
   GafaSdk?: GafaSdk;
+  BuqSDK?: GafaSdk;
   GafaSdkReady?: Promise<GafaSdk>;
   GAFA_SDK_AUTOSCAN?: boolean;
 };
@@ -21,6 +22,7 @@ declare global {
   interface Window {
     GafaThemeSDK?: GafaSdk;
     GafaSdk?: GafaSdk;
+    BuqSDK?: GafaSdk;
     GafaSdkReady?: Promise<GafaSdk>;
     GAFA_SDK_AUTOSCAN?: boolean;
   }
@@ -84,6 +86,7 @@ export function bootGafaSdk(
     latch.resolve(previous);
     win.GafaThemeSDK = previous;
     win.GafaSdk = previous;
+    win.BuqSDK = previous;
     return previous;
   }
 
@@ -107,6 +110,7 @@ export function bootGafaSdk(
     sdk.heartbeat(mounted.widgets);
     win.GafaThemeSDK = sdk;
     win.GafaSdk = sdk;
+    win.BuqSDK = sdk;
     latch.resolve(sdk);
     sdk.emit("buq:sdk:ready", { companyId: sdk.config.companyId, widgets: mounted.widgets });
     return sdk;
@@ -115,6 +119,7 @@ export function bootGafaSdk(
     if (win.GafaThemeSDK === created || win.GafaThemeSDK === previous) {
       delete win.GafaThemeSDK;
       delete win.GafaSdk;
+      delete win.BuqSDK;
     }
     latch.reject(error);
     resetReadyLatch(win);

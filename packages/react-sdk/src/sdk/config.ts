@@ -123,6 +123,14 @@ export const sdkConfigSchema = z
     hubUrl: z.string().optional(),
     /** Apaga heartbeats y eventos de uso. Default on. */
     analyticsEnabled: z.boolean().optional(),
+    /** Píxeles de marketing. Default off. IDs públicos; tokens CAPI nunca van aquí. */
+    pixelsEnabled: z.boolean().optional(),
+    pixelsConsentMode: z.enum(["required", "implied"]).optional(),
+    metaPixelId: z.string().optional(),
+    tiktokPixelId: z.string().optional(),
+    ga4MeasurementId: z.string().optional(),
+    googleAdsId: z.string().optional(),
+    googleAdsPurchaseLabel: z.string().optional(),
     /**
      * Muestra el link “Opciones de la membresía”. Default oculto: guardar
      * tarjeta + renovar siguen ON, el socio no los ve.
@@ -151,6 +159,13 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   gafaPayFrontUrl: string;
   hubUrl: string;
   analyticsEnabled: boolean;
+  pixelsEnabled?: boolean;
+  pixelsConsentMode?: "required" | "implied";
+  metaPixelId?: string;
+  tiktokPixelId?: string;
+  ga4MeasurementId?: string;
+  googleAdsId?: string;
+  googleAdsPurchaseLabel?: string;
   captchaPublicKey: string;
   captchaSecretKey: string;
   concierge?: boolean | Record<string, unknown>;
@@ -171,6 +186,13 @@ const legacyOptionsSchema = z
     GAFAPAY_FRONT_URL: z.string().optional(),
     HUB_URL: z.string().optional(),
     ANALYTICS: z.union([z.boolean(), z.string()]).optional(),
+    PIXELS_ENABLED: z.union([z.boolean(), z.string()]).optional(),
+    PIXELS_CONSENT_MODE: z.string().optional(),
+    META_PIXEL_ID: z.string().optional(),
+    TIKTOK_PIXEL_ID: z.string().optional(),
+    GA4_MEASUREMENT_ID: z.string().optional(),
+    GOOGLE_ADS_ID: z.string().optional(),
+    GOOGLE_ADS_PURCHASE_LABEL: z.string().optional(),
     SHOW_MEMBERSHIP_OPTIONS: z.union([z.boolean(), z.string(), z.number()]).optional(),
     IMAGES: imagesSchema,
     THEME: legacyThemeSchema,
@@ -217,6 +239,16 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL,
     hubUrl: legacyOptions.HUB_URL,
     analyticsEnabled: parseAnalyticsFlag(legacyOptions.ANALYTICS),
+    pixelsEnabled: coerceFlag(legacyOptions.PIXELS_ENABLED ?? raw.pixelsEnabled),
+    pixelsConsentMode: parsePixelsConsentMode(legacyOptions.PIXELS_CONSENT_MODE ?? raw.pixelsConsentMode),
+    metaPixelId: legacyOptions.META_PIXEL_ID ?? (typeof raw.metaPixelId === "string" ? raw.metaPixelId : undefined),
+    tiktokPixelId: legacyOptions.TIKTOK_PIXEL_ID ?? (typeof raw.tiktokPixelId === "string" ? raw.tiktokPixelId : undefined),
+    ga4MeasurementId:
+      legacyOptions.GA4_MEASUREMENT_ID ?? (typeof raw.ga4MeasurementId === "string" ? raw.ga4MeasurementId : undefined),
+    googleAdsId: legacyOptions.GOOGLE_ADS_ID ?? (typeof raw.googleAdsId === "string" ? raw.googleAdsId : undefined),
+    googleAdsPurchaseLabel:
+      legacyOptions.GOOGLE_ADS_PURCHASE_LABEL ??
+      (typeof raw.googleAdsPurchaseLabel === "string" ? raw.googleAdsPurchaseLabel : undefined),
     showMembershipOptions: coerceFlag(legacyOptions.SHOW_MEMBERSHIP_OPTIONS),
     images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
@@ -252,6 +284,14 @@ export function readLegacyOptionsFromDom(documentRef: Document = document): Gafa
   if (queryHub) raw.HUB_URL = queryHub;
 
   return legacyOptionsToConfig(raw);
+}
+
+function parsePixelsConsentMode(value: unknown): "required" | "implied" | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "implied") return "implied";
+  if (normalized === "required") return "required";
+  return undefined;
 }
 
 function parseAnalyticsFlag(value: unknown): boolean | undefined {
