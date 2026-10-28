@@ -318,8 +318,7 @@ describe("openReservation", () => {
 
     await waitFor(() => {
       expect(overlayText()).toContain("Reservar 3 lugares");
-      expect(overlayText()).toContain("2 invitados");
-      expect(overlayText()).toContain("Agregar nombres");
+      expect(overlayText()).toContain("Agregar invitados (2)");
     });
 
     const reserve = Array.from(document.querySelectorAll("button")).find((button) =>

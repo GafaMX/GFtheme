@@ -2351,9 +2351,10 @@ function GuestInviteFields({
 
   return (
     <div className="gafa-reservation-guests">
-      <span className="gafa-reservation-guests__summary">{summary}</span>
-      <button type="button" className="gafa-reservation-guests__edit" onClick={openPopup}>
-        {shown.length ? "Editar" : "Agregar nombres"}
+      <button type="button" className="gafa-reservation-guests__pill" onClick={openPopup}>
+        <span className="gafa-reservation-guests__text">
+          {shown.length ? `${summary} · Editar` : `+ Agregar invitados (${count})`}
+        </span>
       </button>
       {open ? (
         <div
