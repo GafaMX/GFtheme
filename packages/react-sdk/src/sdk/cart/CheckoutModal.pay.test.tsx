@@ -184,6 +184,54 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     });
   }
 
+  it.each([true, false])("recupera compra pagada después de error (reservate=%s)", async (registrationError) => {
+    const listUserPurchases = vi.fn().mockResolvedValueOnce([]).mockImplementation(async () => [{
+      id: 99, name: cartLine.name, total: cartLine.price, status: "Pagada", createdAt: new Date().toISOString(),
+    }]);
+    const client = mockClient({ listUserPurchases, reservatePurchase: vi.fn().mockRejectedValue(Object.assign(new Error("Validation"), { status: 422 })) });
+    renderPay(client);
+    await waitUntilPayReady();
+    window._handleStripePayment = async () => {
+      if (registrationError) lastProps?.onGafaPaySuccessAction({ message: "receipt" });
+      else lastProps?.onGafaPayErrAction({ message: "Error al cobrar" });
+    };
+    fireEvent.click(payButton());
+    await waitFor(() => expect(screen.getByText(/orden #99/i)).toBeTruthy());
+    expect(listUserPurchases).toHaveBeenCalledTimes(2);
+  });
+
+  it("no recupera una compra previa ni pendiente", async () => {
+    const old = { id: 7, name: cartLine.name, total: cartLine.price, status: "Pagada", createdAt: new Date().toISOString() };
+    const client = mockClient({ listUserPurchases: vi.fn().mockResolvedValueOnce([old]).mockResolvedValue([old, { ...old, id: 8, status: "Pendiente" }]) });
+    renderPay(client);
+    await waitUntilPayReady();
+    window._handleStripePayment = async () => { lastProps?.onGafaPayErrAction({ message: "Error al cobrar" }); };
+    fireEvent.click(payButton());
+    await waitFor(() => expect(screen.getByText(/error al cobrar/i)).toBeTruthy());
+    expect(screen.queryByText(/gracias por tu compra/i)).toBeNull();
+    expect(screen.getByRole("button", { name: "Cerrar", exact: true })).toBeTruthy();
+  });
+
+  it("quita discountCode al reintentar reservate después del cobro", async () => {
+    const reservatePurchase = vi.fn().mockRejectedValueOnce(new Error("timeout")).mockResolvedValue({ purchaseId: 88 });
+    const client = mockClient({
+      getCheckoutConfig: async () => ({ ...checkoutConfig(), discountCodesEnabled: true }),
+      checkDiscountCode: async ({ code }) => ({ valid: true, code, discountType: "percent", discountNumber: 10, label: "Descuento aplicado" }),
+      reservatePurchase,
+    });
+    renderPay(client);
+    await waitUntilPayReady();
+    fireEvent.click(screen.getByRole("button", { name: /¿tienes un código de descuento/i }));
+    fireEvent.change(screen.getByPlaceholderText(/código/i), { target: { value: "PROMO" } });
+    fireEvent.click(screen.getByRole("button", { name: /aplicar/i }));
+    await waitFor(() => expect(screen.getByText(/descuento aplicado/i)).toBeTruthy());
+    window._handleStripePayment = async () => { lastProps?.onGafaPaySuccessAction({ message: "receipt" }); };
+    fireEvent.click(payButton());
+    await waitFor(() => expect(screen.getByText(/orden #88/i)).toBeTruthy());
+    expect(reservatePurchase.mock.calls[0][0].discountCode).toBe("PROMO");
+    expect(reservatePurchase.mock.calls[1][0].discountCode).toBeNull();
+  });
+
   it("en pago el detalle de productos arranca cerrado y se puede abrir", async () => {
     renderPay(mockClient());
     await waitFor(() => {
@@ -669,10 +717,10 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     await waitFor(() => {
       expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
     });
-    expect(screen.getByRole("button", { name: /cerrar/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Cerrar", exact: true })).toBeTruthy();
   });
 
-  it("si /reservate falla 3 veces, pide registrar y no deja cerrar el overlay", async () => {
+  it("si /reservate falla 3 veces, pide registrar y permite cerrar el overlay", async () => {
     const onClose = vi.fn();
     const reservatePurchase = vi.fn(async () => {
       throw new Error("Server Error");
@@ -695,11 +743,9 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(stripe).toHaveBeenCalledTimes(1);
     expect(reservatePurchase).toHaveBeenCalledTimes(3);
     expect(screen.getByRole("button", { name: /registrar compra/i })).toBeTruthy();
-    expect(document.querySelector(".gafa-checkout__close")).toBeNull();
-    expect(document.querySelector("[data-charge-hold='true']")).toBeTruthy();
-
-    fireEvent.mouseDown(document.querySelector(".gafa-checkout-overlay")!);
-    expect(onClose).not.toHaveBeenCalled();
+    expect(document.querySelector("[data-charge-hold='true']")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar", exact: true }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1105,6 +1151,22 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     vi.clearAllMocks();
   });
 
+  it("bloquea el cobro si los checks no aceptan la renovación", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const reportCheckoutWarning = vi.fn();
+    renderPay(mockClient({ reportCheckoutWarning }));
+    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+    const renew = document.querySelector<HTMLInputElement>("#recurringPayment")!;
+    renew.checked = false;
+    renew.disabled = true;
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    await waitFor(() => expect(reportCheckoutWarning).toHaveBeenCalled());
+    expect(charge).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("las opciones van ON y ocultas; GafaPay recibe hasRecurringPayment", async () => {
     renderPay(mockClient());
     await waitFor(() => {
@@ -1128,8 +1190,9 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(save.className).toContain("gafa-check-input");
   });
 
-  it("al pagar una membresía manda subscribe y set_payment en true", async () => {
-    const client = mockClient();
+  it("al pagar una membresía manda subscribe y set_payment en true y avisa si falta subscription id", async () => {
+    const reportCheckoutWarning = vi.fn();
+    const client = mockClient({ reportCheckoutWarning });
     renderPay(client);
     await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
 
@@ -1143,6 +1206,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0]).toEqual(
       expect.objectContaining({ subscribe: true, setPayment: true }),
     );
+    expect(reportCheckoutWarning).toHaveBeenCalledWith(expect.stringContaining("subscription id"));
   });
 
   it("si desmarcan renovar, reservate manda subscribe false", async () => {

@@ -78,10 +78,11 @@ export type Meeting = {
   hasSeatMap?: boolean;
   /**
    * Si el listado o el create-form-template dicen que esta clase acepta
-   * lista de espera. `undefined` = no lo dijeron; el calendario asume waitlist
-   * cuando está llena.
+   * lista de espera. `undefined` = no lo dijeron; no habilita waitlist.
    */
   waitlistAvailable?: boolean;
+  /** Calendar opt-in for brands whose listing omits waitlist eligibility. */
+  legacyWaitlist?: boolean;
   availability?:
     | "available"
     | "waitlist"
@@ -602,6 +603,7 @@ export type CreateReservationResult = {
 };
 
 export type GafaClient = {
+  reportCheckoutWarning?(message: string): void;
   listBrands(): Promise<Brand[]>;
   listLocations(brandSlug?: string): Promise<Location[]>;
   listServices(brandSlug?: string): Promise<Service[]>;

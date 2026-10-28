@@ -13,13 +13,18 @@ export const reservateRetryWait = {
   wait: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 };
 
-export async function retryReservate<T>(run: () => Promise<T>): Promise<T> {
+export async function retryReservate<T>(run: (attempt: number) => Promise<T>): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < RESERVATE_MAX_ATTEMPTS; attempt++) {
     try {
-      return await run();
+      return await run(attempt);
     } catch (error) {
       lastError = error;
+      const failure = error as { status?: number; errors?: unknown; message?: string } | null;
+      if ((failure?.status != null && failure.status >= 400 && failure.status < 500) ||
+          failure?.errors || /validaci[oó]n|validation|l[ií]mite de usos|invalid|c[oó]digo.*(?:agotado|alcanzado|usos)/i.test(failure?.message ?? "")) {
+        throw error;
+      }
       const delay = RESERVATE_BACKOFF_MS[attempt];
       if (delay == null) break;
       await reservateRetryWait.wait(delay);

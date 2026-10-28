@@ -169,6 +169,25 @@ describe("openReservation", () => {
     unsubscribeClosed();
   });
 
+  it.each(["failed", "disabled"])("clase llena con template %s no permite comprar para waitlist", async (mode) => {
+    writeStoredToken("token-de-prueba");
+    const { createMockGafaClient } = await import("./client/gafaClient");
+    const mock = createMockGafaClient();
+    sdk = createGafaSdk(CONFIG, { client: {
+      ...mock,
+      getReservationContext: async (payload) => {
+        if (mode === "failed") throw new Error("Template unavailable");
+        const context = await mock.getReservationContext!(payload);
+        return { ...context, waitlistAvailable: false, paymentOptions: [] };
+      },
+    } });
+    sdk.openReservation({ meetingId: 2, brandSlug: "demo-studio", locationSlug: "condesa" });
+    await waitFor(() => expect(overlayText()).toContain("Clase llena"), { timeout: 5000 });
+    expect(overlayText()).not.toContain("Comprar y unirme a la lista");
+    const full = Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "Clase llena");
+    expect(full?.disabled).toBe(true);
+  });
+
   it("en una clase llena sin crédito que aplique lleva a comprar para la waitlist", async () => {
     writeStoredToken("token-de-prueba");
     boot().openReservation({ meetingId: 2, brandSlug: "demo-studio", locationSlug: "condesa" });
