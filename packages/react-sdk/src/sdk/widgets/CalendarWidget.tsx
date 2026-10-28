@@ -2310,11 +2310,6 @@ function SeatImage({
   );
 }
 
-/**
- * Mapa de salon inline (mismo paso que el detalle). Usa las imagenes de spot
- * que la marca sube en gafa.fit: vacio / ocupado / elegido. Sin imagen, cae a
- * los circulos con estilo del tema.
- */
 function GuestInviteFields({
   seats,
   guests,
@@ -2324,50 +2319,104 @@ function GuestInviteFields({
   guests: Record<number, InvitedGuest>;
   onChange(next: Record<number, InvitedGuest>): void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<Record<number, InvitedGuest>>({});
+  const guestSeats = seats.slice(1);
+  const count = guestSeats.length;
+  const names = guestSeats
+    .map((_, offset) => (guests[offset + 1]?.name ?? "").trim())
+    .filter(Boolean)
+    .map((name) => name.split(/\s+/)[0]);
+  const shown = names.slice(0, 2);
+  const extra = count - shown.length;
+  const label = `${count} ${count === 1 ? "invitado" : "invitados"}`;
+  const summary = shown.length ? `${label} · ${shown.join(", ")}${extra > 0 ? ` +${extra}` : ""}` : label;
+  const draftBad = guestsHaveInvalidEmail(draft);
+
+  function openPopup() {
+    setDraft({ ...guests });
+    setOpen(true);
+  }
   function patch(index: number, field: keyof InvitedGuest, value: string) {
-    const current = guests[index] ?? { name: "", email: "" };
-    onChange({ ...guests, [index]: { ...current, [field]: value } });
+    setDraft((prev) => {
+      const current = prev[index] ?? { name: "", email: "" };
+      return { ...prev, [index]: { ...current, [field]: value } };
+    });
+  }
+  function save() {
+    if (draftBad) return;
+    onChange(draft);
+    setOpen(false);
   }
 
   return (
     <div className="gafa-reservation-guests">
-      <p className="gafa-reservation-guests__title">Invitados (opcional)</p>
-      <p className="gafa-reservation-guests__hint">
-        El primer lugar es tuyo. Nombre y mail no son obligatorios.
-      </p>
-      {seats.slice(1).map((seat, offset) => {
-        const index = offset + 1;
-        const guest = guests[index] ?? { name: "", email: "" };
-        const emailBad = Boolean(guest.email.trim()) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guest.email.trim());
-        return (
-          <fieldset className="gafa-reservation-guest" key={seat.id}>
-            <legend>Lugar {seat.label || index + 1}</legend>
-            <label>
-              Nombre
-              <input
-                type="text"
-                autoComplete="name"
-                value={guest.name}
-                onChange={(event) => patch(index, "name", event.target.value)}
-              />
-            </label>
-            <label>
-              Mail
-              <input
-                type="email"
-                autoComplete="email"
-                value={guest.email}
-                aria-invalid={emailBad || undefined}
-                onChange={(event) => patch(index, "email", event.target.value)}
-              />
-            </label>
-          </fieldset>
-        );
-      })}
+      <span className="gafa-reservation-guests__summary">{summary}</span>
+      <button type="button" className="gafa-reservation-guests__edit" onClick={openPopup}>
+        {shown.length ? "Editar" : "Agregar nombres"}
+      </button>
+      {open ? (
+        <div
+          className="gafa-guests-popup__backdrop"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+        >
+          <div className="gafa-guests-popup" role="dialog" aria-modal="true" aria-label="Invitados">
+            <div className="gafa-guests-popup__head">
+              <p className="gafa-guests-popup__title">Invitados (opcional)</p>
+              <p className="gafa-guests-popup__hint">El primer lugar es tuyo. Nombre y mail no son obligatorios.</p>
+            </div>
+            <div className="gafa-guests-popup__list">
+              {guestSeats.map((seat, offset) => {
+                const index = offset + 1;
+                const guest = draft[index] ?? { name: "", email: "" };
+                const emailBad =
+                  Boolean(guest.email.trim()) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guest.email.trim());
+                return (
+                  <div className="gafa-guests-popup__row" key={seat.id}>
+                    <span className="gafa-guests-popup__seat">{seat.label || index + 1}</span>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      placeholder="Nombre"
+                      aria-label={`Nombre lugar ${seat.label || index + 1}`}
+                      value={guest.name}
+                      onChange={(event) => patch(index, "name", event.target.value)}
+                    />
+                    <input
+                      type="email"
+                      autoComplete="off"
+                      placeholder="Mail"
+                      aria-label={`Mail lugar ${seat.label || index + 1}`}
+                      value={guest.email}
+                      aria-invalid={emailBad || undefined}
+                      onChange={(event) => patch(index, "email", event.target.value)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="gafa-guests-popup__actions">
+              <button type="button" className="gafa-sdk-button gafa-sdk-button--secondary" onClick={() => setOpen(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="gafa-sdk-button" disabled={draftBad} onClick={save}>
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
+/**
+ * Mapa de salon inline (mismo paso que el detalle). Usa las imagenes de spot
+ * que la marca sube en gafa.fit: vacio / ocupado / elegido. Sin imagen, cae a
+ * los circulos con estilo del tema.
+ */
 function SeatMapInline({
   map,
   selected,
