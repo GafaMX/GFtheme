@@ -3044,9 +3044,9 @@
 
 .gafa-guests-popup__seat {
   align-items: center;
-  background: var(--gafa-color-primary);
+  border: 2px solid var(--gafa-color-primary);
   border-radius: 999px;
-  color: var(--gafa-color-primary-text);
+  color: var(--gafa-color-text);
   display: flex;
   font-size: 0.75rem;
   font-weight: 700;
