@@ -2951,42 +2951,50 @@
 }
 
 .gafa-reservation-guests {
-  align-items: center;
-  border: 1px solid var(--gafa-color-border);
-  border-radius: var(--gafa-radius-pill);
   display: flex;
-  gap: 0.6rem;
   grid-column: 1 / -1;
-  justify-content: space-between;
+  justify-content: center;
+  justify-self: center;
+  margin-top: 0.25rem;
+  max-width: 100%;
   min-width: 0;
-  padding: 0.4rem 0.45rem 0.4rem 0.9rem;
 }
 
-.gafa-reservation-guests__summary {
+.gafa-reservation-guests .gafa-reservation-guests__pill {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 16%, transparent);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-control-radius: 999px;
+  --gafa-control-font-size: 13px;
+  --gafa-control-padding: 0.4rem 0.9rem;
+  --gafa-control-min-height: 0px;
+  --gafa-control-width: auto;
+  --gafa-control-height: auto;
+  --gafa-control-line-height: 1.2;
+  background: color-mix(in srgb, var(--gafa-color-primary) 14%, transparent);
+  border: 0;
+  border-radius: 999px;
   color: var(--gafa-color-text);
-  font-size: 0.86rem;
+  cursor: pointer;
+  font-size: 13px;
   font-weight: 600;
-  min-width: 0;
+  line-height: 1.2;
+  max-width: 100%;
+  padding: 0.4rem 0.85rem;
+  transition: background 0.15s ease;
+}
+
+.gafa-reservation-guests .gafa-reservation-guests__pill:hover,
+.gafa-reservation-guests .gafa-reservation-guests__pill:focus-visible {
+  --gafa-control-bg: color-mix(in srgb, var(--gafa-color-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--gafa-color-primary) 28%, transparent);
+}
+
+.gafa-reservation-guests__text {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.gafa-reservation-guests__edit {
-  background: transparent;
-  border: 1px solid var(--gafa-color-primary);
-  border-radius: var(--gafa-radius-pill);
-  color: var(--gafa-color-text);
-  cursor: pointer;
-  flex: none;
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 0.35rem 0.8rem;
-}
-
-.gafa-reservation-guests__edit:hover {
-  background: var(--gafa-color-primary);
-  color: var(--gafa-color-primary-text);
 }
 
 .gafa-guests-popup__backdrop {
