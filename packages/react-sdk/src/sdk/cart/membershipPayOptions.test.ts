@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { createElement, useState } from "react";
+import { act, cleanup, render } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cartHasMembership,
   coerceFlag,
@@ -43,17 +45,58 @@ describe("paymentMethodsForCart", () => {
 });
 
 describe("syncGafaPayMembershipToggles", () => {
-  it("marca saveCard y recurringPayment como en el fancy v1", () => {
+  it("actualiza el estado de checkboxes controlados por React", async () => {
+    const changed = vi.fn();
+    function Controlled() {
+      const [save, setSave] = useState(false);
+      const [renew, setRenew] = useState(false);
+      return createElement("div", {},
+        createElement("input", { id: "saveCard", type: "checkbox", checked: save, onChange: (event) => { setSave(event.currentTarget.checked); changed("save", event.currentTarget.checked); } }),
+        createElement("input", { id: "recurringPayment", type: "checkbox", checked: renew, onChange: (event) => { setRenew(event.currentTarget.checked); changed("renew", event.currentTarget.checked); } }),
+      );
+    }
+    const { container } = render(createElement(Controlled));
+    await act(async () => { expect(await syncGafaPayMembershipToggles(container, { saveCard: true, autoRenew: true })).toBe(true); });
+    expect(changed).toHaveBeenCalledWith("save", true);
+    expect(changed).toHaveBeenCalledWith("renew", true);
+    cleanup();
+  });
+
+  it("notifica al onChange de React mediante click y no repite clicks verificados", async () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<input id="saveCard" type="checkbox"><input id="recurringPayment" type="checkbox">';
+    document.body.append(root);
+    const changed = vi.fn();
+    root.addEventListener("change", changed);
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(true);
+    expect(changed).toHaveBeenCalledTimes(2);
+    await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true });
+    expect(changed).toHaveBeenCalledTimes(2);
+    root.remove();
+  });
+
+  it("reintenta y avisa si el proveedor rechaza el estado", async () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<input id="saveCard" type="checkbox" disabled><input id="recurringPayment" type="checkbox">';
+    const click = vi.spyOn(root.querySelector<HTMLInputElement>("#saveCard")!, "click");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(false);
+    expect(click).toHaveBeenCalledTimes(3);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("marca saveCard y recurringPayment como en el fancy v1", async () => {
     const root = document.createElement("div");
     root.innerHTML = `
       <input id="saveCard" type="checkbox" />
       <input id="recurringPayment" type="checkbox" />
     `;
-    syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true });
+    await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true });
     expect(root.querySelector<HTMLInputElement>("#saveCard")?.checked).toBe(true);
     expect(root.querySelector<HTMLInputElement>("#recurringPayment")?.checked).toBe(true);
 
-    syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: true });
+    await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: true });
     expect(root.querySelector<HTMLInputElement>("#saveCard")?.checked).toBe(false);
     expect(root.querySelector<HTMLInputElement>("#recurringPayment")?.checked).toBe(true);
   });

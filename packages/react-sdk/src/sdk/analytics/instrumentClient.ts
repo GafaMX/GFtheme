@@ -29,6 +29,9 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
 
   const next: GafaClient = {
     ...client,
+    reportCheckoutWarning(message) {
+      tracker.track({ event: "widget.error", widget: "checkout", props: { severity: "warning", message } });
+    },
     async getProfile() {
       const profile = await getProfile();
       applyProfile(tracker, profile);

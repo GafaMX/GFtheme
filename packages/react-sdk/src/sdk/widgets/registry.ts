@@ -198,6 +198,9 @@ function mountCalendar(runtime: GafaSdk, element: HTMLElement) {
     limit: toNumber(element.getAttribute("data-gf-limit")),
     view: readCalendarView(element) ?? readVisualization(element),
     allowViewChange: element.getAttribute("data-bq-allow-view-change") !== "false",
+    waitlist: element.hasAttribute("data-bq-waitlist")
+      ? readFilterFlag(element, "data-bq-waitlist", false)
+      : undefined,
     showDescription: element.getAttribute("data-bq-show-description") === "true",
     filters: {
       brand: element.hasAttribute("filter-bq-brand"),

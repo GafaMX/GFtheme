@@ -81,15 +81,22 @@ export function paymentMethodsForCart<T extends { slug: string }>(
 const SAVE_SELECTORS = '#saveCard, [name="saveCard"], [name="save_card"]';
 const RENEW_SELECTORS = '#recurringPayment, [name="recurringPayment"], [name="subscribe"]';
 
-function setChecked(input: HTMLInputElement | null, next: boolean) {
-  if (!input || input.checked === next) return;
-  input.checked = next;
-  input.dispatchEvent(new Event("input", { bubbles: true }));
-  input.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-/** Alinea los checkboxes de GafaPayFront (v1: #saveCard / #recurringPayment). */
-export function syncGafaPayMembershipToggles(root: ParentNode, toggles: MembershipPayToggles): void {
-  setChecked(root.querySelector<HTMLInputElement>(SAVE_SELECTORS), toggles.saveCard);
-  setChecked(root.querySelector<HTMLInputElement>(RENEW_SELECTORS), toggles.autoRenew);
+/** Clicks reach GafaPayFront's React onChange handler; assigning checked does not. */
+export async function syncGafaPayMembershipToggles(
+  root: ParentNode,
+  toggles: MembershipPayToggles,
+): Promise<boolean> {
+  const desired = [[SAVE_SELECTORS, toggles.saveCard], [RENEW_SELECTORS, toggles.autoRenew]] as const;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    for (const [selector, checked] of desired) {
+      const input = root.querySelector<HTMLInputElement>(selector);
+      if (input && input.checked !== checked) input.click();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    if (desired.every(([selector, checked]) => root.querySelector<HTMLInputElement>(selector)?.checked === checked)) {
+      return true;
+    }
+  }
+  console.warn("[gafa-sdk] No se pudieron verificar las opciones recurrentes de GafaPay.");
+  return false;
 }

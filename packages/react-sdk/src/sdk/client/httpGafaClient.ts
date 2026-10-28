@@ -801,10 +801,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         : typeof raw.available === "string" && raw.available.trim() !== ""
           ? Number(raw.available)
           : undefined;
-    // El listado de Voltio manda `is_valid_for_waitlist: false` en TODAS las
-    // clases (llenas o no). Ese false no es “el estudio no tiene waitlist”:
-    // solo confiamos en `true`. El `false` de verdad sale del create-form.
-    const waitlistAvailable = readWaitlistAvailable(raw) === true ? true : undefined;
+    const waitlistAvailable = readWaitlistAvailable(raw);
     const description = typeof raw.description === "string" ? raw.description.replace(/\s+/g, " ").trim() : "";
     return {
       id: raw.id,

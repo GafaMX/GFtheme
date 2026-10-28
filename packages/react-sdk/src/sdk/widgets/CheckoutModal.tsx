@@ -247,6 +247,7 @@ export function CheckoutModal({
   const [giftHint, setGiftHint] = useState<string>();
   const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
   function reportPayError(raw?: string | null) {
+    setChargeHold(false);
     showToast(humanizeCheckoutError(raw), "error");
   }
   // El formulario del proveedor vive fuera de React. Sin el listo, "Pagar"
@@ -259,9 +260,36 @@ export function CheckoutModal({
   const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
-  /** Overlay bloqueado: hay cargo y Buq todavía no confirmó Completada. */
+  /** Bloquea el cierre mientras se registra el cargo; un error libera el modal. */
   const [chargeHold, setChargeHold] = useState(false);
   const chargedRef = useRef(false);
+  const chargeStartedRef = useRef<number | null>(null);
+  const priorPurchasesRef = useRef<Set<number> | null>(null);
+
+  function warnCheckout(message: string) {
+    console.warn(`[gafa-sdk] ${message}`);
+    client.reportCheckoutWarning?.(message);
+  }
+
+  async function recoverRecentPurchase(): Promise<boolean> {
+    if (!brandSlug || chargeStartedRef.current == null || !priorPurchasesRef.current) return false;
+    try {
+      const purchases = await client.listUserPurchases(brandSlug);
+      const purchase = purchases.find((item) => {
+        const created = item.createdAt ? new Date(item.createdAt.replace(" ", "T")).getTime() : NaN;
+        return !priorPurchasesRef.current!.has(item.id) &&
+          created >= chargeStartedRef.current! - 1000 && created <= Date.now() + 1000 &&
+          Math.abs(Number(item.total) - total) < 0.01 &&
+          relevantLines.some((line) => line.name === item.name) &&
+          /^(paid|pagada|pagado|completada|completed|complete|success)$/i.test(item.status ?? "");
+      });
+      if (!purchase) return false;
+      await finishHostedPurchase({ purchaseId: purchase.id });
+      return true;
+    } catch {
+      return false;
+    }
+  }
   const pendingRegisterRef = useRef<{
     paymentData: unknown;
     recurring: boolean;
@@ -863,7 +891,7 @@ export function CheckoutModal({
       // y en producción cae en unpaidPurchase (TypeError $subscribe null).
       // 3 intentos: un 500 no debe dejar Pendiente si el back se recupera.
       // Total $0 (descuento 100% / precio 0): no hay cobro; /reservate sin payment_data.
-      const purchase = await retryReservate(() =>
+      const purchase = await retryReservate((attempt) =>
         client.reservatePurchase!({
           brandSlug,
           locationSlug,
@@ -885,7 +913,7 @@ export function CheckoutModal({
           paymentData: isFreeTotal ? undefined : paymentData,
           subscriptionId,
           csrfToken: config?.csrfToken ?? null,
-          discountCode: discountStatus === "ok" ? discountCode.trim() : null,
+          discountCode: attempt === 0 && !registerOnly && discountStatus === "ok" ? discountCode.trim() : null,
           giftCode: resolvedGiftCode(),
           subscribe: membershipPurchase ? autoRenew : recurring,
           setPayment: membershipPurchase ? saveCard : recurring,
@@ -908,6 +936,7 @@ export function CheckoutModal({
       setStep("thanks");
       onCompleted?.({ purchaseId, reservationId });
     } catch (err) {
+      if (await recoverRecentPurchase()) return;
       const detail = err instanceof Error ? err.message : "No pudimos completar el pago.";
       if (chargedRef.current) {
         setRegisterOnly(true);
@@ -963,6 +992,9 @@ export function CheckoutModal({
     stopPopupWatchRef.current = null;
     const recurring = Boolean(result.recurringPayment);
     const subscriptionId = result.subscriptionId ?? null;
+    if (membershipPurchase && autoRenew && !subscriptionId) {
+      warnCheckout("El cobro de membresía con renovación no devolvió un subscription id.");
+    }
     chargedRef.current = true;
     setChargeHold(true);
     pendingRegisterRef.current = {
@@ -1335,6 +1367,19 @@ export function CheckoutModal({
     }
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
     try {
+      if (membershipPurchase) {
+        const root = document.querySelector(".gafa-checkout-paymount__island");
+        if (!root || !await syncGafaPayMembershipToggles(root, { saveCard, autoRenew })) {
+          warnCheckout("No se verificaron las opciones de membresía; se bloqueó el cobro.");
+          setPaying(false);
+          reportPayError("No pudimos activar las opciones de la membresía. Intenta de nuevo.");
+          return;
+        }
+      }
+      priorPurchasesRef.current = await client.listUserPurchases(brandSlug!)
+        .then((items) => new Set(items.map((item) => item.id)))
+        .catch(() => null);
+      chargeStartedRef.current = Date.now();
       const triggered = await triggerGafaPayConfirm(selectedMethod?.slug ?? "");
       if (!triggered) {
         paypalFlowRef.current = false;
@@ -1350,6 +1395,7 @@ export function CheckoutModal({
         );
       }
     } catch (err) {
+      if (await recoverRecentPurchase()) return;
       paypalFlowRef.current = false;
       setPaying(false);
       const raw = err instanceof Error ? err.message : "";
@@ -1668,11 +1714,12 @@ export function CheckoutModal({
                     setTermsPromptOpen(true);
                     setTermsAttention(true);
                   }}
-                  onError={(message) => {
+                  onError={async (message) => {
                     if (isPaypalCheckoutCancelMessage(message)) {
                       releaseHostedWait();
                       return;
                     }
+                    if (await recoverRecentPurchase()) return;
                     paypalFlowRef.current = false;
                     if (paypalHoldTimerRef.current) {
                       window.clearTimeout(paypalHoldTimerRef.current);
