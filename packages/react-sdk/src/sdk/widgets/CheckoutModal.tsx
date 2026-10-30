@@ -81,6 +81,7 @@ import {
   paymentMethodsForCart,
   readShowMembershipOptions,
   syncGafaPayMembershipToggles,
+  membershipPaymentFrequency,
 } from "../cart/membershipPayOptions";
 import { CloseIcon } from "./sdkIcons";
 
@@ -2338,6 +2339,8 @@ function PayPanel({
           ? true
           : (config?.termsConditionsLink ?? null),
       hasRecurringPayment: Boolean(membershipOptions),
+      // Sin esto GAFAPay cobra pero no crea la suscripción.
+      paymentFrequency: membershipOptions?.autoRenew ? membershipPaymentFrequency(lines) : null,
       onStartPayAction: () => handlersRef.current.onStart(),
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
       onGafaPayErrAction: ({ message }) =>
@@ -2349,7 +2352,7 @@ function PayPanel({
         if (typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
       },
     }),
-    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions],
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines],
   );
 
   // Cambios de carrito/cliente actualizan props sin re-montar: tirar el iframe

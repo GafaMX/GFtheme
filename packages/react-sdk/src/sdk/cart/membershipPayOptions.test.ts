@@ -143,3 +143,12 @@ describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
     expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(false);
   });
 });
+
+import { membershipPaymentFrequency } from "./membershipPayOptions";
+describe("membershipPaymentFrequency", () => {
+  const m = { type: "membership", amount: 1, price: 10, raw: { expiration_days: 30 } };
+  it("manda los días de la membresía", () => expect(membershipPaymentFrequency([m])).toBe("30"));
+  it("null si hay otra línea con costo", () =>
+    expect(membershipPaymentFrequency([m, { type: "product", amount: 1, price: 5 }])).toBeNull());
+  it("null sin expiration_days", () => expect(membershipPaymentFrequency([{ ...m, raw: {} }])).toBeNull());
+});
