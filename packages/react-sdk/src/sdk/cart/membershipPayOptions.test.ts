@@ -129,3 +129,17 @@ describe("readShowMembershipOptions", () => {
     expect(readShowMembershipOptions(document)).toBe(true);
   });
 });
+
+describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
+  it("acepta que no exista #saveCard si Pago Recurrente queda activo", async () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<input id="recurringPayment" type="checkbox">';
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(true);
+    expect(root.querySelector<HTMLInputElement>("#recurringPayment")?.checked).toBe(true);
+  });
+
+  it("bloquea si se pide renovación y no existe el check", async () => {
+    const root = document.createElement("div");
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(false);
+  });
+});

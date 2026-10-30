@@ -81,21 +81,31 @@ export function paymentMethodsForCart<T extends { slug: string }>(
 const SAVE_SELECTORS = '#saveCard, [name="saveCard"], [name="save_card"]';
 const RENEW_SELECTORS = '#recurringPayment, [name="recurringPayment"], [name="subscribe"]';
 
-/** Clicks reach GafaPayFront's React onChange handler; assigning checked does not. */
+/**
+ * Clicks reach GafaPayFront's React onChange handler; assigning checked does not.
+ * Stripe's new-card form has no "saveCard" checkbox (GafaPayFront saves the card
+ * whenever "Pago Recurrente" is on), so a missing save input is not a failure.
+ * The renew input is required only when auto-renew is wanted.
+ */
 export async function syncGafaPayMembershipToggles(
   root: ParentNode,
   toggles: MembershipPayToggles,
 ): Promise<boolean> {
-  const desired = [[SAVE_SELECTORS, toggles.saveCard], [RENEW_SELECTORS, toggles.autoRenew]] as const;
+  const desired = [
+    [SAVE_SELECTORS, toggles.saveCard, false],
+    [RENEW_SELECTORS, toggles.autoRenew, toggles.autoRenew],
+  ] as const;
+  const ok = () => desired.every(([selector, checked, required]) => {
+    const input = root.querySelector<HTMLInputElement>(selector);
+    return input ? input.checked === checked : !required;
+  });
   for (let attempt = 0; attempt < 3; attempt++) {
     for (const [selector, checked] of desired) {
       const input = root.querySelector<HTMLInputElement>(selector);
       if (input && input.checked !== checked) input.click();
     }
     await new Promise((resolve) => setTimeout(resolve, 40));
-    if (desired.every(([selector, checked]) => root.querySelector<HTMLInputElement>(selector)?.checked === checked)) {
-      return true;
-    }
+    if (ok()) return true;
   }
   console.warn("[gafa-sdk] No se pudieron verificar las opciones recurrentes de GafaPay.");
   return false;
