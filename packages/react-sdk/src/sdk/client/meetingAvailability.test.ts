@@ -35,22 +35,19 @@ describe("isSoldOut", () => {
 });
 
 describe("offersWaitlist", () => {
-  it("una clase llena sin flag se ofrece como waitlist (Voltio)", () => {
-    expect(offersWaitlist(meeting({ available: 0, capacity: 13 }))).toBe(true);
+  it("sin elegibilidad explícita una clase llena no ofrece waitlist", () => {
+    for (const waitlistAvailable of [undefined, false]) {
+      const full = meeting({ available: 0, waitlistAvailable, availability: "waitlist" });
+      expect(offersWaitlist(full)).toBe(false);
+      expect(showsWaitlistPill(full)).toBe(false);
+    }
   });
 
-  it("el false del listado no apaga waitlist si no hay flag de template", () => {
-    expect(offersWaitlist(meeting({ available: 0, capacity: 25 }))).toBe(true);
-  });
-
-  it("respeta availability: waitlist aunque también traiga 0/N", () => {
-    expect(offersWaitlist(meeting({ available: 0, capacity: 12, availability: "waitlist" }))).toBe(true);
-  });
-
-  it("el false del listado no apaga la pastilla: 0/N sigue siendo Waitlist", () => {
-    expect(offersWaitlist(meeting({ available: 0, capacity: 10, waitlistAvailable: false }))).toBe(true);
-    expect(showsWaitlistPill(meeting({ available: 0, capacity: 25, waitlistAvailable: false }))).toBe(true);
-    expect(showsWaitlistPill(meeting({ available: "0" as unknown as number, capacity: 16 }))).toBe(true);
+  it("acepta elegibilidad explícita y el opt-in por marca", () => {
+    expect(offersWaitlist(meeting({ available: 0, waitlistAvailable: true }))).toBe(true);
+    expect(offersWaitlist(meeting({ available: 0, legacyWaitlist: true }))).toBe(true);
+    expect(offersWaitlist(meeting({ available: 0, brandSlug: "masvoltio", waitlistAvailable: false }))).toBe(true);
+    expect(offersWaitlist(meeting({ available: 0, brandSlug: "masvoltio", legacyWaitlist: false }))).toBe(false);
   });
 
   it("no ofrece waitlist en clases pasadas ni ya reservadas", () => {
@@ -61,7 +58,7 @@ describe("offersWaitlist", () => {
 
 describe("getAvailabilityText", () => {
   it("en clase llena dice lista de espera, no 0/13 lugares", () => {
-    expect(getAvailabilityText(meeting({ available: 0, capacity: 13 }))).toBe("Lista de espera");
+    expect(getAvailabilityText(meeting({ available: 0, capacity: 13 }))).toBe("Llena");
   });
 
   it("con cupo libre sigue mostrando el conteo", () => {
@@ -79,8 +76,8 @@ describe("readWaitlistAvailable", () => {
 
 describe("availabilityFromCapacity", () => {
   it("mapea 0 disponibles a waitlist aunque el listado mande false", () => {
-    expect(availabilityFromCapacity({ available: 0 })).toBe("waitlist");
-    expect(availabilityFromCapacity({ available: 0, waitlistAvailable: false })).toBe("waitlist");
+    expect(availabilityFromCapacity({ available: 0 })).toBe("sold-out");
+    expect(availabilityFromCapacity({ available: 0, waitlistAvailable: false })).toBe("sold-out");
     expect(availabilityFromCapacity({ available: 5 })).toBe("available");
   });
 });

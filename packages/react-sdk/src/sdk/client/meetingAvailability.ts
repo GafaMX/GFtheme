@@ -23,34 +23,25 @@ export function isSoldOut(meeting: Meeting): boolean {
   return false;
 }
 
-/**
- * Pastilla del calendario: clase llena = Waitlist. El listado de Voltio manda
- * `is_valid_for_waitlist: false` en TODAS las reuniones (llenas o no); ese
- * false no significa “el estudio no tiene lista”. El create-form-template
- * decide después si se puede unir o hay que comprar (`fullClassAction`).
- */
+/** Voltio's listing omits eligibility; its template remains authoritative at checkout. */
 export function offersWaitlist(meeting: Meeting): boolean {
   if (meeting.passed || meeting.isReserved) return false;
-  if (meeting.availability === "waitlist") return true;
-  if (meeting.waitlistAvailable === true) return true;
-  return isSoldOut(meeting);
+  const legacy = meeting.legacyWaitlist ??
+    ["voltio", "masvoltio"].includes(meeting.brandSlug?.toLowerCase() ?? "");
+  return isSoldOut(meeting) && (meeting.waitlistAvailable === true || legacy);
 }
 
-/** Pastilla del calendario: 0 cupos = Waitlist, sin mirar flags del listado. */
 export function showsWaitlistPill(meeting: Meeting): boolean {
-  if (meeting.passed || meeting.isReserved) return false;
-  if (offersWaitlist(meeting)) return true;
-  const left = spotsLeft(meeting);
-  return typeof left === "number" && left <= 0;
+  return offersWaitlist(meeting);
 }
 
 export function getAvailabilityText(meeting: Meeting): string {
   if (meeting.isReserved) return "Ya reservado";
   if (offersWaitlist(meeting)) return "Lista de espera";
+  if (isSoldOut(meeting)) return "Llena";
   if (typeof meeting.available === "number" && typeof meeting.capacity === "number") {
     return `${meeting.available}/${meeting.capacity} lugares`;
   }
-  if (isSoldOut(meeting)) return "Sin lugares";
   return "Disponible";
 }
 
@@ -82,7 +73,7 @@ export function availabilityFromCapacity(raw: {
         ? Number(raw.available)
         : undefined;
   if (typeof available === "number" && Number.isFinite(available) && available <= 0 && !reserved) {
-    return "waitlist";
+    return raw.waitlistAvailable === true ? "waitlist" : "sold-out";
   }
   return "available";
 }

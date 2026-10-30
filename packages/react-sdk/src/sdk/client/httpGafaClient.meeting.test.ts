@@ -124,7 +124,7 @@ describe("getMeeting", () => {
     expect(full?.waitlistAvailable).toBe(true);
   });
 
-  it("no apaga waitlist si el listado manda is_valid_for_waitlist: false (Voltio)", async () => {
+  it("no habilita waitlist si el listado manda is_valid_for_waitlist: false", async () => {
     stubApi([
       [/\/location\?/, LOCATIONS],
       [
@@ -138,8 +138,8 @@ describe("getMeeting", () => {
       brandSlug: "fitspin",
       locationSlug: "polanco",
     });
-    expect(full?.availability).toBe("waitlist");
-    expect(full?.waitlistAvailable).toBeUndefined();
+    expect(full?.availability).toBe("sold-out");
+    expect(full?.waitlistAvailable).toBe(false);
     expect(full?.available).toBe(0);
   });
 

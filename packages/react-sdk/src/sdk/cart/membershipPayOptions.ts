@@ -81,15 +81,49 @@ export function paymentMethodsForCart<T extends { slug: string }>(
 const SAVE_SELECTORS = '#saveCard, [name="saveCard"], [name="save_card"]';
 const RENEW_SELECTORS = '#recurringPayment, [name="recurringPayment"], [name="subscribe"]';
 
-function setChecked(input: HTMLInputElement | null, next: boolean) {
-  if (!input || input.checked === next) return;
-  input.checked = next;
-  input.dispatchEvent(new Event("input", { bubbles: true }));
-  input.dispatchEvent(new Event("change", { bubbles: true }));
+/**
+ * Clicks reach GafaPayFront's React onChange handler; assigning checked does not.
+ * Stripe's new-card form has no "saveCard" checkbox (GafaPayFront saves the card
+ * whenever "Pago Recurrente" is on), so a missing save input is not a failure.
+ * The renew input is required only when auto-renew is wanted.
+ */
+export async function syncGafaPayMembershipToggles(
+  root: ParentNode,
+  toggles: MembershipPayToggles,
+): Promise<boolean> {
+  const desired = [
+    [SAVE_SELECTORS, toggles.saveCard, false],
+    [RENEW_SELECTORS, toggles.autoRenew, toggles.autoRenew],
+  ] as const;
+  const ok = () => desired.every(([selector, checked, required]) => {
+    const input = root.querySelector<HTMLInputElement>(selector);
+    return input ? input.checked === checked : !required;
+  });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    for (const [selector, checked] of desired) {
+      const input = root.querySelector<HTMLInputElement>(selector);
+      if (input && input.checked !== checked) input.click();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    if (ok()) return true;
+  }
+  console.warn("[gafa-sdk] No se pudieron verificar las opciones recurrentes de GafaPay.");
+  return false;
 }
 
-/** Alinea los checkboxes de GafaPayFront (v1: #saveCard / #recurringPayment). */
-export function syncGafaPayMembershipToggles(root: ParentNode, toggles: MembershipPayToggles): void {
-  setChecked(root.querySelector<HTMLInputElement>(SAVE_SELECTORS), toggles.saveCard);
-  setChecked(root.querySelector<HTMLInputElement>(RENEW_SELECTORS), toggles.autoRenew);
+/**
+ * GAFAPay solo crea la suscripción si recibe `paymentFrequency` (días). Igual
+ * que gafa.fit v1: una sola membresía (cantidad 1) con `expiration_days` > 0 y
+ * nada más con costo en el carrito; si no, null (cobro único).
+ */
+export function membershipPaymentFrequency(
+  lines: Array<{ type: string; amount: number; price: number; raw?: Record<string, unknown> }>,
+): string | null {
+  const memberships = lines.filter((line) => line.type === "membership");
+  if (memberships.length !== 1) return null;
+  const [membership] = memberships;
+  if (membership.amount !== 1) return null;
+  if (lines.some((line) => line !== membership && line.price * line.amount > 0)) return null;
+  const days = Number(membership.raw?.expiration_days);
+  return Number.isFinite(days) && days > 0 ? String(Math.trunc(days)) : null;
 }

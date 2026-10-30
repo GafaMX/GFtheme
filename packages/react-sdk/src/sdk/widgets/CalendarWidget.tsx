@@ -66,6 +66,7 @@ export type CalendarWidgetProps = {
   /** Necesario solo para permitir registro dentro del flujo de reserva. */
   captcha?: CaptchaProvider;
   limit?: number;
+  waitlist?: boolean;
   filters?: {
     brand?: boolean | string;
     location?: boolean | string;
@@ -110,6 +111,7 @@ export function CalendarWidget({
   captcha,
   filters: filtersProp = {},
   limit,
+  waitlist,
   view: initialView = "day",
   allowViewChange = true,
   showDescription: _showDescription = false,
@@ -444,9 +446,9 @@ export function CalendarWidget({
       staffIds: selectedStaffIds,
     }).filter((meeting) => matchesTimeOfDay(getMeetingStart(meeting), timeOfDay, meeting.timezone));
 
-    const sorted = [...meetings].sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
+    const sorted = meetings.map((meeting) => ({ ...meeting, legacyWaitlist: waitlist })).sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
     return limit ? sorted.slice(0, limit) : sorted;
-  }, [limit, meetingsQuery.data, selectedServiceIds, selectedServiceName, selectedStaffIds, timeOfDay]);
+  }, [limit, waitlist, meetingsQuery.data, selectedServiceIds, selectedServiceName, selectedStaffIds, timeOfDay]);
 
   const staffOptions = useMemo(() => {
     const byId = new Map<number, { id: number; name: string; photoUrl?: string }>();
@@ -1740,11 +1742,10 @@ function ReservationPreviewModal({
   const notes = meetingClassNotes(meeting);
   const contextFailed = contextQuery.isError;
   // Fuente de verdad: `is_valid_for_waitlist` del create-form-template (v1).
-  // Si el template ni siquiera arma el form (clase llena → “no hay lugar”),
-  // no apagamos la waitlist: el listado de Voltio manda false en todas.
+  // Si falla el template, no se ofrece comprar ni unirse a la lista.
   const classAction = fullClassAction({
     soldOut,
-    waitlistEnabled: contextFailed ? waitlistCard || soldOut : context?.waitlistAvailable,
+    waitlistEnabled: context?.waitlistAvailable === true,
     hasPaymentOption: paymentOptions.length > 0,
     contextReady: Boolean(context) || contextFailed,
   });
@@ -2548,7 +2549,7 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
   }
 
   if (isSoldOut(meeting)) {
-    return <span className="gafa-availability-pill gafa-availability-pill--sold-out">Sin lugares</span>;
+    return <span className="gafa-availability-pill gafa-availability-pill--sold-out">Llena</span>;
   }
 
   return <span className="gafa-availability-pill">Disponible</span>;
