@@ -1,0 +1,18 @@
+<!--
+  Drop-in V2 (un solo script, React va dentro).
+  1. Deja [data-gf-options] y [data-gf-theme] como están.
+  2. Quita el theme v1 (buq-sdk.azurewebsites.net/main.min.js o gafa.fit/sdk/dist/main.js).
+  3. Pon ESTE script. No copies TypeScript a Buq-Webs.
+
+  jsDelivr NO acepta la rama v2/main (el slash parte la URL → 404).
+  `@v2` lo trata como versión "2" y la congela (no sigue el tag git).
+  Tags `v2.0.0-rc.N` son inmutables: no las uses en producción.
+  URL pública (todas las marcas v2, Buq-Webs y WP): rama cdn-live.
+  NO se cambia. NO usar cdn-live-2 ni pines de SHA.
+
+    https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js
+
+  Receta de lanzamiento: docs/v2-lanzamiento.md
+  Azure (cuando exista): https://buq-sdk.azurewebsites.net/v2/gafa-sdk.js
+-->
+<script src="https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.js"></script>
