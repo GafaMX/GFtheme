@@ -85,7 +85,9 @@ describe("CheckoutModal tope de cantidad", () => {
     openCart();
     expect(screen.queryByRole("button", { name: "Agregar uno" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Quitar uno" })).toBeNull();
-    expect(screen.getByLabelText("Cantidad de Clase muestra").textContent).toBe("1");
+    const qty = screen.getByLabelText("Cantidad de Clase muestra");
+    expect(qty.className).toContain("gafa-checkout__stepper");
+    expect(qty.querySelector("span")?.textContent).toBe("1");
 
     fireEvent.click(screen.getByRole("button", { name: /en el carrito/i }));
     expect(useCartStore.getState().lines[0]?.amount).toBe(1);
@@ -117,6 +119,30 @@ describe("CheckoutModal tope de cantidad", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Agregar uno" }));
     expect(useCartStore.getState().lines[0]?.amount).toBe(3);
+  });
+
+  it("membresía con reservations_max=1 usa el mismo stepper sin +/-", async () => {
+    const membership: CartLine = {
+      key: "fitspin-cancun:membership:50",
+      id: 50,
+      type: "membership",
+      name: "Intro",
+      price: 100,
+      priceLabel: "$100",
+      amount: 1,
+      brandSlug: "fitspin-cancun",
+      locationSlug: "cancun",
+      raw: { reservations_max: 1 },
+    };
+    useCartStore.setState({ lines: [membership], reservation: null });
+    renderShop(mockClient([]));
+
+    openCart();
+    expect(screen.queryByRole("button", { name: "Agregar uno" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Quitar uno" })).toBeNull();
+    const qty = screen.getByLabelText("Cantidad de Intro");
+    expect(qty.className).toContain("gafa-checkout__stepper");
+    expect(qty.querySelector("span")?.textContent).toBe("1");
   });
 
   it("sin tope el stepper suma", async () => {

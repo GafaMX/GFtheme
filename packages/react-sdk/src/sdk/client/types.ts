@@ -114,8 +114,10 @@ export type CatalogItem = {
   /** Membresia / paquete suscribible (pago recurrente). */
   subscribable?: boolean;
   /**
-   * Tope de unidades por compra (`reservations_max` de gafa.fit).
-   * 1 = solo se puede comprar una vez. Ausente / null = sin tope.
+   * Máximo de unidades que el usuario puede tener en total
+   * (`reservations_max` de gafa.fit). El catálogo no dice cuántas ya
+   * compró: el carrito capea en este número. 0 en el backend bloquea el
+   * paquete; no es “sin tope”.
    */
   reservationsMax?: number | null;
   /**

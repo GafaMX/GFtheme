@@ -2158,27 +2158,25 @@ function LineQty({
 }) {
   const cap = purchaseAmountCap(line);
   const atCap = cap != null && line.amount >= cap;
-  if (cap === 1) {
-    return (
-      <div className="gafa-checkout__qty" aria-label={`Cantidad de ${line.name}`}>
-        {line.amount}
-      </div>
-    );
-  }
+  const locked = cap === 1;
   return (
     <div className="gafa-checkout__stepper" aria-label={`Cantidad de ${line.name}`}>
-      <button type="button" aria-label="Quitar uno" onClick={() => onSetAmount(line.key, line.amount - 1)}>
-        −
-      </button>
+      {locked ? null : (
+        <button type="button" aria-label="Quitar uno" onClick={() => onSetAmount(line.key, line.amount - 1)}>
+          −
+        </button>
+      )}
       <span>{line.amount}</span>
-      <button
-        type="button"
-        aria-label="Agregar uno"
-        disabled={atCap}
-        onClick={() => onSetAmount(line.key, line.amount + 1)}
-      >
-        +
-      </button>
+      {locked ? null : (
+        <button
+          type="button"
+          aria-label="Agregar uno"
+          disabled={atCap}
+          onClick={() => onSetAmount(line.key, line.amount + 1)}
+        >
+          +
+        </button>
+      )}
     </div>
   );
 }

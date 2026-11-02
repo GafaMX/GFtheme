@@ -6333,8 +6333,7 @@ svg.gafa-acct-qr__image {
   opacity: 0.35;
 }
 
-.gafa-checkout__stepper span,
-.gafa-checkout__qty {
+.gafa-checkout__stepper span {
   --gafa-type-size: 0.78rem;
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { CartLineType } from "../client/types";
-import { clampPurchaseAmount, purchaseAmountCap } from "./purchaseCap";
+import { clampPurchaseAmount, mergeCartRaw, purchaseAmountCap } from "./purchaseCap";
 
 export { formatMoney } from "./money";
 
@@ -54,7 +54,7 @@ function lineKey(type: CartLineType, id: number, brandSlug: string): string {
   return `${brandSlug}:${type}:${id}`;
 }
 
-function loadPersisted(): Pick<CartState, "lines" | "reservation"> {
+export function loadPersisted(): Pick<CartState, "lines" | "reservation"> {
   if (typeof localStorage === "undefined") return { lines: [], reservation: null };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -100,7 +100,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     const key = lineKey(item.type, item.id, item.brandSlug);
     const requested = Math.max(1, item.amount ?? 1);
     const existing = get().lines.find((line) => line.key === key);
-    const raw = item.raw ?? existing?.raw;
+    const raw = mergeCartRaw(item.raw, existing?.raw);
     const cap = purchaseAmountCap({ raw });
     const lines = existing
       ? get().lines.map((line) =>
