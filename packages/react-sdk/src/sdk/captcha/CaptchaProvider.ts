@@ -1,0 +1,127 @@
+import { DEFAULT_CAPTCHA_PUBLIC_KEY } from "../config";
+
+export type CaptchaProvider = {
+  execute(action: string): Promise<string>;
+};
+
+export type CaptchaProviderName = "recaptcha-v3" | "turnstile";
+
+const CAPTCHA_USER_ERROR = "No pudimos validar el captcha. Recarga e inténtalo de nuevo.";
+
+/**
+ * Abstraccion de captcha: reCAPTCHA v3 es el default (es lo unico que gafa.fit valida hoy
+ * en el server, ver App\Rules\Captcha), Turnstile queda listo detras del mismo contrato para
+ * el dia que se quiera cambiar de proveedor -- eso sí requiere que gafa.fit tambien agregue
+ * verificacion de Turnstile en el backend, cambiar solo esta config no basta.
+ *
+ * Siempre hay proveedor: el registro de gafa.fit exige el token. Si el sitio o
+ * el Hub no mandan llave, usamos el par compartido de Buq — no un toast de
+ * “falta captchaPublicKey” en la cara del cliente.
+ */
+export function createCaptchaProvider(name: CaptchaProviderName = "recaptcha-v3", siteKey?: string): CaptchaProvider {
+  const key = siteKey?.trim() ?? "";
+  if (name === "turnstile" && key) return createTurnstileProvider(key);
+  return createRecaptchaV3Provider(key || DEFAULT_CAPTCHA_PUBLIC_KEY);
+}
+
+const scriptPromises = new Map<string, Promise<void>>();
+
+function loadScriptOnce(src: string): Promise<void> {
+  const existing = scriptPromises.get(src);
+  if (existing) return existing;
+
+  const promise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`No se pudo cargar el script de captcha: ${src}`));
+    document.head.appendChild(script);
+  });
+
+  scriptPromises.set(src, promise);
+  return promise;
+}
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: { sitekey: string; size: "invisible"; action: string; callback: (token: string) => void; "error-callback"?: () => void },
+      ) => string;
+      execute: (widgetIdOrContainer: string | HTMLElement) => void;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
+function toCaptchaError(err: unknown): Error {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  if (
+    message.startsWith("No se pudo") ||
+    message.startsWith("Turnstile") ||
+    message.startsWith("No pudimos")
+  ) {
+    return err instanceof Error ? err : new Error(message);
+  }
+  return new Error(CAPTCHA_USER_ERROR);
+}
+
+function createRecaptchaV3Provider(siteKey: string): CaptchaProvider {
+  return {
+    async execute(action: string) {
+      try {
+        await loadScriptOnce(`https://www.google.com/recaptcha/api.js?render=${siteKey}`);
+        if (!window.grecaptcha) {
+          throw new Error(CAPTCHA_USER_ERROR);
+        }
+        await new Promise<void>((resolve) => window.grecaptcha!.ready(resolve));
+        return await window.grecaptcha!.execute(siteKey, { action });
+      } catch (err) {
+        throw toCaptchaError(err);
+      }
+    },
+  };
+}
+
+function createTurnstileProvider(siteKey: string): CaptchaProvider {
+  return {
+    execute(action: string) {
+      return loadScriptOnce("https://challenges.cloudflare.com/turnstile/v0/api.js").then(
+        () =>
+          new Promise<string>((resolve, reject) => {
+            if (!window.turnstile) {
+              reject(new Error(CAPTCHA_USER_ERROR));
+              return;
+            }
+            const container = document.createElement("div");
+            container.style.display = "none";
+            document.body.appendChild(container);
+
+            const widgetId = window.turnstile.render(container, {
+              sitekey: siteKey,
+              size: "invisible",
+              action,
+              callback: (token) => {
+                window.turnstile!.remove(widgetId);
+                container.remove();
+                resolve(token);
+              },
+              "error-callback": () => {
+                window.turnstile!.remove(widgetId);
+                container.remove();
+                reject(new Error("Turnstile no pudo generar un token."));
+              },
+            });
+
+            window.turnstile.execute(container);
+          }),
+      );
+    },
+  };
+}
