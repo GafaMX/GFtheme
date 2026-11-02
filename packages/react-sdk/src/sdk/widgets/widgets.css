@@ -5911,6 +5911,21 @@ svg.gafa-acct-qr__image {
   color: var(--gafa-color-primary-text);
 }
 
+.gafa-checkout-product__add:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.gafa-checkout-product__add:disabled:hover {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  background: transparent;
+  border-color: var(--gafa-color-border);
+  color: var(--gafa-color-text);
+}
+
 /* ── Carrito ── */
 
 .gafa-checkout__cart {
@@ -6311,6 +6326,11 @@ svg.gafa-acct-qr__image {
   overflow: hidden;
   padding: 0;
   width: 22px;
+}
+
+.gafa-checkout__stepper button:disabled {
+  cursor: default;
+  opacity: 0.35;
 }
 
 .gafa-checkout__stepper span {

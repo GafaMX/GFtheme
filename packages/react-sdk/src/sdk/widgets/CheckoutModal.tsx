@@ -17,6 +17,7 @@ import {
   type CartLine,
   type CartReservationContext,
 } from "../cart/cartStore";
+import { purchaseAmountCap } from "../cart/purchaseCap";
 import { AuthWidget, type AuthStage } from "./AuthWidget";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { SdkBodyOverlay } from "./SdkBodyOverlay";
@@ -689,7 +690,7 @@ export function CheckoutModal({
       brandSlug: slug,
       locationSlug,
       expirationLabel: item.expirationDays ? `Expira en ${item.expirationDays} días` : undefined,
-      raw: item.raw,
+      raw: catalogCartRaw(item),
     });
   }
 
@@ -731,7 +732,7 @@ export function CheckoutModal({
         brandSlug: match.brandSlug,
         locationSlug: locationSlugProp,
         expirationLabel: match.item.expirationDays ? `Expira en ${match.item.expirationDays} días` : undefined,
-        raw: match.item.raw,
+        raw: catalogCartRaw(match.item),
       });
       setPreselectStatus("ready");
     });
@@ -1844,23 +1845,7 @@ export function CheckoutModal({
                         {line.expirationLabel ? <span>{line.expirationLabel}</span> : null}
                       </div>
                       <div className="gafa-checkout__line-actions">
-                        <div className="gafa-checkout__stepper" aria-label={`Cantidad de ${line.name}`}>
-                          <button
-                            type="button"
-                            aria-label="Quitar uno"
-                            onClick={() => setAmount(line.key, line.amount - 1)}
-                          >
-                            −
-                          </button>
-                          <span>{line.amount}</span>
-                          <button
-                            type="button"
-                            aria-label="Agregar uno"
-                            onClick={() => setAmount(line.key, line.amount + 1)}
-                          >
-                            +
-                          </button>
-                        </div>
+                        <LineQty line={line} onSetAmount={setAmount} />
                         <strong className="gafa-checkout__line-price">
                           {formatMoney(line.price * line.amount, currency.prefix, "")}
                         </strong>
@@ -2106,6 +2091,15 @@ export function CheckoutModal({
   );
 }
 
+/** El carrito solo lee `raw.reservations_max`; copia el tope tipado si hace falta. */
+function catalogCartRaw(item: CatalogItem): Record<string, unknown> | undefined {
+  const cap = purchaseAmountCap(item);
+  if (!item.raw && cap == null) return undefined;
+  const raw = { ...(item.raw ?? {}) };
+  if (cap != null && raw.reservations_max == null) raw.reservations_max = cap;
+  return raw;
+}
+
 /** Cuantas unidades de este item ya estan en el carrito. */
 function amountInCart(lines: CartLine[], item: CatalogItem): number {
   const type: CartLineType =
@@ -2155,6 +2149,38 @@ function PaySkeleton({ withMethods = false, label }: { withMethods?: boolean; la
   );
 }
 
+function LineQty({
+  line,
+  onSetAmount,
+}: {
+  line: CartLine;
+  onSetAmount: (key: string, amount: number) => void;
+}) {
+  const cap = purchaseAmountCap(line);
+  const atCap = cap != null && line.amount >= cap;
+  const locked = cap === 1;
+  return (
+    <div className="gafa-checkout__stepper" aria-label={`Cantidad de ${line.name}`}>
+      {locked ? null : (
+        <button type="button" aria-label="Quitar uno" onClick={() => onSetAmount(line.key, line.amount - 1)}>
+          −
+        </button>
+      )}
+      <span>{line.amount}</span>
+      {locked ? null : (
+        <button
+          type="button"
+          aria-label="Agregar uno"
+          disabled={atCap}
+          onClick={() => onSetAmount(line.key, line.amount + 1)}
+        >
+          +
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ProductCard({
   item,
   currency,
@@ -2167,6 +2193,8 @@ function ProductCard({
   onAdd: () => void;
 }) {
   const price = item.priceFinal ?? item.price ?? 0;
+  const cap = purchaseAmountCap(item);
+  const atCap = cap != null && inCartAmount >= cap;
   const compareAt =
     item.hasDiscount && item.price != null && item.priceFinal != null && item.price > item.priceFinal
       ? formatMoney(item.price, currency.prefix, "")
@@ -2197,8 +2225,14 @@ function ProductCard({
           .filter(Boolean)
           .join(" · ") || "\u00A0"}
       </p>
-      <button className="gafa-checkout-product__add" type="button" onClick={onAdd}>
-        {inCartAmount > 0 ? `Agregar otro (${inCartAmount})` : "Agregar"}
+      <button className="gafa-checkout-product__add" type="button" disabled={atCap} onClick={onAdd}>
+        {atCap
+          ? cap === 1
+            ? "En el carrito"
+            : `Máximo (${inCartAmount})`
+          : inCartAmount > 0
+            ? `Agregar otro (${inCartAmount})`
+            : "Agregar"}
       </button>
     </article>
   );
