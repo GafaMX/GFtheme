@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { CartLineType } from "../client/types";
+import { clampPurchaseAmount, purchaseAmountCap } from "./purchaseCap";
 
 export { formatMoney } from "./money";
 
@@ -59,13 +60,20 @@ function loadPersisted(): Pick<CartState, "lines" | "reservation"> {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { lines: [], reservation: null };
     const parsed = JSON.parse(raw) as { lines?: CartLine[]; reservation?: CartReservationContext | null };
+    const lines = Array.isArray(parsed.lines) ? parsed.lines.map(clampLineAmount) : [];
     return {
-      lines: Array.isArray(parsed.lines) ? parsed.lines : [],
+      lines,
       reservation: parsed.reservation ?? null,
     };
   } catch {
     return { lines: [], reservation: null };
   }
+}
+
+function clampLineAmount(line: CartLine): CartLine {
+  const cap = purchaseAmountCap(line);
+  const amount = Math.max(1, clampPurchaseAmount(line.amount, cap));
+  return amount === line.amount ? line : { ...line, amount };
 }
 
 function persist(lines: CartLine[], reservation: CartReservationContext | null) {
@@ -90,13 +98,17 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   addItem(item) {
     const key = lineKey(item.type, item.id, item.brandSlug);
-    const amount = Math.max(1, item.amount ?? 1);
+    const requested = Math.max(1, item.amount ?? 1);
     const existing = get().lines.find((line) => line.key === key);
+    const raw = item.raw ?? existing?.raw;
+    const cap = purchaseAmountCap({ raw });
     const lines = existing
       ? get().lines.map((line) =>
-          line.key === key ? { ...line, amount: line.amount + amount } : line,
+          line.key === key
+            ? { ...line, amount: Math.max(1, clampPurchaseAmount(line.amount + requested, cap)), raw: raw ?? line.raw }
+            : line,
         )
-      : [...get().lines, { ...item, key, amount }];
+      : [...get().lines, { ...item, key, amount: Math.max(1, clampPurchaseAmount(requested, cap)), raw }];
     const reservation = get().reservation;
     persist(lines, reservation);
     set({ lines });
@@ -110,7 +122,9 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   setAmount(key, amount) {
-    const next = Math.max(0, Math.floor(amount));
+    const current = get().lines.find((line) => line.key === key);
+    const cap = purchaseAmountCap(current);
+    const next = clampPurchaseAmount(amount, cap);
     const lines =
       next === 0
         ? get().lines.filter((line) => line.key !== key)

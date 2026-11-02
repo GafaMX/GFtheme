@@ -114,6 +114,11 @@ export type CatalogItem = {
   /** Membresia / paquete suscribible (pago recurrente). */
   subscribable?: boolean;
   /**
+   * Tope de unidades por compra (`reservations_max` de gafa.fit).
+   * 1 = solo se puede comprar una vez. Ausente / null = sin tope.
+   */
+  reservationsMax?: number | null;
+  /**
    * JSON original del item tal como lo entrega gafa.fit. El fancy v1 manda el
    * objeto COMPLETO en `cart`/`combo` (con credits, expiration_days, etc.);
    * `/reservate` puede tronar si le faltan claves.

@@ -449,6 +449,28 @@ describe("catálogo con reglas de compra", () => {
     clearStoredToken();
   });
 
+  it("expone reservations_max del combo (solo una vez = 1)", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponseStatus({
+        data: [
+          {
+            id: 1,
+            name: "Clase muestra",
+            price: 0,
+            price_final: 0,
+            reservations_max: 1,
+            reservations_min: 1,
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const combos = await client().listCombos("fitspin");
+    expect(combos[0]?.reservationsMax).toBe(1);
+    expect(combos[0]?.raw?.reservations_max).toBe(1);
+  });
+
   it("sin sesión pide el catálogo público", async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponseStatus({ data: [{ id: 1, name: "Primera vez", price: 100, price_final: 100 }] }),
