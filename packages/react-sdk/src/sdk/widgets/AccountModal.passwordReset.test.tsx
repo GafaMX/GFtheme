@@ -14,6 +14,7 @@ afterEach(() => {
   resetToastHostForTests();
   vi.restoreAllMocks();
   window.history.replaceState(null, "", "/");
+  sessionStorage.removeItem("gafa-sdk-password-reset-link");
 });
 
 function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
@@ -78,7 +79,7 @@ describe("reset de contraseña", () => {
     await waitFor(() => {
       expect(client.requestPasswordReset).toHaveBeenCalledWith({
         email: "ana@buq.mx",
-        returnUrl: `${window.location.origin}/reservar`,
+        returnUrl: `${window.location.origin}/reservar#gafa-pw-reset`,
       });
     });
   });

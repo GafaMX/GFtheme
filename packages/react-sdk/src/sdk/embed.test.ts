@@ -26,6 +26,8 @@ describe("embed drop-in", () => {
     delete host.GAFA_SDK_AUTOSCAN;
     document.documentElement.removeAttribute("data-gf-autoscan");
     document.body.innerHTML = "";
+    window.history.replaceState(null, "", "/");
+    sessionStorage.removeItem("gafa-sdk-password-reset-link");
   });
 
   it("exige data-gf-options, igual que el theme v1", () => {
@@ -297,6 +299,16 @@ describe("embed drop-in", () => {
       expect(second).not.toBe(first);
       expect(await (window as EmbedHostWindow).GafaSdkReady).toBe(second);
       expect(second.config.companyId).toBe(190);
+    });
+
+    it("con auto-scan apagado igual abre la cuenta si hay link de reset", async () => {
+      (window as EmbedHostWindow).GAFA_SDK_AUTOSCAN = false;
+      window.history.replaceState(null, "", "/?token=tok123&email=ana@buq.mx");
+      mountHost();
+      bootGafaSdkFromDom(document, window, { useMockClient: true });
+      await waitFor(() => {
+        expect(document.querySelector(".gafa-account-modal")).not.toBeNull();
+      });
     });
 
     it("con auto-scan apagado no monta widgets; mount(root) sí, y es idempotente", async () => {

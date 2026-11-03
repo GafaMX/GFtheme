@@ -1,7 +1,10 @@
+import { capturePasswordResetLink, hasPasswordResetLink } from "./auth/passwordResetLink";
 import { createGafaSdk, type GafaSdk, type RuntimeOptions } from "./runtime";
 import { readLegacyOptionsFromDom, type GafaSdkConfig } from "./config";
 import { readEmbedOptionsFromDom } from "./config/embedOptions";
 import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
+
+capturePasswordResetLink();
 import {
   aliasV2Shortcodes,
   createReadyLatch,
@@ -80,6 +83,8 @@ export function bootGafaSdk(
     aliasV2Shortcodes(documentRef);
     if (isAutoScanEnabled(documentRef, win)) {
       bootstrapLegacyWidgets(previous, documentRef, { mode: "auto" });
+    } else if (hasPasswordResetLink()) {
+      previous.openAccount();
     }
     latch.resolve(previous);
     win.GafaThemeSDK = previous;
@@ -103,6 +108,9 @@ export function bootGafaSdk(
       : { mounted: 0, widgets: [] as string[] };
     if (!autoScan) {
       sdk.enablePurchaseButtons(documentRef.body ?? undefined);
+      if (hasPasswordResetLink()) {
+        sdk.openAccount();
+      }
     }
     sdk.heartbeat(mounted.widgets);
     win.GafaThemeSDK = sdk;
@@ -187,6 +195,7 @@ export function startEmbedWhenReady(
 }
 
 if (import.meta.env.MODE !== "test") {
+  capturePasswordResetLink();
   readyLatchFor(window as EmbedHostWindow);
   void startEmbedWhenReady();
 }
