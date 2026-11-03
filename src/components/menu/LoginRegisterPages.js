@@ -14,15 +14,20 @@ import "../../styles/newlook/components/GFSDK-c-LoginPages.scss";
 import "../../styles/newlook/elements/GFSDK-e-form.scss";
 import "../../styles/newlook/elements/GFSDK-e-buttons.scss";
 import StringStore from "../utils/Strings/StringStore";
+import {
+    clearPasswordResetLink,
+    readPasswordResetLink,
+} from "../utils/passwordResetLink";
 
 class LoginRegisterPages extends React.Component {
   constructor(props) {
     super(props);
+    const reset = readPasswordResetLink();
     this.state = {
-      currentPage: "login", // 'menu', 'login', 'register', 'profile', 'password-recovery'
+      currentPage: reset ? "password-recovery" : "login", // 'menu', 'login', 'register', 'profile', 'password-recovery'
       serverError: "",
-      email: null,
-      token: null,
+      email: reset ? reset.email : null,
+      token: reset ? reset.token : null,
       me: null,
       loading: false,
       triggeredByLogin: true,
@@ -53,21 +58,19 @@ class LoginRegisterPages extends React.Component {
       "gafafitSDKAutorization"
     );
 	console.log("v_1.0.2");
+    const reset = readPasswordResetLink();
     const query = new URLSearchParams(window.location.search);
-    const token = query.get("token");
-    const email = query.get("email");
     const page = query.get("page");
 
     let currentComponent = this;
 
     // Determinar la página actual basada en la URL
-    if (token != null && email != null) {
+    if (reset) {
       this.setState({
         currentPage: "password-recovery",
-        email: email,
-        token: token,
+        email: reset.email,
+        token: reset.token,
       });
-      this.updateUrl("password-recovery", { token, email });
     } else if (gafafitSDKAuthorization) {
       this.setState({
         currentPage: "profile",
@@ -91,7 +94,7 @@ class LoginRegisterPages extends React.Component {
       });
     });
 
-    if (this.props.setShowLogin) {
+    if (!reset && this.props.setShowLogin) {
       this.setState({
         triggeredByLogin: false,
         currentPage: "login",
@@ -99,7 +102,7 @@ class LoginRegisterPages extends React.Component {
       this.updateUrl("login");
     }
 
-    if (this.props.setShowRegister) {
+    if (!reset && this.props.setShowRegister) {
       this.setState({
         triggeredByRegister: false,
         currentPage: "register",
@@ -133,17 +136,16 @@ class LoginRegisterPages extends React.Component {
 
   // Método para manejar la navegación del historial del navegador
   handlePopState() {
+    const reset = readPasswordResetLink();
     const query = new URLSearchParams(window.location.search);
-    const token = query.get("token");
-    const email = query.get("email");
     const page = query.get("page");
 
     // Determinar la página actual basada en la URL actual
-    if (token != null && email != null) {
+    if (reset) {
       this.setState({
         currentPage: "password-recovery",
-        email: email,
-        token: token,
+        email: reset.email,
+        token: reset.token,
       });
     } else if (page) {
       this.setState({
@@ -199,12 +201,12 @@ class LoginRegisterPages extends React.Component {
   }
 
   handleClickBack() {
-    const query = new URLSearchParams(window.location.search);
-    const token = query.get("token");
-    const email = query.get("email");
+    const reset = readPasswordResetLink();
 
     this.setState({
       currentPage: "menu",
+      email: null,
+      token: null,
     });
 
     if (this.props.setShowLogin) {
@@ -215,11 +217,9 @@ class LoginRegisterPages extends React.Component {
       this.props.setShowRegister(false);
     }
 
-    // Si hay token y email, redirigir al origen
-    if (token && email) {
-      window.location.href = window.location.origin;
+    if (reset) {
+      clearPasswordResetLink();
     } else {
-      // Limpiar la URL y volver al menú
       const url = new URL(window.location);
       url.searchParams.delete("page");
       url.searchParams.delete("token");
