@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node src/components/utils/passwordResetLink.test.cjs",
     "dev": "webpack --mode development",
     "watch": "webpack --mode development --progress --watch",
     "build": "webpack --mode production",

@@ -381,6 +381,7 @@ class GafaThemeSDK extends React.Component {
                     initial: initial,
                     allowsPreLoading: allowsPreLoading,
                     combineWaitlist: combineWaitlist,
+                    passwordResetAuto: domContainer.getAttribute("data-gf-password-reset-auto") === "true",
                 });
             });
         }

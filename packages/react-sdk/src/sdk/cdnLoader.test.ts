@@ -50,15 +50,22 @@ describe("gafa-sdk-loader.js", () => {
     document.head.innerHTML = "";
     document.body.innerHTML = "";
     sessionStorage.removeItem("gafa-sdk-cdn-sha");
+    sessionStorage.removeItem("gafa-sdk-cdn-sha:cdn-live");
+    sessionStorage.removeItem("gafa-sdk-cdn-sha:staging");
     sessionStorage.removeItem("gafa-sdk-password-reset-link");
+    Object.defineProperty(document, "currentScript", {
+      configurable: true,
+      get: () => null,
+    });
   });
 
   it("está alineado con las URLs del helper y no pide otra rama", () => {
     const source = readFileSync(LOADER_PATH, "utf8");
     expect(source).toContain(GAFA_SDK_PUBLIC_SCRIPT);
-    expect(source).toContain(GAFA_SDK_VERSION_URLS[0]);
-    expect(source).toContain(GAFA_SDK_GITHUB_TIP);
-    expect(source).toContain(GAFA_SDK_FALLBACK_BUNDLE);
+    expect(source).toContain('DEFAULT_REF = "cdn-live"');
+    expect(source).toContain("/GafaMX/GFtheme/\" + REF + \"/docs/v2-sdk/VERSION.txt");
+    expect(source).toContain("commits/\" + REF");
+    expect(source).toContain("@\" + REF + \"/docs/v2-sdk/gafa-sdk.bundle.js");
     expect(source).not.toMatch(/cdn-live-\d/);
   });
 
@@ -126,6 +133,36 @@ describe("gafa-sdk-loader.js", () => {
     await waitFor(() => {
       const injected = [...document.querySelectorAll("script")].map((node) => node.getAttribute("src"));
       expect(injected).toContain(GAFA_SDK_FALLBACK_BUNDLE);
+    });
+  });
+
+  it("si el src es @staging pide VERSION y el bundle de staging", async () => {
+    const source = readFileSync(LOADER_PATH, "utf8");
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@staging/docs/v2-sdk/gafa-sdk.js";
+    document.head.appendChild(script);
+    Object.defineProperty(document, "currentScript", {
+      configurable: true,
+      get: () => script,
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => "bundle=gafa-sdk.bundle.20261103T000000Z.js\ncommit=deadbeef\n",
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    // eslint-disable-next-line no-eval
+    eval(source);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://raw.githubusercontent.com/GafaMX/GFtheme/staging/docs/v2-sdk/VERSION.txt",
+      { cache: "no-store" },
+    );
+    await waitFor(() => {
+      const injected = [...document.querySelectorAll("script")].map((node) => node.getAttribute("src"));
+      expect(injected).toContain(
+        "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@staging/docs/v2-sdk/gafa-sdk.bundle.20261103T000000Z.js",
+      );
     });
   });
 });
