@@ -37,12 +37,30 @@
   }
   window.__GAFA_SDK_LOADER__ = true;
 
-  var RAW_VERSION =
-    "https://raw.githubusercontent.com/GafaMX/GFtheme/cdn-live/docs/v2-sdk/VERSION.txt";
-  var GITHUB_TIP = "https://api.github.com/repos/GafaMX/GFtheme/commits/cdn-live";
-  var FALLBACK =
-    "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/gafa-sdk.bundle.js";
+  // Production sites keep @cdn-live. If this file itself is loaded from
+  // @staging (or a SHA), follow that ref so QA does not silently pull live.
+  var DEFAULT_REF = "cdn-live";
   var anchor = typeof document !== "undefined" ? document.currentScript : null;
+  function detectRef() {
+    try {
+      var src = (anchor && anchor.src) || "";
+      var m = /cdn\.jsdelivr\.net\/gh\/GafaMX\/GFtheme@([^/?#]+)/i.exec(src);
+      if (m && m[1]) {
+        var ref = decodeURIComponent(m[1]);
+        if (ref && ref !== "v2") {
+          return ref;
+        }
+      }
+    } catch (e) {}
+    return DEFAULT_REF;
+  }
+  var REF = detectRef();
+  var RAW_VERSION =
+    "https://raw.githubusercontent.com/GafaMX/GFtheme/" + REF + "/docs/v2-sdk/VERSION.txt";
+  var GITHUB_TIP = "https://api.github.com/repos/GafaMX/GFtheme/commits/" + REF;
+  var FALLBACK =
+    "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@" + REF + "/docs/v2-sdk/gafa-sdk.bundle.js";
+  var SHA_KEY = "gafa-sdk-cdn-sha:" + REF;
   var queue = [];
   var loading = false;
 
@@ -92,14 +110,14 @@
       return null;
     }
     return (
-      "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@cdn-live/docs/v2-sdk/" + bundle[1]
+      "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@" + REF + "/docs/v2-sdk/" + bundle[1]
     );
   }
 
   function tipBundle() {
     var cached = null;
     try {
-      cached = sessionStorage.getItem("gafa-sdk-cdn-sha");
+      cached = sessionStorage.getItem(SHA_KEY);
     } catch (e) {}
     if (cached) {
       enqueue(
@@ -123,7 +141,7 @@
           throw new Error("sha");
         }
         try {
-          sessionStorage.setItem("gafa-sdk-cdn-sha", sha);
+          sessionStorage.setItem(SHA_KEY, sha);
         } catch (e2) {}
         enqueue(
           "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@" +
