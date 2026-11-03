@@ -51,7 +51,7 @@ const helipuerto: Meeting = {
 function renderShop(
   client: GafaClient,
   meeting?: Meeting | null,
-  seat?: { seatObjectId?: number; seatLabel?: string },
+  seat?: { seatObjectId?: number; seatObjectIds?: number[]; seatLabel?: string },
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
@@ -65,6 +65,7 @@ function renderShop(
         locationName="Polanco"
         meeting={meeting}
         seatObjectId={seat?.seatObjectId}
+        seatObjectIds={seat?.seatObjectIds}
         seatLabel={seat?.seatLabel}
         skipCatalog={false}
         onClose={() => undefined}
@@ -151,6 +152,46 @@ describe("CheckoutModal catalog loading", () => {
       expect(screen.queryByRole("button", { name: /quitar clase/i })).toBeNull();
     });
     expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
+  });
+
+  it("con invitados oculta membresías y mete N paquetes de 1", async () => {
+    useCartStore.setState({ lines: [], reservation: null });
+    renderShop(
+      mockClient(
+        Promise.resolve([
+          { id: 10, name: "10 clases", type: "combo", price: 2000, priceFinal: 2000, credits: 10 },
+          { id: 11, name: "1 clase", type: "combo", price: 300, priceFinal: 300, credits: 1 },
+        ]),
+        { memberships: [{ id: 20, name: "Ili", type: "membership", price: 1500, priceFinal: 1500 }] },
+      ),
+      helipuerto,
+      { seatObjectIds: [1, 2, 3], seatLabel: "1, 2 y 3" },
+    );
+
+    await waitFor(() => {
+      expect(useCartStore.getState().lines).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 11, type: "combo", amount: 3 }),
+        ]),
+      );
+    });
+    expect(screen.queryByRole("tab", { name: /membresías/i })).toBeNull();
+    expect(screen.getByText(/Lugares 1, 2 y 3/)).toBeTruthy();
+  });
+
+  it("ancla varios lugares en el chip de la clase", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    renderShop(mockClient(Promise.resolve([])), helipuerto, {
+      seatObjectIds: [1, 2, 3],
+      seatLabel: "1, 2 y 3",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Lugares 1, 2 y 3/)).toBeTruthy();
+    });
+    expect(useCartStore.getState().reservation).toEqual(
+      expect.objectContaining({ meetingId: 99, seatObjectIds: [1, 2, 3] }),
+    );
   });
 
   it("ancla el lugar elegido en el chip de la clase", async () => {
