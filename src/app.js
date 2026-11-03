@@ -1,7 +1,11 @@
 import GafaThemeSDK from "./components/GafaThemeSDK";
 import GafaFitSDKWrapper from "./components/utils/GafaFitSDKWrapper";
 import StringStore from "./components/utils/Strings/StringStore";
+import {capturePasswordResetLink, hasPasswordResetLink} from "./components/utils/passwordResetLink";
 
+// Snapshot token/email BEFORE initValues() waits on the brand API and
+// before Weglot / TranslatePress / SPA routers rewrite the URL.
+capturePasswordResetLink();
 
 // Buq SDK
 // if(!jQuery){
@@ -15,6 +19,23 @@ if (selection !== null) {
 }
 // window.GFThemeOptions = JSON.parse(document.querySelector('[data-gf-options]').innerHTML);
 
+function mountPasswordResetHostIfNeeded() {
+    if (!hasPasswordResetLink()) {
+        return;
+    }
+    var existing = document.querySelector(
+        '[data-gf-theme="login-register"], [data-gf-theme="login-register-pages"], [data-gf-theme="password-recovery"]'
+    );
+    if (existing) {
+        return;
+    }
+    var host = document.createElement('div');
+    host.setAttribute('data-gf-theme', 'login-register');
+    host.setAttribute('data-gf-password-reset-auto', 'true');
+    document.body.appendChild(host);
+    GafaThemeSDK.renderLoginRegister('[data-gf-password-reset-auto="true"]');
+}
+
 GafaFitSDKWrapper.initValues(
     () => {
         StringStore.initLang();
@@ -24,6 +45,10 @@ GafaFitSDKWrapper.initValues(
         GafaThemeSDK.renderProfileUserInfo('[data-gf-theme="profile-info"]');
         GafaThemeSDK.renderLoginRegister('[data-gf-theme="login-register"]');
         GafaThemeSDK.renderLoginRegisterPages('[data-gf-theme="login-register-pages"]');
+        // Calendar-only embeds: no login widget on the landing page, so mount
+        // one on body after the shortcode scan (or the auto host would be
+        // double-rendered by renderLoginRegister).
+        mountPasswordResetHostIfNeeded();
 
         // Render miembros de staff
         GafaThemeSDK.renderStaffList('[data-gf-theme="staff-list"]');

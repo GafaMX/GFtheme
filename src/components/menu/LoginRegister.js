@@ -16,22 +16,28 @@ import '../../styles/newlook/thirdParties/modalComp.scss';
 import '../../styles/newlook/elements/GFSDK-e-form.scss';
 import '../../styles/newlook/elements/GFSDK-e-buttons.scss';
 import StringStore from "../utils/Strings/StringStore";
+import {
+    clearPasswordResetLink,
+    readPasswordResetLink,
+} from "../utils/passwordResetLink";
 
 class LoginRegister extends React.Component {
     constructor(props) {
         super(props);
+        const reset = readPasswordResetLink();
+        const hideChrome = !!props.passwordResetAuto;
         this.state = {
             showLogin: false,
             showRegister: false,
             showProfile: false,
-            passwordRecovery: false,
+            passwordRecovery: !!reset,
             serverError: "",
-            email: null,
-            token: null,
+            email: reset ? reset.email : null,
+            token: reset ? reset.token : null,
             me: null,
             loading: false,
-            triggeredByLogin: true,
-            triggeredByRegister: true,
+            triggeredByLogin: hideChrome ? false : true,
+            triggeredByRegister: hideChrome ? false : true,
             preLoading: true
         };
 
@@ -51,19 +57,17 @@ class LoginRegister extends React.Component {
     }
 
     componentDidMount() {
-        const query = new URLSearchParams(window.location.search);
-        const token = query.get('token');
-        const email = query.get('email');
+        const reset = readPasswordResetLink();
 
         let currentComponent = this;
-        if (token != null && email != null) {
+        if (reset) {
             this.setState({
                 showLogin: false,
                 showRegister: false,
                 showProfile: false,
                 passwordRecovery: true,
-                email: email,
-                token: token
+                email: reset.email,
+                token: reset.token
             });
         }
 
@@ -76,18 +80,16 @@ class LoginRegister extends React.Component {
             }
         );
 
-        if (token && email) {
-            this.handleClickRecovery.bind(this);
-        }
-
-        if (this.props.setShowLogin) {
+        // Reset link wins over "open login/register" props: otherwise the
+        // login modal replaced the password-change popup.
+        if (!reset && this.props.setShowLogin) {
             this.setState({
                 triggeredByLogin: false
             });
             this.handleClickLogin();
         }
 
-        if (this.props.setShowRegister) {
+        if (!reset && this.props.setShowRegister) {
             this.setState({
                 triggeredByRegister: false
             });
@@ -153,15 +155,15 @@ class LoginRegister extends React.Component {
     }
 
     handleClickBack() {
-        const query = new URLSearchParams(window.location.search);
-        const token = query.get('token');
-        const email = query.get('email');
+        const reset = readPasswordResetLink();
 
         this.setState({
             showLogin: false,
             showRegister: false,
             showProfile: false,
             passwordRecovery: false,
+            email: null,
+            token: null,
         });
 
         if (this.props.setShowLogin) {
@@ -172,8 +174,8 @@ class LoginRegister extends React.Component {
             this.props.setShowRegister(false);
         }
 
-        if (token && email) {
-            location.replace(window.location.origin);
+        if (reset) {
+            clearPasswordResetLink();
         }
 
     }

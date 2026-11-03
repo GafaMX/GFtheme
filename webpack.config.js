@@ -3,7 +3,7 @@ const HtmlWebPackPlugin = require("html-webpack-plugin");
 const withCSS = require('@zeit/next-css');
 
 module.exports = {
-    entry: "./src/app.js",
+    entry: ["./src/passwordResetCapture.js", "./src/app.js"],
     output: {
         path: path.resolve('./dist'),
         filename: 'main.min.js'

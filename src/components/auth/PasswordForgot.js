@@ -6,16 +6,15 @@ import {FormErrors} from "../form/FormErrors";
 import GafaFitSDKWrapper from "../utils/GafaFitSDKWrapper";
 import Strings from "../utils/Strings/Strings_ES";
 import StringStore from "../utils/Strings/StringStore";
+import {passwordResetReturnUrl} from "../utils/passwordResetLink";
 
 class PasswordForgot extends React.Component {
     constructor(props) {
         super(props);
 
-        let returnUrl = window.location.href.split('?')[0].split('#')[0];
-
         this.state = {
             email: "",
-            returnUrl: returnUrl,
+            returnUrl: passwordResetReturnUrl(),
             formErrors: {email: ''},
             emailValid: false,
             formValid: false,
