@@ -114,6 +114,13 @@ export type CatalogItem = {
   /** Membresia / paquete suscribible (pago recurrente). */
   subscribable?: boolean;
   /**
+   * Máximo de unidades que el usuario puede tener en total
+   * (`reservations_max` de gafa.fit). El catálogo no dice cuántas ya
+   * compró: el carrito capea en este número. 0 en el backend bloquea el
+   * paquete; no es “sin tope”.
+   */
+  reservationsMax?: number | null;
+  /**
    * JSON original del item tal como lo entrega gafa.fit. El fancy v1 manda el
    * objeto COMPLETO en `cart`/`combo` (con credits, expiration_days, etc.);
    * `/reservate` puede tronar si le faltan claves.

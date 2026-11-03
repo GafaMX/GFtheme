@@ -1,5 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  PASSWORD_RESET_STORAGE_KEY,
+  capturePasswordResetLink,
   clearPasswordResetLink,
   parsePasswordResetLink,
   passwordResetReturnUrl,
@@ -11,6 +13,8 @@ const TOKEN = "a1b2c3d4e5";
 
 afterEach(() => {
   window.history.replaceState(null, "", "/");
+  sessionStorage.removeItem(PASSWORD_RESET_STORAGE_KEY);
+  vi.unstubAllGlobals();
 });
 
 describe("parsePasswordResetLink", () => {
@@ -67,6 +71,40 @@ describe("parsePasswordResetLink", () => {
   it("encoding roto no truena", () => {
     expect(parsePasswordResetLink(`?token=${TOKEN}&email=ana%E0@buq.mx`)?.email).toBe("ana%E0@buq.mx");
   });
+
+  it("hash marker de correos nuevos (sobrevive redirect de idioma)", () => {
+    expect(parsePasswordResetLink(`#gafa-pw-reset?token=${TOKEN}&email=ana@buq.mx`)).toEqual({
+      token: TOKEN,
+      email: "ana@buq.mx",
+    });
+  });
+
+  it("HTML &amp;email= del correo", () => {
+    expect(parsePasswordResetLink(`?token=${TOKEN}&amp;email=ana@buq.mx`)).toEqual({
+      token: TOKEN,
+      email: "ana@buq.mx",
+    });
+  });
+
+  it("TOKEN/EMAIL en mayúsculas", () => {
+    expect(parsePasswordResetLink(`?TOKEN=${TOKEN}&EMAIL=ana@buq.mx`)).toEqual({
+      token: TOKEN,
+      email: "ana@buq.mx",
+    });
+  });
+
+  it("query encoded en el path (WAF / click tracker)", () => {
+    expect(
+      parsePasswordResetLink(`https://studio.mx/es/reservar%3Ftoken%3D${TOKEN}%26email%3Dana%40buq.mx`),
+    ).toEqual({ token: TOKEN, email: "ana@buq.mx" });
+  });
+
+  it("hash router #/reset?token=", () => {
+    expect(parsePasswordResetLink(`#/reset?token=${TOKEN}&email=ana@buq.mx`)).toEqual({
+      token: TOKEN,
+      email: "ana@buq.mx",
+    });
+  });
 });
 
 describe("stripPasswordResetParams", () => {
@@ -78,6 +116,7 @@ describe("stripPasswordResetParams", () => {
     [`?brand=fitspin#horario?token=${TOKEN}&email=a@b.mx`, { search: "?brand=fitspin", hash: "#horario" }],
     [`#token=${TOKEN}&email=a@b.mx`, { search: "", hash: "" }],
     [`?token=${TOKEN}&brand=fitspin&email=a@b.mx`, { search: "?brand=fitspin", hash: "" }],
+    [`#gafa-pw-reset?token=${TOKEN}&email=a@b.mx`, { search: "", hash: "" }],
   ])("%s", (input, expected) => {
     expect(stripPasswordResetParams(input)).toEqual(expected);
   });
@@ -94,11 +133,28 @@ describe("window helpers", () => {
     expect(readPasswordResetLink()).toBeNull();
   });
 
-  it("return_url limpio: solo origin + pathname", () => {
+  it("return_url usa #gafa-pw-reset para que el idioma no tire el token", () => {
     expect(
       passwordResetReturnUrl({ origin: "https://insight.mx", pathname: "/reservar" }),
-    ).toBe("https://insight.mx/reservar");
+    ).toBe("https://insight.mx/reservar#gafa-pw-reset");
     window.history.replaceState(null, "", "/reservar?location=centro#horario");
-    expect(passwordResetReturnUrl()).toBe(`${window.location.origin}/reservar`);
+    expect(passwordResetReturnUrl()).toBe(`${window.location.origin}/reservar#gafa-pw-reset`);
+  });
+
+  it("snapshot en sessionStorage sobrevive a Weglot/SPA reescribiendo la URL", () => {
+    window.history.replaceState(null, "", `/?token=${TOKEN}&email=ana@buq.mx`);
+    capturePasswordResetLink();
+    window.history.replaceState(null, "", "/es/");
+    expect(readPasswordResetLink()).toEqual({ token: TOKEN, email: "ana@buq.mx" });
+  });
+
+  it("PerformanceNavigationTiming.name cubre replaceState del tema", () => {
+    vi.stubGlobal("performance", {
+      getEntriesByType: () => [
+        { name: `https://studio.mx/reservar?token=${TOKEN}&email=ana@buq.mx` },
+      ],
+    });
+    window.history.replaceState(null, "", "/reservar");
+    expect(readPasswordResetLink()).toEqual({ token: TOKEN, email: "ana@buq.mx" });
   });
 });

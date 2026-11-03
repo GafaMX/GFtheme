@@ -46,6 +46,7 @@ import {
 } from "../cart/giftCard";
 import { partitionGafaFitCart } from "../cart/gafaFitCart";
 import { formatCatalogAmount, resolveMoneyCurrency } from "../cart/money";
+import { purchaseAmountCap } from "../cart/purchaseCap";
 import { toFormBody } from "./formBody";
 import {
   clearStoredToken,
@@ -96,6 +97,8 @@ type RawCatalogItem = {
   credits?: number | null;
   subscribable?: boolean | number | null;
   hide_in_front?: boolean | number | null;
+  reservations_min?: number | string | null;
+  reservations_max?: number | string | null;
   currency?: string | { prefijo?: string; sufijo?: string; code3?: string } | null;
 };
 
@@ -898,6 +901,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       hasDiscount: Boolean(raw.has_discount),
       credits: raw.credits ?? undefined,
       subscribable: Boolean(raw.subscribable),
+      reservationsMax: purchaseAmountCap({ raw: raw as unknown as Record<string, unknown> }),
       ctaLabel: "Agregar",
       // El JSON íntegro: v1 manda el combo entero en el cart de
       // `/reservate` y gafa.fit puede leer claves que no normalizamos.
