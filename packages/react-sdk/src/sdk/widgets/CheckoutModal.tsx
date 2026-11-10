@@ -1593,7 +1593,9 @@ export function CheckoutModal({
                         ? waitlistPurchase
                           ? "Al pagar te sumamos a la lista de espera y se descuenta el crédito."
                           : guestPackMissing
-                            ? `Para reservar ${guestSeatCount} lugares necesitas un paquete de esta clase con al menos ${guestSeatCount} créditos. No hay un paquete de 1 clase disponible para agregarlo solo; elige uno de la lista o escríbele al estudio.`
+                            ? classCombos.length
+                              ? `Para reservar ${guestSeatCount} lugares necesitas un paquete de esta clase con al menos ${guestSeatCount} créditos. Elige uno de la lista.`
+                              : `Para reservar ${guestSeatCount} lugares necesitas un paquete de esta clase con al menos ${guestSeatCount} créditos. No hay paquetes en línea para esta clase; escríbele al estudio.`
                             : "Estos son los planes que aplican para esta clase."
                         : "Agrega paquetes o membresías."
                       : isFreeTotal
