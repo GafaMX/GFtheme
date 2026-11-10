@@ -50,6 +50,7 @@ describe("gafa-sdk-loader.js", () => {
     document.head.innerHTML = "";
     document.body.innerHTML = "";
     sessionStorage.removeItem("gafa-sdk-cdn-sha");
+    sessionStorage.removeItem("gafa-sdk-password-reset-link");
   });
 
   it("está alineado con las URLs del helper y no pide otra rama", () => {
@@ -101,6 +102,18 @@ describe("gafa-sdk-loader.js", () => {
         "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@a03b67912d4d8fea7f126ec5bfdecc4302e9d842/docs/v2-sdk/gafa-sdk.bundle.js",
       );
     });
+  });
+
+  it("snapshot de token+email ANTES de bajar el bundle (carrera con Weglot)", () => {
+    const source = readFileSync(LOADER_PATH, "utf8");
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => undefined)));
+    window.history.replaceState(null, "", "/reservar#horario?token=tok123&email=ana+1@buq.mx");
+
+    // eslint-disable-next-line no-eval
+    eval(source);
+
+    expect(sessionStorage.getItem("gafa-sdk-password-reset-link")).toContain("token=tok123");
+    expect(sessionStorage.getItem("gafa-sdk-password-reset-link")).toContain("ana+1@buq.mx");
   });
 
   it("si raw falla carga el bundle estable @cdn-live", async () => {

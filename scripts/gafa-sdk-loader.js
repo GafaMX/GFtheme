@@ -5,6 +5,33 @@
  * No rotar el nombre de la rama ni pedir a los socios que editen el src.
  */
 (function () {
+  // BEFORE the async bundle fetch: Weglot / TranslatePress / SPA routers
+  // rewrite location while VERSION.txt is in flight. Snapshot token+email
+  // (query, hash, or encoded path) so the SDK still opens the popup.
+  try {
+    var KEY = "gafa-sdk-password-reset-link";
+    function looksLikeReset(s) {
+      if (!s) return false;
+      var n = String(s).replace(/&amp;/gi, "&");
+      try {
+        n = decodeURIComponent(n);
+      } catch (e) {}
+      return /[?&#]token=/i.test(n) && /[?&#]email=/i.test(n);
+    }
+    function saveIfReset(s) {
+      if (!looksLikeReset(s)) return;
+      sessionStorage.setItem(KEY, s);
+    }
+    if (typeof window !== "undefined" && window.location) {
+      saveIfReset((window.location.search || "") + (window.location.hash || ""));
+      saveIfReset(window.location.href);
+      try {
+        var nav = performance.getEntriesByType("navigation")[0];
+        if (nav && nav.name) saveIfReset(nav.name);
+      } catch (e2) {}
+    }
+  } catch (e3) {}
+
   if (typeof window === "undefined" || window.__GAFA_SDK_LOADER__) {
     return;
   }
