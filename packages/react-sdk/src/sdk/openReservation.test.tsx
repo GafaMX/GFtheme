@@ -310,7 +310,7 @@ describe("openReservation", () => {
 
     await waitFor(() => {
       expect(createReservation).toHaveBeenCalledWith(
-        expect.objectContaining({ meetingId: 1, seatObjectId: 1 }),
+        expect.objectContaining({ meetingId: 1, seatObjectId: 1, selectedCredit: "credits--1--2099-01-01" }),
       );
     });
   });
@@ -351,6 +351,9 @@ describe("openReservation", () => {
           meetingId: 1,
           seatObjectId: 1,
           seatObjectIds: [1, 2, 3],
+          // Una sola opción válida: igual se manda explícita para que gafa.fit
+          // no elija otra (membresía / primer crédito) para el lote.
+          selectedCredit: "credits--1--2099-01-01",
         }),
       );
     });

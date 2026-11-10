@@ -8,7 +8,9 @@ import {
   guestsHaveInvalidEmail,
   paymentOptionsForSeats,
   readSimultaneousReservations,
+  remapGuestsForSeats,
   resolveSeatObjectIds,
+  selectedCreditForReservation,
   toggleSeatSelection,
 } from "./simultaneousSeats";
 import type { SeatMapObject } from "../client/types";
@@ -142,5 +144,53 @@ describe("findOneCreditCombo", () => {
   it("isEligibleGuestCombo usa price_final cuando hay descuento", () => {
     expect(isEligibleGuestCombo({ credits: 1, name: "1 clase", price: 330, priceFinal: 0 })).toBe(false);
     expect(isEligibleGuestCombo({ credits: 1, name: "1 clase", price: 330, priceFinal: 300 })).toBe(true);
+  });
+});
+
+describe("remapGuestsForSeats", () => {
+  const ana = { name: "Ana", email: "ana@x.mx" };
+  const beto = { name: "Beto", email: "" };
+
+  it("los datos siguen a su lugar cuando el anfitrión cambia", () => {
+    // [1 anfitrión, 2 Ana, 3 Beto] → se quita el 1: el 2 pasa a anfitrión.
+    const out = remapGuestsForSeats([seat(1), seat(2), seat(3)], [seat(2), seat(3)], { 1: ana, 2: beto });
+    expect(out).toEqual({ 1: beto });
+  });
+
+  it("FIFO: al soltar el más viejo no se corren los nombres a otra silla", () => {
+    const out = remapGuestsForSeats(
+      [seat(1), seat(2), seat(3)],
+      toggleSeatSelection([seat(1), seat(2), seat(3)], seat(4), 3),
+      { 1: ana, 2: beto },
+    );
+    // nuevo orden [2,3,4]: 2 (Ana) es anfitrión → se descarta; 3 (Beto) queda en 1.
+    expect(out).toEqual({ 1: beto });
+  });
+
+  it("volver a un lugar no deja invitados sobrantes", () => {
+    expect(remapGuestsForSeats([seat(1), seat(2)], [seat(1)], { 1: ana })).toEqual({});
+    expect(buildInvitedData(remapGuestsForSeats([seat(1), seat(2)], [seat(1)], { 1: ana }))).toBeUndefined();
+  });
+
+  it("agregar un lugar conserva los existentes", () => {
+    expect(remapGuestsForSeats([seat(1), seat(2)], [seat(1), seat(2), seat(5)], { 1: ana })).toEqual({ 1: ana });
+  });
+});
+
+describe("selectedCreditForReservation", () => {
+  const pack = { id: "credits--7--2026-12-31", kind: "credit" as const, name: "10 clases", remaining: 5 };
+  const single = { id: "credits--9--2026-12-01", kind: "credit" as const, name: "1 clase", remaining: 1 };
+  const membership = { id: "memberships--3--2026-12-31", kind: "membership" as const, name: "Ili" };
+
+  it("con UNA sola opción para varios lugares igual la manda", () => {
+    const options = paymentOptionsForSeats([single, membership, pack], 3);
+    expect(options).toEqual([pack]);
+    expect(selectedCreditForReservation(options[0], options)).toBe("credits--7--2026-12-31");
+  });
+
+  it("no manda una opción que ya no aplica a los lugares actuales", () => {
+    const options = paymentOptionsForSeats([single, pack], 3);
+    expect(selectedCreditForReservation(single, options)).toBeUndefined();
+    expect(selectedCreditForReservation(null, options)).toBeUndefined();
   });
 });
