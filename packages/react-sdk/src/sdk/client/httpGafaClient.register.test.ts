@@ -15,6 +15,7 @@ function jsonResponse(body: unknown, status = 200) {
 describe("httpGafaClient.register captcha payload", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("manda g-recaptcha-response y el secret default cuando no hay llaves propias", async () => {
@@ -73,6 +74,73 @@ describe("httpGafaClient.register captcha payload", () => {
     const body = new URLSearchParams(String(init.body));
     expect(body.get("captcha_secret_key")).toBe("partner-secret");
     expect(body.get("g-recaptcha-response")).toBe("tok");
+  });
+
+  it("403 sin message/errors no muestra «gafa.fit API 403» y loguea method/url/status/excerpt", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("<html>error code: 1010</html>", { status: 403 })),
+    );
+
+    const client = createHttpGafaClient(
+      parseGafaSdkConfig({ apiBaseUrl: "https://buq.partners", companyId: 1 }),
+    );
+
+    await expect(
+      client.register({
+        email: "ana@buq.mx",
+        password: "secret1",
+        passwordConfirmation: "secret1",
+        firstName: "Ana",
+        captchaToken: "tok",
+      }),
+    ).rejects.toMatchObject({
+      message: "No tienes permiso para completar esta acción. Recarga e inténtalo de nuevo.",
+      status: 403,
+    });
+
+    expect(error).toHaveBeenCalled();
+    const [, payload] = error.mock.calls[0] as [string, Record<string, unknown>];
+    expect(payload).toMatchObject({
+      method: "POST",
+      url: "https://buq.partners/api/register",
+      status: 403,
+      body: "<html>error code: 1010</html>",
+    });
+    expect(JSON.stringify(payload)).not.toMatch(/secret1/);
+    expect(JSON.stringify(payload)).not.toMatch(/Authorization/i);
+  });
+
+  it("red sin respuesta: mensaje de conexión y log con status 0", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    }));
+
+    const client = createHttpGafaClient(
+      parseGafaSdkConfig({ apiBaseUrl: "https://buq.partners", companyId: 1 }),
+    );
+
+    await expect(
+      client.register({
+        email: "ana@buq.mx",
+        password: "secret1",
+        passwordConfirmation: "secret1",
+        firstName: "Ana",
+        captchaToken: "tok",
+      }),
+    ).rejects.toMatchObject({
+      message: "No pudimos conectar. Revisa tu internet e inténtalo de nuevo.",
+      status: 0,
+    });
+
+    expect(error.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      url: "https://buq.partners/api/register",
+      status: 0,
+      body: "Failed to fetch",
+    });
   });
 
   it("422 de recaptcha se traduce a español corto", async () => {

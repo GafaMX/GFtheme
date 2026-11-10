@@ -14,6 +14,7 @@ describe("isEligibilityRejection", () => {
   });
   it("red, sesión o servidor no", () => {
     expect(isEligibilityRejection(new TypeError("Failed to fetch"))).toBe(false);
+    expect(isEligibilityRejection(apiErr("No pudimos conectar. Revisa tu internet e inténtalo de nuevo.", 0))).toBe(false);
     expect(isEligibilityRejection(apiErr("x", 401))).toBe(false);
     expect(isEligibilityRejection(apiErr("x", 419))).toBe(false);
     expect(isEligibilityRejection(apiErr("x", 500))).toBe(false);
