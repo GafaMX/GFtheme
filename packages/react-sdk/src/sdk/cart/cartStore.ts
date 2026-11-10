@@ -34,7 +34,9 @@ export type CartReservationContext = {
   locationName?: string;
   staffName?: string;
   seatObjectId?: number;
+  seatObjectIds?: number[];
   seatLabel?: string;
+  invitedData?: Record<string, { name: string; email: string }>;
 };
 
 type CartState = {

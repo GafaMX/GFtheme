@@ -291,19 +291,17 @@ export function createMockGafaClient(): GafaClient {
         rows: 4,
         columns: 6,
         capacity: waitlist ? 14 : 18,
-        objects: [
-          {
-            id: 1,
-            row: 1,
-            column: 1,
-            width: 1,
-            height: 1,
-            label: "1",
-            type: "public",
-            isBlocked: false,
-            isOccupied: Boolean(waitlist),
-          },
-        ],
+        objects: [1, 2, 3].map((id) => ({
+          id,
+          row: 1,
+          column: id,
+          width: 1,
+          height: 1,
+          label: String(id),
+          type: "public",
+          isBlocked: false,
+          isOccupied: Boolean(waitlist),
+        })),
       };
       return {
         meetingId: Number(meetingId),
@@ -315,6 +313,7 @@ export function createMockGafaClient(): GafaClient {
           ? []
           : [{ id: "credits--1--2099-01-01", kind: "credit" as const, name: "10 clases", remaining: 5 }],
         waitlistAvailable: waitlist,
+        simultaneousReservations: 3,
       };
     },
     createReservation: async ({ meetingId }) => {

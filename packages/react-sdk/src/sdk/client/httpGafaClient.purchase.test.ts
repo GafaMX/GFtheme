@@ -263,6 +263,32 @@ describe("reservatePurchase", () => {
     expect(body.get("meetings_id")).toBe("849768");
   });
 
+  it("manda varios lugares e invited_data en /reservate", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ purchase: { id: 88 }, reservation: [{ id: 1 }] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().reservatePurchase?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-polanco",
+      userId: 370466,
+      meetingId: 849768,
+      lines: [{ id: 971, type: "combo", amount: 3 }],
+      paymentTypeId: 6,
+      paymentData: "recibo",
+      seatObjectIds: [10, 11, 12],
+      invitedData: { "1": { name: "Ana", email: "ana@x.com" } },
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("map_objectsSelected[0][id]")).toBe("10");
+    expect(body.get("map_objectsSelected[1][id]")).toBe("11");
+    expect(body.get("map_objectsSelected[2][id]")).toBe("12");
+    expect(body.get("invited_data[1][name]")).toBe("Ana");
+    expect(body.get("invited_data[1][email]")).toBe("ana@x.com");
+    expect(body.get("combos_amounts[0]")).toBe("3");
+  });
+
   it("no inventa map_objectsSelected si no hay lugar", async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ purchase: { id: 88 } }));
     vi.stubGlobal("fetch", fetchMock);
@@ -340,6 +366,28 @@ describe("createReservation", () => {
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     const body = new URLSearchParams(String(init.body));
     expect(body.get("map_objectsSelected[0][id]")).toBeNull();
+  });
+
+  it("manda varios lugares e invited_data", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ reservation: [{ id: 1, meeting_position: 10 }] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await client().createReservation?.({
+      brandSlug: "fitspin",
+      locationSlug: "fitspin-reforma",
+      meetingId: 849768,
+      userProfileId: 171227,
+      seatObjectIds: [10, 11],
+      invitedData: { "1": { name: "Ana", email: "ana@x.com" } },
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get("map_objectsSelected[0][id]")).toBe("10");
+    expect(body.get("map_objectsSelected[1][id]")).toBe("11");
+    expect(body.get("invited_data[1][name]")).toBe("Ana");
   });
 });
 
