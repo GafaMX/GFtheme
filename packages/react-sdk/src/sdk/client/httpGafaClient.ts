@@ -58,6 +58,12 @@ import { readHasSeatMap } from "./seatMapHint";
 import { availabilityFromCapacity, readWaitlistAvailable } from "./meetingAvailability";
 import { staffLabel } from "./staffLabel";
 import { resolveSeatObjectIds, readSimultaneousReservations } from "../reservation/simultaneousSeats";
+import {
+  firstFieldError,
+  logFailedApiCall,
+  parseApiErrorPayload,
+  userFacingApiErrorMessage,
+} from "./apiError";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -260,11 +266,6 @@ type TokenResponse = {
   [key: string]: unknown;
 };
 
-type ApiErrorBody = {
-  message?: string;
-  errors?: Record<string, string[]>;
-};
-
 /**
  * Cuerpo de `BuySystemStep.sendForm` / `sendInitialPurchaseForm` del fancy v1.
  * Stripe cobra y otorga créditos en `reservate` (`paymentByCard` / `paymentByToken`);
@@ -364,35 +365,6 @@ export class ReservationFormUnavailableError extends Error {
   }
 }
 
-/** El API responde en ingles (o en español muy largo); al usuario se le
-    muestran mensajes cortos en español que caben en una linea en movil. */
-const API_MESSAGE_TRANSLATIONS: Record<string, string> = {
-  "The user credentials were incorrect.": "Correo o contraseña incorrectos.",
-  "Estas credenciales no coinciden con nuestros registros.": "Correo o contraseña incorrectos.",
-  "El email no concuerda con nuestros registros.": "Este correo no está registrado.",
-  "El password no concuerda con nuestros registros.": "La contraseña es incorrecta.",
-  "The given data was invalid.": "Revisa los datos ingresados.",
-  "The g-recaptcha-response field is required.": "No pudimos validar el captcha. Recarga e inténtalo de nuevo.",
-  "The g-recaptcha-response field is required": "No pudimos validar el captcha. Recarga e inténtalo de nuevo.",
-  "validation.captcha": "No pudimos validar el captcha. Recarga e inténtalo de nuevo.",
-  "The captcha is invalid.": "No pudimos validar el captcha. Recarga e inténtalo de nuevo.",
-  "The email has already been taken.": "Ese correo ya está registrado.",
-  "The email must be a valid email address.": "Escribe un correo válido.",
-  "The password confirmation does not match.": "Las contraseñas no coinciden.",
-  "Too Many Attempts.": "Demasiados intentos, espera un poco.",
-  "Unauthenticated.": "Tu sesión expiró, entra de nuevo.",
-  "Server Error": "Error del servidor, inténtalo de nuevo.",
-};
-
-function translateApiMessage(message: string): string {
-  const trimmed = message.trim();
-  const mapped = API_MESSAGE_TRANSLATIONS[trimmed];
-  if (mapped) return mapped;
-  if (/g-recaptcha-response|recaptcha|captcha_secret_key|\bcaptcha\b/i.test(trimmed)) {
-    return "No pudimos validar el captcha. Recarga e inténtalo de nuevo.";
-  }
-  return trimmed;
-}
 
 /**
  * Cada compra es un paquete distinto aunque el tipo interno (`CDMXnew`) se
@@ -529,11 +501,33 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return headers;
   }
 
-  async function parseErrorBody(response: Response): Promise<GafaApiError> {
-    const body = (await readJsonSafe<unknown>(response).catch(() => null)) as ApiErrorBody | null;
-    const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined;
-    const message = firstFieldError ?? body?.message ?? `gafa.fit API ${response.status}`;
-    return new GafaApiError(translateApiMessage(message), response.status, body?.errors);
+  async function request(url: string, init: RequestInit = {}): Promise<Response> {
+    const method = String(init.method ?? "GET").toUpperCase();
+    try {
+      return await fetch(url, init);
+    } catch (cause) {
+      const excerpt = cause instanceof Error ? cause.message : String(cause ?? "network error");
+      logFailedApiCall({ method, url, status: 0, bodyExcerpt: excerpt });
+      throw new GafaApiError(userFacingApiErrorMessage({ status: 0 }), 0);
+    }
+  }
+
+  async function parseErrorBody(response: Response, method: string, requestUrl: string): Promise<GafaApiError> {
+    const text = await response.text().catch(() => "");
+    const status = response.status;
+    logFailedApiCall({
+      method,
+      url: response.url || requestUrl,
+      status,
+      bodyExcerpt: text,
+    });
+    const body = parseApiErrorPayload(text);
+    const fieldError = firstFieldError(body?.errors);
+    return new GafaApiError(
+      userFacingApiErrorMessage({ status, message: body?.message, fieldError }),
+      status,
+      body?.errors,
+    );
   }
 
   async function apiGet<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
@@ -542,10 +536,11 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (value !== undefined) url.searchParams.set(key, String(value));
     });
 
-    const response = await fetch(url.toString(), { headers: authHeaders() });
+    const href = url.toString();
+    const response = await request(href, { headers: authHeaders() });
 
     if (!response.ok) {
-      throw await parseErrorBody(response);
+      throw await parseErrorBody(response, "GET", href);
     }
 
     return readJsonSafe(response);
@@ -557,14 +552,15 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (value !== undefined) form.set(key, String(value));
     });
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const href = `${baseUrl}${path}`;
+    const response = await request(href, {
       method: "POST",
       headers: authHeaders(),
       body: form,
     });
 
     if (!response.ok) {
-      throw await parseErrorBody(response);
+      throw await parseErrorBody(response, "POST", href);
     }
 
     if (response.status === 204) return undefined as T;
@@ -933,20 +929,21 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     Object.entries(params ?? {}).forEach(([key, value]) => {
       if (value !== undefined) url.searchParams.set(key, String(value));
     });
-    const response = await fetch(url.toString(), { headers: authHeaders() });
-    if (!response.ok) throw await parseErrorBody(response);
+    const href = url.toString();
+    const response = await request(href, { headers: authHeaders() });
+    if (!response.ok) throw await parseErrorBody(response, "GET", href);
     return readJsonSafe(response);
   }
 
   async function apiPostFormUrl<T>(absoluteOrPath: string, body: Record<string, unknown>): Promise<T> {
     const url = absoluteOrPath.startsWith("http") ? absoluteOrPath : `${baseUrl}${absoluteOrPath}`;
     const form = toFormBody(body);
-    const response = await fetch(url, {
+    const response = await request(url, {
       method: "POST",
       headers: { ...authHeaders(), "Content-Type": "application/x-www-form-urlencoded" },
       body: form,
     });
-    if (!response.ok) throw await parseErrorBody(response);
+    if (!response.ok) throw await parseErrorBody(response, "POST", url);
     if (response.status === 204) return undefined as T;
     return readJsonSafe(response);
   }
@@ -1352,9 +1349,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       url.searchParams.set("meetings_id", String(payload.meetingId));
       url.searchParams.set("users_id", String(userProfileId));
 
-      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const href = url.toString();
+      const response = await request(href, { headers: authHeaders() });
       if (!response.ok) {
-        throw new Error(`No se pudo cargar la informacion de la reserva (${response.status}).`);
+        throw await parseErrorBody(response, "GET", href);
       }
       const htmlText = await response.text();
 
@@ -1657,9 +1655,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         url.searchParams.set("default_store_tab", payload.defaultStoreTab ?? "products");
       }
 
-      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const href = url.toString();
+      const response = await request(href, { headers: authHeaders() });
       if (!response.ok) {
-        throw new Error(`No se pudo cargar la configuración de pago (${response.status}).`);
+        throw await parseErrorBody(response, "GET", href);
       }
       const markup = await response.text();
       const doc = new DOMParser().parseFromString(markup, "text/html");
@@ -1779,7 +1778,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         urlTemplate: payload.urlTemplate,
         lines: payload.lines,
       });
-      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const href = url.toString();
+      const response = await request(href, { headers: authHeaders() });
       const data: unknown = await readJsonSafe<unknown>(response).catch(() => null);
       return parseDiscountCheckResponse(payload.code, response.ok, data);
     },
@@ -1792,7 +1792,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         code: payload.code,
         urlTemplate: payload.urlTemplate,
       });
-      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const href = url.toString();
+      const response = await request(href, { headers: authHeaders() });
       const data: unknown = await readJsonSafe<unknown>(response).catch(() => null);
       return parseGiftCodeCheckResponse(payload.code, response.ok, response.status, data);
     },
@@ -1804,17 +1805,10 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         locationSlug: payload.locationSlug,
         urlTemplate: payload.urlTemplate,
       });
-      const response = await fetch(url.toString(), { headers: authHeaders() });
+      const href = url.toString();
+      const response = await request(href, { headers: authHeaders() });
+      if (!response.ok) throw await parseErrorBody(response, "GET", href);
       const data: unknown = await readJsonSafe<unknown>(response).catch(() => null);
-      if (!response.ok) {
-        const body = data as { message?: string; errors?: Record<string, string[]> } | null;
-        const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined;
-        throw new GafaApiError(
-          firstFieldError ?? body?.message ?? `gafa.fit API ${response.status}`,
-          response.status,
-          body?.errors,
-        );
-      }
       const code = extractGeneratedGiftCode(data);
       if (!code) throw new Error("El servidor no devolvió un código de GiftCard.");
       return code;
