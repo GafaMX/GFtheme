@@ -443,20 +443,22 @@ export function CheckoutModal({
     queryKey: ["checkout", "config", brandSlug, locationSlug, classAttached ? meeting?.id : undefined],
     queryFn: async () => {
       try {
-        return await client.getCheckoutConfig!({
+        const anchored = await client.getCheckoutConfig!({
           brandSlug: brandSlug!,
           locationSlug: locationSlug!,
           meetingId: classAttached ? meeting?.id : undefined,
           defaultStoreTab: classAttached ? undefined : "products",
         });
+        return { ...anchored, meetingAnchored: Boolean(classAttached && meeting?.id != null) };
       } catch (error) {
         // Clase llena / waitlist: el create-form a veces no arma el fancy y
         // el catálogo queda vacío. Reintentamos la sede sin anclar la clase.
         if (classAttached && meeting?.id != null) {
-          return client.getCheckoutConfig!({
+          const unanchored = await client.getCheckoutConfig!({
             brandSlug: brandSlug!,
             locationSlug: locationSlug!,
           });
+          return { ...unanchored, meetingAnchored: false };
         }
         throw error;
       }
@@ -491,9 +493,17 @@ export function CheckoutModal({
     seatObjectIds: reservation?.seatObjectIds,
   }).length;
   const hideMembershipsForGuests = guestSeatCount > 1;
-  const combos = classAttached
-    ? ((config?.combos?.length ? config.combos : catalogQuery.data?.combos) ?? [])
-    : (catalogQuery.data?.combos ?? config?.combos ?? []);
+  // Varios lugares: SOLO paquetes del fancy anclado a esta clase. Nunca el
+  // catálogo de la marca (mezcla disciplinas) ni el reintento sin clase.
+  const multiSeatClass = classAttached && guestSeatCount > 1;
+  const classCombos = config?.meetingAnchored ? (config?.combos ?? []) : [];
+  const combos = multiSeatClass
+    ? classCombos
+    : classAttached
+      ? ((config?.combos?.length ? config.combos : catalogQuery.data?.combos) ?? [])
+      : (catalogQuery.data?.combos ?? config?.combos ?? []);
+  const guestPackMissing =
+    multiSeatClass && configQuery.isFetched && !findOneCreditCombo(classCombos);
   const membershipsRaw = classAttached
     ? ((config?.memberships?.length ? config.memberships : catalogQuery.data?.memberships) ?? [])
     : (catalogQuery.data?.memberships ?? config?.memberships ?? []);
@@ -532,12 +542,12 @@ export function CheckoutModal({
   const guestPackDone = useRef(false);
   useEffect(() => {
     if (guestPackDone.current || preselect || !brandSlug) return;
-    if (guestSeatCount <= 1 || !combos.length) return;
+    if (!multiSeatClass || !classCombos.length) return;
     if (lines.some((line) => line.type === "combo")) {
       guestPackDone.current = true;
       return;
     }
-    const oneCredit = findOneCreditCombo(combos);
+    const oneCredit = findOneCreditCombo(classCombos);
     if (!oneCredit) return;
     guestPackDone.current = true;
     const price = oneCredit.priceFinal ?? oneCredit.price ?? 0;
@@ -553,7 +563,7 @@ export function CheckoutModal({
       expirationLabel: oneCredit.expirationDays ? `Expira en ${oneCredit.expirationDays} días` : undefined,
       raw: oneCredit.raw,
     });
-  }, [addItem, brandSlug, combos, currency.prefix, guestSeatCount, lines, locationSlug, preselect]);
+  }, [addItem, brandSlug, classCombos, currency.prefix, guestSeatCount, lines, locationSlug, multiSeatClass, preselect]);
 
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
   // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
@@ -1582,7 +1592,9 @@ export function CheckoutModal({
                       ? reservation
                         ? waitlistPurchase
                           ? "Al pagar te sumamos a la lista de espera y se descuenta el crédito."
-                          : "Estos son los planes que aplican para esta clase."
+                          : guestPackMissing
+                            ? `Para reservar ${guestSeatCount} lugares necesitas un paquete de esta clase con al menos ${guestSeatCount} créditos. No hay un paquete de 1 clase disponible para agregarlo solo; elige uno de la lista o escríbele al estudio.`
+                            : "Estos son los planes que aplican para esta clase."
                         : "Agrega paquetes o membresías."
                       : isFreeTotal
                         ? "El total es $0. Confirma el pedido."

@@ -106,7 +106,40 @@ export function formatSeatLabels(labels: string[]): string {
   return `${clean.slice(0, -1).join(", ")} y ${clean[clean.length - 1]}`;
 }
 
-/** Paquete de 1 crédito para prefijar cantidad = lugares. */
-export function findOneCreditCombo<T extends { credits?: number }>(combos: T[]): T | undefined {
-  return combos.find((combo) => combo.credits === 1);
+/**
+ * Paquetes de agregadores / uso interno: nunca se prefijan para invitados
+ * (FITPASS $0, walk in GYMPASS, TotalPass, Wellhub, ClassPass).
+ */
+const NON_GUEST_PACKAGE = /\b(fitpass|gympass|wellhub|totalpass|total\s*pass|classpass|class\s*pass|walk[\s-]?in)\b/i;
+
+type GuestComboCandidate = {
+  credits?: number;
+  name?: string;
+  price?: number;
+  priceFinal?: number;
+  subscribable?: boolean;
+  raw?: Record<string, unknown>;
+};
+
+/** Un paquete de 1 crédito, con precio > 0, visible y que no sea de agregador. */
+export function isEligibleGuestCombo(combo: GuestComboCandidate): boolean {
+  if (combo.credits !== 1) return false;
+  const price = combo.priceFinal ?? combo.price;
+  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) return false;
+  if (combo.raw?.hide_in_front) return false;
+  if (NON_GUEST_PACKAGE.test(combo.name ?? "")) return false;
+  return true;
+}
+
+/**
+ * Paquete de 1 crédito para prefijar cantidad = lugares.
+ *
+ * `combos` TIENE que ser la lista del fancy anclado a la clase
+ * (`combosSelection` de create-form-template con `meetings_id`), nunca el
+ * catálogo de la marca: el catálogo mezcla disciplinas (p. ej. Fuerza en una
+ * clase de Bici). Si no hay un paquete válido se regresa `undefined` y el
+ * checkout muestra un aviso en lugar de elegir uno.
+ */
+export function findOneCreditCombo<T extends GuestComboCandidate>(combos: T[]): T | undefined {
+  return combos.find(isEligibleGuestCombo);
 }

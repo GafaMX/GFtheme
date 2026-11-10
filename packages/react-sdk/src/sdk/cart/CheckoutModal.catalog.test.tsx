@@ -154,29 +154,67 @@ describe("CheckoutModal catalog loading", () => {
     expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
   });
 
-  it("con invitados oculta membresías y mete N paquetes de 1", async () => {
+  function signedInClient(
+    classCombos: CatalogItem[],
+    catalogCombos: CatalogItem[],
+    memberships: CatalogItem[] = [],
+  ): GafaClient {
+    return {
+      ...mockClient(Promise.resolve(catalogCombos), { memberships }),
+      getProfile: async () => ({ id: 7, email: "qa@buq.mx", name: "QA" }),
+      getCheckoutConfig: async () => ({ combos: classCombos, memberships, products: [] }),
+    } as unknown as GafaClient;
+  }
+
+  const fuerza1: CatalogItem = { id: 3540, name: "1 Clase Fuerza Helipuerto", type: "combo", price: 400, priceFinal: 400, credits: 1 };
+  const bici1: CatalogItem = { id: 1688, name: "1 Clase Bici Helipuerto", type: "combo", price: 500, priceFinal: 500, credits: 1 };
+  const bici2: CatalogItem = { id: 3264, name: "2 clases Bici Helipuerto", type: "combo", price: 1000, priceFinal: 1000, credits: 2 };
+  const fitpass: CatalogItem = { id: 1487, name: "FITPASS", type: "combo", price: 0, priceFinal: 0, credits: 1 };
+
+  it("con invitados oculta membresías y mete N paquetes de 1 de ESTA clase", async () => {
     useCartStore.setState({ lines: [], reservation: null });
     renderShop(
-      mockClient(
-        Promise.resolve([
-          { id: 10, name: "10 clases", type: "combo", price: 2000, priceFinal: 2000, credits: 10 },
-          { id: 11, name: "1 clase", type: "combo", price: 300, priceFinal: 300, credits: 1 },
-        ]),
-        { memberships: [{ id: 20, name: "Ili", type: "membership", price: 1500, priceFinal: 1500 }] },
-      ),
+      signedInClient([bici2, bici1], [fuerza1, bici2, bici1], [
+        { id: 20, name: "Ili", type: "membership", price: 1500, priceFinal: 1500 },
+      ]),
       helipuerto,
-      { seatObjectIds: [1, 2, 3], seatLabel: "1, 2 y 3" },
+      { seatObjectIds: [1, 2], seatLabel: "10 y 11" },
     );
 
     await waitFor(() => {
-      expect(useCartStore.getState().lines).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ id: 11, type: "combo", amount: 3 }),
-        ]),
-      );
+      expect(useCartStore.getState().lines).toEqual([
+        expect.objectContaining({ id: 1688, type: "combo", amount: 2, price: 500 }),
+      ]);
     });
     expect(screen.queryByRole("tab", { name: /membresías/i })).toBeNull();
-    expect(screen.getByText(/Lugares 1, 2 y 3/)).toBeTruthy();
+    expect(screen.getByText(/Lugares 10 y 11/)).toBeTruthy();
+  });
+
+  it("con invitados nunca cae al catálogo de la marca (otra disciplina)", async () => {
+    useCartStore.setState({ lines: [], reservation: null });
+    renderShop(signedInClient([], [fuerza1, bici1]), helipuerto, {
+      seatObjectIds: [1, 2],
+      seatLabel: "10 y 11",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/necesitas un paquete de esta clase con al menos 2 créditos/)).toBeTruthy();
+    });
+    expect(useCartStore.getState().lines).toEqual([]);
+    expect(screen.queryByText("1 Clase Fuerza Helipuerto")).toBeNull();
+  });
+
+  it("con invitados no prefija FITPASS ni paquetes de $0", async () => {
+    useCartStore.setState({ lines: [], reservation: null });
+    renderShop(signedInClient([fitpass, bici2], [fitpass, bici2]), helipuerto, {
+      seatObjectIds: [1, 2],
+      seatLabel: "10 y 11",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/necesitas un paquete de esta clase con al menos 2 créditos/)).toBeTruthy();
+    });
+    expect(useCartStore.getState().lines).toEqual([]);
   });
 
   it("ancla varios lugares en el chip de la clase", async () => {

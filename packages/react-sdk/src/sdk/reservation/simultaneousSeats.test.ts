@@ -3,6 +3,7 @@ import {
   buildInvitedData,
   canReserveWithCredits,
   findOneCreditCombo,
+  isEligibleGuestCombo,
   formatSeatLabels,
   guestsHaveInvalidEmail,
   paymentOptionsForSeats,
@@ -117,11 +118,29 @@ describe("formatSeatLabels", () => {
 });
 
 describe("findOneCreditCombo", () => {
-  it("elige el paquete de 1 crédito", () => {
-    expect(findOneCreditCombo([{ credits: 5 }, { credits: 1, name: "clase" }])).toEqual({
+  it("elige el paquete de 1 crédito con precio", () => {
+    expect(findOneCreditCombo([{ credits: 5, price: 900 }, { credits: 1, name: "clase", price: 330 }])).toEqual({
       credits: 1,
       name: "clase",
+      price: 330,
     });
-    expect(findOneCreditCombo([{ credits: 10 }])).toBeUndefined();
+    expect(findOneCreditCombo([{ credits: 10, price: 2900 }])).toBeUndefined();
+  });
+
+  it("nunca elige paquetes de $0, de agregador u ocultos", () => {
+    const combos = [
+      { credits: 1, name: "FITPASS", price: 0, priceFinal: 0 },
+      { credits: 1, name: "walk in GYMPASS (Lomas)", price: 190 },
+      { credits: 1, name: "TotalPass", price: 150 },
+      { credits: 1, name: "1 clase EFECTIVO", price: 250, raw: { hide_in_front: 1 } },
+      { credits: 1, name: "1 Clase Bici Helipuerto", price: 500, priceFinal: 500 },
+    ];
+    expect(findOneCreditCombo(combos)?.name).toBe("1 Clase Bici Helipuerto");
+    expect(findOneCreditCombo(combos.slice(0, 4))).toBeUndefined();
+  });
+
+  it("isEligibleGuestCombo usa price_final cuando hay descuento", () => {
+    expect(isEligibleGuestCombo({ credits: 1, name: "1 clase", price: 330, priceFinal: 0 })).toBe(false);
+    expect(isEligibleGuestCombo({ credits: 1, name: "1 clase", price: 330, priceFinal: 300 })).toBe(true);
   });
 });
