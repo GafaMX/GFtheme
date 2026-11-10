@@ -190,6 +190,56 @@ describe("CheckoutModal catalog loading", () => {
     expect(screen.getByText(/Lugares 10 y 11/)).toBeTruthy();
   });
 
+  it("con invitados corrige la cantidad de un paquete de 1 que ya estaba en el carrito", async () => {
+    useCartStore.setState({
+      lines: [
+        {
+          key: "fitspin-cancun:combo:1688",
+          id: 1688,
+          type: "combo",
+          name: bici1.name,
+          price: 500,
+          priceLabel: "$500",
+          amount: 1,
+          brandSlug: "fitspin-cancun",
+          locationSlug: "cancun",
+        },
+      ],
+      reservation: null,
+    });
+    renderShop(signedInClient([bici2, bici1], [bici2, bici1]), helipuerto, {
+      seatObjectIds: [1, 2, 3],
+      seatLabel: "10, 11 y 12",
+    });
+
+    await waitFor(() => {
+      expect(useCartStore.getState().lines).toEqual([expect.objectContaining({ id: 1688, amount: 3 })]);
+    });
+  });
+
+  it("con invitados usa los lugares recién elegidos, no el lote guardado de otro checkout", async () => {
+    useCartStore.setState({
+      lines: [],
+      reservation: {
+        meetingId: 99,
+        meetingName: helipuerto.name,
+        startsAt: helipuerto.startsAt ?? "",
+        brandSlug: "fitspin-cancun",
+        locationSlug: "cancun",
+        seatObjectId: 1,
+        seatObjectIds: [1, 2],
+      },
+    });
+    renderShop(signedInClient([bici2, bici1], [bici2, bici1]), helipuerto, {
+      seatObjectIds: [4, 5, 6],
+      seatLabel: "4, 5 y 6",
+    });
+
+    await waitFor(() => {
+      expect(useCartStore.getState().lines).toEqual([expect.objectContaining({ id: 1688, amount: 3 })]);
+    });
+  });
+
   it("con invitados nunca cae al catálogo de la marca (otra disciplina)", async () => {
     useCartStore.setState({ lines: [], reservation: null });
     renderShop(signedInClient([], [fuerza1, bici1]), helipuerto, {

@@ -18,6 +18,8 @@ import {
   formatSeatLabels,
   guestsHaveInvalidEmail,
   paymentOptionsForSeats,
+  remapGuestsForSeats,
+  selectedCreditForReservation,
   toggleSeatSelection,
   type InvitedGuest,
 } from "../reservation/simultaneousSeats";
@@ -1753,6 +1755,20 @@ function ReservationPreviewModal({
   const activeOption = needsPaymentChoice
     ? (paymentOptions.find((option) => option.id === selectedOptionId) ?? null)
     : (paymentOptions[0] ?? null);
+  // Si al cambiar lugares la opción elegida ya no alcanza, se suelta: el
+  // usuario vuelve a elegir en vez de quedarse con un radio fantasma.
+  const paymentOptionIdsKey = paymentOptions.map((option) => option.id).join("|");
+  useEffect(() => {
+    if (selectedOptionId && !paymentOptions.some((option) => option.id === selectedOptionId)) {
+      setSelectedOptionId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentOptionIdsKey, selectedOptionId]);
+
+  function handleSeatsChange(next: SeatMapObject[]) {
+    setInvitedByIndex((guests) => remapGuestsForSeats(selectedSeats, next, guests));
+    setSelectedSeats(next);
+  }
   const canReserveNative = Boolean(client?.createReservation && context && paymentOptions.length > 0);
   const soldOut = isSoldOut(meeting);
   const waitlistCard = showsWaitlistPill(meeting);
@@ -1797,9 +1813,10 @@ function ReservationPreviewModal({
         seatObjectId: ids[0],
         seatObjectIds: ids.length ? ids : undefined,
         invitedData: buildInvitedData(invitedByIndex),
-        // Solo se manda cuando el usuario eligio entre varias; con una sola
-        // el servidor la resuelve igual que siempre.
-        selectedCredit: needsPaymentChoice ? (activeOption?.id ?? undefined) : undefined,
+        // Siempre la opción que el usuario ve (aunque sea la única). Sin esto
+        // gafa.fit elige solo: membresía primero y luego el primer crédito
+        // válido, que en varios lugares puede no ser el paquete mostrado.
+        selectedCredit: selectedCreditForReservation(activeOption, paymentOptions),
       });
       setResult(created);
       setStep("done");
@@ -2014,7 +2031,7 @@ function ReservationPreviewModal({
                   map={seatMap}
                   selected={selectedSeats}
                   limit={seatLimit}
-                  onSelect={setSelectedSeats}
+                  onSelect={handleSeatsChange}
                 />
               ) : wideLayout && contextLoading ? (
                 <div className="gafa-seatmap-skeleton" aria-hidden="true">

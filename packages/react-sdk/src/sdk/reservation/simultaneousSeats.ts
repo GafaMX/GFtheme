@@ -143,3 +143,43 @@ export function isEligibleGuestCombo(combo: GuestComboCandidate): boolean {
 export function findOneCreditCombo<T extends GuestComboCandidate>(combos: T[]): T | undefined {
   return combos.find(isEligibleGuestCombo);
 }
+
+/**
+ * Invitados por índice V1 (0 = anfitrión). Al cambiar la selección del mapa
+ * los datos siguen a su LUGAR (por id), no a la posición: si un lugar se
+ * quita, sale del FIFO o pasa a ser el del anfitrión, sus datos se descartan.
+ */
+export function remapGuestsForSeats(
+  previousSeats: SeatMapObject[],
+  nextSeats: SeatMapObject[],
+  guests: Record<number, InvitedGuest>,
+): Record<number, InvitedGuest> {
+  const bySeatId = new Map<number, InvitedGuest>();
+  previousSeats.forEach((seat, index) => {
+    if (index === 0) return;
+    const guest = guests[index];
+    if (guest) bySeatId.set(seat.id, guest);
+  });
+  const out: Record<number, InvitedGuest> = {};
+  nextSeats.forEach((seat, index) => {
+    if (index === 0) return;
+    const guest = bySeatId.get(seat.id);
+    if (guest) out[index] = guest;
+  });
+  return out;
+}
+
+/**
+ * `selected_credit` para `/reservate`. Se manda SIEMPRE que haya una opción
+ * activa (aunque sea la única): sin él gafa.fit elige solo, membresía primero
+ * y luego el primer crédito válido, que puede no ser el paquete que el
+ * usuario vio (p. ej. uno de 1 crédito o de agregador) en una reserva de
+ * varios lugares.
+ */
+export function selectedCreditForReservation(
+  activeOption: ReservationPaymentOption | null | undefined,
+  paymentOptions: ReservationPaymentOption[],
+): string | undefined {
+  if (!activeOption) return undefined;
+  return paymentOptions.some((option) => option.id === activeOption.id) ? activeOption.id : undefined;
+}

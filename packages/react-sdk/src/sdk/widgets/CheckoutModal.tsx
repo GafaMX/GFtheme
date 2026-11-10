@@ -488,10 +488,17 @@ export function CheckoutModal({
     staleTime: CHECKOUT_CATALOG_STALE_MS,
   });
 
-  const guestSeatCount = resolveSeatObjectIds({
-    seatObjectId: reservation?.seatObjectId,
-    seatObjectIds: reservation?.seatObjectIds,
-  }).length;
+  // Los lugares que se acaban de pasar mandan sobre el `reservation`
+  // persistido: en el primer render el store aún trae el de un checkout
+  // anterior (otra clase u otro N).
+  const incomingSeatCount = meeting ? resolveSeatObjectIds({ seatObjectId, seatObjectIds }).length : 0;
+  const guestSeatCount =
+    incomingSeatCount > 0
+      ? incomingSeatCount
+      : resolveSeatObjectIds({
+          seatObjectId: reservation?.seatObjectId,
+          seatObjectIds: reservation?.seatObjectIds,
+        }).length;
   const hideMembershipsForGuests = guestSeatCount > 1;
   // Varios lugares: SOLO paquetes del fancy anclado a esta clase. Nunca el
   // catálogo de la marca (mezcla disciplinas) ni el reintento sin clase.
@@ -539,17 +546,30 @@ export function CheckoutModal({
   const currency =
     config?.currency ?? brandCurrency ?? catalogCurrency ?? { prefix: "$", suffix: "MXN", code: "MXN" };
 
-  const guestPackDone = useRef(false);
+  // Se prefija UNA vez por (clase, N). Si cambia N se vuelve a ajustar; si el
+  // usuario mueve la cantidad a mano después, se respeta.
+  const guestPackKey = useRef<string | null>(null);
   useEffect(() => {
-    if (guestPackDone.current || preselect || !brandSlug) return;
+    if (preselect || !brandSlug) return;
     if (!multiSeatClass || !classCombos.length) return;
-    if (lines.some((line) => line.type === "combo")) {
-      guestPackDone.current = true;
+    const packKey = `${reservation?.meetingId ?? meeting?.id ?? ""}:${guestSeatCount}`;
+    if (guestPackKey.current === packKey) return;
+    const oneCredit = findOneCreditCombo(classCombos);
+    const existingPack = oneCredit
+      ? lines.find((line) => line.type === "combo" && String(line.id) === String(oneCredit.id))
+      : undefined;
+    if (existingPack) {
+      guestPackKey.current = packKey;
+      if (existingPack.amount !== guestSeatCount) setAmount(existingPack.key, guestSeatCount);
       return;
     }
-    const oneCredit = findOneCreditCombo(classCombos);
+    if (lines.some((line) => line.type === "combo")) {
+      // Otro paquete ya elegido por el usuario: no se toca.
+      guestPackKey.current = packKey;
+      return;
+    }
     if (!oneCredit) return;
-    guestPackDone.current = true;
+    guestPackKey.current = packKey;
     const price = oneCredit.priceFinal ?? oneCredit.price ?? 0;
     addItem({
       id: oneCredit.id,
@@ -563,7 +583,20 @@ export function CheckoutModal({
       expirationLabel: oneCredit.expirationDays ? `Expira en ${oneCredit.expirationDays} días` : undefined,
       raw: oneCredit.raw,
     });
-  }, [addItem, brandSlug, classCombos, currency.prefix, guestSeatCount, lines, locationSlug, multiSeatClass, preselect]);
+  }, [
+    addItem,
+    brandSlug,
+    classCombos,
+    currency.prefix,
+    guestSeatCount,
+    lines,
+    locationSlug,
+    meeting?.id,
+    multiSeatClass,
+    preselect,
+    reservation?.meetingId,
+    setAmount,
+  ]);
 
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
   // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
