@@ -6,6 +6,8 @@ export { formatMoney } from "./money";
 
 const STORAGE_KEY = "gafa-sdk:cart-v1";
 
+export type CartLineRole = "enrollment";
+
 export type CartLine = {
   key: string;
   id: number;
@@ -17,6 +19,9 @@ export type CartLine = {
   brandSlug: string;
   locationSlug?: string;
   expirationLabel?: string;
+  /** Línea de matrícula atada: no se quita ni se cambia la cantidad. */
+  role?: CartLineRole;
+  locked?: boolean;
   /** JSON original del item de gafa.fit: `/reservate` manda el combo
    *  entero en el cart, como el fancy v1. */
   raw?: Record<string, unknown>;
@@ -48,6 +53,7 @@ type CartState = {
   clearItems: () => void;
   setReservation: (reservation: CartReservationContext | null) => void;
   clearReservation: () => void;
+  replaceLines: (lines: CartLine[]) => void;
   /** Limpia carrito + reserva tras una compra exitosa. */
   resetAfterPurchase: () => void;
 };
@@ -117,6 +123,8 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   removeItem(key) {
+    const target = get().lines.find((line) => line.key === key);
+    if (target?.locked) return;
     const lines = get().lines.filter((line) => line.key !== key);
     const reservation = get().reservation;
     persist(lines, reservation);
@@ -125,6 +133,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   setAmount(key, amount) {
     const current = get().lines.find((line) => line.key === key);
+    if (current?.locked) return;
     const cap = purchaseAmountCap(current);
     const next = clampPurchaseAmount(amount, cap);
     const lines =
@@ -152,6 +161,12 @@ export const useCartStore = create<CartState>((set, get) => ({
     const lines = get().lines;
     persist(lines, null);
     set({ reservation: null });
+  },
+
+  replaceLines(next) {
+    const reservation = get().reservation;
+    persist(next, reservation);
+    set({ lines: next });
   },
 
   resetAfterPurchase() {

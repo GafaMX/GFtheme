@@ -107,6 +107,35 @@ describe("formulario -> partial", () => {
     expect(configFromDraft({}, draft)).toEqual({ BRAND_ID: 171 });
   });
 
+  it("guarda la matrícula como bloque opt-in", () => {
+    const draft = draftFromConfig({});
+    draft["MEMBERSHIP_ENROLLMENT.comboId"] = "3491";
+    draft["MEMBERSHIP_ENROLLMENT.label"] = "Matrícula";
+    draft["MEMBERSHIP_ENROLLMENT.membershipIds"] = "1272, 1271, 1204";
+    draft["MEMBERSHIP_ENROLLMENT.firstTimeScope"] = "any_membership";
+    draft["MEMBERSHIP_ENROLLMENT.mode"] = "first_purchase";
+    expect(configFromDraft({}, draft)).toEqual({
+      MEMBERSHIP_ENROLLMENT: {
+        comboId: 3491,
+        label: "Matrícula",
+        membershipIds: "1272, 1271, 1204",
+        firstTimeScope: "any_membership",
+        mode: "first_purchase",
+      },
+    });
+  });
+
+  it("pinta membershipIds guardados como arreglo", () => {
+    expect(
+      draftFromConfig({
+        MEMBERSHIP_ENROLLMENT: { comboId: 3491, membershipIds: [1272, 1271, 1204] },
+      }),
+    ).toMatchObject({
+      "MEMBERSHIP_ENROLLMENT.comboId": "3491",
+      "MEMBERSHIP_ENROLLMENT.membershipIds": "1272, 1271, 1204",
+    });
+  });
+
   it("guarda la sugerencia del pago eligiendo productos, no IDs a mano", () => {
     const draft = draftFromConfig({});
     draft["CROSS_SELL.enabled"] = "true";

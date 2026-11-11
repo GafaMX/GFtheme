@@ -85,6 +85,22 @@ import {
   syncGafaPayMembershipToggles,
   membershipPaymentFrequency,
 } from "../cart/membershipPayOptions";
+import {
+  detectEnrollmentNeed,
+  discountableLines,
+  hideEnrollmentFromCatalog,
+  isEnrollmentComboId,
+  isEnrollmentLine,
+  membershipChargeLines,
+  parseMembershipEnrollment,
+  readMembershipEnrollmentFromOptions,
+  syncEnrollmentCartLines,
+  ENROLLMENT_CHARGE_FAILED_MESSAGE,
+  type EnrollmentChargeFailedNotice,
+  type MembershipEnrollmentConfig,
+} from "../cart/membershipEnrollment";
+import { runSplitEnrollmentCheckout } from "../cart/enrollmentCheckout";
+import { chargeEnrollmentWithSavedCard, enrollmentLineItems } from "../payments/enrollmentCharge";
 import { CloseIcon } from "./sdkIcons";
 
 /**
@@ -104,6 +120,38 @@ function stagingPayWarning(): string | null {
     return "Estás en staging: GafaPay puede cobrar en el Stripe de producción. No uses una tarjeta real.";
   }
   return null;
+}
+
+function readEmbedOptionsJson(documentRef: Document | null = typeof document === "undefined" ? null : document): Record<string, unknown> | null {
+  if (!documentRef) return null;
+  const script =
+    documentRef.querySelector("[data-gafa-options]") ?? documentRef.querySelector("[data-gf-options]");
+  const json = script?.textContent?.trim();
+  if (!json) return null;
+  try {
+    const parsed = JSON.parse(json) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function readMembershipEnrollmentFromDom(): MembershipEnrollmentConfig | null {
+  return readMembershipEnrollmentFromOptions(readEmbedOptionsJson());
+}
+
+function readMockPay(explicit?: boolean): boolean {
+  if (explicit === true) return true;
+  if (explicit === false) return false;
+  if (typeof window !== "undefined") {
+    const flag = new URLSearchParams(window.location.search).get("mock-pay");
+    if (flag === "1" || flag === "true") return true;
+  }
+  const options = readEmbedOptionsJson();
+  const raw = options?.MOCK_PAY ?? options?.mockPay;
+  return raw === true || raw === "true" || raw === 1 || raw === "1";
 }
 
 export type CheckoutModalProps = {
@@ -134,6 +182,15 @@ export type CheckoutModalProps = {
   showMembershipOptions?: boolean;
   /** Oferta del Hub / options: footer del carrito y thank you. */
   crossSell?: unknown;
+  /** Matrícula opt-in. Si no viene, se lee de `MEMBERSHIP_ENROLLMENT` en el embed. */
+  membershipEnrollment?: unknown;
+  /**
+   * Checkout de prueba: no carga GafaPay ni cobra tarjetas reales.
+   * También se enciende con `MOCK_PAY` o `?mock-pay=1`.
+   */
+  mockPay?: boolean;
+  /** Segundo cobro de matrícula (tests / preview). */
+  chargeEnrollmentFee?: () => Promise<GafaPaySuccess>;
   onClose: () => void;
   onCompleted?: (result: { purchaseId?: number | null; reservationId?: number }) => void;
 };
@@ -218,11 +275,21 @@ export function CheckoutModal({
   gafaPayFrontUrl,
   showMembershipOptions: showMembershipOptionsProp,
   crossSell: crossSellProp,
+  membershipEnrollment: membershipEnrollmentProp,
+  mockPay: mockPayProp,
+  chargeEnrollmentFee,
   onClose,
   onCompleted,
 }: CheckoutModalProps) {
   const showMembershipOptions = readShowMembershipOptions(undefined, showMembershipOptionsProp);
   const crossSell = useMemo(() => parseCrossSell(crossSellProp), [crossSellProp]);
+  const enrollmentConfig = useMemo(
+    () =>
+      parseMembershipEnrollment(membershipEnrollmentProp) ??
+      readMembershipEnrollmentFromDom(),
+    [membershipEnrollmentProp],
+  );
+  const mockPay = readMockPay(mockPayProp);
   const lines = useCartStore((s) => s.lines);
   const reservation = useCartStore((s) => s.reservation);
   const addItem = useCartStore((s) => s.addItem);
@@ -291,9 +358,9 @@ export function CheckoutModal({
   const chargeStartedRef = useRef<number | null>(null);
   const priorPurchasesRef = useRef<Set<number> | null>(null);
 
-  function warnCheckout(message: string) {
+  function warnCheckout(message: string, notice?: EnrollmentChargeFailedNotice) {
     console.warn(`[gafa-sdk] ${message}`);
-    client.reportCheckoutWarning?.(message);
+    client.reportCheckoutWarning?.(message, notice);
   }
 
   async function recoverRecentPurchase(): Promise<boolean> {
@@ -304,7 +371,7 @@ export function CheckoutModal({
         const created = item.createdAt ? new Date(item.createdAt.replace(" ", "T")).getTime() : NaN;
         return !priorPurchasesRef.current!.has(item.id) &&
           created >= chargeStartedRef.current! - 1000 && created <= Date.now() + 1000 &&
-          Math.abs(Number(item.total) - total) < 0.01 &&
+          Math.abs(Number(item.total) - membershipExpectedTotal) < 0.01 &&
           relevantLines.some((line) => line.name === item.name) &&
           /^(paid|pagada|pagado|completada|completed|complete|success)$/i.test(item.status ?? "");
       });
@@ -344,7 +411,10 @@ export function CheckoutModal({
     paidTotal: number;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
+    enrollmentWarning?: string;
   } | null>(null);
+  const [enrollmentPhase, setEnrollmentPhase] = useState<"idle" | "charging">("idle");
+  const [needsEnrollmentFee, setNeedsEnrollmentFee] = useState(true);
   /** Reserva ya creada: las compras extra (thank you → pay) van con reservations_id. */
   const [linkedReservationId, setLinkedReservationId] = useState<number | undefined>();
 
@@ -504,11 +574,19 @@ export function CheckoutModal({
   // catálogo de la marca (mezcla disciplinas) ni el reintento sin clase.
   const multiSeatClass = classAttached && guestSeatCount > 1;
   const classCombos = config?.meetingAnchored ? (config?.combos ?? []) : [];
-  const combos = multiSeatClass
+  const combosRaw = multiSeatClass
     ? classCombos
     : classAttached
       ? ((config?.combos?.length ? config.combos : catalogQuery.data?.combos) ?? [])
       : (catalogQuery.data?.combos ?? config?.combos ?? []);
+  const combos = hideEnrollmentFromCatalog(combosRaw, enrollmentConfig);
+  const enrollmentCombo =
+    enrollmentConfig != null
+      ? (combosRaw.find((item) => item.id === enrollmentConfig.comboId) ??
+        catalogQuery.data?.combos?.find((item) => item.id === enrollmentConfig.comboId) ??
+        config?.combos?.find((item) => item.id === enrollmentConfig.comboId) ??
+        null)
+      : null;
   const guestPackMissing =
     multiSeatClass && configQuery.isFetched && !findOneCreditCombo(classCombos);
   const membershipsRaw = classAttached
@@ -563,7 +641,7 @@ export function CheckoutModal({
       if (existingPack.amount !== guestSeatCount) setAmount(existingPack.key, guestSeatCount);
       return;
     }
-    if (lines.some((line) => line.type === "combo")) {
+    if (lines.some((line) => line.type === "combo" && !isEnrollmentLine(line, enrollmentConfig))) {
       // Otro paquete ya elegido por el usuario: no se toca.
       guestPackKey.current = packKey;
       return;
@@ -596,6 +674,69 @@ export function CheckoutModal({
     preselect,
     reservation?.meetingId,
     setAmount,
+  ]);
+
+  const eligibleMembershipId = relevantLines.find(
+    (line) => line.type === "membership" && enrollmentConfig?.membershipIds.includes(line.id),
+  )?.id;
+
+  useEffect(() => {
+    if (!enrollmentConfig || !brandSlug) return;
+    if (!eligibleMembershipId || !isSignedIn) {
+      setNeedsEnrollmentFee(true);
+      return;
+    }
+    let cancelled = false;
+    void detectEnrollmentNeed({
+      config: enrollmentConfig,
+      client,
+      brandSlug,
+      membershipId: eligibleMembershipId,
+    }).then((needed) => {
+      if (!cancelled) setNeedsEnrollmentFee(needed);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enrollmentConfig, brandSlug, client, isSignedIn, eligibleMembershipId]);
+
+  useEffect(() => {
+    if (!enrollmentConfig) return;
+    const next = syncEnrollmentCartLines({
+      config: enrollmentConfig,
+      lines,
+      combo: enrollmentCombo,
+      needsFee: needsEnrollmentFee,
+      brandSlug,
+      locationSlug,
+      currency,
+    });
+    const same =
+      next.length === lines.length &&
+      next.every((line, index) => {
+        const current = lines[index];
+        return (
+          current &&
+          current.key === line.key &&
+          current.amount === line.amount &&
+          current.price === line.price &&
+          current.role === line.role &&
+          current.locked === line.locked &&
+          current.name === line.name
+        );
+      });
+    if (same) return;
+    useCartStore.getState().replaceLines(next);
+  }, [
+    enrollmentConfig,
+    lines,
+    enrollmentCombo,
+    needsEnrollmentFee,
+    brandSlug,
+    locationSlug,
+    currency.prefix,
+    currency.code,
+    currency.suffix,
   ]);
 
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
@@ -643,10 +784,14 @@ export function CheckoutModal({
 
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
+  const chargeLines = membershipChargeLines(relevantLines, enrollmentConfig);
+  const enrollmentLine = relevantLines.find((line) => isEnrollmentLine(line, enrollmentConfig));
   const subtotal = cartSubtotal(relevantLines);
-  const discountAmount = resolveDiscountAmount(appliedDiscount, subtotal);
+  const discountableSubtotal = cartSubtotal(discountableLines(relevantLines, enrollmentConfig));
+  const discountAmount = resolveDiscountAmount(appliedDiscount, discountableSubtotal);
   const discountLabel = appliedDiscount?.label;
   const total = Math.max(0, subtotal - discountAmount);
+  const membershipExpectedTotal = Math.max(0, cartSubtotal(chargeLines) - discountAmount);
   const isFreeTotal = relevantLines.length > 0 && total <= 0;
   const envWarning = step === "pay" && !isFreeTotal ? stagingPayWarning() : null;
   const cartCount = relevantLines.reduce((sum, line) => sum + line.amount, 0);
@@ -659,9 +804,10 @@ export function CheckoutModal({
     !waitingOnTerms &&
     !waitingOnGift &&
     !paying &&
-    (isFreeTotal ? Boolean(config) : Boolean(selectedMethod) && paymentReady);
+    (isFreeTotal || mockPay || (Boolean(selectedMethod) && paymentReady));
   const purchaseAlreadyClear = purchaseClearKey.current === purchaseKey && purchaseKey.length > 0;
   const holdPayForm =
+    !mockPay &&
     step === "pay" &&
     !registerOnly &&
     !purchaseNotice &&
@@ -692,7 +838,10 @@ export function CheckoutModal({
         code: discountCode.trim(),
         userProfileId: config?.userProfileId ?? profileQuery.data?.id,
         urlTemplate: config?.urls.checkDiscountCode,
-        lines: relevantLines.map((line) => ({ id: line.id, type: line.type })),
+        lines: discountableLines(relevantLines, enrollmentConfig).map((line) => ({
+          id: line.id,
+          type: line.type,
+        })),
       });
       if (!result.valid) {
         setDiscountStatus("error");
@@ -789,6 +938,10 @@ export function CheckoutModal({
   function handleAdd(item: CatalogItem, brandForItem?: string) {
     const slug = brandForItem ?? brandSlug;
     if (!slug) return;
+    if (isEnrollmentComboId(enrollmentConfig, item.id) && item.type !== "membership") {
+      showToast("La matrícula solo se agrega con tu primera membresía.", "error");
+      return;
+    }
     const type = lineTypeOf(item);
     const price = item.priceFinal ?? item.price ?? 0;
     addItem({
@@ -821,12 +974,19 @@ export function CheckoutModal({
     setPreselectStatus("loading");
     void findPurchasableItem(client, preselect, brandSlugProp ?? lockedBrandSlug).then((match) => {
       if (cancelled) return;
-      if (!match) {
+      if (!match || (match.type === "combo" && isEnrollmentComboId(enrollmentConfig, match.item.id))) {
         // userPosibilities ya lo ocultó (tope de compras). No abrir el catálogo:
         // v1 mostraba el error en el clic, sin formulario de pago.
+        // El combo de matrícula tampoco se vende suelto.
         preselectDone.current = true;
         setPreselectStatus("miss");
         stayOnPayRef.current = false;
+        if (match && isEnrollmentComboId(enrollmentConfig, match.item.id)) {
+          setPurchaseNotice({
+            title: "Lo sentimos",
+            message: "La matrícula no se puede comprar sola. Va con tu primera membresía.",
+          });
+        }
         return;
       }
       preselectDone.current = true;
@@ -948,10 +1108,10 @@ export function CheckoutModal({
   useEffect(() => {
     if (!stayOnPayRef.current) return;
     if (step === "shop" || step === "thanks") return;
-    if (profileQuery.isLoading) return;
+    if (profileQuery.isLoading || profileQuery.isFetching) return;
     const next: CheckoutStep = isSignedIn ? "pay" : "auth";
     if (step !== next) setStep(next);
-  }, [isSignedIn, profileQuery.isLoading, step]);
+  }, [isSignedIn, profileQuery.isFetching, profileQuery.isLoading, step]);
 
   useEffect(() => {
     if (!convertGift || !giftTypingRef.current) return;
@@ -994,25 +1154,34 @@ export function CheckoutModal({
       if (!profile || !client.reservatePurchase || !brandSlug || !locationSlug) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
-      if (!isFreeTotal && !selectedMethod) {
+      if (!isFreeTotal && !selectedMethod && !mockPay) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
 
-      // Fancy v1 (Stripe): GafaPay cobra → BuySystemStep POSTea a `/reservate`.
-      // Eso dispara paymentByCard / paymentByToken. `initial-purchase` es Recurrente
-      // y en producción cae en unpaidPurchase (TypeError $subscribe null).
-      // 3 intentos: un 500 no debe dejar Pendiente si el back se recupera.
-      // Total $0 (descuento 100% / precio 0): no hay cobro; /reservate sin payment_data.
-      const purchase = await retryReservate((attempt) =>
+      const seats = reservationPurchaseSeats(reservation);
+      const association = purchaseAssociation({
+        meetingId: reservation?.meetingId,
+        reservationId: linkedReservationId,
+      });
+      const splitEnrollment =
+        Boolean(enrollmentConfig && enrollmentLine && enrollmentLine.price > 0 && !isFreeTotal);
+
+      const reservateSubset = (
+        subset: CartLine[],
+        extras: {
+          paymentData: unknown;
+          subscriptionId: string | number | null;
+          discountCode: string | null;
+          subscribe: boolean;
+          setPayment: boolean;
+        },
+      ) =>
         client.reservatePurchase!({
           brandSlug,
           locationSlug,
           userId: config?.userProfileId ?? profile.id,
-          ...purchaseAssociation({
-            meetingId: reservation?.meetingId,
-            reservationId: linkedReservationId,
-          }),
-          lines: linesSnapshot.map((line) => ({
+          ...association,
+          lines: subset.map((line) => ({
             id: line.id,
             type: line.type,
             amount: line.amount,
@@ -1022,14 +1191,114 @@ export function CheckoutModal({
             raw: rawFor(line),
           })),
           paymentTypeId,
+          paymentData: extras.paymentData,
+          subscriptionId: extras.subscriptionId,
+          csrfToken: config?.csrfToken ?? null,
+          discountCode: extras.discountCode,
+          giftCode: resolvedGiftCode(),
+          subscribe: extras.subscribe,
+          setPayment: extras.setPayment,
+          ...seats,
+        });
+
+      if (splitEnrollment && enrollmentConfig) {
+        const membershipId = linesSnapshot.find((line) => line.type === "membership")?.id;
+        const split = await runSplitEnrollmentCheckout({
+          config: enrollmentConfig,
+          lines: linesSnapshot,
+          membershipPayment: {
+            message: paymentData,
+            subscriptionId,
+            recurringPayment: recurring,
+          },
+          discountCode: !registerOnly && discountStatus === "ok" ? discountCode.trim() : null,
+          saveCard,
+          autoRenew,
+          logContext: {
+            companyId: config?.companiesId,
+            userId: profile.id,
+            customerName: [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim() || profile.name,
+            customerEmail: profile.email,
+            membershipId,
+            membershipName: linesSnapshot.find((line) => line.type === "membership")?.name,
+          },
+          reservate: (payload) =>
+            reservateSubset(payload.lines, {
+              paymentData: payload.paymentData,
+              subscriptionId: payload.subscriptionId,
+              discountCode: payload.discountCode,
+              subscribe: payload.subscribe,
+              setPayment: payload.setPayment,
+            }),
+          chargeEnrollment: async () => {
+            setEnrollmentPhase("charging");
+            if (chargeEnrollmentFee) return chargeEnrollmentFee();
+            if (mockPay) {
+              return { message: { mock: true, kind: "enrollment" }, recurringPayment: false };
+            }
+            const clientId = config?.gafapayClientId;
+            const clientSecret = config?.gafapayClientSecret;
+            if (!clientId || !clientSecret) {
+              throw new Error("No pudimos cobrar la matrícula: falta GafaPay.");
+            }
+            return chargeEnrollmentWithSavedCard({
+              order: {
+                customerName: [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim(),
+                customerEmail: profile.email,
+                customerPhone: profile.phone ?? undefined,
+                lineItems: enrollmentLineItems(
+                  enrollmentLine!.name,
+                  enrollmentLine!.price,
+                  enrollmentLine!.id,
+                ),
+                currency: config?.currency.code,
+              },
+              generalData: {
+                companiesId: config?.companiesId,
+                locationsId: config?.locationId,
+                adminProfilesId: null,
+                usersProfilesId: config?.userProfileId,
+                usersId: config?.usersId,
+              },
+              credentials: { clientId, clientSecret, scriptUrl: gafaPayFrontUrl },
+              gafaPayFrontUrl,
+              slug: selectedMethod?.slug,
+            });
+          },
+        });
+        setEnrollmentPhase("idle");
+        if (split.log) {
+          console.error(split.log);
+          warnCheckout(split.log, split.notice);
+        }
+        if (split.warning) showToast(split.warning, "error");
+        setThanks({
+          purchaseId: undefined,
+          confirmed: true,
+          isWaitlist: waitlistPurchase,
+          paidTotal: split.enrollmentOk ? total : membershipExpectedTotal,
+          reservationSnapshot,
+          linesSnapshot,
+          enrollmentWarning: split.warning,
+        });
+        resetAfterPurchase();
+        setStep("thanks");
+        onCompleted?.({});
+        return;
+      }
+
+      // Fancy v1 (Stripe): GafaPay cobra → BuySystemStep POSTea a `/reservate`.
+      // Eso dispara paymentByCard / paymentByToken. `initial-purchase` es Recurrente
+      // y en producción cae en unpaidPurchase (TypeError $subscribe null).
+      // 3 intentos: un 500 no debe dejar Pendiente si el back se recupera.
+      // Total $0 (descuento 100% / precio 0): no hay cobro; /reservate sin payment_data.
+      const purchase = await retryReservate((attempt) =>
+        reservateSubset(linesSnapshot, {
           paymentData: isFreeTotal ? undefined : paymentData,
           subscriptionId,
-          csrfToken: config?.csrfToken ?? null,
           discountCode: attempt === 0 && !registerOnly && discountStatus === "ok" ? discountCode.trim() : null,
-          giftCode: resolvedGiftCode(),
           subscribe: membershipPurchase ? autoRenew : recurring,
           setPayment: membershipPurchase ? saveCard : recurring,
-          ...reservationPurchaseSeats(reservation),
         }),
       );
 
@@ -1160,7 +1429,7 @@ export function CheckoutModal({
         meetingId: reservation?.meetingId,
         reservationId: linkedReservationId,
       }),
-      lines: purchaseLinesPayload(),
+      lines: purchaseLinesPayload(chargeLines.length ? chargeLines : relevantLines),
       paymentTypeId: selectedMethod.id,
       paymentData: data,
       csrfToken: config?.csrfToken ?? null,
@@ -1333,7 +1602,7 @@ export function CheckoutModal({
         meetingId: reservation?.meetingId,
         reservationId: linkedReservationId,
       }),
-      lines: purchaseLinesPayload(),
+      lines: purchaseLinesPayload(chargeLines.length ? chargeLines : relevantLines),
       paymentTypeId,
       csrfToken: config?.csrfToken ?? null,
       discountCode: discountStatus === "ok" ? discountCode.trim() : null,
@@ -1349,6 +1618,11 @@ export function CheckoutModal({
   // las reglas corren antes de pintar la tarjeta. registerOnly ya cobró.
   useEffect(() => {
     if (purchaseNotice || step !== "pay" || registerOnly) return;
+    if (mockPay) {
+      purchaseClearKey.current = purchaseKey;
+      setPurchaseChecking(false);
+      return;
+    }
     if (!client.previewPurchase || !isSignedIn || !profileQuery.data) return;
     if (!brandSlug || !locationSlug || relevantLines.length === 0) return;
     if (configQuery.isLoading || configQuery.isError) return;
@@ -1379,10 +1653,12 @@ export function CheckoutModal({
       });
     return () => {
       cancelled = true;
+      if (!mockPay) setPurchaseChecking(false);
     };
     // assertCanPurchase lee el carrito y la config de este render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    mockPay,
     purchaseNotice,
     step,
     registerOnly,
@@ -1446,7 +1722,7 @@ export function CheckoutModal({
       await completePurchase(undefined);
       return;
     }
-    if (!paymentReady) {
+    if (!paymentReady && !mockPay) {
       reportPayError("El formulario de pago todavía no está listo.");
       return;
     }
@@ -1466,6 +1742,18 @@ export function CheckoutModal({
       }
       reportPayError(purged?.message ?? (err instanceof Error ? err.message : "No pudimos completar la compra."));
       purged?.drop();
+      return;
+    }
+    if (mockPay) {
+      priorPurchasesRef.current = await client.listUserPurchases(brandSlug!)
+        .then((items) => new Set(items.map((item) => item.id)))
+        .catch(() => null);
+      chargeStartedRef.current = Date.now();
+      handleGafaPaySuccess({
+        message: { mock: true, kind: "membership" },
+        subscriptionId: membershipPurchase && autoRenew ? "sub_mock_membership" : null,
+        recurringPayment: Boolean(membershipPurchase && autoRenew),
+      });
       return;
     }
     if (selectedMethod?.slug === "recurrente") {
@@ -1647,9 +1935,11 @@ export function CheckoutModal({
                     hideHeader
                     onStageChange={setAuthStage}
                     onAuthenticated={() => {
-                      // Con sesion ya se puede pedir la config de pago real.
-                      void profileQuery.refetch();
-                      setStep("pay");
+                      // El plan ya está en el carrito: tras login/registro se
+                      // paga, no se vuelve al catálogo. stayOnPay cubre el
+                      // refetch de perfil (invitado → socio).
+                      stayOnPayRef.current = true;
+                      void profileQuery.refetch().finally(() => setStep("pay"));
                     }}
                   />
                 </div>
@@ -1805,8 +2095,9 @@ export function CheckoutModal({
                   configLoading={configQuery.isLoading}
                   config={config}
                   gafaPayFrontUrl={gafaPayFrontUrl}
-                  lines={relevantLines}
+                  lines={chargeLines}
                   discountAmount={discountAmount}
+                  mockPay={mockPay}
                   customer={{
                     email: profileQuery.data?.email,
                     firstName: profileQuery.data?.firstName,
@@ -1952,17 +2243,30 @@ export function CheckoutModal({
                 </div>
               ) : (
                 <ul className="gafa-checkout__lines">
-                  {relevantLines.map((line) => (
-                    <li key={line.key}>
+                  {relevantLines.map((line) => {
+                    const lockedLine = Boolean(line.locked || isEnrollmentLine(line, enrollmentConfig));
+                    return (
+                    <li key={line.key} data-enrollment={lockedLine ? "true" : undefined}>
                       <div className="gafa-checkout__line-info">
                         <strong>{line.name}</strong>
                         {line.expirationLabel ? <span>{line.expirationLabel}</span> : null}
                       </div>
                       <div className="gafa-checkout__line-actions">
-                        <LineQty line={line} onSetAmount={setAmount} />
+                        {lockedLine ? (
+                          <span className="gafa-checkout__stepper" aria-label={`Cantidad de ${line.name}`}>
+                            <span>1</span>
+                          </span>
+                        ) : (
+                          <LineQty line={line} onSetAmount={setAmount} />
+                        )}
                         <strong className="gafa-checkout__line-price">
                           {formatMoney(line.price * line.amount, currency.prefix, "")}
                         </strong>
+                        {lockedLine ? (
+                          <span className="gafa-checkout__line-lock" title="Se quita si quitas la membresía">
+                            fijo
+                          </span>
+                        ) : (
                         <button
                           className="gafa-checkout__line-remove"
                           type="button"
@@ -1971,9 +2275,11 @@ export function CheckoutModal({
                         >
                           <CloseIcon size={11} strokeWidth={1.5} />
                         </button>
+                        )}
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
 
@@ -2097,6 +2403,12 @@ export function CheckoutModal({
               </div>
 
               {envWarning ? <p className="gafa-checkout__env-warn">{envWarning}</p> : null}
+              {enrollmentLine && step === "pay" ? (
+                <p className="gafa-checkout__env-warn" data-enrollment-note="true">
+                  {mockPay ? "Modo de prueba: no se cobra con tarjeta real. " : ""}
+                  Un botón, dos cargos: la membresía queda en suscripción y la matrícula es un solo pago.
+                </p>
+              ) : null}
 
               {/* En el paso de login la accion es "Entrar" del propio formulario:
                   dejar aqui un "Ir a pagar" deshabilitado era un boton muerto. */}
@@ -2105,7 +2417,10 @@ export function CheckoutModal({
                   className="gafa-sdk-button gafa-checkout__cta"
                   type="button"
                   disabled={!relevantLines.length}
-                  onClick={() => setStep(isSignedIn ? "pay" : "auth")}
+                  onClick={() => {
+                    stayOnPayRef.current = true;
+                    setStep(isSignedIn ? "pay" : "auth");
+                  }}
                 >
                   {isFreeTotal ? "Continuar" : "Ir a pagar"}
                 </button>
@@ -2134,6 +2449,8 @@ export function CheckoutModal({
                         ? "Esperando el pago…"
                         : selectedMethod?.slug === "paypal"
                           ? "Esperando PayPal…"
+                          : enrollmentPhase === "charging"
+                            ? "Cobrando matrícula…"
                           : chargeHold
                             ? "Registrando compra…"
                             : "Procesando…"
@@ -2373,6 +2690,7 @@ function PayPanel({
   paypalLocked,
   onPaypalLockedClick,
   membershipOptions,
+  mockPay,
 }: {
   methods: CheckoutConfig["paymentMethods"];
   selectedMethodId: number | null;
@@ -2408,6 +2726,7 @@ function PayPanel({
     onSaveCard: (value: boolean) => void;
     onAutoRenew: (value: boolean) => void;
   };
+  mockPay?: boolean;
 }) {
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [mountNonce, setMountNonce] = useState(0);
@@ -2436,8 +2755,8 @@ function PayPanel({
   };
 
   useEffect(() => {
-    onReadyChange(loadState === "ready");
-  }, [loadState, onReadyChange]);
+    onReadyChange(mockPay || loadState === "ready");
+  }, [loadState, onReadyChange, mockPay]);
 
   // lineItems con el descuento repartido, igual que el fancy v1.
   const lineItems = useMemo<GafaPayLineItem[]>(() => {
@@ -2523,6 +2842,7 @@ function PayPanel({
   // Monta la isla: se re-monta si cambia el proveedor, las credenciales o
   // Reintentar. Un fallo de red/timeout se reintenta una vez en silencio.
   useEffect(() => {
+    if (mockPay) return;
     if (!slug || !clientId || !clientSecret) return;
     let cancelled = false;
     let stopPaypalCapture: () => void = () => undefined;
@@ -2582,7 +2902,7 @@ function PayPanel({
       islandRef.current?.unmount();
       islandRef.current = null;
     };
-  }, [slug, clientId, clientSecret, gafaPayFrontUrl, mountNonce]);
+  }, [slug, clientId, clientSecret, gafaPayFrontUrl, mountNonce, mockPay]);
 
   useEffect(() => {
     // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
@@ -2599,13 +2919,13 @@ function PayPanel({
   }, [loadState, membershipOptions]);
 
   useEffect(() => {
-    if (configLoading || !selected || (clientId && clientSecret)) return;
+    if (mockPay || configLoading || !selected || (clientId && clientSecret)) return;
     showToast("El pago no está disponible. Contacta al estudio.", "error");
-  }, [clientId, clientSecret, configLoading, selected]);
+  }, [clientId, clientSecret, configLoading, selected, mockPay]);
 
   return (
     <div className="gafa-checkout-pay">
-      {configLoading ? <PaySkeleton withMethods label="Cargando métodos de pago…" /> : null}
+      {configLoading && !mockPay ? <PaySkeleton withMethods label="Cargando métodos de pago…" /> : null}
 
       {methods.length > 1 ? (
         <div className="gafa-checkout-methods" role="tablist" aria-label="Método de pago">
@@ -2627,6 +2947,26 @@ function PayPanel({
 
       {!configLoading && methods.length === 0 ? (
         <p className="gafa-sdk-state">Esta sede no tiene métodos de pago en línea activos.</p>
+      ) : null}
+
+      {mockPay ? (
+        <div className="gafa-checkout-free" role="status" data-mock-pay="true">
+          <span className="gafa-checkout-free__mark" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M2 7.5L5.5 11L12 3.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          <div>
+            <strong>Pago de prueba</strong>
+            <p>No se cobra con tarjeta real. El botón Pagar simula los dos cargos (membresía y matrícula).</p>
+          </div>
+        </div>
       ) : null}
 
       {/* GafaPayFront trae su propio React 16: este div es suyo, nuestro React
@@ -2862,6 +3202,7 @@ function ThanksPanel({
     paidTotal: number;
     reservationSnapshot: CartReservationContext | null;
     linesSnapshot: CartLine[];
+    enrollmentWarning?: string;
   } | null;
   firstName?: string;
   currency: { prefix: string; suffix: string };
@@ -2898,6 +3239,12 @@ function ThanksPanel({
         <p className="gafa-checkout-thanks__pending" role="status">
           Tu cobro ya se hizo, pero seguimos confirmando la compra. Si en unos minutos no ves tus
           créditos, escríbenos con el número de orden.
+        </p>
+      ) : null}
+
+      {thanks?.enrollmentWarning ? (
+        <p className="gafa-checkout-thanks__pending" role="alert">
+          {thanks.enrollmentWarning}
         </p>
       ) : null}
 

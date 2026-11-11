@@ -19,6 +19,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         demo: "demo.html",
+        matricula: "preview.html",
       },
     },
   },

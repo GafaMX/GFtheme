@@ -8,6 +8,7 @@ import { HeaderControls } from "./sdk/widgets/HeaderControls";
 import { useCartStore } from "./sdk/cart/cartStore";
 import type { GafaClient } from "./sdk/client/types";
 import { fitspinWordmarkDataUri } from "./demo/fitspinWordmark";
+import { TheBaseMatriculaPreview } from "./previewTheBase";
 import "./sdk/theme/theme.css";
 import "./sdk/widgets/widgets.css";
 import "./demo/demo.css";
@@ -390,4 +391,11 @@ function Preview() {
   );
 }
 
-createRoot(document.getElementById("app")!).render(<Preview />);
+const isMatriculaPreview =
+  Boolean((window as { __GAFA_MATRICULA_PREVIEW__?: boolean }).__GAFA_MATRICULA_PREVIEW__) ||
+  new URLSearchParams(window.location.search).get("matricula") === "1" ||
+  new URLSearchParams(window.location.search).get("brand") === "the-base";
+
+createRoot(document.getElementById("app")!).render(
+  isMatriculaPreview ? <TheBaseMatriculaPreview /> : <Preview />,
+);

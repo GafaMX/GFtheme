@@ -150,5 +150,12 @@ describe("membershipPaymentFrequency", () => {
   it("manda los días de la membresía", () => expect(membershipPaymentFrequency([m])).toBe("30"));
   it("null si hay otra línea con costo", () =>
     expect(membershipPaymentFrequency([m, { type: "product", amount: 1, price: 5 }])).toBeNull());
+  it("sigue recurrente si la otra línea es la matrícula", () =>
+    expect(
+      membershipPaymentFrequency([
+        m,
+        { type: "combo", amount: 1, price: 30, role: "enrollment", raw: { enrollment_fee: true } },
+      ]),
+    ).toBe("30"));
   it("null sin expiration_days", () => expect(membershipPaymentFrequency([{ ...m, raw: {} }])).toBeNull());
 });

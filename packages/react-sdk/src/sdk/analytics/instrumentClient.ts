@@ -29,7 +29,12 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
 
   const next: GafaClient = {
     ...client,
-    reportCheckoutWarning(message) {
+    reportCheckoutWarning(message, notice) {
+      try {
+        client.reportCheckoutWarning?.(message, notice);
+      } catch {
+        /* el aviso al estudio no debe romper el checkout */
+      }
       tracker.track({ event: "widget.error", widget: "checkout", props: { severity: "warning", message } });
     },
     async getProfile() {

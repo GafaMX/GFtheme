@@ -1206,7 +1206,10 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0]).toEqual(
       expect.objectContaining({ subscribe: true, setPayment: true }),
     );
-    expect(reportCheckoutWarning).toHaveBeenCalledWith(expect.stringContaining("subscription id"));
+    expect(reportCheckoutWarning).toHaveBeenCalledWith(
+      expect.stringContaining("subscription id"),
+      undefined,
+    );
   });
 
   it("si desmarcan renovar, reservate manda subscribe false", async () => {
