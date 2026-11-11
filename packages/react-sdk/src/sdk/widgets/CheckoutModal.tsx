@@ -414,7 +414,10 @@ export function CheckoutModal({
     enrollmentWarning?: string;
   } | null>(null);
   const [enrollmentPhase, setEnrollmentPhase] = useState<"idle" | "charging">("idle");
-  const [needsEnrollmentFee, setNeedsEnrollmentFee] = useState(true);
+  /** Historial / combo listos: no se lanza la revisión ni se toca la línea otra vez. */
+  const [enrollmentSettled, setEnrollmentSettled] = useState(() => !enrollmentConfig);
+  const enrollmentNeedRef = useRef<boolean | null>(null);
+  const enrollmentDecisionKeyRef = useRef("");
   /** Reserva ya creada: las compras extra (thank you → pay) van con reservations_id. */
   const [linkedReservationId, setLinkedReservationId] = useState<number | undefined>();
 
@@ -680,64 +683,86 @@ export function CheckoutModal({
     (line) => line.type === "membership" && enrollmentConfig?.membershipIds.includes(line.id),
   )?.id;
 
-  useEffect(() => {
-    if (!enrollmentConfig || !brandSlug) return;
-    if (!eligibleMembershipId || !isSignedIn) {
-      setNeedsEnrollmentFee(true);
-      return;
-    }
-    let cancelled = false;
-    void detectEnrollmentNeed({
-      config: enrollmentConfig,
-      client,
-      brandSlug,
-      membershipId: eligibleMembershipId,
-    }).then((needed) => {
-      if (!cancelled) setNeedsEnrollmentFee(needed);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [enrollmentConfig, brandSlug, client, isSignedIn, eligibleMembershipId]);
-
-  useEffect(() => {
+  function applyEnrollmentCart(needed: boolean) {
     if (!enrollmentConfig) return;
     const next = syncEnrollmentCartLines({
       config: enrollmentConfig,
-      lines,
+      lines: useCartStore.getState().lines,
       combo: enrollmentCombo,
-      needsFee: needsEnrollmentFee,
+      needsFee: needed,
       brandSlug,
       locationSlug,
       currency,
     });
+    const current = useCartStore.getState().lines;
     const same =
-      next.length === lines.length &&
+      next.length === current.length &&
       next.every((line, index) => {
-        const current = lines[index];
+        const existing = current[index];
         return (
-          current &&
-          current.key === line.key &&
-          current.amount === line.amount &&
-          current.price === line.price &&
-          current.role === line.role &&
-          current.locked === line.locked &&
-          current.name === line.name
+          existing &&
+          existing.key === line.key &&
+          existing.amount === line.amount &&
+          existing.price === line.price &&
+          existing.role === line.role &&
+          existing.locked === line.locked &&
+          existing.name === line.name
         );
       });
-    if (same) return;
-    useCartStore.getState().replaceLines(next);
-  }, [
-    enrollmentConfig,
-    lines,
-    enrollmentCombo,
-    needsEnrollmentFee,
-    brandSlug,
-    locationSlug,
-    currency.prefix,
-    currency.code,
-    currency.suffix,
-  ]);
+    if (!same) useCartStore.getState().replaceLines(next);
+  }
+
+  useEffect(() => {
+    if (!enrollmentConfig || !brandSlug) {
+      setEnrollmentSettled(true);
+      return;
+    }
+    if (!eligibleMembershipId) {
+      enrollmentNeedRef.current = false;
+      applyEnrollmentCart(false);
+      setEnrollmentSettled(true);
+      return;
+    }
+
+    const decisionKey = `${isSignedIn ? "in" : "out"}:${eligibleMembershipId}`;
+    if (enrollmentDecisionKeyRef.current !== decisionKey) {
+      enrollmentDecisionKeyRef.current = decisionKey;
+      enrollmentNeedRef.current = null;
+      setEnrollmentSettled(false);
+    }
+
+    let cancelled = false;
+    void (async () => {
+      let needed = enrollmentNeedRef.current;
+      if (needed == null) {
+        if (!isSignedIn) {
+          needed = true;
+        } else {
+          try {
+            needed = await detectEnrollmentNeed({
+              config: enrollmentConfig,
+              client,
+              brandSlug,
+              membershipId: eligibleMembershipId,
+            });
+          } catch {
+            needed = true;
+          }
+        }
+        if (cancelled) return;
+        enrollmentNeedRef.current = needed;
+      }
+      if (needed && !enrollmentCombo) return;
+      if (cancelled) return;
+      applyEnrollmentCart(needed);
+      setEnrollmentSettled(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // applyEnrollmentCart lee combo/brand/location del render actual.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrollmentConfig, brandSlug, client, isSignedIn, eligibleMembershipId, enrollmentCombo]);
 
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
   // catalogo vacio: eso pintaba "no hay paquetes" / "esta clase no tiene..."
@@ -798,28 +823,18 @@ export function CheckoutModal({
 
   const waitingOnTerms = hasTerms && !termsAccepted;
   const waitingOnGift = convertGift && giftStatus !== "ok";
+  const waitingEnrollment = Boolean(enrollmentConfig) && !enrollmentSettled;
   const canPay =
     relevantLines.length > 0 &&
     Boolean(profileQuery.data) &&
     !waitingOnTerms &&
     !waitingOnGift &&
+    !waitingEnrollment &&
     !paying &&
     (isFreeTotal || mockPay || (Boolean(selectedMethod) && paymentReady));
-  const purchaseAlreadyClear = purchaseClearKey.current === purchaseKey && purchaseKey.length > 0;
-  const holdPayForm =
-    !mockPay &&
-    step === "pay" &&
-    !registerOnly &&
-    !purchaseNotice &&
-    Boolean(client.previewPurchase) &&
-    relevantLines.length > 0 &&
-    (profileQuery.isPending ||
-      (isSignedIn &&
-        !configQuery.isError &&
-        (configQuery.isLoading || purchaseChecking || !purchaseAlreadyClear)));
   const reviewingDirect =
     Boolean(preselect) && !purchaseNotice && preselectStatus !== "idle" && preselectStatus !== "ready";
-  const reviewingPurchase = reviewingDirect || holdPayForm;
+  const reviewingPurchase = reviewingDirect;
 
   function resolvedGiftCode(): string | null {
     if (!convertGift || giftStatus !== "ok") return null;
@@ -1614,8 +1629,9 @@ export function CheckoutModal({
     if (!hasExtras) purchaseClearKey.current = key;
   }
 
-  // Al entrar a pagar (membresía que sigue en el catálogo, o carrito ya armado)
-  // las reglas corren antes de pintar la tarjeta. registerOnly ya cobró.
+  // La tarjeta se pinta ya; las reglas de Buq (test=true) corren en paralelo.
+  // Solo un rechazo real (422, membresía repetida, combo no disponible) mueve
+  // el carrito o muestra aviso. registerOnly ya cobró.
   useEffect(() => {
     if (purchaseNotice || step !== "pay" || registerOnly) return;
     if (mockPay) {
@@ -1625,6 +1641,7 @@ export function CheckoutModal({
     }
     if (!client.previewPurchase || !isSignedIn || !profileQuery.data) return;
     if (!brandSlug || !locationSlug || relevantLines.length === 0) return;
+    if (waitingEnrollment) return;
     if (configQuery.isLoading || configQuery.isError) return;
     if (purchaseClearKey.current === purchaseKey) {
       setPurchaseChecking(false);
@@ -1639,11 +1656,11 @@ export function CheckoutModal({
       })
       .catch(async (err: unknown) => {
         if (cancelled) return;
+        setPurchaseChecking(false);
+        if (!isEligibilityRejection(err)) return;
         const purged = await purgeRejectedLines(err).catch(() => null);
         if (cancelled) return;
-        setPurchaseChecking(false);
         if (purged?.kept) {
-          // Lo válido sigue: el efecto vuelve a correr con el carrito limpio.
           showToast(purged.message, "error");
           purged.drop();
           return;
@@ -1653,7 +1670,6 @@ export function CheckoutModal({
       });
     return () => {
       cancelled = true;
-      if (!mockPay) setPurchaseChecking(false);
     };
     // assertCanPurchase lee el carrito y la config de este render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1670,6 +1686,7 @@ export function CheckoutModal({
     configQuery.isError,
     client,
     purchaseKey,
+    waitingEnrollment,
   ]);
 
   async function proceedToPay() {
@@ -1733,8 +1750,8 @@ export function CheckoutModal({
     try {
       await assertCanPurchase();
     } catch (err) {
-      const purged = await purgeRejectedLines(err).catch(() => null);
       setPaying(false);
+      const purged = await purgeRejectedLines(err).catch(() => null);
       if (purged && !purged.kept) {
         setPurchaseNotice({ title: "Lo sentimos", message: purged.message });
         purged.drop();
@@ -2403,12 +2420,6 @@ export function CheckoutModal({
               </div>
 
               {envWarning ? <p className="gafa-checkout__env-warn">{envWarning}</p> : null}
-              {enrollmentLine && step === "pay" ? (
-                <p className="gafa-checkout__env-warn" data-enrollment-note="true">
-                  {mockPay ? "Modo de prueba: no se cobra con tarjeta real. " : ""}
-                  Un botón, dos cargos: la membresía queda en suscripción y la matrícula es un solo pago.
-                </p>
-              ) : null}
 
               {/* En el paso de login la accion es "Entrar" del propio formulario:
                   dejar aqui un "Ir a pagar" deshabilitado era un boton muerto. */}

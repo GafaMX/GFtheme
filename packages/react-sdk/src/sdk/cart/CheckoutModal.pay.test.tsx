@@ -367,7 +367,6 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     expect(screen.queryByRole("button", { name: /pagar/i })).toBeNull();
     expect(stripe).not.toHaveBeenCalled();
     expect(client.reservatePurchase).not.toHaveBeenCalled();
-    expect(mocks.loadGafaPay).not.toHaveBeenCalled();
     expect(document.querySelector("[data-charge-hold='true']")).toBeNull();
   });
 
