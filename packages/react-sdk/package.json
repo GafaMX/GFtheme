@@ -15,6 +15,7 @@
     "test": "vitest run",
     "dev": "vite --host 0.0.0.0",
     "build:demo": "vite build --config vite.demo.config.ts",
+    "build:matricula": "vite build --config vite.matricula.config.ts",
     "build:embed": "vite build --config vite.embed.config.ts",
     "publish:embed": "bash ../../scripts/publish-v2-embed.sh"
   },
