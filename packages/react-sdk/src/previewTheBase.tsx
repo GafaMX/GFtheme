@@ -144,16 +144,19 @@ export function TheBaseMatriculaPreview() {
   const isReturning = previewFlag("returning");
   const failEnrollment = previewFlag("fail-enrollment");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const cartHasItems = useCartStore((s) => s.lines.length > 0);
   const queryClient = useMemo(() => new QueryClient({ defaultOptions: { queries: { retry: 0 } } }), []);
   const sessionKey = `${isGuest ? "g" : "u"}-${isReturning ? "r" : "n"}`;
   const prevSessionKey = useRef(sessionKey);
+  const previewSignedIn = useRef(!isGuest);
 
   useEffect(() => {
     if (prevSessionKey.current === sessionKey) return;
     prevSessionKey.current = sessionKey;
+    previewSignedIn.current = !isGuest;
     queryClient.clear();
     useCartStore.getState().resetAfterPurchase();
-  }, [sessionKey, queryClient]);
+  }, [sessionKey, isGuest, queryClient]);
 
   const client = useMemo<GafaClient>(() => {
     return {
@@ -165,7 +168,7 @@ export function TheBaseMatriculaPreview() {
       listMemberships: async () => memberships,
       listProducts: async () => [],
       getProfile: async () => {
-        if (isGuest) throw new Error("Sin sesión");
+        if (!previewSignedIn.current) throw new Error("Sin sesión");
         return {
           id: 4412,
           name: "Gabriel Test",
@@ -212,9 +215,17 @@ export function TheBaseMatriculaPreview() {
       listUserCredits: async () => [],
       listUserReservations: async () => [],
       listRegistrationFields: async () => [],
-      login: async () => ({ access_token: "preview" }),
-      logout: () => undefined,
-      register: async () => ({}),
+      login: async () => {
+        previewSignedIn.current = true;
+        return { access_token: "preview" };
+      },
+      logout: () => {
+        previewSignedIn.current = false;
+      },
+      register: async () => {
+        previewSignedIn.current = true;
+        return {};
+      },
       requestPasswordReset: async () => undefined,
       resetPassword: async () => undefined,
       openCheckout: async () => undefined,
@@ -224,7 +235,7 @@ export function TheBaseMatriculaPreview() {
       listMeetings: async () => [],
       cancelReservation: async () => undefined,
     } as GafaClient;
-  }, [isGuest, isReturning]);
+  }, [isReturning]);
 
   useEffect(() => {
     useCartStore.getState().resetAfterPurchase();
@@ -260,9 +271,13 @@ export function TheBaseMatriculaPreview() {
               Preview de matrícula (SDK V2). <strong>No cobra tarjetas reales</strong>: el botón Pagar simula
               dos cargos (membresía + matrícula). Agrega Silver para ver la línea atada de 30 €.
               Variantes: <code>#returning=1</code> (sin matrícula), <code>#fail-enrollment=1</code> (falla el
-              segundo cobro), <code>#guest=1</code>.
+              segundo cobro), <code>#guest=1</code> (elige un plan, entra o regístrate y vas directo a
+              Pagar).
               {isReturning ? " Esta cuenta ya tuvo una membresía: no debe aparecer matrícula." : ""}
               {failEnrollment ? " Esta URL fuerza el fallo del segundo cobro." : ""}
+              {isGuest
+                ? " Sin sesión: el plan ya elegido no vuelve al catálogo. Entra o crea cuenta (cualquier email y contraseña) y caes en Pagar; la matrícula se recalcula para ese usuario."
+                : ""}
             </p>
             <CatalogWidget
               client={client}
@@ -309,7 +324,8 @@ export function TheBaseMatriculaPreview() {
               brandSlug="the-base"
               locationSlug="pozuelo"
               locationName="Pozuelo"
-              skipCatalog={false}
+              skipCatalog={cartHasItems}
+              captcha={{ execute: async () => "preview-captcha" }}
               membershipEnrollment={ENROLLMENT}
               mockPay
               chargeEnrollmentFee={

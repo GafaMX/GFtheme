@@ -123,6 +123,37 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
   } as GafaClient;
 }
 
+function guestThenMember(overrides: Partial<GafaClient> = {}): GafaClient {
+  let signedIn = false;
+  return mockClient({
+    ...overrides,
+    getProfile: async () => {
+      if (!signedIn) throw new Error("Sin sesión");
+      return {
+        id: 4412,
+        name: "Gabriel",
+        email: "gabriel@buq.mx",
+        firstName: "Gabriel",
+        lastName: "Arrechea",
+      };
+    },
+    login: async () => {
+      signedIn = true;
+      return { access_token: "t" };
+    },
+    register: async () => {
+      signedIn = true;
+      return {};
+    },
+  });
+}
+
+async function signInFromCheckout() {
+  fireEvent.change(screen.getByLabelText("Email"), { target: { value: "gabriel@buq.mx" } });
+  fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "secret1" } });
+  fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
+}
+
 function renderEnrollment(client: GafaClient, extras: { skipCatalog?: boolean; failEnrollment?: boolean } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
@@ -194,6 +225,45 @@ describe("CheckoutModal matrícula", () => {
     expect(vi.mocked(client.checkDiscountCode!).mock.calls[0][0].lines).toEqual([
       { id: 1271, type: "membership" },
     ]);
+  });
+
+  it("invitado con el plan en el carrito entra y cae en Pagar con matrícula", async () => {
+    renderEnrollment(guestThenMember());
+    expect(await screen.findByRole("heading", { name: /inicia sesión para pagar/i })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: /elige tu plan/i })).toBeNull();
+    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    await signInFromCheckout();
+    await waitFor(() => expect(screen.getByText(/pago de prueba/i)).toBeTruthy());
+    expect(screen.queryByRole("heading", { name: /elige tu plan/i })).toBeNull();
+    expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy();
+    expect((screen.getByRole("button", { name: /pagar 115/i }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("si al entrar resulta socio, se quita la matrícula y sigue en Pagar", async () => {
+    renderEnrollment(
+      guestThenMember({
+        listUserMemberships: async () => [{ id: 9, membershipId: 1272, name: "Bronze" }],
+      }),
+    );
+    expect(await screen.findByRole("heading", { name: /inicia sesión para pagar/i })).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    await signInFromCheckout();
+    await waitFor(() => expect(screen.getByText(/pago de prueba/i)).toBeTruthy());
+    await waitFor(() => expect(screen.queryByText(/solo primer pago/i)).toBeNull());
+    expect(screen.queryByRole("heading", { name: /elige tu plan/i })).toBeNull();
+    expect((screen.getByRole("button", { name: /pagar 85/i }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("desde el catálogo, Ir a pagar pide cuenta y al entrar va a Pagar (no al catálogo)", async () => {
+    renderEnrollment(guestThenMember(), { skipCatalog: false });
+    fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
+    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /ir a pagar/i }));
+    expect(await screen.findByRole("heading", { name: /inicia sesión para pagar/i })).toBeTruthy();
+    await signInFromCheckout();
+    await waitFor(() => expect(screen.getByText(/pago de prueba/i)).toBeTruthy());
+    expect(screen.queryByRole("heading", { name: /elige tu plan/i })).toBeNull();
+    expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy();
   });
 
   it("con mockPay, Ir a pagar muestra el panel y no se queda revisando", async () => {

@@ -124,4 +124,63 @@ describe("CheckoutModal auth step", () => {
     expect(register).toHaveBeenCalled();
     expect(screen.queryByText(/captchaPublicKey/i)).toBeNull();
   });
+
+  it("con el carrito armado, al entrar no vuelve al catálogo: va a pagar", async () => {
+    let signedIn = false;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CheckoutModal
+          client={
+            {
+              ...mockClient(),
+              getProfile: async () =>
+                signedIn
+                  ? { id: 1, name: "Gabriel", email: "gabriel@buq.mx", firstName: "Gabriel" }
+                  : null,
+              login: async () => {
+                signedIn = true;
+                return { access_token: "t" };
+              },
+              getCheckoutConfig: async () => ({
+                brandSlug: "fitspin-cancun",
+                locationSlug: "cancun",
+                currency: { prefix: "$", suffix: "MXN", code: "MXN" },
+                paymentMethods: [{ id: 3, name: "Tarjeta", slug: "stripe" }],
+                giftCardsEnabled: false,
+                discountCodesEnabled: false,
+                canRedeemStoreCredit: false,
+                combos: [],
+                memberships: [],
+                products: [],
+                urls: {
+                  reservation: "https://example.test/reservate",
+                  initialPurchase: "https://example.test/purchase",
+                  initialPurchaseStatus: "https://example.test/status",
+                  checkDiscountCode: "https://example.test/check-discount",
+                },
+              }),
+            } as unknown as GafaClient
+          }
+          brandSlug="fitspin-cancun"
+          locationSlug="cancun"
+          skipCatalog={false}
+          mockPay
+          onClose={() => undefined}
+        />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /ir a pagar/i }));
+    expect(await screen.findByRole("heading", { name: "Inicia sesión para pagar" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "gabriel@buq.mx" } });
+    fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "secret1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Pago" })).toBeTruthy());
+    expect(screen.queryByRole("heading", { name: "Elige tu plan" })).toBeNull();
+    expect(screen.getByText(/pago de prueba/i)).toBeTruthy();
+  });
 });

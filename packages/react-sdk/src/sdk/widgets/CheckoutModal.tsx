@@ -1107,10 +1107,10 @@ export function CheckoutModal({
   useEffect(() => {
     if (!stayOnPayRef.current) return;
     if (step === "shop" || step === "thanks") return;
-    if (profileQuery.isLoading) return;
+    if (profileQuery.isLoading || profileQuery.isFetching) return;
     const next: CheckoutStep = isSignedIn ? "pay" : "auth";
     if (step !== next) setStep(next);
-  }, [isSignedIn, profileQuery.isLoading, step]);
+  }, [isSignedIn, profileQuery.isFetching, profileQuery.isLoading, step]);
 
   useEffect(() => {
     if (!convertGift || !giftTypingRef.current) return;
@@ -1931,9 +1931,11 @@ export function CheckoutModal({
                     hideHeader
                     onStageChange={setAuthStage}
                     onAuthenticated={() => {
-                      // Con sesion ya se puede pedir la config de pago real.
-                      void profileQuery.refetch();
-                      setStep("pay");
+                      // El plan ya está en el carrito: tras login/registro se
+                      // paga, no se vuelve al catálogo. stayOnPay cubre el
+                      // refetch de perfil (invitado → socio).
+                      stayOnPayRef.current = true;
+                      void profileQuery.refetch().finally(() => setStep("pay"));
                     }}
                   />
                 </div>
@@ -2411,7 +2413,10 @@ export function CheckoutModal({
                   className="gafa-sdk-button gafa-checkout__cta"
                   type="button"
                   disabled={!relevantLines.length}
-                  onClick={() => setStep(isSignedIn ? "pay" : "auth")}
+                  onClick={() => {
+                    stayOnPayRef.current = true;
+                    setStep(isSignedIn ? "pay" : "auth");
+                  }}
                 >
                   {isFreeTotal ? "Continuar" : "Ir a pagar"}
                 </button>
