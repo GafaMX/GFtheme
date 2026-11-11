@@ -1,0 +1,50 @@
+# Publica el IIFE en docs/v2-sdk/gafa-sdk.bundle*.js y deja gafa-sdk.js como
+# loader estable. La URL pública de los sitios no cambia. No toca master.
+# No relanza Replit. No crear cdn-live-2 ni pedir a los socios otro src.
+#
+# Manual: Actions → "Publish V2 embed SDK" → Run workflow (en esta rama V2).
+# El agente de Cursor hace lo mismo en local: npm run publish:embed && git commit docs/v2-sdk
+name: Publish V2 embed SDK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/react-sdk/package-lock.json
+
+      - name: Install
+        working-directory: packages/react-sdk
+        run: npm ci
+
+      - name: Test and typecheck
+        working-directory: packages/react-sdk
+        run: |
+          npm test
+          npm run typecheck
+
+      - name: Build and copy embed
+        run: bash scripts/publish-v2-embed.sh
+
+      - name: Commit docs/v2-sdk if the bundle changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v2-sdk
+          if git diff --cached --quiet; then
+            echo "Bundle unchanged"
+          else
+            git commit -m "chore(v2): republicar gafa-sdk.js"
+            git push
+          fi

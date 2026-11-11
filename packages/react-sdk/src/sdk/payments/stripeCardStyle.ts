@@ -1,0 +1,269 @@
+import type { ColorScheme } from "../theme/palette";
+
+type StripeStyle = {
+  base?: Record<string, unknown>;
+  invalid?: Record<string, unknown>;
+  complete?: Record<string, unknown>;
+  empty?: Record<string, unknown>;
+};
+
+/**
+ * GafaPayFront.CardElement hardcodea `color: #303238` (y a veces ni siquiera
+ * lo pasa bien: hace `{...style}` en vez de `style={style}`). En theme oscuro
+ * el iframe de Stripe se lee negro sobre negro. Parcheamos `window.Stripe`
+ * para inyectar el estilo al crear el Card Element, sin tocar GafaPay.
+ */
+export const STRIPE_CARD_STYLE = {
+  light: {
+    base: {
+      color: "#18181b",
+      iconColor: "#18181b",
+      fontSize: "16px",
+      fontSmoothing: "antialiased",
+      "::placeholder": { color: "#a1a1aa" },
+    },
+    invalid: {
+      color: "#e5424d",
+      ":focus": { color: "#18181b" },
+    },
+  },
+  dark: {
+    base: {
+      color: "#f4f4f5",
+      iconColor: "#f4f4f5",
+      fontSize: "16px",
+      fontSmoothing: "antialiased",
+      "::placeholder": { color: "#a1a1aa" },
+    },
+    invalid: {
+      color: "#f87171",
+      ":focus": { color: "#f4f4f5" },
+    },
+  },
+} as const;
+
+export function mergeStripeCardStyle(existing: unknown, scheme: ColorScheme): StripeStyle {
+  const preset = stripeCardStyleForScheme(scheme);
+  const current = existing && typeof existing === "object" ? (existing as StripeStyle) : {};
+  return {
+    ...current,
+    // El scheme gana al #303238 hardcodeado de GafaPayFront (create y update).
+    base: { ...(current.base ?? {}), ...preset.base },
+    invalid: { ...(current.invalid ?? {}), ...preset.invalid },
+  };
+}
+
+type StripeAppearance = {
+  theme?: string;
+  variables?: Record<string, string>;
+};
+
+/**
+ * Payment Element ignora `style` del Card Element: usa `appearance` en
+ * `elements()`. GafaPay a veces crea `payment` en vez de `card`.
+ */
+export function mergeStripeAppearance(existing: unknown, scheme: ColorScheme): StripeAppearance {
+  const preset = STRIPE_CARD_STYLE[scheme];
+  const current = existing && typeof existing === "object" ? (existing as StripeAppearance) : {};
+  return {
+    ...current,
+    theme: scheme === "dark" ? "night" : "stripe",
+    variables: {
+      ...(current.variables ?? {}),
+      colorText: preset.base.color,
+      colorTextPlaceholder: preset.base["::placeholder"].color,
+      colorDanger: preset.invalid.color,
+    },
+  };
+}
+
+export function mergeStripeElementsOptions(existing: unknown, scheme: ColorScheme): Record<string, unknown> {
+  const current = existing && typeof existing === "object" ? (existing as Record<string, unknown>) : {};
+  return {
+    ...current,
+    appearance: mergeStripeAppearance(current.appearance, scheme),
+  };
+}
+
+function stripeCardStyleForScheme(scheme: ColorScheme): (typeof STRIPE_CARD_STYLE)[ColorScheme] {
+  return STRIPE_CARD_STYLE[scheme];
+}
+
+const CARD_ELEMENT_TYPES = new Set(["card", "cardNumber", "cardExpiry", "cardCvc"]);
+
+type StripeLike = {
+  (...args: unknown[]): StripeInstance;
+  __gafaTheme?: ColorScheme;
+  __gafaOriginal?: StripeLike;
+};
+
+type StripeInstance = {
+  elements?: (options?: unknown) => StripeElements;
+};
+
+type StripeElements = {
+  create: (type: string, options?: Record<string, unknown>) => unknown;
+};
+
+declare global {
+  interface Window {
+    Stripe?: StripeLike;
+  }
+}
+
+function unwrapStripe(candidate: unknown): StripeLike | undefined {
+  if (typeof candidate !== "function") return undefined;
+  const fn = candidate as StripeLike;
+  return fn.__gafaOriginal ?? fn;
+}
+
+function invokeStripe(original: StripeLike, args: unknown[], asConstruct: boolean): StripeInstance {
+  if (asConstruct) {
+    return Reflect.construct(original as unknown as new (...a: unknown[]) => StripeInstance, args) as StripeInstance;
+  }
+  try {
+    return original(...args);
+  } catch {
+    return Reflect.construct(original as unknown as new (...a: unknown[]) => StripeInstance, args) as StripeInstance;
+  }
+}
+
+/**
+ * Envuelve `window.Stripe` para que cada `elements.create('card')` reciba
+ * texto claro u oscuro. Idempotente: si ya esta parcheado al mismo scheme, no
+ * hace nada. Stripe.js puede llegar DESPUES (GafaPay lo baja on demand).
+ *
+ * El cleanup NO borra Stripe.js: GafaPay lo inyecta via el setter; si al
+ * desmontar hacemos `delete window.Stripe`, el script ya corrió y el form
+ * se queda en skeleton para siempre.
+ */
+export function installStripeCardTheme(scheme: ColorScheme): () => void {
+  if (typeof window === "undefined") return () => undefined;
+
+  let raw = unwrapStripe(window.Stripe);
+
+  const wrap = (candidate: unknown): StripeLike | undefined => {
+    if (typeof candidate === "function") {
+      const fn = candidate as StripeLike;
+      if (fn.__gafaTheme === scheme && fn.__gafaOriginal) return fn;
+    }
+    const original = unwrapStripe(candidate);
+    if (!original) return undefined;
+    raw = original;
+
+    const patched = function StripePatched(this: unknown, ...args: unknown[]) {
+      const instance = invokeStripe(original, args, Boolean(new.target));
+      return wrapStripeInstance(instance, scheme);
+    } as StripeLike;
+    Object.assign(patched, original);
+    Object.setPrototypeOf(patched, Object.getPrototypeOf(original));
+    patched.__gafaOriginal = original;
+    patched.__gafaTheme = scheme;
+    return patched;
+  };
+
+  const current = wrap(window.Stripe);
+  if (current) window.Stripe = current;
+
+  let stored = window.Stripe;
+  const descriptor = Object.getOwnPropertyDescriptor(window, "Stripe");
+  Object.defineProperty(window, "Stripe", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return stored;
+    },
+    set(next: unknown) {
+      stored = wrap(next) ?? (next as StripeLike);
+    },
+  });
+
+  return () => {
+    const restore = raw ?? unwrapStripe(stored);
+    if (restore) {
+      Object.defineProperty(window, "Stripe", {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: restore,
+      });
+      return;
+    }
+    if (descriptor && descriptor.get !== undefined) {
+      Object.defineProperty(window, "Stripe", descriptor);
+      return;
+    }
+    if (descriptor && !descriptor.get) {
+      Object.defineProperty(window, "Stripe", descriptor);
+      return;
+    }
+    delete window.Stripe;
+  };
+}
+
+/**
+ * Stripe.js reciente define `elements` como getter en el prototipo. Asignar
+ * `instance.elements = …` tira "which has only a getter" y tumba el checkout.
+ * Preferimos una propiedad propia que sombrea el getter; si no se puede,
+ * devolvemos un Proxy.
+ */
+function overrideMethod<T extends object>(target: T, key: string, impl: unknown): T {
+  try {
+    Object.defineProperty(target, key, {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: impl,
+    });
+    return target;
+  } catch {
+    return new Proxy(target, {
+      get(obj, prop, receiver) {
+        if (prop === key) return impl;
+        const value = Reflect.get(obj, prop, receiver);
+        return typeof value === "function" ? value.bind(obj) : value;
+      },
+    }) as T;
+  }
+}
+
+function wrapStripeInstance(instance: StripeInstance, scheme: ColorScheme): StripeInstance {
+  try {
+    const originalElements = instance.elements?.bind(instance);
+    if (!originalElements) return instance;
+    return overrideMethod(instance, "elements", (options?: unknown) => {
+      const elements = originalElements(mergeStripeElementsOptions(options, scheme));
+      const originalCreate = elements.create.bind(elements);
+      return overrideMethod(elements, "create", (type: string, options: Record<string, unknown> = {}) => {
+        const isCard = CARD_ELEMENT_TYPES.has(type);
+        const nextOptions = isCard
+          ? { ...options, style: mergeStripeCardStyle(options.style, scheme) }
+          : options;
+        const created = originalCreate(type, nextOptions);
+        return isCard ? wrapCreatedElement(created, scheme) : created;
+      });
+    });
+  } catch {
+    // Si el wrap truena, GafaPay tiene que seguir: tarjeta sin tema es mejor
+    // que el checkout en blanco ("No se pudo cargar el formulario de pago").
+    return instance;
+  }
+}
+
+type StripeUpdatable = {
+  update?: (options?: Record<string, unknown>) => unknown;
+};
+
+/** GafaPay llama `card.update({ style: { color: #303238 } })` despues del create. */
+function wrapCreatedElement(element: unknown, scheme: ColorScheme): unknown {
+  if (!element || typeof element !== "object") return element;
+  const card = element as StripeUpdatable;
+  if (typeof card.update !== "function") return element;
+  const originalUpdate = card.update.bind(card);
+  return overrideMethod(card, "update", (options: Record<string, unknown> = {}) =>
+    originalUpdate({
+      ...options,
+      style: mergeStripeCardStyle(options.style, scheme),
+    }),
+  );
+}
