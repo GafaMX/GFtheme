@@ -155,7 +155,8 @@ type RawUserMembership = {
   id: number;
   created_at?: string;
   expiration_date?: string;
-  membership: { name: string };
+  memberships_id?: number;
+  membership?: { id?: number; name?: string };
 };
 
 type RawStaff = { name?: string; lastname?: string; job?: string | null; apodo?: string | null };
@@ -229,7 +230,15 @@ type RawPurchase = {
   total: number;
   created_at?: string;
   currency?: { prefijo?: string };
-  items?: Array<{ item_name?: string }>;
+  items?: Array<{
+    item_name?: string;
+    item_id?: number;
+    items_id?: number;
+    memberships_id?: number;
+    product_type?: string;
+    item_type?: string;
+    type?: string;
+  }>;
   location?: { name?: string } | string | null;
   status?: string | { name?: string } | null;
   payment_type?: string | null;
@@ -1197,13 +1206,25 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async listUserMemberships(brandSlug) {
       if (!token || !brandSlug) return [];
-      const response = await apiGet<PaginatedResponse<RawUserMembership>>(`/me/brand/${brandSlug}/memberships`);
-      return unwrap(response).map((raw) => ({
-        id: raw.id,
-        name: raw.membership.name,
-        startedAt: raw.created_at,
-        expiresAt: raw.expiration_date,
-      }));
+      const acc: UserMembership[] = [];
+      for (let page = 1; page <= 20; page += 1) {
+        const response = await apiGet<PaginatedResponse<RawUserMembership>>(`/me/brand/${brandSlug}/memberships`, {
+          per_page: 50,
+          page,
+        });
+        acc.push(
+          ...unwrap(response).map((raw) => ({
+            id: raw.id,
+            name: raw.membership?.name ?? "Membresía",
+            membershipId: readNumericId(raw.memberships_id) ?? readNumericId(raw.membership?.id) ?? undefined,
+            startedAt: raw.created_at,
+            expiresAt: raw.expiration_date,
+          })),
+        );
+        const meta = laravelPageMeta(response);
+        if (!meta || page >= meta.lastPage) break;
+      }
+      return acc;
     },
 
     async listUserReservations(brandSlug, when = "future") {
@@ -1236,27 +1257,48 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
     async listUserPurchases(brandSlug) {
       if (!token || !brandSlug) return [];
-      const response = await apiGet<PaginatedResponse<RawPurchase>>(`/me/brand/${brandSlug}/purchases`, {
-        reducePopulation: true,
-      });
-      return unwrap(response).map((raw) => {
-        const status =
-          typeof raw.status === "string"
-            ? raw.status
-            : raw.status && typeof raw.status === "object"
-              ? raw.status.name
-              : undefined;
-        return {
-          id: raw.id,
-          name: raw.items?.[0]?.item_name ?? "Compra",
-          total: raw.total,
-          currencyPrefix: raw.currency?.prefijo,
-          createdAt: raw.created_at,
-          locationName: locationLabel(raw.location),
-          status,
-          paymentType: raw.payment_type ?? raw.paymentType ?? undefined,
-        };
-      });
+      const acc: UserPurchase[] = [];
+      for (let page = 1; page <= 20; page += 1) {
+        const response = await apiGet<PaginatedResponse<RawPurchase>>(`/me/brand/${brandSlug}/purchases`, {
+          reducePopulation: true,
+          per_page: 50,
+          page,
+        });
+        acc.push(
+          ...unwrap(response).map((raw) => {
+            const status =
+              typeof raw.status === "string"
+                ? raw.status
+                : raw.status && typeof raw.status === "object"
+                  ? raw.status.name
+                  : undefined;
+            const items = (raw.items ?? []).map((item) => ({
+              id: readNumericId(item.item_id) ?? readNumericId(item.items_id) ?? undefined,
+              name: item.item_name,
+              type: item.item_type ?? item.type,
+              productType: item.product_type,
+              membershipId: readNumericId(item.memberships_id) ?? undefined,
+            }));
+            const first = items[0];
+            return {
+              id: raw.id,
+              name: first?.name ?? "Compra",
+              total: raw.total,
+              currencyPrefix: raw.currency?.prefijo,
+              createdAt: raw.created_at,
+              locationName: locationLabel(raw.location),
+              status,
+              paymentType: raw.payment_type ?? raw.paymentType ?? undefined,
+              itemType: first?.type ?? first?.productType,
+              itemId: first?.membershipId ?? first?.id,
+              items,
+            };
+          }),
+        );
+        const meta = laravelPageMeta(response);
+        if (!meta || page >= meta.lastPage) break;
+      }
+      return acc;
     },
 
     async cancelReservation(brandSlug, reservationId) {

@@ -40,7 +40,13 @@ export function startCartGuard({ client, notify = (m) => showToast(m, "error"), 
     if (!lines.length) return;
     const profile = await client.getProfile().catch(() => null);
     if (!profile || stopped) return;
-    const pending = lines.filter((l) => l.brandSlug && !okLines.has(sig(profile.id, l)));
+    const pending = lines.filter(
+      (l) =>
+        l.brandSlug &&
+        l.role !== "enrollment" &&
+        l.raw?.enrollment_fee !== true &&
+        !okLines.has(sig(profile.id, l)),
+    );
     if (!pending.length) return;
     const configs = new Map<string, Awaited<ReturnType<NonNullable<GafaClient["getCheckoutConfig"]>>> | null>();
     const bad: Array<{ line: CartLine; err: unknown }> = [];

@@ -178,6 +178,8 @@ export type UserCredit = {
 export type UserMembership = {
   id: number;
   name: string;
+  /** `memberships.id` del catálogo. El `id` de arriba es el registro del usuario. */
+  membershipId?: number;
   startedAt?: string;
   expiresAt?: string;
 };
@@ -223,6 +225,15 @@ export type UserPurchase = {
   locationName?: string;
   status?: string;
   paymentType?: string;
+  itemType?: string;
+  itemId?: number;
+  items?: Array<{
+    id?: number;
+    name?: string;
+    type?: string;
+    productType?: string;
+    membershipId?: number;
+  }>;
 };
 
 /** KPIs de actividad del usuario (`GET /api/me/totals`). */

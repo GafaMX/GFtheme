@@ -133,6 +133,16 @@ export const sdkConfigSchema = z
      * Títulos libres: donaciones, proteína, etc.
      */
     crossSell: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
+    /**
+     * Matrícula opt-in. Sin este bloque el SDK no cambia nada.
+     * `{ comboId, label, membershipIds, firstTimeScope, mode }`.
+     */
+    membershipEnrollment: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
+    /**
+     * Checkout de prueba: no carga GafaPay ni cobra tarjetas reales.
+     * Solo para preview/demo. No va al Hub.
+     */
+    mockPay: z.boolean().optional(),
     images: imagesSchema,
     theme: legacyThemeSchema,
     /**
@@ -155,6 +165,8 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   captchaSecretKey: string;
   concierge?: boolean | Record<string, unknown>;
   crossSell?: boolean | Record<string, unknown>;
+  membershipEnrollment?: boolean | Record<string, unknown>;
+  mockPay?: boolean;
 };
 
 const legacyOptionsSchema = z
@@ -177,6 +189,8 @@ const legacyOptionsSchema = z
     CONCIERGE: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     concierge: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     CROSS_SELL: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
+    MEMBERSHIP_ENROLLMENT: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
+    MOCK_PAY: z.union([z.boolean(), z.string()]).optional(),
   })
   .passthrough();
 
@@ -222,6 +236,8 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     theme: legacyOptions.THEME,
     concierge: legacyOptions.CONCIERGE ?? legacyOptions.concierge,
     crossSell: legacyOptions.CROSS_SELL,
+    membershipEnrollment: legacyOptions.MEMBERSHIP_ENROLLMENT,
+    mockPay: coerceFlag(legacyOptions.MOCK_PAY),
   });
 }
 

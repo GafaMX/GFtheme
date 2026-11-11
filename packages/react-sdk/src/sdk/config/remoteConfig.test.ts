@@ -13,12 +13,14 @@ describe("sanitizeHubRemoteConfig", () => {
         clientSecret: "nope",
         CAPTCHA_SECRET_KEY: "nope",
         CROSS_SELL: { enabled: true, itemId: 971 },
+        MEMBERSHIP_ENROLLMENT: { comboId: 3491, membershipIds: [1271] },
         WEIRD_KEY: true,
       }),
     ).toEqual({
       THEME: { colorScheme: "dark" },
       CONCIERGE: true,
       CROSS_SELL: { enabled: true, itemId: 971 },
+      MEMBERSHIP_ENROLLMENT: { comboId: 3491, membershipIds: [1271] },
     });
   });
 

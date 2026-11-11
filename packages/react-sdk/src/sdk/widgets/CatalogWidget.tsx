@@ -1,6 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CatalogItem, GafaClient } from "../client/types";
 import { formatMoney, resolveMoneyCurrency } from "../cart/money";
+import {
+  hideEnrollmentFromCatalog,
+  parseMembershipEnrollment,
+  readMembershipEnrollmentFromOptions,
+} from "../cart/membershipEnrollment";
 import { WidgetShell } from "./WidgetShell";
 
 export type CatalogKind = "packages" | "memberships" | "services" | "staff";
@@ -53,9 +58,22 @@ export function CatalogWidget({
       );
 
       const items = results.flat();
-      if (!filterByName) return items;
+      const optionsJson =
+        typeof document === "undefined"
+          ? null
+          : document.querySelector("[data-gafa-options], [data-gf-options]")?.textContent;
+      let enrollment = null;
+      try {
+        enrollment = optionsJson
+          ? readMembershipEnrollmentFromOptions(JSON.parse(optionsJson) as Record<string, unknown>)
+          : parseMembershipEnrollment(undefined);
+      } catch {
+        enrollment = null;
+      }
+      const visible = hideEnrollmentFromCatalog(items, enrollment);
+      if (!filterByName) return visible;
 
-      return items.filter((item) => item.name.toLowerCase().includes(filterByName.toLowerCase()));
+      return visible.filter((item) => item.name.toLowerCase().includes(filterByName.toLowerCase()));
     },
   });
 

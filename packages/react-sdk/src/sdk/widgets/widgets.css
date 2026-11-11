@@ -6519,6 +6519,19 @@ svg.gafa-acct-qr__image {
   width: 22px;
 }
 
+.gafa-checkout__line-lock {
+  --gafa-type-size: 0.62rem;
+  color: var(--gafa-color-muted-text);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gafa-checkout__lines li[data-enrollment="true"] .gafa-checkout__line-info span {
+  color: var(--gafa-color-muted-text);
+}
+
 .gafa-checkout__line-remove:hover {
   --gafa-control-fg: var(--gafa-color-danger, #dc2626);
   --gafa-fg: var(--gafa-color-danger, #dc2626);

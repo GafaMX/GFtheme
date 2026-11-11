@@ -116,14 +116,23 @@ export async function syncGafaPayMembershipToggles(
  * que gafa.fit v1: una sola membresía (cantidad 1) con `expiration_days` > 0 y
  * nada más con costo en el carrito; si no, null (cobro único).
  */
+function isEnrollmentFeeLine(line: {
+  type: string;
+  role?: string;
+  raw?: Record<string, unknown>;
+}): boolean {
+  return line.role === "enrollment" || line.raw?.enrollment_fee === true;
+}
+
 export function membershipPaymentFrequency(
-  lines: Array<{ type: string; amount: number; price: number; raw?: Record<string, unknown> }>,
+  lines: Array<{ type: string; amount: number; price: number; role?: string; raw?: Record<string, unknown> }>,
 ): string | null {
-  const memberships = lines.filter((line) => line.type === "membership");
+  const billable = lines.filter((line) => !isEnrollmentFeeLine(line));
+  const memberships = billable.filter((line) => line.type === "membership");
   if (memberships.length !== 1) return null;
   const [membership] = memberships;
   if (membership.amount !== 1) return null;
-  if (lines.some((line) => line !== membership && line.price * line.amount > 0)) return null;
+  if (billable.some((line) => line !== membership && line.price * line.amount > 0)) return null;
   const days = Number(membership.raw?.expiration_days);
   return Number.isFinite(days) && days > 0 ? String(Math.trunc(days)) : null;
 }
