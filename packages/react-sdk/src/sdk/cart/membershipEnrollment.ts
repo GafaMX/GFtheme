@@ -337,14 +337,55 @@ export function customerNeedsEnrollmentFee(input: {
   return true;
 }
 
-export async function detectEnrollmentNeed(input: {
+export type EnrollmentDetectionSource =
+  | "memberships"
+  | "purchases"
+  | "empty"
+  | "fail_closed"
+  | "ineligible"
+  | "every_charge";
+
+export type EnrollmentDetection = {
+  needed: boolean;
+  firstTime: boolean;
+  source: EnrollmentDetectionSource;
+  sourceLabel: string;
+  membershipsCount: number;
+  purchasesCount: number;
+  membershipsFailed: boolean;
+  purchasesFailed: boolean;
+};
+
+export async function inspectEnrollmentNeed(input: {
   config: MembershipEnrollmentConfig;
   client: Pick<GafaClient, "listUserMemberships" | "listUserPurchases">;
   brandSlug: string;
   membershipId: number;
-}): Promise<boolean> {
-  if (!isEligibleMembershipId(input.config, input.membershipId)) return false;
-  if (input.config.mode === "every_charge") return true;
+}): Promise<EnrollmentDetection> {
+  if (!isEligibleMembershipId(input.config, input.membershipId)) {
+    return {
+      needed: false,
+      firstTime: false,
+      source: "ineligible",
+      sourceLabel: "esa membresía no lleva matrícula",
+      membershipsCount: 0,
+      purchasesCount: 0,
+      membershipsFailed: false,
+      purchasesFailed: false,
+    };
+  }
+  if (input.config.mode === "every_charge") {
+    return {
+      needed: true,
+      firstTime: false,
+      source: "every_charge",
+      sourceLabel: "modo every_charge (siempre)",
+      membershipsCount: 0,
+      purchasesCount: 0,
+      membershipsFailed: false,
+      purchasesFailed: false,
+    };
+  }
 
   let memberships: UserMembership[] | null = null;
   let membershipsFailed = false;
@@ -371,7 +412,7 @@ export async function detectEnrollmentNeed(input: {
     }
   }
 
-  return customerNeedsEnrollmentFee({
+  const needed = customerNeedsEnrollmentFee({
     config: input.config,
     membershipId: input.membershipId,
     memberships,
@@ -379,6 +420,52 @@ export async function detectEnrollmentNeed(input: {
     membershipsFailed,
     purchasesFailed,
   });
+
+  const membershipsCount = membershipsFailed ? 0 : (memberships?.length ?? 0);
+  const purchasesCount = purchasesFailed ? 0 : (purchases?.length ?? 0);
+  let source: EnrollmentDetectionSource = "empty";
+  let sourceLabel = "historial vacío (primera vez)";
+  if (membershipsFailed && purchasesFailed) {
+    source = "fail_closed";
+    sourceLabel = "no se pudo leer historial (fail-closed: se cobra)";
+  } else if (!needed && !membershipsFailed && membershipsCount > 0) {
+    source = "memberships";
+    sourceLabel = "historial de membresías";
+  } else if (!needed && purchasesOkHasMembership(purchases, purchasesFailed)) {
+    source = "purchases";
+    sourceLabel = "fallback de compras";
+  } else if (needed) {
+    source = membershipsFailed && purchasesFailed ? "fail_closed" : "empty";
+    sourceLabel =
+      membershipsFailed && purchasesFailed
+        ? "no se pudo leer historial (fail-closed: se cobra)"
+        : "historial vacío (primera vez)";
+  }
+
+  return {
+    needed,
+    firstTime: needed,
+    source,
+    sourceLabel,
+    membershipsCount,
+    purchasesCount,
+    membershipsFailed,
+    purchasesFailed,
+  };
+}
+
+function purchasesOkHasMembership(purchases: UserPurchase[] | null, purchasesFailed: boolean): boolean {
+  if (purchasesFailed || !Array.isArray(purchases)) return false;
+  return purchasesIncludeMembership(purchases);
+}
+
+export async function detectEnrollmentNeed(input: {
+  config: MembershipEnrollmentConfig;
+  client: Pick<GafaClient, "listUserMemberships" | "listUserPurchases">;
+  brandSlug: string;
+  membershipId: number;
+}): Promise<boolean> {
+  return (await inspectEnrollmentNeed(input)).needed;
 }
 
 export const ENROLLMENT_CHARGE_FAILED_MESSAGE =

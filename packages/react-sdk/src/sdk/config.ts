@@ -143,6 +143,10 @@ export const sdkConfigSchema = z
      * Solo para preview/demo. No va al Hub.
      */
     mockPay: z.boolean().optional(),
+    /**
+     * Preview de matrícula: allowlist HTTP (login + lecturas). No va al Hub.
+     */
+    safeTestMode: z.boolean().optional(),
     images: imagesSchema,
     theme: legacyThemeSchema,
     /**
@@ -167,6 +171,7 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   crossSell?: boolean | Record<string, unknown>;
   membershipEnrollment?: boolean | Record<string, unknown>;
   mockPay?: boolean;
+  safeTestMode?: boolean;
 };
 
 const legacyOptionsSchema = z
@@ -191,6 +196,7 @@ const legacyOptionsSchema = z
     CROSS_SELL: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     MEMBERSHIP_ENROLLMENT: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     MOCK_PAY: z.union([z.boolean(), z.string()]).optional(),
+    SAFE_TEST_MODE: z.union([z.boolean(), z.string()]).optional(),
   })
   .passthrough();
 
@@ -238,6 +244,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     crossSell: legacyOptions.CROSS_SELL,
     membershipEnrollment: legacyOptions.MEMBERSHIP_ENROLLMENT,
     mockPay: coerceFlag(legacyOptions.MOCK_PAY),
+    safeTestMode: coerceFlag(legacyOptions.SAFE_TEST_MODE),
   });
 }
 

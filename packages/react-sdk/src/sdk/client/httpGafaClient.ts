@@ -64,6 +64,7 @@ import {
   parseApiErrorPayload,
   userFacingApiErrorMessage,
 } from "./apiError";
+import { assertSafeTestRequest } from "./safeTestGuard";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -512,6 +513,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
 
   async function request(url: string, init: RequestInit = {}): Promise<Response> {
     const method = String(init.method ?? "GET").toUpperCase();
+    if (config.safeTestMode) assertSafeTestRequest(method, url);
     try {
       return await fetch(url, init);
     } catch (cause) {
@@ -863,8 +865,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       timeZone: raw.time_zone ?? undefined,
       termsConditionsLink: raw.terms_conditions_link ?? null,
       gafapayBrandId: raw.gafapay_brand_id ?? null,
-      gafapayClientId: raw.gafapay_client_id != null ? String(raw.gafapay_client_id) : null,
-      gafapayClientSecret: raw.gafapay_client_secret ?? null,
+      gafapayClientId:
+        config.safeTestMode || raw.gafapay_client_id == null ? null : String(raw.gafapay_client_id),
+      gafapayClientSecret: config.safeTestMode ? null : (raw.gafapay_client_secret ?? null),
       currency: resolveMoneyCurrency(raw.currency) ?? undefined,
     };
   }

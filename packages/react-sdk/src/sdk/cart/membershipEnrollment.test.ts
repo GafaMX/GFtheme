@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { CartLine } from "./cartStore";
-import type { CatalogItem, UserPurchase } from "../client/types";
+import type { CatalogItem } from "../client/types";
 import {
   buildEnrollmentLine,
   customerNeedsEnrollmentFee,
   discountableLines,
   hideEnrollmentFromCatalog,
+  inspectEnrollmentNeed,
   isEnrollmentLine,
   parseMembershipEnrollment,
   shouldAttachEnrollmentLine,
@@ -216,6 +217,63 @@ describe("locked cart line / hidden combo", () => {
     expect(hideEnrollmentFromCatalog([combo, { id: 10, name: "Bono", type: "combo" as const }], config)).toEqual([
       { id: 10, name: "Bono", type: "combo" },
     ]);
+  });
+});
+
+describe("inspectEnrollmentNeed", () => {
+  it("marca primera vez cuando el historial de membresías está vacío", async () => {
+    const result = await inspectEnrollmentNeed({
+      config,
+      brandSlug: "the-base",
+      membershipId: 1271,
+      client: {
+        listUserMemberships: async () => [],
+        listUserPurchases: async () => [],
+      },
+    });
+    expect(result.needed).toBe(true);
+    expect(result.firstTime).toBe(true);
+    expect(result.source).toBe("empty");
+    expect(result.sourceLabel).toMatch(/historial vacío/);
+  });
+
+  it("usa el historial de membresías para un recurrente", async () => {
+    const result = await inspectEnrollmentNeed({
+      config,
+      brandSlug: "the-base",
+      membershipId: 1271,
+      client: {
+        listUserMemberships: async () => [{ id: 9, membershipId: 1272, name: "Bronze" }],
+        listUserPurchases: async () => {
+          throw new Error("no debería caer al fallback");
+        },
+      },
+    });
+    expect(result.needed).toBe(false);
+    expect(result.source).toBe("memberships");
+    expect(result.sourceLabel).toBe("historial de membresías");
+  });
+
+  it("cae al fallback de compras si no hay membresías", async () => {
+    const result = await inspectEnrollmentNeed({
+      config,
+      brandSlug: "the-base",
+      membershipId: 1271,
+      client: {
+        listUserMemberships: async () => [],
+        listUserPurchases: async () => [
+          {
+            id: 1,
+            name: "Silver",
+            total: 85,
+            items: [{ membershipId: 1271, type: "membership" }],
+          },
+        ],
+      },
+    });
+    expect(result.needed).toBe(false);
+    expect(result.source).toBe("purchases");
+    expect(result.sourceLabel).toBe("fallback de compras");
   });
 });
 
