@@ -185,6 +185,7 @@ function euro(amount: number) {
 function createMockPreviewClient(input: {
   isReturning: boolean;
   signedIn: { current: boolean };
+  slowReview?: boolean;
   onCheckoutWarning?: (message: string, notice?: EnrollmentChargeFailedNotice) => void;
 }): GafaClient {
   return {
@@ -235,7 +236,10 @@ function createMockPreviewClient(input: {
       }
       return { valid: false, code, message: "Código no válido" };
     },
-    previewPurchase: async () => undefined,
+    previewPurchase: async () => {
+      if (input.slowReview) return new Promise(() => undefined);
+      return undefined;
+    },
     reservatePurchase: async () => ({ purchaseId: Math.floor(Math.random() * 9000) + 1000 }),
     listUserMemberships: async () =>
       input.isReturning ? [{ id: 9, membershipId: 1272, name: "Bronze", expiresAt: new Date().toISOString() }] : [],
@@ -390,9 +394,10 @@ export function TheBaseMatriculaPreview() {
   const isGuest = previewFlag("guest");
   const isReturning = previewFlag("returning");
   const failEnrollment = previewFlag("fail-enrollment");
+  const slowReview = previewFlag("slow-review");
   // Cuentas reales = default. Las variantes de hash siguen mock (como antes):
-  // guest, returning y fail-enrollment no piden API_SECRET ni login OAuth.
-  const isLive = !isGuest && !isReturning && !failEnrollment;
+  // guest, returning, fail-enrollment y slow-review no piden API_SECRET ni login OAuth.
+  const isLive = !isGuest && !isReturning && !failEnrollment && !slowReview;
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [apiSecret, setApiSecret] = useState(readPreviewApiSecret);
   const [secretDraft, setSecretDraft] = useState("");
@@ -410,7 +415,7 @@ export function TheBaseMatriculaPreview() {
   const cartHasItems = useCartStore((s) => s.lines.length > 0);
   const cartLines = useCartStore((s) => s.lines);
   const queryClient = useMemo(() => new QueryClient({ defaultOptions: { queries: { retry: 0 } } }), []);
-  const sessionKey = `${isGuest ? "g" : "u"}-${isReturning ? "r" : "n"}-${isLive ? "live" : "mock"}`;
+  const sessionKey = `${isGuest ? "g" : "u"}-${isReturning ? "r" : "n"}-${isLive ? "live" : "mock"}-${slowReview ? "slow" : "fast"}`;
   const prevSessionKey = useRef(sessionKey);
   const previewSignedIn = useRef(!isGuest && !isLive);
   const liveHttpRef = useRef<GafaClient | null>(null);
@@ -428,9 +433,10 @@ export function TheBaseMatriculaPreview() {
       createMockPreviewClient({
         isReturning,
         signedIn: previewSignedIn,
+        slowReview,
         onCheckoutWarning: (message, notice) => warningSink.current(message, notice),
       }),
-    [isReturning],
+    [isReturning, slowReview],
   );
   const liveBundle = useMemo(
     () =>
@@ -585,9 +591,13 @@ export function TheBaseMatriculaPreview() {
               Preview de matrícula (SDK V2). Lecturas reales contra <code>buq.partners</code> de The Base
               (login, perfil, historial, catálogo). Cobros y altas siguen mockeados: GafaPay, Stripe,{" "}
               <code>/reservate</code> y cualquier POST de compra se cortan en el cliente HTTP. Variantes
-              mock: <code>#returning=1</code>, <code>#fail-enrollment=1</code>, <code>#guest=1</code>.
+              mock: <code>#returning=1</code>, <code>#fail-enrollment=1</code>, <code>#guest=1</code>,{" "}
+              <code>#slow-review=1</code>.
               {isReturning ? " Esta cuenta mock ya tuvo una membresía: no debe aparecer matrícula." : ""}
               {failEnrollment ? " Esta URL fuerza el fallo del segundo cobro (mock)." : ""}
+              {slowReview
+                ? " Esta URL cuelga el preflight de /reservate: a los 8 s debe aparecer el pago, no quedarse en «Revisando tu compra…»."
+                : ""}
               {isGuest
                 ? " Sin sesión mock: el plan ya elegido no vuelve al catálogo. Entra o crea cuenta (cualquier email y contraseña) y caes en Pagar."
                 : ""}
@@ -705,7 +715,7 @@ export function TheBaseMatriculaPreview() {
               skipCatalog={cartHasItems}
               captcha={{ execute: async () => "preview-captcha" }}
               membershipEnrollment={ENROLLMENT}
-              mockPay
+              mockPay={!slowReview}
               chargeEnrollmentFee={
                 failEnrollment
                   ? async () => {
