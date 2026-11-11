@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "./sdk/theme/theme";
 import { CheckoutModal } from "./sdk/widgets/CheckoutModal";
@@ -6,7 +6,6 @@ import { HeaderControls } from "./sdk/widgets/HeaderControls";
 import { CatalogWidget } from "./sdk/widgets/CatalogWidget";
 import { useCartStore } from "./sdk/cart/cartStore";
 import type { CatalogItem, GafaClient } from "./sdk/client/types";
-import { ENROLLMENT_CHARGE_FAILED_MESSAGE } from "./sdk/cart/membershipEnrollment";
 import "./sdk/theme/theme.css";
 import "./sdk/widgets/widgets.css";
 import "./demo/demo.css";
@@ -101,6 +100,28 @@ const combos: CatalogItem[] = [
   },
 ];
 
+function subscribePreviewLocation(onStoreChange: () => void) {
+  window.addEventListener("hashchange", onStoreChange);
+  window.addEventListener("popstate", onStoreChange);
+  return () => {
+    window.removeEventListener("hashchange", onStoreChange);
+    window.removeEventListener("popstate", onStoreChange);
+  };
+}
+
+function previewLocationKey() {
+  return `${window.location.search}\n${window.location.hash}`;
+}
+
+function previewFlag(name: string): boolean {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, "").replace(/^\?/, ""));
+  if (hash.get(name) === "1") return true;
+  const search = new URLSearchParams(window.location.search);
+  if (search.get(name) === "1") return true;
+  // htmlpreview.github.io keeps the GitHub URL in `search`; flags go in the hash.
+  return new URLSearchParams(window.location.href.split("#")[1] ?? "").get(name) === "1";
+}
+
 function ensurePreviewOptions() {
   if (typeof document === "undefined") return;
   if (document.querySelector("[data-gf-options], [data-gafa-options]")) return;
@@ -118,14 +139,21 @@ function ensurePreviewOptions() {
 
 export function TheBaseMatriculaPreview() {
   ensurePreviewOptions();
-  const params = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, "").replace(/^\?/, ""));
-  const flag = (name: string) => params.get(name) === "1" || hashParams.get(name) === "1";
-  const isGuest = flag("guest");
-  const isReturning = flag("returning");
-  const failEnrollment = flag("fail-enrollment");
+  useSyncExternalStore(subscribePreviewLocation, previewLocationKey, () => "");
+  const isGuest = previewFlag("guest");
+  const isReturning = previewFlag("returning");
+  const failEnrollment = previewFlag("fail-enrollment");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const queryClient = useMemo(() => new QueryClient({ defaultOptions: { queries: { retry: 0 } } }), []);
+  const sessionKey = `${isGuest ? "g" : "u"}-${isReturning ? "r" : "n"}`;
+  const prevSessionKey = useRef(sessionKey);
+
+  useEffect(() => {
+    if (prevSessionKey.current === sessionKey) return;
+    prevSessionKey.current = sessionKey;
+    queryClient.clear();
+    useCartStore.getState().resetAfterPurchase();
+  }, [sessionKey, queryClient]);
 
   const client = useMemo<GafaClient>(() => {
     return {
@@ -196,10 +224,10 @@ export function TheBaseMatriculaPreview() {
       listMeetings: async () => [],
       cancelReservation: async () => undefined,
     } as GafaClient;
-  }, [failEnrollment, isGuest, isReturning]);
+  }, [isGuest, isReturning]);
 
   useEffect(() => {
-    useCartStore.setState({ lines: [], reservation: null });
+    useCartStore.getState().resetAfterPurchase();
   }, []);
 
   return (
@@ -276,6 +304,7 @@ export function TheBaseMatriculaPreview() {
           </main>
           {checkoutOpen ? (
             <CheckoutModal
+              key={sessionKey}
               client={client}
               brandSlug="the-base"
               locationSlug="pozuelo"
@@ -292,9 +321,6 @@ export function TheBaseMatriculaPreview() {
               }
               onClose={() => setCheckoutOpen(false)}
             />
-          ) : null}
-          {failEnrollment ? (
-            <p className="gafa-sr-only">{ENROLLMENT_CHARGE_FAILED_MESSAGE}</p>
           ) : null}
         </div>
       </QueryClientProvider>

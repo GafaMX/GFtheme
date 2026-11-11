@@ -803,9 +803,10 @@ export function CheckoutModal({
     !waitingOnTerms &&
     !waitingOnGift &&
     !paying &&
-    (isFreeTotal ? Boolean(config) : Boolean(selectedMethod) && (paymentReady || mockPay));
+    (isFreeTotal || mockPay || (Boolean(selectedMethod) && paymentReady));
   const purchaseAlreadyClear = purchaseClearKey.current === purchaseKey && purchaseKey.length > 0;
   const holdPayForm =
+    !mockPay &&
     step === "pay" &&
     !registerOnly &&
     !purchaseNotice &&
@@ -1152,7 +1153,7 @@ export function CheckoutModal({
       if (!profile || !client.reservatePurchase || !brandSlug || !locationSlug) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
-      if (!isFreeTotal && !selectedMethod) {
+      if (!isFreeTotal && !selectedMethod && !mockPay) {
         throw new Error("No pudimos completar la compra. Recarga e inténtalo de nuevo.");
       }
 
@@ -1613,6 +1614,11 @@ export function CheckoutModal({
   // las reglas corren antes de pintar la tarjeta. registerOnly ya cobró.
   useEffect(() => {
     if (purchaseNotice || step !== "pay" || registerOnly) return;
+    if (mockPay) {
+      purchaseClearKey.current = purchaseKey;
+      setPurchaseChecking(false);
+      return;
+    }
     if (!client.previewPurchase || !isSignedIn || !profileQuery.data) return;
     if (!brandSlug || !locationSlug || relevantLines.length === 0) return;
     if (configQuery.isLoading || configQuery.isError) return;
@@ -1643,10 +1649,12 @@ export function CheckoutModal({
       });
     return () => {
       cancelled = true;
+      if (!mockPay) setPurchaseChecking(false);
     };
     // assertCanPurchase lee el carrito y la config de este render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    mockPay,
     purchaseNotice,
     step,
     registerOnly,
@@ -2908,7 +2916,7 @@ function PayPanel({
 
   return (
     <div className="gafa-checkout-pay">
-      {configLoading ? <PaySkeleton withMethods label="Cargando métodos de pago…" /> : null}
+      {configLoading && !mockPay ? <PaySkeleton withMethods label="Cargando métodos de pago…" /> : null}
 
       {methods.length > 1 ? (
         <div className="gafa-checkout-methods" role="tablist" aria-label="Método de pago">

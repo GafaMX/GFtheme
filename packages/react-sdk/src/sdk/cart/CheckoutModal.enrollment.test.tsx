@@ -196,6 +196,16 @@ describe("CheckoutModal matrícula", () => {
     ]);
   });
 
+  it("con mockPay, Ir a pagar muestra el panel y no se queda revisando", async () => {
+    renderEnrollment(mockClient(), { skipCatalog: false, failEnrollment: true });
+    fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
+    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /ir a pagar/i }));
+    await waitFor(() => expect(screen.getByText(/pago de prueba/i)).toBeTruthy());
+    expect(screen.queryByText(/revisando tu compra/i)).toBeNull();
+    expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("un Pagar hace dos cargos: membresía recurrente y matrícula única", async () => {
     const client = mockClient();
     renderEnrollment(client);
