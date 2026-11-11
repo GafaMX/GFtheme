@@ -119,9 +119,11 @@ function ensurePreviewOptions() {
 export function TheBaseMatriculaPreview() {
   ensurePreviewOptions();
   const params = new URLSearchParams(window.location.search);
-  const isGuest = params.get("guest") === "1";
-  const isReturning = params.get("returning") === "1";
-  const failEnrollment = params.get("fail-enrollment") === "1";
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, "").replace(/^\?/, ""));
+  const flag = (name: string) => params.get(name) === "1" || hashParams.get(name) === "1";
+  const isGuest = flag("guest");
+  const isReturning = flag("returning");
+  const failEnrollment = flag("fail-enrollment");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const queryClient = useMemo(() => new QueryClient({ defaultOptions: { queries: { retry: 0 } } }), []);
 
@@ -229,6 +231,8 @@ export function TheBaseMatriculaPreview() {
             <p style={{ maxWidth: 640, color: "#B9B0A2", lineHeight: 1.5 }}>
               Preview de matrícula (SDK V2). <strong>No cobra tarjetas reales</strong>: el botón Pagar simula
               dos cargos (membresía + matrícula). Agrega Silver para ver la línea atada de 30 €.
+              Variantes: <code>#returning=1</code> (sin matrícula), <code>#fail-enrollment=1</code> (falla el
+              segundo cobro), <code>#guest=1</code>.
               {isReturning ? " Esta cuenta ya tuvo una membresía: no debe aparecer matrícula." : ""}
               {failEnrollment ? " Esta URL fuerza el fallo del segundo cobro." : ""}
             </p>
