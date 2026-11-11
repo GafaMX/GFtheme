@@ -101,10 +101,6 @@ import {
 } from "../cart/membershipEnrollment";
 import { runSplitEnrollmentCheckout } from "../cart/enrollmentCheckout";
 import { chargeEnrollmentWithSavedCard, enrollmentLineItems } from "../payments/enrollmentCharge";
-import {
-  isPreviewTimeoutError,
-  withTimeout,
-} from "../cart/purchasePreview";
 import { CloseIcon } from "./sdkIcons";
 
 /**
@@ -422,8 +418,6 @@ export function CheckoutModal({
   const [enrollmentSettled, setEnrollmentSettled] = useState(() => !enrollmentConfig);
   const enrollmentNeedRef = useRef<boolean | null>(null);
   const enrollmentDecisionKeyRef = useRef("");
-  /** Si el preflight se cuelga, soltamos el skeleton y Stripe monta. */
-  const [purchaseHoldReleased, setPurchaseHoldReleased] = useState(false);
   /** Reserva ya creada: las compras extra (thank you → pay) van con reservations_id. */
   const [linkedReservationId, setLinkedReservationId] = useState<number | undefined>();
 
@@ -555,10 +549,6 @@ export function CheckoutModal({
     : lines;
   const purchaseKey = cartPurchaseKey(relevantLines);
   const membershipPurchase = cartHasMembership(relevantLines);
-
-  useEffect(() => {
-    setPurchaseHoldReleased(false);
-  }, [purchaseKey]);
   const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
 
   // Compra suelta: el catalogo de la MARCA (listCombos), no el recorte de la
@@ -833,31 +823,18 @@ export function CheckoutModal({
 
   const waitingOnTerms = hasTerms && !termsAccepted;
   const waitingOnGift = convertGift && giftStatus !== "ok";
+  const waitingEnrollment = Boolean(enrollmentConfig) && !enrollmentSettled;
   const canPay =
     relevantLines.length > 0 &&
     Boolean(profileQuery.data) &&
     !waitingOnTerms &&
     !waitingOnGift &&
+    !waitingEnrollment &&
     !paying &&
     (isFreeTotal || mockPay || (Boolean(selectedMethod) && paymentReady));
-  const purchaseAlreadyClear = purchaseClearKey.current === purchaseKey && purchaseKey.length > 0;
-  const waitingEnrollment = Boolean(enrollmentConfig) && !enrollmentSettled;
-  const holdPayForm =
-    !mockPay &&
-    step === "pay" &&
-    !registerOnly &&
-    !purchaseNotice &&
-    !purchaseHoldReleased &&
-    Boolean(client.previewPurchase) &&
-    relevantLines.length > 0 &&
-    (waitingEnrollment ||
-      profileQuery.isPending ||
-      (isSignedIn &&
-        !configQuery.isError &&
-        (configQuery.isLoading || purchaseChecking || !purchaseAlreadyClear)));
   const reviewingDirect =
     Boolean(preselect) && !purchaseNotice && preselectStatus !== "idle" && preselectStatus !== "ready";
-  const reviewingPurchase = reviewingDirect || holdPayForm;
+  const reviewingPurchase = reviewingDirect;
 
   function resolvedGiftCode(): string | null {
     if (!convertGift || giftStatus !== "ok") return null;
@@ -1580,25 +1557,23 @@ export function CheckoutModal({
     }
     const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
     const membership = cartHasMembership(subset);
-    await withTimeout(
-      client.previewPurchase({
-        brandSlug,
-        locationSlug,
-        userId: config?.userProfileId ?? profile.id,
-        ...purchaseAssociation({
-          meetingId: reservation?.meetingId,
-          reservationId: linkedReservationId,
-        }),
-        lines: purchaseLinesPayload(subset),
-        paymentTypeId,
-        csrfToken: config?.csrfToken ?? null,
-        discountCode: null,
-        giftCode: null,
-        subscribe: membership ? autoRenew : false,
-        setPayment: membership ? saveCard : false,
-        seatObjectId: reservation?.seatObjectId,
+    await client.previewPurchase({
+      brandSlug,
+      locationSlug,
+      userId: config?.userProfileId ?? profile.id,
+      ...purchaseAssociation({
+        meetingId: reservation?.meetingId,
+        reservationId: linkedReservationId,
       }),
-    );
+      lines: purchaseLinesPayload(subset),
+      paymentTypeId,
+      csrfToken: config?.csrfToken ?? null,
+      discountCode: null,
+      giftCode: null,
+      subscribe: membership ? autoRenew : false,
+      setPayment: membership ? saveCard : false,
+      seatObjectId: reservation?.seatObjectId,
+    });
   }
 
   /**
@@ -1634,30 +1609,29 @@ export function CheckoutModal({
       (discountStatus === "ok" && discountCode.trim().length > 0) || Boolean(resolvedGiftCode());
     if (!hasExtras && purchaseClearKey.current === key) return;
     const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
-    await withTimeout(
-      client.previewPurchase({
-        brandSlug,
-        locationSlug,
-        userId: config?.userProfileId ?? profile.id,
-        ...purchaseAssociation({
-          meetingId: reservation?.meetingId,
-          reservationId: linkedReservationId,
-        }),
-        lines: purchaseLinesPayload(chargeLines.length ? chargeLines : relevantLines),
-        paymentTypeId,
-        csrfToken: config?.csrfToken ?? null,
-        discountCode: discountStatus === "ok" ? discountCode.trim() : null,
-        giftCode: resolvedGiftCode(),
-        subscribe: membershipPurchase ? autoRenew : false,
-        setPayment: membershipPurchase ? saveCard : false,
-        ...reservationPurchaseSeats(reservation),
+    await client.previewPurchase({
+      brandSlug,
+      locationSlug,
+      userId: config?.userProfileId ?? profile.id,
+      ...purchaseAssociation({
+        meetingId: reservation?.meetingId,
+        reservationId: linkedReservationId,
       }),
-    );
+      lines: purchaseLinesPayload(chargeLines.length ? chargeLines : relevantLines),
+      paymentTypeId,
+      csrfToken: config?.csrfToken ?? null,
+      discountCode: discountStatus === "ok" ? discountCode.trim() : null,
+      giftCode: resolvedGiftCode(),
+      subscribe: membershipPurchase ? autoRenew : false,
+      setPayment: membershipPurchase ? saveCard : false,
+      ...reservationPurchaseSeats(reservation),
+    });
     if (!hasExtras) purchaseClearKey.current = key;
   }
 
-  // Al entrar a pagar (membresía que sigue en el catálogo, o carrito ya armado)
-  // las reglas corren antes de pintar la tarjeta. registerOnly ya cobró.
+  // La tarjeta se pinta ya; las reglas de Buq (test=true) corren en paralelo.
+  // Solo un rechazo real (422, membresía repetida, combo no disponible) mueve
+  // el carrito o muestra aviso. registerOnly ya cobró.
   useEffect(() => {
     if (purchaseNotice || step !== "pay" || registerOnly) return;
     if (mockPay) {
@@ -1669,10 +1643,6 @@ export function CheckoutModal({
     if (!brandSlug || !locationSlug || relevantLines.length === 0) return;
     if (waitingEnrollment) return;
     if (configQuery.isLoading || configQuery.isError) return;
-    if (purchaseHoldReleased) {
-      setPurchaseChecking(false);
-      return;
-    }
     if (purchaseClearKey.current === purchaseKey) {
       setPurchaseChecking(false);
       return;
@@ -1686,16 +1656,11 @@ export function CheckoutModal({
       })
       .catch(async (err: unknown) => {
         if (cancelled) return;
-        if (isPreviewTimeoutError(err)) {
-          setPurchaseChecking(false);
-          setPurchaseHoldReleased(true);
-          return;
-        }
+        setPurchaseChecking(false);
+        if (!isEligibilityRejection(err)) return;
         const purged = await purgeRejectedLines(err).catch(() => null);
         if (cancelled) return;
-        setPurchaseChecking(false);
         if (purged?.kept) {
-          // Lo válido sigue: el efecto vuelve a correr con el carrito limpio.
           showToast(purged.message, "error");
           purged.drop();
           return;
@@ -1705,7 +1670,6 @@ export function CheckoutModal({
       });
     return () => {
       cancelled = true;
-      if (!mockPay) setPurchaseChecking(false);
     };
     // assertCanPurchase lee el carrito y la config de este render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1723,7 +1687,6 @@ export function CheckoutModal({
     client,
     purchaseKey,
     waitingEnrollment,
-    purchaseHoldReleased,
   ]);
 
   async function proceedToPay() {
@@ -1770,13 +1733,7 @@ export function CheckoutModal({
         await assertCanPurchase();
       } catch (err) {
         setPaying(false);
-        reportPayError(
-          isPreviewTimeoutError(err)
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : "No pudimos completar la compra.",
-        );
+        reportPayError(err instanceof Error ? err.message : "No pudimos completar la compra.");
         return;
       }
       await completePurchase(undefined);
@@ -1794,10 +1751,6 @@ export function CheckoutModal({
       await assertCanPurchase();
     } catch (err) {
       setPaying(false);
-      if (isPreviewTimeoutError(err)) {
-        reportPayError(err.message);
-        return;
-      }
       const purged = await purgeRejectedLines(err).catch(() => null);
       if (purged && !purged.kept) {
         setPurchaseNotice({ title: "Lo sentimos", message: purged.message });

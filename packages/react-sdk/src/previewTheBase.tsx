@@ -596,7 +596,7 @@ export function TheBaseMatriculaPreview() {
               {isReturning ? " Esta cuenta mock ya tuvo una membresía: no debe aparecer matrícula." : ""}
               {failEnrollment ? " Esta URL fuerza el fallo del segundo cobro (mock)." : ""}
               {slowReview
-                ? " Esta URL cuelga el preflight de /reservate: a los 8 s debe aparecer el pago, no quedarse en «Revisando tu compra…»."
+                ? " Esta URL cuelga el preflight de /reservate en segundo plano: el formulario de tarjeta debe verse de inmediato, sin «Revisando tu compra…»."
                 : ""}
               {isGuest
                 ? " Sin sesión mock: el plan ya elegido no vuelve al catálogo. Entra o crea cuenta (cualquier email y contraseña) y caes en Pagar."

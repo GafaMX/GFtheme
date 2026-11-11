@@ -1,11 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CatalogItem, GafaClient } from "../client/types";
 import type { GafaPayIsland, GafaPayWidgetProps } from "../payments/gafaPay";
 import { CheckoutModal } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
-import { setPreviewPurchaseTimeoutMsForTests } from "./purchasePreview";
 import { reservateRetryWait } from "./reservateRetry";
 import { clearToasts } from "../toast/toastStore";
 import { resetToastHostForTests } from "../toast/ToastHost";
@@ -131,6 +130,7 @@ function renderHold(client: GafaClient) {
         locationSlug="pozuelo"
         skipCatalog
         membershipEnrollment={ENROLLMENT}
+        chargeEnrollmentFee={async () => ({ message: { mock: true, kind: "enrollment" } })}
         onClose={() => undefined}
       />
     </QueryClientProvider>,
@@ -142,7 +142,6 @@ describe("CheckoutModal matrícula + preflight Stripe", () => {
 
   beforeEach(() => {
     lastProps = undefined;
-    setPreviewPurchaseTimeoutMsForTests(40);
     useCartStore.setState({ lines: [silverLine], reservation: null });
     reservateRetryWait.wait = async () => undefined;
     mocks.loadGafaPay.mockResolvedValue({
@@ -151,8 +150,14 @@ describe("CheckoutModal matrícula + preflight Stripe", () => {
       elements: { StripePayment: function StripePayment() {} },
     });
     mocks.mountGafaPayWidget.mockImplementation(
-      (_runtime, _container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      (_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
         lastProps = props;
+        if (container instanceof Element) {
+          container.innerHTML = `
+            <input id="saveCard" type="checkbox" checked />
+            <input id="recurringPayment" type="checkbox" checked />
+          `;
+        }
         return {
           update: (next) => {
             lastProps = next;
@@ -170,13 +175,12 @@ describe("CheckoutModal matrícula + preflight Stripe", () => {
     clearToasts();
     resetToastHostForTests();
     useCartStore.setState({ lines: [], reservation: null });
-    setPreviewPurchaseTimeoutMsForTests(null);
     delete window._handleStripePayment;
     reservateRetryWait.wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     vi.clearAllMocks();
   });
 
-  it("historial tardío: una sola revisión y carrito estable a 115€", async () => {
+  it("historial tardío: Stripe monta ya, luego el carrito se estabiliza a 115€", async () => {
     let releaseHistory: (value: unknown[]) => void = () => undefined;
     const history = new Promise<unknown[]>((resolve) => {
       releaseHistory = resolve;
@@ -189,7 +193,8 @@ describe("CheckoutModal matrícula + preflight Stripe", () => {
     });
     renderHold(client);
 
-    await waitFor(() => expect(screen.getByText(/revisando tu compra/i)).toBeTruthy());
+    await waitFor(() => expect(mocks.mountGafaPayWidget).toHaveBeenCalled());
+    expect(screen.queryByText(/revisando tu compra/i)).toBeNull();
     expect(previewPurchase).not.toHaveBeenCalled();
     expect(screen.queryByText(/un botón, dos cargos/i)).toBeNull();
 
@@ -199,27 +204,46 @@ describe("CheckoutModal matrícula + preflight Stripe", () => {
     await waitFor(() => {
       expect((screen.getByRole("button", { name: /pagar 115/i }) as HTMLButtonElement).disabled).toBe(false);
     });
-    expect(mocks.mountGafaPayWidget).toHaveBeenCalled();
     expect(lastProps).toBeTruthy();
-    expect(screen.queryByText(/revisando tu compra/i)).toBeNull();
     expect(previewPurchase).toHaveBeenCalledTimes(1);
   });
 
-  it("si la revisión se cuelga, suelta el skeleton y monta Stripe", async () => {
+  it("si la revisión se cuelga, Stripe monta igual y no hay skeleton", async () => {
     const previewPurchase = vi.fn(() => new Promise<void>(() => undefined));
     const client = mockClient({ previewPurchase });
     renderHold(client);
 
-    await waitFor(() => expect(screen.getByText(/revisando tu compra/i)).toBeTruthy());
+    await waitFor(() => expect(mocks.mountGafaPayWidget).toHaveBeenCalled());
     await waitFor(() => {
-      expect(screen.queryByText(/revisando tu compra/i)).toBeNull();
       expect((screen.getByRole("button", { name: /pagar 115/i }) as HTMLButtonElement).disabled).toBe(false);
     });
-    expect(mocks.mountGafaPayWidget).toHaveBeenCalled();
+    expect(screen.queryByText(/revisando tu compra/i)).toBeNull();
     expect(screen.queryByText(/un botón, dos cargos/i)).toBeNull();
   });
 
-  it("carrito de dos líneas (membresía + matrícula) monta Stripe", async () => {
+  it("un 422 de la revisión muestra el error y no cobra", async () => {
+    const stripe = vi.fn();
+    window._handleStripePayment = stripe;
+    const client = mockClient({
+      previewPurchase: vi.fn(async () => {
+        throw Object.assign(
+          new Error("Lo sentimos, no puedes adquirir esta membresía porque ya cuentas con una igual activa."),
+          { status: 422 },
+        );
+      }),
+    });
+    renderHold(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent ?? "").toMatch(/ya cuentas con una igual activa/i);
+    });
+    expect(screen.getByRole("heading", { name: /lo sentimos/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /pagar/i })).toBeNull();
+    expect(stripe).not.toHaveBeenCalled();
+    expect(client.reservatePurchase).not.toHaveBeenCalled();
+  });
+
+  it("carrito de dos líneas cobra membresía y matrícula por separado", async () => {
     const client = mockClient();
     renderHold(client);
 
@@ -228,11 +252,24 @@ describe("CheckoutModal matrícula + preflight Stripe", () => {
       expect((screen.getByRole("button", { name: /pagar 115/i }) as HTMLButtonElement).disabled).toBe(false);
     });
     expect(screen.getByText("fijo")).toBeTruthy();
-    expect(screen.queryByText(/un botón, dos cargos/i)).toBeNull();
-    expect(mocks.loadGafaPay).toHaveBeenCalled();
     expect(mocks.mountGafaPayWidget).toHaveBeenCalled();
-    expect(vi.mocked(client.previewPurchase!).mock.calls.length).toBeGreaterThanOrEqual(1);
-    const payload = vi.mocked(client.previewPurchase!).mock.calls[0]?.[0];
-    expect(payload?.lines.some((line) => line.id === 1271)).toBe(true);
+
+    window._handleStripePayment = async () => {
+      lastProps?.onStartPayAction();
+      lastProps?.onGafaPaySuccessAction({
+        message: { stripeToken: "tok_visa" },
+        subscriptionId: "sub_membership",
+        recurringPayment: true,
+      });
+    };
+    fireEvent.click(screen.getByRole("button", { name: /pagar 115/i }));
+
+    await waitFor(() => expect(client.reservatePurchase).toHaveBeenCalledTimes(2));
+    const [membership, enrollment] = vi.mocked(client.reservatePurchase!).mock.calls.map((call) => call[0]);
+    expect(membership.lines.map((line) => line.id)).toEqual([1271]);
+    expect(membership.subscribe).toBe(true);
+    expect(enrollment.lines.map((line) => line.id)).toEqual([3491]);
+    expect(enrollment.subscribe).toBe(false);
+    expect(screen.getByText(/gracias por tu compra/i)).toBeTruthy();
   });
 });
