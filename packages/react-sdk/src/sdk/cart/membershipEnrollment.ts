@@ -14,6 +14,28 @@ export type MembershipEnrollmentConfig = {
   membershipIds: number[];
   firstTimeScope: MembershipEnrollmentScope;
   mode: MembershipEnrollmentMode;
+  /**
+   * POST HTTPS (sin secretos) para avisar al estudio/Buq si falla el cobro
+   * de matrícula. Vacío = solo `console.error` (fallback actual).
+   */
+  failureNotifyUrl?: string;
+};
+
+export type EnrollmentChargeFailedNotice = {
+  kind: "enrollment_charge_failed";
+  message: string;
+  log: string;
+  companyId?: number;
+  userId?: number;
+  customerName?: string;
+  customerEmail?: string;
+  membershipId?: number;
+  membershipName?: string;
+  comboId?: number;
+  enrollmentAmount?: number;
+  enrollmentAmountLabel?: string;
+  error?: string;
+  occurredAt: string;
 };
 
 const idListSchema = z.union([
@@ -63,13 +85,35 @@ export function parseMembershipEnrollment(input: unknown): MembershipEnrollmentC
   if (!Number.isFinite(comboId) || comboId <= 0) return null;
   if (!parsed.data.membershipIds.length) return null;
   const label = parsed.data.label?.trim() || "Matrícula";
+  const failureNotifyUrl = readEnrollmentFailureNotifyUrl(
+    (parsed.data as { failureNotifyUrl?: unknown }).failureNotifyUrl,
+  );
   return {
     comboId: Math.trunc(comboId),
     label,
     membershipIds: parsed.data.membershipIds,
     firstTimeScope: parsed.data.firstTimeScope ?? "any_membership",
     mode: parsed.data.mode ?? "first_purchase",
+    ...(failureNotifyUrl ? { failureNotifyUrl } : {}),
   };
+}
+
+/** Solo https (o http en localhost). Nada de javascript:, webhooks con query secrets, ni Slack/SMTP. */
+export function readEnrollmentFailureNotifyUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const url = value.trim();
+  if (!url) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return undefined;
+  }
+  const host = parsed.hostname.toLowerCase();
+  const local = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  if (parsed.protocol === "https:") return parsed.toString();
+  if (parsed.protocol === "http:" && local) return parsed.toString();
+  return undefined;
 }
 
 export function readMembershipEnrollmentFromOptions(input: unknown): MembershipEnrollmentConfig | null {
@@ -471,13 +515,56 @@ export async function detectEnrollmentNeed(input: {
 export const ENROLLMENT_CHARGE_FAILED_MESSAGE =
   "Tu membresía quedó registrada, pero no pudimos cobrar la matrícula. El estudio la cargará a mano. No vuelvas a pagar la membresía.";
 
-export function enrollmentChargeFailedLog(input: {
+export function enrollmentChargeFailedLog(input: Parameters<typeof buildEnrollmentChargeFailedNotice>[0]): string {
+  return buildEnrollmentChargeFailedNotice(input).log;
+}
+
+export function buildEnrollmentChargeFailedNotice(input: {
   companyId?: number;
   userId?: number;
+  customerName?: string;
+  customerEmail?: string;
   membershipId?: number;
+  membershipName?: string;
   comboId?: number;
+  enrollmentAmount?: number;
+  enrollmentAmountLabel?: string;
   error?: unknown;
-}): string {
+  occurredAt?: string;
+}): EnrollmentChargeFailedNotice {
   const detail = input.error instanceof Error ? input.error.message : String(input.error ?? "error");
-  return `Matrícula no cobrada (company=${input.companyId ?? "?"} user=${input.userId ?? "?"} membership=${input.membershipId ?? "?"} combo=${input.comboId ?? "?"}): ${detail}`;
+  const amountLabel =
+    input.enrollmentAmountLabel?.trim() ||
+    (input.enrollmentAmount != null && Number.isFinite(input.enrollmentAmount)
+      ? formatMoney(input.enrollmentAmount, "€", "EUR", "EUR")
+      : undefined);
+  const log = `Matrícula no cobrada (company=${input.companyId ?? "?"} user=${input.userId ?? "?"} ${input.customerName ?? "?"} <${input.customerEmail ?? "?"}> membership=${input.membershipName ?? input.membershipId ?? "?"} combo=${input.comboId ?? "?"} amount=${amountLabel ?? input.enrollmentAmount ?? "?"}): ${detail}`;
+  return {
+    kind: "enrollment_charge_failed",
+    message: ENROLLMENT_CHARGE_FAILED_MESSAGE,
+    log,
+    companyId: input.companyId,
+    userId: input.userId,
+    customerName: input.customerName,
+    customerEmail: input.customerEmail,
+    membershipId: input.membershipId,
+    membershipName: input.membershipName,
+    comboId: input.comboId,
+    enrollmentAmount: input.enrollmentAmount,
+    enrollmentAmountLabel: amountLabel,
+    error: detail,
+    occurredAt: input.occurredAt ?? new Date().toISOString(),
+  };
+}
+
+export function formatEnrollmentChargeFailedNotice(notice: EnrollmentChargeFailedNotice): string {
+  const lines = [
+    `Cliente: ${notice.customerName || "—"} <${notice.customerEmail || "—"}>`,
+    `Company id: ${notice.companyId ?? "—"}`,
+    `Membresía registrada: ${notice.membershipName || "—"} (${notice.membershipId ?? "—"})`,
+    `Monto matrícula: ${notice.enrollmentAmountLabel ?? notice.enrollmentAmount ?? "—"}`,
+    `Motivo: ${notice.error || "—"}`,
+    `Fecha: ${notice.occurredAt}`,
+  ];
+  return lines.join("\n");
 }

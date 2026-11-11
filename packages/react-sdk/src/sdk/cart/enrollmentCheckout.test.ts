@@ -74,12 +74,24 @@ describe("runSplitEnrollmentCheckout", () => {
       reservate,
       chargeEnrollment,
       wait: async () => undefined,
+      logContext: {
+        companyId: 204,
+        userId: 4412,
+        customerName: "Gabriel Test",
+        customerEmail: "gabriel@buq.mx",
+        membershipId: 1271,
+        membershipName: "Silver",
+      },
     });
     expect(result.membershipOk).toBe(true);
     expect(result.enrollmentOk).toBe(false);
     expect(chargeEnrollment).toHaveBeenCalledTimes(ENROLLMENT_CHARGE_ATTEMPTS);
     expect(result.warning).toBe(ENROLLMENT_CHARGE_FAILED_MESSAGE);
     expect(result.log).toMatch(/Matrícula no cobrada/);
+    expect(result.notice?.customerEmail).toBe("gabriel@buq.mx");
+    expect(result.notice?.membershipName).toBe("Silver");
+    expect(result.notice?.enrollmentAmount).toBe(30);
+    expect(result.notice?.error).toMatch(/card declined/);
   });
 
   it("si falla el cargo de matrícula, reintenta el cobro", async () => {

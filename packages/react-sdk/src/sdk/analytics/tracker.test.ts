@@ -197,4 +197,21 @@ describe("sdk tracker", () => {
     await expect(instrumentClient(client, tracker).login({ email: "a", password: "b" })).rejects.toThrow("bad");
     expect(events.map((item) => item.event)).toEqual(["auth.login_failed"]);
   });
+
+  it("reportCheckoutWarning llega al cliente HTTP y al tracker", () => {
+    const { tracker, events } = fakeTracker();
+    const reportCheckoutWarning = vi.fn();
+    const client = {
+      login: vi.fn(),
+      logout: vi.fn(),
+      register: vi.fn(),
+      getProfile: vi.fn(),
+      cancelReservation: vi.fn(),
+      reportCheckoutWarning,
+    } as unknown as GafaClient;
+    const wrapped = instrumentClient(client, tracker);
+    wrapped.reportCheckoutWarning?.("Matrícula no cobrada", { customerEmail: "a@b.c" });
+    expect(reportCheckoutWarning).toHaveBeenCalledWith("Matrícula no cobrada", { customerEmail: "a@b.c" });
+    expect(events.map((item) => item.event)).toEqual(["widget.error"]);
+  });
 });

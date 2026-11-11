@@ -294,7 +294,8 @@ describe("CheckoutModal matrícula", () => {
   });
 
   it("si el segundo cobro falla muestra el aviso en español", async () => {
-    const client = mockClient();
+    const reportCheckoutWarning = vi.fn();
+    const client = mockClient({ reportCheckoutWarning });
     renderEnrollment(client, { failEnrollment: true });
     await waitFor(() => {
       expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false);
@@ -303,6 +304,10 @@ describe("CheckoutModal matrícula", () => {
     await waitFor(() => expect(screen.getAllByText(ENROLLMENT_CHARGE_FAILED_MESSAGE).length).toBeGreaterThan(0));
     expect(client.reservatePurchase).toHaveBeenCalled();
     expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0].lines[0]?.id).toBe(1271);
+    await waitFor(() => expect(reportCheckoutWarning).toHaveBeenCalled());
+    const notice = reportCheckoutWarning.mock.calls[0]?.[1] as { customerEmail?: string; membershipName?: string };
+    expect(notice.customerEmail).toBe("gabriel@buq.mx");
+    expect(notice.membershipName).toBe("Silver");
   });
 
   it("Socio Fundador no agrega matrícula", async () => {

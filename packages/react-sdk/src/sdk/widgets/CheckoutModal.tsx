@@ -96,6 +96,7 @@ import {
   readMembershipEnrollmentFromOptions,
   syncEnrollmentCartLines,
   ENROLLMENT_CHARGE_FAILED_MESSAGE,
+  type EnrollmentChargeFailedNotice,
   type MembershipEnrollmentConfig,
 } from "../cart/membershipEnrollment";
 import { runSplitEnrollmentCheckout } from "../cart/enrollmentCheckout";
@@ -357,9 +358,9 @@ export function CheckoutModal({
   const chargeStartedRef = useRef<number | null>(null);
   const priorPurchasesRef = useRef<Set<number> | null>(null);
 
-  function warnCheckout(message: string) {
+  function warnCheckout(message: string, notice?: EnrollmentChargeFailedNotice) {
     console.warn(`[gafa-sdk] ${message}`);
-    client.reportCheckoutWarning?.(message);
+    client.reportCheckoutWarning?.(message, notice);
   }
 
   async function recoverRecentPurchase(): Promise<boolean> {
@@ -1216,7 +1217,10 @@ export function CheckoutModal({
           logContext: {
             companyId: config?.companiesId,
             userId: profile.id,
+            customerName: [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim() || profile.name,
+            customerEmail: profile.email,
             membershipId,
+            membershipName: linesSnapshot.find((line) => line.type === "membership")?.name,
           },
           reservate: (payload) =>
             reservateSubset(payload.lines, {
@@ -1265,7 +1269,7 @@ export function CheckoutModal({
         setEnrollmentPhase("idle");
         if (split.log) {
           console.error(split.log);
-          warnCheckout(split.log);
+          warnCheckout(split.log, split.notice);
         }
         if (split.warning) showToast(split.warning, "error");
         setThanks({

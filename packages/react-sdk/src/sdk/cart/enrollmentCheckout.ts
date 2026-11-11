@@ -2,9 +2,10 @@ import type { GafaPaySuccess } from "../payments/gafaPay";
 import type { CartLine } from "./cartStore";
 import {
   ENROLLMENT_CHARGE_FAILED_MESSAGE,
-  enrollmentChargeFailedLog,
+  buildEnrollmentChargeFailedNotice,
   isEnrollmentLine,
   membershipChargeLines,
+  type EnrollmentChargeFailedNotice,
   type MembershipEnrollmentConfig,
 } from "./membershipEnrollment";
 import { retryReservate } from "./reservateRetry";
@@ -29,6 +30,7 @@ export type SplitEnrollmentResult = {
   enrollmentPayment?: GafaPaySuccess;
   warning?: string;
   log?: string;
+  notice?: EnrollmentChargeFailedNotice;
 };
 
 export async function runSplitEnrollmentCheckout(input: {
@@ -44,7 +46,10 @@ export async function runSplitEnrollmentCheckout(input: {
   logContext?: {
     companyId?: number;
     userId?: number;
+    customerName?: string;
+    customerEmail?: string;
     membershipId?: number;
+    membershipName?: string;
   };
 }): Promise<SplitEnrollmentResult> {
   const membershipLines = membershipChargeLines(input.lines, input.config);
@@ -101,9 +106,13 @@ export async function runSplitEnrollmentCheckout(input: {
     }
   }
 
-  const log = enrollmentChargeFailedLog({
+  const notice = buildEnrollmentChargeFailedNotice({
     ...input.logContext,
+    membershipName: input.logContext?.membershipName ?? membershipLines[0]?.name,
+    membershipId: input.logContext?.membershipId ?? membershipLines[0]?.id,
     comboId: input.config.comboId,
+    enrollmentAmount: enrollmentLine.price * enrollmentLine.amount,
+    enrollmentAmountLabel: enrollmentLine.priceLabel,
     error: lastError,
   });
   return {
@@ -112,6 +121,7 @@ export async function runSplitEnrollmentCheckout(input: {
     enrollmentAttempted: true,
     membershipPayment: input.membershipPayment,
     warning: ENROLLMENT_CHARGE_FAILED_MESSAGE,
-    log,
+    log: notice.log,
+    notice,
   };
 }

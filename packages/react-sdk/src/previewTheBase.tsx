@@ -5,7 +5,12 @@ import { CheckoutModal } from "./sdk/widgets/CheckoutModal";
 import { HeaderControls } from "./sdk/widgets/HeaderControls";
 import { CatalogWidget } from "./sdk/widgets/CatalogWidget";
 import { useCartStore } from "./sdk/cart/cartStore";
-import { inspectEnrollmentNeed, parseMembershipEnrollment } from "./sdk/cart/membershipEnrollment";
+import {
+  formatEnrollmentChargeFailedNotice,
+  inspectEnrollmentNeed,
+  parseMembershipEnrollment,
+  type EnrollmentChargeFailedNotice,
+} from "./sdk/cart/membershipEnrollment";
 import { formatMoney } from "./sdk/cart/money";
 import type { CatalogItem, GafaClient } from "./sdk/client/types";
 import { createHttpGafaClient } from "./sdk/client/httpGafaClient";
@@ -180,6 +185,7 @@ function euro(amount: number) {
 function createMockPreviewClient(input: {
   isReturning: boolean;
   signedIn: { current: boolean };
+  onCheckoutWarning?: (message: string, notice?: EnrollmentChargeFailedNotice) => void;
 }): GafaClient {
   return {
     listBrands: async () => [
@@ -256,10 +262,16 @@ function createMockPreviewClient(input: {
     listStaff: async () => [],
     listMeetings: async () => [],
     cancelReservation: async () => undefined,
+    reportCheckoutWarning: (message, notice) => {
+      input.onCheckoutWarning?.(message, notice as EnrollmentChargeFailedNotice | undefined);
+    },
   } as GafaClient;
 }
 
-function createLivePreviewClient(apiSecret: string): { client: GafaClient; http: GafaClient } {
+function createLivePreviewClient(
+  apiSecret: string,
+  onCheckoutWarning?: (message: string, notice?: EnrollmentChargeFailedNotice) => void,
+): { client: GafaClient; http: GafaClient } {
   const config = parseGafaSdkConfig({
     apiBaseUrl: "https://buq.partners",
     companyId: 204,
@@ -305,6 +317,9 @@ function createLivePreviewClient(apiSecret: string): { client: GafaClient; http:
     },
     cancelReservation: async () => {
       throw new Error(SAFE_TEST_BLOCKED_MESSAGE);
+    },
+    reportCheckoutWarning: (message, notice) => {
+      onCheckoutWarning?.(message, notice as EnrollmentChargeFailedNotice | undefined);
     },
     getCheckoutConfig: async (payload) => {
       try {
@@ -387,6 +402,11 @@ export function TheBaseMatriculaPreview() {
   const [charges, setCharges] = useState<string>("—");
   const [locationSlug, setLocationSlug] = useState(isLive ? LIVE_LOCATION : "pozuelo");
   const [locationName, setLocationName] = useState(isLive ? LIVE_LOCATION_NAME : "Pozuelo");
+  const [queuedNotice, setQueuedNotice] = useState<EnrollmentChargeFailedNotice | null>(null);
+  const warningSink = useRef<(message: string, notice?: EnrollmentChargeFailedNotice) => void>(() => undefined);
+  warningSink.current = (_message, notice) => {
+    if (notice) setQueuedNotice(notice);
+  };
   const cartHasItems = useCartStore((s) => s.lines.length > 0);
   const cartLines = useCartStore((s) => s.lines);
   const queryClient = useMemo(() => new QueryClient({ defaultOptions: { queries: { retry: 0 } } }), []);
@@ -404,10 +424,21 @@ export function TheBaseMatriculaPreview() {
   }, [sessionKey, isGuest, isLive, queryClient]);
 
   const mockClient = useMemo(
-    () => createMockPreviewClient({ isReturning, signedIn: previewSignedIn }),
+    () =>
+      createMockPreviewClient({
+        isReturning,
+        signedIn: previewSignedIn,
+        onCheckoutWarning: (message, notice) => warningSink.current(message, notice),
+      }),
     [isReturning],
   );
-  const liveBundle = useMemo(() => (isLive ? createLivePreviewClient(apiSecret) : null), [isLive, apiSecret]);
+  const liveBundle = useMemo(
+    () =>
+      isLive
+        ? createLivePreviewClient(apiSecret, (message, notice) => warningSink.current(message, notice))
+        : null,
+    [isLive, apiSecret],
+  );
   const client = liveBundle?.client ?? mockClient;
   liveHttpRef.current = liveBundle?.http ?? null;
 
@@ -561,50 +592,69 @@ export function TheBaseMatriculaPreview() {
                 ? " Sin sesión mock: el plan ya elegido no vuelve al catálogo. Entra o crea cuenta (cualquier email y contraseña) y caes en Pagar."
                 : ""}
             </p>
-            {isLive ? (
+            {isLive || failEnrollment || queuedNotice ? (
               <section className="matricula-debug" aria-label="Panel de prueba">
-                <form onSubmit={saveApiSecret} className="matricula-debug__secret">
-                  <label>
-                    API_SECRET del embed de The Base (OAuth, no GafaPay). Solo sessionStorage de este
-                    navegador; no viaja al repo.
-                    <input
-                      type="password"
-                      autoComplete="off"
-                      value={secretDraft}
-                      onChange={(event) => setSecretDraft(event.target.value)}
-                      placeholder={apiSecret ? "ya hay una clave en esta sesión" : "pegar API_SECRET"}
-                    />
-                  </label>
-                  <button type="submit">{apiSecret ? "Actualizar clave" : "Guardar clave"}</button>
-                </form>
+                {isLive ? (
+                  <>
+                    <form onSubmit={saveApiSecret} className="matricula-debug__secret">
+                      <label>
+                        API_SECRET del embed de The Base (OAuth, no GafaPay). Solo sessionStorage de este
+                        navegador; no viaja al repo.
+                        <input
+                          type="password"
+                          autoComplete="off"
+                          value={secretDraft}
+                          onChange={(event) => setSecretDraft(event.target.value)}
+                          placeholder={apiSecret ? "ya hay una clave en esta sesión" : "pegar API_SECRET"}
+                        />
+                      </label>
+                      <button type="submit">{apiSecret ? "Actualizar clave" : "Guardar clave"}</button>
+                    </form>
+                    <dl>
+                      <div>
+                        <dt>Detección</dt>
+                        <dd>{detection}</dd>
+                      </div>
+                      <div>
+                        <dt>Cargos simulados</dt>
+                        <dd>{charges}</dd>
+                      </div>
+                      <div>
+                        <dt>Guard de escrituras</dt>
+                        <dd>
+                          {probeResult ||
+                            (blocked[0] ? `${blocked[0].method} ${blocked[0].url} → ${blocked[0].reason}` : "sin intentos")}
+                          <button type="button" onClick={() => void probeReservateBlock()}>
+                            Probar POST /reservate
+                          </button>
+                        </dd>
+                      </div>
+                    </dl>
+                    {blocked.length > 0 ? (
+                      <ul className="matricula-debug__blocked">
+                        {blocked.map((item, index) => (
+                          <li key={`${item.url}-${index}`}>
+                            {item.method} {item.url} — {SAFE_TEST_BLOCKED_MESSAGE} ({item.reason})
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </>
+                ) : null}
                 <dl>
                   <div>
-                    <dt>Detección</dt>
-                    <dd>{detection}</dd>
-                  </div>
-                  <div>
-                    <dt>Cargos simulados</dt>
-                    <dd>{charges}</dd>
-                  </div>
-                  <div>
-                    <dt>Guard de escrituras</dt>
+                    <dt>Aviso que se habría enviado</dt>
                     <dd>
-                      {probeResult || (blocked[0] ? `${blocked[0].method} ${blocked[0].url} → ${blocked[0].reason}` : "sin intentos")}
-                      <button type="button" onClick={() => void probeReservateBlock()}>
-                        Probar POST /reservate
-                      </button>
+                      <pre className="matricula-debug__notice">
+                        {queuedNotice
+                          ? formatEnrollmentChargeFailedNotice(queuedNotice)
+                          : failEnrollment
+                            ? "Paga en este modo de prueba: el aviso al estudio/Buq no sale a la red; aquí verás el contenido."
+                            : "—"}
+                      </pre>
                     </dd>
                   </div>
                 </dl>
-                {blocked.length > 0 ? (
-                  <ul className="matricula-debug__blocked">
-                    {blocked.map((item, index) => (
-                      <li key={`${item.url}-${index}`}>
-                        {item.method} {item.url} — {SAFE_TEST_BLOCKED_MESSAGE} ({item.reason})
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
               </section>
             ) : null}
             <CatalogWidget

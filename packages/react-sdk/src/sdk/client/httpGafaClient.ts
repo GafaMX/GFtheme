@@ -65,6 +65,7 @@ import {
   userFacingApiErrorMessage,
 } from "./apiError";
 import { assertSafeTestRequest } from "./safeTestGuard";
+import { parseMembershipEnrollment } from "../cart/membershipEnrollment";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -1919,6 +1920,28 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         reservationId: data.reservation_id,
         raw: data,
       } satisfies InitialPurchaseStatus;
+    },
+
+    reportCheckoutWarning(message, notice) {
+      const log = notice?.log ?? message;
+      console.error("[gafa-sdk]", log);
+      if (config.safeTestMode) return;
+      const url = parseMembershipEnrollment(config.membershipEnrollment)?.failureNotifyUrl;
+      if (!url) return;
+      const body = notice ?? {
+        kind: "enrollment_charge_failed",
+        message,
+        log,
+        occurredAt: new Date().toISOString(),
+      };
+      void fetch(url, {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        credentials: "omit",
+        mode: "cors",
+        keepalive: true,
+      }).catch(() => undefined);
     },
 
     /**

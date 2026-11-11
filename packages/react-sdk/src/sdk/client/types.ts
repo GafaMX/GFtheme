@@ -620,8 +620,25 @@ export type CreateReservationResult = {
   seatLabel?: string;
 };
 
+export type CheckoutWarningNotice = {
+  kind?: string;
+  message?: string;
+  log?: string;
+  companyId?: number;
+  userId?: number;
+  customerName?: string;
+  customerEmail?: string;
+  membershipId?: number;
+  membershipName?: string;
+  comboId?: number;
+  enrollmentAmount?: number;
+  enrollmentAmountLabel?: string;
+  error?: string;
+  occurredAt?: string;
+};
+
 export type GafaClient = {
-  reportCheckoutWarning?(message: string): void;
+  reportCheckoutWarning?(message: string, notice?: CheckoutWarningNotice): void;
   listBrands(): Promise<Brand[]>;
   listLocations(brandSlug?: string): Promise<Location[]>;
   listServices(brandSlug?: string): Promise<Service[]>;

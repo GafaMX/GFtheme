@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CartLine } from "./cartStore";
 import type { CatalogItem } from "../client/types";
 import {
+  buildEnrollmentChargeFailedNotice,
   buildEnrollmentLine,
   customerNeedsEnrollmentFee,
   discountableLines,
@@ -9,6 +10,7 @@ import {
   inspectEnrollmentNeed,
   isEnrollmentLine,
   parseMembershipEnrollment,
+  readEnrollmentFailureNotifyUrl,
   shouldAttachEnrollmentLine,
   syncEnrollmentCartLines,
 } from "./membershipEnrollment";
@@ -81,6 +83,54 @@ describe("parseMembershipEnrollment", () => {
     expect(parsed?.membershipIds).toEqual([1272, 1271, 1204]);
     expect(parsed?.firstTimeScope).toBe("any_membership");
     expect(parsed?.mode).toBe("first_purchase");
+  });
+
+  it("guarda failureNotifyUrl solo si es https (o http local)", () => {
+    expect(
+      parseMembershipEnrollment({
+        comboId: 3491,
+        membershipIds: [1271],
+        failureNotifyUrl: "https://fn.buq.partners/enrollment-failed",
+      })?.failureNotifyUrl,
+    ).toBe("https://fn.buq.partners/enrollment-failed");
+    expect(
+      parseMembershipEnrollment({
+        comboId: 3491,
+        membershipIds: [1271],
+        failureNotifyUrl: "javascript:alert(1)",
+      })?.failureNotifyUrl,
+    ).toBeUndefined();
+    expect(readEnrollmentFailureNotifyUrl("http://hooks.slack.com/x")).toBeUndefined();
+    expect(readEnrollmentFailureNotifyUrl("http://127.0.0.1:8787/notice")).toBe(
+      "http://127.0.0.1:8787/notice",
+    );
+  });
+});
+
+describe("buildEnrollmentChargeFailedNotice", () => {
+  it("incluye cliente, membresía, monto, motivo, fecha y company", () => {
+    const notice = buildEnrollmentChargeFailedNotice({
+      companyId: 204,
+      userId: 4412,
+      customerName: "Gabriel Test",
+      customerEmail: "gabriel@buq.mx",
+      membershipId: 1271,
+      membershipName: "Silver",
+      comboId: 3491,
+      enrollmentAmount: 30,
+      enrollmentAmountLabel: "30€",
+      error: new Error("card declined"),
+      occurredAt: "2026-11-11T04:38:00.000Z",
+    });
+    expect(notice.kind).toBe("enrollment_charge_failed");
+    expect(notice.customerName).toBe("Gabriel Test");
+    expect(notice.customerEmail).toBe("gabriel@buq.mx");
+    expect(notice.membershipName).toBe("Silver");
+    expect(notice.enrollmentAmountLabel).toBe("30€");
+    expect(notice.error).toBe("card declined");
+    expect(notice.companyId).toBe(204);
+    expect(notice.occurredAt).toBe("2026-11-11T04:38:00.000Z");
+    expect(notice.log).toMatch(/gabriel@buq.mx/);
   });
 });
 
