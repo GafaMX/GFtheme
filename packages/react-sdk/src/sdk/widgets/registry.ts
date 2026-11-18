@@ -4,6 +4,7 @@ import { readConciergeConfigFromDom } from "../concierge/domConfig";
 import type { CalendarView } from "./calendarRange";
 import { resolveCalendarLocationQuery } from "./calendarLocationQuery";
 import { resolveCalendarServiceQuery } from "./calendarServiceQuery";
+import { readShowWeekMeetingNotesFlag } from "./weekMeetingNotes";
 
 export type WidgetStatus = "stable" | "beta" | "preview";
 
@@ -202,6 +203,7 @@ function mountCalendar(runtime: GafaSdk, element: HTMLElement) {
       ? readFilterFlag(element, "data-bq-waitlist", false)
       : undefined,
     showDescription: element.getAttribute("data-bq-show-description") === "true",
+    showWeekMeetingNotes: readShowWeekMeetingNotesFlag(element.getAttribute("data-bq-show-week-notes")),
     filters: {
       brand: element.hasAttribute("filter-bq-brand"),
       location: element.hasAttribute("filter-bq-location"),

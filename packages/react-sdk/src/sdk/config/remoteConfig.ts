@@ -20,6 +20,7 @@ export const HUB_REMOTE_CONFIG_KEYS = [
   "HUB_URL",
   "ANALYTICS",
   "SHOW_MEMBERSHIP_OPTIONS",
+  "SHOW_WEEK_MEETING_NOTES",
   "IMAGES",
   "THEME",
   "CONCIERGE",
@@ -40,6 +41,7 @@ export const HUB_REMOTE_CONFIG_KEYS = [
   "hubUrl",
   "analyticsEnabled",
   "showMembershipOptions",
+  "showWeekMeetingNotes",
   "images",
   "theme",
 ] as const;

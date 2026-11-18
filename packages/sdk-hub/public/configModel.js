@@ -483,6 +483,18 @@ export const CONFIG_SECTIONS = [
     blurb: "Qué ve el cliente cuando compra, y cómo se sirven las imágenes.",
     groups: [
       {
+        title: "Calendario",
+        fields: [
+          {
+            key: "SHOW_WEEK_MEETING_NOTES",
+            path: ["SHOW_WEEK_MEETING_NOTES"],
+            type: "tri",
+            label: "Notas de clase visibles en la semana",
+            help: "En la vista semanal, el texto extra de cada clase (el de la i) se pinta debajo del nombre y se quita el icono. Casa Onze (compañía 146) ya lo trae encendido. El resto de marcas sigue con la i hasta que lo actives. La vista de día no cambia.",
+          },
+        ],
+      },
+      {
         title: "Membresías",
         fields: [
           {

@@ -35,6 +35,7 @@ import {
 import { createSdkTracker, type SdkTracker } from "./analytics/tracker";
 import { instrumentClient } from "./analytics/instrumentClient";
 import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
+import { resolveShowWeekMeetingNotes } from "./widgets/weekMeetingNotes";
 import {
   aliasV2Shortcodes,
   clearSdkRoot,
@@ -366,6 +367,13 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           captcha={captcha}
           crossSell={props.crossSell ?? config.crossSell}
           {...props}
+          showWeekMeetingNotes={
+            props.showWeekMeetingNotes ??
+            resolveShowWeekMeetingNotes({
+              showWeekMeetingNotes: config.showWeekMeetingNotes,
+              companyId: config.companyId,
+            })
+          }
         />,
       );
       events.emit("buq:sdk:mounted", { widget: "calendar" });

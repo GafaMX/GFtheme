@@ -144,6 +144,16 @@ describe("buq environments", () => {
     expect(off.showMembershipOptions).toBeUndefined();
   });
 
+  it("SHOW_WEEK_MEETING_NOTES del embed llega al config", () => {
+    const on = legacyOptionsToConfig({
+      COMPANY_ID: 80,
+      SHOW_WEEK_MEETING_NOTES: "true",
+    });
+    expect(on.showWeekMeetingNotes).toBe(true);
+    const off = legacyOptionsToConfig({ COMPANY_ID: 146 });
+    expect(off.showWeekMeetingNotes).toBeUndefined();
+  });
+
   it("CONCIERGE true llega al config del SDK (para el merge del Hub)", () => {
     const config = legacyOptionsToConfig({ COMPANY_ID: 190, CONCIERGE: true });
     expect(config.concierge).toBe(true);

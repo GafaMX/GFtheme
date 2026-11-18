@@ -11,6 +11,7 @@ describe("sanitizeHubRemoteConfig", () => {
         CAPTCHA_SECRET_KEY: "leak",
         CROSS_SELL: { enabled: true, itemId: 971 },
         MEMBERSHIP_ENROLLMENT: { comboId: 3491, membershipIds: [1271] },
+        SHOW_WEEK_MEETING_NOTES: true,
         WEIRD_KEY: true,
       }),
     ).toEqual({
@@ -18,6 +19,7 @@ describe("sanitizeHubRemoteConfig", () => {
       CONCIERGE: {},
       CROSS_SELL: { enabled: true, itemId: 971 },
       MEMBERSHIP_ENROLLMENT: { comboId: 3491, membershipIds: [1271] },
+      SHOW_WEEK_MEETING_NOTES: true,
     });
     expect(strippedSecretKeys({ API_SECRET: "x", THEME: {} })).toEqual(["API_SECRET"]);
   });

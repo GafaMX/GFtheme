@@ -201,6 +201,9 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
   it("la nota extra de la clase se trunca a una línea y la i compacta no es un botón", () => {
     expect(widgetsCss).toMatch(/\.gafa-meeting-desc \{[\s\S]{0,200}text-overflow:\s*ellipsis/);
     expect(widgetsCss).toMatch(/\.gafa-meeting-desc \{[\s\S]{0,200}white-space:\s*nowrap/);
+    expect(widgetsCss).toMatch(
+      /\.gafa-meeting-card\[data-compact="true"\] \.gafa-meeting-desc \{[\s\S]{0,280}-webkit-line-clamp:\s*2/,
+    );
     expect(widgetsCss).toMatch(/\.gafa-meeting-extra__mark \{[\s\S]{0,480}height:\s*16px/);
     expect(widgetsCss).toMatch(
       /\.gafa-reservation-hero \.gafa-reservation-notes \{[\s\S]{0,280}font-size:\s*0\.78rem/,

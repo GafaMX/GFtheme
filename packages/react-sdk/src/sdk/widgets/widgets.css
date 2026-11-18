@@ -1907,6 +1907,18 @@
   white-space: nowrap;
 }
 
+/* Semana con notas inline (Casa Onze / SHOW_WEEK_MEETING_NOTES): hasta 2
+   líneas bajo el nombre, sin romper el alto de la columna. Vacío no se pinta. */
+.gafa-meeting-card[data-compact="true"] .gafa-meeting-desc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
+}
+
 /* Compact week: no cabe una línea extra. La `i` no es un button (la card ya
    lo es) — hover muestra el texto; el tap abre el detalle con el texto completo. */
 .gafa-meeting-extra {
