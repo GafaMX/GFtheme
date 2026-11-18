@@ -37,6 +37,7 @@ Query de prueba (no uses en producción): `?buq-env=` y `?hub-url=`. Nada más.
 | `THEME` | `theme` | no | sí | Paleta, logo, lock. Detalle abajo y en [`v2-agente.md`](v2-agente.md#5-theme--colores-logo-lock). |
 | `CONCIERGE` / `concierge` | `concierge` | no | sí | `true` \| `{}` \| partial \| objeto completo. Ver abajo. |
 | `SHOW_MEMBERSHIP_OPTIONS` | `showMembershipOptions` | no | sí | `true` muestra el link de membresía. |
+| `SHOW_WEEK_MEETING_NOTES` | `showWeekMeetingNotes` | no | sí | En la vista **semanal**, pinta la nota extra de la clase (`gafa-meeting-extra__tip`) como texto bajo el nombre y quita la `i`. Default off. Casa Onze (`COMPANY_ID` 146) lo trae encendido. Vista de día no cambia. |
 | `BUQ_ENV` | `environment` | no | sí | `production` · `staging` · `development`. Query `?buq-env=` gana. |
 | `GAFAPAY_FRONT_URL` | `gafaPayFrontUrl` | no | sí | Pisa el script de Stripe/PayPal. |
 | `HUB_URL` | `hubUrl` | no | sí | Analytics + remote config. Default `https://hub.buq.partners`. Query `?hub-url=` gana. |

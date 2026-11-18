@@ -129,6 +129,11 @@ export const sdkConfigSchema = z
      */
     showMembershipOptions: z.boolean().optional(),
     /**
+     * Vista semanal: nota extra de la clase como texto bajo el nombre, sin la
+     * `i`. Default off. Casa Onze (compañía 146) lo prende el runtime.
+     */
+    showWeekMeetingNotes: z.boolean().optional(),
+    /**
      * Oferta en el footer del carrito (pay) y en thank you.
      * Títulos libres: donaciones, proteína, etc.
      */
@@ -189,6 +194,7 @@ const legacyOptionsSchema = z
     HUB_URL: z.string().optional(),
     ANALYTICS: z.union([z.boolean(), z.string()]).optional(),
     SHOW_MEMBERSHIP_OPTIONS: z.union([z.boolean(), z.string(), z.number()]).optional(),
+    SHOW_WEEK_MEETING_NOTES: z.union([z.boolean(), z.string(), z.number()]).optional(),
     IMAGES: imagesSchema,
     THEME: legacyThemeSchema,
     CONCIERGE: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
@@ -238,6 +244,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     hubUrl: legacyOptions.HUB_URL,
     analyticsEnabled: parseAnalyticsFlag(legacyOptions.ANALYTICS),
     showMembershipOptions: coerceFlag(legacyOptions.SHOW_MEMBERSHIP_OPTIONS),
+    showWeekMeetingNotes: coerceFlag(legacyOptions.SHOW_WEEK_MEETING_NOTES),
     images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
     concierge: legacyOptions.CONCIERGE ?? legacyOptions.concierge,

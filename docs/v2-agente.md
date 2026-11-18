@@ -202,6 +202,7 @@ del socio (así lo exige gafa.fit hoy, igual que v1).
 | `BRAND_ID` | no | Marca por defecto |
 | `THEME` | no | Paleta, logo, lock. Ver §5 |
 | `SHOW_MEMBERSHIP_OPTIONS` | no | `true` muestra el link “Opciones de la membresía”. Default oculto. Guardar tarjeta + renovar siguen ON |
+| `SHOW_WEEK_MEETING_NOTES` | no | En la vista semanal, muestra la nota extra de la clase bajo el nombre (sin la `i`). Default off. Casa Onze (compañía 146) lo trae encendido. |
 | `BUQ_ENV` | no | `production` · `staging` · `development` |
 | `GAFAPAY_FRONT_URL` | no | Pisa el script de Stripe/PayPal |
 | `HUB_URL` | no | Analytics. Default `https://hub.buq.partners` |
@@ -405,6 +406,7 @@ Van en el `<section data-gf-theme="meetings-calendar">`.
 | `data-bq-allow-view-change="false"` | true | Quita el toggle día/semana |
 | `data-gf-limit` | — | Tope de clases (número) |
 | `data-bq-show-description` | — | Se acepta; la nota de clase se pinta si la API la manda |
+| `data-bq-show-week-notes="true"` | off | Vista semanal: texto extra bajo el nombre, sin la `i`. Casa Onze no lo necesita (compañía 146). |
 
 La URL también arranca la sede y el servicio, **en todas las marcas**:
 

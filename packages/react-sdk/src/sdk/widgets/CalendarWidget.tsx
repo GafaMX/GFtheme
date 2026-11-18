@@ -101,6 +101,13 @@ export type CalendarWidgetProps = {
    * completo en el popup). El atributo se acepta para no romper embeds.
    */
   showDescription?: boolean;
+  /**
+   * Vista semanal: pinta la nota extra como texto bajo el nombre (como en día)
+   * y quita la `i`. Default off, salvo Casa Onze (`COMPANY_ID` 146) o
+   * `SHOW_WEEK_MEETING_NOTES`. El runtime ya resuelve el default; esta prop
+   * gana si el mount la manda.
+   */
+  showWeekMeetingNotes?: boolean;
   title?: string;
   description?: string;
   /** Oferta del Hub en el checkout que abre esta reserva. */
@@ -125,6 +132,7 @@ export function CalendarWidget({
   view: initialView = "day",
   allowViewChange = true,
   showDescription: _showDescription = false,
+  showWeekMeetingNotes = false,
   // El calendario embebido ya vive dentro del sitio del socio: no repetimos
   // "Reservas / Reserva tu lugar / ..." arriba. title/description se ignoran
   // a proposito para dejar el chrome en dos lineas compactas.
@@ -817,6 +825,7 @@ export function CalendarWidget({
               loading={isUpdating}
               meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
               onSelect={openMeeting}
+              showWeekMeetingNotes={showWeekMeetingNotes}
             />
           ))}
         </div>
@@ -1033,6 +1042,7 @@ function DayColumn({
   compact = false,
   emptyLabel = "Sin horarios",
   loading = false,
+  showWeekMeetingNotes = false,
 }: {
   date: Date;
   meetings: Meeting[];
@@ -1040,6 +1050,7 @@ function DayColumn({
   compact?: boolean;
   emptyLabel?: string;
   loading?: boolean;
+  showWeekMeetingNotes?: boolean;
 }) {
   const weekday = new Intl.DateTimeFormat("es-MX", { weekday: compact ? "short" : "long" }).format(date);
 
@@ -1083,6 +1094,7 @@ function DayColumn({
               compact={compact}
               meeting={meeting}
               onSelect={onSelect}
+              showWeekMeetingNotes={showWeekMeetingNotes}
             />
           ))}
         </div>
@@ -1164,10 +1176,12 @@ function MeetingCard({
   meeting,
   onSelect,
   compact,
+  showWeekMeetingNotes = false,
 }: {
   meeting: Meeting;
   onSelect(meeting: Meeting): void;
   compact: boolean;
+  showWeekMeetingNotes?: boolean;
 }) {
   const soldOut = isSoldOut(meeting);
   const waitlist = showsWaitlistPill(meeting);
@@ -1183,6 +1197,9 @@ function MeetingCard({
   const showsPhoto = useRemoteImageEnabled(staffPhoto);
   const notes = meetingClassNotes(meeting);
   const hooks = meetingCardHooks(meeting);
+  const inlineWeekNotes = compact && showWeekMeetingNotes;
+  const showInlineNotes = Boolean(notes) && (!compact || inlineWeekNotes);
+  const showInfoTip = Boolean(notes) && compact && !inlineWeekNotes;
 
   return (
     <button
@@ -1195,6 +1212,7 @@ function MeetingCard({
       data-passed={passed ? "true" : undefined}
       data-compact={compact ? "true" : undefined}
       data-has-photo={showsPhoto ? "true" : undefined}
+      data-week-notes={inlineWeekNotes && notes ? "inline" : undefined}
       type="button"
       disabled={passed}
       onClick={() => onSelect(meeting)}
@@ -1209,12 +1227,12 @@ function MeetingCard({
       />
       <span className="gafa-meeting-card__top">
         <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
-        {compact && notes ? <MeetingExtraHint text={notes} /> : null}
+        {showInfoTip && notes ? <MeetingExtraHint text={notes} /> : null}
         {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
       </span>
 
       <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
-      {!compact && notes ? <span className="gafa-meeting-desc">{notes}</span> : null}
+      {showInlineNotes ? <span className="gafa-meeting-desc">{notes}</span> : null}
 
       <span className="gafa-meeting-detail gafa-meeting-staff">
         <PersonIcon />
