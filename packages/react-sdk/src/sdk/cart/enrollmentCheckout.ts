@@ -1,7 +1,6 @@
 import type { GafaPaySuccess } from "../payments/gafaPay";
 import type { CartLine } from "./cartStore";
 import {
-  ENROLLMENT_CHARGE_FAILED_MESSAGE,
   buildEnrollmentChargeFailedNotice,
   isEnrollmentLine,
   membershipChargeLines,
@@ -114,13 +113,14 @@ export async function runSplitEnrollmentCheckout(input: {
     enrollmentAmount: enrollmentLine.price * enrollmentLine.amount,
     enrollmentAmountLabel: enrollmentLine.priceLabel,
     error: lastError,
+    label: input.config.label,
   });
   return {
     membershipOk: true,
     enrollmentOk: false,
     enrollmentAttempted: true,
     membershipPayment: input.membershipPayment,
-    warning: ENROLLMENT_CHARGE_FAILED_MESSAGE,
+    warning: notice.message,
     log: notice.log,
     notice,
   };

@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { CartLine } from "./cartStore";
 import type { CatalogItem } from "../client/types";
 import {
+  DEFAULT_ENROLLMENT_LABEL,
+  THE_BASE_ENROLLMENT_LABEL,
   buildEnrollmentChargeFailedNotice,
   buildEnrollmentLine,
   customerNeedsEnrollmentFee,
   discountableLines,
+  enrollmentCopy,
   hideEnrollmentFromCatalog,
   inspectEnrollmentNeed,
   isEnrollmentLine,
@@ -83,7 +86,18 @@ describe("parseMembershipEnrollment", () => {
     expect(parsed?.membershipIds).toEqual([1272, 1271, 1204]);
     expect(parsed?.firstTimeScope).toBe("any_membership");
     expect(parsed?.mode).toBe("first_purchase");
+    expect(parsed?.label).toBe(DEFAULT_ENROLLMENT_LABEL);
     expect(parsed?.label).toBe("Inscripción");
+  });
+
+  it("el copy del socio sale del label del Hub, no de un string fijo", () => {
+    expect(DEFAULT_ENROLLMENT_LABEL).toBe("Inscripción");
+    expect(THE_BASE_ENROLLMENT_LABEL).toBe("Matrícula");
+    expect(enrollmentCopy().charging).toBe("Cobrando inscripción…");
+    expect(enrollmentCopy({ label: THE_BASE_ENROLLMENT_LABEL }).charging).toBe("Cobrando matrícula…");
+    expect(enrollmentCopy({ label: THE_BASE_ENROLLMENT_LABEL }).cannotBuyAlone).toMatch(/matrícula/);
+    expect(enrollmentCopy({ label: THE_BASE_ENROLLMENT_LABEL }).cannotBuyAlone).not.toMatch(/inscripción/i);
+    expect(enrollmentCopy().cannotBuyAlone).not.toMatch(/matrícula/i);
   });
 
   it("guarda failureNotifyUrl solo si es https (o http local)", () => {
@@ -224,7 +238,19 @@ describe("locked cart line / hidden combo", () => {
     expect(fee.locked).toBe(true);
     expect(fee.amount).toBe(1);
     expect(fee.price).toBe(30);
-    expect(fee.name).toMatch(/solo primer pago/i);
+    expect(fee.name).toBe(`${DEFAULT_ENROLLMENT_LABEL} · solo primer pago`);
+    expect(fee.name).not.toMatch(/matrícula/i);
+    const theBase = syncEnrollmentCartLines({
+      config: { ...config, label: THE_BASE_ENROLLMENT_LABEL },
+      lines: [silver],
+      combo,
+      needsFee: true,
+      brandSlug: "the-base",
+      currency: { prefix: "€", code: "EUR" },
+    });
+    expect(theBase.find((line) => isEnrollmentLine(line, config))!.name).toBe(
+      `${THE_BASE_ENROLLMENT_LABEL} · solo primer pago`,
+    );
   });
 
   it("si el combo vale 0 € no agrega la línea", () => {

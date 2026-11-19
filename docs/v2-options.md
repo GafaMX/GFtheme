@@ -48,7 +48,7 @@ Query de prueba (no uses en producción): `?buq-env=` y `?hub-url=`. Nada más.
 | `IMAGES` | `images` | no | sí | `{ "provider": "cloudflare" \| "none" }`. |
 | `language` | `language` | no | sí | `es` / `en`. Hoy **no cambia copy**. No lo prometas. |
 | `CROSS_SELL` | `crossSell` | no | sí | Ofertas en el footer de “Tu pedido” (pago) y en thank you. Títulos libres + hasta 3 IDs de gafa.fit. |
-| `MEMBERSHIP_ENROLLMENT` | `membershipEnrollment` | no | sí | Inscripción (fee de alta) en la **primera** compra de membresía. Default **off**. `{ "comboId": 3491, "label": "Inscripción", "membershipIds": [1272, 1271, 1204], "firstTimeScope": "any_membership", "mode": "first_purchase" }`. Copy de la línea: **Inscripción**, nunca “Matrícula”. The Base Pozuelo: company **204**, combo **3491**, membresías Bronze/Silver/Gold. Inventario: [`v2-sdk-inventory.md`](v2-sdk-inventory.md). Hallazgos: [`v2-pozuelo-inscripcion.md`](v2-pozuelo-inscripcion.md). |
+| `MEMBERSHIP_ENROLLMENT` | `membershipEnrollment` | no | sí | Fee de alta en la **primera** compra de membresía. Default **off**. El texto lo pone `label` (default **Inscripción**). The Base Pozuelo (compañía **204**) debe usar `"label": "Matrícula"`. Combo **3491**, membresías 1272/1271/1204. Inventario: [`v2-sdk-inventory.md`](v2-sdk-inventory.md). Receta: [`v2-pozuelo-inscripcion.md`](v2-pozuelo-inscripcion.md). |
 
 Alias del script: `[data-gafa-options]`.
 

@@ -4,8 +4,46 @@ import { formatMoney } from "./money";
 import type { CartLine } from "./cartStore";
 
 export const ENROLLMENT_LINE_ROLE = "enrollment" as const;
-/** Copy de la línea en el carrito. Nunca “Matrícula”. */
+/** Default for every brand except The Base Pozuelo. */
 export const DEFAULT_ENROLLMENT_LABEL = "Inscripción";
+/**
+ * Hub company 204 (The Base, Pozuelo) must set `MEMBERSHIP_ENROLLMENT.label`
+ * to this. Do not hardcode it in checkout strings.
+ */
+export const THE_BASE_ENROLLMENT_LABEL = "Matrícula";
+
+export function enrollmentLabel(config?: { label?: string } | null): string {
+  const label = config?.label?.trim();
+  return label || DEFAULT_ENROLLMENT_LABEL;
+}
+
+export function enrollmentLabelLower(config?: { label?: string } | null): string {
+  const label = enrollmentLabel(config);
+  return label.charAt(0).toLocaleLowerCase("es-ES") + label.slice(1);
+}
+
+/** Customer-facing enrollment copy. Always interpolate Hub `label`. */
+export function enrollmentCopy(config?: { label?: string } | null) {
+  const label = enrollmentLabel(config);
+  const lower = enrollmentLabelLower(config);
+  const y = /^[ií]/i.test(lower) ? "e" : "y";
+  return {
+    label,
+    lower,
+    cannotBuyAlone: `La ${lower} solo se agrega con tu primera membresía.`,
+    cannotBuySolo: `La ${lower} no se puede comprar sola. Va con tu primera membresía.`,
+    chargeFailed: `Tu membresía quedó registrada, pero no pudimos cobrar la ${lower}. El estudio la cargará a mano. No vuelvas a pagar la membresía.`,
+    charging: `Cobrando ${lower}…`,
+    missingGafaPay: `No pudimos cobrar la ${lower}: falta GafaPay.`,
+    chargeFailedGeneric: `No pudimos cobrar la ${lower}.`,
+    chargeFailedSavedCard: `No pudimos cobrar la ${lower} con la tarjeta guardada.`,
+    twoCharges: `Un botón, dos cargos: la membresía queda en suscripción y la ${lower} es un solo pago.`,
+    mockPayNote: `No se cobra con tarjeta real. El botón Pagar simula los dos cargos (membresía ${y} ${lower}).`,
+    notEligible: `esa membresía no lleva ${lower}`,
+    chargeFailedLogPrefix: `${label} no cobrada`,
+    amountHeading: `Monto ${lower}`,
+  };
+}
 
 export type MembershipEnrollmentMode = "first_purchase" | "every_charge";
 export type MembershipEnrollmentScope = "any_membership" | "same_membership";
@@ -38,6 +76,7 @@ export type EnrollmentChargeFailedNotice = {
   enrollmentAmountLabel?: string;
   error?: string;
   occurredAt: string;
+  label?: string;
 };
 
 const idListSchema = z.union([
@@ -413,7 +452,7 @@ export async function inspectEnrollmentNeed(input: {
       needed: false,
       firstTime: false,
       source: "ineligible",
-      sourceLabel: "esa membresía no lleva inscripción",
+      sourceLabel: enrollmentCopy(input.config).notEligible,
       membershipsCount: 0,
       purchasesCount: 0,
       membershipsFailed: false,
@@ -514,8 +553,7 @@ export async function detectEnrollmentNeed(input: {
   return (await inspectEnrollmentNeed(input)).needed;
 }
 
-export const ENROLLMENT_CHARGE_FAILED_MESSAGE =
-  "Tu membresía quedó registrada, pero no pudimos cobrar la inscripción. El estudio la cargará a mano. No vuelvas a pagar la membresía.";
+export const ENROLLMENT_CHARGE_FAILED_MESSAGE = enrollmentCopy().chargeFailed;
 
 export function enrollmentChargeFailedLog(input: Parameters<typeof buildEnrollmentChargeFailedNotice>[0]): string {
   return buildEnrollmentChargeFailedNotice(input).log;
@@ -533,17 +571,19 @@ export function buildEnrollmentChargeFailedNotice(input: {
   enrollmentAmountLabel?: string;
   error?: unknown;
   occurredAt?: string;
+  label?: string;
 }): EnrollmentChargeFailedNotice {
+  const copy = enrollmentCopy({ label: input.label });
   const detail = input.error instanceof Error ? input.error.message : String(input.error ?? "error");
   const amountLabel =
     input.enrollmentAmountLabel?.trim() ||
     (input.enrollmentAmount != null && Number.isFinite(input.enrollmentAmount)
       ? formatMoney(input.enrollmentAmount, "€", "EUR", "EUR")
       : undefined);
-  const log = `Inscripción no cobrada (company=${input.companyId ?? "?"} user=${input.userId ?? "?"} ${input.customerName ?? "?"} <${input.customerEmail ?? "?"}> membership=${input.membershipName ?? input.membershipId ?? "?"} combo=${input.comboId ?? "?"} amount=${amountLabel ?? input.enrollmentAmount ?? "?"}): ${detail}`;
+  const log = `${copy.chargeFailedLogPrefix} (company=${input.companyId ?? "?"} user=${input.userId ?? "?"} ${input.customerName ?? "?"} <${input.customerEmail ?? "?"}> membership=${input.membershipName ?? input.membershipId ?? "?"} combo=${input.comboId ?? "?"} amount=${amountLabel ?? input.enrollmentAmount ?? "?"}): ${detail}`;
   return {
     kind: "enrollment_charge_failed",
-    message: ENROLLMENT_CHARGE_FAILED_MESSAGE,
+    message: copy.chargeFailed,
     log,
     companyId: input.companyId,
     userId: input.userId,
@@ -556,6 +596,7 @@ export function buildEnrollmentChargeFailedNotice(input: {
     enrollmentAmountLabel: amountLabel,
     error: detail,
     occurredAt: input.occurredAt ?? new Date().toISOString(),
+    label: copy.label,
   };
 }
 
@@ -564,7 +605,7 @@ export function formatEnrollmentChargeFailedNotice(notice: EnrollmentChargeFaile
     `Cliente: ${notice.customerName || "—"} <${notice.customerEmail || "—"}>`,
     `Company id: ${notice.companyId ?? "—"}`,
     `Membresía registrada: ${notice.membershipName || "—"} (${notice.membershipId ?? "—"})`,
-    `Monto inscripción: ${notice.enrollmentAmountLabel ?? notice.enrollmentAmount ?? "—"}`,
+    `${enrollmentCopy(notice).amountHeading}: ${notice.enrollmentAmountLabel ?? notice.enrollmentAmount ?? "—"}`,
     `Motivo: ${notice.error || "—"}`,
     `Fecha: ${notice.occurredAt}`,
   ];

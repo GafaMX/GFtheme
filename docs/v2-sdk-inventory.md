@@ -57,7 +57,7 @@ Off salvo el bloque. Flota en todo el sitio; el nodo solo manda dónde va.
 | --- | --- | --- |
 | `SHOW_WEEK_MEETING_NOTES` | off (Casa Onze 146 on) | Texto de la nota bajo el nombre en vista **semana**; quita la `i` |
 | `SHOW_MEMBERSHIP_OPTIONS` | off | Link “Opciones de la membresía” (pausar/tarjeta). Guardar tarjeta + renovar siguen on y ocultos |
-| `MEMBERSHIP_ENROLLMENT` | off | Inscripción 1ª compra. Ver [`v2-pozuelo-inscripcion.md`](v2-pozuelo-inscripcion.md) |
+| `MEMBERSHIP_ENROLLMENT` | off | Fee 1ª compra. `label` default Inscripción; The Base 204 = **Matrícula**. [`v2-pozuelo-inscripcion.md`](v2-pozuelo-inscripcion.md) |
 | `CROSS_SELL` | off | Hasta 3 ítems en pie de “Tu pedido” y thank you; títulos libres |
 | `BRAND_ID` | — | Marca por defecto |
 | `language` | es | **No cambia copy** hoy |
@@ -73,7 +73,7 @@ Off salvo el bloque. Flota en todo el sitio; el nodo solo manda dónde va.
 - Perfil: próximas, historial, créditos (nombre de **paquete**, no tipo interno), compras, datos, contraseña, stats
 - Carrito: combos, membresías, productos; `reservations_max` = tope de unidades; descuentos; gift cards
 - Pago: Stripe / PayPal / recurrente; total 0 = sin GafaPay (“Confirmar pedido”); `previewPurchase` (`/reservate?test=true`) bloquea tope/membresía ya activa
-- Inscripción: dos cargos (membresía recurrente + fee única) si el Hub lo pide
+- Fee de alta: dos cargos (membresía recurrente + fee única) si el Hub lo pide; copy = `MEMBERSHIP_ENROLLMENT.label`
 - Cross-sell en pay + thanks
 - Toasts arriba a la derecha
 
