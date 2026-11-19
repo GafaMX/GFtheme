@@ -11,7 +11,8 @@ Hasta que Laravel implemente el contrato de abajo, el SDK:
 
 - GET 404 → “aún no calificada” (la UI se muestra).
 - POST 404 → error visible: *El estudio aún no puede guardar calificaciones.*
-- El preview (`?ratings=1`) usa un cliente en memoria, no pega a producción.
+- El preview (`ratings.html` / `?ratings=1`) usa un cliente en memoria, no pega a producción.
+- Demo estático (rama `#305`, no `cdn-live`): `docs/v2-preview/ratings-standalone.html`.
 
 No inventar que el backend ya existe. No escribir a BD de producción desde el SDK.
 

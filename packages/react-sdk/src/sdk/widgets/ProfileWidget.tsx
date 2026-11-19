@@ -26,6 +26,8 @@ import { PostClassRatingPrompt } from "../ratings/PostClassRatingPrompt";
 import { parseClassRatings, type ClassRatingsConfig } from "../ratings/classRatings";
 import { WidgetShell } from "./WidgetShell";
 
+type ProfileTab = "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
+
 export type ProfileWidgetProps = {
   client?: GafaClient;
   brandSlug?: string;
@@ -44,9 +46,11 @@ export type ProfileWidgetProps = {
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
+  /** Preview / tests: open on this tab. */
+  initialTab?: ProfileTab;
+  /** Preview / tests: within Mis clases. */
+  initialClassScope?: "upcoming" | "history";
 };
-
-type ProfileTab = "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
 
 /** Puntos en el Hub sí se pueden acumular; la card del socio se enciende después. */
 const SHOW_LOYALTY_POINTS = false;
@@ -107,13 +111,15 @@ export function ProfileWidget({
   onRequestClose,
   onExploreClasses,
   onExplorePackages,
+  initialTab = "overview",
+  initialClassScope = "upcoming",
 }: ProfileWidgetProps) {
   const goToClasses = onExploreClasses ?? defaultExploreClasses;
   const goToPackages = onExplorePackages ?? defaultExplorePackages;
   const classRatings = parseClassRatings(classRatingsProp);
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<ProfileTab>("overview");
-  const [classScope, setClassScope] = useState<"upcoming" | "history">("upcoming");
+  const [tab, setTab] = useState<ProfileTab>(initialTab);
+  const [classScope, setClassScope] = useState<"upcoming" | "history">(initialClassScope);
   const [menuOpen, setMenuOpen] = useState(false);
   const [qrReservation, setQrReservation] = useState<UserReservation | null>(null);
   const [pendingCancel, setPendingCancel] = useState<UserReservation | null>(null);

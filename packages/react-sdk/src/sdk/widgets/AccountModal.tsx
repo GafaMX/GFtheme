@@ -30,6 +30,8 @@ export type AccountModalProps = {
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
+  initialTab?: "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
+  initialClassScope?: "upcoming" | "history";
 };
 
 /**
@@ -50,6 +52,8 @@ export function AccountModal({
   combineWaitlist = false,
   onExploreClasses,
   onExplorePackages,
+  initialTab,
+  initialClassScope,
 }: AccountModalProps) {
   const queryClient = useQueryClient();
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -160,6 +164,8 @@ export function AccountModal({
               onClose();
               queueMicrotask(() => (onExplorePackages ?? defaultExplorePackages)());
             }}
+            initialTab={initialTab}
+            initialClassScope={initialClassScope}
           />
         ) : (
           <div className="gafa-account-modal__auth">
