@@ -1,3 +1,4 @@
+import { enrollmentCopy } from "../cart/membershipEnrollment";
 import {
   loadGafaPay,
   mountGafaPayWidget,
@@ -18,6 +19,8 @@ export type EnrollmentChargeRequest = {
   gafaPayFrontUrl?: string;
   slug?: string;
   timeoutMs?: number;
+  /** Hub `MEMBERSHIP_ENROLLMENT.label`. */
+  label?: string;
 };
 
 /**
@@ -32,6 +35,7 @@ export async function chargeEnrollmentWithSavedCard(
     throw new Error("GafaPay solo funciona en navegador.");
   }
   const slug = input.slug ?? "stripe";
+  const copy = enrollmentCopy({ label: input.label });
   const host = document.createElement("div");
   host.setAttribute("data-gafa-enrollment-charge", "true");
   host.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;";
@@ -45,7 +49,7 @@ export async function chargeEnrollmentWithSavedCard(
     });
     const result = await new Promise<GafaPaySuccess>((resolve, reject) => {
       const timeout = window.setTimeout(() => {
-        reject(new Error("No pudimos cobrar la matrícula con la tarjeta guardada."));
+        reject(new Error(copy.chargeFailedSavedCard));
       }, input.timeoutMs ?? Math.max(widgetContentTimeoutMs() + 4000, 16000));
 
       const finish = (fn: () => void) => {
@@ -62,7 +66,7 @@ export async function chargeEnrollmentWithSavedCard(
         onStartPayAction: () => undefined,
         onGafaPaySuccessAction: (payment) => finish(() => resolve(payment)),
         onGafaPayErrAction: ({ message }) =>
-          finish(() => reject(new Error(message ?? "No pudimos cobrar la matrícula."))),
+          finish(() => reject(new Error(message ?? copy.chargeFailedGeneric))),
       });
       islandRef.unmount = island.unmount;
 
@@ -71,12 +75,12 @@ export async function chargeEnrollmentWithSavedCard(
           clickSavedCard(host);
           const triggered = await triggerGafaPayConfirm(slug, host);
           if (!triggered) {
-            finish(() => reject(new Error("No pudimos cobrar la matrícula con la tarjeta guardada.")));
+            finish(() => reject(new Error(copy.chargeFailedSavedCard)));
           }
         })
         .catch((error: unknown) =>
           finish(() =>
-            reject(error instanceof Error ? error : new Error("No pudimos cobrar la matrícula.")),
+            reject(error instanceof Error ? error : new Error(copy.chargeFailedGeneric)),
           ),
         );
     });

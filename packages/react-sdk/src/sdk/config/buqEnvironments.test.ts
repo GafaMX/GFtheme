@@ -186,7 +186,7 @@ describe("buq environments", () => {
       COMPANY_ID: 204,
       MEMBERSHIP_ENROLLMENT: {
         comboId: 3491,
-        label: "Matrícula",
+        label: "Inscripción",
         membershipIds: [1272, 1271, 1204],
         firstTimeScope: "any_membership",
         mode: "first_purchase",
@@ -194,7 +194,7 @@ describe("buq environments", () => {
     });
     expect(config.membershipEnrollment).toEqual({
       comboId: 3491,
-      label: "Matrícula",
+      label: "Inscripción",
       membershipIds: [1272, 1271, 1204],
       firstTimeScope: "any_membership",
       mode: "first_purchase",

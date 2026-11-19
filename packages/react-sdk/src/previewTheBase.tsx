@@ -6,6 +6,8 @@ import { HeaderControls } from "./sdk/widgets/HeaderControls";
 import { CatalogWidget } from "./sdk/widgets/CatalogWidget";
 import { useCartStore } from "./sdk/cart/cartStore";
 import {
+  THE_BASE_ENROLLMENT_LABEL,
+  enrollmentCopy,
   formatEnrollmentChargeFailedNotice,
   inspectEnrollmentNeed,
   parseMembershipEnrollment,
@@ -23,7 +25,7 @@ import "./demo/demo.css";
 
 const ENROLLMENT = {
   comboId: 3491,
-  label: "Matrícula",
+  label: THE_BASE_ENROLLMENT_LABEL,
   membershipIds: [1272, 1271, 1204],
   firstTimeScope: "any_membership" as const,
   mode: "first_purchase" as const,
@@ -522,13 +524,13 @@ export function TheBaseMatriculaPreview() {
       });
       if (cancelled) return;
       setDetection(
-        `${result.needed ? "primera vez (se cobra matrícula)" : "recurrente (sin matrícula)"} · ${result.sourceLabel} · membresías=${result.membershipsCount} compras=${result.purchasesCount}`,
+        `${result.needed ? `primera vez (se cobra ${enrollmentCopy(ENROLLMENT).lower})` : `recurrente (sin ${enrollmentCopy(ENROLLMENT).lower})`} · ${result.sourceLabel} · membresías=${result.membershipsCount} compras=${result.purchasesCount}`,
       );
       const membershipCharge = `${membershipLine.name} ${euro(membershipLine.price)} (suscripción)`;
       const fee = cartLines.find((line) => line.id === ENROLLMENT.comboId || line.role === "enrollment");
       setCharges(
         result.needed
-          ? `1) ${membershipCharge}  2) ${fee?.name ?? "Matrícula"} ${euro(fee?.price ?? 30)} (único)`
+          ? `1) ${membershipCharge}  2) ${fee?.name ?? enrollmentCopy(ENROLLMENT).label} ${euro(fee?.price ?? 30)} (único)`
           : `1) ${membershipCharge}  — no hay segundo cargo`,
       );
     })();
@@ -582,11 +584,11 @@ export function TheBaseMatriculaPreview() {
           </header>
           <main className="demo-main" style={{ padding: "1.5rem" }}>
             <p style={{ maxWidth: 720, color: "#B9B0A2", lineHeight: 1.5 }}>
-              Preview de matrícula (SDK V2). Lecturas reales contra <code>buq.partners</code> de The Base
+              Preview de {enrollmentCopy(ENROLLMENT).lower} (SDK V2). Lecturas reales contra <code>buq.partners</code> de The Base
               (login, perfil, historial, catálogo). Cobros y altas siguen mockeados: GafaPay, Stripe,{" "}
               <code>/reservate</code> y cualquier POST de compra se cortan en el cliente HTTP. Variantes
               mock: <code>#returning=1</code>, <code>#fail-enrollment=1</code>, <code>#guest=1</code>.
-              {isReturning ? " Esta cuenta mock ya tuvo una membresía: no debe aparecer matrícula." : ""}
+              {isReturning ? ` Esta cuenta mock ya tuvo una membresía: no debe aparecer ${enrollmentCopy(ENROLLMENT).lower}.` : ""}
               {failEnrollment ? " Esta URL fuerza el fallo del segundo cobro (mock)." : ""}
               {isGuest
                 ? " Sin sesión mock: el plan ya elegido no vuelve al catálogo. Entra o crea cuenta (cualquier email y contraseña) y caes en Pagar."
