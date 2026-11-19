@@ -1014,23 +1014,6 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     }
   }
 
-  let ratingsUserCache: { token: string; profile: UserProfile | null } | null = null;
-
-  async function loadRatingsUser(): Promise<UserProfile | null> {
-    const usedToken = syncTokenFromStorage();
-    if (!usedToken) return null;
-    if (ratingsUserCache?.token === usedToken) return ratingsUserCache.profile;
-    try {
-      const raw = await apiGet<RawUserProfile>("/me");
-      const profile = normalizeProfile(raw);
-      ratingsUserCache = { token: usedToken, profile };
-      return profile;
-    } catch {
-      ratingsUserCache = { token: usedToken, profile: null };
-      return null;
-    }
-  }
-
   function wrapHubRatingError(error: unknown): GafaApiError {
     if (error instanceof GafaApiError) return error;
     const status = Number((error as { status?: number })?.status ?? 0);
@@ -1353,9 +1336,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async getReservationRating(brandSlug, reservationId): Promise<ClassRating | null> {
-      if (!token || !brandSlug) return null;
-      const profile = await loadRatingsUser();
-      if (!profile?.id) return null;
+      const usedToken = syncTokenFromStorage();
+      if (!usedToken || !brandSlug) return null;
       if (config.safeTestMode) {
         assertSafeTestRequest("GET", `${config.hubUrl || "https://hub.buq.partners"}/v1/ratings/mine`);
       }
@@ -1363,8 +1345,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         return await fetchHubReservationRating({
           hubUrl: config.hubUrl,
           companyId: config.companyId,
+          token: usedToken,
           reservationId: Number(reservationId),
-          userId: profile.id,
         });
       } catch (error) {
         const status = (error as { status?: number }).status;
@@ -1374,9 +1356,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     },
 
     async submitReservationRating(payload: SubmitClassRatingPayload): Promise<ClassRating> {
-      if (!token) throw new GafaApiError("Inicia sesión para calificar.", 401);
-      const profile = await loadRatingsUser();
-      if (!profile?.id) throw new GafaApiError("Inicia sesión para calificar.", 401);
+      const usedToken = syncTokenFromStorage();
+      if (!usedToken) throw new GafaApiError("Inicia sesión para calificar.", 401);
       if (config.safeTestMode) {
         assertSafeTestRequest("POST", `${config.hubUrl || "https://hub.buq.partners"}/v1/ratings`);
       }
@@ -1385,15 +1366,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
           hubUrl: config.hubUrl,
           payload: {
             companyId: config.companyId,
+            token: usedToken,
             brandSlug: payload.brandSlug,
             reservationId: payload.reservationId,
-            meetingId: payload.meetingId,
-            meetingName: payload.meetingName,
-            staffId: payload.staffId,
-            staffName: payload.staffName,
-            userId: profile.id,
-            customerName: profile.name,
-            customerEmail: profile.email,
             classStars: payload.classStars,
             staffStars: payload.staffStars,
             comment: payload.comment,

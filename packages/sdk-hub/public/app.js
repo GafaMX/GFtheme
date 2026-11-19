@@ -10,6 +10,7 @@ import {
   validateDraft,
   parseCatalogToken,
 } from "/configModel.js?v=ratings-hub-1";
+import { h, ratingComment } from "/dom.js?v=ratings-xss-1";
 
 const root = document.getElementById("root");
 
@@ -278,23 +279,6 @@ async function refresh() {
   render();
 }
 
-function h(tag, props = {}, ...children) {
-  const el = document.createElement(tag);
-  let selected = null;
-  for (const [key, value] of Object.entries(props)) {
-    if (key === "class") el.className = value;
-    else if (key === "html") el.innerHTML = value;
-    else if (key.startsWith("on") && typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
-    else if (key === "value" && (tag === "select" || tag === "textarea")) selected = value == null ? "" : String(value);
-    else if (value != null && value !== false) el.setAttribute(key, value === true ? "" : String(value));
-  }
-  for (const child of children.flat()) {
-    if (child == null || child === false) continue;
-    el.append(child.nodeType ? child : document.createTextNode(String(child)));
-  }
-  if (selected != null) el.value = selected;
-  return el;
-}
 
 function render() {
   configChrome = null;
@@ -876,7 +860,7 @@ function renderRatings() {
             h("div", { class: "what" }, row.meeting_name || "Clase", h("span", { class: "sub" }, row.customer_name || `Cliente ${row.user_id}`)),
             row.staff_name || "—",
             h("div", { class: "stars-cell" }, starPips(row.class_stars, "Clase"), starPips(row.staff_stars, "Coach")),
-            row.comment ? h("span", { class: "ratings-comment" }, row.comment) : h("span", { class: "muted" }, "Sin comentario"),
+            row.comment ? ratingComment(row.comment) : h("span", { class: "muted" }, "Sin comentario"),
           ]),
         )
       : empty("Nadie ha escrito todavía", "Cuando un socio envíe estrellas, el comentario aparece aquí. Filtra por fecha arriba."),

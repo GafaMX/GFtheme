@@ -5,18 +5,30 @@ import {
   listClassRatings,
   memoryRatingsStore,
   parseRatingBody,
+  presentMineRating,
   ratingsAreEnabled,
   summarizeRatings,
   type ClassRatingRow,
 } from "../src/ratings";
 
-const base = {
-  company_id: 80,
+const stars = {
   brand_slug: "fitspin",
   reservation_id: 44,
-  user_id: 9,
   class_stars: 5,
   staff_stars: 4,
+};
+
+const member = { user_id: 9, customer_name: "Ana" };
+const reservation = {
+  ok: true as const,
+  reservation: {
+    reservation_id: 44,
+    meeting_id: 900,
+    meeting_name: "Bici AM",
+    staff_id: 12,
+    staff_name: "ISA",
+    starts_at: "2026-11-01T12:00:00.000Z",
+  },
 };
 
 function row(over: Partial<ClassRatingRow> = {}): ClassRatingRow {
@@ -32,7 +44,6 @@ function row(over: Partial<ClassRatingRow> = {}): ClassRatingRow {
     staff_name: "ISA",
     user_id: 9,
     customer_name: "Ana",
-    customer_email: "ana@buq.mx",
     class_stars: 5,
     staff_stars: 4,
     comment: "Genial",
@@ -52,115 +63,224 @@ describe("CLASS_RATINGS enabled", () => {
   it("enciende con true suelto o enabled true", () => {
     expect(ratingsAreEnabled({ CLASS_RATINGS: true })).toBe(true);
     expect(ratingsAreEnabled({ CLASS_RATINGS: { enabled: true } })).toBe(true);
-    expect(ratingsAreEnabled({ classRatings: { enabled: "true" } })).toBe(true);
   });
 });
 
 describe("parseRatingBody", () => {
-  it("pide estudio, marca, reserva, cliente y al menos unas estrellas", () => {
-    const miss = parseRatingBody({});
+  it("pide marca, reserva y al menos unas estrellas; ignora identidad del body", () => {
+    const miss = parseRatingBody({ user_id: 9, company_id: 80 });
     expect(miss.ok).toBe(false);
     if (miss.ok) return;
     expect(miss.status).toBe(422);
-    expect(miss.errors?.company_id).toBeTruthy();
+    expect(miss.errors?.reservation_id).toBeTruthy();
     expect(miss.errors?.stars).toBeTruthy();
-  });
 
-  it("rechaza estrellas fuera de 1–5 y comentarios largos", () => {
-    const stars = parseRatingBody({ ...base, class_stars: 6, staff_stars: 4 });
-    expect(stars.ok).toBe(false);
-    const comment = parseRatingBody({ ...base, comment: "x".repeat(501) });
-    expect(comment.ok).toBe(false);
-    if (comment.ok) return;
-    expect(comment.errors?.comment?.[0]).toMatch(/500/);
-  });
-
-  it("acepta camelCase y comentario vacío", () => {
     const parsed = parseRatingBody({
-      companyId: 80,
       brandSlug: "FitSpin",
       reservationId: 44,
-      userId: 9,
       classStars: 3,
-      comment: "   ",
-      meetingName: "Bici AM",
+      user_id: 1,
+      customer_name: "Mallory",
+      customer_email: "x@evil",
+      meeting_name: "HACK",
+      staff_name: "HACK",
     });
-    expect(parsed).toMatchObject({
+    expect(parsed).toEqual({
       ok: true,
       rating: {
-        company_id: 80,
         brand_slug: "fitspin",
         reservation_id: 44,
-        user_id: 9,
         class_stars: 3,
         staff_stars: null,
         comment: null,
-        meeting_name: "Bici AM",
       },
     });
   });
 });
 
-describe("store + HTTP helpers", () => {
-  it("crea y bloquea el duplicado por reserva", async () => {
-    const store = memoryRatingsStore();
-    const first = await createClassRating(store, { enabled: true, body: base, now: "2026-11-19T12:00:00.000Z" });
-    expect(first.status).toBe(201);
-    expect(first.json).toMatchObject({
-      ok: true,
-      rating: { reservation_id: 44, class_stars: 5, staff_stars: 4 },
+describe("createClassRating auth", () => {
+  it("sin socio autenticado da 401", async () => {
+    const result = await createClassRating(memoryRatingsStore(), {
+      enabled: true,
+      companyId: 80,
+      member: null,
+      reservation,
+      body: stars,
     });
-    const dupe = await createClassRating(store, { enabled: true, body: { ...base, user_id: 99, class_stars: 1 } });
-    expect(dupe).toEqual({ status: 409, json: { ok: false, error: "already_rated" } });
+    expect(result.status).toBe(401);
   });
 
-  it("no guarda si el estudio no prendió CLASS_RATINGS", async () => {
+  it("reserva ajena o inexistente da 403 y no inserta", async () => {
     const store = memoryRatingsStore();
-    const result = await createClassRating(store, { enabled: false, body: base });
+    const result = await createClassRating(store, {
+      enabled: true,
+      companyId: 80,
+      member,
+      reservation: { ok: false, error: "not_found" },
+      body: stars,
+    });
     expect(result.status).toBe(403);
     expect(await store.getMine(80, 44, 9)).toBeNull();
   });
 
-  it("GET mine distingue vacío de la fila del socio", async () => {
-    const store = memoryRatingsStore([row()]);
-    const mine = await getMyClassRating(store, { companyId: 80, reservationId: 44, userId: 9 });
-    expect(mine.json.rating).toMatchObject({ reservation_id: 44, class_stars: 5 });
-    const empty = await getMyClassRating(store, { companyId: 80, reservationId: 44, userId: 8 });
-    expect(empty).toEqual({ status: 200, json: { ok: true, rating: null } });
-    const missing = await getMyClassRating(store, { companyId: 0, reservationId: 44, userId: 9 });
-    expect(missing.status).toBe(400);
+  it("clase futura da 422", async () => {
+    const result = await createClassRating(memoryRatingsStore(), {
+      enabled: true,
+      companyId: 80,
+      member,
+      reservation: { ok: false, error: "future" },
+      body: stars,
+    });
+    expect(result.status).toBe(422);
+    expect(result.json.error).toBe("class_not_ended");
   });
 
-  it("lista con filtro de fechas y arma promedios por clase y coach", async () => {
-    const store = memoryRatingsStore([
-      row({ id: 1, reservation_id: 1, meeting_id: 900, meeting_name: "Bici AM", staff_id: 12, staff_name: "ISA", class_stars: 5, staff_stars: 4, created_at: "2026-11-10T10:00:00.000Z", comment: "Ritmo" }),
-      row({ id: 2, reservation_id: 2, meeting_id: 900, meeting_name: "Bici AM", staff_id: 12, staff_name: "ISA", class_stars: 3, staff_stars: 5, created_at: "2026-11-18T10:00:00.000Z", comment: "Fuerte" }),
-      row({ id: 3, reservation_id: 3, meeting_id: 901, meeting_name: "Yoga", staff_id: 20, staff_name: "Ana", class_stars: 4, staff_stars: 5, created_at: "2026-11-19T10:00:00.000Z", comment: "Paz" }),
-      row({ id: 4, company_id: 99, reservation_id: 4, created_at: "2026-11-19T10:00:00.000Z" }),
-    ]);
-    const listed = await listClassRatings(store, { companyId: 80, from: "2026-11-18", to: "2026-11-19" });
-    expect(listed.total).toBe(2);
-    expect(listed.summary.count).toBe(2);
-    expect(listed.summary.class_avg).toBe(3.5);
-    expect(listed.summary.staff_avg).toBe(5);
-    expect(listed.summary.classes[0]).toMatchObject({ name: "Yoga", avg: 4, count: 1 });
-    expect(listed.summary.coaches.find((row) => row.name === "Ana")).toMatchObject({ avg: 5, count: 1 });
+  it("ignora nombres y user_id del body; toma coach y clase de gafa.fit", async () => {
+    const store = memoryRatingsStore();
+    const result = await createClassRating(store, {
+      enabled: true,
+      companyId: 80,
+      member,
+      reservation,
+      body: {
+        ...stars,
+        user_id: 1,
+        customer_name: "Mallory",
+        customer_email: "mallory@evil",
+        meeting_name: "HACK",
+        staff_name: "HACK",
+        meeting_id: 1,
+        staff_id: 1,
+      },
+      now: "2026-11-19T12:00:00.000Z",
+    });
+    expect(result.status).toBe(201);
+    expect(result.json.rating).toMatchObject({
+      reservation_id: 44,
+      meeting_name: "Bici AM",
+      staff_name: "ISA",
+      meeting_id: 900,
+      staff_id: 12,
+      class_stars: 5,
+    });
+    expect(result.json.rating).not.toHaveProperty("customer_email");
+    expect(result.json.rating).not.toHaveProperty("user_id");
+    const saved = await store.getMine(80, 44, 9);
+    expect(saved?.user_id).toBe(9);
+    expect(saved?.customer_name).toBe("Ana");
+    expect(saved?.meeting_name).toBe("Bici AM");
+    expect(saved).not.toHaveProperty("customer_email");
+  });
 
-    const q = await listClassRatings(store, { companyId: 80, q: "ritmo" });
-    expect(q.total).toBe(1);
-    expect(q.rows[0]?.comment).toBe("Ritmo");
+  it("409 solo si el mismo socio ya calificó esa reserva verificada", async () => {
+    const store = memoryRatingsStore();
+    const first = await createClassRating(store, {
+      enabled: true,
+      companyId: 80,
+      member,
+      reservation,
+      body: stars,
+    });
+    expect(first.status).toBe(201);
+    const dupe = await createClassRating(store, {
+      enabled: true,
+      companyId: 80,
+      member,
+      reservation,
+      body: { ...stars, class_stars: 1 },
+    });
+    expect(dupe).toEqual({ status: 409, json: { ok: false, error: "already_rated" } });
+    const other = await createClassRating(store, {
+      enabled: true,
+      companyId: 80,
+      member: { user_id: 99, customer_name: "Otra" },
+      reservation: { ok: false, error: "not_found" },
+      body: { ...stars, reservation_id: 44 },
+    });
+    expect(other.status).toBe(403);
+  });
+
+  it("no guarda si CLASS_RATINGS está apagado", async () => {
+    const store = memoryRatingsStore();
+    const result = await createClassRating(store, {
+      enabled: false,
+      companyId: 80,
+      member,
+      reservation,
+      body: stars,
+    });
+    expect(result.status).toBe(403);
+    expect(result.json.error).toBe("ratings_disabled");
   });
 });
 
-describe("summarizeRatings", () => {
-  it("ignora estrellas nulas al promediar", () => {
+describe("GET mine", () => {
+  it("sin token da 401; apagado da 403; aísla por socio", async () => {
+    const store = memoryRatingsStore([row(), row({ id: 2, user_id: 8, reservation_id: 44, comment: "Ajeno" })]);
+    expect(
+      (await getMyClassRating(store, { enabled: true, member: null, companyId: 80, reservationId: 44 })).status,
+    ).toBe(401);
+    expect(
+      (await getMyClassRating(store, { enabled: false, member, companyId: 80, reservationId: 44 })).json.error,
+    ).toBe("ratings_disabled");
+    const mine = await getMyClassRating(store, { enabled: true, member, companyId: 80, reservationId: 44 });
+    expect(mine.status).toBe(200);
+    expect(mine.json.rating).toMatchObject({ comment: "Genial", reservation_id: 44 });
+    expect(mine.json.rating).not.toHaveProperty("customer_email");
+    const otherOwn = await getMyClassRating(store, {
+      enabled: true,
+      member: { user_id: 8, customer_name: "Otra" },
+      companyId: 80,
+      reservationId: 44,
+    });
+    expect(otherOwn.json.rating).toMatchObject({ comment: "Ajeno" });
+    const other = await getMyClassRating(store, {
+      enabled: true,
+      member: { user_id: 8, customer_name: "Otra" },
+      companyId: 80,
+      reservationId: 99,
+    });
+    expect(other.json.rating).toBeNull();
+  });
+});
+
+describe("list + promedios por ID verificado", () => {
+  it("agrupa por meeting_id y staff_id, no por nombre", async () => {
     const summary = summarizeRatings([
-      row({ class_stars: 5, staff_stars: null }),
-      row({ id: 2, reservation_id: 2, class_stars: null, staff_stars: 2, staff_id: 8, staff_name: "Leo" }),
+      row({ meeting_id: 900, meeting_name: "Bici", staff_id: 12, staff_name: "ISA", class_stars: 5, staff_stars: 4 }),
+      row({
+        id: 2,
+        reservation_id: 2,
+        meeting_id: 901,
+        meeting_name: "Bici",
+        staff_id: 13,
+        staff_name: "ISA",
+        class_stars: 1,
+        staff_stars: 5,
+      }),
+      row({ id: 3, reservation_id: 3, meeting_id: null, meeting_name: "Huérfana", class_stars: 5, staff_id: null }),
     ]);
-    expect(summary.class_avg).toBe(5);
-    expect(summary.staff_avg).toBe(2);
-    expect(summary.classes).toHaveLength(1);
-    expect(summary.coaches).toHaveLength(1);
+    expect(summary.classes).toHaveLength(2);
+    expect(summary.classes.map((item) => item.id).sort()).toEqual([900, 901]);
+    expect(summary.coaches).toHaveLength(2);
+  });
+
+  it("filtra fechas en America/Mexico_City", async () => {
+    const store = memoryRatingsStore([
+      row({ id: 1, reservation_id: 1, created_at: "2026-11-18T05:59:59.000Z", comment: "antes" }),
+      row({ id: 2, reservation_id: 2, created_at: "2026-11-18T06:00:00.000Z", comment: "cdmx" }),
+      row({ id: 3, reservation_id: 3, created_at: "2026-11-19T05:59:59.999Z", comment: "fin" }),
+    ]);
+    const listed = await listClassRatings(store, { companyId: 80, from: "2026-11-18", to: "2026-11-18" });
+    expect(listed.rows.map((item) => item.comment)).toEqual(["fin", "cdmx"]);
+  });
+});
+
+describe("presentMineRating", () => {
+  it("no expone email ni user_id", () => {
+    const view = presentMineRating(row());
+    expect(view).not.toHaveProperty("customer_email");
+    expect(view).not.toHaveProperty("user_id");
+    expect(view).not.toHaveProperty("customer_name");
   });
 });

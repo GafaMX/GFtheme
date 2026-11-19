@@ -1,5 +1,8 @@
 /** Calificaciones de clase/coach. Viven en D1 del Hub, no en gafa.fit. */
 
+import type { GafaMember, VerifiedReservation } from "./gafaMember";
+import { dayEndInZone, dayStartInZone } from "./mexicoCity";
+
 export const RATING_COMMENT_MAX = 500;
 export const RATING_STAR_MIN = 1;
 export const RATING_STAR_MAX = 5;
@@ -16,7 +19,6 @@ export type ClassRatingRow = {
   staff_name: string | null;
   user_id: number;
   customer_name: string | null;
-  customer_email: string | null;
   class_stars: number | null;
   staff_stars: number | null;
   comment: string | null;
@@ -34,7 +36,14 @@ export type ParsedRatingInput = {
   staff_name: string | null;
   user_id: number;
   customer_name: string | null;
-  customer_email: string | null;
+  class_stars: number | null;
+  staff_stars: number | null;
+  comment: string | null;
+};
+
+export type RatingStars = {
+  brand_slug: string;
+  reservation_id: number;
   class_stars: number | null;
   staff_stars: number | null;
   comment: string | null;
@@ -62,7 +71,7 @@ export type RatingsListFilter = {
 };
 
 export type RatingAverage = {
-  id: number | null;
+  id: number;
   name: string;
   avg: number;
   count: number;
@@ -86,24 +95,19 @@ export function ratingsAreEnabled(config: unknown): boolean {
   return enabled === true || enabled === 1 || enabled === "true" || enabled === "1";
 }
 
-export function parseRatingBody(input: unknown): { ok: true; rating: ParsedRatingInput } | RatingParseError {
+/** Del body solo importan marca, reserva, estrellas y comentario. El resto se ignora. */
+export function parseRatingBody(input: unknown): { ok: true; rating: RatingStars } | RatingParseError {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return { ok: false, status: 400, error: "invalid_json" };
   }
   const raw = input as Record<string, unknown>;
   const errors: Record<string, string[]> = {};
 
-  const company_id = readPositiveId(raw.company_id ?? raw.companyId);
-  if (!company_id) errors.company_id = ["Falta el estudio."];
-
   const brand_slug = readSlug(raw.brand_slug ?? raw.brandSlug);
   if (!brand_slug) errors.brand_slug = ["Falta la marca."];
 
   const reservation_id = readPositiveId(raw.reservation_id ?? raw.reservationId);
   if (!reservation_id) errors.reservation_id = ["Falta la reserva."];
-
-  const user_id = readPositiveId(raw.user_id ?? raw.userId);
-  if (!user_id) errors.user_id = ["Falta el cliente."];
 
   const class_stars = readOptionalStars(raw.class_stars ?? raw.classStars, "class_stars", errors);
   const staff_stars = readOptionalStars(raw.staff_stars ?? raw.staffStars, "staff_stars", errors);
@@ -127,17 +131,8 @@ export function parseRatingBody(input: unknown): { ok: true; rating: ParsedRatin
   return {
     ok: true,
     rating: {
-      company_id: company_id!,
       brand_slug: brand_slug!,
-      brand_id: readPositiveId(raw.brand_id ?? raw.brandId) ?? null,
       reservation_id: reservation_id!,
-      meeting_id: readPositiveId(raw.meeting_id ?? raw.meetingId) ?? null,
-      meeting_name: readLabel(raw.meeting_name ?? raw.meetingName ?? raw.service_name ?? raw.serviceName),
-      staff_id: readPositiveId(raw.staff_id ?? raw.staffId) ?? null,
-      staff_name: readLabel(raw.staff_name ?? raw.staffName),
-      user_id: user_id!,
-      customer_name: readLabel(raw.customer_name ?? raw.customerName),
-      customer_email: readLabel(raw.customer_email ?? raw.customerEmail),
       class_stars,
       staff_stars,
       comment: comment || null,
@@ -152,12 +147,12 @@ export function summarizeRatings(rows: ClassRatingRow[]): RatingsSummary {
     count: rows.length,
     class_avg: average(classValues),
     staff_avg: average(staffValues),
-    classes: groupAverages(rows, (row) => row.meeting_id, (row) => row.meeting_name, (row) => row.class_stars),
-    coaches: groupAverages(rows, (row) => row.staff_id, (row) => row.staff_name, (row) => row.staff_stars),
+    classes: groupAveragesById(rows, (row) => row.meeting_id, (row) => row.meeting_name, (row) => row.class_stars),
+    coaches: groupAveragesById(rows, (row) => row.staff_id, (row) => row.staff_name, (row) => row.staff_stars),
   };
 }
 
-export function presentRating(row: ClassRatingRow) {
+export function presentMineRating(row: ClassRatingRow) {
   return {
     id: row.id,
     company_id: row.company_id,
@@ -167,14 +162,22 @@ export function presentRating(row: ClassRatingRow) {
     meeting_name: row.meeting_name,
     staff_id: row.staff_id,
     staff_name: row.staff_name,
-    user_id: row.user_id,
-    customer_name: row.customer_name,
     class_stars: row.class_stars,
     staff_stars: row.staff_stars,
     comment: row.comment,
     created_at: row.created_at,
   };
 }
+
+export function presentAdminRating(row: ClassRatingRow) {
+  return {
+    ...presentMineRating(row),
+    user_id: row.user_id,
+    customer_name: row.customer_name,
+  };
+}
+
+export const presentRating = presentAdminRating;
 
 export type RatingsStore = {
   getMine(companyId: number, reservationId: number, userId: number): Promise<ClassRatingRow | null>;
@@ -188,10 +191,12 @@ export function memoryRatingsStore(seed: ClassRatingRow[] = []): RatingsStore {
   let nextId = rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
   return {
     async getMine(companyId, reservationId, userId) {
-      return rows.find(
-        (row) =>
-          row.company_id === companyId && row.reservation_id === reservationId && row.user_id === userId,
-      ) ?? null;
+      return (
+        rows.find(
+          (row) =>
+            row.company_id === companyId && row.reservation_id === reservationId && row.user_id === userId,
+        ) ?? null
+      );
     },
     async insert(input, createdAt) {
       if (rows.some((row) => row.company_id === input.company_id && row.reservation_id === input.reservation_id)) {
@@ -232,9 +237,9 @@ export function d1RatingsStore(db: D1Database): RatingsStore {
           .prepare(
             `INSERT INTO class_ratings (
               company_id, brand_slug, brand_id, reservation_id, meeting_id, meeting_name,
-              staff_id, staff_name, user_id, customer_name, customer_email,
+              staff_id, staff_name, user_id, customer_name,
               class_stars, staff_stars, comment, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING *`,
           )
           .bind(
@@ -248,7 +253,6 @@ export function d1RatingsStore(db: D1Database): RatingsStore {
             input.staff_name,
             input.user_id,
             input.customer_name,
-            input.customer_email,
             input.class_stars,
             input.staff_stars,
             input.comment,
@@ -272,9 +276,7 @@ export function d1RatingsStore(db: D1Database): RatingsStore {
       const offset = filter.offset ?? 0;
       const limit = Math.min(50, Math.max(1, filter.limit ?? 25));
       const { results } = await db
-        .prepare(
-          `SELECT * FROM class_ratings WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-        )
+        .prepare(`SELECT * FROM class_ratings WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
         .bind(...binds, limit, offset)
         .all<ClassRatingRow>();
       return { rows: results ?? [], total: Number(totalRow?.n ?? 0) };
@@ -315,11 +317,11 @@ function listWhere(filter: Omit<RatingsListFilter, "offset" | "limit">): { where
   }
   if (filter.from) {
     clauses.push("created_at >= ?");
-    binds.push(dayStart(filter.from));
+    binds.push(dayStartInZone(filter.from));
   }
   if (filter.to) {
     clauses.push("created_at <= ?");
-    binds.push(dayEnd(filter.to));
+    binds.push(dayEndInZone(filter.to));
   }
   if (filter.q) {
     const like = `%${filter.q.replace(/[%_]/g, "")}%`;
@@ -332,8 +334,8 @@ function listWhere(filter: Omit<RatingsListFilter, "offset" | "limit">): { where
 }
 
 function filterRows(rows: ClassRatingRow[], filter: RatingsListFilter): ClassRatingRow[] {
-  const from = filter.from ? dayStart(filter.from) : null;
-  const to = filter.to ? dayEnd(filter.to) : null;
+  const from = filter.from ? dayStartInZone(filter.from) : null;
+  const to = filter.to ? dayEndInZone(filter.to) : null;
   const q = filter.q?.trim().toLowerCase();
   return rows
     .filter((row) => {
@@ -357,22 +359,26 @@ function filterRows(rows: ClassRatingRow[], filter: RatingsListFilter): ClassRat
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 }
 
-function groupAverages(
+function groupAveragesById(
   rows: ClassRatingRow[],
   idOf: (row: ClassRatingRow) => number | null,
   nameOf: (row: ClassRatingRow) => string | null,
   starsOf: (row: ClassRatingRow) => number | null,
 ): RatingAverage[] {
-  const groups = new Map<string, { id: number | null; name: string; values: number[] }>();
+  const groups = new Map<number, { id: number; name: string; values: number[] }>();
   for (const row of rows) {
     const stars = starsOf(row);
-    if (stars == null) continue;
     const id = idOf(row);
-    const key = String(id ?? nameOf(row) ?? "x");
-    const current = groups.get(key) ?? { id, name: nameOf(row)?.trim() || (id ? `#${id}` : "Sin nombre"), values: [] };
+    if (stars == null || id == null) continue;
+    const current = groups.get(id) ?? {
+      id,
+      name: nameOf(row)?.trim() || `#${id}`,
+      values: [],
+    };
     current.values.push(stars);
-    if (!current.name && nameOf(row)) current.name = nameOf(row)!;
-    groups.set(key, current);
+    const name = nameOf(row)?.trim();
+    if (name) current.name = name;
+    groups.set(id, current);
   }
   return [...groups.values()]
     .map((group) => ({
@@ -415,31 +421,33 @@ function readSlug(value: unknown): string | null {
   return slug && slug.length <= 80 ? slug : null;
 }
 
-function readLabel(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const text = value.trim();
-  if (!text) return null;
-  return text.slice(0, 160);
-}
-
-function dayStart(value: string): string {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T00:00:00.000Z`;
-  return value;
-}
-
-function dayEnd(value: string): string {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T23:59:59.999Z`;
-  return value;
-}
-
 export type RatingHttpResult = { status: number; json: Record<string, unknown> };
 
 export async function createClassRating(
   store: RatingsStore,
-  input: { enabled: boolean; body: unknown; now?: string },
+  input: {
+    enabled: boolean;
+    companyId: number;
+    member: GafaMember | null;
+    reservation: VerifyCreateReservation;
+    body: unknown;
+    now?: string;
+  },
 ): Promise<RatingHttpResult> {
+  if (!input.member) {
+    return { status: 401, json: { ok: false, error: "unauthorized" } };
+  }
   if (!input.enabled) {
     return { status: 403, json: { ok: false, error: "ratings_disabled" } };
+  }
+  if (input.reservation.ok === false) {
+    if (input.reservation.error === "future") {
+      return {
+        status: 422,
+        json: { ok: false, error: "class_not_ended", errors: { reservation_id: ["La clase todavía no termina."] } },
+      };
+    }
+    return { status: 403, json: { ok: false, error: "forbidden" } };
   }
   const parsed = parseRatingBody(input.body);
   if (!parsed.ok) {
@@ -448,22 +456,62 @@ export async function createClassRating(
       json: { ok: false, error: parsed.error, errors: parsed.errors },
     };
   }
-  const result = await store.insert(parsed.rating, input.now ?? new Date().toISOString());
+  const verified = input.reservation.reservation;
+  if (parsed.rating.reservation_id !== verified.reservation_id) {
+    return { status: 403, json: { ok: false, error: "forbidden" } };
+  }
+  const existing = await store.getMine(input.companyId, verified.reservation_id, input.member.user_id);
+  if (existing) {
+    return { status: 409, json: { ok: false, error: "already_rated" } };
+  }
+  const result = await store.insert(
+    {
+      company_id: input.companyId,
+      brand_slug: parsed.rating.brand_slug,
+      brand_id: null,
+      reservation_id: verified.reservation_id,
+      meeting_id: verified.meeting_id,
+      meeting_name: verified.meeting_name,
+      staff_id: verified.staff_id,
+      staff_name: verified.staff_name,
+      user_id: input.member.user_id,
+      customer_name: input.member.customer_name,
+      class_stars: parsed.rating.class_stars,
+      staff_stars: parsed.rating.staff_stars,
+      comment: parsed.rating.comment,
+    },
+    input.now ?? new Date().toISOString(),
+  );
   if (!result.ok) {
     return { status: 409, json: { ok: false, error: "already_rated" } };
   }
-  return { status: 201, json: { ok: true, rating: presentRating(result.rating) } };
+  return { status: 201, json: { ok: true, rating: presentMineRating(result.rating) } };
 }
+
+type VerifyCreateReservation =
+  | { ok: true; reservation: VerifiedReservation }
+  | { ok: false; error: "not_found" | "future" | "forbidden" | "unavailable" };
 
 export async function getMyClassRating(
   store: RatingsStore,
-  input: { companyId: number; reservationId: number; userId: number },
+  input: {
+    enabled: boolean;
+    member: GafaMember | null;
+    companyId: number;
+    reservationId: number;
+  },
 ): Promise<RatingHttpResult> {
-  if (!input.companyId || !input.reservationId || !input.userId) {
+  if (!input.member) {
+    return { status: 401, json: { ok: false, error: "unauthorized" } };
+  }
+  if (!input.enabled) {
+    return { status: 403, json: { ok: false, error: "ratings_disabled" } };
+  }
+  if (!input.companyId || !input.reservationId) {
     return { status: 400, json: { ok: false, error: "missing_ids" } };
   }
-  const row = await store.getMine(input.companyId, input.reservationId, input.userId);
-  return { status: 200, json: { ok: true, rating: row ? presentRating(row) : null } };
+  const row = await store.getMine(input.companyId, input.reservationId, input.member.user_id);
+  return { status: 200, json: { ok: true, rating: row ? presentMineRating(row) : null } };
 }
 
 export async function listClassRatings(

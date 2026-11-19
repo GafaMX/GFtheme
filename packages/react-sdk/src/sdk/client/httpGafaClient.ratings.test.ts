@@ -9,8 +9,6 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-const me = { id: 9, email: "ana@buq.mx", first_name: "Ana", last_name: "López" };
-
 function stubFetch(handler: (url: string, init?: RequestInit) => Response | Promise<Response>) {
   const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => handler(String(url), init));
   vi.stubGlobal("fetch", fetchMock);
@@ -23,10 +21,9 @@ describe("reservation ratings HTTP", () => {
     clearStoredToken();
   });
 
-  it("GET vacío en el Hub se lee como null", async () => {
+  it("GET vacío en el Hub se lee como null y manda el Bearer", async () => {
     writeStoredToken("token-de-prueba");
-    stubFetch((url) => {
-      if (url.endsWith("/api/me") || url.includes("/api/me?")) return jsonResponse(me);
+    const fetchMock = stubFetch((url) => {
       if (url.includes("/v1/ratings/mine")) return jsonResponse({ ok: true, rating: null });
       return jsonResponse({ message: "Not Found" }, 404);
     });
@@ -36,20 +33,22 @@ describe("reservation ratings HTTP", () => {
       hubUrl: "https://hub.buq.partners",
     });
     await expect(client.getReservationRating?.("fitspin", 44)).resolves.toBeNull();
+    const call = fetchMock.mock.calls.find((item) => String(item[0]).includes("/v1/ratings/mine"));
+    expect(call?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer token-de-prueba",
+      "GAFAFIT-COMPANY": "80",
+    });
   });
 
-  it("POST manda la calificación al Hub, no a gafa.fit", async () => {
+  it("POST manda la calificación al Hub con token, sin identidad en el body", async () => {
     writeStoredToken("token-de-prueba");
     const fetchMock = stubFetch((url) => {
-      if (url.endsWith("/api/me") || url.includes("/api/me?")) return jsonResponse(me);
       if (url.endsWith("/v1/ratings")) {
         return jsonResponse(
           {
             ok: true,
             rating: {
               reservation_id: 44,
-              meeting_id: 900,
-              staff_id: 12,
               class_stars: 5,
               staff_stars: 4,
               comment: "Genial",
@@ -69,40 +68,31 @@ describe("reservation ratings HTTP", () => {
     const rating = await client.submitReservationRating?.({
       brandSlug: "fitspin",
       reservationId: 44,
-      meetingId: 900,
-      meetingName: "Bici AM",
-      staffId: 12,
-      staffName: "ISA",
+      meetingName: "ignorado",
+      staffName: "ignorado",
       classStars: 5,
       staffStars: 4,
       comment: "Genial",
     });
-    expect(rating).toMatchObject({ reservationId: 44, classStars: 5, staffStars: 4, comment: "Genial" });
-    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
-    expect(urls.some((url) => url === "https://hub.buq.partners/v1/ratings")).toBe(true);
-    expect(urls.some((url) => url.includes("/api/me/brand/") && url.includes("/rating"))).toBe(false);
+    expect(rating).toMatchObject({ reservationId: 44, classStars: 5 });
     const post = fetchMock.mock.calls.find((call) => String(call[0]).endsWith("/v1/ratings"));
     const body = JSON.parse(String((post?.[1] as RequestInit).body));
-    expect(body).toMatchObject({
-      company_id: 80,
+    expect(body).toEqual({
       brand_slug: "fitspin",
       reservation_id: 44,
-      user_id: 9,
-      customer_email: "ana@buq.mx",
-      meeting_name: "Bici AM",
-      staff_name: "ISA",
       class_stars: 5,
       staff_stars: 4,
       comment: "Genial",
     });
+    expect(post?.[1]?.headers).toMatchObject({ Authorization: "Bearer token-de-prueba" });
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/api/me/brand/") && String(call[0]).includes("/rating"))).toBe(
+      false,
+    );
   });
 
   it("POST 503 explica que el Hub aún no tiene la tabla", async () => {
     writeStoredToken("token-de-prueba");
-    stubFetch((url) => {
-      if (url.endsWith("/api/me") || url.includes("/api/me?")) return jsonResponse(me);
-      return jsonResponse({ ok: false, error: "ratings_unavailable" }, 503);
-    });
+    stubFetch(() => jsonResponse({ ok: false, error: "ratings_unavailable" }, 503));
     const client = createHttpGafaClient({
       apiBaseUrl: "https://buq.partners",
       companyId: 80,

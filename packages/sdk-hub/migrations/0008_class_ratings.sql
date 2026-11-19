@@ -19,7 +19,6 @@ CREATE TABLE class_ratings (
   staff_name TEXT,
   user_id INTEGER NOT NULL,
   customer_name TEXT,
-  customer_email TEXT,
   class_stars INTEGER,
   staff_stars INTEGER,
   comment TEXT,

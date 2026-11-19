@@ -1,90 +1,54 @@
 # Calificaciones de clase y coach — Hub
 
 El SDK V2 pinta la UI detrás del flag Hub `CLASS_RATINGS` (default **apagado**).
-Las estrellas **no van a gafa.fit**. Las guarda el mismo Hub que la config de las marcas: `packages/sdk-hub`, `https://hub.buq.partners`.
+Las estrellas **no van a gafa.fit**. Las guarda el Hub (`packages/sdk-hub`, `https://hub.buq.partners`).
 
-El socio se identifica con `/me` de gafa.fit (sesión). El POST de la calificación es JSON al Hub.
+Hasta que un estudio encienda el flag, el SDK **no** pide estrellas. Preview (`ratings.html`) usa un cliente en memoria.
 
-Hasta que un estudio encienda el flag:
+No aplicar las migraciones D1 en production ni desplegar el Hub hasta un GO.
 
-- El SDK **no** pide estrellas ni llama al API.
-- Preview (`ratings.html` / `?ratings=1`) usa un cliente en memoria, no pega a producción.
-- Demo estático (rama `#305`, no `cdn-live`): `docs/v2-preview/ratings-standalone.html`.
+## Modelo de seguridad
 
-No aplicar la migración D1 en production ni desplegar el Hub hasta un GO.
+No hay firma propia del Hub. El contrato viable es el **OAuth Bearer de gafa.fit** que ya usa el SDK V2 (`Authorization: Bearer` + `GAFAFIT-COMPANY`).
 
-## Recurso
-
-Una calificación **por reserva** (`reservations.id` del socio). Unique `(company_id, reservation_id)` en D1.
-
-## Autenticación
-
-Los endpoints públicos del Hub **no** usan OAuth (igual que `/v1/events` y `/v1/loyalty/balance`). El SDK manda `company_id` + `user_id` del perfil logueado. CORS + rate limit por IP y por `company+user`.
-
-El listado con comentarios de todos los socios es **admin** (cookie de sesión del Hub).
+1. El SDK manda ese token al Hub (`POST /v1/ratings`, `GET /v1/ratings/mine`).
+2. El Hub llama a gafa.fit **en el servidor**: `GET /api/me` y `GET /api/me/brand/{slug}/reservation-past` (y `-future` si no está en past).
+3. De ahí salen `user_id`, nombre del socio, `meeting_id` / `meeting_name`, `staff_id` / `staff_name` y si la clase ya pasó. **Cualquier campo de identidad en el body se ignora** (`user_id`, `customer_name`, `customer_email`, `staff_name`, `meeting_name`, ids de clase/coach).
+4. **No se guarda `customer_email`.**
+5. Sin token → **401**. Reserva que no es del socio / waitlist / cancelada → **403**. Clase futura → **422**. `CLASS_RATINGS` apagado → **403** `ratings_disabled` también en los GET.
+6. El 409 `already_rated` solo después de verificar que la reserva es de ese socio.
+7. `GET /v1/ratings` **no es público**. El listado con filtros es `GET /v1/admin/ratings` (cookie admin). `/mine` solo devuelve la fila del socio autenticado (sin email ni `user_id`).
+8. Rate limit persistente en D1 `rate_limits` (migración `0009`), por IP y por socio. Si la tabla no existe, cae al Map en memoria.
+9. Promedios del admin agrupados por `meeting_id` y `staff_id` verificados. Los nombres son etiqueta.
+10. Filtro de fechas del admin: días de **America/Mexico_City**.
 
 ## `POST /v1/ratings`
 
-JSON. Primera fila gana; un segundo POST a la misma reserva responde **409**.
+Headers: `Authorization: Bearer <access_token>`, `GAFAFIT-COMPANY: <companyId>`, `Content-Type: application/json`.
 
-### Payload
+Body aceptado:
 
-| Campo | Tipo | Obligatorio | Notas |
-| --- | --- | --- | --- |
-| `company_id` | integer | sí | Estudio Hub |
-| `brand_slug` | string | sí | Marca |
-| `reservation_id` | integer | sí | Anti-duplicado |
-| `user_id` | integer | sí | Cliente |
-| `class_stars` | integer 1–5 | al menos uno de clase/coach | `null` si la marca solo pide coach |
-| `staff_stars` | integer 1–5 | al menos uno | `null` si solo clase |
-| `comment` | string | no | Trim; máximo **500**; `""` = null |
-| `meeting_id` / `meeting_name` | | no | Denormalizado para el admin |
-| `staff_id` / `staff_name` | | no | Coach de esa reserva |
-| `customer_name` / `customer_email` | | no | Del `/me` |
-| `brand_id` | integer | no | |
-
-### Respuestas
-
-| Status | Cuándo |
+| Campo | Obligatorio |
 | --- | --- |
-| **201** | Creada. `{ ok: true, rating }` |
-| **403** | `CLASS_RATINGS` apagado (`ratings_disabled`) |
-| **409** | Ya existe fila para esa reserva (`already_rated`) |
-| **422** | Validación |
-| **429** | Rate limit |
-| **503** | Tabla D1 todavía no aplicada (`ratings_unavailable`) |
+| `brand_slug` | sí (para buscar la reserva en gafa.fit) |
+| `reservation_id` | sí |
+| `class_stars` / `staff_stars` | al menos uno, 1–5 |
+| `comment` | no, máx. 500 |
 
-## `GET /v1/ratings/mine?company_id=&reservation_id=&user_id=`
+## `GET /v1/ratings/mine?company_id=&reservation_id=`
 
-**200** `{ ok: true, rating }` o `rating: null` si el socio aún no califica.
-
-## `GET /v1/ratings?company_id=&user_id=`
-
-Listado del **propio** cliente (hace falta `user_id`). Filtros: `reservation_id`, `from`, `to`.
+Mismos headers. Query `user_id` se ignora.
 
 ## `GET /v1/admin/ratings?company_id=`
 
-Cookie admin. Filtros: `from`, `to`, `q`, `staff_id`, `meeting_id`, `brand_slug`, `page`.
-
-Respuesta: `enabled`, `summary` (promedio clase/coach + ranking) e `items` (comentarios).
+Cookie admin. Filtros `from` / `to` (YYYY-MM-DD en CDMX), `q`, `staff_id`, `meeting_id`, `page`.
 
 ## Almacenamiento
 
-Migración [`packages/sdk-hub/migrations/0008_class_ratings.sql`](../packages/sdk-hub/migrations/0008_class_ratings.sql).
+- [`0008_class_ratings.sql`](../packages/sdk-hub/migrations/0008_class_ratings.sql) — unique `(company_id, reservation_id)`
+- [`0009_rate_limits.sql`](../packages/sdk-hub/migrations/0009_rate_limits.sql)
 
-Reutiliza el binding D1 `DB` que ya tiene el Worker. **No hay KV/R2 nuevo.**
-
-```sh
-# local
-cd packages/sdk-hub && npx wrangler d1 migrations apply sdk-hub --local
-
-# production — SOLO con GO
-wrangler d1 migrations apply sdk-hub --env production --remote
-```
-
-Sin esa migración el API responde **503**. El deploy de production del Hub aplica migraciones: no correr `deploy:production` hasta el GO.
-
-## Hub (flag)
+Reutiliza el binding D1 `DB`. **No hay KV/R2/DO nuevo.** No aplicar en production.
 
 ```json
 "CLASS_RATINGS": {
@@ -94,5 +58,3 @@ Sin esa migración el API responde **503**. El deploy de production del Hub apli
   "promptAfterClass": false
 }
 ```
-
-Sin el bloque (o `enabled: false`) el SDK **no cambia nada**. No hace GET/POST de ratings.

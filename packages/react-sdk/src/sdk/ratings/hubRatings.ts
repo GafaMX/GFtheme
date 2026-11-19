@@ -4,16 +4,9 @@ export const DEFAULT_HUB_URL = "https://hub.buq.partners";
 
 export type HubRatingSubmitInput = {
   companyId: number;
+  token: string;
   brandSlug: string;
-  brandId?: number;
   reservationId: number;
-  meetingId?: number;
-  meetingName?: string;
-  staffId?: number;
-  staffName?: string;
-  userId: number;
-  customerName?: string;
-  customerEmail?: string;
   classStars?: number | null;
   staffStars?: number | null;
   comment?: string;
@@ -30,21 +23,29 @@ export function hubRatingsCreateUrl(hubUrl?: string | null): string {
 
 export function hubRatingsMineUrl(
   hubUrl: string | undefined | null,
-  input: { companyId: number; reservationId: number; userId: number },
+  input: { companyId: number; reservationId: number },
 ): string {
   const params = new URLSearchParams({
     company_id: String(input.companyId),
     reservation_id: String(input.reservationId),
-    user_id: String(input.userId),
   });
   return `${hubBase(hubUrl)}/v1/ratings/mine?${params}`;
+}
+
+export function hubRatingHeaders(companyId: number, token: string): Record<string, string> {
+  return {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+    "GAFAFIT-COMPANY": String(companyId),
+  };
 }
 
 export async function fetchHubReservationRating(input: {
   hubUrl?: string | null;
   companyId: number;
+  token: string;
   reservationId: number;
-  userId: number;
   fetchImpl?: typeof fetch;
 }): Promise<ClassRating | null> {
   const fetchImpl = input.fetchImpl ?? fetch;
@@ -53,9 +54,15 @@ export async function fetchHubReservationRating(input: {
     method: "GET",
     mode: "cors",
     credentials: "omit",
-    headers: { Accept: "application/json" },
+    headers: hubRatingHeaders(input.companyId, input.token),
   });
   if (response.status === 404) return null;
+  if (response.status === 401) {
+    throw Object.assign(new Error("Inicia sesión para calificar."), { status: 401 });
+  }
+  if (response.status === 403) {
+    throw Object.assign(new Error("El estudio no acepta calificaciones."), { status: 403 });
+  }
   if (response.status === 429) {
     throw Object.assign(new Error("Demasiados intentos. Espera un momento."), { status: 429 });
   }
@@ -77,17 +84,8 @@ export async function submitHubReservationRating(input: {
   const fetchImpl = input.fetchImpl ?? fetch;
   const url = hubRatingsCreateUrl(input.hubUrl);
   const body = {
-    company_id: input.payload.companyId,
     brand_slug: input.payload.brandSlug,
-    brand_id: input.payload.brandId,
     reservation_id: input.payload.reservationId,
-    meeting_id: input.payload.meetingId,
-    meeting_name: input.payload.meetingName,
-    staff_id: input.payload.staffId,
-    staff_name: input.payload.staffName,
-    user_id: input.payload.userId,
-    customer_name: input.payload.customerName,
-    customer_email: input.payload.customerEmail,
     class_stars: input.payload.classStars ?? null,
     staff_stars: input.payload.staffStars ?? null,
     comment: input.payload.comment ?? null,
@@ -96,7 +94,7 @@ export async function submitHubReservationRating(input: {
     method: "POST",
     mode: "cors",
     credentials: "omit",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    headers: hubRatingHeaders(input.payload.companyId, input.payload.token),
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -108,8 +106,6 @@ export async function submitHubReservationRating(input: {
   return (
     normalizeClassRating(data.rating ?? data, input.payload.reservationId) ?? {
       reservationId: input.payload.reservationId,
-      meetingId: input.payload.meetingId,
-      staffId: input.payload.staffId,
       classStars: input.payload.classStars,
       staffStars: input.payload.staffStars,
       comment: input.payload.comment ?? null,
@@ -120,7 +116,7 @@ export async function submitHubReservationRating(input: {
 
 function messageForHubStatus(status: number, serverMessage?: string): string {
   if (status === 401) return "Inicia sesión para calificar.";
-  if (status === 403) return "El estudio no acepta calificaciones.";
+  if (status === 403) return serverMessage || "El estudio no acepta calificaciones.";
   if (status === 409) return "Ya calificaste esta clase.";
   if (status === 422) return serverMessage || "Revisa las estrellas o el comentario.";
   if (status === 429) return "Demasiados intentos. Espera un momento.";
@@ -136,6 +132,8 @@ async function readHubError(response: Response): Promise<string | undefined> {
     if (data.error === "ratings_disabled") return "El estudio no acepta calificaciones.";
     if (data.error === "already_rated") return "Ya calificaste esta clase.";
     if (data.error === "rate_limited") return "Demasiados intentos. Espera un momento.";
+    if (data.error === "forbidden") return "No puedes calificar esta reserva.";
+    if (data.error === "class_not_ended") return "La clase todavía no termina.";
   } catch {
     return undefined;
   }

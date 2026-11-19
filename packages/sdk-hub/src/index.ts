@@ -5,17 +5,15 @@ import { clearSessionCookie, issueSessionCookie, timingSafeEqual, verifySession 
 import { pruneOldEvents } from "./cleanup";
 import { parseAndNormalizeEvents, persistEvents } from "./ingest";
 import { applyLoyalty, d1LoyaltyStore, tierForPoints } from "./loyalty";
-import { allowRequest } from "./rateLimit";
+import { allowPersistentRequest, allowRequest } from "./rateLimit";
 import { fetchGafaCatalog, gafaApiBaseUrl } from "./gafaCatalog";
-import { pageMeta, readPage } from "./page";
+import { fetchGafaMember, readBearerToken, readCompanyId, verifyGafaReservation } from "./gafaMember";
 import {
   createClassRating,
   d1RatingsStore,
   getMyClassRating,
   isRatingsSchemaMissing,
-  listClassRatings,
   parseRatingBody,
-  presentRating,
   ratingsAreEnabled,
 } from "./ratings";
 import { readCompanyConfig, writeCompanyConfig } from "./remoteConfig";
@@ -40,7 +38,7 @@ const app = new Hono<AppEnv>();
 const embedCors = cors({
   origin: (origin) => origin,
   allowMethods: ["GET", "POST", "OPTIONS"],
-  allowHeaders: ["Content-Type"],
+  allowHeaders: ["Content-Type", "Authorization", "GAFAFIT-COMPANY"],
   credentials: true,
   maxAge: 86400,
 });
@@ -273,9 +271,13 @@ app.get("/v1/admin/config", async (c) => {
 
 app.post("/v1/ratings", async (c) => {
   const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
-  if (!allowRequest(`ratings:${ip}`, 30)) {
+  if (!(await allowPersistentRequest(c.env.DB, `ratings:ip:${ip}`, 30))) {
     return c.json({ ok: false, error: "rate_limited" }, 429);
   }
+  const token = readBearerToken(c.req.header("authorization"));
+  if (!token) return c.json({ ok: false, error: "unauthorized" }, 401);
+  const companyId = readCompanyId(c.req.header("gafafit-company"));
+  if (!companyId) return c.json({ ok: false, error: "company_required" }, 400);
   let body: unknown;
   try {
     body = await c.req.json();
@@ -286,17 +288,33 @@ app.post("/v1/ratings", async (c) => {
   if (!parsed.ok) {
     return c.json({ ok: false, error: parsed.error, errors: parsed.errors }, parsed.status);
   }
-  if (!allowRequest(`ratings:c${parsed.rating.company_id}:u${parsed.rating.user_id}`, 8)) {
-    return c.json({ ok: false, error: "rate_limited" }, 429);
-  }
   try {
-    const configRow = await readCompanyConfig(c.env.DB, parsed.rating.company_id);
+    const configRow = await readCompanyConfig(c.env.DB, companyId);
+    if (!ratingsAreEnabled(configRow.config)) {
+      return c.json({ ok: false, error: "ratings_disabled" }, 403);
+    }
+    const apiBaseUrl = gafaApiBaseUrl(configRow.config);
+    const member = await fetchGafaMember({ apiBaseUrl, companyId, token });
+    if (!member) return c.json({ ok: false, error: "unauthorized" }, 401);
+    if (!(await allowPersistentRequest(c.env.DB, `ratings:c${companyId}:u${member.user_id}`, 8))) {
+      return c.json({ ok: false, error: "rate_limited" }, 429);
+    }
+    const reservation = await verifyGafaReservation({
+      apiBaseUrl,
+      companyId,
+      token,
+      brandSlug: parsed.rating.brand_slug,
+      reservationId: parsed.rating.reservation_id,
+    });
     const result = await createClassRating(d1RatingsStore(c.env.DB), {
       enabled: ratingsAreEnabled(configRow.config),
+      companyId,
+      member,
+      reservation,
       body,
       now: new Date().toISOString(),
     });
-    return c.json(result.json, result.status as 201 | 403 | 409);
+    return c.json(result.json, result.status as 201 | 400 | 401 | 403 | 409 | 422);
   } catch (error) {
     if (isRatingsSchemaMissing(error)) {
       return c.json({ ok: false, error: "ratings_unavailable" }, 503);
@@ -307,53 +325,27 @@ app.post("/v1/ratings", async (c) => {
 
 app.get("/v1/ratings/mine", async (c) => {
   const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
-  if (!allowRequest(`ratings-get:${ip}`, 60)) {
+  if (!(await allowPersistentRequest(c.env.DB, `ratings-get:ip:${ip}`, 60))) {
     return c.json({ ok: false, error: "rate_limited" }, 429);
   }
+  const token = readBearerToken(c.req.header("authorization"));
+  if (!token) return c.json({ ok: false, error: "unauthorized" }, 401);
+  const companyId = readCompanyId(c.req.header("gafafit-company"), c.req.query("company_id"));
+  if (!companyId) return c.json({ ok: false, error: "company_required" }, 400);
   try {
-    const result = await getMyClassRating(d1RatingsStore(c.env.DB), {
-      companyId: Number(c.req.query("company_id")),
-      reservationId: Number(c.req.query("reservation_id")),
-      userId: Number(c.req.query("user_id")),
-    });
-    return c.json(result.json, result.status as 200 | 400);
-  } catch (error) {
-    if (isRatingsSchemaMissing(error)) {
-      return c.json({ ok: false, error: "ratings_unavailable" }, 503);
+    const configRow = await readCompanyConfig(c.env.DB, companyId);
+    if (!ratingsAreEnabled(configRow.config)) {
+      return c.json({ ok: false, error: "ratings_disabled" }, 403);
     }
-    throw error;
-  }
-});
-
-app.get("/v1/ratings", async (c) => {
-  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
-  if (!allowRequest(`ratings-list:${ip}`, 40)) {
-    return c.json({ ok: false, error: "rate_limited" }, 429);
-  }
-  const companyId = Number(c.req.query("company_id"));
-  const userId = Number(c.req.query("user_id"));
-  if (!Number.isFinite(companyId) || companyId <= 0 || !Number.isFinite(userId) || userId <= 0) {
-    return c.json({ ok: false, error: "missing_ids" }, 400);
-  }
-  const { page, perPage, offset } = readPage(c.req.query());
-  try {
-    const listed = await listClassRatings(d1RatingsStore(c.env.DB), {
+    const apiBaseUrl = gafaApiBaseUrl(configRow.config);
+    const member = await fetchGafaMember({ apiBaseUrl, companyId, token });
+    const result = await getMyClassRating(d1RatingsStore(c.env.DB), {
+      enabled: ratingsAreEnabled(configRow.config),
+      member,
       companyId,
-      userId,
-      reservationId: Number(c.req.query("reservation_id")) || undefined,
-      from: c.req.query("from") || undefined,
-      to: c.req.query("to") || undefined,
-      offset,
-      limit: perPage,
+      reservationId: Number(c.req.query("reservation_id")),
     });
-    return c.json({
-      ok: true,
-      company_id: companyId,
-      user_id: userId,
-      items: listed.rows.map(presentRating),
-      ...pageMeta(listed.total, page, perPage),
-      summary: listed.summary,
-    });
+    return c.json(result.json, result.status as 200 | 400 | 401 | 403);
   } catch (error) {
     if (isRatingsSchemaMissing(error)) {
       return c.json({ ok: false, error: "ratings_unavailable" }, 503);
