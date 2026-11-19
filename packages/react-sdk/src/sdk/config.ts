@@ -134,6 +134,11 @@ export const sdkConfigSchema = z
      */
     showWeekMeetingNotes: z.boolean().optional(),
     /**
+     * Calificar clase y/o coach tras una reserva pasada. Default off.
+     * `{ enabled, rateClass, rateCoach, promptAfterClass }`.
+     */
+    classRatings: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
+    /**
      * Oferta en el footer del carrito (pay) y en thank you.
      * Títulos libres: donaciones, proteína, etc.
      */
@@ -175,6 +180,7 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   concierge?: boolean | Record<string, unknown>;
   crossSell?: boolean | Record<string, unknown>;
   membershipEnrollment?: boolean | Record<string, unknown>;
+  classRatings?: boolean | Record<string, unknown>;
   mockPay?: boolean;
   safeTestMode?: boolean;
 };
@@ -195,6 +201,7 @@ const legacyOptionsSchema = z
     ANALYTICS: z.union([z.boolean(), z.string()]).optional(),
     SHOW_MEMBERSHIP_OPTIONS: z.union([z.boolean(), z.string(), z.number()]).optional(),
     SHOW_WEEK_MEETING_NOTES: z.union([z.boolean(), z.string(), z.number()]).optional(),
+    CLASS_RATINGS: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     IMAGES: imagesSchema,
     THEME: legacyThemeSchema,
     CONCIERGE: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
@@ -245,6 +252,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     analyticsEnabled: parseAnalyticsFlag(legacyOptions.ANALYTICS),
     showMembershipOptions: coerceFlag(legacyOptions.SHOW_MEMBERSHIP_OPTIONS),
     showWeekMeetingNotes: coerceFlag(legacyOptions.SHOW_WEEK_MEETING_NOTES),
+    classRatings: legacyOptions.CLASS_RATINGS,
     images: legacyOptions.IMAGES,
     theme: legacyOptions.THEME,
     concierge: legacyOptions.CONCIERGE ?? legacyOptions.concierge,

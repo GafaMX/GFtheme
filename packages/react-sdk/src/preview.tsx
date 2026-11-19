@@ -92,12 +92,28 @@ const pastReservations = Array.from({ length: 16 }, (_, i) => ({
   locationName: i % 2 ? "Cancún" : "Lomas",
   staffName: i % 2 ? "ISA" : "Pau J",
   brandSlug: "fitspin",
+  meetingId: 800 + i,
+  staffId: i % 2 ? 4 : 7,
   isWaitlist: false,
   isOverbooking: false,
   creditId: 2,
   creditTypeName: "CDMXnew",
   cancelled: i < 3,
 }));
+
+const previewRatings = new Map<number, { reservationId: number; classStars?: number | null; staffStars?: number | null; comment?: string | null }>([
+  [24, { reservationId: 24, classStars: 5, staffStars: 4, comment: "Ritmo perfecto" }],
+]);
+const ratingsMode = new URLSearchParams(window.location.search).get("ratings");
+const previewClassRatings =
+  ratingsMode === "0" || ratingsMode == null
+    ? null
+    : {
+        enabled: true as const,
+        rateClass: true,
+        rateCoach: true,
+        promptAfterClass: ratingsMode === "prompt",
+      };
 
 const client = {
   getProfile: async () => {
@@ -227,6 +243,22 @@ const client = {
     if (index !== -1) futureReservations.splice(index, 1);
   },
   updateProfile: async () => ({ id: 1, name: "Gabriel Arrechea", email: "gabriel+fitspin@buq.mx" }),
+  getReservationRating: async (_slug: string, id: number) => previewRatings.get(Number(id)) ?? null,
+  submitReservationRating: async (payload: {
+    reservationId: number;
+    classStars?: number | null;
+    staffStars?: number | null;
+    comment?: string;
+  }) => {
+    const saved = {
+      reservationId: payload.reservationId,
+      classStars: payload.classStars,
+      staffStars: payload.staffStars,
+      comment: payload.comment ?? null,
+    };
+    previewRatings.set(payload.reservationId, saved);
+    return saved;
+  },
   logout: async () => undefined,
   register: async () => undefined,
   login: async () => ({ access_token: "preview" }),
@@ -372,6 +404,7 @@ function Preview() {
             open={open}
             onClose={() => setOpen(false)}
             title="Fitspin"
+            classRatings={previewClassRatings}
             onExplorePackages={() => window.alert("Ir a paquetes (demo)")}
           />
           {checkoutOpen ? (

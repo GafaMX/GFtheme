@@ -21,6 +21,9 @@ import { CustomFieldInput } from "./CustomFieldInput";
 import { DateField } from "./DateField";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { ACCOUNT_HISTORY_CHUNK, remainingAccountHistory, visibleAccountHistory } from "../account/accountHistory";
+import { ClassRatingForm } from "../ratings/ClassRatingForm";
+import { PostClassRatingPrompt } from "../ratings/PostClassRatingPrompt";
+import { parseClassRatings, type ClassRatingsConfig } from "../ratings/classRatings";
 import { WidgetShell } from "./WidgetShell";
 
 export type ProfileWidgetProps = {
@@ -29,6 +32,8 @@ export type ProfileWidgetProps = {
   combineWaitlist?: boolean;
   hubUrl?: string;
   companyId?: number;
+  /** Default off. Hub `CLASS_RATINGS` / `data-gf-options`. */
+  classRatings?: ClassRatingsConfig | boolean | Record<string, unknown> | null;
   /** En `modal` el contenedor pone el marco y el boton de cerrar. */
   variant?: "page" | "modal";
   onRequestClose?(): void;
@@ -97,6 +102,7 @@ export function ProfileWidget({
   combineWaitlist = false,
   hubUrl,
   companyId,
+  classRatings: classRatingsProp,
   variant = "page",
   onRequestClose,
   onExploreClasses,
@@ -104,6 +110,7 @@ export function ProfileWidget({
 }: ProfileWidgetProps) {
   const goToClasses = onExploreClasses ?? defaultExploreClasses;
   const goToPackages = onExplorePackages ?? defaultExplorePackages;
+  const classRatings = parseClassRatings(classRatingsProp);
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>("overview");
   const [classScope, setClassScope] = useState<"upcoming" | "history">("upcoming");
@@ -205,7 +212,9 @@ export function ProfileWidget({
       const batches = await Promise.all(brandSlugs.map((slug) => client!.listUserReservations(slug, "past")));
       return batches.flat().sort((a, b) => b.startsAt.localeCompare(a.startsAt));
     },
-    enabled: canQueryBrandData && tab === "classes" && classScope === "history",
+    enabled:
+      canQueryBrandData &&
+      ((tab === "classes" && classScope === "history") || Boolean(classRatings?.promptAfterClass)),
   });
 
   const creditsQuery = useQuery({
@@ -456,6 +465,8 @@ export function ProfileWidget({
 
           {tab === "classes" ? (
             <ClassesPanel
+              client={client}
+              classRatings={classRatings}
               scope={classScope}
               onScopeChange={setClassScope}
               upcoming={upcoming}
@@ -557,6 +568,16 @@ export function ProfileWidget({
             cancelMutation.reset();
             setPendingCancel(null);
           }}
+        />
+      ) : null}
+
+      {classRatings?.promptAfterClass && client ? (
+        <PostClassRatingPrompt
+          client={client}
+          companyId={companyId}
+          history={pastQuery.data ?? []}
+          config={classRatings}
+          loading={pastQuery.isLoading}
         />
       ) : null}
     </div>
@@ -959,6 +980,8 @@ function BalanceCard({
 /* ------------------------------------------------------------------- clases */
 
 function ClassesPanel({
+  client,
+  classRatings,
   scope,
   onScopeChange,
   upcoming,
@@ -976,6 +999,8 @@ function ClassesPanel({
   onShowQr,
   onExploreClasses,
 }: {
+  client?: GafaClient;
+  classRatings?: ClassRatingsConfig | null;
   scope: "upcoming" | "history";
   onScopeChange(next: "upcoming" | "history"): void;
   upcoming: UserReservation[];
@@ -1089,6 +1114,8 @@ function ClassesPanel({
                 reservation={reservation}
                 paymentLabel={paymentLabel(reservation)}
                 historic
+                client={client}
+                classRatings={classRatings}
               />
             ))}
           </ClassGroup>
@@ -1176,6 +1203,8 @@ function ReservationCard({
   historic = false,
   cancelPending,
   checkInCardNo,
+  client,
+  classRatings,
   onCancel,
   onShowQr,
 }: {
@@ -1185,17 +1214,21 @@ function ReservationCard({
   historic?: boolean;
   cancelPending?: boolean;
   checkInCardNo?: string | null;
+  client?: GafaClient;
+  classRatings?: ClassRatingsConfig | null;
   onCancel?(reservation: UserReservation): void;
   onShowQr?(reservation: UserReservation): void;
 }) {
   const showQr = Boolean(onShowQr && canShowReservationQr(reservation, checkInCardNo));
   const showActions = !historic && !reservation.cancelled && (onCancel || showQr);
+  const showRating = Boolean(historic && classRatings && client);
 
   return (
     <article
       className="gafa-acct-class"
       data-cancelled={reservation.cancelled ? "true" : undefined}
       data-historic={historic ? "true" : undefined}
+      data-rateable={showRating ? "true" : undefined}
       data-overbooking={reservation.isOverbooking ? "true" : undefined}
       data-waitlist={reservation.isWaitlist ? "true" : undefined}
     >
@@ -1224,6 +1257,9 @@ function ReservationCard({
           {reservation.cancelled ? <span className="gafa-meeting-chip">Cancelada</span> : null}
           {paymentLabel ? <span className="gafa-meeting-chip">{paymentLabel}</span> : null}
         </div>
+        {showRating && client && classRatings ? (
+          <ClassRatingForm client={client} reservation={reservation} config={classRatings} />
+        ) : null}
       </div>
 
       {showActions ? (
