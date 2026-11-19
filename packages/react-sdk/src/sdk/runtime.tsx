@@ -36,6 +36,7 @@ import { createSdkTracker, type SdkTracker } from "./analytics/tracker";
 import { instrumentClient } from "./analytics/instrumentClient";
 import { bootstrapLegacyWidgets } from "./bootstrap/legacyBootstrap";
 import { resolveShowWeekMeetingNotes } from "./widgets/weekMeetingNotes";
+import { parseClassRatings } from "./ratings/classRatings";
 import {
   aliasV2Shortcodes,
   clearSdkRoot,
@@ -393,13 +394,14 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     },
     mountProfile(target, props = {}) {
       tracker.track({ event: "widget.mounted", widget: "profile" });
-      const { onExplorePackages, ...rest } = props;
+      const { onExplorePackages, classRatings, ...rest } = props;
       const mounted = mount(
         target,
         <ProfileWidget
           client={client}
           hubUrl={config.hubUrl}
           companyId={config.companyId}
+          classRatings={classRatings ?? parseClassRatings(config.classRatings)}
           onExplorePackages={
             onExplorePackages ??
             (() =>
@@ -483,7 +485,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
       const handle = { close };
       activeAccount = handle;
 
-      const { onExplorePackages, ...rest } = props;
+      const { onExplorePackages, classRatings, ...rest } = props;
       const mounted = mount(
         host,
         <AccountModal
@@ -493,6 +495,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           onClose={close}
           hubUrl={config.hubUrl}
           companyId={config.companyId}
+          classRatings={classRatings ?? parseClassRatings(config.classRatings)}
           onExplorePackages={
             onExplorePackages ??
             (() =>
