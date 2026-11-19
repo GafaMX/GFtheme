@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { fetchGafaCatalog, gafaApiBaseUrl, preferredBrandId } from "../src/gafaCatalog";
+import {
+  fetchGafaCatalog,
+  formatPrice,
+  gafaApiBaseUrl,
+  preferredBrandId,
+  resolveCatalogCurrency,
+  sharedCompanyCurrency,
+} from "../src/gafaCatalog";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -28,6 +35,41 @@ describe("gafaApiBaseUrl", () => {
     expect(preferredBrandId({ BRAND_ID: 86 })).toBe(86);
     expect(preferredBrandId({ BRAND_ID: 0 })).toBeNull();
     expect(preferredBrandId({})).toBeNull();
+  });
+});
+
+describe("formatPrice", () => {
+  it("EUR pone el símbolo detrás: 30 €", () => {
+    expect(formatPrice(30, { prefix: "€", code: "EUR" })).toBe("30 €");
+    expect(formatPrice(30, { prefix: "$", code: "EUR" })).toBe("30 €");
+    expect(resolveCatalogCurrency("EUR")).toEqual({ prefix: "€", code: "EUR" });
+    expect(resolveCatalogCurrency({ prefijo: "€", code3: "EUR" })).toEqual({ prefix: "€", code: "EUR" });
+  });
+
+  it("sin moneda sigue en $", () => {
+    expect(formatPrice(330)).toBe("$330");
+    expect(formatPrice(330, null)).toBe("$330");
+  });
+});
+
+describe("sharedCompanyCurrency", () => {
+  it("si todas las marcas con moneda coinciden, esa es la de la compañía", () => {
+    expect(
+      sharedCompanyCurrency([
+        { currency: undefined },
+        { currency: { prefix: "€", code: "EUR" } },
+        { currency: { prefix: "€", code: "EUR" } },
+      ]),
+    ).toEqual({ prefix: "€", code: "EUR" });
+  });
+
+  it("si hay monedas distintas, no elige la primera: deja null ($)", () => {
+    expect(
+      sharedCompanyCurrency([
+        { currency: { prefix: "€", code: "EUR" } },
+        { currency: { prefix: "$", code: "MXN" } },
+      ]),
+    ).toBeNull();
   });
 });
 
@@ -170,5 +212,116 @@ describe("fetchGafaCatalog", () => {
       fetchImpl,
     });
     expect(new Set(slugs)).toEqual(new Set(["fitspin-cancun"]));
+  });
+
+  it("usa la moneda de la marca: EUR → 30 €", async () => {
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = new URL(String(input));
+      const path = url.pathname;
+      if (path === "/api/brand") {
+        return json(
+          page([
+            {
+              id: 225,
+              name: "The Base",
+              slug: "the-base",
+              status: "active",
+              currency: { prefijo: "€", code3: "EUR" },
+            },
+          ]),
+        );
+      }
+      if (path === "/api/brand/the-base/combos") {
+        return json(page([{ id: 3491, name: "Matrícula", price: 30, price_final: 30 }]));
+      }
+      if (path === "/api/brand/the-base/membership") return json(page([]));
+      if (path.startsWith("/api/brand/the-base/product")) return json({}, 404);
+      return json({ message: path }, 500);
+    };
+
+    const catalog = await fetchGafaCatalog({
+      companyId: 204,
+      apiBaseUrl: "https://buq.partners",
+      fetchImpl,
+    });
+    expect(catalog.items[0]?.priceLabel).toBe("30 €");
+    expect(catalog.brands[0]?.currency).toEqual({ prefix: "€", code: "EUR" });
+  });
+
+  it("si la marca no trae moneda, usa la de otra marca de la compañía", async () => {
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = new URL(String(input));
+      const path = url.pathname;
+      if (path === "/api/brand") {
+        return json(
+          page([
+            { id: 225, name: "The Base", slug: "the-base", status: "active" },
+            {
+              id: 226,
+              name: "Otra",
+              slug: "otra",
+              status: "active",
+              currency: { prefijo: "€", code3: "EUR" },
+            },
+          ]),
+        );
+      }
+      if (path === "/api/brand/the-base/combos") {
+        return json(page([{ id: 3491, name: "Matrícula", price_final: 30 }]));
+      }
+      if (path.endsWith("/membership")) return json(page([]));
+      if (path.includes("/product")) return json({}, 404);
+      return json({ message: path }, 500);
+    };
+
+    const catalog = await fetchGafaCatalog({
+      companyId: 204,
+      apiBaseUrl: "https://buq.partners",
+      brandId: 225,
+      fetchImpl,
+    });
+    expect(catalog.items[0]?.priceLabel).toBe("30 €");
+  });
+
+  it("si las marcas de la compañía tienen monedas distintas, un item sin moneda queda en $", async () => {
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = new URL(String(input));
+      const path = url.pathname;
+      if (path === "/api/brand") {
+        return json(
+          page([
+            { id: 225, name: "The Base", slug: "the-base", status: "active" },
+            {
+              id: 226,
+              name: "Madrid",
+              slug: "madrid",
+              status: "active",
+              currency: { prefijo: "€", code3: "EUR" },
+            },
+            {
+              id: 80,
+              name: "Fitspin",
+              slug: "fitspin",
+              status: "active",
+              currency: { prefijo: "$", code3: "MXN" },
+            },
+          ]),
+        );
+      }
+      if (path === "/api/brand/the-base/combos") {
+        return json(page([{ id: 3491, name: "Matrícula", price_final: 30 }]));
+      }
+      if (path.endsWith("/membership")) return json(page([]));
+      if (path.includes("/product")) return json({}, 404);
+      return json({ message: path }, 500);
+    };
+
+    const catalog = await fetchGafaCatalog({
+      companyId: 204,
+      apiBaseUrl: "https://buq.partners",
+      brandId: 225,
+      fetchImpl,
+    });
+    expect(catalog.items[0]?.priceLabel).toBe("$30");
   });
 });

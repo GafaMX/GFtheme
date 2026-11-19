@@ -16,10 +16,16 @@ export type GafaCatalogItem = {
   hiddenFromHome?: boolean;
 };
 
+export type CatalogCurrency = {
+  prefix: string;
+  code: string;
+};
+
 export type GafaBrand = {
   id: number;
   slug: string;
   name: string;
+  currency?: CatalogCurrency;
 };
 
 export type GafaCatalog = {
@@ -65,6 +71,7 @@ export async function fetchGafaCatalog(input: {
   const fetchImpl = input.fetchImpl ?? fetch;
   const warnings: string[] = [];
   const brands = await listBrands(baseUrl, input.companyId, fetchImpl);
+  const companyCurrency = sharedCompanyCurrency(brands);
   const selected =
     input.brandId && brands.some((brand) => brand.id === input.brandId)
       ? brands.filter((brand) => brand.id === input.brandId)
@@ -73,7 +80,16 @@ export async function fetchGafaCatalog(input: {
   const items: GafaCatalogItem[] = [];
   const seen = new Set<string>();
   for (const brand of selected) {
-    const combos = await listKind(baseUrl, input.companyId, brand, "combo", ["/combos"], fetchImpl, warnings);
+    const combos = await listKind(
+      baseUrl,
+      input.companyId,
+      brand,
+      "combo",
+      ["/combos"],
+      fetchImpl,
+      warnings,
+      companyCurrency,
+    );
     const memberships = await listKind(
       baseUrl,
       input.companyId,
@@ -82,6 +98,7 @@ export async function fetchGafaCatalog(input: {
       ["/membership"],
       fetchImpl,
       warnings,
+      companyCurrency,
     );
     const products = await listKind(
       baseUrl,
@@ -91,6 +108,7 @@ export async function fetchGafaCatalog(input: {
       ["/product", "/products", "/producto", "/productos"],
       fetchImpl,
       warnings,
+      companyCurrency,
     );
     for (const item of [...combos, ...memberships, ...products]) {
       const key = `${item.type}:${item.id}`;
@@ -132,6 +150,7 @@ async function listKind(
   suffixes: string[],
   fetchImpl: FetchLike,
   warnings: string[],
+  companyCurrency: CatalogCurrency | null,
 ): Promise<GafaCatalogItem[]> {
   let lastStatus = 0;
   for (const suffix of suffixes) {
@@ -144,7 +163,7 @@ async function listKind(
         { only_actives: "true" },
       );
       return rows
-        .map((row) => normalizeItem(row, type, brand))
+        .map((row) => normalizeItem(row, type, brand, companyCurrency))
         .filter((item): item is GafaCatalogItem => Boolean(item));
     } catch (error) {
       lastStatus = error instanceof CatalogHttpError ? error.status : lastStatus;
@@ -217,7 +236,7 @@ function laravelPageMeta(payload: unknown): { page: number; lastPage: number } |
   return { page, lastPage };
 }
 
-type RawBrand = { id?: unknown; name?: unknown; slug?: unknown; status?: unknown };
+type RawBrand = { id?: unknown; name?: unknown; slug?: unknown; status?: unknown; currency?: unknown };
 type RawCatalogItem = {
   id?: unknown;
   name?: unknown;
@@ -225,7 +244,66 @@ type RawCatalogItem = {
   price_final?: unknown;
   hide_in_front?: unknown;
   hide_in_home?: unknown;
+  currency?: unknown;
 };
+
+const PREFIX_BY_CODE: Record<string, string> = {
+  MXN: "$",
+  USD: "US$",
+  GTQ: "Q",
+  EUR: "€",
+  GBP: "£",
+};
+
+/**
+ * Fallback de compañía para un item/marca sin moneda propia.
+ *
+ * Solo aplica si TODAS las marcas que declaran moneda coinciden en el ISO.
+ * Si hay EUR y MXN a la vez, no adivinamos: `formatPrice` deja "$".
+ * Tomar la primera marca con `currency` mezclaría sedes (p. ej. The Base
+ * sin campo + otra marca de la misma compañía en MXN).
+ */
+export function sharedCompanyCurrency(
+  brands: Array<{ currency?: CatalogCurrency | null }>,
+): CatalogCurrency | null {
+  const declared = brands
+    .map((brand) => brand.currency)
+    .filter((currency): currency is CatalogCurrency => Boolean(currency?.code?.trim()));
+  if (!declared.length) return null;
+  const code = declared[0]!.code.trim().toUpperCase();
+  if (declared.some((currency) => currency.code.trim().toUpperCase() !== code)) return null;
+  return declared[0]!;
+}
+
+export function resolveCatalogCurrency(raw: unknown): CatalogCurrency | null {
+  if (raw == null || raw === "") return null;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    const upper = trimmed.toUpperCase();
+    if (trimmed === "€" || upper === "EUR") return { prefix: "€", code: "EUR" };
+    if (upper === "Q" || upper === "GTQ") return { prefix: "Q", code: "GTQ" };
+    if (upper.length === 3 && /^[A-Z]{3}$/.test(upper)) {
+      return { prefix: PREFIX_BY_CODE[upper] ?? `${upper} `, code: upper };
+    }
+    return { prefix: trimmed, code: upper };
+  }
+  if (typeof raw === "object") {
+    const rec = raw as Record<string, unknown>;
+    const codeRaw = rec.code3 ?? rec.code ?? rec.iso;
+    const code = typeof codeRaw === "string" ? codeRaw.trim().toUpperCase() : "";
+    const prefixRaw = rec.prefijo ?? rec.prefix;
+    const prefix =
+      typeof prefixRaw === "string" && prefixRaw.trim()
+        ? prefixRaw.trim()
+        : code
+          ? (PREFIX_BY_CODE[code] ?? `${code} `)
+          : "";
+    if (!prefix && !code) return null;
+    return { prefix: prefix || PREFIX_BY_CODE[code || "MXN"] || "$", code: code || "MXN" };
+  }
+  return null;
+}
 
 function normalizeBrand(raw: RawBrand): GafaBrand | null {
   const id = Number(raw.id);
@@ -234,21 +312,29 @@ function normalizeBrand(raw: RawBrand): GafaBrand | null {
   const status = typeof raw.status === "string" ? raw.status.trim().toLowerCase() : "active";
   if (!Number.isFinite(id) || id <= 0 || !slug) return null;
   if (status && status !== "active") return null;
-  return { id, slug, name: name || slug };
+  const currency = resolveCatalogCurrency(raw.currency) ?? undefined;
+  return { id, slug, name: name || slug, ...(currency ? { currency } : {}) };
 }
 
-function normalizeItem(raw: RawCatalogItem, type: CatalogKind, brand: GafaBrand): GafaCatalogItem | null {
+function normalizeItem(
+  raw: RawCatalogItem,
+  type: CatalogKind,
+  brand: GafaBrand,
+  companyCurrency: CatalogCurrency | null,
+): GafaCatalogItem | null {
   // El picker es backoffice: trae también lo oculto del Home / front.
   const id = Number(raw.id);
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   if (!Number.isFinite(id) || id <= 0 || !name) return null;
   const price = moneyNumber(raw.price_final) ?? moneyNumber(raw.price);
+  // Item → marca → compañía (solo si todas las marcas con moneda coinciden).
+  const currency = resolveCatalogCurrency(raw.currency) ?? brand.currency ?? companyCurrency;
   return {
     type,
     id,
     name,
     price,
-    priceLabel: price == null ? undefined : formatPrice(price),
+    priceLabel: price == null ? undefined : formatPrice(price, currency),
     brandId: brand.id,
     brandSlug: brand.slug,
     brandName: brand.name,
@@ -262,8 +348,13 @@ function moneyNumber(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function formatPrice(amount: number): string {
+/** Hub picker. EUR va detrás con espacio: 30 €. Sin moneda, $ como último recurso. */
+export function formatPrice(amount: number, currency?: CatalogCurrency | null): string {
   const rounded = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+  const code = currency?.code?.trim().toUpperCase() ?? "";
+  const prefix = currency?.prefix?.trim() ?? "";
+  if (code === "EUR" || prefix === "€") return `${rounded} €`;
+  if (prefix) return `${prefix}${rounded}`;
   return `$${rounded}`;
 }
 
