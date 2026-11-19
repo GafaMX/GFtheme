@@ -496,7 +496,7 @@ export const CONFIG_SECTIONS = [
       },
       {
         title: "Calificaciones",
-        note: "Apagado para todas las marcas hasta que lo enciendas. gafa.fit aún no guarda las estrellas: la UI queda lista y el contrato está en docs/v2-ratings-api.md.",
+        note: "Apagado para todas las marcas hasta que lo enciendas. Las estrellas se guardan en este Hub (D1), no en gafa.fit. Contrato: docs/v2-ratings-api.md.",
         fields: [
           {
             key: "CLASS_RATINGS.enabled",
