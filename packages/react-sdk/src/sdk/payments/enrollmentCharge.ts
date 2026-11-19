@@ -45,7 +45,7 @@ export async function chargeEnrollmentWithSavedCard(
     });
     const result = await new Promise<GafaPaySuccess>((resolve, reject) => {
       const timeout = window.setTimeout(() => {
-        reject(new Error("No pudimos cobrar la matrícula con la tarjeta guardada."));
+        reject(new Error("No pudimos cobrar la inscripción con la tarjeta guardada."));
       }, input.timeoutMs ?? Math.max(widgetContentTimeoutMs() + 4000, 16000));
 
       const finish = (fn: () => void) => {
@@ -62,7 +62,7 @@ export async function chargeEnrollmentWithSavedCard(
         onStartPayAction: () => undefined,
         onGafaPaySuccessAction: (payment) => finish(() => resolve(payment)),
         onGafaPayErrAction: ({ message }) =>
-          finish(() => reject(new Error(message ?? "No pudimos cobrar la matrícula."))),
+          finish(() => reject(new Error(message ?? "No pudimos cobrar la inscripción."))),
       });
       islandRef.unmount = island.unmount;
 
@@ -71,12 +71,12 @@ export async function chargeEnrollmentWithSavedCard(
           clickSavedCard(host);
           const triggered = await triggerGafaPayConfirm(slug, host);
           if (!triggered) {
-            finish(() => reject(new Error("No pudimos cobrar la matrícula con la tarjeta guardada.")));
+            finish(() => reject(new Error("No pudimos cobrar la inscripción con la tarjeta guardada.")));
           }
         })
         .catch((error: unknown) =>
           finish(() =>
-            reject(error instanceof Error ? error : new Error("No pudimos cobrar la matrícula.")),
+            reject(error instanceof Error ? error : new Error("No pudimos cobrar la inscripción.")),
           ),
         );
     });

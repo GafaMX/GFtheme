@@ -11,7 +11,7 @@ import { resetToastHostForTests } from "../toast/ToastHost";
 
 const ENROLLMENT = {
   comboId: 3491,
-  label: "Matrícula",
+  label: "Inscripción",
   membershipIds: [1272, 1271, 1204],
   firstTimeScope: "any_membership" as const,
   mode: "first_purchase" as const,
@@ -197,9 +197,9 @@ describe("CheckoutModal matrícula", () => {
   it("muestra la línea atada y el total 115€", async () => {
     renderEnrollment(mockClient(), { skipCatalog: false });
     fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
-    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/inscripción · solo primer pago/i)).toBeTruthy());
     expect(screen.getByText("fijo")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /eliminar matrícula/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /eliminar inscripción/i })).toBeNull();
     expect(screen.getAllByText(/115\s*€/).length).toBeGreaterThan(0);
   });
 
@@ -216,7 +216,7 @@ describe("CheckoutModal matrícula", () => {
   it("el descuento no aplica a la matrícula", async () => {
     const client = mockClient();
     renderEnrollment(client);
-    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/inscripción · solo primer pago/i)).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: /¿tienes un código de descuento/i }));
     fireEvent.change(screen.getByPlaceholderText(/código/i), { target: { value: "Familia10" } });
     fireEvent.click(screen.getByRole("button", { name: /aplicar/i }));
@@ -231,11 +231,11 @@ describe("CheckoutModal matrícula", () => {
     renderEnrollment(guestThenMember());
     expect(await screen.findByRole("heading", { name: /inicia sesión para pagar/i })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: /elige tu plan/i })).toBeNull();
-    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/inscripción · solo primer pago/i)).toBeTruthy());
     await signInFromCheckout();
     await waitFor(() => expect(screen.getByText(/pago de prueba/i)).toBeTruthy());
     expect(screen.queryByRole("heading", { name: /elige tu plan/i })).toBeNull();
-    expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy();
+    expect(screen.getByText(/inscripción · solo primer pago/i)).toBeTruthy();
     expect((screen.getByRole("button", { name: /pagar 115/i }) as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -246,7 +246,7 @@ describe("CheckoutModal matrícula", () => {
       }),
     );
     expect(await screen.findByRole("heading", { name: /inicia sesión para pagar/i })).toBeTruthy();
-    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/inscripción · solo primer pago/i)).toBeTruthy());
     await signInFromCheckout();
     await waitFor(() => expect(screen.getByText(/pago de prueba/i)).toBeTruthy());
     await waitFor(() => expect(screen.queryByText(/solo primer pago/i)).toBeNull());
@@ -257,19 +257,19 @@ describe("CheckoutModal matrícula", () => {
   it("desde el catálogo, Ir a pagar pide cuenta y al entrar va a Pagar (no al catálogo)", async () => {
     renderEnrollment(guestThenMember(), { skipCatalog: false });
     fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
-    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/inscripción · solo primer pago/i)).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: /ir a pagar/i }));
     expect(await screen.findByRole("heading", { name: /inicia sesión para pagar/i })).toBeTruthy();
     await signInFromCheckout();
     await waitFor(() => expect(screen.getByText(/pago de prueba/i)).toBeTruthy());
     expect(screen.queryByRole("heading", { name: /elige tu plan/i })).toBeNull();
-    expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy();
+    expect(screen.getByText(/inscripción · solo primer pago/i)).toBeTruthy();
   });
 
   it("con mockPay, Ir a pagar muestra el panel y no se queda revisando", async () => {
     renderEnrollment(mockClient(), { skipCatalog: false, failEnrollment: true });
     fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
-    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/inscripción · solo primer pago/i)).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: /ir a pagar/i }));
     await waitFor(() => expect(screen.getByText(/pago de prueba/i)).toBeTruthy());
     expect(screen.queryByText(/revisando tu compra/i)).toBeNull();

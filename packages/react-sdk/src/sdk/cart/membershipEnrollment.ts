@@ -4,6 +4,8 @@ import { formatMoney } from "./money";
 import type { CartLine } from "./cartStore";
 
 export const ENROLLMENT_LINE_ROLE = "enrollment" as const;
+/** Copy de la línea en el carrito. Nunca “Matrícula”. */
+export const DEFAULT_ENROLLMENT_LABEL = "Inscripción";
 
 export type MembershipEnrollmentMode = "first_purchase" | "every_charge";
 export type MembershipEnrollmentScope = "any_membership" | "same_membership";
@@ -16,7 +18,7 @@ export type MembershipEnrollmentConfig = {
   mode: MembershipEnrollmentMode;
   /**
    * POST HTTPS (sin secretos) para avisar al estudio/Buq si falla el cobro
-   * de matrícula. Vacío = solo `console.error` (fallback actual).
+   * de inscripción. Vacío = solo `console.error` (fallback actual).
    */
   failureNotifyUrl?: string;
 };
@@ -84,7 +86,7 @@ export function parseMembershipEnrollment(input: unknown): MembershipEnrollmentC
   const comboId = parsed.data.comboId;
   if (!Number.isFinite(comboId) || comboId <= 0) return null;
   if (!parsed.data.membershipIds.length) return null;
-  const label = parsed.data.label?.trim() || "Matrícula";
+  const label = parsed.data.label?.trim() || DEFAULT_ENROLLMENT_LABEL;
   const failureNotifyUrl = readEnrollmentFailureNotifyUrl(
     (parsed.data as { failureNotifyUrl?: unknown }).failureNotifyUrl,
   );
@@ -217,7 +219,7 @@ export function buildEnrollmentLine(input: {
 }
 
 /**
- * Una línea de matrícula atada a la membresía: cantidad 1, no se quita sola,
+ * Una línea de inscripción atada a la membresía: cantidad 1, no se quita sola,
  * desaparece si ya no hay membresía elegible o el combo vale 0 €.
  */
 export function syncEnrollmentCartLines(input: {
@@ -411,7 +413,7 @@ export async function inspectEnrollmentNeed(input: {
       needed: false,
       firstTime: false,
       source: "ineligible",
-      sourceLabel: "esa membresía no lleva matrícula",
+      sourceLabel: "esa membresía no lleva inscripción",
       membershipsCount: 0,
       purchasesCount: 0,
       membershipsFailed: false,
@@ -513,7 +515,7 @@ export async function detectEnrollmentNeed(input: {
 }
 
 export const ENROLLMENT_CHARGE_FAILED_MESSAGE =
-  "Tu membresía quedó registrada, pero no pudimos cobrar la matrícula. El estudio la cargará a mano. No vuelvas a pagar la membresía.";
+  "Tu membresía quedó registrada, pero no pudimos cobrar la inscripción. El estudio la cargará a mano. No vuelvas a pagar la membresía.";
 
 export function enrollmentChargeFailedLog(input: Parameters<typeof buildEnrollmentChargeFailedNotice>[0]): string {
   return buildEnrollmentChargeFailedNotice(input).log;
@@ -538,7 +540,7 @@ export function buildEnrollmentChargeFailedNotice(input: {
     (input.enrollmentAmount != null && Number.isFinite(input.enrollmentAmount)
       ? formatMoney(input.enrollmentAmount, "€", "EUR", "EUR")
       : undefined);
-  const log = `Matrícula no cobrada (company=${input.companyId ?? "?"} user=${input.userId ?? "?"} ${input.customerName ?? "?"} <${input.customerEmail ?? "?"}> membership=${input.membershipName ?? input.membershipId ?? "?"} combo=${input.comboId ?? "?"} amount=${amountLabel ?? input.enrollmentAmount ?? "?"}): ${detail}`;
+  const log = `Inscripción no cobrada (company=${input.companyId ?? "?"} user=${input.userId ?? "?"} ${input.customerName ?? "?"} <${input.customerEmail ?? "?"}> membership=${input.membershipName ?? input.membershipId ?? "?"} combo=${input.comboId ?? "?"} amount=${amountLabel ?? input.enrollmentAmount ?? "?"}): ${detail}`;
   return {
     kind: "enrollment_charge_failed",
     message: ENROLLMENT_CHARGE_FAILED_MESSAGE,
@@ -562,7 +564,7 @@ export function formatEnrollmentChargeFailedNotice(notice: EnrollmentChargeFaile
     `Cliente: ${notice.customerName || "—"} <${notice.customerEmail || "—"}>`,
     `Company id: ${notice.companyId ?? "—"}`,
     `Membresía registrada: ${notice.membershipName || "—"} (${notice.membershipId ?? "—"})`,
-    `Monto matrícula: ${notice.enrollmentAmountLabel ?? notice.enrollmentAmount ?? "—"}`,
+    `Monto inscripción: ${notice.enrollmentAmountLabel ?? notice.enrollmentAmount ?? "—"}`,
     `Motivo: ${notice.error || "—"}`,
     `Fecha: ${notice.occurredAt}`,
   ];

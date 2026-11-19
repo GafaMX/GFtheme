@@ -939,7 +939,7 @@ export function CheckoutModal({
     const slug = brandForItem ?? brandSlug;
     if (!slug) return;
     if (isEnrollmentComboId(enrollmentConfig, item.id) && item.type !== "membership") {
-      showToast("La matrícula solo se agrega con tu primera membresía.", "error");
+      showToast("La inscripción solo se agrega con tu primera membresía.", "error");
       return;
     }
     const type = lineTypeOf(item);
@@ -984,7 +984,7 @@ export function CheckoutModal({
         if (match && isEnrollmentComboId(enrollmentConfig, match.item.id)) {
           setPurchaseNotice({
             title: "Lo sentimos",
-            message: "La matrícula no se puede comprar sola. Va con tu primera membresía.",
+            message: "La inscripción no se puede comprar sola. Va con tu primera membresía.",
           });
         }
         return;
@@ -1239,7 +1239,7 @@ export function CheckoutModal({
             const clientId = config?.gafapayClientId;
             const clientSecret = config?.gafapayClientSecret;
             if (!clientId || !clientSecret) {
-              throw new Error("No pudimos cobrar la matrícula: falta GafaPay.");
+              throw new Error("No pudimos cobrar la inscripción: falta GafaPay.");
             }
             return chargeEnrollmentWithSavedCard({
               order: {
@@ -2406,7 +2406,7 @@ export function CheckoutModal({
               {enrollmentLine && step === "pay" ? (
                 <p className="gafa-checkout__env-warn" data-enrollment-note="true">
                   {mockPay ? "Modo de prueba: no se cobra con tarjeta real. " : ""}
-                  Un botón, dos cargos: la membresía queda en suscripción y la matrícula es un solo pago.
+                  Un botón, dos cargos: la membresía queda en suscripción y la inscripción es un solo pago.
                 </p>
               ) : null}
 
@@ -2450,7 +2450,7 @@ export function CheckoutModal({
                         : selectedMethod?.slug === "paypal"
                           ? "Esperando PayPal…"
                           : enrollmentPhase === "charging"
-                            ? "Cobrando matrícula…"
+                            ? "Cobrando inscripción…"
                           : chargeHold
                             ? "Registrando compra…"
                             : "Procesando…"
@@ -2964,7 +2964,7 @@ function PayPanel({
           </span>
           <div>
             <strong>Pago de prueba</strong>
-            <p>No se cobra con tarjeta real. El botón Pagar simula los dos cargos (membresía y matrícula).</p>
+            <p>No se cobra con tarjeta real. El botón Pagar simula los dos cargos (membresía e inscripción).</p>
           </div>
         </div>
       ) : null}

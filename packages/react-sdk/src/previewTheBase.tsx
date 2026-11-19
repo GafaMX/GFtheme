@@ -23,7 +23,7 @@ import "./demo/demo.css";
 
 const ENROLLMENT = {
   comboId: 3491,
-  label: "Matrícula",
+  label: "Inscripción",
   membershipIds: [1272, 1271, 1204],
   firstTimeScope: "any_membership" as const,
   mode: "first_purchase" as const,
@@ -522,13 +522,13 @@ export function TheBaseMatriculaPreview() {
       });
       if (cancelled) return;
       setDetection(
-        `${result.needed ? "primera vez (se cobra matrícula)" : "recurrente (sin matrícula)"} · ${result.sourceLabel} · membresías=${result.membershipsCount} compras=${result.purchasesCount}`,
+        `${result.needed ? "primera vez (se cobra inscripción)" : "recurrente (sin inscripción)"} · ${result.sourceLabel} · membresías=${result.membershipsCount} compras=${result.purchasesCount}`,
       );
       const membershipCharge = `${membershipLine.name} ${euro(membershipLine.price)} (suscripción)`;
       const fee = cartLines.find((line) => line.id === ENROLLMENT.comboId || line.role === "enrollment");
       setCharges(
         result.needed
-          ? `1) ${membershipCharge}  2) ${fee?.name ?? "Matrícula"} ${euro(fee?.price ?? 30)} (único)`
+          ? `1) ${membershipCharge}  2) ${fee?.name ?? "Inscripción"} ${euro(fee?.price ?? 30)} (único)`
           : `1) ${membershipCharge}  — no hay segundo cargo`,
       );
     })();
@@ -582,11 +582,11 @@ export function TheBaseMatriculaPreview() {
           </header>
           <main className="demo-main" style={{ padding: "1.5rem" }}>
             <p style={{ maxWidth: 720, color: "#B9B0A2", lineHeight: 1.5 }}>
-              Preview de matrícula (SDK V2). Lecturas reales contra <code>buq.partners</code> de The Base
+              Preview de inscripción (SDK V2). Lecturas reales contra <code>buq.partners</code> de The Base
               (login, perfil, historial, catálogo). Cobros y altas siguen mockeados: GafaPay, Stripe,{" "}
               <code>/reservate</code> y cualquier POST de compra se cortan en el cliente HTTP. Variantes
               mock: <code>#returning=1</code>, <code>#fail-enrollment=1</code>, <code>#guest=1</code>.
-              {isReturning ? " Esta cuenta mock ya tuvo una membresía: no debe aparecer matrícula." : ""}
+              {isReturning ? " Esta cuenta mock ya tuvo una membresía: no debe aparecer inscripción." : ""}
               {failEnrollment ? " Esta URL fuerza el fallo del segundo cobro (mock)." : ""}
               {isGuest
                 ? " Sin sesión mock: el plan ya elegido no vuelve al catálogo. Entra o crea cuenta (cualquier email y contraseña) y caes en Pagar."

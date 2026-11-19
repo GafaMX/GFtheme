@@ -19,7 +19,7 @@ import { cartSubtotal } from "./cartStore";
 
 const config = parseMembershipEnrollment({
   comboId: 3491,
-  label: "Matrícula",
+  label: "Inscripción",
   membershipIds: [1272, 1271, 1204],
   firstTimeScope: "any_membership",
   mode: "first_purchase",
@@ -83,6 +83,7 @@ describe("parseMembershipEnrollment", () => {
     expect(parsed?.membershipIds).toEqual([1272, 1271, 1204]);
     expect(parsed?.firstTimeScope).toBe("any_membership");
     expect(parsed?.mode).toBe("first_purchase");
+    expect(parsed?.label).toBe("Inscripción");
   });
 
   it("guarda failureNotifyUrl solo si es https (o http local)", () => {

@@ -24,7 +24,7 @@ const fee: CartLine = {
   key: "the-base:combo:3491",
   id: 3491,
   type: "combo",
-  name: "Matrícula · solo primer pago",
+  name: "Inscripción · solo primer pago",
   price: 30,
   priceLabel: "30€",
   amount: 1,
@@ -87,7 +87,7 @@ describe("runSplitEnrollmentCheckout", () => {
     expect(result.enrollmentOk).toBe(false);
     expect(chargeEnrollment).toHaveBeenCalledTimes(ENROLLMENT_CHARGE_ATTEMPTS);
     expect(result.warning).toBe(ENROLLMENT_CHARGE_FAILED_MESSAGE);
-    expect(result.log).toMatch(/Matrícula no cobrada/);
+    expect(result.log).toMatch(/Inscripción no cobrada/);
     expect(result.notice?.customerEmail).toBe("gabriel@buq.mx");
     expect(result.notice?.membershipName).toBe("Silver");
     expect(result.notice?.enrollmentAmount).toBe(30);

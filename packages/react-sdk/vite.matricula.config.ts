@@ -22,7 +22,7 @@ function writeStandaloneHtml() {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Base · Matrícula (preview SDK V2)</title>
+    <title>The Base · Inscripción (preview SDK V2)</title>
     <script>window.__GAFA_MATRICULA_PREVIEW__ = true;</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>${css}</style>
