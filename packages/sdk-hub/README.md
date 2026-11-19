@@ -17,6 +17,7 @@ npm run dev
 - Admin: http://127.0.0.1:8787 — password `buq-hub-dev`
 - Ingest: `POST /v1/events`
 - Remote config: `GET /v1/config?company_id=` (público, sin secretos) · `PUT /v1/admin/config`
+- Calificaciones: `POST /v1/ratings` · `GET /v1/ratings/mine` · `GET /v1/admin/ratings` (D1 `class_ratings`, migración `0008`, **no aplicar en production** hasta un GO)
 - Catálogo para el picker de Config: `GET /v1/admin/catalog?company_id=` (admin)
 - Health: `GET /v1/health`
 

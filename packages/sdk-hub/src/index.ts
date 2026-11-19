@@ -7,6 +7,17 @@ import { parseAndNormalizeEvents, persistEvents } from "./ingest";
 import { applyLoyalty, d1LoyaltyStore, tierForPoints } from "./loyalty";
 import { allowRequest } from "./rateLimit";
 import { fetchGafaCatalog, gafaApiBaseUrl } from "./gafaCatalog";
+import { pageMeta, readPage } from "./page";
+import {
+  createClassRating,
+  d1RatingsStore,
+  getMyClassRating,
+  isRatingsSchemaMissing,
+  listClassRatings,
+  parseRatingBody,
+  presentRating,
+  ratingsAreEnabled,
+} from "./ratings";
 import { readCompanyConfig, writeCompanyConfig } from "./remoteConfig";
 
 export type HubEnv = {
@@ -37,6 +48,8 @@ const embedCors = cors({
 app.use("/v1/events", embedCors);
 app.use("/v1/loyalty/*", embedCors);
 app.use("/v1/config", embedCors);
+app.use("/v1/ratings", embedCors);
+app.use("/v1/ratings/*", embedCors);
 
 app.get("/v1/health", (c) =>
   c.json({
@@ -256,6 +269,97 @@ app.get("/v1/admin/config", async (c) => {
   }
   const row = await readCompanyConfig(c.env.DB, companyId);
   return c.json({ ok: true, ...row });
+});
+
+app.post("/v1/ratings", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  if (!allowRequest(`ratings:${ip}`, 30)) {
+    return c.json({ ok: false, error: "rate_limited" }, 429);
+  }
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, error: "invalid_json" }, 400);
+  }
+  const parsed = parseRatingBody(body);
+  if (!parsed.ok) {
+    return c.json({ ok: false, error: parsed.error, errors: parsed.errors }, parsed.status);
+  }
+  if (!allowRequest(`ratings:c${parsed.rating.company_id}:u${parsed.rating.user_id}`, 8)) {
+    return c.json({ ok: false, error: "rate_limited" }, 429);
+  }
+  try {
+    const configRow = await readCompanyConfig(c.env.DB, parsed.rating.company_id);
+    const result = await createClassRating(d1RatingsStore(c.env.DB), {
+      enabled: ratingsAreEnabled(configRow.config),
+      body,
+      now: new Date().toISOString(),
+    });
+    return c.json(result.json, result.status as 201 | 403 | 409);
+  } catch (error) {
+    if (isRatingsSchemaMissing(error)) {
+      return c.json({ ok: false, error: "ratings_unavailable" }, 503);
+    }
+    throw error;
+  }
+});
+
+app.get("/v1/ratings/mine", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  if (!allowRequest(`ratings-get:${ip}`, 60)) {
+    return c.json({ ok: false, error: "rate_limited" }, 429);
+  }
+  try {
+    const result = await getMyClassRating(d1RatingsStore(c.env.DB), {
+      companyId: Number(c.req.query("company_id")),
+      reservationId: Number(c.req.query("reservation_id")),
+      userId: Number(c.req.query("user_id")),
+    });
+    return c.json(result.json, result.status as 200 | 400);
+  } catch (error) {
+    if (isRatingsSchemaMissing(error)) {
+      return c.json({ ok: false, error: "ratings_unavailable" }, 503);
+    }
+    throw error;
+  }
+});
+
+app.get("/v1/ratings", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  if (!allowRequest(`ratings-list:${ip}`, 40)) {
+    return c.json({ ok: false, error: "rate_limited" }, 429);
+  }
+  const companyId = Number(c.req.query("company_id"));
+  const userId = Number(c.req.query("user_id"));
+  if (!Number.isFinite(companyId) || companyId <= 0 || !Number.isFinite(userId) || userId <= 0) {
+    return c.json({ ok: false, error: "missing_ids" }, 400);
+  }
+  const { page, perPage, offset } = readPage(c.req.query());
+  try {
+    const listed = await listClassRatings(d1RatingsStore(c.env.DB), {
+      companyId,
+      userId,
+      reservationId: Number(c.req.query("reservation_id")) || undefined,
+      from: c.req.query("from") || undefined,
+      to: c.req.query("to") || undefined,
+      offset,
+      limit: perPage,
+    });
+    return c.json({
+      ok: true,
+      company_id: companyId,
+      user_id: userId,
+      items: listed.rows.map(presentRating),
+      ...pageMeta(listed.total, page, perPage),
+      summary: listed.summary,
+    });
+  } catch (error) {
+    if (isRatingsSchemaMissing(error)) {
+      return c.json({ ok: false, error: "ratings_unavailable" }, 503);
+    }
+    throw error;
+  }
 });
 
 app.put("/v1/admin/config", async (c) => {
