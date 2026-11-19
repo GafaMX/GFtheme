@@ -71,7 +71,7 @@ export async function fetchGafaCatalog(input: {
   const fetchImpl = input.fetchImpl ?? fetch;
   const warnings: string[] = [];
   const brands = await listBrands(baseUrl, input.companyId, fetchImpl);
-  const companyCurrency = brands.find((brand) => brand.currency)?.currency ?? null;
+  const companyCurrency = sharedCompanyCurrency(brands);
   const selected =
     input.brandId && brands.some((brand) => brand.id === input.brandId)
       ? brands.filter((brand) => brand.id === input.brandId)
@@ -255,6 +255,26 @@ const PREFIX_BY_CODE: Record<string, string> = {
   GBP: "£",
 };
 
+/**
+ * Fallback de compañía para un item/marca sin moneda propia.
+ *
+ * Solo aplica si TODAS las marcas que declaran moneda coinciden en el ISO.
+ * Si hay EUR y MXN a la vez, no adivinamos: `formatPrice` deja "$".
+ * Tomar la primera marca con `currency` mezclaría sedes (p. ej. The Base
+ * sin campo + otra marca de la misma compañía en MXN).
+ */
+export function sharedCompanyCurrency(
+  brands: Array<{ currency?: CatalogCurrency | null }>,
+): CatalogCurrency | null {
+  const declared = brands
+    .map((brand) => brand.currency)
+    .filter((currency): currency is CatalogCurrency => Boolean(currency?.code?.trim()));
+  if (!declared.length) return null;
+  const code = declared[0]!.code.trim().toUpperCase();
+  if (declared.some((currency) => currency.code.trim().toUpperCase() !== code)) return null;
+  return declared[0]!;
+}
+
 export function resolveCatalogCurrency(raw: unknown): CatalogCurrency | null {
   if (raw == null || raw === "") return null;
   if (typeof raw === "string") {
@@ -307,6 +327,7 @@ function normalizeItem(
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   if (!Number.isFinite(id) || id <= 0 || !name) return null;
   const price = moneyNumber(raw.price_final) ?? moneyNumber(raw.price);
+  // Item → marca → compañía (solo si todas las marcas con moneda coinciden).
   const currency = resolveCatalogCurrency(raw.currency) ?? brand.currency ?? companyCurrency;
   return {
     type,
