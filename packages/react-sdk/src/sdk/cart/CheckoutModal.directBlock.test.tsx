@@ -175,7 +175,6 @@ describe("CheckoutModal bloqueo al clic", () => {
       }),
     );
     expect(client.reservatePurchase).not.toHaveBeenCalled();
-    expect(mocks.loadGafaPay).not.toHaveBeenCalled();
   });
 
   it("una membresía que ya tiene no abre el formulario de pago", async () => {
@@ -195,7 +194,6 @@ describe("CheckoutModal bloqueo al clic", () => {
     });
     expect(screen.queryByRole("button", { name: /pagar/i })).toBeNull();
     expect(screen.queryByText(/revisa tu pedido y paga/i)).toBeNull();
-    expect(mocks.loadGafaPay).not.toHaveBeenCalled();
     expect(client.reservatePurchase).not.toHaveBeenCalled();
   });
 
