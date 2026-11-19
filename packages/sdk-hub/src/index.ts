@@ -5,8 +5,8 @@ import { clearSessionCookie, issueSessionCookie, timingSafeEqual, verifySession 
 import { pruneOldEvents } from "./cleanup";
 import { parseAndNormalizeEvents, persistEvents } from "./ingest";
 import { applyLoyalty, d1LoyaltyStore, tierForPoints } from "./loyalty";
-import { allowPersistentRequest, allowRequest } from "./rateLimit";
-import { fetchGafaCatalog, gafaApiBaseUrl } from "./gafaCatalog";
+import { allowPersistentRequest, allowRequest, rateLimitClientIp } from "./rateLimit";
+import { fetchGafaCatalog, gafaApiBaseUrl, studioOwnsBrand } from "./gafaCatalog";
 import { fetchGafaMember, readBearerToken, readCompanyId, verifyGafaReservation } from "./gafaMember";
 import {
   createClassRating,
@@ -59,7 +59,7 @@ app.get("/v1/health", (c) =>
 );
 
 app.get("/v1/config", async (c) => {
-  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  const ip = rateLimitClientIp((name) => c.req.header(name));
   if (!allowRequest(`config:${ip}`, 120)) {
     return c.json({ ok: false, error: "rate_limited" }, 429);
   }
@@ -84,7 +84,7 @@ app.get("/v1/widgets", async (c) => {
 });
 
 app.post("/v1/events", async (c) => {
-  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  const ip = rateLimitClientIp((name) => c.req.header(name));
   if (!allowRequest(`ingest:${ip}`)) {
     return c.json({ ok: false, error: "rate_limited" }, 429);
   }
@@ -177,7 +177,7 @@ app.get("/v1/admin/me", async (c) => {
 mountAdmin(app, requireAdmin);
 
 app.get("/v1/loyalty/balance", async (c) => {
-  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  const ip = rateLimitClientIp((name) => c.req.header(name));
   if (!allowRequest(`loyalty:${ip}`, 60)) {
     return c.json({ ok: false, error: "rate_limited" }, 429);
   }
@@ -270,7 +270,7 @@ app.get("/v1/admin/config", async (c) => {
 });
 
 app.post("/v1/ratings", async (c) => {
-  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  const ip = rateLimitClientIp((name) => c.req.header(name));
   if (!(await allowPersistentRequest(c.env.DB, `ratings:ip:${ip}`, 30))) {
     return c.json({ ok: false, error: "rate_limited" }, 429);
   }
@@ -294,11 +294,22 @@ app.post("/v1/ratings", async (c) => {
       return c.json({ ok: false, error: "ratings_disabled" }, 403);
     }
     const apiBaseUrl = gafaApiBaseUrl(configRow.config);
-    const member = await fetchGafaMember({ apiBaseUrl, companyId, token });
-    if (!member) return c.json({ ok: false, error: "unauthorized" }, 401);
+    const memberResult = await fetchGafaMember({ apiBaseUrl, companyId, token });
+    if (!memberResult.ok) {
+      if (memberResult.error === "unavailable") return c.json({ ok: false, error: "gafa_unavailable" }, 503);
+      return c.json({ ok: false, error: "unauthorized" }, 401);
+    }
+    const member = memberResult.member;
     if (!(await allowPersistentRequest(c.env.DB, `ratings:c${companyId}:u${member.user_id}`, 8))) {
       return c.json({ ok: false, error: "rate_limited" }, 429);
     }
+    const brand = await studioOwnsBrand({
+      apiBaseUrl,
+      companyId,
+      brandSlug: parsed.rating.brand_slug,
+    });
+    if (!brand.ok) return c.json({ ok: false, error: "gafa_unavailable" }, 503);
+    if (!brand.owned) return c.json({ ok: false, error: "forbidden" }, 403);
     const reservation = await verifyGafaReservation({
       apiBaseUrl,
       companyId,
@@ -314,7 +325,7 @@ app.post("/v1/ratings", async (c) => {
       body,
       now: new Date().toISOString(),
     });
-    return c.json(result.json, result.status as 201 | 400 | 401 | 403 | 409 | 422);
+    return c.json(result.json, result.status as 201 | 400 | 401 | 403 | 409 | 422 | 503);
   } catch (error) {
     if (isRatingsSchemaMissing(error)) {
       return c.json({ ok: false, error: "ratings_unavailable" }, 503);
@@ -324,7 +335,7 @@ app.post("/v1/ratings", async (c) => {
 });
 
 app.get("/v1/ratings/mine", async (c) => {
-  const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+  const ip = rateLimitClientIp((name) => c.req.header(name));
   if (!(await allowPersistentRequest(c.env.DB, `ratings-get:ip:${ip}`, 60))) {
     return c.json({ ok: false, error: "rate_limited" }, 429);
   }
@@ -338,10 +349,14 @@ app.get("/v1/ratings/mine", async (c) => {
       return c.json({ ok: false, error: "ratings_disabled" }, 403);
     }
     const apiBaseUrl = gafaApiBaseUrl(configRow.config);
-    const member = await fetchGafaMember({ apiBaseUrl, companyId, token });
+    const memberResult = await fetchGafaMember({ apiBaseUrl, companyId, token });
+    if (!memberResult.ok) {
+      if (memberResult.error === "unavailable") return c.json({ ok: false, error: "gafa_unavailable" }, 503);
+      return c.json({ ok: false, error: "unauthorized" }, 401);
+    }
     const result = await getMyClassRating(d1RatingsStore(c.env.DB), {
       enabled: ratingsAreEnabled(configRow.config),
-      member,
+      member: memberResult.member,
       companyId,
       reservationId: Number(c.req.query("reservation_id")),
     });

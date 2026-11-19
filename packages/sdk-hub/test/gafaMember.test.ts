@@ -46,7 +46,7 @@ describe("gafa member + reserva", () => {
     });
     await expect(
       fetchGafaMember({ apiBaseUrl: "https://buq.partners", companyId: 80, token: "tok", fetchImpl }),
-    ).resolves.toEqual({ user_id: 9, customer_name: "Ana López" });
+    ).resolves.toEqual({ ok: true, member: { user_id: 9, customer_name: "Ana López" } });
 
     await expect(
       fetchGafaMember({
@@ -55,7 +55,16 @@ describe("gafa member + reserva", () => {
         token: "bad",
         fetchImpl: async () => jsonResponse({ message: "Unauthenticated" }, 401),
       }),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ ok: false, error: "unauthorized" });
+
+    await expect(
+      fetchGafaMember({
+        apiBaseUrl: "https://buq.partners",
+        companyId: 80,
+        token: "tok",
+        fetchImpl: async () => jsonResponse({ message: "timeout" }, 504),
+      }),
+    ).resolves.toEqual({ ok: false, error: "unavailable" });
   });
 
   it("aplana reservation-past y toma coach/clase de gafa.fit", () => {
@@ -125,5 +134,95 @@ describe("gafa member + reserva", () => {
       fetchImpl,
     });
     expect(waitlist).toEqual({ ok: false, error: "forbidden" });
+  });
+
+  it("rechaza starts_at inválido; el fin de la clase manda, no el inicio", async () => {
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) => {
+      const href = String(url);
+      if (href.includes("reservation-past")) {
+        return jsonResponse({
+          reservations: [
+            { id: 88, meeting_start: "", meetings: { service: { name: "Sin hora" } } },
+            {
+              id: 89,
+              meeting_start: "no-es-fecha",
+              meetings: { service: { name: "Basura" } },
+            },
+            {
+              id: 90,
+              meeting_start: "2026-11-19T12:00:00.000Z",
+              meetings: { duration: 60, service: { name: "En curso" } },
+            },
+            {
+              id: 91,
+              meeting_start: "2026-11-19T12:00:00.000Z",
+              meeting_end: "2026-11-19T13:00:00.000Z",
+              meetings: { service: { name: "Terminó" } },
+            },
+          ],
+          waitlists: [],
+        });
+      }
+      return jsonResponse({ reservations: [], waitlists: [] });
+    });
+    const now = Date.parse("2026-11-19T12:30:00.000Z");
+    const missing = await verifyGafaReservation({
+      apiBaseUrl: "https://buq.partners",
+      companyId: 80,
+      token: "tok",
+      brandSlug: "fitspin",
+      reservationId: 88,
+      now,
+      fetchImpl,
+    });
+    expect(missing).toEqual({ ok: false, error: "invalid_time" });
+
+    const garbage = await verifyGafaReservation({
+      apiBaseUrl: "https://buq.partners",
+      companyId: 80,
+      token: "tok",
+      brandSlug: "fitspin",
+      reservationId: 89,
+      now,
+      fetchImpl,
+    });
+    expect(garbage).toEqual({ ok: false, error: "invalid_time" });
+
+    const running = await verifyGafaReservation({
+      apiBaseUrl: "https://buq.partners",
+      companyId: 80,
+      token: "tok",
+      brandSlug: "fitspin",
+      reservationId: 90,
+      now,
+      fetchImpl,
+    });
+    expect(running).toEqual({ ok: false, error: "future" });
+
+    const done = await verifyGafaReservation({
+      apiBaseUrl: "https://buq.partners",
+      companyId: 80,
+      token: "tok",
+      brandSlug: "fitspin",
+      reservationId: 91,
+      now: Date.parse("2026-11-19T13:00:00.000Z"),
+      fetchImpl,
+    });
+    expect(done).toMatchObject({ ok: true, reservation: { reservation_id: 91 } });
+  });
+
+  it("si gafa.fit no responde, unavailable", async () => {
+    await expect(
+      verifyGafaReservation({
+        apiBaseUrl: "https://buq.partners",
+        companyId: 80,
+        token: "tok",
+        brandSlug: "fitspin",
+        reservationId: 44,
+        fetchImpl: async () => {
+          throw Object.assign(new Error("timeout"), { status: 504 });
+        },
+      }),
+    ).resolves.toEqual({ ok: false, error: "unavailable" });
   });
 });

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { allowPersistentRequest, allowRequest } from "../src/rateLimit";
+import { allowPersistentRequest, allowRequest, rateLimitClientIp } from "../src/rateLimit";
+
+describe("rateLimitClientIp", () => {
+  it("usa solo cf-connecting-ip y ignora x-forwarded-for", () => {
+    expect(
+      rateLimitClientIp((name) => (name === "cf-connecting-ip" ? "1.2.3.4" : name === "x-forwarded-for" ? "9.9.9.9" : null)),
+    ).toBe("1.2.3.4");
+    expect(rateLimitClientIp((name) => (name === "x-forwarded-for" ? "9.9.9.9" : null))).toBe("unknown");
+  });
+});
 
 describe("rate limit persistente", () => {
   it("sin D1 usa el Map y corta al pasar el tope", () => {

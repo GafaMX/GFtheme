@@ -15,12 +15,13 @@ No hay firma propia del Hub. El contrato viable es el **OAuth Bearer de gafa.fit
 2. El Hub llama a gafa.fit **en el servidor**: `GET /api/me` y `GET /api/me/brand/{slug}/reservation-past` (y `-future` si no está en past).
 3. De ahí salen `user_id`, nombre del socio, `meeting_id` / `meeting_name`, `staff_id` / `staff_name` y si la clase ya pasó. **Cualquier campo de identidad en el body se ignora** (`user_id`, `customer_name`, `customer_email`, `staff_name`, `meeting_name`, ids de clase/coach).
 4. **No se guarda `customer_email`.**
-5. Sin token → **401**. Reserva que no es del socio / waitlist / cancelada → **403**. Clase futura → **422**. `CLASS_RATINGS` apagado → **403** `ratings_disabled` también en los GET.
+5. Sin token → **401**. Reserva que no es del socio / waitlist / cancelada / marca ajena al estudio → **403**. Clase futura o fecha inválida → **422**. gafa.fit caído o timeout → **503** `gafa_unavailable` (no se guarda nada). `CLASS_RATINGS` apagado → **403** `ratings_disabled` también en los GET.
 6. El 409 `already_rated` solo después de verificar que la reserva es de ese socio.
-7. `GET /v1/ratings` **no es público**. El listado con filtros es `GET /v1/admin/ratings` (cookie admin). `/mine` solo devuelve la fila del socio autenticado (sin email ni `user_id`).
-8. Rate limit persistente en D1 `rate_limits` (migración `0009`), por IP y por socio. Si la tabla no existe, cae al Map en memoria.
-9. Promedios del admin agrupados por `meeting_id` y `staff_id` verificados. Los nombres son etiqueta.
-10. Filtro de fechas del admin: días de **America/Mexico_City**.
+7. `brand_slug` se cruza con las marcas de `GET /api/brand` de ese `GAFAFIT-COMPANY`. «Ya pasó» se mide contra el **fin** de la clase (`ends_at` o `starts_at` + duración). `GAFA_FIT_URL` solo acepta `gafa.fit` / `buq.partners` / `buq.com.mx` / `buq.technology` (y subdominios, https). Rate limit por `cf-connecting-ip`, sin `x-forwarded-for`.
+8. `GET /v1/ratings` **no es público**. El listado con filtros es `GET /v1/admin/ratings` (cookie admin). `/mine` solo devuelve la fila del socio autenticado (sin email ni `user_id`).
+9. Rate limit persistente en D1 `rate_limits` (migración `0009`), por IP y por socio. Si la tabla no existe, cae al Map en memoria.
+10. Promedios del admin agrupados por `meeting_id` y `staff_id` verificados. Los nombres son etiqueta.
+11. Filtro de fechas del admin: días de **America/Mexico_City**.
 
 ## `POST /v1/ratings`
 

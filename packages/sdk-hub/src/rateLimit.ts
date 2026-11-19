@@ -1,5 +1,11 @@
 type Bucket = { count: number; resetAt: number };
 
+/** Solo CF. `x-forwarded-for` se puede falsificar. */
+export function rateLimitClientIp(header: (name: string) => string | undefined | null): string {
+  const ip = header("cf-connecting-ip");
+  return typeof ip === "string" && ip.trim() ? ip.trim() : "unknown";
+}
+
 const buckets = new Map<string, Bucket>();
 
 export function allowRequest(key: string, limit = 120, windowMs = 60_000, now = Date.now()): boolean {

@@ -447,6 +447,19 @@ export async function createClassRating(
         json: { ok: false, error: "class_not_ended", errors: { reservation_id: ["La clase todavía no termina."] } },
       };
     }
+    if (input.reservation.error === "invalid_time") {
+      return {
+        status: 422,
+        json: {
+          ok: false,
+          error: "invalid_class_time",
+          errors: { reservation_id: ["No pude leer la hora de la clase."] },
+        },
+      };
+    }
+    if (input.reservation.error === "unavailable") {
+      return { status: 503, json: { ok: false, error: "gafa_unavailable" } };
+    }
     return { status: 403, json: { ok: false, error: "forbidden" } };
   }
   const parsed = parseRatingBody(input.body);
@@ -490,7 +503,7 @@ export async function createClassRating(
 
 type VerifyCreateReservation =
   | { ok: true; reservation: VerifiedReservation }
-  | { ok: false; error: "not_found" | "future" | "forbidden" | "unavailable" };
+  | { ok: false; error: "not_found" | "future" | "forbidden" | "unavailable" | "invalid_time" };
 
 export async function getMyClassRating(
   store: RatingsStore,

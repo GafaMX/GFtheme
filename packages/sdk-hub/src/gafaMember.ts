@@ -20,7 +20,13 @@ export type VerifiedReservation = {
 
 export type VerifyReservationResult =
   | { ok: true; reservation: VerifiedReservation }
-  | { ok: false; error: "not_found" | "future" | "forbidden" | "unavailable" };
+  | { ok: false; error: "not_found" | "future" | "forbidden" | "unavailable" | "invalid_time" };
+
+export const DEFAULT_CLASS_MINUTES = 60;
+
+export type FetchGafaMemberResult =
+  | { ok: true; member: GafaMember }
+  | { ok: false; error: "unauthorized" | "unavailable" };
 
 type FetchLike = typeof fetch;
 
@@ -44,13 +50,15 @@ export async function fetchGafaMember(input: {
   companyId: number;
   token: string;
   fetchImpl?: FetchLike;
-}): Promise<GafaMember | null> {
+}): Promise<FetchGafaMemberResult> {
   try {
     const payload = await gafaAuthedGet(input, "/me");
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return { ok: false, error: "unauthorized" };
+    }
     const raw = payload as Record<string, unknown>;
     const user_id = positiveId(raw.id);
-    if (!user_id) return null;
+    if (!user_id) return { ok: false, error: "unauthorized" };
     const name =
       [raw.first_name, raw.last_name]
         .filter((part): part is string => typeof part === "string" && part.trim() !== "")
@@ -58,9 +66,11 @@ export async function fetchGafaMember(input: {
         .trim() ||
       (typeof raw.name === "string" ? raw.name.trim() : "") ||
       null;
-    return { user_id, customer_name: name || null };
-  } catch {
-    return null;
+    return { ok: true, member: { user_id, customer_name: name || null } };
+  } catch (error) {
+    const status = (error as { status?: number }).status;
+    if (status === 401 || status === 403) return { ok: false, error: "unauthorized" };
+    return { ok: false, error: "unavailable" };
   }
 }
 
@@ -76,17 +86,9 @@ export async function verifyGafaReservation(input: {
   const now = input.now ?? Date.now();
   try {
     const past = await findReservation(input, "reservation-past");
-    if (past) {
-      if (past.cancelled || past.isWaitlist) return { ok: false, error: "forbidden" };
-      if (Date.parse(past.starts_at) > now) return { ok: false, error: "future" };
-      return { ok: true, reservation: past };
-    }
+    if (past) return decideReservation(past, now);
     const future = await findReservation(input, "reservation-future");
-    if (future) {
-      if (future.cancelled || future.isWaitlist) return { ok: false, error: "forbidden" };
-      if (Date.parse(future.starts_at) > now) return { ok: false, error: "future" };
-      return { ok: true, reservation: future };
-    }
+    if (future) return decideReservation(future, now);
     return { ok: false, error: "not_found" };
   } catch (error) {
     const status = (error as { status?: number }).status;
@@ -95,7 +97,37 @@ export async function verifyGafaReservation(input: {
   }
 }
 
-type FoundReservation = VerifiedReservation & { cancelled: boolean; isWaitlist: boolean };
+function decideReservation(row: FoundReservation, now: number): VerifyReservationResult {
+  if (row.cancelled || row.isWaitlist) return { ok: false, error: "forbidden" };
+  const endedAt = classEndMs(row);
+  if (endedAt == null) return { ok: false, error: "invalid_time" };
+  if (endedAt > now) return { ok: false, error: "future" };
+  return { ok: true, reservation: row };
+}
+
+/** Fin de la clase: `ends_at`, o `starts_at` + duración (default 60 min). Sin inicio válido → null. */
+export function classEndMs(row: {
+  starts_at: string;
+  ends_at?: string | null;
+  duration_minutes?: number | null;
+}): number | null {
+  const start = Date.parse(row.starts_at);
+  if (!Number.isFinite(start)) return null;
+  const end = row.ends_at ? Date.parse(row.ends_at) : NaN;
+  if (Number.isFinite(end) && end >= start) return end;
+  const minutes =
+    row.duration_minutes != null && Number.isFinite(row.duration_minutes) && row.duration_minutes > 0
+      ? row.duration_minutes
+      : DEFAULT_CLASS_MINUTES;
+  return start + minutes * 60_000;
+}
+
+type FoundReservation = VerifiedReservation & {
+  cancelled: boolean;
+  isWaitlist: boolean;
+  ends_at: string | null;
+  duration_minutes: number | null;
+};
 
 async function findReservation(
   input: {
@@ -169,6 +201,12 @@ function parseReservation(raw: unknown, forceWaitlist: boolean): FoundReservatio
     (typeof meetings?.start === "string" && meetings.start) ||
     (typeof row.start === "string" && row.start) ||
     "";
+  const ends =
+    (typeof row.meeting_end === "string" && row.meeting_end) ||
+    (typeof meetings?.end === "string" && meetings.end) ||
+    (typeof row.end === "string" && row.end) ||
+    (typeof row.ends_at === "string" && row.ends_at) ||
+    "";
   return {
     reservation_id,
     meeting_id: positiveId(meetings?.id) ?? positiveId(row.meetings_id) ?? positiveId(row.meeting_id) ?? null,
@@ -177,6 +215,8 @@ function parseReservation(raw: unknown, forceWaitlist: boolean): FoundReservatio
     staff_id: positiveId(staff?.id) ?? positiveId(row.staff_id) ?? null,
     staff_name: staffLabel(staff),
     starts_at: starts,
+    ends_at: ends || null,
+    duration_minutes: readDurationMinutes(meetings) ?? readDurationMinutes(service) ?? readDurationMinutes(row),
     cancelled: Boolean(row.cancelled),
     isWaitlist:
       forceWaitlist ||
@@ -240,6 +280,14 @@ function asList(value: unknown): unknown[] {
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+function readDurationMinutes(raw: Record<string, unknown> | null): number | null {
+  if (!raw) return null;
+  const value = raw.duration_minutes ?? raw.durationMinutes ?? raw.duration;
+  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value.trim()) : NaN;
+  if (!Number.isFinite(n) || n <= 0 || n > 24 * 60) return null;
+  return Math.trunc(n);
 }
 
 function positiveId(value: unknown): number | undefined {

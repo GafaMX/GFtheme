@@ -135,6 +135,34 @@ describe("createClassRating auth", () => {
     expect(result.json.error).toBe("class_not_ended");
   });
 
+  it("fecha de clase inválida da 422 y no inserta", async () => {
+    const store = memoryRatingsStore();
+    const result = await createClassRating(store, {
+      enabled: true,
+      companyId: 80,
+      member,
+      reservation: { ok: false, error: "invalid_time" },
+      body: stars,
+    });
+    expect(result.status).toBe(422);
+    expect(result.json.error).toBe("invalid_class_time");
+    expect(await store.getMine(80, 44, 9)).toBeNull();
+  });
+
+  it("si gafa.fit no responde da 503 y no inserta", async () => {
+    const store = memoryRatingsStore();
+    const result = await createClassRating(store, {
+      enabled: true,
+      companyId: 80,
+      member,
+      reservation: { ok: false, error: "unavailable" },
+      body: stars,
+    });
+    expect(result.status).toBe(503);
+    expect(result.json.error).toBe("gafa_unavailable");
+    expect(await store.getMine(80, 44, 9)).toBeNull();
+  });
+
   it("ignora nombres y user_id del body; toma coach y clase de gafa.fit", async () => {
     const store = memoryRatingsStore();
     const result = await createClassRating(store, {
