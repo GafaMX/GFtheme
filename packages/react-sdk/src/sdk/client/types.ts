@@ -234,7 +234,9 @@ export type SubmitClassRatingPayload = {
   brandSlug: string;
   reservationId: number;
   meetingId?: number;
+  meetingName?: string;
   staffId?: number;
+  staffName?: string;
   classStars?: number | null;
   staffStars?: number | null;
   comment?: string;
@@ -680,8 +682,8 @@ export type GafaClient = {
   listUserMemberships(brandSlug: string): Promise<UserMembership[]>;
   listUserReservations(brandSlug: string, when?: "future" | "past"): Promise<UserReservation[]>;
   /**
-   * Calificación de una reserva. El endpoint de gafa.fit aún no existe:
-   * contrato en `docs/v2-ratings-api.md`. GET 404 = todavía no califica.
+   * Calificación de una reserva. Vive en el Hub (`hub.buq.partners`), no en gafa.fit.
+   * Contrato: `docs/v2-ratings-api.md`. GET vacío = todavía no califica.
    */
   getReservationRating?(brandSlug: string, reservationId: string | number): Promise<ClassRating | null>;
   submitReservationRating?(payload: SubmitClassRatingPayload): Promise<ClassRating>;

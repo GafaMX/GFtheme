@@ -26,7 +26,9 @@ export type SubmitClassRatingPayload = {
   brandSlug: string;
   reservationId: number;
   meetingId?: number;
+  meetingName?: string;
   staffId?: number;
+  staffName?: string;
   classStars?: number | null;
   staffStars?: number | null;
   comment?: string;

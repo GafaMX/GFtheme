@@ -119,7 +119,7 @@ const previewClassRatings =
           promptAfterClass: ratingsMode !== "historial",
         }
       : null;
-/** Reserva mock cuyo POST simula que gafa.fit aún no tiene el endpoint. */
+/** Reserva mock cuyo POST simula que el Hub aún no puede guardar. */
 const RATINGS_ERROR_RESERVATION_ID = 25;
 const failAllRatingPosts = ratingsMode === "error";
 
