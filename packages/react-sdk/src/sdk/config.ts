@@ -139,7 +139,7 @@ export const sdkConfigSchema = z
      */
     crossSell: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     /**
-     * Matrícula opt-in. Sin este bloque el SDK no cambia nada.
+     * Inscripción opt-in. Sin este bloque el SDK no cambia nada.
      * `{ comboId, label, membershipIds, firstTimeScope, mode }`.
      */
     membershipEnrollment: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),

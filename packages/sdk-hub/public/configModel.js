@@ -508,23 +508,23 @@ export const CONFIG_SECTIONS = [
             key: "MEMBERSHIP_ENROLLMENT.comboId",
             path: ["MEMBERSHIP_ENROLLMENT", "comboId"],
             type: "number",
-            label: "Paquete de matrícula (ID)",
-            help: "ID del combo de matrícula. Vacío = el SDK no cobra matrícula. El precio lo toma del combo en Buq; si está en 0 € no se agrega la línea.",
+            label: "Paquete de la fee (ID)",
+            help: "ID del combo de la fee de alta. Vacío = el SDK no cobra nada. El precio lo toma del combo en Buq; si está en 0 € no se agrega la línea. El nombre que ve el cliente es el campo de abajo, no el nombre del combo.",
           },
           {
             key: "MEMBERSHIP_ENROLLMENT.label",
             path: ["MEMBERSHIP_ENROLLMENT", "label"],
             type: "text",
-            label: "Nombre de la matrícula",
-            help: "Texto de la línea en el carrito. Por defecto “Matrícula”.",
-            placeholder: "Matrícula",
+            label: "Nombre que ve el cliente",
+            help: "Sale en el carrito, toasts y “Cobrando…”. Por defecto “Inscripción”. The Base Pozuelo (compañía 204) debe poner exactamente “Matrícula”.",
+            placeholder: "Inscripción",
           },
           {
             key: "MEMBERSHIP_ENROLLMENT.membershipIds",
             path: ["MEMBERSHIP_ENROLLMENT", "membershipIds"],
             type: "text",
-            label: "Membresías que llevan matrícula",
-            help: "IDs de membresía separados por coma. Las que no estén en la lista (por ejemplo Socio Fundador) nunca llevan matrícula.",
+            label: "Membresías que llevan la fee",
+            help: "IDs de membresía separados por coma. Las que no estén en la lista (por ejemplo Socio Fundador) nunca llevan la fee.",
             placeholder: "1272, 1271, 1204",
           },
           {
@@ -532,7 +532,7 @@ export const CONFIG_SECTIONS = [
             path: ["MEMBERSHIP_ENROLLMENT", "firstTimeScope"],
             type: "select",
             label: "Qué cuenta como primera vez",
-            help: "“Cualquier membresía” cobra la matrícula solo la primera vez que el cliente compra alguna. “La misma membresía” la cobra la primera vez de cada plan.",
+            help: "“Cualquier membresía” cobra la fee solo la primera vez que el cliente compra alguna. “La misma membresía” la cobra la primera vez de cada plan.",
             choices: options(
               [
                 ["any_membership", "Cualquier membresía del estudio"],
@@ -546,7 +546,7 @@ export const CONFIG_SECTIONS = [
             path: ["MEMBERSHIP_ENROLLMENT", "mode"],
             type: "select",
             label: "Cuándo se cobra",
-            help: "“Solo la primera compra” es lo normal. “En cada cobro” agrega la matrícula siempre que hay una membresía elegible.",
+            help: "“Solo la primera compra” es lo normal. “En cada cobro” agrega la fee siempre que hay una membresía elegible.",
             choices: options(
               [
                 ["first_purchase", "Solo la primera compra"],

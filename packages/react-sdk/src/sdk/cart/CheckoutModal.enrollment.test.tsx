@@ -5,13 +5,13 @@ import type { CatalogItem, GafaClient } from "../client/types";
 import { CheckoutModal } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
 import { reservateRetryWait } from "./reservateRetry";
-import { ENROLLMENT_CHARGE_FAILED_MESSAGE } from "./membershipEnrollment";
+import { THE_BASE_ENROLLMENT_LABEL, enrollmentCopy } from "./membershipEnrollment";
 import { clearToasts } from "../toast/toastStore";
 import { resetToastHostForTests } from "../toast/ToastHost";
 
 const ENROLLMENT = {
   comboId: 3491,
-  label: "Matrícula",
+  label: THE_BASE_ENROLLMENT_LABEL,
   membershipIds: [1272, 1271, 1204],
   firstTimeScope: "any_membership" as const,
   mode: "first_purchase" as const,
@@ -301,7 +301,7 @@ describe("CheckoutModal matrícula", () => {
       expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false);
     });
     fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
-    await waitFor(() => expect(screen.getAllByText(ENROLLMENT_CHARGE_FAILED_MESSAGE).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(enrollmentCopy(ENROLLMENT).chargeFailed).length).toBeGreaterThan(0));
     expect(client.reservatePurchase).toHaveBeenCalled();
     expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0].lines[0]?.id).toBe(1271);
     await waitFor(() => expect(reportCheckoutWarning).toHaveBeenCalled());
