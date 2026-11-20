@@ -1,0 +1,392 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import type { CatalogItem, GafaClient, Meeting } from "../client/types";
+import { CheckoutModal } from "../widgets/CheckoutModal";
+import { useCartStore, type CartLine } from "./cartStore";
+
+const cartLine: CartLine = {
+  key: "fitspin-cancun:combo:1",
+  id: 1,
+  type: "combo",
+  name: "5 Clases Cancún",
+  price: 1350,
+  priceLabel: "$1,350",
+  amount: 1,
+  brandSlug: "fitspin-cancun",
+  locationSlug: "cancun",
+  expirationLabel: "Expira en 60 días",
+};
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+function mockClient(
+  combos: Promise<CatalogItem[]>,
+  extras?: { products?: CatalogItem[]; memberships?: CatalogItem[] },
+): GafaClient {
+  return {
+    listBrands: async () => [{ id: 1, name: "Fitspin Cancún", slug: "fitspin-cancun" }],
+    listLocations: async () => [{ id: 200, name: "Cancún", slug: "cancun", brandSlug: "fitspin-cancun" }],
+    listCombos: async () => combos,
+    listMemberships: async () => extras?.memberships ?? [],
+    listProducts: async () => extras?.products ?? [],
+    getProfile: async () => null,
+  } as unknown as GafaClient;
+}
+
+const helipuerto: Meeting = {
+  id: 99,
+  name: "HELIPUERTO BICI 🚲",
+  startsAt: "2026-08-15T09:30:00",
+  timezone: "America/Mexico_City",
+  serviceName: "HELIPUERTO BICI 🚲",
+};
+
+function renderShop(
+  client: GafaClient,
+  meeting?: Meeting | null,
+  seat?: { seatObjectId?: number; seatObjectIds?: number[]; seatLabel?: string },
+) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: 0 } },
+  });
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <CheckoutModal
+        client={client}
+        brandSlug="fitspin-cancun"
+        locationSlug="cancun"
+        locationName="Polanco"
+        meeting={meeting}
+        seatObjectId={seat?.seatObjectId}
+        seatObjectIds={seat?.seatObjectIds}
+        seatLabel={seat?.seatLabel}
+        skipCatalog={false}
+        onClose={() => undefined}
+      />
+    </QueryClientProvider>,
+  );
+  return { ...view, queryClient };
+}
+
+describe("CheckoutModal catalog loading", () => {
+  afterEach(() => {
+    cleanup();
+    useCartStore.setState({ lines: [], reservation: null });
+    localStorage.removeItem("gafa-sdk:cart-v1");
+  });
+
+  it("muestra skeleton y el pedido, no el vacio de 'esta clase no tiene paquetes'", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    const pending = deferred<CatalogItem[]>();
+    renderShop(mockClient(pending.promise));
+
+    expect(screen.queryByText(/esta clase no tiene paquetes/i)).toBeNull();
+    expect(screen.queryByText(/no hay paquetes disponibles/i)).toBeNull();
+    expect(screen.getByText(/cargando catálogo/i)).toBeTruthy();
+    expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
+
+    pending.resolve([
+      {
+        id: 1,
+        name: "5 Clases Cancún",
+        type: "combo",
+        price: 1350,
+        priceFinal: 1350,
+        priceLabel: "$1,350",
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/cargando catálogo/i)).toBeNull();
+      expect(screen.getByRole("button", { name: /agregar otro/i })).toBeTruthy();
+    });
+    expect(screen.queryByText(/esta clase no tiene paquetes/i)).toBeNull();
+  });
+
+  it("quita la clase del carrito sin vaciar el paquete y no la restaura", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    const view = renderShop(mockClient(Promise.resolve([])), helipuerto);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: /quitar clase/i }).length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText(/HELIPUERTO BICI/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: /compra para reservar/i })).toBeTruthy();
+    expect(useCartStore.getState().reservation?.meetingId).toBe(99);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /quitar clase/i })[0]!);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /quitar clase/i })).toBeNull();
+    });
+    expect(screen.queryByText(/HELIPUERTO BICI/i)).toBeNull();
+    expect(screen.getByRole("heading", { name: /elige tu plan/i })).toBeTruthy();
+    expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
+    expect(useCartStore.getState().reservation).toBeNull();
+    expect(useCartStore.getState().lines).toEqual([cartLine]);
+
+    const client = mockClient(Promise.resolve([]));
+    view.rerender(
+      <QueryClientProvider client={view.queryClient}>
+        <CheckoutModal
+          client={client}
+          brandSlug="fitspin-cancun"
+          locationSlug="cancun"
+          locationName="Polanco"
+          meeting={{ ...helipuerto }}
+          skipCatalog={false}
+          onClose={() => undefined}
+        />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(useCartStore.getState().reservation).toBeNull();
+      expect(screen.queryByRole("button", { name: /quitar clase/i })).toBeNull();
+    });
+    expect(screen.getAllByText("5 Clases Cancún").length).toBeGreaterThan(0);
+  });
+
+  function signedInClient(
+    classCombos: CatalogItem[],
+    catalogCombos: CatalogItem[],
+    memberships: CatalogItem[] = [],
+  ): GafaClient {
+    return {
+      ...mockClient(Promise.resolve(catalogCombos), { memberships }),
+      getProfile: async () => ({ id: 7, email: "qa@buq.mx", name: "QA" }),
+      getCheckoutConfig: async () => ({ combos: classCombos, memberships, products: [] }),
+    } as unknown as GafaClient;
+  }
+
+  const fuerza1: CatalogItem = { id: 3540, name: "1 Clase Fuerza Helipuerto", type: "combo", price: 400, priceFinal: 400, credits: 1 };
+  const bici1: CatalogItem = { id: 1688, name: "1 Clase Bici Helipuerto", type: "combo", price: 500, priceFinal: 500, credits: 1 };
+  const bici2: CatalogItem = { id: 3264, name: "2 clases Bici Helipuerto", type: "combo", price: 1000, priceFinal: 1000, credits: 2 };
+  const fitpass: CatalogItem = { id: 1487, name: "FITPASS", type: "combo", price: 0, priceFinal: 0, credits: 1 };
+
+  it("con invitados oculta membresías y mete N paquetes de 1 de ESTA clase", async () => {
+    useCartStore.setState({ lines: [], reservation: null });
+    renderShop(
+      signedInClient([bici2, bici1], [fuerza1, bici2, bici1], [
+        { id: 20, name: "Ili", type: "membership", price: 1500, priceFinal: 1500 },
+      ]),
+      helipuerto,
+      { seatObjectIds: [1, 2], seatLabel: "10 y 11" },
+    );
+
+    await waitFor(() => {
+      expect(useCartStore.getState().lines).toEqual([
+        expect.objectContaining({ id: 1688, type: "combo", amount: 2, price: 500 }),
+      ]);
+    });
+    expect(screen.queryByRole("tab", { name: /membresías/i })).toBeNull();
+    expect(screen.getByText(/Lugares 10 y 11/)).toBeTruthy();
+  });
+
+  it("con invitados corrige la cantidad de un paquete de 1 que ya estaba en el carrito", async () => {
+    useCartStore.setState({
+      lines: [
+        {
+          key: "fitspin-cancun:combo:1688",
+          id: 1688,
+          type: "combo",
+          name: bici1.name,
+          price: 500,
+          priceLabel: "$500",
+          amount: 1,
+          brandSlug: "fitspin-cancun",
+          locationSlug: "cancun",
+        },
+      ],
+      reservation: null,
+    });
+    renderShop(signedInClient([bici2, bici1], [bici2, bici1]), helipuerto, {
+      seatObjectIds: [1, 2, 3],
+      seatLabel: "10, 11 y 12",
+    });
+
+    await waitFor(() => {
+      expect(useCartStore.getState().lines).toEqual([expect.objectContaining({ id: 1688, amount: 3 })]);
+    });
+  });
+
+  it("con invitados usa los lugares recién elegidos, no el lote guardado de otro checkout", async () => {
+    useCartStore.setState({
+      lines: [],
+      reservation: {
+        meetingId: 99,
+        meetingName: helipuerto.name,
+        startsAt: helipuerto.startsAt ?? "",
+        brandSlug: "fitspin-cancun",
+        locationSlug: "cancun",
+        seatObjectId: 1,
+        seatObjectIds: [1, 2],
+      },
+    });
+    renderShop(signedInClient([bici2, bici1], [bici2, bici1]), helipuerto, {
+      seatObjectIds: [4, 5, 6],
+      seatLabel: "4, 5 y 6",
+    });
+
+    await waitFor(() => {
+      expect(useCartStore.getState().lines).toEqual([expect.objectContaining({ id: 1688, amount: 3 })]);
+    });
+  });
+
+  it("con invitados nunca cae al catálogo de la marca (otra disciplina)", async () => {
+    useCartStore.setState({ lines: [], reservation: null });
+    renderShop(signedInClient([], [fuerza1, bici1]), helipuerto, {
+      seatObjectIds: [1, 2],
+      seatLabel: "10 y 11",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/necesitas un paquete de esta clase con al menos 2 créditos/)).toBeTruthy();
+    });
+    expect(useCartStore.getState().lines).toEqual([]);
+    expect(screen.queryByText("1 Clase Fuerza Helipuerto")).toBeNull();
+  });
+
+  it("con invitados no prefija FITPASS ni paquetes de $0", async () => {
+    useCartStore.setState({ lines: [], reservation: null });
+    renderShop(signedInClient([fitpass, bici2], [fitpass, bici2]), helipuerto, {
+      seatObjectIds: [1, 2],
+      seatLabel: "10 y 11",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/necesitas un paquete de esta clase con al menos 2 créditos/)).toBeTruthy();
+    });
+    expect(useCartStore.getState().lines).toEqual([]);
+  });
+
+  it("ancla varios lugares en el chip de la clase", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    renderShop(mockClient(Promise.resolve([])), helipuerto, {
+      seatObjectIds: [1, 2, 3],
+      seatLabel: "1, 2 y 3",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Lugares 1, 2 y 3/)).toBeTruthy();
+    });
+    expect(useCartStore.getState().reservation).toEqual(
+      expect.objectContaining({ meetingId: 99, seatObjectIds: [1, 2, 3] }),
+    );
+  });
+
+  it("ancla el lugar elegido en el chip de la clase", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    renderShop(mockClient(Promise.resolve([])), helipuerto, { seatObjectId: 35042, seatLabel: "42" });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Lugar 42/)).toBeTruthy();
+    });
+    expect(useCartStore.getState().reservation).toEqual(
+      expect.objectContaining({ meetingId: 99, seatObjectId: 35042, seatLabel: "42" }),
+    );
+  });
+
+  it("sin lugar no inventa posición en la reserva anclada", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    renderShop(mockClient(Promise.resolve([])), helipuerto);
+
+    await waitFor(() => {
+      expect(useCartStore.getState().reservation?.meetingId).toBe(99);
+    });
+    expect(useCartStore.getState().reservation?.seatObjectId).toBeUndefined();
+    expect(useCartStore.getState().reservation?.seatLabel).toBeUndefined();
+    expect(screen.queryByText(/Lugar /)).toBeNull();
+  });
+
+  it("el carrito arranca colapsado y el toggle lo abre", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    renderShop(mockClient(Promise.resolve([])));
+
+    const aside = document.querySelector(".gafa-checkout__cart");
+    expect(aside?.getAttribute("data-open")).not.toBe("true");
+
+    const toggle = screen.getByRole("button", { name: /ver productos del carrito/i });
+    fireEvent.click(toggle);
+    expect(aside?.getAttribute("data-open")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: /ocultar productos del carrito/i }));
+    expect(aside?.getAttribute("data-open")).not.toBe("true");
+  });
+
+  it("muestra solo las pestañas que tienen items", async () => {
+    renderShop(
+      mockClient(Promise.resolve([{ id: 1, name: "5 Clases", type: "combo", price: 1350, priceFinal: 1350 }]), {
+        memberships: [{ id: 2, name: "Ilimitada", type: "membership", price: 1899, priceFinal: 1899 }],
+        products: [{ id: 9, name: "Agua", type: "product", price: 40, priceFinal: 40, priceLabel: "$40" }],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /paquetes/i })).toBeTruthy();
+    });
+    expect(screen.getByRole("tab", { name: /membresías/i })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /productos/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: /productos/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Agua")).toBeTruthy();
+    });
+    expect(screen.getByRole("tab", { name: /productos/i }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("no pinta un tab vacío: Paquetes, Membresías o Productos", async () => {
+    renderShop(
+      mockClient(Promise.resolve([]), {
+        products: [{ id: 9, name: "Agua", type: "product", price: 40, priceFinal: 40, priceLabel: "$40" }],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: /productos/i })).toBeTruthy();
+    });
+    expect(screen.queryByRole("tab", { name: /paquetes/i })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /membresías/i })).toBeNull();
+    expect(screen.getByRole("tab", { name: /productos/i }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText("Agua")).toBeTruthy();
+  });
+
+  it("sin catálogo no deja tabs vacíos", async () => {
+    renderShop(mockClient(Promise.resolve([])));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/cargando catálogo/i)).toBeNull();
+    });
+    expect(screen.queryByRole("tab", { name: /paquetes/i })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /membresías/i })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /productos/i })).toBeNull();
+  });
+
+  it("si listProducts viene vacío, usa productsSelection del fancy", async () => {
+    const client = {
+      ...mockClient(Promise.resolve([])),
+      getProfile: async () => ({ id: 1, name: "Gabriel", email: "g@buq.mx" }),
+      getCheckoutConfig: async () => ({
+        brandSlug: "fitspin-cancun",
+        locationSlug: "cancun",
+        products: [{ id: 9, name: "Agua", type: "product", price: 40, priceFinal: 40, priceLabel: "$40" }],
+        combos: [],
+        memberships: [],
+        paymentMethods: [],
+      }),
+    } as unknown as GafaClient;
+
+    renderShop(client);
+
+    fireEvent.click(await screen.findByRole("tab", { name: /productos/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Agua")).toBeTruthy();
+    });
+  });
+});
