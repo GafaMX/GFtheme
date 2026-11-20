@@ -570,4 +570,70 @@ describe("catálogo con reglas de compra", () => {
     const combos = await client().listCombos("fitspin");
     expect(combos[0]?.name).toBe("Publico");
   });
+
+  it("recorre las páginas de combos (current_page/last_page en la raíz)", async () => {
+    const pages: Record<string, number[]> = {
+      "1": [18, 17],
+      "2": [16, 15],
+      "3": [14],
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      const page = url.searchParams.get("page") ?? "1";
+      const ids = pages[page] ?? [];
+      return jsonResponseStatus({
+        data: ids.map((id) => ({ id, name: `Combo ${id}`, price: 1, price_final: 1 })),
+        current_page: Number(page),
+        last_page: 3,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const combos = await client().listCombos("viivra");
+    expect(combos.map((combo) => combo.id)).toEqual([18, 17, 16, 15, 14]);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const [url] of fetchMock.mock.calls) {
+      expect(String(url)).toContain("per_page=100");
+    }
+  });
+
+  it("recorre membresías y productos con meta anidada", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      const page = Number(url.searchParams.get("page") ?? "1");
+      const path = url.pathname;
+      if (path.includes("/membership")) {
+        const id = page === 1 ? 101 : 102;
+        return jsonResponseStatus({
+          data: [{ id, name: `Membresía ${id}`, price: 1, price_final: 1 }],
+          meta: { current_page: page, last_page: 2 },
+        });
+      }
+      if (path.includes("/product")) {
+        const id = page === 1 ? 201 : 202;
+        return jsonResponseStatus({
+          data: [{ id, name: `Producto ${id}`, price: 1, price_final: 1 }],
+          meta: { current_page: page, last_page: 2 },
+        });
+      }
+      return jsonResponseStatus({ data: [] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const memberships = await client().listMemberships("viivra");
+    const products = await client().listProducts("viivra");
+    expect(memberships.map((item) => item.id)).toEqual([101, 102]);
+    expect(products.map((item) => item.id)).toEqual([201, 202]);
+  });
+
+  it("si la respuesta es un array plano, hace un solo GET", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponseStatus([{ id: 7, name: "Combo único", price: 1, price_final: 1 }]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const combos = await client().listCombos("viivra");
+    expect(combos).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
