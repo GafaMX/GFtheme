@@ -796,6 +796,29 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return { page, lastPage };
   }
 
+  /**
+   * El catálogo de Buq.partners pagina (15 por página, id desc). Sin esto, los
+   * combos/membresías/productos que caen en la página 2+ "ya no están disponibles".
+   * Pide per_page alto y recorre todas las páginas hasta last_page (tope de seguridad).
+   * Si la respuesta no trae meta de paginación (array plano), termina en la primera.
+   */
+  const CATALOG_PER_PAGE = 100;
+  const CATALOG_MAX_PAGES = 50;
+  async function apiGetAllPages<T>(
+    path: string,
+    params: Record<string, string | number | boolean | undefined> = {},
+  ): Promise<T[]> {
+    const acc: T[] = [];
+    for (let page = 1; page <= CATALOG_MAX_PAGES; page += 1) {
+      const response = await apiGet<PaginatedResponse<T>>(path, { ...params, per_page: CATALOG_PER_PAGE, page });
+      const items = unwrap(response);
+      acc.push(...items);
+      const meta = laravelPageMeta(response);
+      if (!meta || page >= meta.lastPage || items.length === 0) break;
+    }
+    return acc;
+  }
+
   function reservationsFromResponse(response: unknown, brandSlug: string): UserReservation[] {
     return unwrapReservationGroups(response).flatMap((group) => [
       ...asItemList<RawReservation>(group.reservations).map((raw) =>
@@ -976,8 +999,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         : `/brand/${brandSlug}/membership/userPosibilities`;
 
     const load = async (path: string) => {
-      const response = await apiGet<PaginatedResponse<RawCatalogItem>>(path, { only_actives: true });
-      return unwrap(response)
+      const items = await apiGetAllPages<RawCatalogItem>(path, { only_actives: true });
+      return items
         .map((item) => normalizeCatalogItem(item, type))
         .filter((item): item is CatalogItem => Boolean(item));
     };
@@ -1048,10 +1071,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       // (404) el checkout sigue con productsSelection del create-form-template.
       for (const path of [`/brand/${brandSlug}/product`, `/brand/${brandSlug}/products`]) {
         try {
-          const response = await apiGet<PaginatedResponse<RawCatalogItem>>(path, {
-            only_actives: true,
-          });
-          return unwrap(response)
+          const items = await apiGetAllPages<RawCatalogItem>(path, { only_actives: true });
+          return items
             .map((item) => normalizeCatalogItem(item, "product"))
             .filter((item): item is CatalogItem => Boolean(item));
         } catch {
