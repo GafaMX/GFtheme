@@ -7,6 +7,7 @@ import { defaultExploreClasses, defaultExplorePackages } from "../account/explor
 import { hasPasswordResetLink } from "../auth/passwordResetLink";
 import { AuthWidget } from "./AuthWidget";
 import { ProfileWidget } from "./ProfileWidget";
+import type { ClassRatingsConfig } from "../ratings/classRatings";
 import { SdkBodyOverlay } from "./SdkBodyOverlay";
 import { StudioLogo } from "./StudioLogo";
 
@@ -16,6 +17,7 @@ export type AccountModalProps = {
   brandSlug?: string;
   hubUrl?: string;
   companyId?: number;
+  classRatings?: ClassRatingsConfig | boolean | Record<string, unknown> | null;
   open: boolean;
   onClose(): void;
   /** Nombre de la marca para el encabezado del popup. */
@@ -28,6 +30,8 @@ export type AccountModalProps = {
    */
   onExploreClasses?(): void;
   onExplorePackages?(): void;
+  initialTab?: "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
+  initialClassScope?: "upcoming" | "history";
 };
 
 /**
@@ -41,12 +45,15 @@ export function AccountModal({
   brandSlug,
   hubUrl,
   companyId,
+  classRatings,
   open,
   onClose,
   title = "Tu cuenta",
   combineWaitlist = false,
   onExploreClasses,
   onExplorePackages,
+  initialTab,
+  initialClassScope,
 }: AccountModalProps) {
   const queryClient = useQueryClient();
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -146,6 +153,7 @@ export function AccountModal({
             combineWaitlist={combineWaitlist}
             hubUrl={hubUrl}
             companyId={companyId}
+            classRatings={classRatings}
             variant="modal"
             onRequestClose={onClose}
             onExploreClasses={() => {
@@ -156,6 +164,8 @@ export function AccountModal({
               onClose();
               queueMicrotask(() => (onExplorePackages ?? defaultExplorePackages)());
             }}
+            initialTab={initialTab}
+            initialClassScope={initialClassScope}
           />
         ) : (
           <div className="gafa-account-modal__auth">

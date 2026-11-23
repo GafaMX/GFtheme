@@ -43,6 +43,9 @@ const API_BASE: Record<string, string> = {
   dev: "https://buq.technology",
 };
 
+/** Solo estos orígenes (y subdominios) pueden ir en GAFA_FIT_URL. */
+export const GAFA_FIT_URL_ROOTS = ["gafa.fit", "buq.partners", "buq.com.mx", "buq.technology"] as const;
+
 const MAX_PAGES = 8;
 const PAGE_SIZE = 50;
 const REQUEST_MS = 8_000;
@@ -50,10 +53,43 @@ const REQUEST_MS = 8_000;
 type FetchLike = typeof fetch;
 
 export function gafaApiBaseUrl(config: Record<string, unknown> | null | undefined): string {
-  const explicit = typeof config?.GAFA_FIT_URL === "string" ? config.GAFA_FIT_URL.trim() : "";
-  if (explicit) return explicit.replace(/\/+$/, "");
   const env = String(config?.BUQ_ENV ?? "production").trim().toLowerCase();
-  return API_BASE[env] ?? API_BASE.production;
+  const fallback = API_BASE[env] ?? API_BASE.production;
+  const explicit = typeof config?.GAFA_FIT_URL === "string" ? config.GAFA_FIT_URL.trim() : "";
+  if (!explicit) return fallback;
+  const stripped = explicit.replace(/\/+$/, "");
+  return isAllowedGafaFitOrigin(stripped) ? stripped : fallback;
+}
+
+export function isAllowedGafaFitOrigin(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    if (url.username || url.password) return false;
+    if (url.pathname && url.pathname !== "/") return false;
+    if (url.search || url.hash) return false;
+    const host = url.hostname.toLowerCase();
+    return GAFA_FIT_URL_ROOTS.some((root) => host === root || host.endsWith(`.${root}`));
+  } catch {
+    return false;
+  }
+}
+
+/** ¿`brand_slug` es una marca de este estudio? Solo pega a `/brand`, no al catálogo entero. */
+export async function studioOwnsBrand(input: {
+  companyId: number;
+  apiBaseUrl: string;
+  brandSlug: string;
+  fetchImpl?: FetchLike;
+}): Promise<{ ok: true; owned: boolean } | { ok: false; error: "unavailable" }> {
+  try {
+    const brands = await listBrands(input.apiBaseUrl.replace(/\/+$/, ""), input.companyId, input.fetchImpl ?? fetch);
+    const slug = input.brandSlug.trim().toLowerCase();
+    if (!slug) return { ok: true, owned: false };
+    return { ok: true, owned: brands.some((brand) => brand.slug.toLowerCase() === slug) };
+  } catch {
+    return { ok: false, error: "unavailable" };
+  }
 }
 
 export function preferredBrandId(config: Record<string, unknown> | null | undefined): number | null {

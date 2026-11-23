@@ -192,6 +192,10 @@ export type UserReservation = {
   timezone?: string;
   locationName?: string;
   staffName?: string;
+  /** `meetings.id` de la clase. Hace falta para calificar. */
+  meetingId?: number;
+  /** Coach (o suplente) de esa meeting. */
+  staffId?: number;
   brandSlug: string;
   isWaitlist: boolean;
   isOverbooking: boolean;
@@ -214,6 +218,28 @@ export type UserReservation = {
   qrHash?: string;
   cancelled?: boolean;
   canCancel?: boolean;
+};
+
+export type ClassRating = {
+  reservationId: number;
+  meetingId?: number;
+  staffId?: number;
+  classStars?: number | null;
+  staffStars?: number | null;
+  comment?: string | null;
+  submittedAt?: string;
+};
+
+export type SubmitClassRatingPayload = {
+  brandSlug: string;
+  reservationId: number;
+  meetingId?: number;
+  meetingName?: string;
+  staffId?: number;
+  staffName?: string;
+  classStars?: number | null;
+  staffStars?: number | null;
+  comment?: string;
 };
 
 export type UserPurchase = {
@@ -655,6 +681,12 @@ export type GafaClient = {
   listUserCredits(brandSlug: string): Promise<UserCredit[]>;
   listUserMemberships(brandSlug: string): Promise<UserMembership[]>;
   listUserReservations(brandSlug: string, when?: "future" | "past"): Promise<UserReservation[]>;
+  /**
+   * Calificación de una reserva. Vive en el Hub (`hub.buq.partners`), no en gafa.fit.
+   * Contrato: `docs/v2-ratings-api.md`. GET vacío = todavía no califica.
+   */
+  getReservationRating?(brandSlug: string, reservationId: string | number): Promise<ClassRating | null>;
+  submitReservationRating?(payload: SubmitClassRatingPayload): Promise<ClassRating>;
   listUserPurchases(brandSlug: string): Promise<UserPurchase[]>;
   cancelReservation(brandSlug: string, reservationId: string | number): Promise<void>;
   cancelWaitlist?(brandSlug: string, waitlistId: string | number): Promise<void>;

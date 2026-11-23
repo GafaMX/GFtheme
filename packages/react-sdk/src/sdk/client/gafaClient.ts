@@ -124,37 +124,69 @@ export function createMockGafaClient(): GafaClient {
     listUserMemberships: async () => [
       { id: 2, name: "Mensual ilimitada", startedAt: inDays(-15), expiresAt: inDays(15) },
     ],
-    listUserReservations: async () => [
-      {
-        id: 1,
-        serviceName: "Functional Training",
-        startsAt: inDays(1),
-        locationName: "Roma Norte",
-        staffName: "Coach Demo",
-        brandSlug: "demo-studio",
-        isWaitlist: false,
-        isOverbooking: false,
-        creditId: 1,
-        creditTypeName: "CDMX",
-        seatLabel: "12",
-        qrHash: "demo-qr-hash-1",
-        canCancel: true,
-      },
-      {
-        id: 2,
-        serviceName: "Yoga Flow",
-        startsAt: inDays(3),
-        locationName: "Condesa",
-        staffName: "Coach Ana",
-        brandSlug: "demo-studio",
-        isWaitlist: true,
-        isOverbooking: false,
-        creditId: null,
-        creditTypeName: null,
-        waitlistPosition: "2",
-        canCancel: true,
-      },
-    ],
+    listUserReservations: async (_slug, when = "future") =>
+      when === "past"
+        ? [
+            {
+              id: 31,
+              serviceName: "Functional Training",
+              startsAt: inDays(-2),
+              locationName: "Roma Norte",
+              staffName: "Coach Demo",
+              brandSlug: "demo-studio",
+              meetingId: 501,
+              staffId: 1,
+              isWaitlist: false,
+              isOverbooking: false,
+              creditId: 1,
+              creditTypeName: "CDMX",
+            },
+          ]
+        : [
+            {
+              id: 1,
+              serviceName: "Functional Training",
+              startsAt: inDays(1),
+              locationName: "Roma Norte",
+              staffName: "Coach Demo",
+              brandSlug: "demo-studio",
+              isWaitlist: false,
+              isOverbooking: false,
+              creditId: 1,
+              creditTypeName: "CDMX",
+              seatLabel: "12",
+              qrHash: "demo-qr-hash-1",
+              canCancel: true,
+            },
+            {
+              id: 2,
+              serviceName: "Yoga Flow",
+              startsAt: inDays(3),
+              locationName: "Condesa",
+              staffName: "Coach Ana",
+              brandSlug: "demo-studio",
+              isWaitlist: true,
+              isOverbooking: false,
+              creditId: null,
+              creditTypeName: null,
+              waitlistPosition: "2",
+              canCancel: true,
+            },
+          ],
+    getReservationRating: async (_slug, reservationId) => mockRatings.get(Number(reservationId)) ?? null,
+    submitReservationRating: async (payload) => {
+      const saved = {
+        reservationId: payload.reservationId,
+        meetingId: payload.meetingId,
+        staffId: payload.staffId,
+        classStars: payload.classStars,
+        staffStars: payload.staffStars,
+        comment: payload.comment ?? null,
+        submittedAt: new Date().toISOString(),
+      };
+      mockRatings.set(payload.reservationId, saved);
+      return saved;
+    },
     listUserPurchases: async () => [
       { id: 1, name: "10 clases", total: 1200, currencyPrefix: "$", createdAt: inDays(-20), status: "Completada" },
     ],
@@ -325,6 +357,8 @@ export function createMockGafaClient(): GafaClient {
     },
   };
 }
+
+const mockRatings = new Map<number, import("./types").ClassRating>();
 
 function inDays(days: number): string {
   const date = new Date();

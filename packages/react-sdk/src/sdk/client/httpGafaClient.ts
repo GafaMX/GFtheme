@@ -2,6 +2,7 @@ import type {
   AuthCredentials,
   Brand,
   CartLineType,
+  ClassRating,
   CatalogItem,
   CheckoutConfig,
   CheckoutPayload,
@@ -27,6 +28,7 @@ import type {
   SeatMapObject,
   Service,
   StaffMember,
+  SubmitClassRatingPayload,
   UserCredit,
   UserMembership,
   UserProfile,
@@ -66,6 +68,7 @@ import {
 } from "./apiError";
 import { assertSafeTestRequest } from "./safeTestGuard";
 import { parseMembershipEnrollment } from "../cart/membershipEnrollment";
+import { fetchHubReservationRating, submitHubReservationRating } from "../ratings/hubRatings";
 
 type PaginatedResponse<T> = { data: T[] } | T[];
 
@@ -161,7 +164,7 @@ type RawUserMembership = {
   membership?: { id?: number; name?: string };
 };
 
-type RawStaff = { name?: string; lastname?: string; job?: string | null; apodo?: string | null };
+type RawStaff = { id?: number; name?: string; lastname?: string; job?: string | null; apodo?: string | null };
 
 type RawReservation = {
   id: number;
@@ -182,9 +185,13 @@ type RawReservation = {
   location?: { name?: string } | string | null;
   brand?: { slug?: string } | string | null;
   staff?: RawStaff;
+  staff_id?: number | string | null;
+  meetings_id?: number | string | null;
+  meeting_id?: number | string | null;
   substitute_staff?: RawStaff | null;
   service?: { name?: string } | string | null;
   meetings?: {
+    id?: number | string;
     service?: { name?: string };
     staff?: RawStaff;
     substitute_staff?: RawStaff | null;
@@ -697,6 +704,20 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return fallback;
   }
 
+  function reservationMeetingId(raw: RawReservation): number | undefined {
+    return (
+      readNumericId(raw.meetings?.id) ??
+      readNumericId(raw.meetings_id) ??
+      readNumericId(raw.meeting_id) ??
+      undefined
+    );
+  }
+
+  function reservationStaffId(raw: RawReservation): number | undefined {
+    const staff = raw.meetings?.substitute_staff ?? raw.substitute_staff ?? raw.meetings?.staff ?? raw.staff;
+    return readNumericId(staff?.id) ?? readNumericId(raw.staff_id) ?? undefined;
+  }
+
   function normalizeReservation(raw: RawReservation, brandSlug: string, isWaitlist: boolean): UserReservation {
     const staff = raw.meetings?.staff ?? raw.staff;
     const seat =
@@ -719,6 +740,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       timezone: raw.timezone ?? brandTimeZoneBySlug.get(brandSlugResolved),
       locationName: locationLabel(raw.location),
       staffName: staffLabel(staff),
+      meetingId: reservationMeetingId(raw),
+      staffId: reservationStaffId(raw),
       brandSlug: brandSlugResolved,
       isWaitlist,
       isOverbooking: raw.is_overbooking === 1,
@@ -989,6 +1012,13 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (error instanceof GafaApiError && error.status === 401) return load(publicPath);
       throw error;
     }
+  }
+
+  function wrapHubRatingError(error: unknown): GafaApiError {
+    if (error instanceof GafaApiError) return error;
+    const status = Number((error as { status?: number })?.status ?? 0);
+    const message = error instanceof Error ? error.message : "No pudimos guardar tu calificación. Inténtalo de nuevo.";
+    return new GafaApiError(message, status);
   }
 
   const httpClient: GafaClient = {
@@ -1303,6 +1333,50 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         if (!meta || page >= meta.lastPage) break;
       }
       return acc;
+    },
+
+    async getReservationRating(brandSlug, reservationId): Promise<ClassRating | null> {
+      const usedToken = syncTokenFromStorage();
+      if (!usedToken || !brandSlug) return null;
+      if (config.safeTestMode) {
+        assertSafeTestRequest("GET", `${config.hubUrl || "https://hub.buq.partners"}/v1/ratings/mine`);
+      }
+      try {
+        return await fetchHubReservationRating({
+          hubUrl: config.hubUrl,
+          companyId: config.companyId,
+          token: usedToken,
+          reservationId: Number(reservationId),
+        });
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        if (status === 404) return null;
+        throw wrapHubRatingError(error);
+      }
+    },
+
+    async submitReservationRating(payload: SubmitClassRatingPayload): Promise<ClassRating> {
+      const usedToken = syncTokenFromStorage();
+      if (!usedToken) throw new GafaApiError("Inicia sesión para calificar.", 401);
+      if (config.safeTestMode) {
+        assertSafeTestRequest("POST", `${config.hubUrl || "https://hub.buq.partners"}/v1/ratings`);
+      }
+      try {
+        return await submitHubReservationRating({
+          hubUrl: config.hubUrl,
+          payload: {
+            companyId: config.companyId,
+            token: usedToken,
+            brandSlug: payload.brandSlug,
+            reservationId: payload.reservationId,
+            classStars: payload.classStars,
+            staffStars: payload.staffStars,
+            comment: payload.comment,
+          },
+        });
+      } catch (error) {
+        throw wrapHubRatingError(error);
+      }
     },
 
     async cancelReservation(brandSlug, reservationId) {

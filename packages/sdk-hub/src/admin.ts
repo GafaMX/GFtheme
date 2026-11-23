@@ -6,6 +6,14 @@ import { EVENT_OPTIONS, eventLabel, studioName, widgetLabel } from "./labels";
 import { buildLoyaltyOverview } from "./loyaltyOverview";
 import { d1LoyaltyStore, mergeRules, tierForPoints, type LoyaltyRule } from "./loyalty";
 import { pageMeta, readPage } from "./page";
+import {
+  d1RatingsStore,
+  isRatingsSchemaMissing,
+  listClassRatings,
+  presentRating,
+  ratingsAreEnabled,
+} from "./ratings";
+import { readCompanyConfig } from "./remoteConfig";
 
 type AppEnv = {
   Bindings: {
@@ -476,6 +484,40 @@ export function mountAdmin(
       props_json: JSON.stringify({ reason: body.reason ?? "manual" }),
     });
     return c.json({ ok: true });
+  });
+
+  app.get("/v1/admin/ratings", async (c) => {
+    if (!(await requireAdmin(c))) return c.json({ ok: false }, 401);
+    const companyId = numQuery(c.req.query("company_id"));
+    if (!companyId) return c.json({ ok: false, error: "company_required" }, 400);
+    const { page, perPage, offset } = readPage(c.req.query());
+    try {
+      const configRow = await readCompanyConfig(c.env.DB, companyId);
+      const listed = await listClassRatings(d1RatingsStore(c.env.DB), {
+        companyId,
+        staffId: numQuery(c.req.query("staff_id")) ?? undefined,
+        meetingId: numQuery(c.req.query("meeting_id")) ?? undefined,
+        brandSlug: c.req.query("brand_slug")?.trim().toLowerCase() || undefined,
+        from: c.req.query("from") || undefined,
+        to: c.req.query("to") || undefined,
+        q: c.req.query("q")?.trim() || undefined,
+        offset,
+        limit: perPage,
+      });
+      return c.json({
+        ok: true,
+        company_id: companyId,
+        enabled: ratingsAreEnabled(configRow.config),
+        items: listed.rows.map(presentRating),
+        summary: listed.summary,
+        ...pageMeta(listed.total, page, perPage),
+      });
+    } catch (error) {
+      if (isRatingsSchemaMissing(error)) {
+        return c.json({ ok: false, error: "ratings_unavailable" }, 503);
+      }
+      throw error;
+    }
   });
 }
 

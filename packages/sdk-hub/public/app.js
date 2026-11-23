@@ -9,7 +9,8 @@ import {
   unmanagedPaths,
   validateDraft,
   parseCatalogToken,
-} from "/configModel.js?v=catalog-pick-1";
+} from "/configModel.js?v=ratings-hub-1";
+import { h, ratingComment } from "/dom.js?v=ratings-xss-1";
 
 const root = document.getElementById("root");
 
@@ -24,7 +25,21 @@ const state = {
   eventName: "",
   q: "",
   days: "7",
-  pages: { sites: 1, events: 1, ranking: 1, ledger: 1 },
+  pages: { sites: 1, events: 1, ranking: 1, ledger: 1, ratings: 1 },
+  ratingsFrom: "",
+  ratingsTo: "",
+  ratingsSaving: false,
+  ratings: {
+    company_id: null,
+    enabled: false,
+    status: "idle",
+    summary: { count: 0, class_avg: null, staff_avg: null, classes: [], coaches: [] },
+    items: [],
+    total: 0,
+    page: 1,
+    pages: 1,
+    per_page: 25,
+  },
   directory: { sites: [], people: [], events: [] },
   stats: null,
   sites: { items: [], total: 0, page: 1, pages: 1, per_page: 24 },
@@ -92,6 +107,10 @@ function pageCopy() {
       usage: ["Actividad", "El pulso del negocio. Cada barra es un conteo aparte, no las mismas personas. Por defecto sin Replit ni localhost."],
       events: ["Bitácora", "Cada gesto del SDK. 25 por página. Los crudos se guardan 90 días; los totales se quedan."],
       catalog: ["Widgets", "Lo que un sitio puede montar. Clic en la tarjeta abre la guía en otra pestaña."],
+      ratings: [
+        "Calificaciones",
+        "Promedio de clase y coach, comentarios y el interruptor para pedirlas. Siguen apagadas hasta que las enciendas en este estudio.",
+      ],
       config: [
         "Config",
         "Los ajustes de un estudio, sin tocar el código de su sitio. Se guardan aquí y las páginas los toman solitas al cargar.",
@@ -208,6 +227,33 @@ async function refresh() {
         state.ledger = ledger;
         state.rules = rules.effective ?? [];
       }
+    } else if (state.view === "ratings") {
+      const site = selectedSite();
+      if (site?.company_id) {
+        const row = await api(
+          `/v1/admin/ratings${qs({
+            company_id: site.company_id,
+            from: state.ratingsFrom,
+            to: state.ratingsTo,
+            q: state.q,
+            page: state.pages.ratings,
+            per_page: 25,
+          })}`,
+        );
+        state.ratings = { ...row, status: "ok" };
+      } else {
+        state.ratings = {
+          company_id: null,
+          enabled: false,
+          status: "idle",
+          summary: { count: 0, class_avg: null, staff_avg: null, classes: [], coaches: [] },
+          items: [],
+          total: 0,
+          page: 1,
+          pages: 1,
+          per_page: 25,
+        };
+      }
     } else if (state.view === "config") {
       const site = selectedSite();
       if (site?.company_id) {
@@ -233,23 +279,6 @@ async function refresh() {
   render();
 }
 
-function h(tag, props = {}, ...children) {
-  const el = document.createElement(tag);
-  let selected = null;
-  for (const [key, value] of Object.entries(props)) {
-    if (key === "class") el.className = value;
-    else if (key === "html") el.innerHTML = value;
-    else if (key.startsWith("on") && typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
-    else if (key === "value" && (tag === "select" || tag === "textarea")) selected = value == null ? "" : String(value);
-    else if (value != null && value !== false) el.setAttribute(key, value === true ? "" : String(value));
-  }
-  for (const child of children.flat()) {
-    if (child == null || child === false) continue;
-    el.append(child.nodeType ? child : document.createTextNode(String(child)));
-  }
-  if (selected != null) el.value = selected;
-  return el;
-}
 
 function render() {
   configChrome = null;
@@ -328,6 +357,7 @@ function renderApp() {
         navBtn("usage", "Actividad", "M4 19V5m4 14V9m4 10V7m4 12v-6m4 6V8"),
         navBtn("events", "Bitácora", "M5 5h14v14H5zM8 9h8M8 13h5"),
         navBtn("loyalty", "Lealtad", "M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"),
+        navBtn("ratings", "Calificaciones", "M12 3.4 14.6 9l6 .5-4.6 4 1.4 5.8L12 16.8 6.6 19.3 8 13.5 3.4 9.5 9.4 9 12 3.4z"),
         navBtn("config", "Config", "M4 6h16M4 12h10M4 18h16M17 9l3 3-3 3"),
         navBtn("catalog", "Widgets", "M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"),
       ),
@@ -422,6 +452,7 @@ function renderFilters() {
   const showSearch =
     state.view === "sites" ||
     state.view === "events" ||
+    state.view === "ratings" ||
     (state.view === "loyalty" && state.loyaltyMode === "studio" && state.loyaltyTab === "clients");
   return h(
     "div",
@@ -459,7 +490,7 @@ function renderFilters() {
             onChange: (event) => {
               state.siteKey = event.target.value;
               resetPages();
-              if (state.view === "loyalty" || state.view === "config") refresh();
+              if (state.view === "loyalty" || state.view === "config" || state.view === "ratings") refresh();
             },
           },
           ...studioOptions,
@@ -476,6 +507,26 @@ function renderFilters() {
             },
           },
           ...events,
+        )
+      : null,
+    state.view === "ratings"
+      ? h(
+          "div",
+          { class: "date-range" },
+          h("label", {}, "Desde", h("input", {
+            type: "date",
+            value: state.ratingsFrom,
+            onChange: (event) => {
+              state.ratingsFrom = event.target.value;
+            },
+          })),
+          h("label", {}, "Hasta", h("input", {
+            type: "date",
+            value: state.ratingsTo,
+            onChange: (event) => {
+              state.ratingsTo = event.target.value;
+            },
+          })),
         )
       : null,
     state.view === "usage"
@@ -505,14 +556,16 @@ function renderFilters() {
               ? "Nombre o correo"
               : state.view === "events"
                 ? "Sitio, nombre o correo"
-                : "Buscar sitio o página",
+                : state.view === "ratings"
+                  ? "Comentario, clase o coach"
+                  : "Buscar sitio o página",
           value: state.q,
           onChange: (event) => {
             state.q = event.target.value;
           },
         })
       : null,
-    state.view !== "catalog"
+    state.view !== "catalog" && state.view !== "ratings"
       ? h(
           "div",
           { class: "seg" },
@@ -552,7 +605,7 @@ function renderFilters() {
 }
 
 function resetPages() {
-  state.pages = { sites: 1, events: 1, ranking: 1, ledger: 1 };
+  state.pages = { sites: 1, events: 1, ranking: 1, ledger: 1, ratings: 1 };
 }
 
 function renderView() {
@@ -560,6 +613,7 @@ function renderView() {
   if (state.view === "usage") return renderUsage();
   if (state.view === "events") return renderEvents();
   if (state.view === "loyalty") return renderLoyalty();
+  if (state.view === "ratings") return renderRatings();
   if (state.view === "config") return renderConfig();
   return renderCatalog();
 }
@@ -741,6 +795,160 @@ function renderEvents() {
 
 function renderLoyalty() {
   return state.loyaltyMode === "studio" ? renderStudioLoyalty() : renderBuqLoyalty();
+}
+
+function renderRatings() {
+  const site = selectedSite();
+  if (!site) {
+    return empty("Elige el estudio", "Las calificaciones se guardan por marca. Escoge un sitio arriba para ver promedios, comentarios y el interruptor.");
+  }
+  const summary = state.ratings.summary ?? { count: 0, class_avg: null, staff_avg: null, classes: [], coaches: [] };
+  const items = state.ratings.items ?? [];
+  const enabled = Boolean(state.ratings.enabled);
+  return h(
+    "div",
+    { class: "stack" },
+    h(
+      "div",
+      { class: "ratings-hero" },
+      h(
+        "div",
+        {},
+        h("div", { class: "kicker" }, site.host || "estudio"),
+        h("h3", { class: "op-title" }, `Qué opinan de ${site.name}`),
+        h(
+          "p",
+          { class: "muted" },
+          enabled
+            ? "Los socios califican en Perfil › historial. Una estrella por reserva, sin pasar por gafa.fit."
+            : "Apagado. El SDK no pide estrellas hasta que lo enciendas. Las que ya llegaron se quedan aquí.",
+        ),
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `ratings-switch${enabled ? " on" : ""}`,
+          disabled: state.ratingsSaving,
+          "aria-pressed": enabled ? "true" : "false",
+          onClick: () => setRatingsEnabled(!enabled),
+        },
+        h("span", { class: "ratings-switch-knob" }),
+        h("span", {}, enabled ? "Pidiendo calificación" : "Pedir calificación"),
+      ),
+    ),
+    h(
+      "div",
+      { class: "grid" },
+      stat("Respuestas", summary.count ?? items.length, "en el periodo"),
+      stat("Clase", fmtAvg(summary.class_avg), "promedio / 5"),
+      stat("Coach", fmtAvg(summary.staff_avg), "promedio / 5"),
+      stat("Estado", enabled ? "Activo" : "Apagado", enabled ? "visible en el SDK" : "default"),
+    ),
+    h(
+      "div",
+      { class: "ratings-split" },
+      ratingRank("Clases", summary.classes, "Sin clases calificadas todavía."),
+      ratingRank("Coaches", summary.coaches, "Sin coaches calificados todavía."),
+    ),
+    h("h3", {}, "Comentarios"),
+    items.length
+      ? table(
+          ["Cuándo", "Clase", "Coach", "Estrellas", "Comentario"],
+          items.map((row) => [
+            h("span", { class: "sub" }, fmtWhen(row.created_at)),
+            h("div", { class: "what" }, row.meeting_name || "Clase", h("span", { class: "sub" }, row.customer_name || `Cliente ${row.user_id}`)),
+            row.staff_name || "—",
+            h("div", { class: "stars-cell" }, starPips(row.class_stars, "Clase"), starPips(row.staff_stars, "Coach")),
+            row.comment ? ratingComment(row.comment) : h("span", { class: "muted" }, "Sin comentario"),
+          ]),
+        )
+      : empty("Nadie ha escrito todavía", "Cuando un socio envíe estrellas, el comentario aparece aquí. Filtra por fecha arriba."),
+    pager({ total: state.ratings.total, page: state.ratings.page, pages: state.ratings.pages, per_page: state.ratings.per_page }, (page) => {
+      state.pages.ratings = page;
+      refresh();
+    }),
+  );
+}
+
+function fmtAvg(value) {
+  if (value == null || Number.isNaN(Number(value))) return "—";
+  return Number(value).toFixed(1);
+}
+
+function fmtWhen(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function starPips(value, label) {
+  if (value == null) return h("span", { class: "muted" }, `${label} —`);
+  const n = Math.max(0, Math.min(5, Math.round(Number(value))));
+  return h(
+    "span",
+    { class: "star-pips", title: `${label} ${Number(value).toFixed(1)}` },
+    `${label} ${"★".repeat(n)}${"☆".repeat(5 - n)}`,
+  );
+}
+
+function ratingRank(title, rows, emptyText) {
+  const list = Array.isArray(rows) ? rows : [];
+  return h(
+    "div",
+    { class: "panel ratings-rank" },
+    h("h3", {}, title),
+    list.length
+      ? list.slice(0, 8).map((row, index) => {
+          const avg = Number(row.avg ?? 0);
+          const pct = Math.max(0, Math.min(100, (avg / 5) * 100));
+          return h(
+            "div",
+            { class: "rating-row" },
+            h("span", { class: "rank" }, index + 1),
+            h(
+              "div",
+              { class: "rating-row-body" },
+              h("div", { class: "rating-row-top" }, h("b", {}, row.name || "Sin nombre"), h("span", { class: "rating-avg" }, fmtAvg(avg))),
+              h("div", { class: "bar" }, h("span", { style: `width:${pct}%` })),
+              h("span", { class: "sub" }, `${fmt(row.count)} ${row.count === 1 ? "voto" : "votos"}`),
+            ),
+          );
+        })
+      : h("p", { class: "muted" }, emptyText),
+  );
+}
+
+async function setRatingsEnabled(enabled) {
+  const site = selectedSite();
+  if (!site?.company_id) return;
+  state.ratingsSaving = true;
+  state.error = "";
+  render();
+  try {
+    const row = await api(`/v1/admin/config${qs({ company_id: site.company_id })}`);
+    const current = row.config && typeof row.config === "object" ? row.config : {};
+    const prev = current.CLASS_RATINGS && typeof current.CLASS_RATINGS === "object" ? current.CLASS_RATINGS : {};
+    const next = {
+      ...current,
+      CLASS_RATINGS: {
+        ...prev,
+        enabled,
+        rateClass: prev.rateClass !== false,
+        rateCoach: prev.rateCoach !== false,
+      },
+    };
+    await api("/v1/admin/config", {
+      method: "PUT",
+      body: JSON.stringify({ company_id: site.company_id, config: next }),
+    });
+    state.ratings.enabled = enabled;
+  } catch (error) {
+    state.error = error.message;
+  }
+  state.ratingsSaving = false;
+  refresh();
 }
 
 function openStudio(companyId) {

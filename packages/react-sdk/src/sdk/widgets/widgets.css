@@ -4774,9 +4774,19 @@
   border-color: var(--gafa-color-primary);
 }
 
+.gafa-acct-class[data-rateable="true"] {
+  align-items: start;
+}
+
 .gafa-acct-class[data-cancelled="true"],
-.gafa-acct-class[data-historic="true"] {
+.gafa-acct-class[data-historic="true"]:not([data-rateable="true"]) {
   opacity: 0.72;
+}
+
+.gafa-acct-class .gafa-rating {
+  border-top: 1px solid var(--gafa-color-border);
+  margin-top: 0.55rem;
+  padding-top: 0.7rem;
 }
 
 .gafa-acct-class[data-cancelled="true"]:hover,
@@ -4870,6 +4880,170 @@
   font-size: 0.82rem;
   padding: 0.5rem 0.9rem;
   white-space: nowrap;
+}
+
+/* ----- calificar clase / coach (opt-in CLASS_RATINGS) */
+
+.gafa-rating {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+}
+
+.gafa-rating__title,
+.gafa-rating__thanks {
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.gafa-rating__thanks {
+  color: var(--gafa-color-success, #15803d);
+}
+
+.gafa-rating__boot {
+  display: block;
+  height: 2.2rem;
+  width: 100%;
+}
+
+.gafa-rating-stars {
+  align-items: center;
+  display: grid;
+  gap: 0.25rem 0.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gafa-rating-stars__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.gafa-rating-stars__row {
+  display: flex;
+  gap: 0.1rem;
+  grid-column: 1 / -1;
+}
+
+.gafa-rating-stars__value {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.gafa-rating-star {
+  --gafa-control-padding: 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  min-width: 44px;
+  padding: 0;
+}
+
+.gafa-rating-star[data-filled="true"] {
+  color: var(--gafa-color-accent, #f59e0b);
+}
+
+.gafa-rating-star:focus-visible {
+  outline: 2px solid var(--gafa-color-primary);
+  outline-offset: 2px;
+}
+
+.gafa-rating-star:disabled {
+  cursor: default;
+}
+
+.gafa-rating__comment {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.gafa-rating__comment textarea {
+  --gafa-field-min-height: 4.2rem;
+  font-weight: 500;
+  min-height: 4.2rem;
+  resize: vertical;
+}
+
+.gafa-rating__comment-out {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.gafa-rating__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.gafa-rating__actions .gafa-sdk-button {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.gafa-rating-prompt-overlay {
+  align-items: end;
+  background: var(--gafa-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 0;
+  position: fixed;
+  z-index: 2147483001;
+}
+
+.gafa-rating-prompt {
+  background: var(--gafa-color-surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px color-mix(in srgb, #000 18%, transparent);
+  display: grid;
+  gap: 0.4rem;
+  max-height: min(92vh, 640px);
+  overflow: auto;
+  padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  width: min(100%, 440px);
+}
+
+.gafa-rating-prompt__kicker {
+  color: var(--gafa-color-muted-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.gafa-rating-prompt__heading {
+  font-size: 1.15rem;
+  margin: 0 0 0.4rem;
+}
+
+.gafa-rating-prompt__heading span {
+  color: var(--gafa-color-muted-text);
+  font-weight: 600;
+}
+
+@media (min-width: 560px) {
+  .gafa-rating-prompt-overlay {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  .gafa-rating-prompt {
+    border-radius: 20px;
+    box-shadow: 0 18px 50px color-mix(in srgb, #000 22%, transparent);
+  }
 }
 
 /* ----- filas de saldo y compras */

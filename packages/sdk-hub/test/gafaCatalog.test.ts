@@ -6,6 +6,7 @@ import {
   preferredBrandId,
   resolveCatalogCurrency,
   sharedCompanyCurrency,
+  studioOwnsBrand,
 } from "../src/gafaCatalog";
 
 function json(body: unknown, status = 200): Response {
@@ -25,10 +26,17 @@ describe("gafaApiBaseUrl", () => {
     expect(gafaApiBaseUrl(null)).toBe("https://buq.partners");
   });
 
-  it("respeta GAFA_FIT_URL y BUQ_ENV", () => {
-    expect(gafaApiBaseUrl({ GAFA_FIT_URL: "https://api.example.test/" })).toBe("https://api.example.test");
+  it("respeta GAFA_FIT_URL permitida y BUQ_ENV", () => {
+    expect(gafaApiBaseUrl({ GAFA_FIT_URL: "https://api.gafa.fit/" })).toBe("https://api.gafa.fit");
     expect(gafaApiBaseUrl({ BUQ_ENV: "staging" })).toBe("https://buq.com.mx");
     expect(gafaApiBaseUrl({ BUQ_ENV: "development" })).toBe("https://buq.technology");
+  });
+
+  it("rechaza un GAFA_FIT_URL fuera de la lista y cae al default", () => {
+    expect(gafaApiBaseUrl({ GAFA_FIT_URL: "https://api.example.test/" })).toBe("https://buq.partners");
+    expect(gafaApiBaseUrl({ GAFA_FIT_URL: "https://gafa.fit.evil.com" })).toBe("https://buq.partners");
+    expect(gafaApiBaseUrl({ GAFA_FIT_URL: "http://buq.partners" })).toBe("https://buq.partners");
+    expect(gafaApiBaseUrl({ GAFA_FIT_URL: "https://buq.partners", BUQ_ENV: "staging" })).toBe("https://buq.partners");
   });
 
   it("lee BRAND_ID solo si es un número útil", () => {
@@ -323,5 +331,34 @@ describe("fetchGafaCatalog", () => {
       fetchImpl,
     });
     expect(catalog.items[0]?.priceLabel).toBe("$30");
+  });
+});
+
+describe("studioOwnsBrand", () => {
+  it("acepta una marca del estudio y rechaza una ajena", async () => {
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/api/brand") {
+        return json(page([{ id: 86, name: "Fitspin Cdmx", slug: "fitspin", status: "active" }]));
+      }
+      return json({ message: url.pathname }, 500);
+    };
+    await expect(
+      studioOwnsBrand({ companyId: 80, apiBaseUrl: "https://buq.partners", brandSlug: "fitspin", fetchImpl }),
+    ).resolves.toEqual({ ok: true, owned: true });
+    await expect(
+      studioOwnsBrand({ companyId: 80, apiBaseUrl: "https://buq.partners", brandSlug: "otro-estudio", fetchImpl }),
+    ).resolves.toEqual({ ok: true, owned: false });
+  });
+
+  it("si gafa.fit no lista marcas, unavailable", async () => {
+    await expect(
+      studioOwnsBrand({
+        companyId: 80,
+        apiBaseUrl: "https://buq.partners",
+        brandSlug: "fitspin",
+        fetchImpl: async () => json({ message: "down" }, 502),
+      }),
+    ).resolves.toEqual({ ok: false, error: "unavailable" });
   });
 });
