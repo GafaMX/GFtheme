@@ -276,6 +276,8 @@ export function ProfileWidget({
       queryClient.invalidateQueries({ queryKey: ["profile", "reservations"] });
       queryClient.invalidateQueries({ queryKey: ["profile", "activity"] });
       queryClient.invalidateQueries({ queryKey: ["profile", "credits"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar", "user-reservations"] });
       setPendingCancel(null);
     },
   });

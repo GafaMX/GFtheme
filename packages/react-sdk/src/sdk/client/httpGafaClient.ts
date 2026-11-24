@@ -175,6 +175,8 @@ type RawReservation = {
   cancelled?: boolean;
   canBeCancelled?: boolean;
   canBeCancelledWithoutCredit?: boolean;
+  cancelation_dead_line?: string | null;
+  cancelation_without_credit_dead_line?: string | null;
   is_overbooking?: number;
   is_waitlist?: boolean | number | string;
   isWaitlist?: boolean | number | string;
@@ -756,6 +758,13 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       cancelled: Boolean(raw.cancelled),
       // v1 siempre deja salir de la lista; el API de waitlist casi nunca manda canBeCancelled.
       canCancel: isWaitlist ? true : Boolean(raw.canBeCancelled || raw.canBeCancelledWithoutCredit),
+      cancelableUntil: isWaitlist ? undefined : (
+        raw.canBeCancelled && raw.cancelation_dead_line == null
+          ? undefined
+          : raw.cancelation_without_credit_dead_line ?? raw.cancelation_dead_line ?? undefined
+      ),
+      refundableUntil: isWaitlist ? undefined : (raw.cancelation_dead_line ?? undefined),
+      cancellationWithoutCredit: !isWaitlist && !raw.canBeCancelled && raw.canBeCancelledWithoutCredit === true,
     };
   }
 
