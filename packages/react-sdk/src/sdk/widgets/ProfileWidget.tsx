@@ -21,7 +21,7 @@ import { CustomFieldInput } from "./CustomFieldInput";
 import { DateField } from "./DateField";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { ACCOUNT_HISTORY_CHUNK, remainingAccountHistory, visibleAccountHistory } from "../account/accountHistory";
-import { ClassRatingForm } from "../ratings/ClassRatingForm";
+import { ClassRatingAction } from "../ratings/ClassRatingAction";
 import { PostClassRatingPrompt } from "../ratings/PostClassRatingPrompt";
 import { parseClassRatings, type ClassRatingsConfig } from "../ratings/classRatings";
 import { WidgetShell } from "./WidgetShell";
@@ -445,6 +445,16 @@ export function ProfileWidget({
           ) : null}
         </header>
 
+        {classRatings?.promptAfterClass && client ? (
+          <PostClassRatingPrompt
+            client={client}
+            companyId={companyId}
+            history={pastQuery.data ?? []}
+            config={classRatings}
+            loading={pastQuery.isLoading}
+          />
+        ) : null}
+
         <div className="gafa-acct__body">
           {tab === "overview" ? (
             <OverviewPanel
@@ -574,16 +584,6 @@ export function ProfileWidget({
             cancelMutation.reset();
             setPendingCancel(null);
           }}
-        />
-      ) : null}
-
-      {classRatings?.promptAfterClass && client ? (
-        <PostClassRatingPrompt
-          client={client}
-          companyId={companyId}
-          history={pastQuery.data ?? []}
-          config={classRatings}
-          loading={pastQuery.isLoading}
         />
       ) : null}
     </div>
@@ -1264,7 +1264,7 @@ function ReservationCard({
           {paymentLabel ? <span className="gafa-meeting-chip">{paymentLabel}</span> : null}
         </div>
         {showRating && client && classRatings ? (
-          <ClassRatingForm client={client} reservation={reservation} config={classRatings} />
+          <ClassRatingAction client={client} reservation={reservation} config={classRatings} />
         ) : null}
       </div>
 

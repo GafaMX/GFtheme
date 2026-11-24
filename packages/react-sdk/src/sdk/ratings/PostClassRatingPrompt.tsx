@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import type { GafaClient, UserReservation } from "../client/types";
-import { SdkBodyOverlay } from "../widgets/SdkBodyOverlay";
-import { ClassRatingForm } from "./ClassRatingForm";
+import { ClassRatingDialog } from "./ClassRatingDialog";
 import {
   classRatingIsComplete,
   pickPromptReservation,
@@ -45,6 +44,7 @@ export function PostClassRatingPrompt({
 
   const target = useMemo(() => pickPromptReservation(history, ratedIds), [history, ratedIds]);
   const [dismissed, setDismissed] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!target) return;
@@ -66,37 +66,45 @@ export function PostClassRatingPrompt({
         // ignore
       }
     }
+    setOpen(false);
     setDismissed(true);
   }
 
   return (
-    <SdkBodyOverlay
-      className="gafa-rating-prompt-overlay"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) dismiss();
-      }}
-    >
-      <div
-        className="gafa-rating-prompt"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Califica tu última clase"
-      >
-        <p className="gafa-rating-prompt__kicker">Tu última clase</p>
-        <h2 className="gafa-rating-prompt__heading">
-          {target.serviceName}
-          {target.staffName ? <span> con {target.staffName}</span> : null}
-        </h2>
-        <ClassRatingForm
+    <>
+      <aside className="gafa-rating-notice" aria-label="Califica tu última clase">
+        <p className="gafa-rating-notice__text">
+          <span className="gafa-rating-notice__kicker">Tu última clase</span>
+          <strong>
+            {target.serviceName}
+            {target.staffName ? ` con ${target.staffName}` : ""}
+          </strong>
+        </p>
+        <div className="gafa-rating-notice__actions">
+          <button
+            className="gafa-sdk-button gafa-rating-cta"
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setOpen(true)}
+          >
+            <span aria-hidden="true">★</span> Calificar
+          </button>
+          <button className="gafa-rating-notice__dismiss" type="button" aria-label="Ahora no" onClick={dismiss}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      </aside>
+      {open ? (
+        <ClassRatingDialog
           client={client}
           reservation={target}
           config={config}
-          variant="prompt"
+          onClose={() => setOpen(false)}
           onSubmitted={dismiss}
-          onDismiss={dismiss}
         />
-      </div>
-    </SdkBodyOverlay>
+      ) : null}
+    </>
   );
 }

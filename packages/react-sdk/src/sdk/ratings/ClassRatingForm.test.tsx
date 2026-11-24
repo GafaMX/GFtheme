@@ -20,11 +20,15 @@ const reservation: UserReservation = {
   isOverbooking: false,
 };
 
-function renderForm(client: GafaClient, config = parseClassRatings(true)!) {
+function renderForm(
+  client: GafaClient,
+  config = parseClassRatings(true)!,
+  extra: Partial<React.ComponentProps<typeof ClassRatingForm>> = {},
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <ClassRatingForm client={client} reservation={reservation} config={config} />
+      <ClassRatingForm client={client} reservation={reservation} config={config} {...extra} />
     </QueryClientProvider>,
   );
 }
@@ -58,26 +62,13 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
   } as GafaClient;
 }
 
-describe("ClassRatingForm", () => {
-  it("no pinta nada si la clase está cancelada", () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ClassRatingForm
-          client={mockClient()}
-          reservation={{ ...reservation, cancelled: true }}
-          config={parseClassRatings(true)!}
-        />
-      </QueryClientProvider>,
-    );
-    expect(screen.queryByLabelText("Calificar clase")).toBeNull();
-  });
-
+describe("ClassRatingForm (cuerpo del popup)", () => {
   it("envía una sola calificación de clase y coach", async () => {
     const submit = vi.fn(async (payload) => payload as ClassRating);
-    renderForm(mockClient({ submitReservationRating: submit }));
+    const onSubmitted = vi.fn();
+    renderForm(mockClient({ submitReservationRating: submit }), undefined, { onSubmitted });
 
-    await waitFor(() => expect(screen.getByText("¿Qué tal estuvo?")).toBeTruthy());
+    expect(screen.getByText("¿Qué tal estuvo?")).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para La clase" }));
     fireEvent.click(screen.getByRole("radio", { name: "4 estrellas para ISA" }));
     fireEvent.change(screen.getByPlaceholderText("¿Algo que el estudio debería saber?"), {
@@ -97,41 +88,52 @@ describe("ClassRatingForm", () => {
       staffStars: 4,
       comment: "Excelente ritmo",
     });
-    await waitFor(() => expect(screen.getByText("Gracias por tu calificación")).toBeTruthy());
+    await waitFor(() => expect(onSubmitted).toHaveBeenCalledTimes(1));
   });
 
-  it("estado de error con reintento", async () => {
+  it("Enviar queda apagado hasta elegir las dos calificaciones", () => {
+    renderForm(mockClient());
+    const send = screen.getByRole("button", { name: "Enviar" }) as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para La clase" }));
+    expect(send.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("radio", { name: "3 estrellas para ISA" }));
+    expect(send.disabled).toBe(false);
+  });
+
+  it("estado de error en español con reintento", async () => {
     const submit = vi
       .fn()
       .mockRejectedValueOnce(new Error("No pudimos guardar tu calificación. Inténtalo de nuevo."))
       .mockResolvedValueOnce({ reservationId: 44, classStars: 5, staffStars: 5 });
-    renderForm(mockClient({ submitReservationRating: submit }));
-    await waitFor(() => expect(screen.getByText("¿Qué tal estuvo?")).toBeTruthy());
+    const onSubmitted = vi.fn();
+    renderForm(mockClient({ submitReservationRating: submit }), undefined, { onSubmitted });
     fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para La clase" }));
     fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para ISA" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("No pudimos guardar"));
+    expect(onSubmitted).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
-    await waitFor(() => expect(screen.getByText("Gracias por tu calificación")).toBeTruthy());
+    await waitFor(() => expect(onSubmitted).toHaveBeenCalledTimes(1));
     expect(submit).toHaveBeenCalledTimes(2);
   });
 
-  it("si ya hay calificación, queda solo lectura", async () => {
-    renderForm(
-      mockClient({
-        getReservationRating: async () => ({
-          reservationId: 44,
-          classStars: 4,
-          staffStars: 5,
-          comment: "Top",
-        }),
-      }),
-    );
-    await waitFor(() => expect(screen.getByText("Gracias por tu calificación")).toBeTruthy());
-    expect(screen.queryByRole("button", { name: "Enviar" })).toBeNull();
-    expect(screen.getByText("Top")).toBeTruthy();
-    expect((screen.getByRole("radio", { name: "4 estrellas para La clase" }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+  it("Cancelar avisa sin enviar nada", () => {
+    const submit = vi.fn();
+    const onCancel = vi.fn();
+    renderForm(mockClient({ submitReservationRating: submit }), undefined, { onCancel });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it("solo coach: pide una sola calificación", async () => {
+    const submit = vi.fn(async (payload) => payload as ClassRating);
+    renderForm(mockClient({ submitReservationRating: submit }), parseClassRatings({ enabled: true, rateClass: false })!);
+    expect(screen.queryByRole("radio", { name: /para La clase/ })).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "4 estrellas para ISA" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(submit.mock.calls[0]![0]).toMatchObject({ classStars: null, staffStars: 4 });
   });
 });

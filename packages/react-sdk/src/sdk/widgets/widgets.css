@@ -4783,10 +4783,10 @@
   opacity: 0.72;
 }
 
-.gafa-acct-class .gafa-rating {
-  border-top: 1px solid var(--gafa-color-border);
-  margin-top: 0.55rem;
-  padding-top: 0.7rem;
+.gafa-acct-class .gafa-rating-cta,
+.gafa-acct-class .gafa-rating-done,
+.gafa-acct-class .gafa-rating-cta-boot {
+  margin-top: 0.5rem;
 }
 
 .gafa-acct-class[data-cancelled="true"]:hover,
@@ -4884,50 +4884,257 @@
 
 /* ----- calificar clase / coach (opt-in CLASS_RATINGS) */
 
-.gafa-rating {
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 0.7rem;
+/* En la tarjeta solo va un botón compacto o una línea corta. El formulario
+   vive en el popup (`.gafa-rating-dialog`). */
+
+/* Ojo: el tema fija tamaño y color de p/span/strong/label con
+   --gafa-type-size y --gafa-fg (theme.css, con !important); por eso aquí no
+   se usa font-size/color directo en texto. */
+
+.gafa-rating-cta {
+  --gafa-control-font-size: 0.82rem;
+  align-items: center;
+  align-self: start;
+  display: inline-flex;
+  gap: 0.3rem;
+  justify-self: start;
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  white-space: nowrap;
+  width: auto;
 }
 
-.gafa-rating__title,
-.gafa-rating__thanks {
-  font-size: 0.86rem;
+.gafa-rating-cta span {
+  --gafa-type-size: 1em;
+}
+
+.gafa-rating-cta-boot {
+  border-radius: 999px;
+  display: block;
+  height: 2.2rem;
+  width: 6.2rem;
+}
+
+.gafa-rating-done {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   margin: 0;
 }
 
-.gafa-rating__thanks {
-  color: var(--gafa-color-success, #15803d);
+.gafa-rating-done:focus-visible {
+  outline: 2px solid var(--gafa-color-primary);
+  outline-offset: 3px;
 }
 
-.gafa-rating__boot {
-  display: block;
-  height: 2.2rem;
-  width: 100%;
+/* aviso compacto “Tu última clase” */
+
+.gafa-rating-notice {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md, 14px);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin: var(--gafa-space-3, 0.75rem) var(--gafa-space-4, 1rem);
+  padding: 0.6rem 0.7rem 0.6rem 0.9rem;
+}
+
+.gafa-rating-notice__text {
+  --gafa-type-size: 0.88rem;
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.gafa-rating-notice__text strong {
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-type-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-rating-notice__kicker {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gafa-rating-notice__actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 0.25rem;
+}
+
+.gafa-rating-notice__dismiss {
+  --gafa-control-padding: 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--gafa-color-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+}
+
+.gafa-rating-notice__dismiss:focus-visible {
+  outline: 2px solid var(--gafa-color-primary);
+  outline-offset: 1px;
+}
+
+/* popup */
+
+.gafa-rating-dialog-overlay {
+  align-items: end;
+  animation: gafa-fade 0.18s ease both;
+  background: var(--gafa-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 0;
+  position: fixed;
+  z-index: 2147483002;
+}
+
+.gafa-rating-dialog {
+  animation: gafa-sheet-up 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--gafa-color-surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px color-mix(in srgb, #000 18%, transparent);
+  display: grid;
+  gap: 0.35rem;
+  max-height: min(94vh, 94dvh, 680px);
+  outline: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  width: min(100%, 440px);
+}
+
+@keyframes gafa-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+.gafa-rating-dialog__close {
+  --gafa-control-bg: var(--gafa-color-surface);
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 40px;
+  --gafa-control-height: 40px;
+  --gafa-control-min-height: 40px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 14px;
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  color: var(--gafa-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  right: 0.7rem;
+  top: 0.7rem;
+  width: 40px;
+}
+
+.gafa-rating-dialog__close:focus-visible {
+  outline: 2px solid var(--gafa-color-primary);
+  outline-offset: 2px;
+}
+
+.gafa-rating-dialog__kicker {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 0;
+  padding-right: 2.8rem;
+  text-transform: uppercase;
+}
+
+.gafa-rating-dialog__heading {
+  --gafa-heading-size: 1.15rem;
+  margin: 0 0 0.5rem;
+  padding-right: 2.8rem;
+}
+
+.gafa-rating-dialog__heading span {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 1.15rem;
+  font-weight: 600;
+}
+
+@media (min-width: 560px) {
+  .gafa-rating-dialog-overlay {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  .gafa-rating-dialog {
+    border-radius: 20px;
+    box-shadow: 0 18px 50px color-mix(in srgb, #000 22%, transparent);
+  }
+}
+
+/* formulario dentro del popup */
+
+.gafa-rating {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.gafa-rating__title {
+  --gafa-type-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
 }
 
 .gafa-rating-stars {
   align-items: center;
   display: grid;
-  gap: 0.25rem 0.5rem;
+  gap: 0.15rem 0.5rem;
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .gafa-rating-stars__label {
-  font-size: 0.78rem;
+  --gafa-type-size: 0.86rem;
   font-weight: 700;
 }
 
 .gafa-rating-stars__row {
   display: flex;
-  gap: 0.1rem;
+  gap: 0.15rem;
   grid-column: 1 / -1;
+  margin-left: -0.4rem;
 }
 
 .gafa-rating-stars__value {
-  color: var(--gafa-color-muted-text);
-  font-size: 0.72rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.76rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4938,13 +5145,13 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--gafa-color-muted-text);
   cursor: pointer;
   display: inline-flex;
-  height: 44px;
+  height: 48px;
   justify-content: center;
-  min-width: 44px;
+  min-width: 48px;
   padding: 0;
 }
 
@@ -4954,95 +5161,39 @@
 
 .gafa-rating-star:focus-visible {
   outline: 2px solid var(--gafa-color-primary);
-  outline-offset: 2px;
-}
-
-.gafa-rating-star:disabled {
-  cursor: default;
+  outline-offset: 1px;
 }
 
 .gafa-rating__comment {
+  --gafa-type-size: 0.86rem;
   display: grid;
   gap: 0.3rem;
-  font-size: 0.78rem;
   font-weight: 700;
 }
 
 .gafa-rating__comment textarea {
-  --gafa-field-min-height: 4.2rem;
+  --gafa-field-min-height: 4.6rem;
+  /* 16px: iOS no hace zoom al enfocar el campo. */
+  --gafa-field-font-size: 1rem;
   font-weight: 500;
-  min-height: 4.2rem;
+  min-height: 4.6rem;
   resize: vertical;
-}
-
-.gafa-rating__comment-out {
-  color: var(--gafa-color-muted-text);
-  font-size: 0.82rem;
-  margin: 0;
 }
 
 .gafa-rating__actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 
 .gafa-rating__actions .gafa-sdk-button {
   flex: 1;
-  min-width: 8rem;
+  min-height: 44px;
 }
 
-.gafa-rating-prompt-overlay {
-  align-items: end;
-  background: var(--gafa-color-overlay);
-  display: flex;
-  inset: 0;
-  justify-content: center;
-  padding: 0;
-  position: fixed;
-  z-index: 2147483001;
-}
-
-.gafa-rating-prompt {
-  background: var(--gafa-color-surface);
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -12px 40px color-mix(in srgb, #000 18%, transparent);
-  display: grid;
-  gap: 0.4rem;
-  max-height: min(92vh, 640px);
-  overflow: auto;
-  padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
-  width: min(100%, 440px);
-}
-
-.gafa-rating-prompt__kicker {
-  color: var(--gafa-color-muted-text);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.gafa-rating-prompt__heading {
-  font-size: 1.15rem;
-  margin: 0 0 0.4rem;
-}
-
-.gafa-rating-prompt__heading span {
-  color: var(--gafa-color-muted-text);
-  font-weight: 600;
-}
-
-@media (min-width: 560px) {
-  .gafa-rating-prompt-overlay {
-    align-items: center;
-    padding: 1.5rem;
-  }
-
-  .gafa-rating-prompt {
-    border-radius: 20px;
-    box-shadow: 0 18px 50px color-mix(in srgb, #000 22%, transparent);
+@media (prefers-reduced-motion: reduce) {
+  .gafa-rating-dialog,
+  .gafa-rating-dialog-overlay {
+    animation: none;
   }
 }
 
