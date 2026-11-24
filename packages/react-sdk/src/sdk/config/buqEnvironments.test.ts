@@ -172,6 +172,15 @@ describe("buq environments", () => {
     });
   });
 
+  it("CLASS_RATINGS del embed llega al config y ausente queda off", () => {
+    const on = legacyOptionsToConfig({
+      COMPANY_ID: 80,
+      CLASS_RATINGS: { enabled: true, rateClass: true, rateCoach: false },
+    });
+    expect(on.classRatings).toEqual({ enabled: true, rateClass: true, rateCoach: false });
+    expect(legacyOptionsToConfig({ COMPANY_ID: 80 }).classRatings).toBeUndefined();
+  });
+
   it("MEMBERSHIP_ENROLLMENT del embed llega al config", () => {
     const config = legacyOptionsToConfig({
       COMPANY_ID: 204,

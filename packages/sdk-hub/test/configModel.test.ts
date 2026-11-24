@@ -107,6 +107,22 @@ describe("formulario -> partial", () => {
     expect(configFromDraft({}, draft)).toEqual({ BRAND_ID: 171 });
   });
 
+  it("guarda las calificaciones como bloque opt-in", () => {
+    const draft = draftFromConfig({});
+    draft["CLASS_RATINGS.enabled"] = "true";
+    draft["CLASS_RATINGS.rateClass"] = "true";
+    draft["CLASS_RATINGS.rateCoach"] = "false";
+    draft["CLASS_RATINGS.promptAfterClass"] = "true";
+    expect(configFromDraft({}, draft)).toEqual({
+      CLASS_RATINGS: {
+        enabled: true,
+        rateClass: true,
+        rateCoach: false,
+        promptAfterClass: true,
+      },
+    });
+  });
+
   it("guarda la matrícula como bloque opt-in", () => {
     const draft = draftFromConfig({});
     draft["MEMBERSHIP_ENROLLMENT.comboId"] = "3491";

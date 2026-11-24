@@ -92,12 +92,36 @@ const pastReservations = Array.from({ length: 16 }, (_, i) => ({
   locationName: i % 2 ? "Cancún" : "Lomas",
   staffName: i % 2 ? "ISA" : "Pau J",
   brandSlug: "fitspin",
+  meetingId: 800 + i,
+  staffId: i % 2 ? 4 : 7,
   isWaitlist: false,
   isOverbooking: false,
   creditId: 2,
   creditTypeName: "CDMXnew",
   cancelled: i < 3,
 }));
+
+const previewRatings = new Map<number, { reservationId: number; classStars?: number | null; staffStars?: number | null; comment?: string | null }>([
+  [24, { reservationId: 24, classStars: 5, staffStars: 4, comment: "Ritmo perfecto" }],
+]);
+const isRatingsPreview =
+  Boolean((window as { __GAFA_RATINGS_PREVIEW__?: boolean }).__GAFA_RATINGS_PREVIEW__) ||
+  new URLSearchParams(window.location.search).has("ratings");
+const ratingsMode = new URLSearchParams(window.location.search).get("ratings");
+const previewClassRatings =
+  ratingsMode === "0"
+    ? null
+    : isRatingsPreview || ratingsMode
+      ? {
+          enabled: true as const,
+          rateClass: true,
+          rateCoach: true,
+          promptAfterClass: ratingsMode !== "historial",
+        }
+      : null;
+/** Reserva mock cuyo POST simula que el Hub aún no puede guardar. */
+const RATINGS_ERROR_RESERVATION_ID = 25;
+const failAllRatingPosts = ratingsMode === "error";
 
 const client = {
   getProfile: async () => {
@@ -227,6 +251,25 @@ const client = {
     if (index !== -1) futureReservations.splice(index, 1);
   },
   updateProfile: async () => ({ id: 1, name: "Gabriel Arrechea", email: "gabriel+fitspin@buq.mx" }),
+  getReservationRating: async (_slug: string, id: number) => previewRatings.get(Number(id)) ?? null,
+  submitReservationRating: async (payload: {
+    reservationId: number;
+    classStars?: number | null;
+    staffStars?: number | null;
+    comment?: string;
+  }) => {
+    if (failAllRatingPosts || Number(payload.reservationId) === RATINGS_ERROR_RESERVATION_ID) {
+      throw new Error("El estudio aún no puede guardar calificaciones.");
+    }
+    const saved = {
+      reservationId: payload.reservationId,
+      classStars: payload.classStars,
+      staffStars: payload.staffStars,
+      comment: payload.comment ?? null,
+    };
+    previewRatings.set(payload.reservationId, saved);
+    return saved;
+  },
   logout: async () => undefined,
   register: async () => undefined,
   login: async () => ({ access_token: "preview" }),
@@ -353,7 +396,13 @@ function Preview() {
       }}
     >
       <QueryClientProvider client={queryClient}>
-        <div className="demo-root">
+        <div className="demo-root" data-ratings-preview={isRatingsPreview ? "true" : undefined}>
+          {isRatingsPreview ? (
+            <div className="matricula-test-banner" role="status">
+              DEMO MOCK — no pega a producción. Ya calificada = “Gracias…”. POST de la reserva 25 (Bici AM) simula el 404.
+              Variantes: ?ratings=prompt · ?ratings=historial · ?ratings=error
+            </div>
+          ) : null}
           <header className="demo-header">
             <div className="demo-header__inner">
               <span className="demo-logo">Fitspin</span>
@@ -372,6 +421,9 @@ function Preview() {
             open={open}
             onClose={() => setOpen(false)}
             title="Fitspin"
+            classRatings={previewClassRatings}
+            initialTab={isRatingsPreview ? "classes" : undefined}
+            initialClassScope={isRatingsPreview ? "history" : undefined}
             onExplorePackages={() => window.alert("Ir a paquetes (demo)")}
           />
           {checkoutOpen ? (

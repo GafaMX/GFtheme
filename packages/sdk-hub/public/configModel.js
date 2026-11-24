@@ -495,6 +495,40 @@ export const CONFIG_SECTIONS = [
         ],
       },
       {
+        title: "Calificaciones",
+        note: "Apagado para todas las marcas hasta que lo enciendas. Las estrellas se guardan en este Hub (D1), no en gafa.fit. Contrato: docs/v2-ratings-api.md.",
+        fields: [
+          {
+            key: "CLASS_RATINGS.enabled",
+            path: ["CLASS_RATINGS", "enabled"],
+            type: "tri",
+            label: "Pedir calificación después de la clase",
+            help: "En Perfil › historial de reservas el socio puede poner 1–5 estrellas. Sin “Sí”, no se muestra nada (ni se llama al API).",
+          },
+          {
+            key: "CLASS_RATINGS.rateClass",
+            path: ["CLASS_RATINGS", "rateClass"],
+            type: "tri",
+            label: "Calificar la clase",
+            help: "Estrellas para la sesión. “Sin cambio” = sí, cuando las calificaciones están encendidas.",
+          },
+          {
+            key: "CLASS_RATINGS.rateCoach",
+            path: ["CLASS_RATINGS", "rateCoach"],
+            type: "tri",
+            label: "Calificar al coach",
+            help: "Estrellas para el instructor de esa reserva. “Sin cambio” = sí, cuando las calificaciones están encendidas.",
+          },
+          {
+            key: "CLASS_RATINGS.promptAfterClass",
+            path: ["CLASS_RATINGS", "promptAfterClass"],
+            type: "tri",
+            label: "Recordatorio al abrir la cuenta",
+            help: "Si hay una clase reciente sin calificar, al abrir Mi cuenta aparece un recuadro. Una vez por reserva y por pestaña. “Sin cambio” = no molestar.",
+          },
+        ],
+      },
+      {
         title: "Membresías",
         fields: [
           {
