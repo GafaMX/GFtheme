@@ -185,7 +185,7 @@ type RawReservation = {
   meeting_position?: number | string | null;
   credit?: { id?: number; name?: string } | null;
   location?: { name?: string } | string | null;
-  brand?: { slug?: string } | string | null;
+  brand?: { slug?: string; time_zone?: string | null } | string | null;
   staff?: RawStaff;
   staff_id?: number | string | null;
   meetings_id?: number | string | null;
@@ -729,6 +729,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       undefined;
     const waitlistPosition = waitlistPositionOf(raw);
     const brandSlugResolved = brandSlugFrom(raw, brandSlug);
+    const brandTimeZone = typeof raw.brand === "object" ? raw.brand?.time_zone?.trim() : undefined;
     const service =
       raw.meetings?.service?.name ??
       (raw.service && typeof raw.service === "object" ? raw.service.name : undefined) ??
@@ -739,7 +740,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       id: raw.id,
       serviceName: service,
       startsAt: raw.meeting_start ?? raw.meetings?.start ?? raw.start ?? "",
-      timezone: raw.timezone ?? brandTimeZoneBySlug.get(brandSlugResolved),
+      timezone: raw.timezone?.trim() || brandTimeZone || brandTimeZoneBySlug.get(brandSlugResolved),
       locationName: locationLabel(raw.location),
       staffName: staffLabel(staff),
       meetingId: reservationMeetingId(raw),

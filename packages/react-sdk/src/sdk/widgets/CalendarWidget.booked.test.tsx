@@ -9,7 +9,10 @@ import { CalendarWidget } from "./CalendarWidget";
 
 const now = new Date("2026-11-24T16:00:00Z");
 const startsAt = "2026-11-24T21:00:00Z";
-const brands = [{ id: 1, name: "Fitspin CDMX", slug: "fitspin" }, { id: 2, name: "Fitspin Cancún", slug: "fitspin-cancun" }];
+const brands = [
+  { id: 1, name: "Fitspin CDMX", slug: "fitspin", timeZone: "America/Mexico_City" },
+  { id: 2, name: "Fitspin Cancún", slug: "fitspin-cancun", timeZone: "America/Cancun" },
+];
 const location = { id: 2, name: "Cancún", slug: "cancun", brandSlug: brands[1].slug };
 const meeting: Meeting = { id: 238, name: "Ride", brandSlug: brands[1].slug, startsAt, timezone: "America/Cancun", location, available: 1, capacity: 10 };
 
@@ -126,6 +129,13 @@ describe("Reservado con Cancelar", () => {
       expect(tip?.textContent).toBe("Ya pasó el tiempo para cancelar");
     }
     expect((within(sheet()).getByRole("button", { name: "Cancelar Lugar 7" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("usa Brand.timeZone para un plazo sin offset cuando la reserva no trae timezone", async () => {
+    setup([{ ...four, cancelableUntil: "2026-11-24 10:30:00" }]);
+    const cancel = await screen.findByRole<HTMLButtonElement>("button", { name: "Cancelar Lugar 4" });
+    expect(cancel.disabled).toBe(true);
+    expect(cancel.getAttribute("aria-disabled")).toBe("true");
   });
 
   it("mantiene el botón bloqueado en la tarjeta y retira los datos de la sesión al salir", async () => {

@@ -261,7 +261,14 @@ export function CalendarWidget({
     enabled: Boolean(client && hasToken && reservationSlugs.length),
   });
 
-  const ownReservations = hasToken ? reservationsQuery.data : undefined;
+  const ownReservations = useMemo(() => {
+    if (!hasToken || !reservationsQuery.data) return undefined;
+    const brandTimeZones = new Map(brandsQuery.data?.map((brand) => [brand.slug, brand.timeZone]));
+    return reservationsQuery.data.map((reservation) => {
+      const timezone = reservation.timezone?.trim() || brandTimeZones.get(reservation.brandSlug);
+      return timezone === reservation.timezone ? reservation : { ...reservation, timezone };
+    });
+  }, [brandsQuery.data, hasToken, reservationsQuery.data]);
   const [bookingClock, setBookingClock] = useState(0);
   useEffect(() => {
     if (!ownReservations?.length) return;

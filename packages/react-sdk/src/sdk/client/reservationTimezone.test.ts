@@ -66,6 +66,32 @@ describe("zona horaria de las reservas", () => {
     ).toContain("6:15");
   });
 
+  it("usa la zona de la marca de reservation-future antes que la del catálogo", async () => {
+    writeStoredToken("token-de-prueba");
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/api/brand") {
+        return jsonResponse([{ id: 125, slug: "fitspin-cancun", time_zone: "America/Mexico_City" }]);
+      }
+      expect(url.pathname).toBe("/api/me/brand/fitspin-cancun/reservation-future");
+      expect(url.searchParams.get("reducePopulation")).toBe("true");
+      const row = {
+        meeting_start: "2026-11-25T01:30:00Z",
+        brand: { slug: "fitspin-cancun", time_zone: "America/Cancun" },
+      };
+      return jsonResponse({ reservations: [
+        { ...row, id: 3 },
+        { ...row, id: 4, timezone: "America/Tijuana" },
+      ] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createHttpGafaClient({ apiBaseUrl: "https://example.test", companyId: 80 });
+    await client.listBrands();
+    const reservations = await client.listUserReservations("fitspin-cancun", "future");
+    expect(reservations.map(({ timezone }) => timezone)).toEqual(["America/Cancun", "America/Tijuana"]);
+  });
+
   it("respeta la zona que ya venga en la reserva", async () => {
     writeStoredToken("token-de-prueba");
     vi.stubGlobal(

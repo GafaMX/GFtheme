@@ -124,26 +124,58 @@ export type BookedSpot = Pick<UserReservation, "id" | "brandSlug" | "seatLabel">
 
 export type BookedMeeting = Meeting & { bookedSpots?: BookedSpot[] };
 
-const serverDateTime = new Intl.DateTimeFormat("sv-SE", {
-  timeZone: "America/Mexico_City",
-  year: "numeric", month: "2-digit", day: "2-digit",
-  hour: "2-digit", minute: "2-digit", second: "2-digit",
-});
+const deadlineFormatters = new Map<string, Intl.DateTimeFormat>();
+const defaultDeadlineZone = "America/Mexico_City";
+const dayInMilliseconds = 86_400_000;
 
-function deadlinePassed(deadline: string | undefined, now: number): boolean {
-  if (!deadline) return false;
-  const value = deadline.trim().replace(" ", "T");
-  // Laravel's bare timestamps are stored in the API's zone, not the venue's.
-  if (/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d)?$/.test(value)) {
-    return serverDateTime.format(now).replace(" ", "T") > (value.length === 16 ? `${value}:00` : value);
-  }
-  return now > Date.parse(value);
+function deadlineFormatter(timeZone: string): Intl.DateTimeFormat {
+  const cached = deadlineFormatters.get(timeZone);
+  if (cached) return cached;
+  const formatter = new Intl.DateTimeFormat("sv-SE", {
+    timeZone, hourCycle: "h23",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+  deadlineFormatters.set(timeZone, formatter);
+  return formatter;
 }
 
-type CancellationPolicy = Pick<UserReservation, "cancelled" | "canCancel" | "cancelableUntil" | "refundableUntil" | "cancellationWithoutCredit">;
+function deadlinePassed(deadline: string | undefined, now: number, timeZone?: string): boolean {
+  const value = deadline?.trim().replace(" ", "T");
+  if (!value) return false;
+  if (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) return now > Date.parse(value);
+
+  const local = value.length === 10 ? `${value}T00:00:00` : value;
+  const wallTime = Date.parse(`${local}Z`);
+  if (!Number.isFinite(wallTime)) return false;
+
+  let formatter: Intl.DateTimeFormat;
+  try {
+    formatter = deadlineFormatter(timeZone || defaultDeadlineZone);
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    formatter = deadlineFormatter(defaultDeadlineZone);
+  }
+
+  function offsetAt(instant: number): number {
+    const seconds = Math.floor(instant / 1000) * 1000;
+    return Date.parse(`${formatter.format(seconds).replace(" ", "T")}Z`) - seconds;
+  }
+
+  // Resolve the offset at the deadline, including dates near a DST change.
+  // Use the first occurrence of a repeated hour and move skipped times forward.
+  const before = wallTime - offsetAt(wallTime - dayInMilliseconds);
+  const after = wallTime - offsetAt(wallTime + dayInMilliseconds);
+  const cutoff = before === after || before + offsetAt(before) === wallTime ? before
+    : after + offsetAt(after) === wallTime ? after : before;
+  return now > cutoff;
+}
+
+type CancellationPolicy = Pick<UserReservation, "cancelled" | "canCancel" | "cancelableUntil" | "timezone">;
 
 export function reservationCanCancel(reservation: CancellationPolicy, now = Date.now()): boolean {
-  return reservation.canCancel === true && !reservation.cancelled && !deadlinePassed(reservation.cancelableUntil, now);
+  return reservation.canCancel === true && !reservation.cancelled &&
+    !deadlinePassed(reservation.cancelableUntil, now, reservation.timezone);
 }
 
 export function seatLabelOf(reservation: Pick<UserReservation, "seatLabel">): string | undefined {
@@ -165,7 +197,7 @@ export function reservationsForMeeting(reservations: UserReservation[], meeting:
     brandSlug: reservation.brandSlug,
     seatLabel: seatLabelOf(reservation),
     canCancel: reservationCanCancel(reservation, now),
-    withoutCredit: reservation.cancellationWithoutCredit === true || deadlinePassed(reservation.refundableUntil, now),
+    withoutCredit: reservation.cancellationWithoutCredit === true || deadlinePassed(reservation.refundableUntil, now, reservation.timezone),
   })).sort((a, b) => (a.seatLabel ?? "").localeCompare(b.seatLabel ?? "", "es", { numeric: true }) || a.id - b.id);
 }
 

@@ -58,6 +58,34 @@ describe("reservas del calendario", () => {
   });
 
   it.each([
+    ["2026-11-24 12:30:00", false],
+    ["2026-11-24T13:00:00", true],
+    ["2026-11-24T12:59:59.999", false],
+    ["2026-11-24T12:30:00-06:00", true],
+    ["2026-11-24 12:30:00-0500", false],
+    ["2026-11-24T18:30:00Z", true],
+  ])("evalúa %s respetando la zona de Cancún o el offset explícito", (deadline, open) => {
+    const reservation = { ...base, timezone: "America/Cancun", cancelableUntil: deadline };
+    expect(reservationCanCancel(reservation, now)).toBe(open);
+    const [spot] = reservationsForMeeting([{
+      ...reservation,
+      cancelableUntil: startsAt,
+      refundableUntil: deadline,
+    }], meeting, now);
+    expect(spot).toMatchObject({ canCancel: true, withoutCredit: !open });
+  });
+
+  it("usa la zona de CDMX cuando no hay zona de la reserva ni de la marca", () => {
+    expect(reservationCanCancel({ canCancel: true, cancelableUntil: "2026-11-24 12:30:00" }, now)).toBe(true);
+  });
+
+  it("resuelve el cambio de horario de verano en la zona de la reserva", () => {
+    const reservation = { canCancel: true, timezone: "America/New_York", cancelableUntil: "2026-11-01 01:30:00" };
+    expect(reservationCanCancel(reservation, Date.parse("2026-11-01T05:30:00Z"))).toBe(true);
+    expect(reservationCanCancel(reservation, Date.parse("2026-11-01T06:00:00Z"))).toBe(false);
+  });
+
+  it.each([
     ["es-MX", "Reservado · Lugar 4", "Reservado · 2 lugares (4, 7)", "¿Cancelar Lugar 4?", "Se cancelarán los lugares 4 y 7", "Cancelar los 2 lugares"],
     ["en-CA", "Booked · Spot 4", "Booked · 2 spots (4, 7)", "Cancel Spot 4?", "Spots 4 and 7 will be cancelled", "Cancel all 2 spots"],
     ["FR-CA", "Réservé · Place 4", "Réservé · 2 places (4, 7)", "Annuler la place 4 ?", "Les places 4 et 7 seront annulées", "Annuler les 2 places"],
