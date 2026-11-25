@@ -150,6 +150,11 @@ export const sdkConfigSchema = z
      */
     membershipEnrollment: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     /**
+     * `false` hace que el catálogo ignore `MEMBERSHIP_ENROLLMENT` del bloque
+     * `[data-gafa-options]` del DOM. Lo fija Buq Next; V2 lo deja sin definir.
+     */
+    legacyMembershipEnrollment: z.boolean().optional(),
+    /**
      * Checkout de prueba: no carga GafaPay ni cobra tarjetas reales.
      * Solo para preview/demo. No va al Hub.
      */
@@ -181,6 +186,7 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   concierge?: boolean | Record<string, unknown>;
   crossSell?: boolean | Record<string, unknown>;
   membershipEnrollment?: boolean | Record<string, unknown>;
+  legacyMembershipEnrollment?: boolean;
   classRatings?: boolean | Record<string, unknown>;
   mockPay?: boolean;
   safeTestMode?: boolean;

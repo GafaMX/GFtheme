@@ -18,6 +18,12 @@ export type CatalogWidgetProps = {
   filterByBrand?: string | null;
   /** Compra suelta: el host abre el checkout con este item preseleccionado. */
   onBuy?: (item: CatalogItem & { brandSlug?: string }) => void;
+  /**
+   * `false` ignora `MEMBERSHIP_ENROLLMENT` del bloque `[data-gafa-options]` y no
+   * oculta ningún paquete. Buq Next lo fija así: la Inscripción sale del catálogo.
+   * Sin valor (V2) se conserva la lectura del DOM.
+   */
+  legacyMembershipEnrollment?: boolean;
 };
 
 export function CatalogWidget({
@@ -27,9 +33,10 @@ export function CatalogWidget({
   filterByName,
   filterByBrand,
   onBuy,
+  legacyMembershipEnrollment,
 }: CatalogWidgetProps) {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["catalog", type, filterByName, filterByBrand],
+    queryKey: ["catalog", type, filterByName, filterByBrand, legacyMembershipEnrollment],
     queryFn: async () => {
       if (!client) {
         return demoItems(type);
@@ -59,7 +66,7 @@ export function CatalogWidget({
 
       const items = results.flat();
       const optionsJson =
-        typeof document === "undefined"
+        typeof document === "undefined" || legacyMembershipEnrollment === false
           ? null
           : document.querySelector("[data-gafa-options], [data-gf-options]")?.textContent;
       let enrollment = null;
