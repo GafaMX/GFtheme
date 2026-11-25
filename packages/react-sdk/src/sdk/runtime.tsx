@@ -368,6 +368,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           captcha={captcha}
           crossSell={props.crossSell ?? config.crossSell}
           {...props}
+          language={props.language ?? config.language}
           showWeekMeetingNotes={
             props.showWeekMeetingNotes ??
             resolveShowWeekMeetingNotes({
