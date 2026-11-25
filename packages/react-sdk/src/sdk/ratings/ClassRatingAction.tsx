@@ -11,16 +11,15 @@ import {
 } from "./classRatings";
 import { useReservationRating } from "./useReservationRating";
 
-/** “Calificada ★ 5” (y ★ del coach solo si es distinta). */
+/** Línea corta a la derecha de la tarjeta. El detalle de clase y coach va en el aria-label. */
 export function ratedSummary(rating: ClassRating, config: ClassRatingsConfig): { text: string; label: string } {
   const classStars = config.rateClass && isValidStarValue(rating.classStars) ? rating.classStars : null;
   const staffStars = config.rateCoach && isValidStarValue(rating.staffStars) ? rating.staffStars : null;
   const first = classStars ?? staffStars;
-  let text = `Calificada ★ ${first}`;
+  const text = `Calificada ★ ${first}`;
   let label = classStars != null ? `Calificada: clase ${classStars} de ${CLASS_RATING_MAX}` : `Calificada: coach ${staffStars} de ${CLASS_RATING_MAX}`;
   if (classStars != null && staffStars != null) {
     label += `, coach ${staffStars} de ${CLASS_RATING_MAX}`;
-    if (classStars !== staffStars) text += ` · coach ★ ${staffStars}`;
   }
   return { text, label };
 }

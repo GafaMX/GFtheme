@@ -23,7 +23,7 @@ import { defaultExploreClasses, defaultExplorePackages } from "../account/explor
 import { ACCOUNT_HISTORY_CHUNK, remainingAccountHistory, visibleAccountHistory } from "../account/accountHistory";
 import { ClassRatingAction } from "../ratings/ClassRatingAction";
 import { PostClassRatingPrompt } from "../ratings/PostClassRatingPrompt";
-import { parseClassRatings, type ClassRatingsConfig } from "../ratings/classRatings";
+import { isReservationRateable, parseClassRatings, type ClassRatingsConfig } from "../ratings/classRatings";
 import { WidgetShell } from "./WidgetShell";
 
 type ProfileTab = "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
@@ -1226,8 +1226,10 @@ function ReservationCard({
   onShowQr?(reservation: UserReservation): void;
 }) {
   const showQr = Boolean(onShowQr && canShowReservationQr(reservation, checkInCardNo));
-  const showActions = !historic && !reservation.cancelled && (onCancel || showQr);
-  const showRating = Boolean(historic && classRatings && client);
+  const showRating = Boolean(
+    historic && classRatings && client && isReservationRateable(reservation),
+  );
+  const showActions = (!historic && !reservation.cancelled && (onCancel || showQr)) || showRating;
 
   return (
     <article
@@ -1263,13 +1265,13 @@ function ReservationCard({
           {reservation.cancelled ? <span className="gafa-meeting-chip">Cancelada</span> : null}
           {paymentLabel ? <span className="gafa-meeting-chip">{paymentLabel}</span> : null}
         </div>
-        {showRating && client && classRatings ? (
-          <ClassRatingAction client={client} reservation={reservation} config={classRatings} />
-        ) : null}
       </div>
 
       {showActions ? (
         <div className="gafa-acct-class__actions">
+          {showRating && client && classRatings ? (
+            <ClassRatingAction client={client} reservation={reservation} config={classRatings} />
+          ) : null}
           {showQr ? (
             <button className="gafa-sdk-button" type="button" onClick={() => onShowQr?.(reservation)}>
               Ver QR

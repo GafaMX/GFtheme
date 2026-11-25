@@ -138,8 +138,9 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     const done = await screen.findByRole("status");
-    expect(done.textContent).toContain("Calificada ★ 5");
+    expect(done.textContent).toBe("Calificada ★ 5");
     expect(done.getAttribute("aria-label")).toContain("clase 5 de 5");
+    expect(done.getAttribute("aria-label")).toContain("coach 4 de 5");
     expect(screen.queryByRole("button", { name: /^Calificar/ })).toBeNull();
     await waitFor(() => expect(document.activeElement).toBe(done));
   });
@@ -178,9 +179,12 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
 
 describe("ratedSummary", () => {
   const both = parseClassRatings(true)!;
-  it("muestra ★ de la clase y del coach solo si son distintas", () => {
+  it("en la tarjeta solo muestra la línea corta; el detalle va en el aria-label", () => {
     expect(ratedSummary({ reservationId: 1, classStars: 5, staffStars: 5 }, both).text).toBe("Calificada ★ 5");
-    expect(ratedSummary({ reservationId: 1, classStars: 5, staffStars: 4 }, both).text).toBe("Calificada ★ 5 · coach ★ 4");
+    const mixed = ratedSummary({ reservationId: 1, classStars: 5, staffStars: 4 }, both);
+    expect(mixed.text).toBe("Calificada ★ 5");
+    expect(mixed.label).toContain("clase 5 de 5");
+    expect(mixed.label).toContain("coach 4 de 5");
   });
   it("solo coach", () => {
     const coachOnly = parseClassRatings({ enabled: true, rateClass: false })!;

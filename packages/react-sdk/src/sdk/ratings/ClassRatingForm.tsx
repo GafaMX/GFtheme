@@ -158,9 +158,6 @@ function StarRow({
       <span className="gafa-rating-stars__label" id={`${name}-label`}>
         {label}
       </span>
-      <span className="gafa-rating-stars__value">
-        {isValidStarValue(value) ? `${value} / ${CLASS_RATING_MAX}` : `${CLASS_RATING_MIN}–${CLASS_RATING_MAX}`}
-      </span>
       <div
         className="gafa-rating-stars__row"
         role="radiogroup"
@@ -208,13 +205,10 @@ function StarRow({
 
 function StarIcon({ filled }: { filled: boolean }) {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+    <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 3.4 14.6 9l6 .5-4.6 4 1.4 5.8L12 16.8 6.6 19.3 8 13.5 3.4 9.5 9.4 9 12 3.4Z"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
+        fill="currentColor"
       />
     </svg>
   );

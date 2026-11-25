@@ -4774,19 +4774,15 @@
   border-color: var(--gafa-color-primary);
 }
 
+/* Calificar / Calificada van a la derecha (3ª columna), no en una fila
+   nueva: la tarjeta debe medir lo mismo que una clase sin calificación. */
 .gafa-acct-class[data-rateable="true"] {
-  align-items: start;
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 .gafa-acct-class[data-cancelled="true"],
 .gafa-acct-class[data-historic="true"]:not([data-rateable="true"]) {
   opacity: 0.72;
-}
-
-.gafa-acct-class .gafa-rating-cta,
-.gafa-acct-class .gafa-rating-done,
-.gafa-acct-class .gafa-rating-cta-boot {
-  margin-top: 0.5rem;
 }
 
 .gafa-acct-class[data-cancelled="true"]:hover,
@@ -4828,6 +4824,9 @@
   --gafa-heading-size: 1rem;
   font-size: 1rem;
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gafa-acct-class__when {
@@ -4850,6 +4849,9 @@
   color: var(--gafa-color-muted-text);
   font-size: 0.82rem;
   margin: 0.1rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gafa-acct-class__tags {
@@ -4867,6 +4869,7 @@
   display: flex;
   gap: 0.4rem;
   grid-column: 1 / -1;
+  min-width: 0;
 }
 
 @media (min-width: 560px) {
@@ -4875,11 +4878,29 @@
   }
 }
 
+/* En el historial, Calificar/Calificada no bajan a una fila nueva (ni en móvil). */
+.gafa-acct-class[data-rateable="true"] .gafa-acct-class__actions {
+  align-items: flex-end;
+  flex-direction: column;
+  grid-column: auto;
+  justify-content: center;
+  justify-self: end;
+  max-width: 8.25rem;
+}
+
 .gafa-acct-class__actions .gafa-sdk-button {
   flex: 1;
   font-size: 0.82rem;
   padding: 0.5rem 0.9rem;
   white-space: nowrap;
+}
+
+.gafa-acct-class__actions .gafa-rating-cta,
+.gafa-acct-class__actions .gafa-rating-done,
+.gafa-acct-class__actions .gafa-rating-cta-boot {
+  flex: none;
+  margin: 0;
+  max-width: 100%;
 }
 
 /* ----- calificar clase / coach (opt-in CLASS_RATINGS) */
@@ -4921,6 +4942,11 @@
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gafa-rating-done:focus-visible {
@@ -5012,15 +5038,15 @@
 .gafa-rating-dialog {
   animation: gafa-sheet-up 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
   background: var(--gafa-color-surface);
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -12px 40px color-mix(in srgb, #000 18%, transparent);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -16px 48px color-mix(in srgb, #000 14%, transparent);
   display: grid;
   gap: 0.35rem;
   max-height: min(94vh, 94dvh, 680px);
   outline: none;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.45rem 1.35rem calc(1.4rem + env(safe-area-inset-bottom, 0px));
   position: relative;
   width: min(100%, 440px);
 }
@@ -5032,11 +5058,21 @@
   }
 }
 
+.gafa-rating-dialog__handle {
+  background: var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  display: block;
+  height: 4px;
+  justify-self: center;
+  margin: 0.35rem 0 0.7rem;
+  width: 36px;
+}
+
 .gafa-rating-dialog__close {
-  --gafa-control-bg: var(--gafa-color-surface);
-  --gafa-control-border: 1px solid var(--gafa-color-border);
-  --gafa-control-fg: var(--gafa-color-text);
-  --gafa-fg: var(--gafa-color-text);
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   --gafa-control-padding: 0px;
   --gafa-control-width: 40px;
@@ -5045,10 +5081,10 @@
   --gafa-control-font-size: 0px;
   --gafa-icon-size: 14px;
   align-items: center;
-  background: var(--gafa-color-surface);
-  border: 1px solid var(--gafa-color-border);
+  background: transparent;
+  border: 0;
   border-radius: var(--gafa-radius-pill);
-  color: var(--gafa-color-text);
+  color: var(--gafa-color-muted-text);
   cursor: pointer;
   display: inline-flex;
   height: 40px;
@@ -5062,30 +5098,33 @@
 }
 
 .gafa-rating-dialog__close:focus-visible {
-  outline: 2px solid var(--gafa-color-primary);
+  outline: 2px solid var(--gafa-color-accent);
   outline-offset: 2px;
 }
 
 .gafa-rating-dialog__kicker {
   --gafa-fg: var(--gafa-color-muted-text);
-  --gafa-type-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  --gafa-type-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   margin: 0;
   padding-right: 2.8rem;
   text-transform: uppercase;
 }
 
 .gafa-rating-dialog__heading {
-  --gafa-heading-size: 1.15rem;
-  margin: 0 0 0.5rem;
+  --gafa-heading-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0.15rem 0 0.85rem;
   padding-right: 2.8rem;
 }
 
 .gafa-rating-dialog__heading span {
   --gafa-fg: var(--gafa-color-muted-text);
-  --gafa-type-size: 1.15rem;
-  font-weight: 600;
+  --gafa-type-size: 1.05rem;
+  font-weight: 500;
 }
 
 @media (min-width: 560px) {
@@ -5095,8 +5134,18 @@
   }
 
   .gafa-rating-dialog {
-    border-radius: 20px;
-    box-shadow: 0 18px 50px color-mix(in srgb, #000 22%, transparent);
+    border-radius: 24px;
+    box-shadow: 0 18px 50px color-mix(in srgb, #000 18%, transparent);
+    padding-top: 1.35rem;
+  }
+
+  .gafa-rating-dialog__handle {
+    display: none;
+  }
+
+  .gafa-rating-dialog__close {
+    top: 1rem;
+    right: 1rem;
   }
 }
 
@@ -5104,49 +5153,45 @@
 
 .gafa-rating {
   display: grid;
-  gap: 0.7rem;
+  gap: 1.15rem;
 }
 
 .gafa-rating__title {
-  --gafa-type-size: 0.95rem;
-  font-weight: 700;
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.92rem;
+  font-weight: 500;
   margin: 0;
 }
 
 .gafa-rating-stars {
-  align-items: center;
   display: grid;
-  gap: 0.15rem 0.5rem;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
 }
 
 .gafa-rating-stars__label {
-  --gafa-type-size: 0.86rem;
-  font-weight: 700;
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.82rem;
+  font-weight: 500;
 }
 
 .gafa-rating-stars__row {
   display: flex;
   gap: 0.15rem;
-  grid-column: 1 / -1;
-  margin-left: -0.4rem;
-}
-
-.gafa-rating-stars__value {
-  --gafa-fg: var(--gafa-color-muted-text);
-  --gafa-type-size: 0.76rem;
-  font-variant-numeric: tabular-nums;
+  margin-left: -0.35rem;
 }
 
 .gafa-rating-star {
   --gafa-control-padding: 0;
   --gafa-control-bg: transparent;
   --gafa-control-border: 0 solid transparent;
+  /* El reset de botones pinta color con --gafa-control-fg !important. */
+  --gafa-control-fg: color-mix(in srgb, var(--gafa-color-muted-text) 22%, var(--gafa-color-background, #fff) 78%);
+  --gafa-fg: var(--gafa-control-fg);
   align-items: center;
   background: transparent;
   border: 0;
   border-radius: 10px;
-  color: var(--gafa-color-muted-text);
+  color: var(--gafa-control-fg);
   cursor: pointer;
   display: inline-flex;
   height: 48px;
@@ -5156,38 +5201,92 @@
 }
 
 .gafa-rating-star[data-filled="true"] {
-  color: var(--gafa-color-accent, #f59e0b);
+  --gafa-control-fg: var(--gafa-color-accent, var(--gafa-color-primary));
+  --gafa-fg: var(--gafa-control-fg);
+  color: var(--gafa-control-fg);
 }
 
 .gafa-rating-star:focus-visible {
-  outline: 2px solid var(--gafa-color-primary);
-  outline-offset: 1px;
+  outline: 2px solid var(--gafa-color-accent);
+  outline-offset: 2px;
 }
 
 .gafa-rating__comment {
-  --gafa-type-size: 0.86rem;
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.82rem;
   display: grid;
-  gap: 0.3rem;
-  font-weight: 700;
+  gap: 0.45rem;
+  font-weight: 500;
 }
 
 .gafa-rating__comment textarea {
-  --gafa-field-min-height: 4.6rem;
-  /* 16px: iOS no hace zoom al enfocar el campo. */
+  --gafa-field-bg: var(--gafa-color-surface-raised, var(--gafa-color-surface));
+  --gafa-field-border: 1px solid var(--gafa-color-border);
+  --gafa-field-fg: var(--gafa-color-text);
   --gafa-field-font-size: 1rem;
-  font-weight: 500;
-  min-height: 4.6rem;
+  --gafa-field-radius: var(--gafa-radius-md);
+  --gafa-type-size: 1rem;
+  background: var(--gafa-color-surface-raised, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  box-shadow: none;
+  caret-color: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.45;
+  min-height: 5.5rem;
+  padding: 13px 14px;
   resize: vertical;
+}
+
+.gafa-rating__comment textarea::placeholder {
+  color: var(--gafa-color-muted-text);
+  font-family: inherit;
+  font-weight: 400;
+  opacity: 1;
+}
+
+/* El tema pinta :focus-visible con outline 2px del acento (en Fitspin es
+   casi negro y se ve un marco grueso). Hay que empatar esa especificidad. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-rating__comment textarea:focus:not(.gafa-pay-native *):not(.gafa-pay-native),
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-rating__comment textarea:focus-visible:not(.gafa-pay-native *):not(.gafa-pay-native) {
+  border: 1px solid color-mix(in srgb, var(--gafa-color-accent) 40%, var(--gafa-color-border)) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gafa-color-accent) 14%, transparent) !important;
+  outline: none !important;
 }
 
 .gafa-rating__actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
 }
 
 .gafa-rating__actions .gafa-sdk-button {
   flex: 1;
-  min-height: 44px;
+  min-height: 48px;
+}
+
+.gafa-rating__actions .gafa-sdk-button--secondary {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  background: transparent;
+  border-color: transparent;
+  color: var(--gafa-color-muted-text);
+  font-weight: 600;
+}
+
+.gafa-rating__actions .gafa-sdk-button--secondary:not(:disabled):hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  background: var(--gafa-color-surface-raised);
+  border-color: transparent;
+  color: var(--gafa-color-text);
+  filter: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
