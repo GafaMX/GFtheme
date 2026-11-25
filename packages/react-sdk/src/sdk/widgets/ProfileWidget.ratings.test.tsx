@@ -106,7 +106,7 @@ describe("perfil: calificar historial", () => {
     expect(card?.querySelector(".gafa-acct-class__info")?.contains(button)).toBe(false);
     fireEvent.click(button);
     expect(await screen.findByRole("dialog", { name: /Calificar clase/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para La clase" }));
+    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para la clase" }));
     fireEvent.click(screen.getByRole("radio", { name: "4 estrellas para ISA" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
     await waitFor(() => expect(screen.getByText("Calificada ★ 5")).toBeTruthy());

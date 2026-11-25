@@ -69,7 +69,7 @@ describe("ClassRatingForm (cuerpo del popup)", () => {
     renderForm(mockClient({ submitReservationRating: submit }), undefined, { onSubmitted });
 
     expect(screen.getByText("¿Qué tal estuvo?")).toBeTruthy();
-    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para La clase" }));
+    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para la clase" }));
     fireEvent.click(screen.getByRole("radio", { name: "4 estrellas para ISA" }));
     fireEvent.change(screen.getByPlaceholderText("¿Algo que el estudio debería saber?"), {
       target: { value: "Excelente ritmo" },
@@ -95,7 +95,7 @@ describe("ClassRatingForm (cuerpo del popup)", () => {
     renderForm(mockClient());
     const send = screen.getByRole("button", { name: "Enviar" }) as HTMLButtonElement;
     expect(send.disabled).toBe(true);
-    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para La clase" }));
+    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para la clase" }));
     expect(send.disabled).toBe(true);
     fireEvent.click(screen.getByRole("radio", { name: "3 estrellas para ISA" }));
     expect(send.disabled).toBe(false);
@@ -108,7 +108,7 @@ describe("ClassRatingForm (cuerpo del popup)", () => {
       .mockResolvedValueOnce({ reservationId: 44, classStars: 5, staffStars: 5 });
     const onSubmitted = vi.fn();
     renderForm(mockClient({ submitReservationRating: submit }), undefined, { onSubmitted });
-    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para La clase" }));
+    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para la clase" }));
     fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para ISA" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("No pudimos guardar"));
@@ -130,7 +130,7 @@ describe("ClassRatingForm (cuerpo del popup)", () => {
   it("solo coach: pide una sola calificación", async () => {
     const submit = vi.fn(async (payload) => payload as ClassRating);
     renderForm(mockClient({ submitReservationRating: submit }), parseClassRatings({ enabled: true, rateClass: false })!);
-    expect(screen.queryByRole("radio", { name: /para La clase/ })).toBeNull();
+    expect(screen.queryByRole("radio", { name: /para la clase/ })).toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: "4 estrellas para ISA" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));

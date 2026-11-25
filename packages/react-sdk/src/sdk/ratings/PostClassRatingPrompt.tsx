@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import type { GafaClient, UserReservation } from "../client/types";
 import { ClassRatingDialog } from "./ClassRatingDialog";
@@ -15,12 +15,14 @@ export function PostClassRatingPrompt({
   history,
   config,
   loading,
+  onDismissFocus,
 }: {
   client: GafaClient;
   companyId?: number;
   history: UserReservation[];
   config: ClassRatingsConfig;
   loading: boolean;
+  onDismissFocus(): void;
 }) {
   const candidates = useMemo(() => history.filter((row) => !row.cancelled && !row.isWaitlist).slice(0, 5), [history]);
   const ratingQueries = useQueries({
@@ -44,65 +46,93 @@ export function PostClassRatingPrompt({
 
   const target = useMemo(() => pickPromptReservation(history, ratedIds), [history, ratedIds]);
   const [dismissed, setDismissed] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [dialogReservation, setDialogReservation] = useState<UserReservation | null>(null);
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+  const doneRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
-    if (!target) return;
+    if (!target || dialogReservation || confirmation) return;
     try {
       if (sessionStorage.getItem(ratingPromptStorageKey(companyId, target.id))) setDismissed(true);
     } catch {
       // sessionStorage puede fallar en iframe / modo privado
     }
-  }, [companyId, target]);
+  }, [companyId, target, dialogReservation, confirmation]);
 
-  if (!config.promptAfterClass || loading || dismissed || !target) return null;
-  if (ratingQueries.some((query) => query.isLoading)) return null;
+  useEffect(() => {
+    if (confirmation && !dialogReservation) doneRef.current?.focus({ preventScroll: true });
+  }, [confirmation, dialogReservation]);
+
+  if (!config.promptAfterClass || dismissed) return null;
+
+  const offeredReservation = dialogReservation ?? target;
+  const waitingForRatings = loading || ratingQueries.some((query) => query.isLoading);
+  if (!confirmation && !dialogReservation && (!target || waitingForRatings)) return null;
+
+  function markSeen(reservationId: number) {
+    try {
+      sessionStorage.setItem(ratingPromptStorageKey(companyId, reservationId), "1");
+    } catch {
+      // sessionStorage puede fallar en iframe / modo privado
+    }
+  }
 
   function dismiss() {
-    if (target) {
-      try {
-        sessionStorage.setItem(ratingPromptStorageKey(companyId, target.id), "1");
-      } catch {
-        // ignore
-      }
-    }
-    setOpen(false);
+    if (!confirmation && offeredReservation) markSeen(offeredReservation.id);
     setDismissed(true);
+    onDismissFocus();
   }
 
   return (
     <>
-      <aside className="gafa-rating-notice" aria-label="Califica tu última clase">
-        <p className="gafa-rating-notice__text">
-          <span className="gafa-rating-notice__kicker">Tu última clase</span>
-          <strong>
-            {target.serviceName}
-            {target.staffName ? ` con ${target.staffName}` : ""}
-          </strong>
-        </p>
+      <aside className="gafa-rating-notice" aria-label={confirmation ? undefined : "Califica tu última clase"}>
+        {confirmation ? (
+          <p className="gafa-rating-notice__text" ref={doneRef} role="status" tabIndex={-1}>
+            {confirmation}
+          </p>
+        ) : offeredReservation ? (
+          <p className="gafa-rating-notice__text">
+            <span className="gafa-rating-notice__kicker">Tu última clase</span>
+            <strong>
+              {offeredReservation.serviceName}
+              {offeredReservation.staffName ? ` con ${offeredReservation.staffName}` : ""}
+            </strong>
+          </p>
+        ) : null}
         <div className="gafa-rating-notice__actions">
+          {!confirmation && offeredReservation ? (
+            <button
+              className="gafa-sdk-button gafa-rating-cta"
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => setDialogReservation(offeredReservation)}
+            >
+              <span aria-hidden="true">★</span> Calificar
+            </button>
+          ) : null}
           <button
-            className="gafa-sdk-button gafa-rating-cta"
+            className="gafa-rating-notice__dismiss"
             type="button"
-            aria-haspopup="dialog"
-            onClick={() => setOpen(true)}
+            aria-label={confirmation ? "Cerrar confirmación" : "Ahora no"}
+            onClick={dismiss}
           >
-            <span aria-hidden="true">★</span> Calificar
-          </button>
-          <button className="gafa-rating-notice__dismiss" type="button" aria-label="Ahora no" onClick={dismiss}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
         </div>
       </aside>
-      {open ? (
+      {dialogReservation ? (
         <ClassRatingDialog
           client={client}
-          reservation={target}
+          reservation={dialogReservation}
           config={config}
-          onClose={() => setOpen(false)}
-          onSubmitted={dismiss}
+          onClose={() => setDialogReservation(null)}
+          onSubmitted={(rating) => {
+            markSeen(dialogReservation.id);
+            const stars = config.rateClass ? rating.classStars : rating.staffStars;
+            setConfirmation(`¡Gracias! Calificaste ${dialogReservation.serviceName} ★ ${stars}`);
+          }}
         />
       ) : null}
     </>

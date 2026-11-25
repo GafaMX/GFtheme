@@ -128,28 +128,55 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
     expect(document.activeElement).toBe(cancel);
   });
 
+  it("deja una parada de Tab por fila y las flechas mueven el foco y seleccionan la estrella", async () => {
+    renderAction(mockClient());
+    fireEvent.click(await findCalificar());
+    const tabStops = () => screen.getAllByRole("radio").filter((radio) => radio.tabIndex === 0);
+    const first = screen.getByRole("radio", { name: "1 estrella para la clase" });
+    const second = screen.getByRole("radio", { name: "2 estrellas para la clase" });
+    const firstCoach = screen.getByRole("radio", { name: "1 estrella para ISA" });
+    expect(tabStops()).toEqual([first, firstCoach]);
+
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(second);
+    expect(second.getAttribute("aria-checked")).toBe("true");
+    expect(first.getAttribute("aria-checked")).toBe("false");
+    expect(tabStops()).toEqual([second, firstCoach]);
+
+    fireEvent.keyDown(second, { key: "End" });
+    const last = screen.getByRole("radio", { name: "5 estrellas para la clase" });
+    expect(document.activeElement).toBe(last);
+    fireEvent.keyDown(last, { key: "Home" });
+    expect(document.activeElement).toBe(first);
+    expect(first.getAttribute("aria-checked")).toBe("true");
+  });
+
   it("al enviar, cierra el popup y la tarjeta queda con “Calificada ★ 5”", async () => {
     const submit = vi.fn(async (payload) => payload as ClassRating);
     renderAction(mockClient({ submitReservationRating: submit }));
     fireEvent.click(await findCalificar());
-    fireEvent.click(await screen.findByRole("radio", { name: "5 estrellas para La clase" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "5 estrellas para la clase" }));
     fireEvent.click(screen.getByRole("radio", { name: "4 estrellas para ISA" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     const done = await screen.findByRole("status");
-    expect(done.textContent).toBe("Calificada ★ 5");
-    expect(done.getAttribute("aria-label")).toContain("clase 5 de 5");
-    expect(done.getAttribute("aria-label")).toContain("coach 4 de 5");
+    expect(done.querySelector('[aria-hidden="true"]')?.textContent).toBe("Calificada ★ 5");
+    expect(done.querySelector(".gafa-sr-only")?.textContent).toBe("Calificada: clase 5 de 5, coach 4 de 5");
+    expect(done.getAttribute("title")).toBe("Calificada: clase 5 de 5, coach 4 de 5");
+    expect(done.hasAttribute("aria-label")).toBe(false);
     expect(screen.queryByRole("button", { name: /^Calificar/ })).toBeNull();
     await waitFor(() => expect(document.activeElement).toBe(done));
+    fireEvent.blur(done);
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("si el envío falla, el popup sigue abierto con el error en español", async () => {
     const submit = vi.fn().mockRejectedValue(new Error("El estudio aún no puede guardar calificaciones."));
     renderAction(mockClient({ submitReservationRating: submit }));
     fireEvent.click(await findCalificar());
-    fireEvent.click(await screen.findByRole("radio", { name: "5 estrellas para La clase" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "5 estrellas para la clase" }));
     fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para ISA" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
     const alert = await screen.findByRole("alert");
@@ -159,10 +186,11 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
 
   it("clase ya calificada: línea corta, sin botón ni bloque grande", async () => {
     renderAction(
-      mockClient({ getReservationRating: async () => ({ reservationId: 44, classStars: 5, staffStars: 5, comment: "Top" }) }),
+      mockClient({ getReservationRating: async () => ({ reservationId: 44, classStars: 5, staffStars: 4, comment: "Top" }) }),
     );
-    const done = await screen.findByRole("status");
-    expect(done.textContent).toBe("Calificada ★ 5");
+    const visible = await screen.findByText("Calificada ★ 5");
+    expect(visible.parentElement?.getAttribute("title")).toBe("Calificada: clase 5 de 5, coach 4 de 5");
+    expect(screen.queryByRole("status")).toBeNull();
     expect(screen.queryByRole("button", { name: /^Calificar/ })).toBeNull();
     expect(screen.queryByRole("radio")).toBeNull();
     expect(screen.queryByText("Top")).toBeNull();
@@ -179,7 +207,7 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
 
 describe("ratedSummary", () => {
   const both = parseClassRatings(true)!;
-  it("en la tarjeta solo muestra la línea corta; el detalle va en el aria-label", () => {
+  it("mantiene una línea corta y prepara el detalle para el tooltip y el lector de pantalla", () => {
     expect(ratedSummary({ reservationId: 1, classStars: 5, staffStars: 5 }, both).text).toBe("Calificada ★ 5");
     const mixed = ratedSummary({ reservationId: 1, classStars: 5, staffStars: 4 }, both);
     expect(mixed.text).toBe("Calificada ★ 5");

@@ -11,7 +11,7 @@ import {
 } from "./classRatings";
 import { useReservationRating } from "./useReservationRating";
 
-/** Línea corta a la derecha de la tarjeta. El detalle de clase y coach va en el aria-label. */
+/** Línea corta para la tarjeta y detalle de clase y coach para el tooltip y el lector de pantalla. */
 export function ratedSummary(rating: ClassRating, config: ClassRatingsConfig): { text: string; label: string } {
   const classStars = config.rateClass && isValidStarValue(rating.classStars) ? rating.classStars : null;
   const staffStars = config.rateCoach && isValidStarValue(rating.staffStars) ? rating.staffStars : null;
@@ -62,12 +62,14 @@ export function ClassRatingAction({
       <p
         ref={doneRef}
         className="gafa-rating-done"
-        role="status"
-        aria-label={summary.label}
+        role={justRated ? "status" : undefined}
+        title={summary.label}
         tabIndex={-1}
         data-rated="true"
+        onBlur={() => setJustRated(false)}
       >
         <span aria-hidden="true">{summary.text}</span>
+        <span className="gafa-sr-only">{summary.label}</span>
       </p>
     );
   }

@@ -12,7 +12,7 @@ No aplicar las migraciones D1 en production ni desplegar el Hub hasta un GO.
 En Perfil › Mis clases › Historial, la tarjeta de una clase terminada **no** muestra el formulario abierto:
 
 - Clase sin calificar: botón compacto **★ Calificar** a la derecha de la tarjeta (no suma una fila ni la hace más alta). Abre un popup (hoja inferior con asa en móvil, modal centrado en escritorio) con estrellas de la clase y del coach, comentario opcional, **Enviar** y **Cancelar**. Se cierra con la X, Cancelar, tocando fuera o con Escape; el foco queda atrapado adentro y vuelve al botón. Nombres largos de clase o coach se cortan con elipsis.
-- Clase ya calificada: una línea corta, p. ej. `Calificada ★ 5` (y `· coach ★ 4` si el coach tiene otra nota).
+- Clase ya calificada: una línea corta, p. ej. `Calificada ★ 5` (la nota de la clase; el detalle de clase y coach va en el nombre accesible y en el tooltip).
 - Con `promptAfterClass`, el aviso “Tu última clase” es una barra compacta con **Calificar** (abre el mismo popup) y una X para ocultarlo en la sesión.
 - Si el Hub no puede guardar, el popup se queda abierto con el error en español y se puede reintentar.
 

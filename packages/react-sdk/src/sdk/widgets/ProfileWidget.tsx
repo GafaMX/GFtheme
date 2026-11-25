@@ -125,6 +125,7 @@ export function ProfileWidget({
   const [pendingCancel, setPendingCancel] = useState<UserReservation | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sideRef = useRef<HTMLElement | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -421,7 +422,7 @@ export function ProfileWidget({
       <section className="gafa-acct__main" inert={menuOpen ? true : undefined}>
         <header className="gafa-acct__head">
           <div className="gafa-acct__head-copy">
-            <h2>
+            <h2 ref={headingRef} tabIndex={-1}>
               {tab === "overview" ? (
                 <>
                   ¡Hola, {firstNameOf(profile)}!{" "}
@@ -454,6 +455,7 @@ export function ProfileWidget({
             history={pastQuery.data ?? []}
             config={classRatings}
             loading={pastQuery.isLoading}
+            onDismissFocus={() => headingRef.current?.focus({ preventScroll: true })}
           />
         ) : null}
 

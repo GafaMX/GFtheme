@@ -5073,9 +5073,18 @@
   gap: 0.3rem;
   justify-self: start;
   min-height: 36px;
+  min-width: 44px;
   padding: 0.35rem 0.85rem;
+  position: relative;
   white-space: nowrap;
   width: auto;
+}
+
+/* Extiende la zona táctil sin cambiar la altura visible del botón. */
+.gafa-rating-cta::before {
+  content: "";
+  inset: -5px 0;
+  position: absolute;
 }
 
 .gafa-rating-cta span {
@@ -5163,10 +5172,10 @@
   color: var(--gafa-color-muted-text);
   cursor: pointer;
   display: inline-flex;
-  height: 40px;
+  height: 44px;
   justify-content: center;
   padding: 0;
-  width: 40px;
+  width: 44px;
 }
 
 .gafa-rating-notice__dismiss:focus-visible {
@@ -5228,9 +5237,9 @@
   --gafa-fg: var(--gafa-color-muted-text);
   --gafa-control-radius: var(--gafa-radius-pill);
   --gafa-control-padding: 0px;
-  --gafa-control-width: 40px;
-  --gafa-control-height: 40px;
-  --gafa-control-min-height: 40px;
+  --gafa-control-width: 44px;
+  --gafa-control-height: 44px;
+  --gafa-control-min-height: 44px;
   --gafa-control-font-size: 0px;
   --gafa-icon-size: 14px;
   align-items: center;
@@ -5240,14 +5249,14 @@
   color: var(--gafa-color-muted-text);
   cursor: pointer;
   display: inline-flex;
-  height: 40px;
+  height: 44px;
   justify-content: center;
   overflow: hidden;
   padding: 0;
   position: absolute;
   right: 0.7rem;
   top: 0.7rem;
-  width: 40px;
+  width: 44px;
 }
 
 .gafa-rating-dialog__close:focus-visible {

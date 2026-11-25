@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { GafaClient, UserReservation } from "../client/types";
 import {
@@ -90,7 +90,9 @@ export function ClassRatingForm({
     <div className="gafa-rating" data-state={submitMutation.isError ? "error" : "idle"}>
       <p className="gafa-rating__title">{heading}</p>
 
-      {config.rateClass ? <StarRow label="La clase" value={classStars} onChange={setClassStars} /> : null}
+      {config.rateClass ? (
+        <StarRow label="La clase" starLabel="la clase" value={classStars} onChange={setClassStars} />
+      ) : null}
       {config.rateCoach ? <StarRow label={coachLabel} value={staffStars} onChange={setStaffStars} /> : null}
 
       <label className="gafa-rating__comment">
@@ -144,39 +146,54 @@ function canSubmit(config: ClassRatingsConfig, classStars: number | null, staffS
 
 function StarRow({
   label,
+  starLabel = label,
   value,
   onChange,
 }: {
   label: string;
+  starLabel?: string;
   value: number | null;
   onChange(next: number): void;
 }) {
-  const groupId = useId();
-  const name = useMemo(() => `stars-${groupId}`, [groupId]);
+  const labelId = useId();
+  const starRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const moveFocus = useRef(false);
+  const tabStop = value ?? CLASS_RATING_MIN;
+
+  // Enfoca la estrella después de que se actualice aria-checked.
+  useLayoutEffect(() => {
+    if (moveFocus.current) {
+      moveFocus.current = false;
+      starRefs.current[tabStop]?.focus();
+    }
+  }, [tabStop, value]);
+
   return (
     <div className="gafa-rating-stars">
-      <span className="gafa-rating-stars__label" id={`${name}-label`}>
+      <span className="gafa-rating-stars__label" id={labelId}>
         {label}
       </span>
       <div
         className="gafa-rating-stars__row"
         role="radiogroup"
-        aria-labelledby={`${name}-label`}
+        aria-labelledby={labelId}
         onKeyDown={(event) => {
-          const current = value ?? 0;
+          let next: number;
           if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-            event.preventDefault();
-            onChange(Math.min(CLASS_RATING_MAX, current + 1 || 1));
+            next = Math.min(CLASS_RATING_MAX, tabStop + 1);
           } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
-            event.preventDefault();
-            onChange(Math.max(CLASS_RATING_MIN, current ? current - 1 : CLASS_RATING_MIN));
+            next = Math.max(CLASS_RATING_MIN, tabStop - 1);
           } else if (event.key === "Home") {
-            event.preventDefault();
-            onChange(CLASS_RATING_MIN);
+            next = CLASS_RATING_MIN;
           } else if (event.key === "End") {
-            event.preventDefault();
-            onChange(CLASS_RATING_MAX);
+            next = CLASS_RATING_MAX;
+          } else {
+            return;
           }
+          event.preventDefault();
+          if (next === value) return;
+          moveFocus.current = true;
+          onChange(next);
         }}
       >
         {STAR_VALUES.map((star) => {
@@ -185,12 +202,15 @@ function StarRow({
           return (
             <button
               key={star}
+              ref={(node) => {
+                starRefs.current[star] = node;
+              }}
               className="gafa-rating-star"
               type="button"
               role="radio"
-              name={name}
+              tabIndex={star === tabStop ? 0 : -1}
               aria-checked={checked}
-              aria-label={`${star} ${star === 1 ? "estrella" : "estrellas"} para ${label}`}
+              aria-label={`${star} ${star === 1 ? "estrella" : "estrellas"} para ${starLabel}`}
               data-filled={filled ? "true" : undefined}
               onClick={() => onChange(star)}
             >

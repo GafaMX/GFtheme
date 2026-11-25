@@ -38,7 +38,9 @@ export function ClassRatingDialog({ client, reservation, config, onClose, onSubm
     sheet?.focus({ preventScroll: true });
 
     const focusables = () =>
-      sheet ? Array.from(sheet.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null || el === document.activeElement) : [];
+      Array.from(sheet?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).filter(
+        (el) => el.tabIndex >= 0 && (el.offsetParent !== null || el === document.activeElement),
+      );
 
     // Captura en window: el Escape no llega al popup de Mi cuenta de abajo.
     const onKeyDown = (event: KeyboardEvent) => {
