@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseSdkLang } from "./widgets/bookedMeeting";
 import type { GafaBrandTheme } from "./theme/theme";
 import { withBuqEnvironment, type BuqEnvironmentId } from "./config/buqEnvironments";
 import { coerceFlag } from "./cart/membershipPayOptions";
@@ -108,7 +109,7 @@ export const sdkConfigSchema = z
     // compartido. Un socio pisa con las DOS llaves juntas, no con una suelta.
     captchaPublicKey: z.string().optional(),
     captchaSecretKey: z.string().optional(),
-    language: z.enum(["es", "en"]).default("es"),
+    language: z.string().optional().transform(parseSdkLang).pipe(z.enum(["es", "en", "fr"])),
     /**
      * Backend de Buq. Default production. `staging` = buq.com.mx (Stripe nuevo),
      * `development` = buq.technology. Tambien se puede poner solo `GAFA_FIT_URL`.
@@ -149,6 +150,11 @@ export const sdkConfigSchema = z
      */
     membershipEnrollment: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
     /**
+     * `false` hace que el catálogo ignore `MEMBERSHIP_ENROLLMENT` del bloque
+     * `[data-gafa-options]` del DOM. Lo fija Buq Next; V2 lo deja sin definir.
+     */
+    legacyMembershipEnrollment: z.boolean().optional(),
+    /**
      * Checkout de prueba: no carga GafaPay ni cobra tarjetas reales.
      * Solo para preview/demo. No va al Hub.
      */
@@ -180,6 +186,7 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   concierge?: boolean | Record<string, unknown>;
   crossSell?: boolean | Record<string, unknown>;
   membershipEnrollment?: boolean | Record<string, unknown>;
+  legacyMembershipEnrollment?: boolean;
   classRatings?: boolean | Record<string, unknown>;
   mockPay?: boolean;
   safeTestMode?: boolean;
@@ -188,6 +195,7 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
 const legacyOptionsSchema = z
   .object({
     GAFA_FIT_URL: z.string().optional(),
+    language: z.string().optional(),
     COMPANY_ID: z.union([z.string(), z.number()]),
     API_CLIENT: z.union([z.string(), z.number()]).optional(),
     API_SECRET: z.string().optional(),
@@ -239,6 +247,7 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
 
   return parseGafaSdkConfig({
     apiBaseUrl: legacyOptions.GAFA_FIT_URL,
+    language: legacyOptions.language,
     companyId: legacyOptions.COMPANY_ID,
     publicClientId: legacyOptions.API_CLIENT,
     clientSecret: legacyOptions.API_SECRET,

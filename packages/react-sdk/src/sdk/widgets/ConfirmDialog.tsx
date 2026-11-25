@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import { firstFocusable, trapTabKey } from "./focusTrap";
 
 export type ConfirmDialogProps = {
   title: string;
@@ -8,6 +9,7 @@ export type ConfirmDialogProps = {
   /** `danger` para acciones que destruyen algo (cancelar una clase). */
   tone?: "danger" | "default";
   busy?: boolean;
+  busyLabel?: string;
   error?: string;
   onConfirm(): void;
   onDismiss(): void;
@@ -24,20 +26,46 @@ export function ConfirmDialog({
   cancelLabel = "Volver",
   tone = "default",
   busy = false,
+  busyLabel = "Un momento…",
   error,
   onConfirm,
   onDismiss,
 }: ConfirmDialogProps) {
+  const descriptionId = useId();
   const confirmRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const interaction = useRef({ busy, onDismiss });
+  interaction.current = { busy, onDismiss };
 
   useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onDismiss();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (!interaction.current.busy) interaction.current.onDismiss();
+      } else if (event.key === "Tab") {
+        trapTabKey(dialog, event);
+        event.stopImmediatePropagation();
+      }
     };
-    document.addEventListener("keydown", onKeyDown);
-    confirmRef.current?.focus({ preventScroll: true });
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [busy, onDismiss]);
+    // The confirmation can be layered over a sheet with its own key handler.
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      previous?.focus({ preventScroll: true });
+    };
+  }, []);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const confirm = confirmRef.current;
+    const initialFocus = confirm && !confirm.disabled ? confirm : firstFocusable(dialog) ?? dialog;
+    initialFocus.focus({ preventScroll: true });
+  }, [busy]);
 
   return (
     <div
@@ -47,12 +75,22 @@ export function ConfirmDialog({
         if (event.target === event.currentTarget && !busy) onDismiss();
       }}
     >
-      <div className="gafa-confirm" role="alertdialog" aria-modal="true" aria-label={title} data-tone={tone}>
+      <div
+        className="gafa-confirm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={title}
+        aria-describedby={description ? descriptionId : undefined}
+        aria-busy={busy || undefined}
+        data-tone={tone}
+        tabIndex={-1}
+        ref={dialogRef}
+      >
         <span className="gafa-confirm__mark" aria-hidden="true">
           {tone === "danger" ? <DangerMarkIcon /> : <HelpMarkIcon />}
         </span>
         <h3 className="gafa-confirm__title">{title}</h3>
-        {description ? <p className="gafa-confirm__text">{description}</p> : null}
+        {description ? <p id={descriptionId} className="gafa-confirm__text">{description}</p> : null}
         {error ? <p className="gafa-sdk-state gafa-sdk-state--error">{error}</p> : null}
         <div className="gafa-confirm__actions">
           <button
@@ -70,7 +108,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             ref={confirmRef}
           >
-            {busy ? "Un momento…" : confirmLabel}
+            {busy ? busyLabel : confirmLabel}
           </button>
         </div>
       </div>

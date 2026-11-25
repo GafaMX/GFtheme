@@ -168,6 +168,24 @@
   filter: none;
 }
 
+.gafa-sdk-button--danger {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 1px solid var(--gafa-color-danger, #dc2626);
+  --gafa-control-fg: var(--gafa-color-danger, #dc2626);
+  --gafa-fg: var(--gafa-color-danger, #dc2626);
+  background: transparent;
+  border-color: var(--gafa-color-danger, #dc2626);
+  color: var(--gafa-color-danger, #dc2626);
+}
+
+.gafa-sdk-button--danger:not(:disabled):hover {
+  --gafa-control-bg: var(--gafa-color-danger-soft, hsl(0 75% 96%));
+  --gafa-control-border: 1px solid var(--gafa-color-danger, #dc2626);
+  background: var(--gafa-color-danger-soft, hsl(0 75% 96%));
+  border-color: var(--gafa-color-danger, #dc2626);
+  filter: none;
+}
+
 .gafa-icon-button {
   --gafa-type-size: 0;
   --gafa-control-bg: var(--gafa-color-surface);
@@ -1840,6 +1858,140 @@
   white-space: nowrap;
 }
 
+.gafa-meeting-card[data-booked="true"] {
+  cursor: default;
+  padding: 0;
+}
+
+.gafa-meeting-card__open {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0;
+  --gafa-control-fg: inherit;
+  --gafa-control-min-height: 0;
+  --gafa-control-padding: 0.55rem 0.65rem 0.25rem;
+  background: transparent;
+  border: 0;
+  border-radius: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  padding: 0.55rem 0.65rem 0.25rem;
+  text-align: left;
+  width: 100%;
+}
+
+.gafa-meeting-card[data-compact="true"] .gafa-meeting-card__open {
+  --gafa-control-padding: 0.45rem 0.5rem 0.15rem;
+  padding: 0.45rem 0.5rem 0.15rem;
+}
+
+.gafa-meeting-card__booked {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  padding: 0 0.65rem 0.55rem;
+}
+
+.gafa-meeting-card[data-compact="true"] .gafa-meeting-card__booked {
+  padding: 0 0.5rem 0.45rem;
+}
+
+.gafa-meeting-card__cancel {
+  --gafa-control-min-height: 28px;
+  --gafa-control-padding: 0.12rem 0.65rem;
+  --gafa-control-font-size: 0.72rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-height: 28px;
+  padding: 0.12rem 0.65rem;
+}
+
+.gafa-meeting-card__cancel[aria-disabled="true"],
+.gafa-booked-sheet__cancel-all .gafa-sdk-button[aria-disabled="true"] {
+  --gafa-control-border: 1px solid var(--gafa-color-border);
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.gafa-cancel-tip-host {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483001;
+}
+
+.gafa-cancel-tip__msg {
+  --gafa-type-size: 0.75rem;
+  --gafa-fg: var(--gafa-color-surface);
+  background: var(--gafa-color-text);
+  border-radius: 10px;
+  box-shadow: var(--gafa-shadow-pop);
+  color: var(--gafa-color-surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+  max-width: min(240px, calc(100vw - 16px));
+  overflow-wrap: anywhere;
+  padding: 0.45rem 0.65rem;
+  position: absolute;
+  white-space: normal;
+  width: max-content;
+}
+
+.gafa-reservation-sheet.gafa-booked-sheet {
+  max-width: 420px;
+}
+
+@media (max-width: 639px) {
+  .gafa-reservation-overlay.gafa-booked-overlay {
+    padding: 0;
+  }
+
+  .gafa-reservation-sheet.gafa-booked-sheet {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    max-width: none;
+  }
+}
+
+.gafa-booked-sheet__list {
+  display: grid;
+  gap: var(--gafa-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gafa-booked-sheet__row {
+  align-items: center;
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  display: flex;
+  gap: var(--gafa-space-2);
+  justify-content: space-between;
+  padding: 0.7rem 0.85rem;
+}
+
+.gafa-booked-sheet__row > span:first-child {
+  font-weight: 700;
+}
+
+.gafa-booked-sheet__cancel-all {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--gafa-space-1);
+}
+
+.gafa-booked-sheet__cancel-all .gafa-sdk-button {
+  min-height: 36px;
+  width: auto;
+}
+
 .gafa-meeting-card__top {
   align-items: baseline;
   display: flex;
@@ -1949,7 +2101,8 @@
 }
 
 .gafa-meeting-extra:hover .gafa-meeting-extra__tip,
-.gafa-meeting-card:focus-visible .gafa-meeting-extra__tip {
+.gafa-meeting-card:focus-visible .gafa-meeting-extra__tip,
+.gafa-meeting-card__open:focus-visible .gafa-meeting-extra__tip {
   display: block;
 }
 

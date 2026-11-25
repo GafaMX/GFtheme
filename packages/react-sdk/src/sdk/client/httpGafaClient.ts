@@ -175,6 +175,8 @@ type RawReservation = {
   cancelled?: boolean;
   canBeCancelled?: boolean;
   canBeCancelledWithoutCredit?: boolean;
+  cancelation_dead_line?: string | null;
+  cancelation_without_credit_dead_line?: string | null;
   is_overbooking?: number;
   is_waitlist?: boolean | number | string;
   isWaitlist?: boolean | number | string;
@@ -183,7 +185,7 @@ type RawReservation = {
   meeting_position?: number | string | null;
   credit?: { id?: number; name?: string } | null;
   location?: { name?: string } | string | null;
-  brand?: { slug?: string } | string | null;
+  brand?: { slug?: string; time_zone?: string | null } | string | null;
   staff?: RawStaff;
   staff_id?: number | string | null;
   meetings_id?: number | string | null;
@@ -727,6 +729,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       undefined;
     const waitlistPosition = waitlistPositionOf(raw);
     const brandSlugResolved = brandSlugFrom(raw, brandSlug);
+    const brandTimeZone = typeof raw.brand === "object" ? raw.brand?.time_zone?.trim() : undefined;
     const service =
       raw.meetings?.service?.name ??
       (raw.service && typeof raw.service === "object" ? raw.service.name : undefined) ??
@@ -737,7 +740,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       id: raw.id,
       serviceName: service,
       startsAt: raw.meeting_start ?? raw.meetings?.start ?? raw.start ?? "",
-      timezone: raw.timezone ?? brandTimeZoneBySlug.get(brandSlugResolved),
+      timezone: raw.timezone?.trim() || brandTimeZone || brandTimeZoneBySlug.get(brandSlugResolved),
       locationName: locationLabel(raw.location),
       staffName: staffLabel(staff),
       meetingId: reservationMeetingId(raw),
@@ -756,6 +759,13 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       cancelled: Boolean(raw.cancelled),
       // v1 siempre deja salir de la lista; el API de waitlist casi nunca manda canBeCancelled.
       canCancel: isWaitlist ? true : Boolean(raw.canBeCancelled || raw.canBeCancelledWithoutCredit),
+      cancelableUntil: isWaitlist ? undefined : (
+        raw.canBeCancelled && raw.cancelation_dead_line == null
+          ? undefined
+          : raw.cancelation_without_credit_dead_line ?? raw.cancelation_dead_line ?? undefined
+      ),
+      refundableUntil: isWaitlist ? undefined : (raw.cancelation_dead_line ?? undefined),
+      cancellationWithoutCredit: !isWaitlist && !raw.canBeCancelled && raw.canBeCancelledWithoutCredit === true,
     };
   }
 

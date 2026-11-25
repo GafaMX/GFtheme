@@ -192,7 +192,7 @@ export type UserReservation = {
   timezone?: string;
   locationName?: string;
   staffName?: string;
-  /** `meetings.id` de la clase. Hace falta para calificar. */
+  /** `meetings.id` de la clase. Vincula la reserva con el calendario y las calificaciones. */
   meetingId?: number;
   /** Coach (o suplente) de esa meeting. */
   staffId?: number;
@@ -218,6 +218,9 @@ export type UserReservation = {
   qrHash?: string;
   cancelled?: boolean;
   canCancel?: boolean;
+  cancelableUntil?: string;
+  refundableUntil?: string;
+  cancellationWithoutCredit?: boolean;
 };
 
 export type ClassRating = {

@@ -368,6 +368,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           captcha={captcha}
           crossSell={props.crossSell ?? config.crossSell}
           {...props}
+          language={props.language ?? config.language}
           showWeekMeetingNotes={
             props.showWeekMeetingNotes ??
             resolveShowWeekMeetingNotes({
@@ -388,7 +389,14 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
     },
     mountCatalog(target, props = {}) {
       tracker.track({ event: "widget.mounted", widget: "catalog" });
-      const mounted = mount(target, <CatalogWidget client={client} {...props} />);
+      const mounted = mount(
+        target,
+        <CatalogWidget
+          client={client}
+          {...props}
+          legacyMembershipEnrollment={props.legacyMembershipEnrollment ?? config.legacyMembershipEnrollment}
+        />,
+      );
       events.emit("buq:sdk:mounted", { widget: "catalog" });
       return mounted;
     },

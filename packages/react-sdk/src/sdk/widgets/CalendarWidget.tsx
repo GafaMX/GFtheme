@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from "react";
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { WidgetShell } from "./WidgetShell";
 import { CloseIcon } from "./sdkIcons";
 import { MonthCalendar } from "./MonthCalendar";
@@ -34,7 +34,33 @@ import type {
   Service,
   StaffMember,
   UserCredit,
+  UserReservation,
 } from "../client/types";
+import {
+  bookedCopy,
+  confirmCancelBody,
+  confirmCancelSubject,
+  confirmCancelTitle,
+  expiredSpotsMessage,
+  mergeReservationsById,
+  overlayBookedMeetings,
+  parseSdkLang,
+  reservationBrandSlugs,
+  reservationsForMeeting,
+  type BookedMeeting,
+  type BookedSpot,
+  type SdkLang,
+} from "./bookedMeeting";
+import { BookedMeetingFooter, BookedSpotsSheet, CancellationStatus, type CancellationFeedback } from "./bookedMeetingUi";
+import {
+  applyOptimisticCancelToMeetings,
+  cancelSpotsSequentially,
+  dropReservationsById,
+  errorCancelacionFallida,
+  succeededCancelIds,
+} from "./cancelBookedSpots";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { ToastHost } from "../toast/ToastHost";
 import { meetingCardHooks } from "./calendarMeetingCard";
 import {
   addDays,
@@ -73,6 +99,7 @@ import { FilterMultiSelect } from "./FilterMultiSelect";
 
 export type CalendarWidgetProps = {
   client?: GafaClient;
+  language?: string;
   /** Necesario solo para permitir registro dentro del flujo de reserva. */
   captcha?: CaptchaProvider;
   limit?: number;
@@ -114,6 +141,17 @@ export type CalendarWidgetProps = {
   crossSell?: unknown;
 };
 
+const calendarReservationsKey = ["calendar", "user-reservations"] as const;
+const calendarMeetingsKey = ["calendar", "meetings"] as const;
+const cancelReservationsKey = ["calendar", "cancel-reservations"] as const;
+
+const BookedMeetingActions = createContext<{
+  lang: SdkLang;
+  busy: boolean;
+  onCancel(meeting: BookedMeeting, spots: BookedSpot[]): void;
+  onManage(meeting: BookedMeeting): void;
+} | null>(null);
+
 type CalendarFiltersState = {
   brandSlug?: string;
   /** `null` = el usuario eligió "Todos"; no reaplicar URL / default. */
@@ -125,6 +163,7 @@ type CalendarFiltersState = {
 
 export function CalendarWidget({
   client,
+  language,
   captcha,
   filters: filtersProp = {},
   limit,
@@ -146,6 +185,8 @@ export function CalendarWidget({
     staff: parseFilterFlagValue(filtersProp.staff, true),
   };
   const queryClient = useQueryClient();
+  const lang = parseSdkLang(language);
+  const copy = bookedCopy[lang];
   const serviceQuery = readCalendarServiceQueryFromWindow();
   const serviceFallbackId = serviceQuery.serviceId ?? filters.serviceId;
   const serviceFallbackName = serviceQuery.serviceName ?? filters.serviceName;
@@ -159,11 +200,28 @@ export function CalendarWidget({
     serviceIds: serviceFallbackId != null ? [serviceFallbackId] : undefined,
   }));
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [session, setSession] = useState(readStoredToken);
+  const tokenRef = useRef(session);
+  const authRevision = useRef(0);
+  const hasToken = Boolean(session);
+  const [manageMeeting, setManageMeeting] = useState<BookedMeeting | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<{
+    meeting: BookedMeeting;
+    spots: BookedSpot[];
+    bulk: boolean;
+    expired?: string;
+  } | null>(null);
+  const [cancelFeedback, setCancelFeedback] = useState<(CancellationFeedback & { meetingId: number }) | null>(null);
+  const dateButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<CalendarView>(initialView);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("all");
   const [anchorIso, setAnchorIso] = useState(() => toIsoDate(new Date()));
 
   const anchor = useMemo(() => parseIsoDate(anchorIso), [anchorIso]);
+
+  useEffect(() => {
+    setCancelFeedback(null);
+  }, [anchorIso, view]);
 
   const brandsQuery = useQuery({
     queryKey: ["calendar", "brands"],
@@ -175,6 +233,18 @@ export function CalendarWidget({
   // sesion en si lo resuelve `ReservationFlow` al abrir una clase.
   useEffect(() => {
     return subscribeToAuthChanges(() => {
+      const token = readStoredToken();
+      if (token === tokenRef.current) return;
+      tokenRef.current = token;
+      authRevision.current += 1;
+      setSession(token);
+      setManageMeeting(null);
+      setPendingCancel(null);
+      setCancelFeedback(null);
+      void queryClient.cancelQueries({ queryKey: calendarReservationsKey });
+      queryClient.setQueriesData({ queryKey: calendarReservationsKey }, []);
+      void queryClient.invalidateQueries({ queryKey: calendarReservationsKey });
+      void queryClient.invalidateQueries({ queryKey: calendarMeetingsKey });
       // Importante REMOVE y no solo invalidate: un getProfile() previo que
       // devolvio `null` (sin token / 401) queda cacheado como success+null.
       // Tras un login fresco, ese null cacheado disparaba "sesion muerta" y
@@ -191,6 +261,32 @@ export function CalendarWidget({
   );
 
   const brandSlugs = (brandsQuery.data ?? []).map((brand) => brand.slug).join(",");
+  const reservationSlugs = reservationBrandSlugs(brandsQuery.data ?? [], selectedFilters.brandSlug, filters.brandId);
+  const reservationsQuery = useQuery({
+    queryKey: [...calendarReservationsKey, reservationSlugs],
+    queryFn: async () => {
+      if (!client || !readStoredToken()) return [];
+      const batches = await Promise.all(reservationSlugs.map((slug) => client.listUserReservations(slug, "future")));
+      return mergeReservationsById(batches);
+    },
+    enabled: Boolean(client && hasToken && reservationSlugs.length),
+  });
+
+  const ownReservations = useMemo(() => {
+    if (!hasToken || !reservationsQuery.data) return undefined;
+    const brandTimeZones = new Map(brandsQuery.data?.map((brand) => [brand.slug, brand.timeZone]));
+    return reservationsQuery.data.map((reservation) => {
+      const timezone = reservation.timezone?.trim() || brandTimeZones.get(reservation.brandSlug);
+      return timezone === reservation.timezone ? reservation : { ...reservation, timezone };
+    });
+  }, [brandsQuery.data, hasToken, reservationsQuery.data]);
+  const [bookingClock, setBookingClock] = useState(0);
+  useEffect(() => {
+    if (!ownReservations?.length) return;
+    const timer = window.setInterval(() => setBookingClock(Date.now()), 15_000);
+    return () => window.clearInterval(timer);
+  }, [ownReservations?.length]);
+
 
   // Una compania puede tener varias marcas (Fitspin tiene fitspin y
   // fitspin-cancun): las sedes se juntan de TODAS, como hace el theme legacy.
@@ -457,8 +553,12 @@ export function CalendarWidget({
       ? []
       : (selectedFilters.staffIds ?? (filters.staffId != null ? [filters.staffId] : []));
 
+  const bookedMeetings = useMemo(() => overlayBookedMeetings(
+    meetingsQuery.data ?? [], ownReservations, Math.max(bookingClock, Date.now()),
+  ), [meetingsQuery.data, ownReservations, bookingClock]);
+
   const visibleMeetings = useMemo(() => {
-    const meetings = applyLocalMeetingFilters(meetingsQuery.data ?? [], {
+    const meetings = applyLocalMeetingFilters(bookedMeetings, {
       serviceIds: selectedServiceIds,
       serviceName: selectedServiceName,
       staffIds: selectedStaffIds,
@@ -466,7 +566,7 @@ export function CalendarWidget({
 
     const sorted = meetings.map((meeting) => ({ ...meeting, legacyWaitlist: waitlist })).sort((a, b) => getMeetingStart(a).localeCompare(getMeetingStart(b)));
     return limit ? sorted.slice(0, limit) : sorted;
-  }, [limit, waitlist, meetingsQuery.data, selectedServiceIds, selectedServiceName, selectedStaffIds, timeOfDay]);
+  }, [limit, waitlist, bookedMeetings, selectedServiceIds, selectedServiceName, selectedStaffIds, timeOfDay]);
 
   const staffOptions = useMemo(() => {
     const byId = new Map<number, { id: number; name: string; photoUrl?: string }>();
@@ -646,6 +746,160 @@ export function CalendarWidget({
     setSelectedMeeting(meeting);
   }
 
+  const cancellationBusy = useIsMutating({ mutationKey: cancelReservationsKey }) > 0;
+  const cancelMutation = useMutation({
+    mutationKey: cancelReservationsKey,
+    mutationFn: async ({ spots }: NonNullable<typeof pendingCancel>) => {
+      const token = tokenRef.current;
+      const revision = authRevision.current;
+      return cancelSpotsSequentially((slug, id) => {
+        if (!client || !token || revision !== authRevision.current || token !== readStoredToken()) return Promise.reject(new Error());
+        return client.cancelReservation(slug, id);
+      }, spots);
+    },
+    onMutate: async ({ meeting, spots }) => {
+      const revision = authRevision.current;
+      const ids = new Set(spots.map((spot) => spot.id));
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: calendarReservationsKey }),
+        queryClient.cancelQueries({ queryKey: calendarMeetingsKey }),
+      ]);
+      if (!tokenRef.current || revision !== authRevision.current) throw new Error();
+      const reservations = queryClient.getQueriesData<UserReservation[]>({ queryKey: calendarReservationsKey });
+      const meetings = queryClient.getQueriesData<Meeting[]>({ queryKey: calendarMeetingsKey });
+      queryClient.setQueriesData<UserReservation[]>({ queryKey: calendarReservationsKey }, (data) =>
+        dropReservationsById(data, ids));
+      function updateMeetings(data: Meeting[] | undefined, removed: ReadonlySet<number>) {
+        return applyOptimisticCancelToMeetings(data?.map<BookedMeeting>((item) =>
+          item.id === meeting.id ? { ...item, bookedSpots: meeting.bookedSpots } : item,
+        ), removed)?.map(({ bookedSpots: _bookedSpots, ...item }) => item);
+      }
+      queryClient.setQueriesData<Meeting[]>({ queryKey: calendarMeetingsKey }, (data) => updateMeetings(data, ids));
+      return { revision, reservations, meetings, updateMeetings, ids };
+    },
+    onError: (error, { meeting, expired }, context) => {
+      if (!context || context.revision !== authRevision.current) {
+        queueMicrotask(() => cancelMutation.reset());
+        return;
+      }
+      const succeeded = succeededCancelIds(error);
+      const failed = new Set([...context.ids].filter((id) => !succeeded.has(id)));
+      for (const [key, data] of context.reservations) {
+        const restore = data?.filter((item) => failed.has(item.id));
+        if (!restore?.length) continue;
+        queryClient.setQueryData<UserReservation[]>(key, (current) => mergeReservationsById([current ?? [], restore]));
+      }
+      for (const [key, data] of context.meetings) {
+        const restored = context.updateMeetings(data, succeeded)?.find((item) => item.id === meeting.id);
+        if (!restored) continue;
+        queryClient.setQueryData<Meeting[]>(key, (current) =>
+          current?.map((item) => item.id === meeting.id ? restored : item));
+      }
+      setPendingCancel(null);
+      const success = succeeded.size ? (succeeded.size > 1 ? copy.successMultiple : copy.successSingle) : "";
+      setCancelFeedback({
+        meetingId: meeting.id,
+        tone: "error",
+        message: [success, errorCancelacionFallida(error, lang), expired].filter(Boolean).join(" "),
+      });
+      queueMicrotask(() => cancelMutation.reset());
+    },
+    onSuccess: (_, { meeting, spots, expired }, context) => {
+      if (context?.revision !== authRevision.current) return;
+      setPendingCancel(null);
+      if (meeting.bookedSpots?.length === spots.length) setManageMeeting(null);
+      const success = spots.length > 1 ? copy.successMultiple : copy.successSingle;
+      setCancelFeedback({
+        meetingId: meeting.id,
+        tone: "success",
+        message: expired ? `${success} ${expired}` : success,
+      });
+    },
+    onSettled: (_, error, __, context) => {
+      if (context?.revision !== authRevision.current) return;
+      void queryClient.invalidateQueries({ queryKey: calendarReservationsKey });
+      if (!error || succeededCancelIds(error).size) {
+        void queryClient.invalidateQueries({ queryKey: calendarMeetingsKey });
+        void queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
+        void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      }
+    },
+  });
+
+  function currentSpots(meeting: BookedMeeting): BookedSpot[] {
+    const listed = bookedMeetings.find(({ id }) => id === meeting.id)?.bookedSpots ?? [];
+    return reservationsForMeeting(ownReservations ?? [], meeting).filter(({ id }) => listed.some((spot) => spot.id === id));
+  }
+
+  function openBookedSpots(meeting: BookedMeeting) {
+    setCancelFeedback(null);
+    setManageMeeting(meeting);
+  }
+
+  function startCancellation(meeting: BookedMeeting, spots: BookedSpot[] | "all") {
+    if (queryClient.isMutating({ mutationKey: cancelReservationsKey })) return;
+    setCancelFeedback(null);
+    const current = currentSpots(meeting);
+    const selected = current.filter((spot) => spot.canCancel && (spots === "all" || spots.some(({ id }) => id === spot.id)));
+    const bulk = spots === "all";
+    const expired = bulk ? expiredSpotsMessage(current, lang) : undefined;
+    setBookingClock(Date.now());
+    if (!selected.length) {
+      setCancelFeedback({ meetingId: meeting.id, tone: "error", message: expired ?? copy.errorLocked });
+      return;
+    }
+    cancelMutation.reset();
+    setPendingCancel({ meeting: { ...meeting, bookedSpots: current }, spots: selected, bulk, expired });
+  }
+
+  function dismissCancellation() {
+    cancelMutation.reset();
+    setPendingCancel(null);
+  }
+
+  function confirmCancellation() {
+    if (!pendingCancel || queryClient.isMutating({ mutationKey: cancelReservationsKey })) return;
+    const updatedSpots = currentSpots(pendingCancel.meeting);
+    const current = updatedSpots.filter((spot) => spot.canCancel && pendingCancel.spots.some(({ id }) => id === spot.id));
+    if (current.length !== pendingCancel.spots.length) {
+      setBookingClock(Date.now());
+      const expired = pendingCancel.bulk ? expiredSpotsMessage(updatedSpots, lang) : undefined;
+      if (pendingCancel.bulk && current.length) {
+        // The selection changed while the dialog was open. Confirm the new selection first.
+        setPendingCancel({ ...pendingCancel, spots: current, expired });
+      } else {
+        dismissCancellation();
+        setCancelFeedback({ meetingId: pendingCancel.meeting.id, tone: "error", message: expired ?? copy.errorLocked });
+      }
+      return;
+    }
+    if (current.some((spot, index) => spot.withoutCredit !== pendingCancel.spots[index].withoutCredit)) {
+      setPendingCancel({ ...pendingCancel, spots: current });
+      return;
+    }
+    cancelMutation.mutate({ ...pendingCancel, meeting: { ...pendingCancel.meeting, bookedSpots: updatedSpots }, spots: current });
+  }
+
+  const managedSpots = manageMeeting
+    ? (visibleMeetings.find(({ id }) => id === manageMeeting.id)?.bookedSpots ??
+        pendingCancel?.meeting.bookedSpots ?? [])
+    : [];
+  const sheetFeedback = cancelFeedback && managedSpots.length > 0 && cancelFeedback.meetingId === manageMeeting?.id
+    ? cancelFeedback
+    : undefined;
+
+  useEffect(() => {
+    if (manageMeeting && !managedSpots.length && !pendingCancel) setManageMeeting(null);
+  }, [manageMeeting, managedSpots.length, pendingCancel]);
+
+  useEffect(() => {
+    if (pendingCancel || manageMeeting) return;
+    // Successful cancellation can remove the button that opened the overlay.
+    if (document.activeElement === document.body && cancelMutation.isSuccess) {
+      dateButtonRef.current?.focus({ preventScroll: true });
+    }
+  }, [pendingCancel, manageMeeting, cancelMutation.isSuccess]);
+
   // En vista día el cambio es tan seco que en móvil no se siente el swipe:
   // un slide corto en la dirección del gesto (sin seguir el dedo) lo marca
   // sin alargar el gesto. Null en el primer pintado: no animar el mount.
@@ -744,7 +998,9 @@ export function CalendarWidget({
 
   return (
     <WidgetShell>
+      <ToastHost />
       <CalendarToolbar
+        dateButtonRef={dateButtonRef}
         anchor={anchor}
         range={range}
         view={view}
@@ -804,32 +1060,37 @@ export function CalendarWidget({
       />
 
       {hasError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p> : null}
+      <CancellationStatus feedback={sheetFeedback ? undefined : cancelFeedback ?? undefined} />
 
-      {isLoading || (visibleMeetings.length === 0 && isUpdating) ? (
-        <CalendarSkeleton view={view} />
-      ) : view === "day" ? (
-        <div className="gafa-day-swipe" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-          <div key={toIsoDate(anchor)} className="gafa-day-pane" data-enter={dayEnter ?? undefined}>
-            {dayBody}
+      <BookedMeetingActions.Provider
+        value={{ lang, busy: cancellationBusy, onCancel: startCancellation, onManage: openBookedSpots }}
+      >
+        {isLoading || (visibleMeetings.length === 0 && isUpdating) ? (
+          <CalendarSkeleton view={view} />
+        ) : view === "day" ? (
+          <div className="gafa-day-swipe" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            <div key={toIsoDate(anchor)} className="gafa-day-pane" data-enter={dayEnter ?? undefined}>
+              {dayBody}
+            </div>
           </div>
-        </div>
-      ) : visibleMeetings.length === 0 ? (
-        calendarEmpty
-      ) : (
-        <div className="gafa-week-grid" ref={weekGridRef}>
-          {days.map((day) => (
-            <DayColumn
-              key={toIsoDate(day)}
-              compact
-              date={day}
-              loading={isUpdating}
-              meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
-              onSelect={openMeeting}
-              showWeekMeetingNotes={showWeekMeetingNotes}
-            />
-          ))}
-        </div>
-      )}
+        ) : visibleMeetings.length === 0 ? (
+          calendarEmpty
+        ) : (
+          <div className="gafa-week-grid" ref={weekGridRef}>
+            {days.map((day) => (
+              <DayColumn
+                key={toIsoDate(day)}
+                compact
+                date={day}
+                loading={isUpdating}
+                meetings={meetingsByIsoDay.get(toIsoDate(day)) ?? []}
+                onSelect={openMeeting}
+                showWeekMeetingNotes={showWeekMeetingNotes}
+              />
+            ))}
+          </div>
+        )}
+      </BookedMeetingActions.Provider>
 
       {selectedMeeting ? (
         <ReservationFlow
@@ -843,11 +1104,48 @@ export function CalendarWidget({
           onClose={() => setSelectedMeeting(null)}
         />
       ) : null}
+      {manageMeeting && managedSpots.length ? (
+        <BookedSpotsSheet
+          lang={lang}
+          title={manageMeeting.service?.name ?? manageMeeting.serviceName ?? manageMeeting.name}
+          meta={formatBookedMeetingMeta(manageMeeting, lang)}
+          spots={managedSpots}
+          busy={cancelMutation.isPending}
+          confirming={Boolean(pendingCancel)}
+          feedback={sheetFeedback}
+          onClose={() => setManageMeeting(null)}
+          onCancel={(spot) => startCancellation(manageMeeting, [spot])}
+          onCancelAll={() => startCancellation(manageMeeting, "all")}
+        />
+      ) : null}
+
+      {pendingCancel ? (
+        <SdkBodyOverlay className="gafa-booked-confirm-host" lockScroll={!manageMeeting}>
+          <ConfirmDialog
+            tone="danger"
+            title={confirmCancelTitle(pendingCancel.spots, lang)}
+            description={
+              <>
+                <span className="gafa-confirm__subject">{confirmCancelSubject(pendingCancel.spots, lang)}</span>
+                {confirmCancelBody(pendingCancel.spots, lang)}
+                {pendingCancel.expired && <> {pendingCancel.expired}</>}
+              </>
+            }
+            confirmLabel={copy.confirm}
+            cancelLabel={copy.keep}
+            busyLabel={copy.busy}
+            busy={cancelMutation.isPending}
+            onConfirm={confirmCancellation}
+            onDismiss={dismissCancellation}
+          />
+        </SdkBodyOverlay>
+      ) : null}
     </WidgetShell>
   );
 }
 
 function CalendarToolbar({
+  dateButtonRef,
   anchor,
   range,
   view,
@@ -864,6 +1162,7 @@ function CalendarToolbar({
   canGoNext,
   filterBar,
 }: {
+  dateButtonRef: Ref<HTMLButtonElement>;
   anchor: Date;
   range: DateRange;
   view: CalendarView;
@@ -926,7 +1225,7 @@ function CalendarToolbar({
             disabled={!canGoNext}
             onClick={onNext}
             aria-label={view === "day" ? "Día siguiente" : "Semana siguiente"}
-            title={canGoNext ? undefined : "La sede aún no publica horarios más adelante"}
+            title={canGoNext ? undefined : "La ubicación aún no publica horarios más adelante"}
           >
             <ChevronIcon direction="right" />
           </button>
@@ -944,6 +1243,7 @@ function CalendarToolbar({
         <div className="gafa-calendar-toolbar__label" ref={pickerRef}>
           <button
             className="gafa-calendar-date-button"
+            ref={dateButtonRef}
             type="button"
             aria-expanded={pickerOpen}
             aria-haspopup="dialog"
@@ -1178,11 +1478,12 @@ function MeetingCard({
   compact,
   showWeekMeetingNotes = false,
 }: {
-  meeting: Meeting;
+  meeting: BookedMeeting;
   onSelect(meeting: Meeting): void;
   compact: boolean;
   showWeekMeetingNotes?: boolean;
 }) {
+  const booked = useContext(BookedMeetingActions);
   const soldOut = isSoldOut(meeting);
   const waitlist = showsWaitlistPill(meeting);
   const duration = getDurationMinutes(meeting);
@@ -1201,55 +1502,80 @@ function MeetingCard({
   const showInlineNotes = Boolean(notes) && (!compact || inlineWeekNotes);
   const showInfoTip = Boolean(notes) && compact && !inlineWeekNotes;
 
-  return (
-    <button
-      className={hooks.className}
-      data-service={hooks.service || undefined}
-      data-service-id={hooks.serviceId || undefined}
-      data-daypart={hooks.daypart || undefined}
-      data-sold-out={soldOut && !waitlist ? "true" : undefined}
-      data-waitlist={waitlist ? "true" : undefined}
-      data-passed={passed ? "true" : undefined}
-      data-compact={compact ? "true" : undefined}
-      data-has-photo={showsPhoto ? "true" : undefined}
-      data-week-notes={inlineWeekNotes && notes ? "inline" : undefined}
-      type="button"
-      disabled={passed}
-      onClick={() => onSelect(meeting)}
-    >
-      <RemoteImage
-        className="gafa-meeting-staff-photo"
-        src={staffPhoto}
-        size={36}
-        gravity="face"
-        alt=""
-        aria-hidden="true"
-      />
-      <span className="gafa-meeting-card__top">
-        <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
-        {showInfoTip && notes ? <MeetingExtraHint text={notes} /> : null}
-        {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
-      </span>
-
-      <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
-      {showInlineNotes ? <span className="gafa-meeting-desc">{notes}</span> : null}
-
-      <span className="gafa-meeting-detail gafa-meeting-staff">
-        <PersonIcon />
-        {getStaffName(meeting)}
-      </span>
-      {meeting.location?.name ? (
-        <span className="gafa-meeting-detail gafa-meeting-location">
-          <LocationIcon />
-          {meeting.location.name}
+  const spots = meeting.bookedSpots ?? [];
+  const showBookedFooter = Boolean(booked && !passed && spots.length);
+  const body = (
+    <>
+        <RemoteImage
+          className="gafa-meeting-staff-photo"
+          src={staffPhoto}
+          size={36}
+          gravity="face"
+          alt=""
+          aria-hidden="true"
+        />
+        <span className="gafa-meeting-card__top">
+          <span className="gafa-meeting-time">{formatTime(getMeetingStart(meeting), meeting.timezone)}</span>
+          {showInfoTip && notes ? <MeetingExtraHint text={notes} /> : null}
+          {duration && !compact ? <span className="gafa-meeting-duration">{duration} min</span> : null}
         </span>
-      ) : null}
 
-      {passed ? (
-        <span className="gafa-availability-pill gafa-availability-pill--passed">Finalizada</span>
-      ) : (
-        <AvailabilityPill meeting={meeting} compact={compact} />
-      )}
+        <span className="gafa-meeting-name">{meeting.service?.name ?? meeting.serviceName ?? meeting.name}</span>
+        {showInlineNotes ? <span className="gafa-meeting-desc">{notes}</span> : null}
+
+        <span className="gafa-meeting-detail gafa-meeting-staff">
+          <PersonIcon />
+          {getStaffName(meeting)}
+        </span>
+        {meeting.location?.name ? (
+          <span className="gafa-meeting-detail gafa-meeting-location">
+            <LocationIcon />
+            {meeting.location.name}
+          </span>
+        ) : null}
+
+        {passed ? (
+          <span className="gafa-availability-pill gafa-availability-pill--passed">Finalizada</span>
+        ) : showBookedFooter ? null : (
+          <AvailabilityPill meeting={meeting} compact={compact} />
+        )}
+    </>
+  );
+
+  const attrs = {
+    className: hooks.className,
+    "data-service": hooks.service || undefined,
+    "data-service-id": hooks.serviceId || undefined,
+    "data-daypart": hooks.daypart || undefined,
+    "data-sold-out": soldOut && !waitlist ? "true" : undefined,
+    "data-waitlist": waitlist ? "true" : undefined,
+    "data-passed": passed ? "true" : undefined,
+    "data-compact": compact ? "true" : undefined,
+    "data-has-photo": showsPhoto ? "true" : undefined,
+    "data-week-notes": inlineWeekNotes && notes ? "inline" : undefined,
+  };
+
+  if (showBookedFooter && booked) {
+    return (
+      <article {...attrs} data-booked="true">
+        <button className="gafa-meeting-card__open" type="button" onClick={() => onSelect(meeting)}>
+          {body}
+        </button>
+        <BookedMeetingFooter
+          spots={spots}
+          lang={booked.lang}
+          compact={compact}
+          busy={booked.busy}
+          onCancel={(next) => booked.onCancel(meeting, next)}
+          onManage={() => booked.onManage(meeting)}
+        />
+      </article>
+    );
+  }
+
+  return (
+    <button {...attrs} type="button" disabled={passed} onClick={() => onSelect(meeting)}>
+      {body}
     </button>
   );
 }
@@ -1675,7 +2001,8 @@ export function ReservationFlow({
         crossSell={crossSell}
         onClose={onClose}
         onCompleted={() => {
-          queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
+          queryClient.invalidateQueries({ queryKey: calendarMeetingsKey });
+          queryClient.invalidateQueries({ queryKey: calendarReservationsKey });
           queryClient.invalidateQueries({ queryKey: ["profile"] });
           queryClient.invalidateQueries({ queryKey: ["calendar", "user-credits"] });
           onPurchased?.();
@@ -1702,7 +2029,8 @@ export function ReservationFlow({
       }}
       onReserved={() => {
         // La clase reservada cambia la disponibilidad visible y el perfil.
-        queryClient.invalidateQueries({ queryKey: ["calendar", "meetings"] });
+        queryClient.invalidateQueries({ queryKey: calendarMeetingsKey });
+        queryClient.invalidateQueries({ queryKey: calendarReservationsKey });
         queryClient.invalidateQueries({ queryKey: ["profile"] });
         onReserved?.();
       }}
@@ -2169,7 +2497,7 @@ function calendarEventFor(meeting: Meeting, seatLabel?: string) {
   const detailParts = [
     `Coach: ${getStaffName(meeting)}`,
     seatLabel ? `Tu lugar: ${seatLabel}` : null,
-    meeting.location?.name ? `Sede: ${meeting.location.name}` : null,
+    meeting.location?.name ? `Ubicación: ${meeting.location.name}` : null,
   ].filter(Boolean);
 
   return {
@@ -2676,6 +3004,15 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatBookedMeetingMeta(meeting: Meeting, lang: SdkLang): string {
+  const date = new Date(getMeetingStart(meeting).replace(" ", "T"));
+  const locale = bookedCopy[lang].locale;
+  const timeZone = meeting.timezone ?? meeting.location?.brand?.timeZone;
+  const day = new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric", timeZone }).format(date);
+  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", timeZone }).format(date);
+  return `${day} · ${time}`;
+}
+
 function formatShortDate(value: string) {
   const date = new Date(value.replace(" ", "T"));
   if (Number.isNaN(date.getTime())) return value.slice(0, 10);
@@ -2719,8 +3056,9 @@ function availabilityLevel(available: number, capacity: number): "green" | "yell
 }
 
 function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; compact?: boolean }) {
+  const lang = useContext(BookedMeetingActions)?.lang ?? "es";
   if (meeting.isReserved) {
-    return <span className="gafa-availability-pill gafa-availability-pill--reserved">Reservado</span>;
+    return <span className="gafa-availability-pill gafa-availability-pill--reserved">{bookedCopy[lang].booked}</span>;
   }
 
   if (showsWaitlistPill(meeting)) {
@@ -2743,10 +3081,10 @@ function AvailabilityPill({ meeting, compact = false }: { meeting: Meeting; comp
   return <span className="gafa-availability-pill">Disponible</span>;
 }
 
-function applyLocalMeetingFilters(
-  meetings: Meeting[],
+function applyLocalMeetingFilters<T extends Meeting>(
+  meetings: T[],
   filters: Pick<CalendarFiltersState, "serviceIds" | "staffIds"> & { serviceName?: string },
-): Meeting[] {
+): T[] {
   return meetings.filter((meeting) => {
     if (
       !meetingMatchesService(meeting, {
