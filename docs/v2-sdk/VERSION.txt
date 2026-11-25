@@ -1,5 +1,5 @@
-commit=376023c86f62f23af451c30f5247d986e818c50f
-short=376023c
-built_at=2026-11-25T16:40:09Z
-bytes=1096547
-bundle=gafa-sdk.bundle.20261125T164009Z.js
+commit=36198b54ed70d1b8641f54638c00945b7ad7be40
+short=36198b5
+built_at=2026-11-25T17:34:45Z
+bytes=1122844
+bundle=gafa-sdk.bundle.20261125T173445Z.js
