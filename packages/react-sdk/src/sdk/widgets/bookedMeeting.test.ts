@@ -88,7 +88,7 @@ describe("reservas del calendario", () => {
   it.each([
     ["es-MX", "Reservado · Lugar 4", "Reservado · 2 lugares (4, 7)", "¿Cancelar Lugar 4?", "Se cancelarán los lugares 4 y 7", "Cancelar los 2 lugares"],
     ["en-CA", "Booked · Spot 4", "Booked · 2 spots (4, 7)", "Cancel Spot 4?", "Spots 4 and 7 will be cancelled", "Cancel all 2 spots"],
-    ["FR-CA", "Réservé · Place 4", "Réservé · 2 places (4, 7)", "Annuler la place 4 ?", "Les places 4 et 7 seront annulées", "Annuler les 2 places"],
+    ["FR-CA", "Réservé · Place 4", "Réservé · 2 places (4, 7)", "Annuler la place 4\u202f?", "Les places 4 et 7 seront annulées", "Annuler les 2 places"],
   ])("localiza las reservas en %s", (language, single, multi, title, subject, all) => {
     const lang = parseSdkLang(language);
     const spots = reservationsForMeeting([base, { ...base, id: 92, seatLabel: "7" }], meeting, now);
@@ -97,6 +97,12 @@ describe("reservas del calendario", () => {
     expect(confirmCancelTitle(spots.slice(0, 1), lang)).toBe(title);
     expect(confirmCancelSubject(spots, lang)).toBe(subject);
     expect(cancelAllLabel(2, lang)).toBe(all);
+  });
+
+  it("usa un espacio estrecho inseparable antes del signo de interrogación en francés", () => {
+    const spots = reservationsForMeeting([base, { ...base, id: 92, seatLabel: "7" }], meeting, now);
+    expect(confirmCancelTitle(spots, "fr")).toBe("Annuler vos 2 places\u202f?");
+    expect(confirmCancelTitle([{ ...spots[0], seatLabel: undefined }], "fr")).toBe("Annuler votre cours\u202f?");
   });
 
   it("maneja clases sin mapa, reservas incompletas y español como idioma de respaldo", () => {

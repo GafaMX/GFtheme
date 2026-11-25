@@ -20,7 +20,7 @@ it("espera cada POST y reporta qué lugares se cancelaron ante un fallo parcial"
   expect(error).toBeInstanceOf(CancelSpotsPartialError);
   expect(cancel.mock.calls).toEqual([["fitspin", 4], ["fitspin", 7]]);
   expect(succeededCancelIds(error)).toEqual(new Set([4]));
-  expect(errorCancelacionFallida(error)).toBe("No pudimos cancelar Lugar 7.");
+  expect(errorCancelacionFallida(error)).toBe("No pudimos cancelar el lugar 7.");
   expect(errorCancelacionFallida(error, "en")).toBe("We couldn't cancel Spot 7.");
   expect(errorCancelacionFallida(error, "fr")).toBe("Nous n'avons pas pu annuler la place 7.");
   expect(dropReservationsById([four, seven], succeededCancelIds(error))).toEqual([seven]);

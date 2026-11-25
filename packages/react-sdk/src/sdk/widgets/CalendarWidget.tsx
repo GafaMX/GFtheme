@@ -219,6 +219,10 @@ export function CalendarWidget({
 
   const anchor = useMemo(() => parseIsoDate(anchorIso), [anchorIso]);
 
+  useEffect(() => {
+    setCancelFeedback(null);
+  }, [anchorIso, view]);
+
   const brandsQuery = useQuery({
     queryKey: ["calendar", "brands"],
     queryFn: async () => (client ? client.listBrands() : demoBrands()),
@@ -827,8 +831,14 @@ export function CalendarWidget({
     return reservationsForMeeting(ownReservations ?? [], meeting).filter(({ id }) => listed.some((spot) => spot.id === id));
   }
 
+  function openBookedSpots(meeting: BookedMeeting) {
+    setCancelFeedback(null);
+    setManageMeeting(meeting);
+  }
+
   function startCancellation(meeting: BookedMeeting, spots: BookedSpot[] | "all") {
     if (queryClient.isMutating({ mutationKey: cancelReservationsKey })) return;
+    setCancelFeedback(null);
     const current = currentSpots(meeting);
     const selected = current.filter((spot) => spot.canCancel && (spots === "all" || spots.some(({ id }) => id === spot.id)));
     const bulk = spots === "all";
@@ -874,7 +884,7 @@ export function CalendarWidget({
     ? (visibleMeetings.find(({ id }) => id === manageMeeting.id)?.bookedSpots ??
         pendingCancel?.meeting.bookedSpots ?? [])
     : [];
-  const sheetFeedback = managedSpots.length && cancelFeedback?.meetingId === manageMeeting?.id
+  const sheetFeedback = cancelFeedback && managedSpots.length > 0 && cancelFeedback.meetingId === manageMeeting?.id
     ? cancelFeedback
     : undefined;
 
@@ -1053,7 +1063,7 @@ export function CalendarWidget({
       <CancellationStatus feedback={sheetFeedback ? undefined : cancelFeedback ?? undefined} />
 
       <BookedMeetingActions.Provider
-        value={{ lang, busy: cancellationBusy, onCancel: startCancellation, onManage: setManageMeeting }}
+        value={{ lang, busy: cancellationBusy, onCancel: startCancellation, onManage: openBookedSpots }}
       >
         {isLoading || (visibleMeetings.length === 0 && isUpdating) ? (
           <CalendarSkeleton view={view} />

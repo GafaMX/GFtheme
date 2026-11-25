@@ -23,8 +23,8 @@ const four: UserReservation = {
 };
 const seven: UserReservation = { ...four, id: 7, meetingId: undefined, seatLabel: "7" };
 
-function setup(own: UserReservation[], { session = true, fallback = false, language, view }: {
-  session?: boolean; fallback?: boolean; language?: string; view?: "day" | "week";
+function setup(own: UserReservation[], { session = true, fallback = false, language, view, allowViewChange = false }: {
+  session?: boolean; fallback?: boolean; language?: string; view?: "day" | "week"; allowViewChange?: boolean;
 } = {}) {
   if (session) writeStoredToken("test-session");
   let reservations = [...own];
@@ -43,7 +43,7 @@ function setup(own: UserReservation[], { session = true, fallback = false, langu
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <CalendarWidget client={client} language={language} view={view} allowViewChange={false} />
+      <CalendarWidget client={client} language={language} view={view} allowViewChange={allowViewChange} />
     </QueryClientProvider>,
   );
   return { client, cancel, listUserReservations, queryClient, remove: (id: number) => { reservations = reservations.filter((row) => row.id !== id); } };
@@ -56,7 +56,7 @@ function click(button: HTMLElement) {
 
 const sheet = () => screen.getByRole("dialog", { name: "Ride" });
 const confirm = () => screen.getByRole("alertdialog");
-const manage = () => screen.findByRole("button", { name: "Ver o cancelar tus lugares" });
+const manage = () => screen.findByRole("button", { name: "Ver / cancelar tus lugares" });
 const yes = () => within(confirm()).getByRole("button", { name: "Sí, cancelar" });
 
 beforeEach(() => {
@@ -103,6 +103,60 @@ describe("Reservado con Cancelar", () => {
     expect(post).toHaveBeenCalledExactlyOnceWith("https://example.test/api/me/brand/fitspin-cancun/reservation-future/4/cancel", expect.objectContaining({ method: "POST" }));
     expect(await screen.findByText("2/10 lugares")).toBeTruthy();
     expect(screen.queryByText("Reservado · Lugar 4")).toBeNull();
+  });
+
+  it("vacía la región de estado entre dos cancelaciones con el mismo resultado", async () => {
+    const { cancel } = setup([four, seven, { ...four, id: 9, seatLabel: "9" }]);
+    click(await manage());
+    const dialog = within(sheet());
+    const status = dialog.getByRole("status");
+    expect(status.getAttribute("aria-atomic")).toBe("true");
+    expect(status.textContent).toBe("");
+
+    click(dialog.getByRole("button", { name: "Cancelar Lugar 4" }));
+    click(yes());
+    await waitFor(() => expect(status.textContent).toBe("Cancelamos tu reserva."));
+
+    click(await dialog.findByRole("button", { name: "Cancelar Lugar 7" }));
+    expect(dialog.getByRole("status")).toBe(status);
+    expect(status.textContent).toBe("");
+    click(yes());
+    await waitFor(() => expect(status.textContent).toBe("Cancelamos tu reserva."));
+    expect(dialog.getByRole("status")).toBe(status);
+    expect(cancel.mock.calls.map(([, id]) => id)).toEqual([4, 7]);
+  });
+
+  it("limpia el aviso anterior al volver a abrir la hoja", async () => {
+    setup([four, seven, { ...four, id: 9, seatLabel: "9" }]);
+    click(await manage());
+    const dialog = within(sheet());
+    click(dialog.getByRole("button", { name: "Cancelar Lugar 4" }));
+    click(yes());
+    await dialog.findByText("Cancelamos tu reserva.");
+
+    click(dialog.getByRole("button", { name: "Cerrar" }));
+    const status = screen.getByRole("status", { name: "" });
+    expect(status.textContent).toBe("Cancelamos tu reserva.");
+    click(await manage());
+    expect(status.textContent).toBe("");
+    expect(within(sheet()).getByRole("status").textContent).toBe("");
+    expect(screen.queryByText("Cancelamos tu reserva.")).toBeNull();
+  });
+
+  it.each([
+    ["day", "Día siguiente"],
+    ["week", "Semana siguiente"],
+    ["day", "Semana"],
+    ["week", "Día"],
+  ] as const)("limpia el aviso en vista %s al pulsar %s", async (view, control) => {
+    setup([four], { view, allowViewChange: true });
+    const status = screen.getByRole("status", { name: "" });
+    click(await screen.findByRole("button", { name: "Cancelar Lugar 4" }));
+    click(yes());
+    await waitFor(() => expect(status.textContent).toBe("Cancelamos tu reserva."));
+
+    click(screen.getByRole("button", { name: control }));
+    expect(status.textContent).toBe("");
   });
 
   it("abre la hoja con dos lugares y confirma los dos", async () => {
@@ -163,11 +217,13 @@ describe("Reservado con Cancelar", () => {
   });
 
   it.each([
-    ["en", "View or cancel your spots", "Cancel the available spot", "The cancellation window has closed for Spot 4."],
-    ["fr", "Voir ou annuler vos places", "Annuler la place disponible", "Le délai d’annulation est dépassé pour Place 4."],
-  ])("localiza la acción y el motivo de la hoja mixta en %s", async (language, opener, name, description) => {
+    ["en", "View / cancel your spots", "View / cancel", "Cancel the available spot", "The cancellation window has closed for Spot 4."],
+    ["fr", "Voir / annuler vos places", "Voir / annuler", "Annuler la place disponible", "Le délai d’annulation est dépassé pour Place 4."],
+  ])("localiza la acción y el motivo de la hoja mixta en %s", async (language, opener, label, name, description) => {
     setup([{ ...four, canCancel: false }, seven], { language });
-    click(await screen.findByRole("button", { name: opener }));
+    const manageButton = await screen.findByRole("button", { name: opener });
+    expect(manageButton.textContent).toBe(label);
+    click(manageButton);
     expect(within(sheet()).getByRole("button", { name, description })).toBeTruthy();
   });
 
@@ -264,7 +320,7 @@ describe("Reservado con Cancelar", () => {
     expect(confirm()).toBeTruthy();
     act(() => rejectLast(new Error("red")));
     const status = within(sheet()).getByRole("status");
-    await waitFor(() => expect(status.textContent).toBe("Cancelamos tu reserva. No pudimos cancelar Lugar 7."));
+    await waitFor(() => expect(status.textContent).toBe("Cancelamos tu reserva. No pudimos cancelar el lugar 7."));
     expect(getToasts()).toEqual([]);
     expect(cache()[0]).toMatchObject({ available: 2, isReserved: true });
     expect(within(sheet()).queryByText("Lugar 4")).toBeNull();
@@ -309,7 +365,7 @@ describe("Reservado con Cancelar", () => {
     setup([four], { language: "fr-CA" });
     expect(await screen.findByText("Réservé · Place 4")).toBeTruthy();
     click(screen.getByRole("button", { name: "Annuler Place 4" }));
-    expect(confirm().getAttribute("aria-label")).toBe("Annuler la place 4 ?");
+    expect(confirm().getAttribute("aria-label")).toBe("Annuler la place 4\u202f?");
     click(within(confirm()).getByRole("button", { name: "Oui, annuler" }));
     await screen.findByText("Votre réservation a été annulée.");
   });
