@@ -23,6 +23,8 @@ export const bookedCopy = {
     yourSpots: "Tus lugares",
     close: "Cerrar",
     cancelAll: (count: number) => `Cancelar los ${count} lugares`,
+    cancelAvailable: (count: number) => count === 1 ? "Cancelar el lugar disponible" : `Cancelar los ${count} lugares disponibles`,
+    expiredSpots: (list: string) => `El plazo de cancelación ya venció para ${list}.`,
     cancelSpotTitle: (value: string) => `¿Cancelar Lugar ${value}?`,
     cancelSpotsTitle: (count: number) => `¿Cancelar tus ${count} lugares?`,
     cancelClassTitle: "¿Cancelar tu clase?",
@@ -58,6 +60,8 @@ export const bookedCopy = {
     yourSpots: "Your spots",
     close: "Close",
     cancelAll: (count: number) => `Cancel all ${count} spots`,
+    cancelAvailable: (count: number) => count === 1 ? "Cancel the available spot" : `Cancel all ${count} available spots`,
+    expiredSpots: (list: string) => `The cancellation window has closed for ${list}.`,
     cancelSpotTitle: (value: string) => `Cancel Spot ${value}?`,
     cancelSpotsTitle: (count: number) => `Cancel your ${count} spots?`,
     cancelClassTitle: "Cancel your class?",
@@ -93,6 +97,8 @@ export const bookedCopy = {
     yourSpots: "Vos places",
     close: "Fermer",
     cancelAll: (count: number) => `Annuler les ${count} places`,
+    cancelAvailable: (count: number) => count === 1 ? "Annuler la place disponible" : `Annuler les ${count} places disponibles`,
+    expiredSpots: (list: string) => `Le délai d’annulation est dépassé pour ${list}.`,
     cancelSpotTitle: (value: string) => `Annuler la place ${value} ?`,
     cancelSpotsTitle: (count: number) => `Annuler vos ${count} places ?`,
     cancelClassTitle: "Annuler votre cours ?",
@@ -297,4 +303,10 @@ export function confirmCancelBody(spots: BookedSpot[], lang: SdkLang = "es"): st
 
 export function cancelAllLabel(count: number, lang: SdkLang = "es"): string {
   return bookedCopy[lang].cancelAll(count);
+}
+
+export function expiredSpotsMessage(spots: BookedSpot[], lang: SdkLang): string | undefined {
+  const labels = spots.flatMap((spot, index) =>
+    spot.canCancel ? [] : [spotRowLabel(spot, index, spots.length, lang)]);
+  return labels.length ? bookedCopy[lang].expiredSpots(joinBookedLabels(labels, lang)) : undefined;
 }

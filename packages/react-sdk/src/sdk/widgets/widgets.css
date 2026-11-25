@@ -1914,50 +1914,33 @@
   --gafa-control-fg: var(--gafa-color-muted-text);
   --gafa-fg: var(--gafa-color-muted-text);
   cursor: not-allowed;
-  opacity: 0.45;
-  pointer-events: none;
-  text-decoration: line-through;
+  opacity: 0.55;
 }
 
-.gafa-cancel-tip {
-  cursor: not-allowed;
-  display: inline-flex;
-  position: relative;
+.gafa-cancel-tip-host {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483001;
 }
 
 .gafa-cancel-tip__msg {
+  --gafa-type-size: 0.75rem;
   --gafa-fg: var(--gafa-color-surface);
   background: var(--gafa-color-text);
   border-radius: 10px;
-  bottom: calc(100% + 8px);
   box-shadow: var(--gafa-shadow-pop);
   color: var(--gafa-color-surface);
   font-size: 0.75rem;
   font-weight: 600;
-  left: 50%;
   line-height: 1.4;
-  opacity: 0;
+  margin: 0;
+  max-width: min(240px, calc(100vw - 16px));
+  overflow-wrap: anywhere;
   padding: 0.45rem 0.65rem;
-  pointer-events: none;
   position: absolute;
-  transform: translateX(-50%) translateY(4px);
-  transition: opacity 0.16s ease, transform 0.16s ease;
-  white-space: nowrap;
+  white-space: normal;
   width: max-content;
-  z-index: 6;
-}
-
-.gafa-cancel-tip:hover .gafa-cancel-tip__msg,
-.gafa-cancel-tip:focus-within .gafa-cancel-tip__msg,
-.gafa-cancel-tip:active .gafa-cancel-tip__msg {
-  opacity: 1;
-  transform: translateX(-50%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gafa-cancel-tip__msg {
-    transition: none;
-  }
 }
 
 .gafa-reservation-sheet.gafa-booked-sheet {

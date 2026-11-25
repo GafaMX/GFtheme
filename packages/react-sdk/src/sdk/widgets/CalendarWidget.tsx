@@ -41,6 +41,7 @@ import {
   confirmCancelBody,
   confirmCancelSubject,
   confirmCancelTitle,
+  expiredSpotsMessage,
   mergeReservationsById,
   overlayBookedMeetings,
   parseSdkLang,
@@ -50,7 +51,7 @@ import {
   type BookedSpot,
   type SdkLang,
 } from "./bookedMeeting";
-import { BookedMeetingFooter, BookedSpotsSheet } from "./bookedMeetingUi";
+import { BookedMeetingFooter, BookedSpotsSheet, CancellationStatus, type CancellationFeedback } from "./bookedMeetingUi";
 import {
   applyOptimisticCancelToMeetings,
   cancelSpotsSequentially,
@@ -60,7 +61,6 @@ import {
 } from "./cancelBookedSpots";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ToastHost } from "../toast/ToastHost";
-import { showToast } from "../toast/toastStore";
 import { meetingCardHooks } from "./calendarMeetingCard";
 import {
   addDays,
@@ -205,7 +205,13 @@ export function CalendarWidget({
   const authRevision = useRef(0);
   const hasToken = Boolean(session);
   const [manageMeeting, setManageMeeting] = useState<BookedMeeting | null>(null);
-  const [pendingCancel, setPendingCancel] = useState<{ meeting: BookedMeeting; spots: BookedSpot[] } | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<{
+    meeting: BookedMeeting;
+    spots: BookedSpot[];
+    bulk: boolean;
+    expired?: string;
+  } | null>(null);
+  const [cancelFeedback, setCancelFeedback] = useState<(CancellationFeedback & { meetingId: number }) | null>(null);
   const dateButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<CalendarView>(initialView);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("all");
@@ -230,6 +236,7 @@ export function CalendarWidget({
       setSession(token);
       setManageMeeting(null);
       setPendingCancel(null);
+      setCancelFeedback(null);
       void queryClient.cancelQueries({ queryKey: calendarReservationsKey });
       queryClient.setQueriesData({ queryKey: calendarReservationsKey }, []);
       void queryClient.invalidateQueries({ queryKey: calendarReservationsKey });
@@ -766,7 +773,7 @@ export function CalendarWidget({
       queryClient.setQueriesData<Meeting[]>({ queryKey: calendarMeetingsKey }, (data) => updateMeetings(data, ids));
       return { revision, reservations, meetings, updateMeetings, ids };
     },
-    onError: (error, { meeting }, context) => {
+    onError: (error, { meeting, expired }, context) => {
       if (!context || context.revision !== authRevision.current) {
         queueMicrotask(() => cancelMutation.reset());
         return;
@@ -785,14 +792,24 @@ export function CalendarWidget({
           current?.map((item) => item.id === meeting.id ? restored : item));
       }
       setPendingCancel(null);
-      showToast(errorCancelacionFallida(error, lang), "error");
+      const success = succeeded.size ? (succeeded.size > 1 ? copy.successMultiple : copy.successSingle) : "";
+      setCancelFeedback({
+        meetingId: meeting.id,
+        tone: "error",
+        message: [success, errorCancelacionFallida(error, lang), expired].filter(Boolean).join(" "),
+      });
       queueMicrotask(() => cancelMutation.reset());
     },
-    onSuccess: (_, { spots }, context) => {
+    onSuccess: (_, { meeting, spots, expired }, context) => {
       if (context?.revision !== authRevision.current) return;
       setPendingCancel(null);
-      setManageMeeting(null);
-      showToast(spots.length > 1 ? copy.successMultiple : copy.successSingle, "success");
+      if (meeting.bookedSpots?.length === spots.length) setManageMeeting(null);
+      const success = spots.length > 1 ? copy.successMultiple : copy.successSingle;
+      setCancelFeedback({
+        meetingId: meeting.id,
+        tone: "success",
+        message: expired ? `${success} ${expired}` : success,
+      });
     },
     onSettled: (_, error, __, context) => {
       if (context?.revision !== authRevision.current) return;
@@ -810,16 +827,19 @@ export function CalendarWidget({
     return reservationsForMeeting(ownReservations ?? [], meeting).filter(({ id }) => listed.some((spot) => spot.id === id));
   }
 
-  function startCancellation(meeting: BookedMeeting, spots: BookedSpot[]) {
+  function startCancellation(meeting: BookedMeeting, spots: BookedSpot[] | "all") {
     if (queryClient.isMutating({ mutationKey: cancelReservationsKey })) return;
     const current = currentSpots(meeting);
-    const selected = current.filter((spot) => spots.some(({ id }) => id === spot.id) && spot.canCancel);
-    if (!selected.length || selected.length !== spots.length) {
-      setBookingClock(Date.now());
+    const selected = current.filter((spot) => spot.canCancel && (spots === "all" || spots.some(({ id }) => id === spot.id)));
+    const bulk = spots === "all";
+    const expired = bulk ? expiredSpotsMessage(current, lang) : undefined;
+    setBookingClock(Date.now());
+    if (!selected.length) {
+      setCancelFeedback({ meetingId: meeting.id, tone: "error", message: expired ?? copy.errorLocked });
       return;
     }
     cancelMutation.reset();
-    setPendingCancel({ meeting: { ...meeting, bookedSpots: current }, spots: selected });
+    setPendingCancel({ meeting: { ...meeting, bookedSpots: current }, spots: selected, bulk, expired });
   }
 
   function dismissCancellation() {
@@ -830,24 +850,33 @@ export function CalendarWidget({
   function confirmCancellation() {
     if (!pendingCancel || queryClient.isMutating({ mutationKey: cancelReservationsKey })) return;
     const updatedSpots = currentSpots(pendingCancel.meeting);
-    const current = updatedSpots.filter((spot) => pendingCancel.spots.some(({ id }) => id === spot.id));
-    if (current.length !== pendingCancel.spots.length || current.some((spot) => !spot.canCancel)) {
-      dismissCancellation();
+    const current = updatedSpots.filter((spot) => spot.canCancel && pendingCancel.spots.some(({ id }) => id === spot.id));
+    if (current.length !== pendingCancel.spots.length) {
       setBookingClock(Date.now());
-      showToast(copy.errorLocked, "error");
+      const expired = pendingCancel.bulk ? expiredSpotsMessage(updatedSpots, lang) : undefined;
+      if (pendingCancel.bulk && current.length) {
+        // The selection changed while the dialog was open. Confirm the new selection first.
+        setPendingCancel({ ...pendingCancel, spots: current, expired });
+      } else {
+        dismissCancellation();
+        setCancelFeedback({ meetingId: pendingCancel.meeting.id, tone: "error", message: expired ?? copy.errorLocked });
+      }
       return;
     }
     if (current.some((spot, index) => spot.withoutCredit !== pendingCancel.spots[index].withoutCredit)) {
-      setPendingCancel({ meeting: pendingCancel.meeting, spots: current });
+      setPendingCancel({ ...pendingCancel, spots: current });
       return;
     }
-    cancelMutation.mutate({ meeting: { ...pendingCancel.meeting, bookedSpots: updatedSpots }, spots: current });
+    cancelMutation.mutate({ ...pendingCancel, meeting: { ...pendingCancel.meeting, bookedSpots: updatedSpots }, spots: current });
   }
 
   const managedSpots = manageMeeting
     ? (visibleMeetings.find(({ id }) => id === manageMeeting.id)?.bookedSpots ??
         pendingCancel?.meeting.bookedSpots ?? [])
     : [];
+  const sheetFeedback = managedSpots.length && cancelFeedback?.meetingId === manageMeeting?.id
+    ? cancelFeedback
+    : undefined;
 
   useEffect(() => {
     if (manageMeeting && !managedSpots.length && !pendingCancel) setManageMeeting(null);
@@ -1021,6 +1050,7 @@ export function CalendarWidget({
       />
 
       {hasError ? <p className="gafa-sdk-state gafa-sdk-state--error">No pudimos cargar el calendario.</p> : null}
+      <CancellationStatus feedback={sheetFeedback ? undefined : cancelFeedback ?? undefined} />
 
       <BookedMeetingActions.Provider
         value={{ lang, busy: cancellationBusy, onCancel: startCancellation, onManage: setManageMeeting }}
@@ -1072,9 +1102,10 @@ export function CalendarWidget({
           spots={managedSpots}
           busy={cancelMutation.isPending}
           confirming={Boolean(pendingCancel)}
+          feedback={sheetFeedback}
           onClose={() => setManageMeeting(null)}
           onCancel={(spot) => startCancellation(manageMeeting, [spot])}
-          onCancelAll={(spots) => startCancellation(manageMeeting, spots)}
+          onCancelAll={() => startCancellation(manageMeeting, "all")}
         />
       ) : null}
 
@@ -1087,6 +1118,7 @@ export function CalendarWidget({
               <>
                 <span className="gafa-confirm__subject">{confirmCancelSubject(pendingCancel.spots, lang)}</span>
                 {confirmCancelBody(pendingCancel.spots, lang)}
+                {pendingCancel.expired && <> {pendingCancel.expired}</>}
               </>
             }
             confirmLabel={copy.confirm}

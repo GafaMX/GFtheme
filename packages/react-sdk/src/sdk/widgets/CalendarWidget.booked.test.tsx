@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHttpGafaClient } from "../client/httpGafaClient";
 import { clearStoredToken, writeStoredToken } from "../client/tokenStorage";
 import type { GafaClient, Meeting, UserReservation } from "../client/types";
-import { clearToasts } from "../toast/toastStore";
+import { ToastHost } from "../toast/ToastHost";
+import { clearToasts, getToasts } from "../toast/toastStore";
 import { CalendarWidget } from "./CalendarWidget";
 
 const now = new Date("2026-11-24T16:00:00Z");
@@ -22,8 +23,8 @@ const four: UserReservation = {
 };
 const seven: UserReservation = { ...four, id: 7, meetingId: undefined, seatLabel: "7" };
 
-function setup(own: UserReservation[], { session = true, fallback = false, language }: {
-  session?: boolean; fallback?: boolean; language?: string;
+function setup(own: UserReservation[], { session = true, fallback = false, language, view }: {
+  session?: boolean; fallback?: boolean; language?: string; view?: "day" | "week";
 } = {}) {
   if (session) writeStoredToken("test-session");
   let reservations = [...own];
@@ -42,7 +43,7 @@ function setup(own: UserReservation[], { session = true, fallback = false, langu
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <CalendarWidget client={client} language={language} allowViewChange={false} />
+      <CalendarWidget client={client} language={language} view={view} allowViewChange={false} />
     </QueryClientProvider>,
   );
   return { client, cancel, listUserReservations, queryClient, remove: (id: number) => { reservations = reservations.filter((row) => row.id !== id); } };
@@ -75,7 +76,10 @@ afterEach(() => {
 
 describe("Reservado con Cancelar", () => {
   it("carga todas las marcas con sesión y cancela un lugar con el POST de V2", async () => {
+    const otherHost = render(<ToastHost />);
     const vm = setup([four], { session: false });
+    otherHost.unmount();
+    const status = screen.getByRole("status");
     expect(await screen.findByText("Reservado")).toBeTruthy();
     expect(vm.listUserReservations).not.toHaveBeenCalled();
     const post = vi.fn(async () => {
@@ -94,7 +98,8 @@ describe("Reservado con Cancelar", () => {
     expect(confirm().getAttribute("aria-label")).toBe("¿Cancelar Lugar 4?");
     expect(within(confirm()).getByText(/te regresamos la clase/)).toBeTruthy();
     click(yes());
-    await screen.findByText("Cancelamos tu reserva.");
+    await waitFor(() => expect(status.textContent).toBe("Cancelamos tu reserva."));
+    expect(getToasts()).toEqual([]);
     expect(post).toHaveBeenCalledExactlyOnceWith("https://example.test/api/me/brand/fitspin-cancun/reservation-future/4/cancel", expect.objectContaining({ method: "POST" }));
     expect(await screen.findByText("2/10 lugares")).toBeTruthy();
     expect(screen.queryByText("Reservado · Lugar 4")).toBeNull();
@@ -117,33 +122,127 @@ describe("Reservado con Cancelar", () => {
     expect(cancel.mock.calls).toEqual([["fitspin-cancun", 4], ["fitspin-cancun", 7]]);
   });
 
-  it("deja Cancelar bloqueado con un tooltip y la acción colectiva bloqueada si algún lugar venció", async () => {
-    setup([{ ...four, canCancel: false }, seven]);
+  it("cancela todos los lugares elegibles y conserva la explicación de los vencidos", async () => {
+    const { cancel } = setup([{ ...four, canCancel: false }, seven, { ...four, id: 9, seatLabel: "9" }]);
     click(await manage());
-    for (const name of ["Cancelar Lugar 4", "Cancelar los 2 lugares"]) {
-      const button = within(sheet()).getByRole("button", { name }) as HTMLButtonElement;
-      expect(button.disabled).toBe(true);
-      expect(button.getAttribute("aria-disabled")).toBe("true");
-      const tip = document.getElementById(button.getAttribute("aria-describedby") ?? "");
-      expect(tip?.getAttribute("role")).toBe("tooltip");
-      expect(tip?.textContent).toBe("Ya pasó el tiempo para cancelar");
-    }
-    expect((within(sheet()).getByRole("button", { name: "Cancelar Lugar 7" }) as HTMLButtonElement).disabled).toBe(false);
+
+    const dialog = within(sheet());
+    const eligible = dialog.getByRole<HTMLButtonElement>("button", {
+      name: "Cancelar los 2 lugares disponibles",
+      description: "El plazo de cancelación ya venció para Lugar 4.",
+    });
+    expect(eligible.disabled).toBe(false);
+    click(eligible);
+    expect(within(confirm()).getByText("Se cancelarán los lugares 7 y 9")).toBeTruthy();
+    click(yes());
+
+    const result = "Cancelamos tus reservas. El plazo de cancelación ya venció para Lugar 4.";
+    await waitFor(() => expect(dialog.getByRole("status").textContent).toBe(result));
+    expect(cancel.mock.calls).toEqual([["fitspin-cancun", 7], ["fitspin-cancun", 9]]);
+    expect(dialog.getAllByRole("listitem").map((row) => within(row).getByText("Lugar 4").textContent)).toEqual(["Lugar 4"]);
+    click(dialog.getByRole("button", { name: "Cerrar" }));
+    expect(screen.getByRole("status").textContent).toBe(result);
+    expect(screen.getByText("Reservado · Lugar 4")).toBeTruthy();
+  });
+
+  it("vuelve a pedir confirmación para los lugares elegibles si uno vence en el diálogo", async () => {
+    const { cancel } = setup([{ ...four, cancelableUntil: "2026-11-24T16:01:00Z" }, seven]);
+    click(await manage());
+    click(within(sheet()).getByRole("button", { name: "Cancelar los 2 lugares" }));
+    expect(confirm().getAttribute("aria-label")).toBe("¿Cancelar tus 2 lugares?");
+
+    vi.setSystemTime(new Date("2026-11-24T16:02:00Z"));
+    click(yes());
+    expect(cancel).not.toHaveBeenCalled();
+    expect(confirm().getAttribute("aria-label")).toBe("¿Cancelar Lugar 7?");
+    expect(within(confirm()).getByText(/El plazo de cancelación ya venció para Lugar 4/)).toBeTruthy();
+    click(yes());
+    await waitFor(() => expect(within(sheet()).getByRole("status").textContent)
+      .toBe("Cancelamos tu reserva. El plazo de cancelación ya venció para Lugar 4."));
+    expect(cancel).toHaveBeenCalledExactlyOnceWith("fitspin-cancun", 7);
+  });
+
+  it.each([
+    ["en", "View or cancel your spots", "Cancel the available spot", "The cancellation window has closed for Spot 4."],
+    ["fr", "Voir ou annuler vos places", "Annuler la place disponible", "Le délai d’annulation est dépassé pour Place 4."],
+  ])("localiza la acción y el motivo de la hoja mixta en %s", async (language, opener, name, description) => {
+    setup([{ ...four, canCancel: false }, seven], { language });
+    click(await screen.findByRole("button", { name: opener }));
+    expect(within(sheet()).getByRole("button", { name, description })).toBeTruthy();
+  });
+
+  it("mantiene los botones vencidos en el recorrido de foco con el motivo accesible", async () => {
+    const { cancel } = setup([{ ...four, canCancel: false }, { ...seven, canCancel: false }]);
+    click(await manage());
+    const dialog = within(sheet());
+    const close = dialog.getByRole("button", { name: "Cerrar" });
+    const all = dialog.getByRole<HTMLButtonElement>("button", {
+      name: "Cancelar los 2 lugares", description: "Ya pasó el tiempo para cancelar",
+    });
+    expect(all.disabled).toBe(false);
+    expect(all.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(all);
+    fireEvent.click(all);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(cancel).not.toHaveBeenCalled();
+    const spot = dialog.getByRole<HTMLButtonElement>("button", {
+      name: "Cancelar Lugar 4", description: "Ya pasó el tiempo para cancelar",
+    });
+    act(() => spot.focus());
+    expect(document.activeElement).toBe(spot);
+    expect(spot.getAttribute("aria-disabled")).toBe("true");
+    expect(spot.disabled).toBe(false);
+  });
+
+  it("reposiciona el tooltip de semana dentro de la pantalla de 390 px", async () => {
+    vi.stubGlobal("innerWidth", 390);
+    vi.stubGlobal("innerHeight", 844);
+    setup([{ ...four, canCancel: false }], { language: "en", view: "week" });
+    const button = await screen.findByRole("button", { name: "Cancel Spot 4" });
+    const week = button.closest(".gafa-week-grid");
+    expect(week).toBeTruthy();
+    let buttonLeft = 340;
+    let buttonTop = 100;
+    vi.spyOn(button, "getBoundingClientRect").mockImplementation(() => new DOMRect(buttonLeft, buttonTop, 46, 28));
+    const measure = HTMLElement.prototype.getBoundingClientRect;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains("gafa-cancel-tip__msg")
+        ? new DOMRect(0, 0, 230, 38)
+        : measure.call(this);
+    });
+
+    act(() => button.focus());
+    const tip = document.querySelector<HTMLElement>(".gafa-cancel-tip__msg")!;
+    expect(tip.textContent).toBe("The cancellation window has closed");
+    expect(week?.contains(tip)).toBe(false);
+    expect(Number.parseFloat(tip.style.left) + 230).toBe(382);
+    expect(tip.style.top).toBe("54px");
+
+    buttonLeft = 0;
+    buttonTop = 4;
+    fireEvent.scroll(week!);
+    expect(tip.style.left).toBe("8px");
+    expect(tip.style.top).toBe("40px");
+    act(() => button.blur());
+    expect(tip.isConnected).toBe(false);
   });
 
   it("usa Brand.timeZone para un plazo sin offset cuando la reserva no trae timezone", async () => {
     setup([{ ...four, cancelableUntil: "2026-11-24 10:30:00" }]);
     const cancel = await screen.findByRole<HTMLButtonElement>("button", { name: "Cancelar Lugar 4" });
-    expect(cancel.disabled).toBe(true);
+    expect(cancel.disabled).toBe(false);
     expect(cancel.getAttribute("aria-disabled")).toBe("true");
   });
 
   it("mantiene el botón bloqueado en la tarjeta y retira los datos de la sesión al salir", async () => {
     setup([{ ...four, canCancel: false }], { fallback: true });
     const button = await screen.findByRole<HTMLButtonElement>("button", { name: "Cancelar Lugar 4" });
-    expect(button.disabled).toBe(true);
+    expect(button.disabled).toBe(false);
     expect(button.getAttribute("aria-disabled")).toBe("true");
-    expect(screen.getByRole("tooltip").id).toBe(button.getAttribute("aria-describedby"));
+    expect(screen.getByRole("button", {
+      name: "Cancelar Lugar 4", description: "Ya pasó el tiempo para cancelar",
+    })).toBe(button);
     act(() => clearStoredToken());
     expect(await screen.findByText("Reservado")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Cancelar Lugar 4" })).toBeNull();
@@ -164,7 +263,9 @@ describe("Reservado con Cancelar", () => {
     fireEvent.keyDown(confirm(), { key: "Escape" });
     expect(confirm()).toBeTruthy();
     act(() => rejectLast(new Error("red")));
-    await screen.findByText("No pudimos cancelar Lugar 7.");
+    const status = within(sheet()).getByRole("status");
+    await waitFor(() => expect(status.textContent).toBe("Cancelamos tu reserva. No pudimos cancelar Lugar 7."));
+    expect(getToasts()).toEqual([]);
     expect(cache()[0]).toMatchObject({ available: 2, isReserved: true });
     expect(within(sheet()).queryByText("Lugar 4")).toBeNull();
     click(within(sheet()).getByRole("button", { name: "Cancelar Lugar 7" }));
