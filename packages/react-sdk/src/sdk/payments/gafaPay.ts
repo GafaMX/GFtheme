@@ -1,14 +1,18 @@
 /**
- * Bridge hacia GafaPayFront (frontpay.buq.partners/main.js).
+ * Bridge de pagos.
  *
- * GafaPayFront trae su PROPIO React 16.8.6 dentro del bundle. Sus componentes
- * (StripePayment, PaypalPayment...) devuelven elementos creados por ese React,
- * y React 19 los rechaza en duro: "A React Element from an older version of
- * React was rendered" (error #525). Por eso NO se pueden renderizar dentro de
- * nuestro arbol: se montan como isla, con un ReactDOM 16 aparte, en un div que
- * nuestro React reserva pero no toca.
+ * Stripe (desde 2026-11-26) usa el web component `<stripe-payment-element>`
+ * de `https://buq.partners/js/payments/stripe-payment.iife.js` — el mismo
+ * widget que gafa.fit. Habla con GAFApay (`apipay.buq.partners`) y confirma
+ * una Checkout Session (`ui_mode=elements`, `client_secret` cs_…).
  *
- * El bundle tambien exige su configuracion en el DOM ANTES de evaluarse:
+ * PayPal / Recurrente / Conekta siguen en GafaPayFront
+ * (`frontpay.buq.partners/main.js`). Ese bundle trae su PROPIO React 16.8.6;
+ * React 19 los rechaza ("A React Element from an older version of React was
+ * rendered", error #525). Por eso se montan como isla, con un ReactDOM 16
+ * aparte, en un div que nuestro React reserva pero no toca.
+ *
+ * El bundle de frontpay exige su configuracion en el DOM ANTES de evaluarse:
  *
  *   <script data-gafapay-config type="application/json">
  *     { "CLIENT_ID": 282, "CLIENT_SECRET": "..." }
@@ -73,15 +77,29 @@ export type GafaPayWidgetProps = {
   onGafaPayErrAction: (error: { err?: unknown; message?: string }) => void;
   /**
    * Recurrente: el cobro pasa en otra ventana. GafaPayFront llama esto con
-   * `{ redirect, checkout_token|id }` en cuanto tiene la URL. Ahí hay que
-   * POSTear `initial-purchase` y pollar el status.
+   * `{ redirect, checkout_token|id }` en cuanto tiene la URL.
+   * Stripe (widget nuevo): `initial-payment-created` con `{ message }` =
+   * checkout_token. En ambos hay que POSTear `initial-purchase` y pollar.
    */
   onCheckoutOpenAction?: (data: unknown, done?: () => void) => void;
   onCheckoutCloseAction?: () => void;
+  /** Stripe: `initial-payment-updated` (p. ej. cambió el token). */
+  onInitialPaymentUpdated?: (data: unknown) => void;
+  /** Stripe: `initial-payment-updating` — pausar el poll. */
+  onInitialPaymentUpdating?: () => void;
+  /** Stripe: `initial-payment-update-error`. */
+  onInitialPaymentUpdateError?: (error: { err?: unknown; message?: string }) => void;
   termsAndConditions?: string | boolean | null;
   hasRecurringPayment?: boolean;
   paymentFrequency?: string | null;
   changePaymentSystemProperties?: (props: { recurringPayment?: boolean; saveCard?: boolean }) => void;
+  /** API de GAFApay (`api-url` del web component). */
+  apiUrl?: string;
+  clientId?: string | number;
+  clientSecret?: string;
+  customerFirstName?: string;
+  customerLastName?: string;
+  discountAmount?: number;
 };
 
 type ReactLike = {
@@ -100,6 +118,7 @@ declare global {
   interface Window {
     GafaPayElements?: GafaPayElementsGlobal;
     GAFAPAY_SDK_URL?: string;
+    GAFAPAY_API_URL?: string;
     React?: ReactLike;
     ReactDOM?: ReactDomLike;
     _handleStripePayment?: () => unknown;
@@ -109,6 +128,9 @@ declare global {
 }
 
 export const DEFAULT_GAFAPAY_FRONT_URL = "https://frontpay.buq.partners/main.js";
+export const DEFAULT_GAFAPAY_API_URL = "https://apipay.buq.partners";
+export const DEFAULT_STRIPE_PAYMENT_SCRIPT_URL = "https://buq.partners/js/payments/stripe-payment.iife.js";
+export const STRIPE_PAYMENT_ELEMENT_TAG = "stripe-payment-element";
 export const PAY_FORM_LOAD_ERROR = "No se pudo cargar el formulario de pago. Inténtalo de nuevo.";
 export const WIDGET_CONTENT_TIMEOUT_MS = 9000;
 export const WIDGET_CONTENT_TIMEOUT_MOBILE_MS = 16000;
@@ -135,20 +157,46 @@ const REACT16_SOURCES = [
 const PAYPAL_CHECKOUT_JS = "https://www.paypalobjects.com/api/checkout.min.js";
 
 let configuredFrontUrl: string | undefined;
+let configuredApiUrl: string | undefined;
+let configuredStripeScriptUrl: string | undefined;
 
 /** Lo llama createGafaSdk con el front del entorno (production/staging/dev). */
 export function setGafaPayFrontUrl(url?: string): void {
   configuredFrontUrl = url;
 }
 
+export function setGafaPayApiUrl(url?: string): void {
+  configuredApiUrl = url;
+}
+
+export function setStripePaymentScriptUrl(url?: string): void {
+  configuredStripeScriptUrl = url;
+}
+
 export function resolveGafaPayFrontUrl(override?: string): string {
   return override || configuredFrontUrl || (typeof window !== "undefined" ? window.GAFAPAY_SDK_URL : undefined) || DEFAULT_GAFAPAY_FRONT_URL;
+}
+
+export function resolveGafaPayApiUrl(override?: string): string {
+  const raw =
+    override ||
+    configuredApiUrl ||
+    (typeof window !== "undefined" ? window.GAFAPAY_API_URL : undefined) ||
+    DEFAULT_GAFAPAY_API_URL;
+  return raw.replace(/\/+$/, "");
+}
+
+export function resolveStripePaymentScriptUrl(override?: string): string {
+  return override || configuredStripeScriptUrl || DEFAULT_STRIPE_PAYMENT_SCRIPT_URL;
 }
 
 export type GafaPayCredentials = {
   clientId: string | number;
   clientSecret: string;
   scriptUrl?: string;
+  apiUrl?: string;
+  /** `stripe` carga el IIFE de `<stripe-payment-element>`, no frontpay. */
+  method?: string;
 };
 
 type Runtime = {
@@ -158,6 +206,17 @@ type Runtime = {
 };
 
 let runtimePromise: Promise<Runtime> | null = null;
+let stripeRuntimePromise: Promise<Runtime> | null = null;
+
+const STRIPE_RUNTIME: Runtime = {
+  React: { createElement: () => null },
+  ReactDOM: { render: () => undefined, unmountComponentAtNode: () => true },
+  elements: { StripePayment: STRIPE_PAYMENT_ELEMENT_TAG },
+};
+
+export function isStripePaymentMethod(slug: string | undefined): boolean {
+  return (slug ?? "").trim().toLowerCase() === "stripe";
+}
 
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -372,13 +431,40 @@ export function ensureLegacyPaypalCheckout(): Promise<void> {
   });
 }
 
+function stripeElementDefined(): boolean {
+  return typeof customElements !== "undefined" && Boolean(customElements.get(STRIPE_PAYMENT_ELEMENT_TAG));
+}
+
+async function loadStripePaymentScript(scriptUrl?: string): Promise<void> {
+  if (stripeElementDefined()) return;
+  await loadScript(resolveStripePaymentScriptUrl(scriptUrl));
+  if (!stripeElementDefined()) {
+    throw new Error(PAY_FORM_LOAD_ERROR);
+  }
+}
+
+async function loadStripeRuntime(credentials: GafaPayCredentials): Promise<Runtime> {
+  await loadStripePaymentScript(credentials.scriptUrl);
+  return STRIPE_RUNTIME;
+}
+
 /**
- * Carga (una sola vez) config + React 16 + GafaPayFront y devuelve el runtime.
+ * Carga (una sola vez) el runtime del método.
+ * Stripe: IIFE de `<stripe-payment-element>`.
+ * El resto: config + React 16 + GafaPayFront.
  * Si la pagina del socio ya tiene React 16 global (theme legacy), se reutiliza.
  */
 export function loadGafaPay(credentials: GafaPayCredentials): Promise<Runtime> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("GafaPay solo funciona en navegador."));
+  }
+  if (isStripePaymentMethod(credentials.method)) {
+    if (stripeRuntimePromise) return stripeRuntimePromise;
+    stripeRuntimePromise = loadStripeRuntime(credentials).catch((error: unknown) => {
+      stripeRuntimePromise = null;
+      throw error;
+    });
+    return stripeRuntimePromise;
   }
   if (runtimePromise) return runtimePromise;
 
@@ -426,6 +512,7 @@ export function loadGafaPay(credentials: GafaPayCredentials): Promise<Runtime> {
 function componentFor(elements: GafaPayElementsGlobal, slug: string): unknown {
   switch (slug) {
     case "stripe":
+      // El widget nuevo no vive en GafaPayElements; ver mountStripePaymentElement.
       return elements.StripePayment;
     case "paypal":
       return elements.PaypalPayment;
@@ -475,8 +562,129 @@ export function waitForWidgetContent(
   });
 }
 
-/** Monta el formulario del proveedor dentro de `container` (isla React 16). */
-export function mountGafaPayWidget(
+export type MountGafaPayOptions = {
+  /**
+   * Matrícula / cobro con tarjeta guardada: sigue usando StripePayment de
+   * frontpay. El checkout de socios usa el web component nuevo.
+   */
+  legacy?: boolean;
+};
+
+function flagAttr(value: boolean | undefined): string {
+  return value ? "true" : "false";
+}
+
+function applyStripePaymentAttributes(el: HTMLElement, props: GafaPayWidgetProps): void {
+  const customerName =
+    props.order.customerName ||
+    [props.customerFirstName, props.customerLastName].filter(Boolean).join(" ").trim();
+  el.setAttribute("api-url", resolveGafaPayApiUrl(props.apiUrl));
+  el.setAttribute("client-id", String(props.clientId ?? ""));
+  el.setAttribute("client-secret", String(props.clientSecret ?? ""));
+  el.setAttribute("customer-name", customerName);
+  if (props.customerFirstName) el.setAttribute("customer-first-name", props.customerFirstName);
+  else el.removeAttribute("customer-first-name");
+  if (props.customerLastName) el.setAttribute("customer-last-name", props.customerLastName);
+  else el.removeAttribute("customer-last-name");
+  if (props.order.customerEmail) el.setAttribute("customer-email", props.order.customerEmail);
+  else el.removeAttribute("customer-email");
+  if (props.order.customerPhone) el.setAttribute("customer-phone", props.order.customerPhone);
+  else el.removeAttribute("customer-phone");
+  el.setAttribute("line-items", JSON.stringify(props.order.lineItems ?? []));
+  el.setAttribute("has-recurring-payment", flagAttr(props.hasRecurringPayment));
+  el.setAttribute("general-data", JSON.stringify(props.generalData ?? {}));
+  if (props.discountAmount != null && Number.isFinite(props.discountAmount) && props.discountAmount > 0) {
+    el.setAttribute("discount-amount", String(Math.round(props.discountAmount)));
+  } else {
+    el.removeAttribute("discount-amount");
+  }
+  if (props.paymentFrequency) el.setAttribute("payment-frequency", String(props.paymentFrequency));
+  else el.removeAttribute("payment-frequency");
+  el.setAttribute("currency", (props.order.currency || "mxn").toLowerCase());
+  if (props.termsAndConditions === false || props.termsAndConditions == null || props.termsAndConditions === "") {
+    el.setAttribute("terms-and-conditions", "false");
+  } else {
+    el.setAttribute("terms-and-conditions", "true");
+  }
+}
+
+function detailFromEvent(event: Event): unknown {
+  return "detail" in event ? (event as CustomEvent).detail : undefined;
+}
+
+function bindStripePaymentEvents(el: HTMLElement, props: GafaPayWidgetProps): () => void {
+  const onStart = () => props.onStartPayAction();
+  const onSuccess = (event: Event) => {
+    const detail = detailFromEvent(event);
+    props.onGafaPaySuccessAction(
+      detail && typeof detail === "object" ? (detail as GafaPaySuccess) : { message: detail },
+    );
+  };
+  const onError = (event: Event) => {
+    const detail = detailFromEvent(event);
+    if (detail && typeof detail === "object") {
+      props.onGafaPayErrAction(detail as { err?: unknown; message?: string });
+      return;
+    }
+    props.onGafaPayErrAction({ message: typeof detail === "string" ? detail : "Ocurrió un error durante el pago." });
+  };
+  const onCreated = (event: Event) => props.onCheckoutOpenAction?.(detailFromEvent(event));
+  const onUpdated = (event: Event) => props.onInitialPaymentUpdated?.(detailFromEvent(event));
+  const onUpdating = () => props.onInitialPaymentUpdating?.();
+  const onUpdateError = (event: Event) => {
+    const detail = detailFromEvent(event);
+    if (detail && typeof detail === "object") {
+      props.onInitialPaymentUpdateError?.(detail as { err?: unknown; message?: string });
+      return;
+    }
+    props.onInitialPaymentUpdateError?.({
+      message: typeof detail === "string" ? detail : "No pudimos actualizar el pago.",
+    });
+  };
+
+  el.addEventListener("payment-start", onStart);
+  el.addEventListener("payment-success", onSuccess);
+  el.addEventListener("payment-error", onError);
+  el.addEventListener("initial-payment-created", onCreated);
+  el.addEventListener("initial-payment-updated", onUpdated);
+  el.addEventListener("initial-payment-updating", onUpdating);
+  el.addEventListener("initial-payment-update-error", onUpdateError);
+
+  return () => {
+    el.removeEventListener("payment-start", onStart);
+    el.removeEventListener("payment-success", onSuccess);
+    el.removeEventListener("payment-error", onError);
+    el.removeEventListener("initial-payment-created", onCreated);
+    el.removeEventListener("initial-payment-updated", onUpdated);
+    el.removeEventListener("initial-payment-updating", onUpdating);
+    el.removeEventListener("initial-payment-update-error", onUpdateError);
+  };
+}
+
+function mountStripePaymentElement(container: Element, props: GafaPayWidgetProps): GafaPayIsland {
+  container.replaceChildren();
+  const el = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
+  applyStripePaymentAttributes(el, props);
+  let unbind = bindStripePaymentEvents(el, props);
+  container.appendChild(el);
+
+  return {
+    update: (next) => {
+      unbind();
+      applyStripePaymentAttributes(el, next);
+      unbind = bindStripePaymentEvents(el, next);
+      const render = (el as unknown as { render?: () => void }).render;
+      if (typeof render === "function") render.call(el);
+    },
+    unmount: () => {
+      unbind();
+      el.remove();
+      container.replaceChildren();
+    },
+  };
+}
+
+function mountLegacyGafaPayWidget(
   runtime: Runtime,
   container: Element,
   slug: string,
@@ -499,6 +707,20 @@ export function mountGafaPayWidget(
       runtime.ReactDOM.unmountComponentAtNode(container);
     },
   };
+}
+
+/** Monta el formulario del proveedor dentro de `container`. */
+export function mountGafaPayWidget(
+  runtime: Runtime,
+  container: Element,
+  slug: string,
+  props: GafaPayWidgetProps,
+  options?: MountGafaPayOptions,
+): GafaPayIsland {
+  if (isStripePaymentMethod(slug) && !options?.legacy) {
+    return mountStripePaymentElement(container, props);
+  }
+  return mountLegacyGafaPayWidget(runtime, container, slug, props);
 }
 
 export function hasGafaPayRuntime(): boolean {
@@ -530,20 +752,34 @@ function clickPayPalCheckoutButton(scope: ParentNode): boolean {
   return true;
 }
 
+function clickStripePaymentSubmit(scope: ParentNode): boolean {
+  const host =
+    scope.querySelector<HTMLElement>(STRIPE_PAYMENT_ELEMENT_TAG) ??
+    (scope instanceof HTMLElement && scope.tagName.toLowerCase() === STRIPE_PAYMENT_ELEMENT_TAG
+      ? scope
+      : null);
+  const button = (host ?? scope).querySelector<HTMLButtonElement>("button[type='submit']");
+  if (!button || button.disabled) return false;
+  button.click();
+  return true;
+}
+
 /**
- * Dispara la confirmacion del metodo activo. Cada formulario registra su
- * handler global al montarse (mismo contrato que el fancy v1). PayPal y
- * Recurrente no: el CTA amarillo hace click en el botón que montó GafaPay.
+ * Dispara la confirmacion del metodo activo.
  *
- * StripePayment.handleSubmit es `async` y puede rechazar (p.ej. si falta
- * onStartPayAction). Hay que await-ear el retorno: un fire-and-forget deja
- * el throw como unhandled rejection y el UI se queda en "Procesando…".
+ * Stripe (widget nuevo): el IIFE no registra `window._handleStripePayment`.
+ * El CTA amarillo hace click en el `button[type=submit]` interno ("Pagar").
+ * Fallback al handler global por si un test o el fancy legacy lo dejó puesto.
+ *
+ * PayPal y Recurrente: el CTA amarillo hace click en el botón que montó GafaPay.
  */
 export function triggerGafaPayConfirm(slug: string, root?: ParentNode | null): Promise<boolean> {
   if (typeof window === "undefined") return Promise.resolve(false);
 
   let result: unknown;
-  if (slug === "stripe" && window._handleStripePayment) {
+  if (slug === "stripe") {
+    if (clickStripePaymentSubmit(root ?? document)) return Promise.resolve(true);
+    if (!window._handleStripePayment) return Promise.resolve(false);
     result = window._handleStripePayment();
   } else if (slug === "conekta" && window._handleConektaPayment) {
     result = window._handleConektaPayment();
