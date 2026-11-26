@@ -79,7 +79,14 @@ export function paymentMethodsForCart<T extends { slug: string }>(
 }
 
 const SAVE_SELECTORS = '#saveCard, [name="saveCard"], [name="save_card"]';
-const RENEW_SELECTORS = '#recurringPayment, [name="recurringPayment"], [name="subscribe"]';
+/**
+ * Frontpay usa #recurringPayment. El IIFE de Stripe pinta un checkbox sin
+ * name/id ("Pago Recurrente"). Hace falta al confirmar membresía; NO en el
+ * mount (un click cambia `recurringPayment` y el IIFE re-dispara
+ * updateinitialpayment en bucle).
+ */
+const RENEW_SELECTORS =
+  '#recurringPayment, [name="recurringPayment"], [name="subscribe"], stripe-payment-element input[type="checkbox"]';
 
 /**
  * Clicks reach GafaPayFront's React onChange handler; assigning checked does not.

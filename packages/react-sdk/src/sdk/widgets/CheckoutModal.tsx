@@ -1885,6 +1885,8 @@ export function CheckoutModal({
     try {
       if (membershipPurchase) {
         const root = document.querySelector(".gafa-checkout-paymount__island");
+        // Stripe: un click al checkbox del IIFE en el gesto de Pagar (no en el
+        // mount). Frontpay: #recurringPayment / #saveCard.
         if (!root || !await syncGafaPayMembershipToggles(root, { saveCard, autoRenew })) {
           warnCheckout("No se verificaron las opciones de membresía; se bloqueó el cobro.");
           setPaying(false);

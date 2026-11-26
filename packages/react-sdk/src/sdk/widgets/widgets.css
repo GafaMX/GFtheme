@@ -7694,7 +7694,8 @@ svg.gafa-acct-qr__image {
 .gafa-checkout-paymount #recurringPayment,
 .gafa-checkout-paymount [name="saveCard"],
 .gafa-checkout-paymount [name="recurringPayment"],
-.gafa-checkout-paymount [name="subscribe"] {
+.gafa-checkout-paymount [name="subscribe"],
+.gafa-checkout-paymount[data-method="stripe"] stripe-payment-element label:has(input[type="checkbox"]) {
   height: 0;
   margin: 0;
   overflow: hidden;
