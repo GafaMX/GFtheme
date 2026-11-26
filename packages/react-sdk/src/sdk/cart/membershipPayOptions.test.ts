@@ -131,6 +131,15 @@ describe("readShowMembershipOptions", () => {
 });
 
 describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
+  it("no hace click en checkboxes dentro de stripe-payment-element (dispara updateinitialpayment)", async () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<stripe-payment-element><input type="checkbox"></stripe-payment-element>`;
+    const input = root.querySelector("input")!;
+    const click = vi.spyOn(input, "click");
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(false);
+    expect(click).not.toHaveBeenCalled();
+  });
+
   it("acepta que no exista #saveCard si Pago Recurrente queda activo", async () => {
     const root = document.createElement("div");
     root.innerHTML = '<input id="recurringPayment" type="checkbox">';

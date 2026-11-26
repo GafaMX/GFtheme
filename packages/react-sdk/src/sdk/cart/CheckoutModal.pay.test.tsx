@@ -296,8 +296,9 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     renderPay(mockClient());
     await waitUntilPayReady();
 
-    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(2);
-    expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(2);
+    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(1);
+    expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(1);
+    expect(mocks.waitForWidgetContent).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("button", { name: /reintentar/i })).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -312,13 +313,13 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     const retry = await waitFor(() => screen.getByRole("button", { name: /reintentar/i }));
     expect(screen.getAllByText(/no se pudo cargar el formulario de pago/i).length).toBeGreaterThan(0);
     expect(payButton().disabled).toBe(true);
-    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(2);
+    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(1);
 
     mocks.waitForWidgetContent.mockResolvedValue(undefined);
     fireEvent.click(retry);
     await waitUntilPayReady();
     expect(screen.queryByRole("button", { name: /reintentar/i })).toBeNull();
-    expect(mocks.loadGafaPay.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(mocks.loadGafaPay.mock.calls.length).toBe(2);
   });
 
   it("el CVC inválido sale en toast, sin ERROR-05 ni texto junto al botón", async () => {

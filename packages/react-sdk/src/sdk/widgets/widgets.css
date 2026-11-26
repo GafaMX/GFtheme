@@ -7665,8 +7665,9 @@ svg.gafa-acct-qr__image {
   width: 1px;
 }
 
-/* El IIFE muestra "Cargando..." / "Loading..." antes del Payment Element.
-   El skeleton del SDK cubre hasta el iframe; esto evita un flash de texto. */
+/* El IIFE muestra "Cargando..." / "Loading..." (ye.type==='loading') antes
+   del Payment Element. El island se esconde hasta data-state=ready, y el
+   SDK no marca ready mientras ese texto siga en el DOM. */
 .gafa-checkout-paymount[data-method="stripe"][data-state="loading"] stripe-payment-element,
 .gafa-checkout-paymount[data-method="stripe"][data-state="idle"] stripe-payment-element {
   visibility: hidden;
