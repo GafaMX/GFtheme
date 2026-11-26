@@ -25,7 +25,7 @@ export const bookedCopy = {
     cancelAll: (count: number) => `Cancelar los ${count} lugares`,
     cancelAvailable: (count: number) => count === 1 ? "Cancelar el lugar disponible" : `Cancelar los ${count} lugares disponibles`,
     expiredSpots: (list: string) => `El plazo de cancelación ya venció para ${list}.`,
-    cancelSpotTitle: (value: string) => `¿Cancelar Lugar ${value}?`,
+    cancelSpotTitle: (value: string) => `¿Cancelar el lugar ${value}?`,
     cancelSpotsTitle: (count: number) => `¿Cancelar tus ${count} lugares?`,
     cancelClassTitle: "¿Cancelar tu clase?",
     subjectSpots: (list: string) => `Se cancelarán los lugares ${list}`,
@@ -93,7 +93,7 @@ export const bookedCopy = {
     cancelSpot: (label: string) => `Annuler ${label}`,
     manage: "Voir / annuler",
     manageLabel: "Voir / annuler vos places",
-    locked: "Le délai d'annulation est dépassé",
+    locked: "Le délai d’annulation est dépassé",
     yourSpots: "Vos places",
     close: "Fermer",
     cancelAll: (count: number) => `Annuler les ${count} places`,
@@ -114,9 +114,9 @@ export const bookedCopy = {
     successSingle: "Votre réservation a été annulée.",
     successMultiple: "Vos réservations ont été annulées.",
     errorLocked: "Cette réservation ne peut plus être annulée.",
-    errorGeneric: "Nous n'avons pas pu annuler. Réessayez.",
+    errorGeneric: "Nous n’avons pas pu annuler. Réessayez.",
     errorSpot: (value: string) => `la place ${value}`,
-    errorSpots: (list: string) => `Nous n'avons pas pu annuler ${list}.`,
+    errorSpots: (list: string) => `Nous n’avons pas pu annuler ${list}.`,
     yourBooking: "Votre réservation",
     booking: (index: number) => `Réservation ${index}`,
     and: "et",
@@ -306,7 +306,10 @@ export function cancelAllLabel(count: number, lang: SdkLang = "es"): string {
 }
 
 export function expiredSpotsMessage(spots: BookedSpot[], lang: SdkLang): string | undefined {
-  const labels = spots.flatMap((spot, index) =>
-    spot.canCancel ? [] : [spotRowLabel(spot, index, spots.length, lang)]);
+  const labels = spots.flatMap((spot, index) => {
+    if (spot.canCancel) return [];
+    const seat = seatLabelOf(spot);
+    return [seat ? bookedCopy[lang].errorSpot(seat) : spotRowLabel(spot, index, spots.length, lang)];
+  });
   return labels.length ? bookedCopy[lang].expiredSpots(joinBookedLabels(labels, lang)) : undefined;
 }

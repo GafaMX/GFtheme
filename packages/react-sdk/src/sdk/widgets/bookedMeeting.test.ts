@@ -86,7 +86,7 @@ describe("reservas del calendario", () => {
   });
 
   it.each([
-    ["es-MX", "Reservado · Lugar 4", "Reservado · 2 lugares (4, 7)", "¿Cancelar Lugar 4?", "Se cancelarán los lugares 4 y 7", "Cancelar los 2 lugares"],
+    ["es-MX", "Reservado · Lugar 4", "Reservado · 2 lugares (4, 7)", "¿Cancelar el lugar 4?", "Se cancelarán los lugares 4 y 7", "Cancelar los 2 lugares"],
     ["en-CA", "Booked · Spot 4", "Booked · 2 spots (4, 7)", "Cancel Spot 4?", "Spots 4 and 7 will be cancelled", "Cancel all 2 spots"],
     ["FR-CA", "Réservé · Place 4", "Réservé · 2 places (4, 7)", "Annuler la place 4\u202f?", "Les places 4 et 7 seront annulées", "Annuler les 2 places"],
   ])("localiza las reservas en %s", (language, single, multi, title, subject, all) => {
