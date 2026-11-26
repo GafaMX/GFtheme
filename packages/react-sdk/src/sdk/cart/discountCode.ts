@@ -15,6 +15,13 @@ export type BuildCheckDiscountUrlInput = {
   /** URL del create-form-template, con `_|_` donde va el código. */
   urlTemplate?: string;
   lines: DiscountLine[];
+  /**
+   * Token de la Checkout Session (GAFApay). Sin esto gafa.fit valida el código
+   * pero no llama `Stripe::addDiscountToCheckout`.
+   */
+  checkoutToken?: string | null;
+  /** Compra standby de `initial-purchase`. */
+  pendingPurchaseId?: string | number | null;
 };
 
 /**
@@ -47,6 +54,11 @@ export function buildCheckDiscountUrl(input: BuildCheckDiscountUrlInput): URL {
     const key =
       line.type === "combo" ? "combo[]" : line.type === "membership" ? "membership[]" : "product[]";
     url.searchParams.append(key, String(line.id));
+  }
+  const checkoutToken = input.checkoutToken?.trim();
+  if (checkoutToken) url.searchParams.set("checkout_token", checkoutToken);
+  if (input.pendingPurchaseId != null && String(input.pendingPurchaseId) !== "") {
+    url.searchParams.set("pending_purchase_id", String(input.pendingPurchaseId));
   }
   return url;
 }
@@ -98,21 +110,33 @@ export function parseDiscountCheckResponse(code: string, ok: boolean, data: unkn
   }
 
   const raw = data as Record<string, unknown>;
-  const discountType = typeof raw.discount_type === "string" ? raw.discount_type : undefined;
+  // gafa.fit (sin pending purchase) responde `{ discountCode, client_secret, message }`.
+  // Con Stripe addDiscountToCheckout el modelo va en `discountCode` y el token
+  // nuevo en `message` / `client_secret`. El parser viejo leía `id` en la raíz
+  // y marcaba 200 como "Código no válido" (BUQMX en fitspin.mx).
+  const nested =
+    raw.discountCode && typeof raw.discountCode === "object"
+      ? (raw.discountCode as Record<string, unknown>)
+      : raw;
+  const discountType = typeof nested.discount_type === "string" ? nested.discount_type : undefined;
   const parsedNumber =
-    typeof raw.discount_number === "number" ? raw.discount_number : Number(raw.discount_number);
+    typeof nested.discount_number === "number" ? nested.discount_number : Number(nested.discount_number);
   const discountNumber = Number.isFinite(parsedNumber) ? parsedNumber : undefined;
-  const looksLikeCode = raw.id != null && (typeof raw.code === "string" || Boolean(discountType));
+  const looksLikeCode = nested.id != null && (typeof nested.code === "string" || Boolean(discountType));
   if (!looksLikeCode) {
     return { valid: false, code, message: discountCheckErrorMessage(data) ?? "Código no válido" };
   }
 
   const label =
-    typeof raw.short_description === "string" && raw.short_description
-      ? raw.short_description
+    typeof nested.short_description === "string" && nested.short_description
+      ? nested.short_description
       : discountType === "percent" && discountNumber != null
         ? `${code} · ${discountNumber}%`
         : code;
+
+  const checkoutToken = typeof raw.message === "string" && raw.message.trim() ? raw.message.trim() : undefined;
+  const clientSecret =
+    typeof raw.client_secret === "string" && raw.client_secret.trim() ? raw.client_secret.trim() : undefined;
 
   return {
     valid: true,
@@ -120,6 +144,8 @@ export function parseDiscountCheckResponse(code: string, ok: boolean, data: unkn
     label,
     discountType,
     discountNumber,
+    checkoutToken,
+    clientSecret,
     raw,
   };
 }

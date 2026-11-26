@@ -7665,6 +7665,13 @@ svg.gafa-acct-qr__image {
   width: 1px;
 }
 
+/* El IIFE muestra "Cargando..." / "Loading..." antes del Payment Element.
+   El skeleton del SDK cubre hasta el iframe; esto evita un flash de texto. */
+.gafa-checkout-paymount[data-method="stripe"][data-state="loading"] stripe-payment-element,
+.gafa-checkout-paymount[data-method="stripe"][data-state="idle"] stripe-payment-element {
+  visibility: hidden;
+}
+
 .gafa-checkout-paymount[data-method="stripe"] stripe-payment-element {
   display: block;
   max-width: 100%;
