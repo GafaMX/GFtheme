@@ -38,17 +38,6 @@ describe("buildCheckDiscountUrl", () => {
   it("no arma la ruta si falta el perfil y no hay template", () => {
     expect(() => buildCheckDiscountUrl({ ...base })).toThrow(/validar el código/i);
   });
-
-  it("manda checkout_token y pending_purchase_id para stripe.addDiscount", () => {
-    const url = buildCheckDiscountUrl({
-      ...base,
-      userProfileId: 4412,
-      checkoutToken: "chk_session",
-      pendingPurchaseId: 88,
-    });
-    expect(url.searchParams.get("checkout_token")).toBe("chk_session");
-    expect(url.searchParams.get("pending_purchase_id")).toBe("88");
-  });
 });
 
 describe("discountAmountFromCode", () => {
@@ -74,39 +63,6 @@ describe("parseDiscountCheckResponse", () => {
     expect(result.discountNumber).toBe(90);
     expect(result.label).toBe("BUQMX · 90%");
     expect(resolveDiscountAmount(result, 330)).toBe(297);
-  });
-
-  it("desenvuelve { discountCode } del fancy (BUQMX 90% privado)", () => {
-    const result = parseDiscountCheckResponse("BUQMX", true, {
-      discountCode: {
-        id: 1722,
-        code: "BUQMX",
-        discount_type: "percent",
-        discount_number: 90,
-      },
-      client_secret: null,
-      message: null,
-    });
-    expect(result.valid).toBe(true);
-    expect(result.discountType).toBe("percent");
-    expect(result.discountNumber).toBe(90);
-    expect(resolveDiscountAmount(result, 330)).toBe(297);
-  });
-
-  it("conserva client_secret y message tras addDiscountToCheckout", () => {
-    const result = parseDiscountCheckResponse("BUQMX", true, {
-      discountCode: {
-        id: 1722,
-        code: "BUQMX",
-        discount_type: "percent",
-        discount_number: 90,
-      },
-      client_secret: "cs_test_xxx",
-      message: "chk_after_discount",
-    });
-    expect(result.valid).toBe(true);
-    expect(result.clientSecret).toBe("cs_test_xxx");
-    expect(result.checkoutToken).toBe("chk_after_discount");
   });
 
   it("trata el 404 de UserProfile (meetingId mal puesto) como inválido", () => {

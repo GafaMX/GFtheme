@@ -11,8 +11,6 @@ import {
 describe("checkoutTokenFromHostedData", () => {
   it("lee checkout_token, id o la URL de Recurrente", () => {
     expect(checkoutTokenFromHostedData({ checkout_token: "chk_1", redirect: "https://x" })).toBe("chk_1");
-    expect(checkoutTokenFromHostedData({ message: "chk_stripe", client_secret: "cs_test" })).toBe("chk_stripe");
-    expect(checkoutTokenFromHostedData("chk_plain")).toBe("chk_plain");
     expect(checkoutTokenFromHostedData({ id: "ch_abc", redirect: "https://x" })).toBe("ch_abc");
     expect(
       checkoutTokenFromHostedData({

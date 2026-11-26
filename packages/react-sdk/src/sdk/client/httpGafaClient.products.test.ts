@@ -141,36 +141,4 @@ describe("getCheckoutConfig store tab", () => {
     expect(formUrl).toContain("meetings_id=99");
     expect(formUrl).not.toContain("default_store_tab=");
   });
-
-  it("toma CLIENT_ID/CLIENT_SECRET del fancy (misma fuente que frontpay)", async () => {
-    writeStoredToken("tok-test");
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.endsWith("/api/brand") || url.includes("/api/brand?")) {
-        return jsonResponse({
-          data: [{ id: 1, name: "Fitspin", slug: "fitspin", gafapay_client_id: 1, gafapay_client_secret: "from-list" }],
-        });
-      }
-      if (url.includes("/api/me")) {
-        return jsonResponse({ id: 4412, name: "Ana", email: "ana@fitspin.mx" });
-      }
-      if (url.includes("create-form-template")) {
-        return new Response(
-          `<div class="CreateReservationFancy--urlReservation">/reservate</div>
-           <div class="CreateReservationFancy--payment_types">[]</div>
-           <script data-gafapay-config type="application/json">{"CLIENT_ID":282,"CLIENT_SECRET":"from-fancy"}</script>`,
-          { status: 200, headers: { "Content-Type": "text/html" } },
-        );
-      }
-      return jsonResponse({});
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const config = await client().getCheckoutConfig?.({
-      brandSlug: "fitspin",
-      locationSlug: "fitspin-lomas",
-    });
-    expect(config?.gafapayClientId).toBe("282");
-    expect(config?.gafapayClientSecret).toBe("from-fancy");
-  });
 });

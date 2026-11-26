@@ -34,8 +34,6 @@ import {
   ensureLegacyPaypalCheckout,
   installPayPalButtonCapture,
   isPaypalCheckoutCancelMessage,
-  resolveGafaPayApiUrl,
-  notifyStripeDiscountAdded,
   PAY_FORM_LOAD_ERROR,
   PAYPAL_CTA_HIT_ID,
   type GafaPayIsland,
@@ -396,7 +394,6 @@ export function CheckoutModal({
   } | null>(null);
   const hostedAbortRef = useRef<AbortController | null>(null);
   const hostedSettledRef = useRef(false);
-  const stripePollLockRef = useRef(false);
   const stopPopupWatchRef = useRef<(() => void) | null>(null);
   const paypalFlowRef = useRef(false);
   const paypalHoldTimerRef = useRef(0);
@@ -835,7 +832,6 @@ export function CheckoutModal({
     setDiscountError(undefined);
     setAppliedDiscount(null);
     try {
-      const pending = hostedPendingRef.current;
       const result = await client.checkDiscountCode({
         brandSlug,
         locationSlug,
@@ -846,22 +842,11 @@ export function CheckoutModal({
           id: line.id,
           type: line.type,
         })),
-        checkoutToken: pending?.checkoutToken,
-        pendingPurchaseId: pending?.purchaseId,
       });
       if (!result.valid) {
         setDiscountStatus("error");
         setDiscountError(result.message ?? "Código no válido");
         return;
-      }
-      if (result.clientSecret && result.checkoutToken) {
-        notifyStripeDiscountAdded({
-          client_secret: result.clientSecret,
-          checkout_token: result.checkoutToken,
-        });
-        if (pending) {
-          hostedPendingRef.current = { ...pending, checkoutToken: result.checkoutToken };
-        }
       }
       setAppliedDiscount(result);
       setDiscountStatus("ok");
@@ -1377,15 +1362,6 @@ export function CheckoutModal({
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
-    // Stripe Checkout Session: gafa.fit NO pasa a BuySystemStep aquí.
-    // La compra la cierra el poll de initial-purchase-status.
-    if (selectedMethod?.slug === "stripe") {
-      chargedRef.current = true;
-      setChargeHold(true);
-      setPaying(true);
-      void pollHostedStripe();
-      return;
-    }
     // Paridad con el fancy v1: `ht.payment_data = e.message` y luego
     // BuySystemStep POSTea a `/reservate` (paymentByCard / paymentByToken).
     hostedSettledRef.current = true;
@@ -1466,13 +1442,11 @@ export function CheckoutModal({
       setPayment: membershipPurchase ? saveCard : false,
     };
 
-    const isStripe = selectedMethod.slug === "stripe";
-    if (!isStripe) setPaying(true);
+    setPaying(true);
     hostedAbortRef.current?.abort();
     const abort = new AbortController();
     hostedAbortRef.current = abort;
     hostedSettledRef.current = false;
-    stripePollLockRef.current = false;
     try {
       if (!client.initialPurchase || !client.pollInitialPurchaseStatus) {
         throw new Error("Esta marca no tiene configurado el pago con tarjeta.");
@@ -1484,10 +1458,6 @@ export function CheckoutModal({
         throw new Error("No se pudo crear la compra pendiente.");
       }
       hostedPendingRef.current = { checkoutToken: token, purchaseId, payload };
-      // Stripe: gafa.fit manda sendInitialPurchaseForm al crear la sesión y
-      // polla al confirmar. Aquí el poll arranca en payment-start/success
-      // para no dejar el CTA en “Procesando…” mientras el socio llena la tarjeta.
-      if (isStripe) return;
       const done = await pollRecurrenteUntilDone({
         client,
         brandSlug,
@@ -1511,92 +1481,9 @@ export function CheckoutModal({
       }
       reportPayError(detail);
     } finally {
-      if (!isStripe) setPaying(false);
-    }
-  }
-
-  async function pollHostedStripe() {
-    if (selectedMethod?.slug !== "stripe" || stripePollLockRef.current) return;
-    stripePollLockRef.current = true;
-    const deadline = Date.now() + 20_000;
-    while (!hostedPendingRef.current && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-    const pending = hostedPendingRef.current;
-    if (!pending || !brandSlug || !locationSlug || !client.pollInitialPurchaseStatus) {
-      stripePollLockRef.current = false;
-      if (!pending) {
-        setPaying(false);
-        reportPayError("No pudimos iniciar el pago. Intenta de nuevo.");
-      }
-      return;
-    }
-    hostedAbortRef.current?.abort();
-    const abort = new AbortController();
-    hostedAbortRef.current = abort;
-    hostedSettledRef.current = false;
-    try {
-      const done = await pollRecurrenteUntilDone({
-        client,
-        brandSlug,
-        locationSlug,
-        checkoutToken: pending.checkoutToken,
-        pendingPurchaseId: pending.purchaseId,
-        signal: abort.signal,
-      });
-      hostedSettledRef.current = true;
-      stopPopupWatchRef.current?.();
-      stopPopupWatchRef.current = null;
-      await finishHostedPurchase({
-        purchaseId: pending.purchaseId,
-        reservationId: done.reservationId,
-      });
-    } catch (err) {
-      if (err instanceof HostedCheckoutClosedError) {
-        setPaying(false);
-        stripePollLockRef.current = false;
-        return;
-      }
-      if (await recoverRecentPurchase()) return;
-      const detail = err instanceof Error ? err.message : "No pudimos confirmar el pago.";
-      if (hostedPendingRef.current?.purchaseId || chargedRef.current) {
-        setRegisterOnly(true);
-      }
-      reportPayError(
-        chargedRef.current && detail !== CHARGED_BUT_NOT_RECORDED
-          ? `${CHARGED_BUT_NOT_RECORDED} (${detail})`
-          : detail,
-      );
-    } finally {
       setPaying(false);
     }
   }
-
-  const stripeHostedSyncKey = [
-    resolvedGiftCode() ?? "",
-    discountStatus === "ok" ? discountCode.trim() : "",
-    membershipPurchase ? `${autoRenew}:${saveCard}` : "",
-  ].join("|");
-  const stripeHostedSyncKeyRef = useRef(stripeHostedSyncKey);
-
-  // GiftCard / descuento / renovar pueden cambiar después de que el widget
-  // ya disparó `initial-payment-created`. Hay que reenviar initial-purchase.
-  useEffect(() => {
-    if (selectedMethod?.slug !== "stripe") {
-      stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
-      return;
-    }
-    const pending = hostedPendingRef.current;
-    if (!pending) {
-      stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
-      return;
-    }
-    if (stripeHostedSyncKeyRef.current === stripeHostedSyncKey) return;
-    stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
-    void handleHostedCheckout(pending.payload.paymentData ?? { message: pending.checkoutToken });
-    // handleHostedCheckout vive en el body del componente.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stripeHostedSyncKey, selectedMethod?.slug]);
 
   function releaseHostedWait() {
     if (hostedSettledRef.current) return;
@@ -1607,7 +1494,6 @@ export function CheckoutModal({
     paypalFlowRef.current = false;
     hostedAbortRef.current?.abort();
     hostedAbortRef.current = null;
-    stripePollLockRef.current = false;
     stopPopupWatchRef.current?.();
     stopPopupWatchRef.current = null;
     setPaying(false);
@@ -1895,10 +1781,7 @@ export function CheckoutModal({
         .then((items) => new Set(items.map((item) => item.id)))
         .catch(() => null);
       chargeStartedRef.current = Date.now();
-      const triggered = await triggerGafaPayConfirm(
-        selectedMethod?.slug ?? "",
-        document.querySelector(".gafa-checkout-paymount__island"),
-      );
+      const triggered = await triggerGafaPayConfirm(selectedMethod?.slug ?? "");
       if (!triggered) {
         paypalFlowRef.current = false;
         stopPopupWatchRef.current?.();
@@ -2231,9 +2114,6 @@ export function CheckoutModal({
                     if (selectedMethod?.slug === "paypal") paypalFlowRef.current = true;
                     if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
                       startHostedPopupWatch();
-                    }
-                    if (selectedMethod?.slug === "stripe") {
-                      void pollHostedStripe();
                     }
                   }}
                   onReadyChange={setPaymentReady}
@@ -2903,15 +2783,9 @@ function PayPanel({
         length: 1,
         weight: 1,
         width: 1,
-        site_id: `${line.type}--${line.id}`,
-        type: line.type,
-        totalPrice: Math.max(0, unit - perUnitDiscount),
       };
     });
   }, [lines, discountAmount]);
-
-  const clientId = config?.gafapayClientId;
-  const clientSecret = config?.gafapayClientSecret;
 
   const widgetProps: GafaPayWidgetProps = useMemo(
     () => ({
@@ -2929,18 +2803,12 @@ function PayPanel({
         usersProfilesId: config?.userProfileId,
         usersId: config?.usersId,
       },
-      apiUrl: resolveGafaPayApiUrl(),
-      clientId: clientId ?? undefined,
-      clientSecret: clientSecret ?? undefined,
-      customerFirstName: customer.firstName,
-      customerLastName: customer.lastName,
-      discountAmount,
       // GafaPay Recurrente deshabilita su botón si esto es falsy. Los términos
       // los exigimos en nuestro CTA; aquí hay que dejarlo pasar.
       termsAndConditions:
         selected?.slug === "recurrente" || selected?.slug === "paypal"
           ? true
-          : (config?.termsConditionsLink ?? true),
+          : (config?.termsConditionsLink ?? null),
       hasRecurringPayment: Boolean(membershipOptions),
       // Sin esto GAFAPay cobra pero no crea la suscripción.
       paymentFrequency: membershipOptions?.autoRenew ? membershipPaymentFrequency(lines) : null,
@@ -2950,19 +2818,12 @@ function PayPanel({
         handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
       onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
       onCheckoutCloseAction: () => handlersRef.current.onHostedClose(),
-      onInitialPaymentUpdated: (data) => handlersRef.current.onHostedCheckout(data),
-      // gafa.fit mapea esto a pausar el poll, no a abortar. El IIFE lo dispara
-      // solo al montar el Payment Element (updateinitialpayment). Si abortamos
-      // se cancela initial-purchase y el token queda huérfano.
-      onInitialPaymentUpdating: () => undefined,
-      onInitialPaymentUpdateError: ({ message }) =>
-        handlersRef.current.onError(message ?? "No pudimos actualizar el pago."),
       changePaymentSystemProperties: ({ recurringPayment, saveCard: nextSave }) => {
         if (typeof nextSave === "boolean") handlersRef.current.onSaveCard?.(nextSave);
         if (typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
       },
     }),
-    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount],
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines],
   );
 
   // Cambios de carrito/cliente actualizan props sin re-montar: tirar el iframe
@@ -2970,6 +2831,8 @@ function PayPanel({
   const propsRef = useRef(widgetProps);
   propsRef.current = widgetProps;
 
+  const clientId = config?.gafapayClientId;
+  const clientSecret = config?.gafapayClientSecret;
   const slug = selected?.slug;
   const colorScheme = useGafaThemeOptional()?.scheme ?? "light";
 
@@ -3002,12 +2865,7 @@ function PayPanel({
     };
 
     const mountOnce = async () => {
-      const runtime = await loadGafaPay({
-        clientId,
-        clientSecret,
-        scriptUrl: slug === "stripe" ? undefined : gafaPayFrontUrl,
-        method: slug,
-      });
+      const runtime = await loadGafaPay({ clientId, clientSecret, scriptUrl: gafaPayFrontUrl });
       if (cancelled || !mountRef.current) return;
       // PaypalPayment del frontpay exige checkout.js ANTES de pintar el
       // <div id="paypal">; si no, window.paypal es el DIV y revienta.
@@ -3018,9 +2876,7 @@ function PayPanel({
       const container = mountRef.current;
       islandRef.current?.unmount();
       islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
-      await waitForWidgetContent(container, widgetContentTimeoutMs(), {
-        requireIframe: slug === "stripe",
-      });
+      await waitForWidgetContent(container, widgetContentTimeoutMs());
     };
 
     (async () => {

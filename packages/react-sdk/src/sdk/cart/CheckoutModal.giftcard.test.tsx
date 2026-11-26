@@ -147,9 +147,6 @@ describe("CheckoutModal Convertir en GiftCard", () => {
     });
     mocks.mountGafaPayWidget.mockImplementation((_runtime, _container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
       lastProps = props;
-      queueMicrotask(() => {
-        props.onCheckoutOpenAction?.({ message: "chk_1", client_secret: "cs_test" });
-      });
       return {
         update: (next) => {
           lastProps = next;
@@ -254,9 +251,9 @@ describe("CheckoutModal Convertir en GiftCard", () => {
 
     fireEvent.click(payButton());
     await waitFor(() => {
-      expect(client.initialPurchase).toHaveBeenCalled();
+      expect(client.reservatePurchase).toHaveBeenCalled();
     });
-    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].giftCode).toBeNull();
+    expect(vi.mocked(client.reservatePurchase!).mock.calls[0][0].giftCode).toBeNull();
 
     cleanup();
     useCartStore.setState({ lines: [cartLine], reservation: null });
@@ -266,9 +263,6 @@ describe("CheckoutModal Convertir en GiftCard", () => {
     lastProps = undefined;
     mocks.mountGafaPayWidget.mockImplementation((_runtime, _container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
       lastProps = props;
-      queueMicrotask(() => {
-        props.onCheckoutOpenAction?.({ message: "chk_1", client_secret: "cs_test" });
-      });
       return {
         update: (next) => {
           lastProps = next;
@@ -283,7 +277,6 @@ describe("CheckoutModal Convertir en GiftCard", () => {
     await waitFor(() => {
       expect(screen.getByText(/código válido/i)).toBeTruthy();
     });
-    lastProps?.onCheckoutOpenAction?.({ message: "chk_1", client_secret: "cs_test" });
 
     window._handleStripePayment = async () => {
       lastProps?.onStartPayAction();
@@ -292,10 +285,8 @@ describe("CheckoutModal Convertir en GiftCard", () => {
     fireEvent.click(payButton());
 
     await waitFor(() => {
-      expect(client2.initialPurchase).toHaveBeenCalled();
+      expect(client2.reservatePurchase).toHaveBeenCalled();
     });
-    expect(
-      vi.mocked(client2.initialPurchase!).mock.calls.some((call) => call[0].giftCode === "K7M2P9QX"),
-    ).toBe(true);
+    expect(vi.mocked(client2.reservatePurchase!).mock.calls[0][0].giftCode).toBe("K7M2P9QX");
   });
 });

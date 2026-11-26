@@ -7655,28 +7655,6 @@ svg.gafa-acct-qr__image {
   width: 1px;
 }
 
-/* El IIFE de Stripe pinta su propio "Pagar". El CTA amarillo del SDK lo
-   dispara (preflight + términos) y este se oculta para no duplicar. */
-.gafa-checkout-paymount[data-method="stripe"] stripe-payment-element button[type="submit"] {
-  height: 1px;
-  left: -9999px;
-  overflow: hidden;
-  position: absolute;
-  width: 1px;
-}
-
-/* El IIFE muestra "Cargando..." / "Loading..." antes del Payment Element.
-   El skeleton del SDK cubre hasta el iframe; esto evita un flash de texto. */
-.gafa-checkout-paymount[data-method="stripe"][data-state="loading"] stripe-payment-element,
-.gafa-checkout-paymount[data-method="stripe"][data-state="idle"] stripe-payment-element {
-  visibility: hidden;
-}
-
-.gafa-checkout-paymount[data-method="stripe"] stripe-payment-element {
-  display: block;
-  max-width: 100%;
-}
-
 .gafa-checkout-cardpay {
   display: grid;
   gap: 0.85rem;

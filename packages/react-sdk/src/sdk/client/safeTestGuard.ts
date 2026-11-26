@@ -39,7 +39,6 @@ export function evaluateSafeTestRequest(method: string, url: string): SafeTestVe
     host.includes("stripe") ||
     host.includes("gafapay") ||
     host === "frontpay.buq.partners" ||
-    host === "apipay.buq.partners" ||
     host.endsWith(".stripe.com")
   ) {
     return { ok: false, reason: "host de cobro" };

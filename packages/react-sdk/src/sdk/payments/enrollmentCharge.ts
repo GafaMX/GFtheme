@@ -57,23 +57,17 @@ export async function chargeEnrollmentWithSavedCard(
         fn();
       };
 
-      const island = mountGafaPayWidget(
-        runtime,
-        host,
-        slug,
-        {
-          order: input.order,
-          generalData: input.generalData,
-          termsAndConditions: true,
-          hasRecurringPayment: false,
-          paymentFrequency: null,
-          onStartPayAction: () => undefined,
-          onGafaPaySuccessAction: (payment) => finish(() => resolve(payment)),
-          onGafaPayErrAction: ({ message }) =>
-            finish(() => reject(new Error(message ?? copy.chargeFailedGeneric))),
-        },
-        { legacy: true },
-      );
+      const island = mountGafaPayWidget(runtime, host, slug, {
+        order: input.order,
+        generalData: input.generalData,
+        termsAndConditions: true,
+        hasRecurringPayment: false,
+        paymentFrequency: null,
+        onStartPayAction: () => undefined,
+        onGafaPaySuccessAction: (payment) => finish(() => resolve(payment)),
+        onGafaPayErrAction: ({ message }) =>
+          finish(() => reject(new Error(message ?? copy.chargeFailedGeneric))),
+      });
       islandRef.unmount = island.unmount;
 
       void waitForWidgetContent(host, widgetContentTimeoutMs())

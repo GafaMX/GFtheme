@@ -978,27 +978,6 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return doc.querySelector(`.CreateReservationFancy--${name}`)?.textContent?.trim() || null;
   }
 
-  /**
-   * El fancy v1 inyecta las credenciales GAFApay de ESA sede/marca:
-   * `<script data-gafapay-config>{ CLIENT_ID, CLIENT_SECRET }</script>`.
-   * `GET /api/brand` a veces trae el secret vacío o de otra marca de la
-   * compañía; el widget nuevo las necesita en `client-id`/`client-secret`.
-   */
-  function readFancyGafaPayConfig(doc: Document): { clientId: string; clientSecret: string } | null {
-    const scripts = doc.querySelectorAll("script[data-gafapay-config]");
-    for (const script of scripts) {
-      const raw = script.textContent?.trim();
-      if (!raw) continue;
-      const parsed = parseJsonBlock<Record<string, unknown>>(raw);
-      if (!parsed) continue;
-      const id = parsed.CLIENT_ID ?? parsed.client_id ?? parsed.clientId;
-      const secret = parsed.CLIENT_SECRET ?? parsed.client_secret ?? parsed.clientSecret;
-      if (id == null || id === "" || secret == null || secret === "") continue;
-      return { clientId: String(id), clientSecret: String(secret) };
-    }
-    return null;
-  }
-
   function parseJsonBlock<T>(raw: string | null): T | null {
     if (!raw) return null;
     const candidates = [raw, raw.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&#039;/g, "'")];
@@ -1893,7 +1872,6 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       const urlCheckGiftCode = readFancyBlock(doc, "urlCheckGiftCode");
       const urlGenerateGiftCode = readFancyBlock(doc, "urlGenerateCode");
       const canRedeem = readFancyBlock(doc, "canRedeemStoreCredit");
-      const fancyGafaPay = readFancyGafaPayConfig(doc);
 
       if (!urlReservation) {
         throw new ReservationFormUnavailableError(
@@ -1913,8 +1891,8 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
           },
         paymentMethods,
         termsConditionsLink: brand?.termsConditionsLink ?? null,
-        gafapayClientId: fancyGafaPay?.clientId ?? brand?.gafapayClientId ?? null,
-        gafapayClientSecret: fancyGafaPay?.clientSecret ?? brand?.gafapayClientSecret ?? null,
+        gafapayClientId: brand?.gafapayClientId ?? null,
+        gafapayClientSecret: brand?.gafapayClientSecret ?? null,
         giftCardsEnabled: giftCardsEnabledFromUrls({
           checkGiftCode: urlCheckGiftCode,
           generateGiftCode: urlGenerateGiftCode,
@@ -1950,8 +1928,6 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         userProfileId: payload.userProfileId,
         urlTemplate: payload.urlTemplate,
         lines: payload.lines,
-        checkoutToken: payload.checkoutToken,
-        pendingPurchaseId: payload.pendingPurchaseId,
       });
       const href = url.toString();
       const response = await request(href, { headers: authHeaders() });

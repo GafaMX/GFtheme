@@ -4,11 +4,9 @@ const POLL_MS = 2_000;
 const POLL_ATTEMPTS = 90;
 
 export function checkoutTokenFromHostedData(data: unknown): string | null {
-  if (typeof data === "string" && data.trim()) return data.trim();
   if (!data || typeof data !== "object") return null;
   const rec = data as Record<string, unknown>;
-  // Stripe (gafa.fit): `initial-payment-created` trae el token en `message`.
-  for (const value of [rec.checkout_token, rec.checkoutToken, rec.token, rec.message, rec.id]) {
+  for (const value of [rec.checkout_token, rec.checkoutToken, rec.token, rec.id]) {
     if (typeof value === "string" && value.trim()) return value.trim();
     if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
