@@ -40,6 +40,24 @@ describe("installStripeSessionFetchGuard", () => {
     });
   }
 
+  it.each([
+    { name: "distinto al tokenInput conserva client_secret", tokenInput: "tok_1", message: "tok_2", keepsSecret: true },
+    { name: "igual al tokenInput borra client_secret", tokenInput: "tok_1", message: "tok_1", keepsSecret: false },
+    { name: "sin tokenInput borra client_secret", tokenInput: undefined, message: "tok_2", keepsSecret: false },
+  ])("update con message $name", async ({ tokenInput, message, keepsSecret }) => {
+    const network = vi.fn(async () => jsonResponse({ client_secret: "cs_2", message }));
+    window.fetch = network as typeof fetch;
+    installStripeSessionFetchGuard();
+
+    const response = await fetch("https://apipay.buq.partners/api/stripe.updateinitialpayment", {
+      method: "POST",
+      body: JSON.stringify({ tokenInput }),
+    });
+
+    expect(await response.json()).toEqual(keepsSecret ? { client_secret: "cs_2", message } : { message });
+    expect(network).toHaveBeenCalledTimes(1);
+  });
+
   it("un harness con 12 updates del IIFE solo pega una vez a la red y sin client_secret", async () => {
     const network = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);

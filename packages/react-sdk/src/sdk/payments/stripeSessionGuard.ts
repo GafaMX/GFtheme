@@ -6,8 +6,7 @@
  *
  * El mock de apipay no devolvía secret en el update; Stripe real sí.
  * Interceptamos fetch: debounce de POSTs idénticos y quitamos `client_secret`
- * de la respuesta de update (la sesión ya vive del processinitialpayment;
- * el descuento entra por `buq__discount_added`).
+ * de la respuesta de update salvo que cambie el token de sesión.
  */
 
 const UPDATE_PATH = /\/api\/stripe\.updateinitialpayment(?:\?|$)/i;
@@ -87,8 +86,9 @@ export function installStripeSessionFetchGuard(): void {
         .catch(() => null);
       if (!data || typeof data !== "object") return response;
       const next = { ...(data as Record<string, unknown>) };
-      // Sin esto el IIFE hace setStripeClientSecret y remonta vw → otro update.
-      delete next.client_secret;
+      // Una sesión nueva necesita actualizar token y secret; la misma remonta vw → otro update.
+      const sessionChanged = typeof next.message === "string" && token !== "" && next.message !== token;
+      if (!sessionChanged) delete next.client_secret;
       return jsonResponse(next, response.status);
     }
 
