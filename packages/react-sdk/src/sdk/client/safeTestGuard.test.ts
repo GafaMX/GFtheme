@@ -24,6 +24,7 @@ describe("evaluateSafeTestRequest", () => {
     expect(evaluateSafeTestRequest("POST", "https://buq.partners/api/brand/the-base/location/pozuelo-de-alarcon/reservation/reservate").ok).toBe(false);
     expect(evaluateSafeTestRequest("POST", "https://buq.partners/api/register").ok).toBe(false);
     expect(evaluateSafeTestRequest("GET", "https://frontpay.buq.partners/main.js").ok).toBe(false);
+    expect(evaluateSafeTestRequest("POST", "https://apipay.buq.partners/api/processinitialpayment").ok).toBe(false);
     expect(evaluateSafeTestRequest("POST", "https://api.stripe.com/v1/charges").ok).toBe(false);
     expect(evaluateSafeTestRequest("GET", "https://hub.buq.partners/api/config").ok).toBe(false);
     expect(evaluateSafeTestRequest("PUT", "https://buq.partners/api/me").ok).toBe(false);

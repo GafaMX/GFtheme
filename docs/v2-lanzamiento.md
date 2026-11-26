@@ -94,12 +94,13 @@ No hace falta Republish para que el resto de marcas v2 lo tomen: el próximo loa
 
 | Pasarela | Tras pagar, el SDK llama |
 |---|---|
-| **GafaPay (Stripe / Openpay / Conekta)** | `POST .../reservation/reservate` (`client.reservatePurchase`) |
-| **Recurrente** | `POST .../gafapay/initial-purchase` (`client.initialPurchase`) |
+| **Stripe** (`<stripe-payment-element>`) | `POST .../gafapay/initial-purchase` al crear la sesión, luego poll `initial-purchase-status` |
+| **PayPal / Conekta / Openpay** | `POST .../reservation/reservate` (`client.reservatePurchase`) |
+| **Recurrente** | `POST .../gafapay/initial-purchase` (`client.initialPurchase`) + poll |
 
-No mezclar. `initial-purchase` + Stripe viejo de producción = cargo sin créditos.
+Stripe ya no usa `GafaPayElements.StripePayment` de `frontpay.buq.partners` (ese widget habla PaymentIntent/`handleCardPayment` y se queda en skeleton contra GAFApay 2026-11-26). El checkout monta `https://buq.partners/js/payments/stripe-payment.iife.js`, el mismo web component que gafa.fit. PayPal y Recurrente siguen en frontpay.
 
-El CTA amarillo **Pagar** dispara Recurrente (abre la otra ventana). No uses el botón negro de GafaPay. Tras pagar, el SDK POSTea `initial-purchase` y consulta `initial-purchase-status` hasta que Buq confirma.
+El CTA amarillo **Pagar** dispara Recurrente (abre la otra ventana) y el submit interno de Stripe. No uses el botón negro/Pagar del IIFE (el CSS del SDK lo oculta). Tras pagar Stripe/Recurrente, el SDK consulta `initial-purchase-status` hasta que Buq confirma.
 
 ## Moneda (Q, €, $)
 

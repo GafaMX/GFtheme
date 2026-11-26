@@ -2,14 +2,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PAYPAL_CTA_HIT_ID,
   PAY_FORM_LOAD_ERROR,
+  STRIPE_PAYMENT_ELEMENT_TAG,
   WIDGET_CONTENT_TIMEOUT_MOBILE_MS,
   WIDGET_CONTENT_TIMEOUT_MS,
   installPayPalButtonCapture,
   isPaypalCheckoutCancelMessage,
+  mountGafaPayWidget,
   triggerGafaPayConfirm,
   triggerPayPalCheckout,
   waitForWidgetContent,
   widgetContentTimeoutMs,
+  type GafaPayWidgetProps,
   type PayPalButtonOptions,
 } from "./gafaPay";
 
@@ -38,6 +41,37 @@ describe("triggerGafaPayConfirm", () => {
   it("resuelve false si el metodo no tiene handler", async () => {
     await expect(triggerGafaPayConfirm("stripe")).resolves.toBe(false);
     await expect(triggerGafaPayConfirm("paypal")).resolves.toBe(false);
+  });
+
+  it("Stripe dispara el submit del <stripe-payment-element>", async () => {
+    const host = document.createElement("div");
+    const widget = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.textContent = "Pagar";
+    widget.appendChild(button);
+    host.appendChild(widget);
+    document.body.appendChild(host);
+    const clicked = vi.fn();
+    button.addEventListener("click", clicked);
+
+    await expect(triggerGafaPayConfirm("stripe", host)).resolves.toBe(true);
+    expect(clicked).toHaveBeenCalledTimes(1);
+    host.remove();
+  });
+
+  it("Stripe no dispara un submit deshabilitado (Rellenar Campos)", async () => {
+    const host = document.createElement("div");
+    const widget = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.disabled = true;
+    widget.appendChild(button);
+    host.appendChild(widget);
+    document.body.appendChild(host);
+
+    await expect(triggerGafaPayConfirm("stripe", host)).resolves.toBe(false);
+    host.remove();
   });
 
   it("PayPal dispara el #paypal de checkout.js", async () => {
@@ -203,5 +237,75 @@ describe("waitForWidgetContent", () => {
     const expectReject = expect(pending).rejects.toThrow(PAY_FORM_LOAD_ERROR);
     await vi.advanceTimersByTimeAsync(50);
     await expectReject;
+  });
+});
+
+describe("mountGafaPayWidget stripe-payment-element", () => {
+  const runtime = {
+    React: { createElement: () => null },
+    ReactDOM: { render: () => undefined, unmountComponentAtNode: () => true },
+    elements: {},
+  };
+
+  function baseProps(overrides: Partial<GafaPayWidgetProps> = {}): GafaPayWidgetProps {
+    return {
+      order: {
+        customerName: "Ana Pérez",
+        customerEmail: "ana@fitspin.mx",
+        lineItems: [],
+        currency: "MXN",
+      },
+      generalData: { companiesId: 1, locationsId: 122, usersProfilesId: 4412, usersId: 99 },
+      apiUrl: "https://apipay.buq.partners",
+      clientId: "282",
+      clientSecret: "secret",
+      customerFirstName: "Ana",
+      customerLastName: "Pérez",
+      hasRecurringPayment: false,
+      onStartPayAction: () => undefined,
+      onGafaPaySuccessAction: () => undefined,
+      onGafaPayErrAction: () => undefined,
+      ...overrides,
+    };
+  }
+
+  it("monta el web component con el contrato de gafa.fit", () => {
+    const box = document.createElement("div");
+    const island = mountGafaPayWidget(runtime, box, "stripe", baseProps({ discountAmount: 10, paymentFrequency: "30" }));
+    const el = box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG);
+    expect(el).toBeTruthy();
+    expect(el?.getAttribute("api-url")).toBe("https://apipay.buq.partners");
+    expect(el?.getAttribute("client-id")).toBe("282");
+    expect(el?.getAttribute("customer-first-name")).toBe("Ana");
+    expect(el?.getAttribute("currency")).toBe("mxn");
+    expect(el?.getAttribute("discount-amount")).toBe("10");
+    expect(el?.getAttribute("payment-frequency")).toBe("30");
+    island.unmount();
+  });
+
+  it("mapea los eventos del widget a los callbacks del checkout", () => {
+    const box = document.createElement("div");
+    const onStart = vi.fn();
+    const onSuccess = vi.fn();
+    const onCreated = vi.fn();
+    const island = mountGafaPayWidget(
+      runtime,
+      box,
+      "stripe",
+      baseProps({
+        onStartPayAction: onStart,
+        onGafaPaySuccessAction: onSuccess,
+        onCheckoutOpenAction: onCreated,
+      }),
+    );
+    const el = box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG)!;
+    el.dispatchEvent(new CustomEvent("payment-start", { detail: {} }));
+    el.dispatchEvent(new CustomEvent("initial-payment-created", { detail: { message: "chk_1" } }));
+    el.dispatchEvent(new CustomEvent("payment-success", { detail: { message: "ok" } }));
+    expect(onStart).toHaveBeenCalledTimes(1);
+    expect(onCreated).toHaveBeenCalledWith({ message: "chk_1" });
+    expect(onSuccess).toHaveBeenCalledWith({ message: "ok" });
+    island.unmount();
+    expect(box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG)).toBeNull();
   });
 });
