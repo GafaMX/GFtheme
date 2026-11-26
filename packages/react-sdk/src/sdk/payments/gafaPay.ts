@@ -1,3 +1,5 @@
+import { installStripeSessionFetchGuard } from "./stripeSessionGuard";
+
 /**
  * Bridge de pagos.
  *
@@ -551,17 +553,31 @@ export type WaitForWidgetContentOptions = {
    * `button`, el skeleton se va, se ve el loading y brinca el layout.
    */
   requireIframe?: boolean;
+  /** No dar por listo mientras el IIFE muestre "Loading..." / "Cargando...". */
+  hideIifeLoading?: boolean;
 };
+
+const IIFE_LOADING_TEXT = /\bLoading\.\.\.|\bCargando\.\.\./i;
+
+export function stripePaymentSurfaceReady(container: Element, options?: WaitForWidgetContentOptions): boolean {
+  if (options?.requireIframe) {
+    if (!container.querySelector("iframe")) return false;
+  } else if (!container.querySelector("iframe, form, input, button")) {
+    return false;
+  }
+  if (options?.hideIifeLoading) {
+    const text = (container.textContent ?? "").replace(/\s+/g, " ");
+    if (IIFE_LOADING_TEXT.test(text)) return false;
+  }
+  return true;
+}
 
 export function waitForWidgetContent(
   container: Element,
   timeoutMs = widgetContentTimeoutMs(),
   options?: WaitForWidgetContentOptions,
 ): Promise<void> {
-  const isReady = () =>
-    options?.requireIframe
-      ? Boolean(container.querySelector("iframe"))
-      : Boolean(container.querySelector("iframe, form, input, button"));
+  const isReady = () => stripePaymentSurfaceReady(container, options);
   if (isReady()) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
@@ -577,7 +593,7 @@ export function waitForWidgetContent(
       resolve();
     });
 
-    observer.observe(container, { childList: true, subtree: true });
+    observer.observe(container, { childList: true, subtree: true, characterData: true });
   });
 }
 
@@ -681,6 +697,7 @@ function bindStripePaymentEvents(el: HTMLElement, props: GafaPayWidgetProps): ()
 }
 
 function mountStripePaymentElement(container: Element, props: GafaPayWidgetProps): GafaPayIsland {
+  installStripeSessionFetchGuard();
   container.replaceChildren();
   const el = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
   applyStripePaymentAttributes(el, props);

@@ -296,8 +296,9 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     renderPay(mockClient());
     await waitUntilPayReady();
 
-    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(2);
-    expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(2);
+    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(1);
+    expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(1);
+    expect(mocks.waitForWidgetContent).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("button", { name: /reintentar/i })).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -312,13 +313,13 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
     const retry = await waitFor(() => screen.getByRole("button", { name: /reintentar/i }));
     expect(screen.getAllByText(/no se pudo cargar el formulario de pago/i).length).toBeGreaterThan(0);
     expect(payButton().disabled).toBe(true);
-    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(2);
+    expect(mocks.loadGafaPay).toHaveBeenCalledTimes(1);
 
     mocks.waitForWidgetContent.mockResolvedValue(undefined);
     fireEvent.click(retry);
     await waitUntilPayReady();
     expect(screen.queryByRole("button", { name: /reintentar/i })).toBeNull();
-    expect(mocks.loadGafaPay.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(mocks.loadGafaPay.mock.calls.length).toBe(2);
   });
 
   it("el CVC inválido sale en toast, sin ERROR-05 ni texto junto al botón", async () => {
@@ -1127,6 +1128,78 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     useCartStore.setState({ lines: [], reservation: null });
     delete window._handleStripePayment;
     vi.clearAllMocks();
+  });
+
+  function useStripeCheckbox() {
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      lastProps = props;
+      container.innerHTML = `<stripe-payment-element><label><input type="checkbox" checked>Pago Recurrente (cada 30 días)</label></stripe-payment-element>`;
+      return { update: () => undefined, unmount: () => undefined };
+    });
+  }
+
+  it("membresía Stripe nace marcada y pagar no hace click", async () => {
+    useStripeCheckbox();
+    renderPay(mockClient());
+    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    const click = vi.spyOn(input, "click");
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    expect(input.checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it("una baja directa en Stripe actualiza el modal y pagar la conserva", async () => {
+    useStripeCheckbox();
+    renderPay(mockClient(), { showMembershipOptions: true });
+    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
+    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    fireEvent.click(input);
+    expect((screen.getByLabelText(/renovar automáticamente/i) as HTMLInputElement).checked).toBe(false);
+    input.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated"));
+    const click = vi.spyOn(input, "click");
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+    expect(input.checked).toBe(false);
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it("la baja en el modal espera initial-payment-updated antes de cobrar", async () => {
+    useStripeCheckbox();
+    renderPay(mockClient(), { showMembershipOptions: true });
+    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
+    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    fireEvent.click(screen.getByLabelText(/renovar automáticamente/i));
+    await waitFor(() => expect(input.checked).toBe(false));
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    expect(charge).not.toHaveBeenCalled();
+    input.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated"));
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+  });
+
+  it("un paquete sin membershipOptions no toca la casilla de Stripe", async () => {
+    useCartStore.setState({ lines: [cartLine], reservation: null });
+    useStripeCheckbox();
+    renderPay(mockClient());
+    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+    expect(lastProps?.hasRecurringPayment).toBe(false);
+    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    const click = vi.spyOn(input, "click");
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+    expect(input.checked).toBe(true);
+    expect(click).not.toHaveBeenCalled();
   });
 
   it("bloquea el cobro si los checks no aceptan la renovación", async () => {

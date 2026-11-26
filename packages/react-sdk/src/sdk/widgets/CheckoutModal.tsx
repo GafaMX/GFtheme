@@ -52,6 +52,7 @@ import {
   resolveCrossSellItems,
 } from "../cart/crossSell";
 import { installStripeCardTheme } from "../payments/stripeCardStyle";
+import { afterStrictModePass } from "../payments/stripeSessionGuard";
 import { humanizeCheckoutError } from "../payments/checkoutErrorMessage";
 import { showToast } from "../toast/toastStore";
 import { ToastHost } from "../toast/ToastHost";
@@ -82,6 +83,9 @@ import {
 import { retryReservate } from "../cart/reservateRetry";
 import {
   cartHasMembership,
+  bindStripeMembershipRecurrence,
+  findStripeRecurringCheckbox,
+  setStripeMembershipAutoRenew,
   paymentMethodsForCart,
   readShowMembershipOptions,
   syncGafaPayMembershipToggles,
@@ -1884,6 +1888,10 @@ export function CheckoutModal({
     try {
       if (membershipPurchase) {
         const root = document.querySelector(".gafa-checkout-paymount__island");
+        // Stripe conserva la elección actual del IIFE y espera su sesión.
+        // Frontpay sigue autoRenew: #recurringPayment / #saveCard.
+        const stripeRenew = root && findStripeRecurringCheckbox(root);
+        if (stripeRenew) setAutoRenew(stripeRenew.checked);
         if (!root || !await syncGafaPayMembershipToggles(root, { saveCard, autoRenew })) {
           warnCheckout("No se verificaron las opciones de membresía; se bloqueó el cobro.");
           setPaying(false);
@@ -2971,6 +2979,8 @@ function PayPanel({
   propsRef.current = widgetProps;
 
   const slug = selected?.slug;
+  const clientIdKey = clientId == null ? "" : String(clientId);
+  const clientSecretKey = clientSecret ?? "";
   const colorScheme = useGafaThemeOptional()?.scheme ?? "light";
 
   // El wrap de color no debe remountar GafaPay: al cleanup se perdía Stripe.js
@@ -2981,11 +2991,15 @@ function PayPanel({
   }, [slug, colorScheme]);
 
   // Monta la isla: se re-monta si cambia el proveedor, las credenciales o
-  // Reintentar. Un fallo de red/timeout se reintenta una vez en silencio.
+  // Reintentar. Un fallo de red/timeout espera en el MISMO widget (no crea
+  // otra orden GAFApay). StrictMode del embed (runtime.tsx) hace
+  // mount→cleanup→mount en el mismo tick: afterStrictModePass descarta el
+  // primero para no disparar 2–4 processinitialpayment por apertura.
   useEffect(() => {
     if (mockPay) return;
-    if (!slug || !clientId || !clientSecret) return;
+    if (!slug || !clientIdKey || !clientSecretKey) return;
     let cancelled = false;
+    let didMount = false;
     let stopPaypalCapture: () => void = () => undefined;
     setLoadState("loading");
 
@@ -3001,70 +3015,114 @@ function PayPanel({
       );
     };
 
-    const mountOnce = async () => {
+    const waitForSurface = async (container: Element) => {
+      await waitForWidgetContent(container, widgetContentTimeoutMs(), {
+        requireIframe: slug === "stripe",
+        hideIifeLoading: slug === "stripe",
+      });
+    };
+
+    const alreadyMounted = () => Boolean(islandRef.current);
+
+    const mountOnce = async (reuse: boolean) => {
+      const container = mountRef.current;
+      if (!container) return;
+      if (reuse && alreadyMounted()) {
+        await waitForSurface(container);
+        return;
+      }
       const runtime = await loadGafaPay({
-        clientId,
-        clientSecret,
+        clientId: clientIdKey,
+        clientSecret: clientSecretKey,
         scriptUrl: slug === "stripe" ? undefined : gafaPayFrontUrl,
         method: slug,
       });
       if (cancelled || !mountRef.current) return;
+      if (alreadyMounted()) {
+        await waitForSurface(mountRef.current);
+        return;
+      }
       // PaypalPayment del frontpay exige checkout.js ANTES de pintar el
       // <div id="paypal">; si no, window.paypal es el DIV y revienta.
       if (slug === "paypal") await ensureLegacyPaypalCheckout();
       if (cancelled || !mountRef.current) return;
       stopPaypalCapture();
       if (slug === "paypal") stopPaypalCapture = installPayPalButtonCapture();
-      const container = mountRef.current;
       islandRef.current?.unmount();
-      islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
-      await waitForWidgetContent(container, widgetContentTimeoutMs(), {
-        requireIframe: slug === "stripe",
-      });
+      islandRef.current = mountGafaPayWidget(runtime, mountRef.current, slug, propsRef.current);
+      didMount = true;
+      await waitForSurface(mountRef.current);
     };
 
-    (async () => {
-      try {
-        await mountOnce();
-        if (cancelled) return;
-        setLoadState("ready");
-      } catch {
-        if (cancelled) return;
+    const cancelDeferred = afterStrictModePass(() => {
+      if (cancelled) return;
+      void (async () => {
         try {
-          await new Promise((resolve) => window.setTimeout(resolve, 400));
-          if (cancelled) return;
-          await mountOnce();
+          await mountOnce(false);
           if (cancelled) return;
           setLoadState("ready");
-        } catch (second) {
+        } catch {
           if (cancelled) return;
-          setLoadState("error");
-          reportLoadError(second);
+          try {
+            await new Promise((resolve) => window.setTimeout(resolve, 400));
+            if (cancelled) return;
+            await mountOnce(alreadyMounted());
+            if (cancelled) return;
+            setLoadState("ready");
+          } catch (second) {
+            if (cancelled) return;
+            setLoadState("error");
+            reportLoadError(second);
+          }
         }
-      }
-    })();
+      })();
+    });
 
     return () => {
       cancelled = true;
+      cancelDeferred();
       stopPaypalCapture();
-      islandRef.current?.unmount();
-      islandRef.current = null;
+      if (didMount) {
+        islandRef.current?.unmount();
+        islandRef.current = null;
+      }
     };
-  }, [slug, clientId, clientSecret, gafaPayFrontUrl, mountNonce, mockPay]);
+  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay]);
+
+  const hasMembershipOptions = Boolean(membershipOptions);
+  useEffect(() => {
+    if (slug !== "stripe" || !hasMembershipOptions || !mountRef.current) return;
+    return bindStripeMembershipRecurrence(mountRef.current, (checked) => {
+      handlersRef.current.onAutoRenew?.(checked);
+    });
+  }, [slug, hasMembershipOptions]);
+
+  const changeAutoRenew = (checked: boolean) => {
+    handlersRef.current.onAutoRenew?.(checked);
+    if (slug === "stripe" && loadState === "ready" && mountRef.current) {
+      void setStripeMembershipAutoRenew(mountRef.current, checked).then((ok) => {
+        if (!ok) handlersRef.current.onError("No pudimos actualizar las opciones de la membresía. Intenta de nuevo.");
+      });
+    }
+  };
 
   useEffect(() => {
     // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
-    if (loadState !== "ready" || slug === "paypal") return;
+    // Stripe: attributeChangedCallback del IIFE está vacío; update() no sirve
+    // y rebind de eventos no debe tocar la sesión. El descuento va por
+    // buq__discount_added. Evita 4 islas / 10 updates por apertura.
+    if (loadState !== "ready" || slug === "paypal" || slug === "stripe") return;
     islandRef.current?.update(widgetProps);
   }, [widgetProps, loadState, slug]);
 
   useEffect(() => {
     if (loadState !== "ready" || !mountRef.current || !membershipOptions) return;
+    if (slug === "stripe") return;
     syncGafaPayMembershipToggles(mountRef.current, {
       saveCard: membershipOptions.saveCard,
       autoRenew: membershipOptions.autoRenew,
     });
-  }, [loadState, membershipOptions]);
+  }, [loadState, membershipOptions, slug]);
 
   useEffect(() => {
     if (mockPay || configLoading || !selected || (clientId && clientSecret)) return;
@@ -3201,7 +3259,7 @@ function PayPanel({
                 </CheckField>
                 <CheckField
                   checked={membershipOptions.autoRenew}
-                  onChange={membershipOptions.onAutoRenew}
+                  onChange={changeAutoRenew}
                 >
                   Renovar automáticamente al vencer
                 </CheckField>

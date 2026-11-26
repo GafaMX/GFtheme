@@ -13,6 +13,7 @@ import {
   waitForWidgetContent,
   widgetContentTimeoutMs,
   notifyStripeDiscountAdded,
+  stripePaymentSurfaceReady,
   type GafaPayWidgetProps,
   type PayPalButtonOptions,
 } from "./gafaPay";
@@ -241,6 +242,33 @@ describe("waitForWidgetContent", () => {
     const expectReject = expect(pending).rejects.toThrow(PAY_FORM_LOAD_ERROR);
     await vi.advanceTimersByTimeAsync(50);
     await expectReject;
+  });
+
+  it("con hideIifeLoading no da por listo si sigue el texto Loading...", async () => {
+    vi.useFakeTimers();
+    const box = document.createElement("div");
+    box.appendChild(document.createElement("iframe"));
+    const loading = document.createElement("div");
+    loading.textContent = "Loading...";
+    box.appendChild(loading);
+    expect(stripePaymentSurfaceReady(box, { requireIframe: true, hideIifeLoading: true })).toBe(false);
+    const pending = waitForWidgetContent(box, 50, { requireIframe: true, hideIifeLoading: true });
+    const expectReject = expect(pending).rejects.toThrow(PAY_FORM_LOAD_ERROR);
+    await vi.advanceTimersByTimeAsync(50);
+    await expectReject;
+  });
+
+  it("con hideIifeLoading resuelve cuando desaparece Cargando...", async () => {
+    const box = document.createElement("div");
+    document.body.appendChild(box);
+    box.appendChild(document.createElement("iframe"));
+    const loading = document.createElement("div");
+    loading.textContent = "Cargando...";
+    box.appendChild(loading);
+    const pending = waitForWidgetContent(box, 1000, { requireIframe: true, hideIifeLoading: true });
+    loading.remove();
+    await expect(pending).resolves.toBeUndefined();
+    box.remove();
   });
 
   it("con requireIframe resuelve cuando aparece el iframe de Stripe", async () => {
