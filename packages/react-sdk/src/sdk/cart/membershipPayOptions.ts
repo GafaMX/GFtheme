@@ -79,12 +79,7 @@ export function paymentMethodsForCart<T extends { slug: string }>(
 }
 
 const SAVE_SELECTORS = '#saveCard, [name="saveCard"], [name="save_card"]';
-/**
- * Frontpay usa #recurringPayment. El IIFE de Stripe pinta un checkbox sin
- * name/id ("Pago Recurrente"). Hace falta al confirmar membresía; NO en el
- * mount (un click cambia `recurringPayment` y el IIFE re-dispara
- * updateinitialpayment en bucle).
- */
+/** Frontpay sigue autoRenew; Stripe conserva su casilla al confirmar. */
 const RENEW_SELECTORS =
   '#recurringPayment, [name="recurringPayment"], [name="subscribe"]';
 
@@ -98,41 +93,135 @@ export function findStripeRecurringCheckbox(root: ParentNode): HTMLInputElement 
   return null;
 }
 
+type StripeRecurrenceState = {
+  pending?: Promise<boolean>;
+  cancel?: () => void;
+  failed: boolean;
+  driving: boolean;
+  queue: Promise<boolean>;
+};
+const stripeRecurrence = new WeakMap<Element, StripeRecurrenceState>();
+function recurrenceState(element: Element): StripeRecurrenceState {
+  let state = stripeRecurrence.get(element);
+  if (!state) {
+    state = { failed: false, driving: false, queue: Promise.resolve(true) };
+    stripeRecurrence.set(element, state);
+  }
+  return state;
+}
+
 /** Subscribe before clicking: the IIFE can emit its result synchronously. */
-function updateStripeRecurrence(input: HTMLInputElement, element: Element): Promise<boolean> {
-  return new Promise((resolve) => {
+function waitForStripeRecurrence(element: Element): Promise<boolean> {
+  const state = recurrenceState(element);
+  if (state.pending) return state.pending;
+  state.pending = new Promise((resolve) => {
     const finish = (success: boolean) => {
       clearTimeout(timer);
       element.removeEventListener("initial-payment-updated", onUpdated);
       element.removeEventListener("initial-payment-update-error", onError);
+      state.pending = undefined;
+      state.cancel = undefined;
+      state.failed = !success;
       resolve(success);
     };
     const onUpdated = () => finish(true);
     const onError = () => finish(false);
     const timer = setTimeout(() => finish(false), 15_000);
+    state.cancel = onError;
     element.addEventListener("initial-payment-updated", onUpdated);
     element.addEventListener("initial-payment-update-error", onError);
-    try {
-      input.click();
-    } catch {
-      finish(false);
-    }
   });
+  return state.pending;
+}
+
+/** Delegation survives the IIFE replacing its inputs. Never clicks on mount. */
+export function bindStripeMembershipRecurrence(
+  root: HTMLElement,
+  onAutoRenew: (checked: boolean) => void,
+): () => void {
+  const elements = new Set<Element>();
+  let clicked: HTMLInputElement | null = null;
+  const watch = (input: HTMLInputElement) => {
+    const element = input.closest("stripe-payment-element")!;
+    elements.add(element);
+    void waitForStripeRecurrence(element);
+  };
+  const onClick = (event: Event) => {
+    const input = findStripeRecurringCheckbox(root);
+    if (input && event.target === input && !input.disabled) {
+      clicked = input;
+      watch(input);
+    }
+  };
+  const onChange = (event: Event) => {
+    const input = findStripeRecurringCheckbox(root);
+    if (!input || event.target !== input) return;
+    if (clicked !== input) watch(input);
+    clicked = null;
+    const state = recurrenceState(input.closest("stripe-payment-element")!);
+    if (!state.driving) onAutoRenew(input.checked);
+  };
+  root.addEventListener("click", onClick, true);
+  root.addEventListener("change", onChange);
+  return () => {
+    root.removeEventListener("click", onClick, true);
+    root.removeEventListener("change", onChange);
+    for (const element of elements) recurrenceState(element).cancel?.();
+  };
+}
+
+/** Only explicit modal edits drive Stripe. Serialize clicks and await the session. */
+export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean): Promise<boolean> {
+  const input = findStripeRecurringCheckbox(root);
+  const element = input?.closest("stripe-payment-element");
+  if (!input || !element) return Promise.resolve(false);
+  const state = recurrenceState(element);
+  state.queue = state.queue.then(async () => {
+    if (state.pending && !await state.pending) return false;
+    const current = findStripeRecurringCheckbox(root);
+    if (!current || current.closest("stripe-payment-element") !== element) return false;
+    if (current.checked === checked) return !state.failed;
+    const pending = waitForStripeRecurrence(element);
+    state.driving = true;
+    try {
+      current.click();
+    } catch {
+      state.cancel?.();
+    } finally {
+      state.driving = false;
+    }
+    return await pending && current.checked === checked;
+  });
+  return state.queue;
 }
 
 /**
  * Clicks reach GafaPayFront's React onChange handler; assigning checked does not.
  * Stripe's new-card form has no "saveCard" checkbox (GafaPayFront saves the card
  * whenever "Pago Recurrente" is on), so a missing save input is not a failure.
- * The renew input is required only when auto-renew is wanted.
+ * Frontpay requires the renew input only when auto-renew is wanted.
+ * Stripe keeps its current choice and blocks until its update is confirmed.
  */
 export async function syncGafaPayMembershipToggles(
   root: ParentNode,
   toggles: MembershipPayToggles,
 ): Promise<boolean> {
+  const stripe = findStripeRecurringCheckbox(root)?.closest("stripe-payment-element");
+  if (stripe) {
+    const state = recurrenceState(stripe);
+    let queued: Promise<boolean>;
+    do {
+      queued = state.queue;
+      await queued;
+    } while (queued !== state.queue);
+    while (state.pending) {
+      if (!await state.pending) return false;
+    }
+    if (state.failed) return false;
+  }
   const desired = [
-    [() => root.querySelector<HTMLInputElement>(SAVE_SELECTORS), toggles.saveCard, false, false],
-    [() => root.querySelector<HTMLInputElement>(RENEW_SELECTORS) ?? findStripeRecurringCheckbox(root), toggles.autoRenew, toggles.autoRenew, true],
+    [() => root.querySelector<HTMLInputElement>(SAVE_SELECTORS), toggles.saveCard, false],
+    [() => stripe ? null : root.querySelector<HTMLInputElement>(RENEW_SELECTORS), toggles.autoRenew, !stripe && toggles.autoRenew],
   ] as const;
   const ok = () => desired.every(([findInput, checked, required]) => {
     const input = findInput();
@@ -140,15 +229,10 @@ export async function syncGafaPayMembershipToggles(
   });
   if (ok()) return true;
   for (let attempt = 0; attempt < 3; attempt++) {
-    for (const [findInput, checked, , recurring] of desired) {
+    for (const [findInput, checked] of desired) {
       const input = findInput();
       if (input && input.checked !== checked) {
-        const stripeElement = recurring ? input.closest("stripe-payment-element") : null;
-        if (stripeElement) {
-          if (!await updateStripeRecurrence(input, stripeElement)) return false;
-        } else {
-          input.click();
-        }
+        input.click();
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 40));

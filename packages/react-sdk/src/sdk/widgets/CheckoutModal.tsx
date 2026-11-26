@@ -83,6 +83,9 @@ import {
 import { retryReservate } from "../cart/reservateRetry";
 import {
   cartHasMembership,
+  bindStripeMembershipRecurrence,
+  findStripeRecurringCheckbox,
+  setStripeMembershipAutoRenew,
   paymentMethodsForCart,
   readShowMembershipOptions,
   syncGafaPayMembershipToggles,
@@ -1885,8 +1888,10 @@ export function CheckoutModal({
     try {
       if (membershipPurchase) {
         const root = document.querySelector(".gafa-checkout-paymount__island");
-        // Stripe: un click al checkbox del IIFE en el gesto de Pagar (no en el
-        // mount). Frontpay: #recurringPayment / #saveCard.
+        // Stripe conserva la elección actual del IIFE y espera su sesión.
+        // Frontpay sigue autoRenew: #recurringPayment / #saveCard.
+        const stripeRenew = root && findStripeRecurringCheckbox(root);
+        if (stripeRenew) setAutoRenew(stripeRenew.checked);
         if (!root || !await syncGafaPayMembershipToggles(root, { saveCard, autoRenew })) {
           warnCheckout("No se verificaron las opciones de membresía; se bloqueó el cobro.");
           setPaying(false);
@@ -3084,6 +3089,23 @@ function PayPanel({
     };
   }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay]);
 
+  const hasMembershipOptions = Boolean(membershipOptions);
+  useEffect(() => {
+    if (slug !== "stripe" || !hasMembershipOptions || !mountRef.current) return;
+    return bindStripeMembershipRecurrence(mountRef.current, (checked) => {
+      handlersRef.current.onAutoRenew?.(checked);
+    });
+  }, [slug, hasMembershipOptions]);
+
+  const changeAutoRenew = (checked: boolean) => {
+    handlersRef.current.onAutoRenew?.(checked);
+    if (slug === "stripe" && loadState === "ready" && mountRef.current) {
+      void setStripeMembershipAutoRenew(mountRef.current, checked).then((ok) => {
+        if (!ok) handlersRef.current.onError("No pudimos actualizar las opciones de la membresía. Intenta de nuevo.");
+      });
+    }
+  };
+
   useEffect(() => {
     // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
     // Stripe: attributeChangedCallback del IIFE está vacío; update() no sirve
@@ -3237,7 +3259,7 @@ function PayPanel({
                 </CheckField>
                 <CheckField
                   checked={membershipOptions.autoRenew}
-                  onChange={membershipOptions.onAutoRenew}
+                  onChange={changeAutoRenew}
                 >
                   Renovar automáticamente al vencer
                 </CheckField>
