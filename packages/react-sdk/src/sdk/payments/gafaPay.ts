@@ -32,6 +32,12 @@ export type GafaPayLineItem = {
   length: number;
   weight: number;
   width: number;
+  /** gafa.fit: `${type}--${id}` — metadata de la Checkout Session. */
+  site_id?: string;
+  /** `membership` marca la línea como subscribable en GAFApay. */
+  type?: string;
+  /** Precio ya descontado (gafa.fit manda unitPrice lleno + totalPrice). */
+  totalPrice?: number;
 };
 
 export type GafaPayOrder = {
@@ -538,11 +544,24 @@ export type GafaPayIsland = {
  * queda vacio para siempre). Como no expone estado, se observa el DOM: si en
  * unos segundos no aparecio el formulario del proveedor, es que no arranco.
  */
+export type WaitForWidgetContentOptions = {
+  /**
+   * Stripe: el IIFE pinta "Cargando…" / "Loading…" y luego el form+submit
+   * antes de que el Payment Element esté listo. Si resolvemos en `form` o
+   * `button`, el skeleton se va, se ve el loading y brinca el layout.
+   */
+  requireIframe?: boolean;
+};
+
 export function waitForWidgetContent(
   container: Element,
   timeoutMs = widgetContentTimeoutMs(),
+  options?: WaitForWidgetContentOptions,
 ): Promise<void> {
-  const isReady = () => Boolean(container.querySelector("iframe, form, input, button"));
+  const isReady = () =>
+    options?.requireIframe
+      ? Boolean(container.querySelector("iframe"))
+      : Boolean(container.querySelector("iframe, form, input, button"));
   if (isReady()) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
@@ -673,8 +692,12 @@ function mountStripePaymentElement(container: Element, props: GafaPayWidgetProps
       unbind();
       applyStripePaymentAttributes(el, next);
       unbind = bindStripePaymentEvents(el, next);
-      const render = (el as unknown as { render?: () => void }).render;
-      if (typeof render === "function") render.call(el);
+      // El IIFE tiene attributeChangedCallback vacío. Si llamamos render()
+      // React remonta hw con un `order`/`onPaymentError` nuevos y re-dispara
+      // oauth + processinitialpayment + updateinitialpayment (a menudo con
+      // tokenInput vacío → toast "Failed to update initial payment" y
+      // "Error al autenticar con el servidor" intermitente). gafa.fit no llama
+      // render(); el descuento entra por `buq__discount_added`.
     },
     unmount: () => {
       unbind();
@@ -721,6 +744,18 @@ export function mountGafaPayWidget(
     return mountStripePaymentElement(container, props);
   }
   return mountLegacyGafaPayWidget(runtime, container, slug, props);
+}
+
+/**
+ * El IIFE escucha este evento para sustituir client_secret + checkout_token
+ * sin remount (mismo contrato que gafa.fit tras stripe.addDiscount).
+ */
+export function notifyStripeDiscountAdded(detail: {
+  client_secret: string;
+  checkout_token: string;
+}): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("buq__discount_added", { detail }));
 }
 
 export function hasGafaPayRuntime(): boolean {

@@ -12,6 +12,7 @@ import {
   triggerPayPalCheckout,
   waitForWidgetContent,
   widgetContentTimeoutMs,
+  notifyStripeDiscountAdded,
   type GafaPayWidgetProps,
   type PayPalButtonOptions,
 } from "./gafaPay";
@@ -230,6 +231,27 @@ describe("waitForWidgetContent", () => {
     box.remove();
   });
 
+  it("con requireIframe no resuelve en un button (Loading... del IIFE)", async () => {
+    vi.useFakeTimers();
+    const box = document.createElement("div");
+    const pending = waitForWidgetContent(box, 50, { requireIframe: true });
+    const button = document.createElement("button");
+    button.type = "submit";
+    box.appendChild(button);
+    const expectReject = expect(pending).rejects.toThrow(PAY_FORM_LOAD_ERROR);
+    await vi.advanceTimersByTimeAsync(50);
+    await expectReject;
+  });
+
+  it("con requireIframe resuelve cuando aparece el iframe de Stripe", async () => {
+    const box = document.createElement("div");
+    document.body.appendChild(box);
+    const pending = waitForWidgetContent(box, 1000, { requireIframe: true });
+    box.appendChild(document.createElement("iframe"));
+    await expect(pending).resolves.toBeUndefined();
+    box.remove();
+  });
+
   it("rechaza con el toast de formulario si no aparece nada", async () => {
     vi.useFakeTimers();
     const box = document.createElement("div");
@@ -283,6 +305,18 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
     island.unmount();
   });
 
+  it("update no llama render() del web component (eso re-dispara oauth)", () => {
+    const box = document.createElement("div");
+    const island = mountGafaPayWidget(runtime, box, "stripe", baseProps());
+    const el = box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG) as HTMLElement & { render?: () => void };
+    const render = vi.fn();
+    el.render = render;
+    island.update(baseProps({ customerFirstName: "Ana" }));
+    expect(render).not.toHaveBeenCalled();
+    expect(el.getAttribute("customer-first-name")).toBe("Ana");
+    island.unmount();
+  });
+
   it("mapea los eventos del widget a los callbacks del checkout", () => {
     const box = document.createElement("div");
     const onStart = vi.fn();
@@ -307,5 +341,15 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
     expect(onSuccess).toHaveBeenCalledWith({ message: "ok" });
     island.unmount();
     expect(box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG)).toBeNull();
+  });
+
+  it("notifyStripeDiscountAdded dispara buq__discount_added", () => {
+    const seen = vi.fn();
+    window.addEventListener("buq__discount_added", seen as EventListener);
+    notifyStripeDiscountAdded({ client_secret: "cs_x", checkout_token: "chk_x" });
+    expect(seen).toHaveBeenCalledTimes(1);
+    const event = seen.mock.calls[0][0] as CustomEvent;
+    expect(event.detail).toEqual({ client_secret: "cs_x", checkout_token: "chk_x" });
+    window.removeEventListener("buq__discount_added", seen as EventListener);
   });
 });

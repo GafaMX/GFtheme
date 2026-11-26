@@ -444,6 +444,10 @@ export type DiscountCodeResult = {
   discountNumber?: number;
   /** Monto a restar del total (si el API o el mock lo mandan ya calculado). */
   discountAmount?: number;
+  /** Token nuevo tras `Stripe::addDiscountToCheckout` (`message` de GAFApay). */
+  checkoutToken?: string;
+  /** `client_secret` nuevo de la Checkout Session. */
+  clientSecret?: string;
   raw?: unknown;
 };
 
@@ -717,6 +721,8 @@ export type GafaClient = {
     urlTemplate?: string;
     meetingId?: string | number;
     lines: Array<{ id: number; type: CartLineType }>;
+    checkoutToken?: string | null;
+    pendingPurchaseId?: string | number | null;
   }): Promise<DiscountCodeResult>;
   checkGiftCode?(payload: {
     brandSlug: string;

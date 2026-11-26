@@ -35,6 +35,7 @@ import {
   installPayPalButtonCapture,
   isPaypalCheckoutCancelMessage,
   resolveGafaPayApiUrl,
+  notifyStripeDiscountAdded,
   PAY_FORM_LOAD_ERROR,
   PAYPAL_CTA_HIT_ID,
   type GafaPayIsland,
@@ -834,6 +835,7 @@ export function CheckoutModal({
     setDiscountError(undefined);
     setAppliedDiscount(null);
     try {
+      const pending = hostedPendingRef.current;
       const result = await client.checkDiscountCode({
         brandSlug,
         locationSlug,
@@ -844,11 +846,22 @@ export function CheckoutModal({
           id: line.id,
           type: line.type,
         })),
+        checkoutToken: pending?.checkoutToken,
+        pendingPurchaseId: pending?.purchaseId,
       });
       if (!result.valid) {
         setDiscountStatus("error");
         setDiscountError(result.message ?? "Código no válido");
         return;
+      }
+      if (result.clientSecret && result.checkoutToken) {
+        notifyStripeDiscountAdded({
+          client_secret: result.clientSecret,
+          checkout_token: result.checkoutToken,
+        });
+        if (pending) {
+          hostedPendingRef.current = { ...pending, checkoutToken: result.checkoutToken };
+        }
       }
       setAppliedDiscount(result);
       setDiscountStatus("ok");
@@ -2890,6 +2903,9 @@ function PayPanel({
         length: 1,
         weight: 1,
         width: 1,
+        site_id: `${line.type}--${line.id}`,
+        type: line.type,
+        totalPrice: Math.max(0, unit - perUnitDiscount),
       };
     });
   }, [lines, discountAmount]);
@@ -2935,7 +2951,10 @@ function PayPanel({
       onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
       onCheckoutCloseAction: () => handlersRef.current.onHostedClose(),
       onInitialPaymentUpdated: (data) => handlersRef.current.onHostedCheckout(data),
-      onInitialPaymentUpdating: () => handlersRef.current.onHostedClose(),
+      // gafa.fit mapea esto a pausar el poll, no a abortar. El IIFE lo dispara
+      // solo al montar el Payment Element (updateinitialpayment). Si abortamos
+      // se cancela initial-purchase y el token queda huérfano.
+      onInitialPaymentUpdating: () => undefined,
       onInitialPaymentUpdateError: ({ message }) =>
         handlersRef.current.onError(message ?? "No pudimos actualizar el pago."),
       changePaymentSystemProperties: ({ recurringPayment, saveCard: nextSave }) => {
@@ -2999,7 +3018,9 @@ function PayPanel({
       const container = mountRef.current;
       islandRef.current?.unmount();
       islandRef.current = mountGafaPayWidget(runtime, container, slug, propsRef.current);
-      await waitForWidgetContent(container, widgetContentTimeoutMs());
+      await waitForWidgetContent(container, widgetContentTimeoutMs(), {
+        requireIframe: slug === "stripe",
+      });
     };
 
     (async () => {
