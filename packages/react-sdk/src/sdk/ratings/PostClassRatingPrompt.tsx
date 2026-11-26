@@ -4,6 +4,7 @@ import type { GafaClient, UserReservation } from "../client/types";
 import { ClassRatingDialog } from "./ClassRatingDialog";
 import {
   classRatingIsComplete,
+  enabledRatingStars,
   pickPromptReservation,
   ratingPromptStorageKey,
   type ClassRatingsConfig,
@@ -130,8 +131,16 @@ export function PostClassRatingPrompt({
           onClose={() => setDialogReservation(null)}
           onSubmitted={(rating) => {
             markSeen(dialogReservation.id);
-            const stars = config.rateClass ? rating.classStars : rating.staffStars;
-            setConfirmation(`¡Gracias! Calificaste ${dialogReservation.serviceName} ★ ${stars}`);
+            const { classStars, staffStars } = enabledRatingStars(rating, config);
+            const staffName = dialogReservation.staffName?.trim();
+            if (classStars != null) {
+              const coach = staffStars != null ? ` · coach ★ ${staffStars}` : "";
+              setConfirmation(`¡Gracias! Calificaste ${dialogReservation.serviceName} ★ ${classStars}${coach}`);
+            } else if (staffStars != null) {
+              setConfirmation(`¡Gracias! Calificaste ${staffName ? `a ${staffName}` : "al coach"} ★ ${staffStars}`);
+            } else {
+              setConfirmation("¡Gracias por calificar!");
+            }
           }}
         />
       ) : null}

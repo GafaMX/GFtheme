@@ -5058,7 +5058,7 @@
 
 /* ----- calificar clase / coach (opt-in CLASS_RATINGS) */
 
-/* En la tarjeta solo va un botón compacto o una línea corta. El formulario
+/* En la tarjeta solo va un botón compacto o el resumen. El formulario
    vive en el popup (`.gafa-rating-dialog`). */
 
 /* Ojo: el tema fija tamaño y color de p/span/strong/label con
@@ -5101,14 +5101,27 @@
 .gafa-rating-done {
   --gafa-fg: var(--gafa-color-muted-text);
   --gafa-type-size: 0.82rem;
+  --gafa-type-leading: 1.2;
+  color: var(--gafa-fg);
+  font-size: var(--gafa-type-size);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+  line-height: var(--gafa-type-leading);
   margin: 0;
   max-width: 100%;
-  overflow: hidden;
   text-align: right;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gafa-rating-done__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gafa-rating-done__lines > span + span {
+  --gafa-type-size: 0.85em;
+  font-size: var(--gafa-type-size);
 }
 
 .gafa-rating-done:focus-visible {
@@ -5347,7 +5360,7 @@
   --gafa-control-bg: transparent;
   --gafa-control-border: 0 solid transparent;
   /* El reset de botones pinta color con --gafa-control-fg !important. */
-  --gafa-control-fg: color-mix(in srgb, var(--gafa-color-muted-text) 22%, var(--gafa-color-background, #fff) 78%);
+  --gafa-control-fg: color-mix(in srgb, var(--gafa-color-muted-text) 85%, var(--gafa-color-background, #fff) 15%);
   --gafa-fg: var(--gafa-control-fg);
   align-items: center;
   background: transparent;

@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClassRating, GafaClient, UserReservation } from "../client/types";
 import { PostClassRatingPrompt } from "./PostClassRatingPrompt";
-import { parseClassRatings, ratingPromptStorageKey } from "./classRatings";
+import { parseClassRatings, ratingPromptStorageKey, type ClassRatingsConfig } from "./classRatings";
 
 afterEach(() => cleanup());
 beforeEach(() => sessionStorage.clear());
@@ -24,7 +24,7 @@ const history: UserReservation[] = [
   },
 ];
 
-function PromptWithHeading({ client }: { client: GafaClient }) {
+function PromptWithHeading({ client, config }: { client: GafaClient; config: ClassRatingsConfig }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   return (
     <>
@@ -33,7 +33,7 @@ function PromptWithHeading({ client }: { client: GafaClient }) {
         client={client}
         companyId={1}
         history={history}
-        config={parseClassRatings({ enabled: true, promptAfterClass: true })!}
+        config={config}
         loading={false}
         onDismissFocus={() => headingRef.current?.focus()}
       />
@@ -41,11 +41,11 @@ function PromptWithHeading({ client }: { client: GafaClient }) {
   );
 }
 
-function renderPrompt(client: GafaClient) {
+function renderPrompt(client: GafaClient, config = parseClassRatings({ enabled: true, promptAfterClass: true })!) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <PromptWithHeading client={client} />
+      <PromptWithHeading client={client} config={config} />
     </QueryClientProvider>,
   );
 }
@@ -73,7 +73,7 @@ describe("aviso “Tu última clase”", () => {
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     const confirmation = await screen.findByRole("status");
-    expect(confirmation.textContent).toBe("¡Gracias! Calificaste Fuerza ★ 5");
+    expect(confirmation.textContent).toBe("¡Gracias! Calificaste Fuerza ★ 5 · coach ★ 4");
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(confirmation);
     expect(sessionStorage.getItem(ratingPromptStorageKey(1, 7))).toBe("1");
@@ -81,6 +81,17 @@ describe("aviso “Tu última clase”", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cerrar confirmación" }));
     expect(screen.queryByRole("status")).toBeNull();
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Mi cuenta" }));
+  });
+
+  it("si solo se califica al coach, la confirmación usa su nombre y su nota", async () => {
+    renderPrompt(client(), parseClassRatings({ enabled: true, promptAfterClass: true, rateClass: false })!);
+    fireEvent.click(await screen.findByRole("button", { name: /Calificar/ }));
+    const coachGroup = await screen.findByRole("radiogroup", { name: "Coach · ISA" });
+    const star = screen.getByRole("radio", { name: "4 estrellas para ISA" });
+    expect(coachGroup.contains(star)).toBe(true);
+    fireEvent.click(star);
+    fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
+    expect((await screen.findByRole("status")).textContent).toBe("¡Gracias! Calificaste a ISA ★ 4");
   });
 
   it("“Ahora no” (X) oculta el aviso y no vuelve en la sesión", async () => {

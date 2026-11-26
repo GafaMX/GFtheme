@@ -28,11 +28,11 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
   } as unknown as GafaClient;
 }
 
-function renderAction(client: GafaClient, res: UserReservation = reservation) {
+function renderAction(client: GafaClient, res: UserReservation = reservation, config = parseClassRatings(true)!) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <ClassRatingAction client={client} reservation={res} config={parseClassRatings(true)!} />
+      <ClassRatingAction client={client} reservation={res} config={config} />
     </QueryClientProvider>,
   );
 }
@@ -152,7 +152,7 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
     expect(first.getAttribute("aria-checked")).toBe("true");
   });
 
-  it("al enviar, cierra el popup y la tarjeta queda con “Calificada ★ 5”", async () => {
+  it("al enviar, cierra el popup y enfoca el resumen con ambas notas", async () => {
     const submit = vi.fn(async (payload) => payload as ClassRating);
     renderAction(mockClient({ submitReservationRating: submit }));
     fireEvent.click(await findCalificar());
@@ -162,9 +162,12 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     const done = await screen.findByRole("status");
-    expect(done.querySelector('[aria-hidden="true"]')?.textContent).toBe("Calificada ★ 5");
+    expect(Array.from(done.querySelectorAll('[aria-hidden="true"] > span'), (line) => line.textContent)).toEqual([
+      "Calificada ★ 5",
+      "Coach ★ 4",
+    ]);
     expect(done.querySelector(".gafa-sr-only")?.textContent).toBe("Calificada: clase 5 de 5, coach 4 de 5");
-    expect(done.getAttribute("title")).toBe("Calificada: clase 5 de 5, coach 4 de 5");
+    expect(done.hasAttribute("title")).toBe(false);
     expect(done.hasAttribute("aria-label")).toBe(false);
     expect(screen.queryByRole("button", { name: /^Calificar/ })).toBeNull();
     await waitFor(() => expect(document.activeElement).toBe(done));
@@ -184,16 +187,28 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
     expect(screen.queryByRole("dialog")).toBeTruthy();
   });
 
-  it("clase ya calificada: línea corta, sin botón ni bloque grande", async () => {
+  it("clase ya calificada: conserva ambas notas aunque coincidan", async () => {
     renderAction(
-      mockClient({ getReservationRating: async () => ({ reservationId: 44, classStars: 5, staffStars: 4, comment: "Top" }) }),
+      mockClient({ getReservationRating: async () => ({ reservationId: 44, classStars: 5, staffStars: 5, comment: "Top" }) }),
     );
     const visible = await screen.findByText("Calificada ★ 5");
-    expect(visible.parentElement?.getAttribute("title")).toBe("Calificada: clase 5 de 5, coach 4 de 5");
+    expect(screen.getByText("Coach ★ 5").parentElement).toBe(visible.parentElement);
+    expect(visible.closest("p")?.hasAttribute("title")).toBe(false);
     expect(screen.queryByRole("status")).toBeNull();
     expect(screen.queryByRole("button", { name: /^Calificar/ })).toBeNull();
     expect(screen.queryByRole("radio")).toBeNull();
     expect(screen.queryByText("Top")).toBeNull();
+  });
+
+  it("solo coach: muestra una línea con la nota del coach", async () => {
+    renderAction(
+      mockClient({ getReservationRating: async () => ({ reservationId: 44, staffStars: 4 }) }),
+      reservation,
+      parseClassRatings({ enabled: true, rateClass: false })!,
+    );
+    const coach = await screen.findByText("Coach ★ 4");
+    expect(coach.parentElement?.textContent).toBe("Coach ★ 4");
+    expect(screen.queryByText(/Calificada ★/)).toBeNull();
   });
 
   it("cancelada o waitlist: no pinta nada", () => {
@@ -207,15 +222,14 @@ describe("ClassRatingAction (tarjeta de la clase)", () => {
 
 describe("ratedSummary", () => {
   const both = parseClassRatings(true)!;
-  it("mantiene una línea corta y prepara el detalle para el tooltip y el lector de pantalla", () => {
-    expect(ratedSummary({ reservationId: 1, classStars: 5, staffStars: 5 }, both).text).toBe("Calificada ★ 5");
-    const mixed = ratedSummary({ reservationId: 1, classStars: 5, staffStars: 4 }, both);
-    expect(mixed.text).toBe("Calificada ★ 5");
-    expect(mixed.label).toContain("clase 5 de 5");
-    expect(mixed.label).toContain("coach 4 de 5");
+  it("genera una línea por nota y el detalle para el lector de pantalla", () => {
+    expect(ratedSummary({ reservationId: 1, classStars: 5, staffStars: 4 }, both)).toEqual({
+      lines: ["Calificada ★ 5", "Coach ★ 4"],
+      label: "Calificada: clase 5 de 5, coach 4 de 5",
+    });
   });
-  it("solo coach", () => {
-    const coachOnly = parseClassRatings({ enabled: true, rateClass: false })!;
-    expect(ratedSummary({ reservationId: 1, staffStars: 3 }, coachOnly).text).toBe("Calificada ★ 3");
+  it("solo clase: conserva la línea original", () => {
+    const classOnly = parseClassRatings({ enabled: true, rateCoach: false })!;
+    expect(ratedSummary({ reservationId: 1, classStars: 5 }, classOnly).lines).toEqual(["Calificada ★ 5"]);
   });
 });

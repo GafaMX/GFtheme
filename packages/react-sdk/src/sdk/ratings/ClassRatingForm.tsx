@@ -78,7 +78,8 @@ export function ClassRatingForm({
     onPendingChange?.(submitMutation.isPending);
   }, [onPendingChange, submitMutation.isPending]);
 
-  const coachLabel = reservation.staffName?.trim() || "el coach";
+  const staffName = reservation.staffName?.trim();
+  const coachLabel = staffName || "el coach";
   const heading =
     config.rateClass && config.rateCoach
       ? "¿Qué tal estuvo?"
@@ -93,7 +94,9 @@ export function ClassRatingForm({
       {config.rateClass ? (
         <StarRow label="La clase" starLabel="la clase" value={classStars} onChange={setClassStars} />
       ) : null}
-      {config.rateCoach ? <StarRow label={coachLabel} value={staffStars} onChange={setStaffStars} /> : null}
+      {config.rateCoach ? (
+        <StarRow label={staffName ? `Coach · ${staffName}` : "Coach"} starLabel={coachLabel} value={staffStars} onChange={setStaffStars} />
+      ) : null}
 
       <label className="gafa-rating__comment">
         <span>Comentario (opcional)</span>
@@ -228,7 +231,11 @@ function StarIcon({ filled }: { filled: boolean }) {
     <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 3.4 14.6 9l6 .5-4.6 4 1.4 5.8L12 16.8 6.6 19.3 8 13.5 3.4 9.5 9.4 9 12 3.4Z"
-        fill="currentColor"
+        fill={filled ? "currentColor" : "none"}
+        stroke={filled ? undefined : "currentColor"}
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        vectorEffect="non-scaling-stroke"
       />
     </svg>
   );

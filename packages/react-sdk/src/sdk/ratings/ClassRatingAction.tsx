@@ -4,29 +4,32 @@ import { ClassRatingDialog } from "./ClassRatingDialog";
 import {
   CLASS_RATING_MAX,
   classRatingIsComplete,
+  enabledRatingStars,
   isReservationRateable,
-  isValidStarValue,
   type ClassRating,
   type ClassRatingsConfig,
 } from "./classRatings";
 import { useReservationRating } from "./useReservationRating";
 
-/** Línea corta para la tarjeta y detalle de clase y coach para el tooltip y el lector de pantalla. */
-export function ratedSummary(rating: ClassRating, config: ClassRatingsConfig): { text: string; label: string } {
-  const classStars = config.rateClass && isValidStarValue(rating.classStars) ? rating.classStars : null;
-  const staffStars = config.rateCoach && isValidStarValue(rating.staffStars) ? rating.staffStars : null;
-  const first = classStars ?? staffStars;
-  const text = `Calificada ★ ${first}`;
-  let label = classStars != null ? `Calificada: clase ${classStars} de ${CLASS_RATING_MAX}` : `Calificada: coach ${staffStars} de ${CLASS_RATING_MAX}`;
-  if (classStars != null && staffStars != null) {
-    label += `, coach ${staffStars} de ${CLASS_RATING_MAX}`;
+/** Una línea por nota y una lectura completa para el lector de pantalla. */
+export function ratedSummary(rating: ClassRating, config: ClassRatingsConfig): { lines: string[]; label: string } {
+  const { classStars, staffStars } = enabledRatingStars(rating, config);
+  const lines: string[] = [];
+  const scores: string[] = [];
+  if (classStars != null) {
+    lines.push(`Calificada ★ ${classStars}`);
+    scores.push(`clase ${classStars} de ${CLASS_RATING_MAX}`);
   }
-  return { text, label };
+  if (staffStars != null) {
+    lines.push(`Coach ★ ${staffStars}`);
+    scores.push(`coach ${staffStars} de ${CLASS_RATING_MAX}`);
+  }
+  return { lines, label: `Calificada: ${scores.join(", ")}` };
 }
 
 /**
  * Lo único que va en la tarjeta de una clase pasada: botón compacto
- * “Calificar” (abre el popup) o la línea corta “Calificada ★ 5”.
+ * “Calificar” (abre el popup) o el resumen de las notas guardadas.
  */
 export function ClassRatingAction({
   client,
@@ -63,12 +66,13 @@ export function ClassRatingAction({
         ref={doneRef}
         className="gafa-rating-done"
         role={justRated ? "status" : undefined}
-        title={summary.label}
         tabIndex={-1}
         data-rated="true"
         onBlur={() => setJustRated(false)}
       >
-        <span aria-hidden="true">{summary.text}</span>
+        <span className="gafa-rating-done__lines" aria-hidden="true">
+          {summary.lines.map((line) => <span key={line}>{line}</span>)}
+        </span>
         <span className="gafa-sr-only">{summary.label}</span>
       </p>
     );
