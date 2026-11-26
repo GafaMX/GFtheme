@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cartHasMembership,
   coerceFlag,
+  findStripeRecurringCheckbox,
   paymentMethodsForCart,
   readShowMembershipOptions,
   syncGafaPayMembershipToggles,
@@ -131,11 +132,99 @@ describe("readShowMembershipOptions", () => {
 });
 
 describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
-  it("al pagar sí marca el checkbox de Pago Recurrente del IIFE", async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  function stripeForm() {
     const root = document.createElement("div");
-    root.innerHTML = `<stripe-payment-element><input type="checkbox"></stripe-payment-element>`;
+    root.innerHTML = `<stripe-payment-element>
+      <label><input type="checkbox">Guardar tarjeta</label>
+      <label><input type="checkbox">Pago Recurrente (cada 30 días)</label>
+    </stripe-payment-element>`;
+    const element = root.querySelector("stripe-payment-element")!;
+    const input = findStripeRecurringCheckbox(root)!;
+    return { root, element, input };
+  }
+
+  it("al pagar sí marca el checkbox de Pago Recurrente del IIFE", async () => {
+    const { root, element, input } = stripeForm();
+    // También cubre un resultado síncrono disparado desde el click del IIFE.
+    input.addEventListener("click", () => element.dispatchEvent(new Event("initial-payment-updated")));
     expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(true);
-    expect(root.querySelector("input")?.checked).toBe(true);
+    expect(input.checked).toBe(true);
+    expect(root.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
+  });
+
+  it("espera initial-payment-updated antes de resolver true", async () => {
+    vi.useFakeTimers();
+    const { root, element, input } = stripeForm();
+    const settled = vi.fn();
+    const pending = syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true });
+    void pending.then(settled);
+    expect(input.checked).toBe(true);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(settled).not.toHaveBeenCalled();
+    element.dispatchEvent(new Event("initial-payment-updated"));
+    await vi.advanceTimersByTimeAsync(40);
+    expect(await pending).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("resuelve false ante initial-payment-update-error y limpia listeners", async () => {
+    vi.useFakeTimers();
+    const { root, element } = stripeForm();
+    const remove = vi.spyOn(element, "removeEventListener");
+    const pending = syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true });
+    element.dispatchEvent(new Event("initial-payment-update-error"));
+    expect(await pending).toBe(false);
+    expect(remove).toHaveBeenCalledWith("initial-payment-updated", expect.any(Function));
+    expect(remove).toHaveBeenCalledWith("initial-payment-update-error", expect.any(Function));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("resuelve false tras 15 segundos sin evento y limpia listeners", async () => {
+    vi.useFakeTimers();
+    const { root, element } = stripeForm();
+    const remove = vi.spyOn(element, "removeEventListener");
+    const pending = syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true });
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(await pending).toBe(false);
+    expect(remove).toHaveBeenCalledTimes(2);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("si ya está marcada no hace click ni espera eventos", async () => {
+    vi.useFakeTimers();
+    const { root, input } = stripeForm();
+    input.checked = true;
+    const click = vi.spyOn(input, "click");
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(true);
+    expect(click).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("encuentra la recurrencia por un label asociado mediante for", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<stripe-payment-element>
+      <input type="checkbox" id="stripe-renew"><label for="stripe-renew">Pago Recurrente</label>
+    </stripe-payment-element>`;
+    expect(findStripeRecurringCheckbox(root)).toBe(root.querySelector("input"));
+  });
+
+  it("no usa otra casilla si ninguna etiqueta dice Pago Recurrente", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const root = document.createElement("div");
+    root.innerHTML = `<stripe-payment-element>
+      <label><input type="checkbox">Guardar tarjeta</label><input type="checkbox">
+    </stripe-payment-element>`;
+    expect(findStripeRecurringCheckbox(root)).toBeNull();
+    const pending = syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true });
+    await vi.advanceTimersByTimeAsync(120);
+    expect(await pending).toBe(false);
+    expect([...root.querySelectorAll<HTMLInputElement>("input")].every((input) => !input.checked)).toBe(true);
   });
 
   it("acepta que no exista #saveCard si Pago Recurrente queda activo", async () => {
