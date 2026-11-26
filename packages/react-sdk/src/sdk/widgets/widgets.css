@@ -4927,19 +4927,15 @@
   border-color: var(--gafa-color-primary);
 }
 
+/* Calificar / Calificada van a la derecha (3ª columna), no en una fila
+   nueva: la tarjeta debe medir lo mismo que una clase sin calificación. */
 .gafa-acct-class[data-rateable="true"] {
-  align-items: start;
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 .gafa-acct-class[data-cancelled="true"],
 .gafa-acct-class[data-historic="true"]:not([data-rateable="true"]) {
   opacity: 0.72;
-}
-
-.gafa-acct-class .gafa-rating {
-  border-top: 1px solid var(--gafa-color-border);
-  margin-top: 0.55rem;
-  padding-top: 0.7rem;
 }
 
 .gafa-acct-class[data-cancelled="true"]:hover,
@@ -4981,6 +4977,9 @@
   --gafa-heading-size: 1rem;
   font-size: 1rem;
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gafa-acct-class__when {
@@ -5003,6 +5002,9 @@
   color: var(--gafa-color-muted-text);
   font-size: 0.82rem;
   margin: 0.1rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gafa-acct-class__tags {
@@ -5020,12 +5022,23 @@
   display: flex;
   gap: 0.4rem;
   grid-column: 1 / -1;
+  min-width: 0;
 }
 
 @media (min-width: 560px) {
   .gafa-acct-class__actions {
     grid-column: auto;
   }
+}
+
+/* En el historial, Calificar/Calificada no bajan a una fila nueva (ni en móvil). */
+.gafa-acct-class[data-rateable="true"] .gafa-acct-class__actions {
+  align-items: flex-end;
+  flex-direction: column;
+  grid-column: auto;
+  justify-content: center;
+  justify-self: end;
+  max-width: 8.25rem;
 }
 
 .gafa-acct-class__actions .gafa-sdk-button {
@@ -5035,167 +5048,426 @@
   white-space: nowrap;
 }
 
+.gafa-acct-class__actions .gafa-rating-cta,
+.gafa-acct-class__actions .gafa-rating-done,
+.gafa-acct-class__actions .gafa-rating-cta-boot {
+  flex: none;
+  margin: 0;
+  max-width: 100%;
+}
+
 /* ----- calificar clase / coach (opt-in CLASS_RATINGS) */
 
-.gafa-rating {
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 0.7rem;
+/* En la tarjeta solo va un botón compacto o el resumen. El formulario
+   vive en el popup (`.gafa-rating-dialog`). */
+
+/* Ojo: el tema fija tamaño y color de p/span/strong/label con
+   --gafa-type-size y --gafa-fg (theme.css, con !important); por eso aquí no
+   se usa font-size/color directo en texto. */
+
+.gafa-rating-cta {
+  --gafa-control-font-size: 0.82rem;
+  align-items: center;
+  align-self: start;
+  display: inline-flex;
+  gap: 0.3rem;
+  justify-self: start;
+  min-height: 36px;
+  min-width: 44px;
+  padding: 0.35rem 0.85rem;
+  position: relative;
+  white-space: nowrap;
+  width: auto;
 }
 
-.gafa-rating__title,
-.gafa-rating__thanks {
-  font-size: 0.86rem;
-  font-weight: 700;
-  margin: 0;
+/* Extiende la zona táctil sin cambiar la altura visible del botón. */
+.gafa-rating-cta::before {
+  content: "";
+  inset: -5px 0;
+  position: absolute;
 }
 
-.gafa-rating__thanks {
-  color: var(--gafa-color-success, #15803d);
+.gafa-rating-cta span {
+  --gafa-type-size: 1em;
 }
 
-.gafa-rating__boot {
+.gafa-rating-cta-boot {
+  border-radius: 999px;
   display: block;
   height: 2.2rem;
-  width: 100%;
+  width: 6.2rem;
 }
 
-.gafa-rating-stars {
-  align-items: center;
-  display: grid;
-  gap: 0.25rem 0.5rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.gafa-rating-stars__label {
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.gafa-rating-stars__row {
-  display: flex;
-  gap: 0.1rem;
-  grid-column: 1 / -1;
-}
-
-.gafa-rating-stars__value {
-  color: var(--gafa-color-muted-text);
-  font-size: 0.72rem;
+.gafa-rating-done {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.82rem;
+  --gafa-type-leading: 1.2;
+  color: var(--gafa-fg);
+  font-size: var(--gafa-type-size);
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: var(--gafa-type-leading);
+  margin: 0;
+  max-width: 100%;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.gafa-rating-star {
+.gafa-rating-done__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gafa-rating-done__lines > span + span {
+  --gafa-type-size: 0.85em;
+  font-size: var(--gafa-type-size);
+}
+
+.gafa-rating-done:focus-visible {
+  outline: 2px solid var(--gafa-color-primary);
+  outline-offset: 3px;
+}
+
+/* aviso compacto “Tu última clase” */
+
+.gafa-rating-notice {
+  align-items: center;
+  background: var(--gafa-color-surface);
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md, 14px);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin: var(--gafa-space-3, 0.75rem) var(--gafa-space-4, 1rem);
+  padding: 0.6rem 0.7rem 0.6rem 0.9rem;
+}
+
+.gafa-rating-notice__text {
+  --gafa-type-size: 0.88rem;
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.gafa-rating-notice__text strong {
+  --gafa-fg: var(--gafa-color-text);
+  --gafa-type-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gafa-rating-notice__kicker {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gafa-rating-notice__actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 0.25rem;
+}
+
+.gafa-rating-notice__dismiss {
   --gafa-control-padding: 0;
   --gafa-control-bg: transparent;
   --gafa-control-border: 0 solid transparent;
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: 50%;
   color: var(--gafa-color-muted-text);
   cursor: pointer;
   display: inline-flex;
   height: 44px;
   justify-content: center;
-  min-width: 44px;
   padding: 0;
+  width: 44px;
 }
 
-.gafa-rating-star[data-filled="true"] {
-  color: var(--gafa-color-accent, #f59e0b);
-}
-
-.gafa-rating-star:focus-visible {
+.gafa-rating-notice__dismiss:focus-visible {
   outline: 2px solid var(--gafa-color-primary);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
-.gafa-rating-star:disabled {
-  cursor: default;
-}
+/* popup */
 
-.gafa-rating__comment {
-  display: grid;
-  gap: 0.3rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.gafa-rating__comment textarea {
-  --gafa-field-min-height: 4.2rem;
-  font-weight: 500;
-  min-height: 4.2rem;
-  resize: vertical;
-}
-
-.gafa-rating__comment-out {
-  color: var(--gafa-color-muted-text);
-  font-size: 0.82rem;
-  margin: 0;
-}
-
-.gafa-rating__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.gafa-rating__actions .gafa-sdk-button {
-  flex: 1;
-  min-width: 8rem;
-}
-
-.gafa-rating-prompt-overlay {
+.gafa-rating-dialog-overlay {
   align-items: end;
+  animation: gafa-fade 0.18s ease both;
   background: var(--gafa-color-overlay);
   display: flex;
   inset: 0;
   justify-content: center;
   padding: 0;
   position: fixed;
-  z-index: 2147483001;
+  z-index: 2147483002;
 }
 
-.gafa-rating-prompt {
+.gafa-rating-dialog {
+  animation: gafa-sheet-up 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
   background: var(--gafa-color-surface);
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -12px 40px color-mix(in srgb, #000 18%, transparent);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -16px 48px color-mix(in srgb, #000 14%, transparent);
   display: grid;
-  gap: 0.4rem;
-  max-height: min(92vh, 640px);
+  gap: 0.35rem;
+  max-height: min(94vh, 94dvh, 680px);
+  outline: none;
   overflow: auto;
-  padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  overscroll-behavior: contain;
+  padding: 0.45rem 1.35rem calc(1.4rem + env(safe-area-inset-bottom, 0px));
+  position: relative;
   width: min(100%, 440px);
 }
 
-.gafa-rating-prompt__kicker {
+@keyframes gafa-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+.gafa-rating-dialog__handle {
+  background: var(--gafa-color-border);
+  border-radius: var(--gafa-radius-pill);
+  display: block;
+  height: 4px;
+  justify-self: center;
+  margin: 0.35rem 0 0.7rem;
+  width: 36px;
+}
+
+.gafa-rating-dialog__close {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-control-radius: var(--gafa-radius-pill);
+  --gafa-control-padding: 0px;
+  --gafa-control-width: 44px;
+  --gafa-control-height: 44px;
+  --gafa-control-min-height: 44px;
+  --gafa-control-font-size: 0px;
+  --gafa-icon-size: 14px;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--gafa-radius-pill);
   color: var(--gafa-color-muted-text);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  right: 0.7rem;
+  top: 0.7rem;
+  width: 44px;
+}
+
+.gafa-rating-dialog__close:focus-visible {
+  outline: 2px solid var(--gafa-color-accent);
+  outline-offset: 2px;
+}
+
+.gafa-rating-dialog__kicker {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   margin: 0;
+  padding-right: 2.8rem;
   text-transform: uppercase;
 }
 
-.gafa-rating-prompt__heading {
-  font-size: 1.15rem;
-  margin: 0 0 0.4rem;
+.gafa-rating-dialog__heading {
+  --gafa-heading-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0.15rem 0 0.85rem;
+  padding-right: 2.8rem;
 }
 
-.gafa-rating-prompt__heading span {
-  color: var(--gafa-color-muted-text);
-  font-weight: 600;
+.gafa-rating-dialog__heading span {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 1.05rem;
+  font-weight: 500;
 }
 
 @media (min-width: 560px) {
-  .gafa-rating-prompt-overlay {
+  .gafa-rating-dialog-overlay {
     align-items: center;
     padding: 1.5rem;
   }
 
-  .gafa-rating-prompt {
-    border-radius: 20px;
-    box-shadow: 0 18px 50px color-mix(in srgb, #000 22%, transparent);
+  .gafa-rating-dialog {
+    border-radius: 24px;
+    box-shadow: 0 18px 50px color-mix(in srgb, #000 18%, transparent);
+    padding-top: 1.35rem;
+  }
+
+  .gafa-rating-dialog__handle {
+    display: none;
+  }
+
+  .gafa-rating-dialog__close {
+    top: 1rem;
+    right: 1rem;
+  }
+}
+
+/* formulario dentro del popup */
+
+.gafa-rating {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.gafa-rating__title {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.92rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.gafa-rating-stars {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.gafa-rating-stars__label {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.82rem;
+  font-weight: 500;
+}
+
+.gafa-rating-stars__row {
+  display: flex;
+  gap: 0.15rem;
+  margin-left: -0.35rem;
+}
+
+.gafa-rating-star {
+  --gafa-control-padding: 0;
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  /* El reset de botones pinta color con --gafa-control-fg !important. */
+  --gafa-control-fg: color-mix(in srgb, var(--gafa-color-muted-text) 85%, var(--gafa-color-background, #fff) 15%);
+  --gafa-fg: var(--gafa-control-fg);
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--gafa-control-fg);
+  cursor: pointer;
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  min-width: 48px;
+  padding: 0;
+}
+
+.gafa-rating-star[data-filled="true"] {
+  --gafa-control-fg: var(--gafa-color-accent, var(--gafa-color-primary));
+  --gafa-fg: var(--gafa-control-fg);
+  color: var(--gafa-control-fg);
+}
+
+.gafa-rating-star:focus-visible {
+  outline: 2px solid var(--gafa-color-accent);
+  outline-offset: 2px;
+}
+
+.gafa-rating__comment {
+  --gafa-fg: var(--gafa-color-muted-text);
+  --gafa-type-size: 0.82rem;
+  display: grid;
+  gap: 0.45rem;
+  font-weight: 500;
+}
+
+.gafa-rating__comment textarea {
+  --gafa-field-bg: var(--gafa-color-surface-raised, var(--gafa-color-surface));
+  --gafa-field-border: 1px solid var(--gafa-color-border);
+  --gafa-field-fg: var(--gafa-color-text);
+  --gafa-field-font-size: 1rem;
+  --gafa-field-radius: var(--gafa-radius-md);
+  --gafa-type-size: 1rem;
+  background: var(--gafa-color-surface-raised, var(--gafa-color-surface));
+  border: 1px solid var(--gafa-color-border);
+  border-radius: var(--gafa-radius-md);
+  box-shadow: none;
+  caret-color: var(--gafa-color-text);
+  color: var(--gafa-color-text);
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.45;
+  min-height: 5.5rem;
+  padding: 13px 14px;
+  resize: vertical;
+}
+
+.gafa-rating__comment textarea::placeholder {
+  color: var(--gafa-color-muted-text);
+  font-family: inherit;
+  font-weight: 400;
+  opacity: 1;
+}
+
+/* El tema pinta :focus-visible con outline 2px del acento (en Fitspin es
+   casi negro y se ve un marco grueso). Hay que empatar esa especificidad. */
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-rating__comment textarea:focus:not(.gafa-pay-native *):not(.gafa-pay-native),
+html body .gafa-sdk.gafa-sdk.gafa-sdk .gafa-rating__comment textarea:focus-visible:not(.gafa-pay-native *):not(.gafa-pay-native) {
+  border: 1px solid color-mix(in srgb, var(--gafa-color-accent) 40%, var(--gafa-color-border)) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gafa-color-accent) 14%, transparent) !important;
+  outline: none !important;
+}
+
+.gafa-rating__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.gafa-rating__actions .gafa-sdk-button {
+  flex: 1;
+  min-height: 48px;
+}
+
+.gafa-rating__actions .gafa-sdk-button--secondary {
+  --gafa-control-bg: transparent;
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-muted-text);
+  --gafa-fg: var(--gafa-color-muted-text);
+  background: transparent;
+  border-color: transparent;
+  color: var(--gafa-color-muted-text);
+  font-weight: 600;
+}
+
+.gafa-rating__actions .gafa-sdk-button--secondary:not(:disabled):hover {
+  --gafa-control-bg: var(--gafa-color-surface-raised);
+  --gafa-control-border: 0 solid transparent;
+  --gafa-control-fg: var(--gafa-color-text);
+  --gafa-fg: var(--gafa-color-text);
+  background: var(--gafa-color-surface-raised);
+  border-color: transparent;
+  color: var(--gafa-color-text);
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gafa-rating-dialog,
+  .gafa-rating-dialog-overlay {
+    animation: none;
   }
 }
 

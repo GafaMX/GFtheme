@@ -112,6 +112,13 @@ export function classRatingIsComplete(
   return true;
 }
 
+export function enabledRatingStars(rating: ClassRating, config: ClassRatingsConfig) {
+  return {
+    classStars: config.rateClass && isValidStarValue(rating.classStars) ? rating.classStars : null,
+    staffStars: config.rateCoach && isValidStarValue(rating.staffStars) ? rating.staffStars : null,
+  };
+}
+
 export function ratingPromptStorageKey(companyId: number | undefined, reservationId: number): string {
   return `gafa-sdk:rating-prompt:${companyId ?? "x"}:${reservationId}`;
 }

@@ -21,9 +21,9 @@ import { CustomFieldInput } from "./CustomFieldInput";
 import { DateField } from "./DateField";
 import { defaultExploreClasses, defaultExplorePackages } from "../account/exploreDefaults";
 import { ACCOUNT_HISTORY_CHUNK, remainingAccountHistory, visibleAccountHistory } from "../account/accountHistory";
-import { ClassRatingForm } from "../ratings/ClassRatingForm";
+import { ClassRatingAction } from "../ratings/ClassRatingAction";
 import { PostClassRatingPrompt } from "../ratings/PostClassRatingPrompt";
-import { parseClassRatings, type ClassRatingsConfig } from "../ratings/classRatings";
+import { isReservationRateable, parseClassRatings, type ClassRatingsConfig } from "../ratings/classRatings";
 import { WidgetShell } from "./WidgetShell";
 
 type ProfileTab = "overview" | "classes" | "balance" | "purchases" | "profile" | "password";
@@ -125,6 +125,7 @@ export function ProfileWidget({
   const [pendingCancel, setPendingCancel] = useState<UserReservation | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sideRef = useRef<HTMLElement | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -421,7 +422,7 @@ export function ProfileWidget({
       <section className="gafa-acct__main" inert={menuOpen ? true : undefined}>
         <header className="gafa-acct__head">
           <div className="gafa-acct__head-copy">
-            <h2>
+            <h2 ref={headingRef} tabIndex={-1}>
               {tab === "overview" ? (
                 <>
                   ¡Hola, {firstNameOf(profile)}!{" "}
@@ -446,6 +447,17 @@ export function ProfileWidget({
             </button>
           ) : null}
         </header>
+
+        {classRatings?.promptAfterClass && client ? (
+          <PostClassRatingPrompt
+            client={client}
+            companyId={companyId}
+            history={pastQuery.data ?? []}
+            config={classRatings}
+            loading={pastQuery.isLoading}
+            onDismissFocus={() => headingRef.current?.focus({ preventScroll: true })}
+          />
+        ) : null}
 
         <div className="gafa-acct__body">
           {tab === "overview" ? (
@@ -576,16 +588,6 @@ export function ProfileWidget({
             cancelMutation.reset();
             setPendingCancel(null);
           }}
-        />
-      ) : null}
-
-      {classRatings?.promptAfterClass && client ? (
-        <PostClassRatingPrompt
-          client={client}
-          companyId={companyId}
-          history={pastQuery.data ?? []}
-          config={classRatings}
-          loading={pastQuery.isLoading}
         />
       ) : null}
     </div>
@@ -1228,8 +1230,10 @@ function ReservationCard({
   onShowQr?(reservation: UserReservation): void;
 }) {
   const showQr = Boolean(onShowQr && canShowReservationQr(reservation, checkInCardNo));
-  const showActions = !historic && !reservation.cancelled && (onCancel || showQr);
-  const showRating = Boolean(historic && classRatings && client);
+  const showRating = Boolean(
+    historic && classRatings && client && isReservationRateable(reservation),
+  );
+  const showActions = (!historic && !reservation.cancelled && (onCancel || showQr)) || showRating;
 
   return (
     <article
@@ -1265,13 +1269,13 @@ function ReservationCard({
           {reservation.cancelled ? <span className="gafa-meeting-chip">Cancelada</span> : null}
           {paymentLabel ? <span className="gafa-meeting-chip">{paymentLabel}</span> : null}
         </div>
-        {showRating && client && classRatings ? (
-          <ClassRatingForm client={client} reservation={reservation} config={classRatings} />
-        ) : null}
       </div>
 
       {showActions ? (
         <div className="gafa-acct-class__actions">
+          {showRating && client && classRatings ? (
+            <ClassRatingAction client={client} reservation={reservation} config={classRatings} />
+          ) : null}
           {showQr ? (
             <button className="gafa-sdk-button" type="button" onClick={() => onShowQr?.(reservation)}>
               Ver QR

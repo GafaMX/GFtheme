@@ -399,8 +399,8 @@ function Preview() {
         <div className="demo-root" data-ratings-preview={isRatingsPreview ? "true" : undefined}>
           {isRatingsPreview ? (
             <div className="matricula-test-banner" role="status">
-              DEMO MOCK — no pega a producción. Ya calificada = “Gracias…”. POST de la reserva 25 (Bici AM) simula el 404.
-              Variantes: ?ratings=prompt · ?ratings=historial · ?ratings=error
+              DEMO MOCK — no pega a producción. En el historial toca “Calificar” para abrir el popup. La tarjeta calificada muestra la nota de clase y la del coach.
+              El POST de la reserva 25 (Bici AM) simula el error. Variantes: ?ratings=prompt · ?ratings=historial · ?ratings=error
             </div>
           ) : null}
           <header className="demo-header">

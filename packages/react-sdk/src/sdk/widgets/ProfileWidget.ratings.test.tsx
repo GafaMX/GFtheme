@@ -95,14 +95,31 @@ describe("perfil: calificar historial", () => {
     expect(screen.queryByLabelText("Calificar clase")).toBeNull();
   });
 
-  it("con el flag, una clase terminada se puede calificar", async () => {
+  it("con el flag, la tarjeta solo trae el botón Calificar y el formulario va en el popup", async () => {
     renderProfile([pastClass(8)]);
     await openHistory();
-    await waitFor(() => expect(screen.getByText("¿Qué tal estuvo?")).toBeTruthy());
-    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para La clase" }));
+    const button = await screen.findByRole("button", { name: /^Calificar/ });
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.queryByText("¿Qué tal estuvo?")).toBeNull();
+    const card = button.closest("article");
+    expect(card?.querySelector(".gafa-acct-class__actions")?.contains(button)).toBe(true);
+    expect(card?.querySelector(".gafa-acct-class__info")?.contains(button)).toBe(false);
+    fireEvent.click(button);
+    expect(await screen.findByRole("dialog", { name: /Calificar clase/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "5 estrellas para la clase" }));
     fireEvent.click(screen.getByRole("radio", { name: "4 estrellas para ISA" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
-    await waitFor(() => expect(screen.getByText("Gracias por tu calificación")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Calificada ★ 5")).toBeTruthy());
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("una clase ya calificada queda en una línea corta", async () => {
+    const ratings = new Map<number, ClassRating>([[8, { reservationId: 8, classStars: 5, staffStars: 5, comment: "Top" }]]);
+    renderProfile([pastClass(8)], parseClassRatings(true), mockClient([pastClass(8)], ratings));
+    await openHistory();
+    await waitFor(() => expect(screen.getByText("Calificada ★ 5")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: /^Calificar/ })).toBeNull();
+    expect(screen.queryByText("Top")).toBeNull();
   });
 
   it("cancelada o waitlist no se califican", async () => {
