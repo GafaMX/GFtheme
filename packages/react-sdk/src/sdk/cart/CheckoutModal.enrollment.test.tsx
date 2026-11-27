@@ -154,7 +154,15 @@ async function signInFromCheckout() {
   fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 }
 
-function renderEnrollment(client: GafaClient, extras: { skipCatalog?: boolean; failEnrollment?: boolean } = {}) {
+function renderEnrollment(
+  client: GafaClient,
+  extras: {
+    skipCatalog?: boolean;
+    failEnrollment?: boolean;
+    language?: string;
+    membershipEnrollment?: unknown;
+  } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
@@ -165,7 +173,8 @@ function renderEnrollment(client: GafaClient, extras: { skipCatalog?: boolean; f
         brandSlug="the-base"
         locationSlug="pozuelo"
         skipCatalog={extras.skipCatalog ?? true}
-        membershipEnrollment={ENROLLMENT}
+        language={extras.language}
+        membershipEnrollment={extras.membershipEnrollment ?? ENROLLMENT}
         mockPay
         chargeEnrollmentFee={
           extras.failEnrollment
@@ -192,6 +201,28 @@ describe("CheckoutModal matrícula", () => {
     resetToastHostForTests();
     useCartStore.setState({ lines: [], reservation: null });
     vi.clearAllMocks();
+  });
+
+  it.each([
+    ["es", "Inscripción"],
+    ["en", "Enrollment"],
+    ["fr", "Inscription"],
+  ] as const)("sin etiqueta de marca en %s muestra %s", async (language, label) => {
+    renderEnrollment(mockClient(), {
+      language,
+      membershipEnrollment: { comboId: 3491, membershipIds: [1272, 1271, 1204] },
+    });
+    await waitFor(() => expect(screen.getByText(`${label} · solo primer pago`)).toBeTruthy());
+    if (language !== "es") {
+      expect(screen.queryByText("Inscripción · solo primer pago")).toBeNull();
+    }
+  });
+
+  it.each(["es", "en", "fr"] as const)("con etiqueta de marca en %s sigue Matrícula", async (language) => {
+    renderEnrollment(mockClient(), { language });
+    await waitFor(() => expect(screen.getByText(/matrícula · solo primer pago/i)).toBeTruthy());
+    expect(screen.queryByText("Enrollment · solo primer pago")).toBeNull();
+    expect(screen.queryByText("Inscription · solo primer pago")).toBeNull();
   });
 
   it("muestra la línea atada y el total 115€", async () => {

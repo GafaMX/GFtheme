@@ -559,6 +559,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           showMembershipOptions={props.showMembershipOptions ?? config.showMembershipOptions}
           crossSell={props.crossSell ?? config.crossSell}
           membershipEnrollment={props.membershipEnrollment ?? config.membershipEnrollment}
+          language={props.language ?? config.language}
           mockPay={props.mockPay ?? config.mockPay}
         />,
       );

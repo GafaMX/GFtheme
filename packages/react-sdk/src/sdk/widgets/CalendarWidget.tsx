@@ -1996,6 +1996,7 @@ export function ReservationFlow({
         key={meeting.id}
         client={client}
         captcha={captcha}
+        language={language}
         brandSlug={brandSlug}
         locationSlug={locationSlug}
         locationName={locationName ?? meeting.location?.name}
