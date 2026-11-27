@@ -178,7 +178,7 @@ export function bindStripeMembershipRecurrence(
   };
 }
 
-/** Only explicit modal edits drive Stripe. Serialize clicks and await the session. */
+/** SDK edits and new islands drive Stripe. Serialize clicks and await the session. */
 export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean): Promise<boolean> {
   const input = findStripeRecurringCheckbox(root);
   const element = input?.closest("stripe-payment-element");
@@ -189,6 +189,7 @@ export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean)
     const current = findStripeRecurringCheckbox(root);
     if (!current || current.closest("stripe-payment-element") !== element) return false;
     if (current.checked === checked) return !state.failed;
+    if (current.disabled) return false;
     const pending = waitForStripeRecurrence(element);
     state.driving = true;
     try {
@@ -198,7 +199,9 @@ export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean)
     } finally {
       state.driving = false;
     }
-    return await pending && current.checked === checked;
+    if (!await pending) return false;
+    const confirmed = findStripeRecurringCheckbox(root);
+    return confirmed?.closest("stripe-payment-element") === element && confirmed.checked === checked;
   });
   return state.queue;
 }
@@ -208,7 +211,7 @@ export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean)
  * Stripe's new-card form has no "saveCard" checkbox (GafaPayFront saves the card
  * whenever "Pago Recurrente" is on), so a missing save input is not a failure.
  * Frontpay requires the renew input only when auto-renew is wanted.
- * Stripe keeps its current choice and blocks until its update is confirmed.
+ * Stripe blocks until its queue finishes and the session matches the SDK choice.
  */
 export async function syncGafaPayMembershipToggles(
   root: ParentNode,
@@ -220,12 +223,14 @@ export async function syncGafaPayMembershipToggles(
     let queued: Promise<boolean>;
     do {
       queued = state.queue;
-      await queued;
+      if (!await queued) return false;
     } while (queued !== state.queue);
     while (state.pending) {
       if (!await state.pending) return false;
     }
     if (state.failed) return false;
+    const confirmed = findStripeRecurringCheckbox(root);
+    if (confirmed?.closest("stripe-payment-element") !== stripe || confirmed.checked !== toggles.autoRenew) return false;
   }
   // Un clic posterior o el preflight de pago invalida reintentos anteriores.
   // Así una sincronización pendiente no revierte la última elección del SDK.

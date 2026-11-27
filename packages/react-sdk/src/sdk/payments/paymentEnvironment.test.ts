@@ -105,6 +105,9 @@ describe("aislamiento de pagos por entorno", () => {
 
   it.each([false, true])("mantiene la API compartida al cambiar de proveedor (API global=%s)", async (globalApi) => {
     const { scripts } = mockPaymentBundles();
+    // Proveedor alternativo simulado con contrato de API configurable; el bundle
+    // real de staging rechaza estas APIs (frontpayBundleContract.test.ts).
+    pay.setGafaPayFrontUrl("https://alternate.example.test/frontpay.js");
     if (globalApi) {
       pay.setGafaPayApiUrl();
       window.GAFAPAY_API_URL = BUQ_ENVIRONMENTS.staging.gafaPayApiUrl;
@@ -195,6 +198,7 @@ describe("aislamiento de pagos por entorno", () => {
     }
     const apiUrl = "https://another-api.example.test";
     const scriptUrl = "https://another-front.example.test/widget.js";
+    if (method === "stripe") pay.setGafaPayFrontUrl("https://alternate.example.test/frontpay.js");
     let defined = false;
     vi.spyOn(customElements, "get").mockImplementation(() => defined ? class extends HTMLElement {} : undefined);
     const createElement = vi.fn();

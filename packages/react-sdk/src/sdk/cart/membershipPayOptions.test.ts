@@ -238,7 +238,7 @@ describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it.each(["click", "change"])("respeta la baja directa del IIFE mediante %s al pagar", async (kind) => {
+  it.each(["click", "change"])("bloquea una baja interna mediante %s si contradice la elección del SDK", async (kind) => {
     const { root, element, input } = stripeForm();
     input.checked = true;
     let autoRenew = true;
@@ -252,7 +252,7 @@ describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
     expect(autoRenew).toBe(false);
     const pending = syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true });
     element.dispatchEvent(new Event("initial-payment-updated"));
-    expect(await pending).toBe(true);
+    expect(await pending).toBe(false);
     expect(input.checked).toBe(false);
     expect(click).toHaveBeenCalledTimes(kind === "click" ? 1 : 0);
     stop();
