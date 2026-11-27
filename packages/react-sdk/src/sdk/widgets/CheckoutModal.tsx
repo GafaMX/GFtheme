@@ -607,10 +607,23 @@ export function CheckoutModal({
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
   const relevantLines = cartLines.map((line) => {
     if (line.type !== "membership") return line;
-    const item = memberships.find((item) => sameCatalogId(item.id, line.id)) ??
-      config?.memberships?.find((item) => sameCatalogId(item.id, line.id));
-    return item ? { ...line, raw: { ...catalogCartRaw(item), ...line.raw } } : line;
+    const configItem = config?.memberships?.find((item) => sameCatalogId(item.id, line.id));
+    const catalogItem = catalogQuery.data?.memberships.find((item) => sameCatalogId(item.id, line.id));
+    const item = memberships.find((item) => sameCatalogId(item.id, line.id)) ?? configItem;
+    // El booleano calculado manda aunque otra fuente traiga subscribable viejo.
+    const canSubscribe = [
+      line.raw?.can_subscribe, line.can_subscribe,
+      configItem?.raw?.can_subscribe, configItem?.can_subscribe,
+      catalogItem?.raw?.can_subscribe, catalogItem?.can_subscribe,
+    ].find((value): value is boolean => typeof value === "boolean");
+    if (!item && canSubscribe === undefined) return line;
+    const raw = { ...(item ? catalogCartRaw(item) : undefined), ...line.raw };
+    if (canSubscribe !== undefined) raw.can_subscribe = canSubscribe;
+    return { ...line, raw };
   });
+  const membershipEligibilityPending = relevantLines.some(
+    (line) => line.type === "membership" && typeof line.raw?.can_subscribe !== "boolean",
+  ) && (configQuery.isLoading || (!catalogQuery.isFetched && !catalogQuery.isError));
   const purchaseKey = cartPurchaseKey(relevantLines);
   const membershipPurchase = cartHasMembership(relevantLines);
   const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
@@ -773,9 +786,12 @@ export function CheckoutModal({
     setSelectedMethodId(paymentMethods[0].id);
   }, [paymentMethods, selectedMethodId]);
 
-  const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
+  const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? paymentMethods[0] ?? null;
   const recurringMembership = relevantLines.find(
-    (line) => line.type === "membership" && coerceFlag(line.raw?.subscribable) === true,
+    (line) => line.type === "membership" &&
+      (typeof line.raw?.can_subscribe === "boolean"
+        ? line.raw.can_subscribe
+        : coerceFlag(line.raw?.subscribable) === true),
   );
   const autoRenew = selectedMethod?.slug === "stripe"
     ? Boolean(recurringMembership && recurringMembership.autoRenew !== false)
@@ -833,6 +849,7 @@ export function CheckoutModal({
   const waitingOnGift = convertGift && giftStatus !== "ok";
   const canPay =
     relevantLines.length > 0 &&
+    !membershipEligibilityPending &&
     Boolean(profileQuery.data) &&
     !waitingOnTerms &&
     !waitingOnGift &&
@@ -853,7 +870,8 @@ export function CheckoutModal({
         (configQuery.isLoading || purchaseChecking || !purchaseAlreadyClear)));
   const reviewingDirect =
     Boolean(preselect) && !purchaseNotice && preselectStatus !== "idle" && preselectStatus !== "ready";
-  const reviewingPurchase = reviewingDirect || holdPayForm;
+  const reviewingPurchase = reviewingDirect || holdPayForm ||
+    (step === "pay" && !registerOnly && membershipEligibilityPending);
 
   function resolvedGiftCode(): string | null {
     if (!convertGift || giftStatus !== "ok") return null;
@@ -1431,7 +1449,7 @@ export function CheckoutModal({
     renewalLockedRef.current = true;
     // Stripe Checkout Session: gafa.fit NO pasa a BuySystemStep aquí.
     // La compra la cierra el poll de initial-purchase-status.
-    if (selectedMethod?.slug === "stripe") {
+    if (selectedMethod?.slug === "stripe" && !mockPay) {
       chargedRef.current = true;
       setChargeHold(true);
       setPaying(true);
@@ -1799,7 +1817,7 @@ export function CheckoutModal({
   // Al entrar a pagar (membresía que sigue en el catálogo, o carrito ya armado)
   // las reglas corren antes de pintar la tarjeta. registerOnly ya cobró.
   useEffect(() => {
-    if (purchaseNotice || step !== "pay" || registerOnly) return;
+    if (purchaseNotice || step !== "pay" || registerOnly || membershipEligibilityPending) return;
     if (mockPay) {
       purchaseClearKey.current = purchaseKey;
       setPurchaseChecking(false);
@@ -1850,11 +1868,13 @@ export function CheckoutModal({
     locationSlug,
     configQuery.isLoading,
     configQuery.isError,
+    membershipEligibilityPending,
     client,
     purchaseKey,
   ]);
 
   async function proceedToPay() {
+    if (membershipEligibilityPending && !registerOnly) return;
     if (renewalLockedRef.current && !registerOnly) return;
     renewalLockedRef.current = true;
     if (registerOnly && hostedPendingRef.current?.purchaseId) {
@@ -2719,9 +2739,10 @@ export function CheckoutModal({
 /** Conserva en el carrito los metadatos tipados aunque el catálogo no traiga raw. */
 function catalogCartRaw(item: CatalogItem): Record<string, unknown> | undefined {
   const cap = purchaseAmountCap(item);
-  if (!item.raw && cap == null && item.subscribable == null && item.expirationDays == null) return undefined;
+  if (!item.raw && cap == null && item.can_subscribe == null && item.subscribable == null && item.expirationDays == null) return undefined;
   const raw = { ...(item.raw ?? {}) };
   if (cap != null && raw.reservations_max == null) raw.reservations_max = cap;
+  if (typeof item.can_subscribe === "boolean" && typeof raw.can_subscribe !== "boolean") raw.can_subscribe = item.can_subscribe;
   if (item.subscribable != null && raw.subscribable == null) raw.subscribable = item.subscribable;
   if (item.expirationDays != null && raw.expiration_days == null) raw.expiration_days = item.expirationDays;
   return raw;

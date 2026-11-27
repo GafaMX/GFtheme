@@ -113,6 +113,8 @@ export type CatalogItem = {
   credits?: number;
   /** Membresia / paquete suscribible (pago recurrente). */
   subscribable?: boolean;
+  /** Elegibilidad calculada por gafa.fit; prevalece sobre subscribable. */
+  can_subscribe?: boolean;
   /**
    * Máximo de unidades que el usuario puede tener en total
    * (`reservations_max` de gafa.fit). El catálogo no dice cuántas ya

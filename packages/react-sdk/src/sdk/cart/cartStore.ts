@@ -18,6 +18,8 @@ export type CartLine = {
   amount: number;
   /** Elección de renovación de esta membresía; undefined usa el valor por defecto. */
   autoRenew?: boolean;
+  /** Elegibilidad calculada por gafa.fit, si viene en la línea persistida. */
+  can_subscribe?: boolean;
   brandSlug: string;
   locationSlug?: string;
   expirationLabel?: string;
