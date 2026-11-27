@@ -106,7 +106,7 @@ type StripeRecurrenceState = {
   cancel?: () => void;
   requested?: boolean;
   confirmed?: boolean;
-  started: boolean;
+  updates: number;
   failed: boolean;
   driving: boolean;
   queue: Promise<boolean>;
@@ -115,7 +115,7 @@ const stripeRecurrence = new WeakMap<Element, StripeRecurrenceState>();
 function recurrenceState(element: Element): StripeRecurrenceState {
   let state = stripeRecurrence.get(element);
   if (!state) {
-    state = { started: false, failed: false, driving: false, queue: Promise.resolve(true) };
+    state = { updates: 0, failed: false, driving: false, queue: Promise.resolve(true) };
     stripeRecurrence.set(element, state);
   }
   return state;
@@ -124,24 +124,25 @@ function recurrenceState(element: Element): StripeRecurrenceState {
 /**
  * Register the choice before its request, including the mount-time update.
  * The IIFE's completion events have no request ID: SDK clicks must wait for
- * earlier requests. Overlapping provider requests are ambiguous and fail closed.
+ * earlier requests. Concurrent identical initial updates are drained together;
+ * overlapping requests for different choices are ambiguous and fail closed.
  */
 function waitForStripeRecurrence(element: Element, checked: boolean | undefined, started = false): Promise<boolean> {
   const state = recurrenceState(element);
   if (state.failed) return Promise.resolve(false);
   if (state.pending) {
     if (started) {
-      if (state.started || state.requested !== checked) {
+      if (state.requested !== checked) {
         state.cancel?.();
         return Promise.resolve(false);
       }
-      state.started = true;
+      state.updates++;
     }
     return state.pending;
   }
   state.requested = checked;
   state.confirmed = undefined;
-  state.started = started;
+  state.updates = started ? 1 : 0;
   state.pending = new Promise((resolve) => {
     const finish = (success: boolean) => {
       clearTimeout(timer);
@@ -154,7 +155,13 @@ function waitForStripeRecurrence(element: Element, checked: boolean | undefined,
       state.confirmed = success ? checked : undefined;
       resolve(success);
     };
-    const onUpdated = () => finish(true);
+    const onUpdated = () => {
+      if (state.updates > 1) {
+        state.updates--;
+        return;
+      }
+      finish(true);
+    };
     const onError = () => finish(false);
     const timer = setTimeout(() => finish(false), 15_000);
     state.cancel = onError;
@@ -168,6 +175,7 @@ function waitForStripeRecurrence(element: Element, checked: boolean | undefined,
 export function bindStripeMembershipRecurrence(
   root: HTMLElement,
   onAutoRenew: (checked: boolean) => void,
+  onSessionReady: () => void = () => undefined,
 ): () => void {
   const elements = new Set<Element>();
   let clicked: HTMLInputElement | null = null;
@@ -184,6 +192,20 @@ export function bindStripeMembershipRecurrence(
     const checked = findStripeRecurringCheckbox(element)?.checked
       ?? coerceFlag(element.getAttribute("has-recurring-payment"));
     void waitForStripeRecurrence(element, checked, true);
+  };
+  const onSession = (event: Event) => {
+    const element = event.target;
+    if (!(element instanceof Element) || !element.matches("stripe-payment-element")) return;
+    elements.add(element);
+    const state = recurrenceState(element);
+    // Mount-time requests belong to the IIFE. A created/updated session does
+    // not need a preceding SDK click (or an updating event) to be usable.
+    // Never let an initial response acknowledge a pending SDK edit.
+    if (!state.pending && !state.failed && state.confirmed === undefined) {
+      state.confirmed = coerceFlag(element.getAttribute("has-recurring-payment"))
+        ?? findStripeRecurringCheckbox(element)?.checked;
+    }
+    onSessionReady();
   };
   const onClick = (event: Event) => {
     const input = findStripeRecurringCheckbox(root);
@@ -203,10 +225,14 @@ export function bindStripeMembershipRecurrence(
   root.addEventListener("click", onClick, true);
   root.addEventListener("change", onChange);
   root.addEventListener("initial-payment-updating", onUpdating, true);
+  root.addEventListener("initial-payment-created", onSession, true);
+  root.addEventListener("initial-payment-updated", onSession, true);
   return () => {
     root.removeEventListener("click", onClick, true);
     root.removeEventListener("change", onChange);
     root.removeEventListener("initial-payment-updating", onUpdating, true);
+    root.removeEventListener("initial-payment-created", onSession, true);
+    root.removeEventListener("initial-payment-updated", onSession, true);
     for (const element of elements) recurrenceState(element).cancel?.();
   };
 }
@@ -265,7 +291,13 @@ export async function syncGafaPayMembershipToggles(
     }
     if (state.failed || state.confirmed !== toggles.autoRenew) return false;
     const confirmed = findStripeRecurringCheckbox(root);
-    if (confirmed?.closest("stripe-payment-element") !== stripe || confirmed.checked !== toggles.autoRenew) return false;
+    if (confirmed) {
+      if (confirmed.closest("stripe-payment-element") !== stripe || confirmed.checked !== toggles.autoRenew) return false;
+    } else if (toggles.autoRenew || coerceFlag(stripe.getAttribute("has-recurring-payment")) !== false) {
+      // Only an explicitly non-recurring mount with a confirmed false session
+      // may omit the provider checkbox. Missing controls on eligible mounts fail.
+      return false;
+    }
   }
   // Un clic posterior o el preflight de pago invalida reintentos anteriores.
   // Así una sincronización pendiente no revierte la última elección del SDK.

@@ -1873,7 +1873,7 @@ export function CheckoutModal({
           reportPayError("No pudimos activar las opciones de la membresía. Intenta de nuevo.");
           return;
         }
-      } else if (selectedMethod?.slug !== "stripe") {
+      } else {
         const root = document.querySelector(".gafa-checkout-paymount__island");
         if (!root || !await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: false })) {
           setPaying(false);
@@ -2850,6 +2850,8 @@ function PayPanel({
 }) {
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [recurrenceReady, setRecurrenceReady] = useState(true);
+  const [stripeSessionReady, setStripeSessionReady] = useState(false);
+  const [recurrenceChanging, setRecurrenceChanging] = useState(false);
   const recurrenceRequest = useRef(0);
   const membershipOptionsRef = useRef(membershipOptions);
   membershipOptionsRef.current = membershipOptions;
@@ -3002,11 +3004,15 @@ function PayPanel({
     let stopPaypalCapture: () => void = () => undefined;
     // Subscribe before mountGafaPayWidget: the first session update can start
     // synchronously, before the surface (and its recurring checkbox) is ready.
-    const stopStripeRecurrence = slug === "stripe" && recurrenceAvailable && mountRef.current
-      ? bindStripeMembershipRecurrence(mountRef.current, () => undefined)
+    const stopStripeRecurrence = slug === "stripe" && mountRef.current
+      ? bindStripeMembershipRecurrence(mountRef.current, () => undefined, () => {
+        if (!cancelled) setStripeSessionReady(true);
+      })
       : () => undefined;
     onReadyChange(false);
     setRecurrenceReady(false);
+    setStripeSessionReady(false);
+    setRecurrenceChanging(false);
     setLoadState("loading");
 
     const reportLoadError = (error: unknown) => {
@@ -3031,15 +3037,25 @@ function PayPanel({
     const alreadyMounted = () => Boolean(islandRef.current);
 
     const readyAfterRecurrence = async () => {
-      if (slug === "stripe" && recurrenceAvailable) {
+      // The surface/session enables editing independently of session agreement.
+      // Only Pagar must wait for the last SDK choice to be acknowledged.
+      setLoadState("ready");
+      if (slug === "stripe") {
         let desired: boolean;
         do {
           desired = membershipOptionsRef.current?.autoRenew ?? false;
           const container = mountRef.current;
           if (cancelled || !container) return;
-          const ok = findStripeRecurringCheckbox(container)
+          const input = findStripeRecurringCheckbox(container);
+          const request = recurrenceRequest.current;
+          // The customer may edit as soon as the session exists, even before
+          // the card surface finishes loading. That edit is sent here.
+          if (input && input.checked !== desired) setRecurrenceChanging(true);
+          const ok = input
             ? await setStripeMembershipAutoRenew(container, desired)
             : await syncGafaPayMembershipToggles(container, { saveCard: membershipOptionsRef.current?.saveCard ?? false, autoRenew: desired });
+          if (cancelled) return;
+          if (request === recurrenceRequest.current) setRecurrenceChanging(false);
           if (!ok) throw new Error("No pudimos actualizar las opciones de la membresía.");
         } while (!cancelled && desired !== (membershipOptionsRef.current?.autoRenew ?? false));
       }
@@ -3119,6 +3135,7 @@ function PayPanel({
     handlersRef.current.onAutoRenew?.(checked);
     if (slug === "stripe" && loadState === "ready" && mountRef.current) {
       const request = ++recurrenceRequest.current;
+      setRecurrenceChanging(true);
       onReadyChange(false);
       setRecurrenceReady(false);
       const container = mountRef.current;
@@ -3127,6 +3144,7 @@ function PayPanel({
         : syncGafaPayMembershipToggles(container, { saveCard: membershipOptions?.saveCard ?? false, autoRenew: checked });
       void update.then((ok) => {
         if (request !== recurrenceRequest.current) return;
+        setRecurrenceChanging(false);
         setRecurrenceReady(ok);
         if (!ok) handlersRef.current.onError("No pudimos actualizar las opciones de la membresía. Intenta de nuevo.");
       });
@@ -3265,7 +3283,7 @@ function PayPanel({
           <CheckField
             className="gafa-checkout-recurrence"
             checked={membershipOptions.autoRenew}
-            disabled={loadState !== "ready" || membershipOptions.disabled}
+            disabled={(slug === "stripe" ? !stripeSessionReady || recurrenceChanging : loadState !== "ready") || membershipOptions.disabled}
             onChange={changeAutoRenew}
           >
             Pago recurrente (se renueva cada periodo; puedes desmarcarlo)

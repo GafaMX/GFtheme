@@ -110,4 +110,42 @@ describe("installStripeSessionFetchGuard", () => {
     await fetch("https://apipay.buq.partners/api/stripe.updateinitialpayment", { method: "POST", body });
     expect(network).toHaveBeenCalledTimes(2);
   });
+
+  it("nunca deduplica actualizaciones con recurringPayment, ni siquiera consecutivas", async () => {
+    const network = vi.fn(async () => jsonResponse({ message: "tok_1", client_secret: "cs_x" }));
+    window.fetch = network as typeof fetch;
+    installStripeSessionFetchGuard();
+    for (const recurringPayment of [true, false, false, true, false]) {
+      const response = await fetch("https://apipay.example/api/stripe.updateinitialpayment", {
+        method: "POST", body: JSON.stringify({ tokenInput: "tok_1", recurringPayment }),
+      });
+      expect(await response.json()).toEqual({ message: "tok_1" });
+    }
+    expect(network).toHaveBeenCalledTimes(5);
+  });
+
+  it("invalida la respuesta previa si cambia el cuerpo de la misma sesión", async () => {
+    const network = vi.fn(async () => jsonResponse({ message: "tok_1" }));
+    window.fetch = network as typeof fetch;
+    installStripeSessionFetchGuard();
+    for (const discountAmount of [0, 10, 0]) {
+      await fetch("https://apipay.example/api/stripe.updateinitialpayment", {
+        method: "POST", body: JSON.stringify({ tokenInput: "tok_1", discountAmount }),
+      });
+    }
+    expect(network).toHaveBeenCalledTimes(3);
+  });
+
+  it("no convierte un fallo de red en éxito sintético al reintentar", async () => {
+    const network = vi.fn(async () => new Response("error", { status: 500 }));
+    window.fetch = network as typeof fetch;
+    installStripeSessionFetchGuard();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await fetch("https://apipay.example/api/stripe.updateinitialpayment", {
+        method: "POST", body: JSON.stringify({ tokenInput: "tok_1" }),
+      });
+      expect(response.status).toBe(500);
+    }
+    expect(network).toHaveBeenCalledTimes(2);
+  });
 });
