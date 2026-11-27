@@ -1251,12 +1251,17 @@ function ReservationCard({
 
       <div className="gafa-acct-class__info">
         <h4>{reservation.serviceName}</h4>
-        {/* Dia y mes ya estan en el bloque de fecha de la izquierda: repetirlos
-            aqui + la hora no cabe en una linea en movil y el a.m./p.m. se
-            partia solo. Aqui solo va el nombre del dia. */}
+        {/* Día a la izquierda; en móvil la hora baja a su línea para que
+            “★ Calificar” no la recorte. En escritorio siguen en una línea. */}
         <p className="gafa-acct-class__when">
-          {capitalize(formatWeekdayShort(reservation.startsAt, reservation.timezone))} ·{" "}
-          {formatTime(reservation.startsAt, reservation.timezone)}
+          <span className="gafa-acct-class__weekday">
+            {capitalize(formatWeekdayShort(reservation.startsAt, reservation.timezone))}
+          </span>
+          <span className="gafa-acct-class__sep" aria-hidden="true">
+            {" "}
+            ·{" "}
+          </span>
+          <span className="gafa-acct-class__time">{formatTime(reservation.startsAt, reservation.timezone)}</span>
         </p>
         <p className="gafa-acct-class__meta">{describeReservation(reservation)}</p>
         <div className="gafa-acct-class__tags">

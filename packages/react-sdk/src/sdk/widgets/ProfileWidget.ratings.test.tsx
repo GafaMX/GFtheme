@@ -113,6 +113,29 @@ describe("perfil: calificar historial", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("el día y la hora van en nodos propios para no recortarlos junto a Calificar", async () => {
+    const ratings = new Map<number, ClassRating>([[9, { reservationId: 9, classStars: 5, staffStars: 4 }]]);
+    renderProfile(
+      [pastClass(8), pastClass(9)],
+      parseClassRatings(true),
+      mockClient([pastClass(8), pastClass(9)], ratings),
+    );
+    await openHistory();
+    const unrated = (await screen.findByRole("button", { name: /^Calificar/ })).closest("article");
+    const rated = (await screen.findByText("Calificada ★ 5")).closest("article");
+    expect(unrated?.getAttribute("data-rateable")).toBe("true");
+    expect(rated?.getAttribute("data-rateable")).toBe("true");
+    for (const card of [unrated, rated]) {
+      const when = card?.querySelector(".gafa-acct-class__when");
+      expect(when?.querySelector(".gafa-acct-class__weekday")?.textContent).toMatch(/\S/);
+      expect(when?.querySelector(".gafa-acct-class__time")?.textContent).toMatch(/\d/);
+      expect(when?.querySelector(".gafa-acct-class__sep")?.textContent).toMatch("·");
+      expect(when?.textContent).not.toMatch(/…|\.\.\./);
+    }
+    expect(unrated?.querySelector(".gafa-acct-class__actions")).toBeTruthy();
+    expect(rated?.querySelector(".gafa-acct-class__actions")).toBeTruthy();
+  });
+
   it("una clase ya calificada queda en una línea corta", async () => {
     const ratings = new Map<number, ClassRating>([[8, { reservationId: 8, classStars: 5, staffStars: 5, comment: "Top" }]]);
     renderProfile([pastClass(8)], parseClassRatings(true), mockClient([pastClass(8)], ratings));
