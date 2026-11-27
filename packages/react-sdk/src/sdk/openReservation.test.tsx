@@ -33,6 +33,7 @@ describe("openReservation", () => {
     await waitFor(() => {
       expect(overlayText()).toContain("Detalle de reserva");
       expect(overlayText()).toContain("Coach Demo");
+      expect(overlayText()).toContain("Ubicación");
       expect(overlayText()).toContain("Trae toalla y zapatos de indoor");
     });
     const hero = document.querySelector(".gafa-reservation-hero");
@@ -41,6 +42,40 @@ describe("openReservation", () => {
     expect(notes?.textContent).toContain("Trae toalla y zapatos de indoor");
     expect(title?.nextElementSibling).toBe(notes);
     expect(document.querySelector(".gafa-reservation-summary + .gafa-reservation-notes")).toBeNull();
+  });
+
+  it.each([
+    ["en", "Location"],
+    ["fr", "Lieu"],
+    ["es", "Ubicación"],
+  ] as const)("openReservation usa el idioma %s del SDK en el detalle", async (language, locationLabel) => {
+    writeStoredToken("token-de-prueba");
+    sdk = createGafaSdk({ ...CONFIG, language }, { useMockClient: true });
+    sdk.openReservation({ meetingId: 1, brandSlug: "demo-studio", locationSlug: "roma-norte" });
+
+    await waitFor(() => {
+      expect(overlayText()).toContain(locationLabel);
+    });
+    if (language !== "es") {
+      expect(overlayText()).not.toContain("Ubicación");
+    }
+  });
+
+  it("openReservation({ language }) pisa el idioma del SDK", async () => {
+    writeStoredToken("token-de-prueba");
+    sdk = createGafaSdk({ ...CONFIG, language: "en" }, { useMockClient: true });
+    sdk.openReservation({
+      meetingId: 1,
+      language: "fr",
+      brandSlug: "demo-studio",
+      locationSlug: "roma-norte",
+    });
+
+    await waitFor(() => {
+      expect(overlayText()).toContain("Lieu");
+    });
+    expect(overlayText()).not.toContain("Location");
+    expect(overlayText()).not.toContain("Ubicación");
   });
 
   it("sin sesion pide login antes del detalle, igual que el calendario", async () => {

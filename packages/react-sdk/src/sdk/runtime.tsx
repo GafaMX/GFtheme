@@ -606,6 +606,7 @@ export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions
           client={client}
           captcha={captcha}
           {...props}
+          language={props.language ?? config.language}
           crossSell={props.crossSell ?? config.crossSell}
           onClose={close}
         />,
