@@ -7687,8 +7687,8 @@ svg.gafa-acct-qr__image {
   width: 100%;
 }
 
-/* Fancy v1: #saveCard / #recurringPayment / [name=subscribe] van marcados
-   y ocultos. El socio los ve solo si abre “Opciones de la membresía”. */
+/* Las casillas del proveedor se sincronizan con los controles del SDK.
+   La elección de recurrencia vive siempre visible en .gafa-checkout-recurrence. */
 .gafa-checkout-paymount .gafapay-form__group.is-checkbox,
 .gafa-checkout-paymount #saveCard,
 .gafa-checkout-paymount #recurringPayment,

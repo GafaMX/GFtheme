@@ -3,6 +3,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cartHasMembership,
+  cartHasSubscribableMembership,
   bindStripeMembershipRecurrence,
   setStripeMembershipAutoRenew,
   coerceFlag,
@@ -17,6 +18,18 @@ describe("cartHasMembership", () => {
     expect(cartHasMembership([{ type: "combo" }])).toBe(false);
     expect(cartHasMembership([{ type: "membership" }])).toBe(true);
     expect(cartHasMembership([{ type: "combo" }, { type: "membership" }])).toBe(true);
+  });
+});
+
+describe("cartHasSubscribableMembership", () => {
+  it("requiere una membresía con subscribable explícitamente verdadero", () => {
+    for (const subscribable of [true, 1, "1", "true"]) {
+      expect(cartHasSubscribableMembership([{ type: "membership", raw: { subscribable } }])).toBe(true);
+    }
+    for (const subscribable of [false, 0, "0", "false", null, undefined]) {
+      expect(cartHasSubscribableMembership([{ type: "membership", raw: { subscribable } }])).toBe(false);
+    }
+    expect(cartHasSubscribableMembership([{ type: "combo", raw: { subscribable: true } }])).toBe(false);
   });
 });
 
@@ -48,6 +61,20 @@ describe("paymentMethodsForCart", () => {
 });
 
 describe("syncGafaPayMembershipToggles", () => {
+  it("una sincronización antigua no revierte la última elección", async () => {
+    vi.useFakeTimers();
+    const root = document.createElement("div");
+    root.innerHTML = '<input id="recurringPayment" type="checkbox" checked>';
+    const input = root.querySelector<HTMLInputElement>("input")!;
+    const first = syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: false });
+    const second = syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: true });
+    await vi.advanceTimersByTimeAsync(200);
+    expect(await first).toBe(false);
+    expect(await second).toBe(true);
+    expect(input.checked).toBe(true);
+    vi.useRealTimers();
+  });
+
   it("actualiza el estado de checkboxes controlados por React", async () => {
     const changed = vi.fn();
     function Controlled() {
