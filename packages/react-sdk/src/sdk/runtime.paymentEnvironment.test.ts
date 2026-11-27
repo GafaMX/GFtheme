@@ -22,7 +22,7 @@ describe("runtime payment configuration", () => {
     })}</script>`;
     const fetchImpl = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true, config: { BUQ_ENV: "production" } }) })) as unknown as typeof fetch;
     const load = vi.spyOn(payments, "loadGafaPay");
-    const environment = vi.spyOn(payments, "setGafaPayEnvironment");
+    const environment = vi.spyOn(payments, "configureGafaPayForSdk");
     const append = vi.spyOn(document.head, "appendChild");
     await expect((async () => {
       const config = await readEmbedOptionsFromDom(document, { fetchImpl, search: "" });
@@ -76,22 +76,19 @@ describe("runtime payment configuration", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it.each(["production", "staging", "development"] as const)("conecta los setters de %s", (environment) => {
+  it.each(["production", "staging", "development"] as const)("configura pagos de %s sin modificar los setters manuales", (environment) => {
     const front = vi.spyOn(payments, "setGafaPayFrontUrl");
     const api = vi.spyOn(payments, "setGafaPayApiUrl");
     const stripe = vi.spyOn(payments, "setStripePaymentScriptUrl");
-    const env = vi.spyOn(payments, "setGafaPayEnvironment");
+    const env = vi.spyOn(payments, "configureGafaPayForSdk");
     const sdk = createGafaSdk({ companyId: 1, environment, analyticsEnabled: false }, { useMockClient: true });
     const expected = BUQ_ENVIRONMENTS[environment];
     expect(front).toHaveBeenCalledWith(expected.gafaPayFrontUrl);
-    if (environment === "production") {
-      expect(api).not.toHaveBeenCalled();
-      expect(stripe).not.toHaveBeenCalled();
-    } else {
-      expect(api).toHaveBeenCalledWith(expected.gafaPayApiUrl, { configureLegacy: true });
-      expect(stripe).toHaveBeenCalledWith(expected.stripePaymentScriptUrl);
-    }
-    expect(env).toHaveBeenCalledWith(environment);
+    expect(api).not.toHaveBeenCalled();
+    expect(stripe).not.toHaveBeenCalled();
+    expect(payments.resolveGafaPayApiUrl()).toBe(expected.gafaPayApiUrl);
+    expect(payments.resolveStripePaymentScriptUrl()).toBe(expected.stripePaymentScriptUrl);
+    expect(env).toHaveBeenCalledWith(expect.objectContaining({ environment }));
     sdk.unmountAll();
   });
 
@@ -107,13 +104,11 @@ describe("runtime payment configuration", () => {
 
   it("propaga overrides explícitos y el entorno resuelto por query", () => {
     window.history.replaceState(null, "", "/?buq-env=staging");
-    const api = vi.spyOn(payments, "setGafaPayApiUrl");
-    const stripe = vi.spyOn(payments, "setStripePaymentScriptUrl");
     const sdk = createGafaSdk({ companyId: 1, environment: "production", analyticsEnabled: false,
       gafaPayApiUrl: "https://api.example.test", stripePaymentScriptUrl: "https://example.test/stripe.js" }, { useMockClient: true });
     expect(sdk.config.environment).toBe("staging");
-    expect(api).toHaveBeenCalledWith("https://api.example.test", { configureLegacy: true });
-    expect(stripe).toHaveBeenCalledWith("https://example.test/stripe.js");
+    expect(payments.resolveGafaPayApiUrl()).toBe("https://api.example.test");
+    expect(payments.resolveStripePaymentScriptUrl()).toBe("https://example.test/stripe.js");
     sdk.unmountAll();
   });
 });
