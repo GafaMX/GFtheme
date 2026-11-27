@@ -104,6 +104,9 @@ export function findStripeRecurringCheckbox(root: ParentNode): HTMLInputElement 
 type StripeRecurrenceState = {
   pending?: Promise<boolean>;
   cancel?: () => void;
+  requested?: boolean;
+  confirmed?: boolean;
+  started: boolean;
   failed: boolean;
   driving: boolean;
   queue: Promise<boolean>;
@@ -112,16 +115,33 @@ const stripeRecurrence = new WeakMap<Element, StripeRecurrenceState>();
 function recurrenceState(element: Element): StripeRecurrenceState {
   let state = stripeRecurrence.get(element);
   if (!state) {
-    state = { failed: false, driving: false, queue: Promise.resolve(true) };
+    state = { started: false, failed: false, driving: false, queue: Promise.resolve(true) };
     stripeRecurrence.set(element, state);
   }
   return state;
 }
 
-/** Subscribe before clicking: the IIFE can emit its result synchronously. */
-function waitForStripeRecurrence(element: Element): Promise<boolean> {
+/**
+ * Register the choice before its request, including the mount-time update.
+ * The IIFE's completion events have no request ID: SDK clicks must wait for
+ * earlier requests. Overlapping provider requests are ambiguous and fail closed.
+ */
+function waitForStripeRecurrence(element: Element, checked: boolean | undefined, started = false): Promise<boolean> {
   const state = recurrenceState(element);
-  if (state.pending) return state.pending;
+  if (state.failed) return Promise.resolve(false);
+  if (state.pending) {
+    if (started) {
+      if (state.started || state.requested !== checked) {
+        state.cancel?.();
+        return Promise.resolve(false);
+      }
+      state.started = true;
+    }
+    return state.pending;
+  }
+  state.requested = checked;
+  state.confirmed = undefined;
+  state.started = started;
   state.pending = new Promise((resolve) => {
     const finish = (success: boolean) => {
       clearTimeout(timer);
@@ -129,7 +149,9 @@ function waitForStripeRecurrence(element: Element): Promise<boolean> {
       element.removeEventListener("initial-payment-update-error", onError);
       state.pending = undefined;
       state.cancel = undefined;
+      success = success && checked !== undefined;
       state.failed = !success;
+      state.confirmed = success ? checked : undefined;
       resolve(success);
     };
     const onUpdated = () => finish(true);
@@ -142,7 +164,7 @@ function waitForStripeRecurrence(element: Element): Promise<boolean> {
   return state.pending;
 }
 
-/** Delegation survives the IIFE replacing its inputs. Never clicks on mount. */
+/** Install before mounting; capture also sees non-bubbling IIFE events. */
 export function bindStripeMembershipRecurrence(
   root: HTMLElement,
   onAutoRenew: (checked: boolean) => void,
@@ -152,7 +174,16 @@ export function bindStripeMembershipRecurrence(
   const watch = (input: HTMLInputElement) => {
     const element = input.closest("stripe-payment-element")!;
     elements.add(element);
-    void waitForStripeRecurrence(element);
+    void waitForStripeRecurrence(element, input.checked);
+  };
+  const onUpdating = (event: Event) => {
+    const element = event.target;
+    if (!(element instanceof Element) || !element.matches("stripe-payment-element")) return;
+    elements.add(element);
+    // The initial request can start before the IIFE renders its input.
+    const checked = findStripeRecurringCheckbox(element)?.checked
+      ?? coerceFlag(element.getAttribute("has-recurring-payment"));
+    void waitForStripeRecurrence(element, checked, true);
   };
   const onClick = (event: Event) => {
     const input = findStripeRecurringCheckbox(root);
@@ -171,9 +202,11 @@ export function bindStripeMembershipRecurrence(
   };
   root.addEventListener("click", onClick, true);
   root.addEventListener("change", onChange);
+  root.addEventListener("initial-payment-updating", onUpdating, true);
   return () => {
     root.removeEventListener("click", onClick, true);
     root.removeEventListener("change", onChange);
+    root.removeEventListener("initial-payment-updating", onUpdating, true);
     for (const element of elements) recurrenceState(element).cancel?.();
   };
 }
@@ -188,9 +221,10 @@ export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean)
     if (state.pending && !await state.pending) return false;
     const current = findStripeRecurringCheckbox(root);
     if (!current || current.closest("stripe-payment-element") !== element) return false;
-    if (current.checked === checked) return !state.failed;
+    if (state.failed) return false;
+    if (current.checked === checked) return state.confirmed === checked;
     if (current.disabled) return false;
-    const pending = waitForStripeRecurrence(element);
+    const pending = waitForStripeRecurrence(element, checked);
     state.driving = true;
     try {
       current.click();
@@ -201,7 +235,8 @@ export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean)
     }
     if (!await pending) return false;
     const confirmed = findStripeRecurringCheckbox(root);
-    return confirmed?.closest("stripe-payment-element") === element && confirmed.checked === checked;
+    return confirmed?.closest("stripe-payment-element") === element
+      && confirmed.checked === checked && state.confirmed === checked;
   });
   return state.queue;
 }
@@ -217,7 +252,7 @@ export async function syncGafaPayMembershipToggles(
   root: ParentNode,
   toggles: MembershipPayToggles,
 ): Promise<boolean> {
-  const stripe = findStripeRecurringCheckbox(root)?.closest("stripe-payment-element");
+  const stripe = root.querySelector("stripe-payment-element");
   if (stripe) {
     const state = recurrenceState(stripe);
     let queued: Promise<boolean>;
@@ -228,7 +263,7 @@ export async function syncGafaPayMembershipToggles(
     while (state.pending) {
       if (!await state.pending) return false;
     }
-    if (state.failed) return false;
+    if (state.failed || state.confirmed !== toggles.autoRenew) return false;
     const confirmed = findStripeRecurringCheckbox(root);
     if (confirmed?.closest("stripe-payment-element") !== stripe || confirmed.checked !== toggles.autoRenew) return false;
   }

@@ -3000,7 +3000,13 @@ function PayPanel({
     let cancelled = false;
     let didMount = false;
     let stopPaypalCapture: () => void = () => undefined;
+    // Subscribe before mountGafaPayWidget: the first session update can start
+    // synchronously, before the surface (and its recurring checkbox) is ready.
+    const stopStripeRecurrence = slug === "stripe" && recurrenceAvailable && mountRef.current
+      ? bindStripeMembershipRecurrence(mountRef.current, () => undefined)
+      : () => undefined;
     onReadyChange(false);
+    setRecurrenceReady(false);
     setLoadState("loading");
 
     const reportLoadError = (error: unknown) => {
@@ -3101,18 +3107,13 @@ function PayPanel({
       recurrenceRequest.current++;
       cancelDeferred();
       stopPaypalCapture();
+      stopStripeRecurrence();
       if (didMount) {
         islandRef.current?.unmount();
         islandRef.current = null;
       }
     };
   }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay, recurrenceAvailable]);
-
-  useEffect(() => {
-    if (slug !== "stripe" || !recurrenceAvailable || !mountRef.current) return;
-    // La casilla interna está oculta; sus eventos sólo siguen la sesión.
-    return bindStripeMembershipRecurrence(mountRef.current, () => undefined);
-  }, [slug, recurrenceAvailable]);
 
   const changeAutoRenew = (checked: boolean) => {
     handlersRef.current.onAutoRenew?.(checked);
