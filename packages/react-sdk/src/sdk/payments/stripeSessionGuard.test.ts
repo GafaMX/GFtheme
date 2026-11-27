@@ -41,10 +41,10 @@ describe("installStripeSessionFetchGuard", () => {
   }
 
   it.each([
-    { name: "distinto al tokenInput conserva client_secret", tokenInput: "tok_1", message: "tok_2", keepsSecret: true },
-    { name: "igual al tokenInput borra client_secret", tokenInput: "tok_1", message: "tok_1", keepsSecret: false },
-    { name: "sin tokenInput borra client_secret", tokenInput: undefined, message: "tok_2", keepsSecret: false },
-  ])("update con message $name", async ({ tokenInput, message, keepsSecret }) => {
+    { name: "distinto al tokenInput", tokenInput: "tok_1", message: "tok_2" },
+    { name: "igual al tokenInput", tokenInput: "tok_1", message: "tok_1" },
+    { name: "sin tokenInput", tokenInput: undefined, message: "tok_2" },
+  ])("conserva client_secret del servidor con message $name", async ({ tokenInput, message }) => {
     const network = vi.fn(async () => jsonResponse({ client_secret: "cs_2", message }));
     window.fetch = network as typeof fetch;
     installStripeSessionFetchGuard();
@@ -54,11 +54,11 @@ describe("installStripeSessionFetchGuard", () => {
       body: JSON.stringify({ tokenInput }),
     });
 
-    expect(await response.json()).toEqual(keepsSecret ? { client_secret: "cs_2", message } : { message });
+    expect(await response.json()).toEqual({ client_secret: "cs_2", message });
     expect(network).toHaveBeenCalledTimes(1);
   });
 
-  it("un harness con 12 updates del IIFE solo pega una vez a la red y sin client_secret", async () => {
+  it("el update con secret nuevo remonta el provider y su update idéntico no vuelve a la red", async () => {
     const network = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("processinitialpayment")) {
@@ -88,10 +88,68 @@ describe("installStripeSessionFetchGuard", () => {
       if (!data.client_secret) break;
     }
 
-    expect(updates).toBe(1);
+    expect(updates).toBe(2);
     const updateCalls = network.mock.calls.filter(([url]) => String(url).includes("updateinitialpayment"));
     expect(updateCalls).toHaveLength(1);
     expect(network.mock.calls.filter(([url]) => String(url).includes("processinitialpayment"))).toHaveLength(1);
+  });
+
+  it("tras remount por cantidad el consumidor acaba con el secret vigente aunque no cambie el token", async () => {
+    const api = "https://apipay.buq.partners/api/stripe.";
+    let activeSecret = "";
+    const network = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const { quantity } = JSON.parse(String(init?.body));
+      const message = `tok_${quantity}`;
+      if (String(input).endsWith("processinitialpayment")) {
+        activeSecret = `cs_${quantity}_process`;
+      } else if (quantity === 2) {
+        // El backend reemplaza la sesión Stripe conservando el token de compra.
+        activeSecret = "cs_2_update";
+      }
+      return jsonResponse({ client_secret: activeSecret, message });
+    });
+    window.fetch = network as typeof fetch;
+    installStripeSessionFetchGuard();
+
+    async function mount(quantity: number) {
+      const initial = await (await fetch(`${api}processinitialpayment`, {
+        method: "POST", body: JSON.stringify({ quantity }),
+      })).json();
+      let secret = initial.client_secret;
+      let token = initial.message;
+      const providerSecrets = [secret];
+      // Contrato de vw/hw: actualizar al montar y volver a montar solo si cambia la key (secret).
+      for (let i = 0; i < 12; i += 1) {
+        const update = await (await fetch(`${api}updateinitialpayment`, {
+          method: "POST", body: JSON.stringify({ quantity, tokenInput: token }),
+        })).json();
+        if (!update.client_secret || update.client_secret === secret) break;
+        secret = update.client_secret;
+        token = update.message;
+        providerSecrets.push(secret);
+      }
+      return { secret, providerSecrets };
+    }
+
+    expect((await mount(1)).secret).toBe(activeSecret);
+    const remount = await mount(2);
+    expect(remount.secret).toBe(activeSecret);
+    expect(remount.providerSecrets).toEqual(["cs_2_process", "cs_2_update"]);
+    expect(network.mock.calls.filter(([url]) => String(url).endsWith("updateinitialpayment"))).toHaveLength(2);
+  });
+
+  it("no convierte un fallo HTTP en éxito al reintentar el mismo update", async () => {
+    const network = vi.fn()
+      .mockResolvedValueOnce(new Response("unavailable", { status: 503 }))
+      .mockResolvedValueOnce(jsonResponse({ client_secret: "cs_retry", message: "tok_1" }));
+    window.fetch = network as typeof fetch;
+    installStripeSessionFetchGuard();
+    const url = "https://apipay.buq.partners/api/stripe.updateinitialpayment";
+    const init = { method: "POST", body: JSON.stringify({ tokenInput: "tok_1" }) };
+
+    expect((await fetch(url, init)).status).toBe(503);
+    expect(await (await fetch(url, init)).json()).toEqual({ client_secret: "cs_retry", message: "tok_1" });
+    expect(network).toHaveBeenCalledTimes(2);
   });
 
   it("debouncea POSTs idénticos dentro de la ventana", async () => {

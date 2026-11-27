@@ -1,12 +1,13 @@
 /**
  * El IIFE de `<stripe-payment-element>` hace `jsx(CheckoutProvider, …, clientSecret)`:
- * la key es el secret. Cada `updateinitialpayment` que devuelve `client_secret`
+ * la key es el secret. Un `updateinitialpayment` con un secret distinto
  * remonta el form (`vw`), y `useEffect(() => update(), [recurringPayment])`
- * vuelve a pegarle al backend (~1 POST/s, 10–12 por orden).
+ * vuelve a pegarle al backend.
  *
  * El mock de apipay no devolvía secret en el update; Stripe real sí.
- * Interceptamos fetch: debounce de POSTs idénticos y quitamos `client_secret`
- * de la respuesta de update salvo que cambie el token de sesión.
+ * Interceptamos fetch para suprimir POSTs idénticos durante una ventana corta.
+ * Las respuestas reales se conservan intactas: el token de compra puede seguir
+ * igual aunque cambie la sesión Stripe y su client_secret.
  */
 
 const UPDATE_PATH = /\/api\/stripe\.updateinitialpayment(?:\?|$)/i;
@@ -78,18 +79,8 @@ export function installStripeSessionFetchGuard(): void {
         });
       }
       const response = await state.orig(input, init);
-      state.last.set(key, { at: Date.now(), body, token });
-      if (!response.ok) return response;
-      const data: unknown = await response
-        .clone()
-        .json()
-        .catch(() => null);
-      if (!data || typeof data !== "object") return response;
-      const next = { ...(data as Record<string, unknown>) };
-      // Una sesión nueva necesita actualizar token y secret; la misma remonta vw → otro update.
-      const sessionChanged = typeof next.message === "string" && token !== "" && next.message !== token;
-      if (!sessionChanged) delete next.client_secret;
-      return jsonResponse(next, response.status);
+      if (response.ok) state.last.set(key, { at: Date.now(), body, token });
+      return response;
     }
 
     if (PROCESS_PATH.test(url)) {
