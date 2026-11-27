@@ -16,6 +16,8 @@ export type CartLine = {
   price: number;
   priceLabel: string;
   amount: number;
+  /** Elección de renovación de esta membresía; undefined usa el valor por defecto. */
+  autoRenew?: boolean;
   brandSlug: string;
   locationSlug?: string;
   expirationLabel?: string;
@@ -50,6 +52,7 @@ type CartState = {
   addItem: (item: Omit<CartLine, "key" | "amount"> & { amount?: number }) => void;
   removeItem: (key: string) => void;
   setAmount: (key: string, amount: number) => void;
+  setAutoRenew: (key: string, autoRenew: boolean) => void;
   clearItems: () => void;
   setReservation: (reservation: CartReservationContext | null) => void;
   clearReservation: () => void;
@@ -142,6 +145,12 @@ export const useCartStore = create<CartState>((set, get) => ({
         : get().lines.map((line) => (line.key === key ? { ...line, amount: next } : line));
     const reservation = get().reservation;
     persist(lines, reservation);
+    set({ lines });
+  },
+
+  setAutoRenew(key, autoRenew) {
+    const lines = get().lines.map((line) => line.key === key ? { ...line, autoRenew } : line);
+    persist(lines, get().reservation);
     set({ lines });
   },
 

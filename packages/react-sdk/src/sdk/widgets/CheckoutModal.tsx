@@ -83,9 +83,7 @@ import {
 import { retryReservate } from "../cart/reservateRetry";
 import {
   cartHasMembership,
-  bindStripeMembershipRecurrence,
-  findStripeRecurringCheckbox,
-  setStripeMembershipAutoRenew,
+  coerceFlag,
   paymentMethodsForCart,
   readShowMembershipOptions,
   syncGafaPayMembershipToggles,
@@ -352,9 +350,9 @@ export function CheckoutModal({
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
   const [paying, setPaying] = useState(false);
-  /** Membresía: como v1, guardar tarjeta + renovar van ON y ocultos. */
+  /** Frontpay conserva las opciones de membresía de v1. Stripe usa el carrito. */
   const [saveCard, setSaveCard] = useState(true);
-  const [autoRenew, setAutoRenew] = useState(true);
+  const [legacyAutoRenew, setLegacyAutoRenew] = useState(true);
   const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
@@ -765,6 +763,19 @@ export function CheckoutModal({
   }, [paymentMethods, selectedMethodId]);
 
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
+  const recurringMembership = relevantLines.find(
+    (line) => line.type === "membership" && coerceFlag(line.raw?.subscribable) === true,
+  );
+  const autoRenew = selectedMethod?.slug === "stripe"
+    ? Boolean(recurringMembership && recurringMembership.autoRenew !== false)
+    : legacyAutoRenew;
+  const setAutoRenew = (checked: boolean) => {
+    if (selectedMethod?.slug === "stripe") {
+      if (recurringMembership) useCartStore.getState().setAutoRenew(recurringMembership.key, checked);
+    } else {
+      setLegacyAutoRenew(checked);
+    }
+  };
 
   const search = query.trim().toLowerCase();
 
@@ -1579,11 +1590,11 @@ export function CheckoutModal({
   const stripeHostedSyncKey = [
     resolvedGiftCode() ?? "",
     discountStatus === "ok" ? discountCode.trim() : "",
-    membershipPurchase ? `${autoRenew}:${saveCard}` : "",
+    membershipPurchase ? String(saveCard) : "",
   ].join("|");
   const stripeHostedSyncKeyRef = useRef(stripeHostedSyncKey);
 
-  // GiftCard / descuento / renovar pueden cambiar después de que el widget
+  // GiftCard / descuento / guardar tarjeta pueden cambiar después de que el widget
   // ya disparó `initial-payment-created`. Hay que reenviar initial-purchase.
   useEffect(() => {
     if (selectedMethod?.slug !== "stripe") {
@@ -1886,12 +1897,8 @@ export function CheckoutModal({
     }
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
     try {
-      if (membershipPurchase) {
+      if (membershipPurchase && selectedMethod?.slug !== "stripe") {
         const root = document.querySelector(".gafa-checkout-paymount__island");
-        // Stripe conserva la elección actual del IIFE y espera su sesión.
-        // Frontpay sigue autoRenew: #recurringPayment / #saveCard.
-        const stripeRenew = root && findStripeRecurringCheckbox(root);
-        if (stripeRenew) setAutoRenew(stripeRenew.checked);
         if (!root || !await syncGafaPayMembershipToggles(root, { saveCard, autoRenew })) {
           warnCheckout("No se verificaron las opciones de membresía; se bloqueó el cobro.");
           setPaying(false);
@@ -2266,7 +2273,7 @@ export function CheckoutModal({
                     reportPayError(message);
                   }}
                   membershipOptions={
-                    membershipPurchase
+                    (selectedMethod?.slug === "stripe" ? Boolean(recurringMembership) : membershipPurchase)
                       ? {
                           saveCard,
                           autoRenew,
@@ -2652,12 +2659,14 @@ export function CheckoutModal({
   );
 }
 
-/** El carrito solo lee `raw.reservations_max`; copia el tope tipado si hace falta. */
+/** Conserva en el carrito los metadatos tipados aunque el catálogo no traiga raw. */
 function catalogCartRaw(item: CatalogItem): Record<string, unknown> | undefined {
   const cap = purchaseAmountCap(item);
-  if (!item.raw && cap == null) return undefined;
+  if (!item.raw && cap == null && item.subscribable == null && item.expirationDays == null) return undefined;
   const raw = { ...(item.raw ?? {}) };
   if (cap != null && raw.reservations_max == null) raw.reservations_max = cap;
+  if (item.subscribable != null && raw.subscribable == null) raw.subscribable = item.subscribable;
+  if (item.expirationDays != null && raw.expiration_days == null) raw.expiration_days = item.expirationDays;
   return raw;
 }
 
@@ -2949,7 +2958,9 @@ function PayPanel({
         selected?.slug === "recurrente" || selected?.slug === "paypal"
           ? true
           : (config?.termsConditionsLink ?? true),
-      hasRecurringPayment: Boolean(membershipOptions),
+      hasRecurringPayment: selected?.slug === "stripe"
+        ? Boolean(membershipOptions?.autoRenew)
+        : Boolean(membershipOptions),
       // Sin esto GAFAPay cobra pero no crea la suscripción.
       paymentFrequency: membershipOptions?.autoRenew ? membershipPaymentFrequency(lines) : null,
       onStartPayAction: () => handlersRef.current.onStart(),
@@ -2973,12 +2984,14 @@ function PayPanel({
     [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount],
   );
 
-  // Cambios de carrito/cliente actualizan props sin re-montar: tirar el iframe
-  // de Stripe borraria la tarjeta que el usuario ya escribio.
+  // Mantener props recientes sin remontar por callbacks o datos del cliente.
   const propsRef = useRef(widgetProps);
   propsRef.current = widgetProps;
 
   const slug = selected?.slug;
+  // El IIFE solo lee estos atributos al montar. Una nueva elección necesita
+  // processinitialpayment nuevo, sin reutilizar el client_secret anterior.
+  const stripeRecurring = slug === "stripe" && Boolean(membershipOptions?.autoRenew);
   const clientIdKey = clientId == null ? "" : String(clientId);
   const clientSecretKey = clientSecret ?? "";
   const colorScheme = useGafaThemeOptional()?.scheme ?? "light";
@@ -2990,8 +3003,8 @@ function PayPanel({
     return installStripeCardTheme(colorScheme);
   }, [slug, colorScheme]);
 
-  // Monta la isla: se re-monta si cambia el proveedor, las credenciales o
-  // Reintentar. Un fallo de red/timeout espera en el MISMO widget (no crea
+  // Monta la isla: se re-monta si cambia el proveedor, las credenciales,
+  // la recurrencia de Stripe o Reintentar. Un fallo de red/timeout espera en el MISMO widget (no crea
   // otra orden GAFApay). StrictMode del embed (runtime.tsx) hace
   // mount→cleanup→mount en el mismo tick: afterStrictModePass descarta el
   // primero para no disparar 2–4 processinitialpayment por apertura.
@@ -3087,23 +3100,10 @@ function PayPanel({
         islandRef.current = null;
       }
     };
-  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay]);
-
-  const hasMembershipOptions = Boolean(membershipOptions);
-  useEffect(() => {
-    if (slug !== "stripe" || !hasMembershipOptions || !mountRef.current) return;
-    return bindStripeMembershipRecurrence(mountRef.current, (checked) => {
-      handlersRef.current.onAutoRenew?.(checked);
-    });
-  }, [slug, hasMembershipOptions]);
+  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay, stripeRecurring]);
 
   const changeAutoRenew = (checked: boolean) => {
     handlersRef.current.onAutoRenew?.(checked);
-    if (slug === "stripe" && loadState === "ready" && mountRef.current) {
-      void setStripeMembershipAutoRenew(mountRef.current, checked).then((ok) => {
-        if (!ok) handlersRef.current.onError("No pudimos actualizar las opciones de la membresía. Intenta de nuevo.");
-      });
-    }
   };
 
   useEffect(() => {
@@ -3233,6 +3233,12 @@ function PayPanel({
           </div>
         ) : null}
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
+
+        {slug === "stripe" && membershipOptions ? (
+          <CheckField checked={membershipOptions.autoRenew} onChange={changeAutoRenew}>
+            Pago recurrente
+          </CheckField>
+        ) : null}
 
         {membershipOptions ? (
           <div

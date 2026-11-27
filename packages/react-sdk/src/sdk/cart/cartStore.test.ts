@@ -106,3 +106,22 @@ describe("cartStore reservation", () => {
     expect(useCartStore.getState().lines).toEqual([line]);
   });
 });
+
+describe("cartStore autoRenew", () => {
+  it("guarda la elección por membresía y la conserva al sumar, cambiar cantidad y cargar el carrito", () => {
+    const membership = { ...line, type: "membership" as const };
+    useCartStore.getState().addItem(membership);
+    useCartStore.getState().addItem({ ...membership, id: 4 });
+    const key = useCartStore.getState().lines[0]!.key;
+    useCartStore.getState().setAutoRenew(key, false);
+    useCartStore.getState().addItem(membership);
+    useCartStore.getState().setAmount(key, 3);
+    expect(loadPersisted().lines[0]).toMatchObject({ amount: 3, autoRenew: false });
+    expect(loadPersisted().lines[1]?.autoRenew).toBeUndefined();
+    useCartStore.getState().setAutoRenew(key, true);
+    expect(loadPersisted().lines[0]?.autoRenew).toBe(true);
+    useCartStore.getState().removeItem(key);
+    useCartStore.getState().addItem(membership);
+    expect(useCartStore.getState().lines.find((item) => item.key === key)?.autoRenew).toBeUndefined();
+  });
+});
