@@ -140,9 +140,15 @@ function waitForStripeRecurrence(element: Element): Promise<boolean> {
       // El IIFE puede emitir antes de terminar la cola o desde una revisión superada.
       if (ready() !== false) finish(true);
     };
-    const onError = () => finish(false);
+    const onError = (event?: Event) => {
+      const session = stripeSessionStatus(element);
+      const revision = (event as CustomEvent | undefined)?.detail?.revision;
+      if (session && (revision !== session.revision || session.phase !== "error")) return;
+      finish(false);
+    };
     const onProgress = () => {
       if (ready()) finish(true);
+      else if (["error", "disposed"].includes(stripeSessionStatus(element)?.phase ?? "")) finish(false);
     };
     const check = () => {
       const session = stripeSessionStatus(element);
@@ -153,7 +159,7 @@ function waitForStripeRecurrence(element: Element): Promise<boolean> {
       timer = setTimeout(check, 50);
     };
     let timer = setTimeout(check, 50);
-    state.cancel = onError;
+    state.cancel = () => finish(false);
     element.addEventListener("initial-payment-updated", onUpdated);
     element.addEventListener("initial-payment-update-error", onError);
     element.addEventListener(STRIPE_SESSION_PROGRESS_EVENT, onProgress);
@@ -305,5 +311,5 @@ export function membershipPaymentFrequency(
   if (membership.amount !== 1) return null;
   if (billable.some((line) => line !== membership && line.price * line.amount > 0)) return null;
   const days = Number(membership.raw?.expiration_days);
-  return Number.isFinite(days) && days > 0 ? String(Math.trunc(days)) : null;
+  return Number.isFinite(days) && Math.trunc(days) > 0 ? String(Math.trunc(days)) : null;
 }

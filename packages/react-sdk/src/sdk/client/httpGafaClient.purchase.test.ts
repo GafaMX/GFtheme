@@ -18,6 +18,22 @@ describe("initialPurchase", () => {
     vi.unstubAllGlobals();
   });
 
+  it("initial-purchase forwards the revision signal and propagates cancellation without treating it as a network failure", async () => {
+    const abort = new AbortController();
+    const fetchMock = vi.fn((_url, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init.signal!.addEventListener("abort", () => reject(init.signal!.reason), { once: true });
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const pending = client().initialPurchase!({
+      brandSlug: "fitspin", locationSlug: "polanco", userId: 4412,
+      lines: [{ id: 971, type: "combo", amount: 1 }], paymentTypeId: 3, checkoutToken: "chk_1",
+    }, { signal: abort.signal });
+    const rejected = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetchMock.mock.calls[0][1].signal).toBe(abort.signal);
+    abort.abort();
+    await rejected;
+  });
+
   async function purchaseWith(paymentData: unknown) {
     const fetchMock = vi.fn(async () => jsonResponse({ purchase_id: 88, checkout_token: "chk_1" }));
     vi.stubGlobal("fetch", fetchMock);

@@ -528,6 +528,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     try {
       return await fetch(url, init);
     } catch (cause) {
+      if (init.signal?.aborted) throw init.signal.reason ?? cause;
       const excerpt = cause instanceof Error ? cause.message : String(cause ?? "network error");
       logFailedApiCall({ method, url, status: 0, bodyExcerpt: excerpt });
       throw new GafaApiError(userFacingApiErrorMessage({ status: 0 }), 0);
@@ -1027,13 +1028,14 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return readJsonSafe(response);
   }
 
-  async function apiPostFormUrl<T>(absoluteOrPath: string, body: Record<string, unknown>): Promise<T> {
+  async function apiPostFormUrl<T>(absoluteOrPath: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
     const url = absoluteOrPath.startsWith("http") ? absoluteOrPath : `${baseUrl}${absoluteOrPath}`;
     const form = toFormBody(body);
     const response = await request(url, {
       method: "POST",
       headers: { ...authHeaders(), "Content-Type": "application/x-www-form-urlencoded" },
       body: form,
+      ...(signal ? { signal } : {}),
     });
     if (!response.ok) throw await parseErrorBody(response, "POST", url);
     if (response.status === 204) return undefined as T;
@@ -1956,7 +1958,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         pendingPurchaseId: payload.pendingPurchaseId,
       });
       const href = url.toString();
-      const response = await request(href, { headers: authHeaders() });
+      const response = await request(href, { headers: authHeaders(), ...(payload.signal ? { signal: payload.signal } : {}) });
       const data: unknown = await readJsonSafe<unknown>(response).catch(() => null);
       return parseDiscountCheckResponse(payload.code, response.ok, data);
     },
@@ -2025,9 +2027,9 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       );
     },
 
-    async initialPurchase(payload: InitialPurchasePayload) {
+    async initialPurchase(payload: InitialPurchasePayload, options?: { signal?: AbortSignal }) {
       const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase`;
-      const data = await apiPostFormUrl<Record<string, unknown>>(url, buildPurchaseFormBody(payload));
+      const data = await apiPostFormUrl<Record<string, unknown>>(url, buildPurchaseFormBody(payload), options?.signal);
       return parsePurchaseResult(data);
     },
 

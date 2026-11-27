@@ -714,6 +714,7 @@ export type GafaClient = {
     defaultStoreTab?: string;
   }): Promise<CheckoutConfig>;
   checkDiscountCode?(payload: {
+    signal?: AbortSignal;
     brandSlug: string;
     locationSlug: string;
     code: string;
@@ -754,7 +755,7 @@ export type GafaClient = {
    */
   previewPurchase?(payload: InitialPurchasePayload): Promise<void>;
   /** Solo Recurrente / checkout alojado: crea la compra pendiente. */
-  initialPurchase?(payload: InitialPurchasePayload): Promise<InitialPurchaseResult>;
+  initialPurchase?(payload: InitialPurchasePayload, options?: { signal?: AbortSignal }): Promise<InitialPurchaseResult>;
   pollInitialPurchaseStatus?(payload: {
     brandSlug: string;
     locationSlug: string;

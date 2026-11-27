@@ -5,6 +5,7 @@ import {
   stripeSessionStatus,
   STRIPE_SESSION_PROGRESS_EVENT,
   type StripeCheckoutState,
+  type StripePreparationContext,
 } from "./stripeSessionGuard";
 
 /**
@@ -100,6 +101,8 @@ export type GafaPayWidgetProps = {
   onCheckoutCloseAction?: () => void;
   /** Stripe: `initial-payment-updated` (p. ej. cambió el token). */
   onInitialPaymentUpdated?: (data: unknown) => void;
+  /** Cancellable registration owned by the current Stripe revision. */
+  onStripeSessionPrepare?: (data: unknown, context: StripePreparationContext) => unknown;
   /** Stripe: `initial-payment-updating` — pausar el poll. */
   onInitialPaymentUpdating?: () => void;
   /** Stripe: `initial-payment-update-error`. */
@@ -606,6 +609,7 @@ async function loadStripePaymentScript(scriptUrl?: string): Promise<void> {
 }
 
 async function loadStripeRuntime(credentials: GafaPayCredentials): Promise<Runtime> {
+  installStripeSessionFetchGuard();
   await loadStripePaymentScript(credentials.scriptUrl);
   return STRIPE_RUNTIME;
 }
@@ -802,7 +806,12 @@ export function waitForWidgetContent(
         reject(new Error(PAY_FORM_LOAD_ERROR));
       }, budget);
     };
-    const onProgress = () => { armTimeout(); check(); };
+    const onProgress = () => {
+      if (options?.requireIframe && ["error", "disposed"].includes(stripeSessionStatus(container)?.phase ?? "")) {
+        cleanup(); reject(new Error(PAY_FORM_LOAD_ERROR)); return;
+      }
+      armTimeout(); check();
+    };
     const observer = new MutationObserver(check);
     observer.observe(container, { childList: true, subtree: true, characterData: true });
     container.addEventListener(STRIPE_SESSION_PROGRESS_EVENT, onProgress);
@@ -820,6 +829,13 @@ export type MountGafaPayOptions = {
 
 function flagAttr(value: boolean | undefined): string {
   return value ? "true" : "false";
+}
+
+function stripeProps(props: GafaPayWidgetProps): GafaPayWidgetProps {
+  const frequency = Number(props.paymentFrequency);
+  const recurring = props.hasRecurringPayment === true && Number.isInteger(frequency) && frequency > 0;
+  if (props.stripeCheckoutState) props.stripeCheckoutState.recurringPayment = recurring;
+  return { ...props, hasRecurringPayment: recurring, paymentFrequency: recurring ? String(frequency) : null };
 }
 
 function applyStripePaymentAttributes(el: HTMLElement, props: GafaPayWidgetProps): void {
@@ -887,6 +903,9 @@ function bindStripePaymentEvents(
   const onUpdating = () => props.onInitialPaymentUpdating?.();
   const onUpdateError = (event: Event) => {
     const detail = detailFromEvent(event);
+    const status = stripeSessionStatus(el);
+    if (status && (!(detail && typeof detail === "object" && "revision" in detail) ||
+        (detail as { revision: number }).revision !== status.revision)) return;
     if (detail && typeof detail === "object") {
       props.onInitialPaymentUpdateError?.(detail as { err?: unknown; message?: string });
       return;
@@ -916,6 +935,7 @@ function bindStripePaymentEvents(
 }
 
 function mountStripePaymentElement(runtime: Runtime, container: Element, props: GafaPayWidgetProps): GafaPayIsland {
+  props = stripeProps(props);
   installStripeSessionFetchGuard();
   container.replaceChildren();
   const el = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
@@ -936,18 +956,19 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
       address: "0",
       ...props.generalData,
       recurringPayment: props.stripeCheckoutState?.recurringPayment ?? false,
-      paymentFrequency: Number.parseInt(props.paymentFrequency || "30", 10),
+      paymentFrequency: props.hasRecurringPayment ? Number(props.paymentFrequency) : null,
       currency: (props.order.currency || "mxn").toLowerCase(),
     },
-    onInitialPayment: (data, created) => created
-      ? currentProps.onCheckoutOpenAction?.(data) : currentProps.onInitialPaymentUpdated?.(data),
+    onInitialPayment: (data, created, context) => currentProps.onStripeSessionPrepare
+      ? currentProps.onStripeSessionPrepare(data, context)
+      : created ? currentProps.onCheckoutOpenAction?.(data) : currentProps.onInitialPaymentUpdated?.(data),
   });
   let unbind = bindStripePaymentEvents(el, props, session.onEvent);
   container.appendChild(el);
 
   return {
     update: (next) => {
-      next = widgetPropsForRuntime(runtime, next);
+      next = stripeProps(widgetPropsForRuntime(runtime, next));
       unbind();
       applyStripePaymentAttributes(el, next);
       currentProps = next;
@@ -1076,6 +1097,11 @@ export function triggerGafaPayConfirm(slug: string, root?: ParentNode | null): P
 
   let result: unknown;
   if (slug === "stripe") {
+    const scope = root ?? document;
+    if (scope instanceof Element || scope instanceof Document) {
+      const status = stripeSessionStatus(scope as Element);
+      if (status && !status.ready) return Promise.resolve(false);
+    }
     if (clickStripePaymentSubmit(root ?? document)) return Promise.resolve(true);
     if (!window._handleStripePayment) return Promise.resolve(false);
     result = window._handleStripePayment();

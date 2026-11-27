@@ -8305,6 +8305,14 @@ svg.gafa-acct-qr__image {
   overflow: hidden;
 }
 
+/* Stripe measures its mount node before ready; preserve real layout while the skeleton covers it. */
+.gafa-checkout-paymount[data-method="stripe"][data-state="loading"] .gafa-checkout-paymount__island,
+.gafa-checkout-paymount[data-method="stripe"][data-state="idle"] .gafa-checkout-paymount__island {
+  height: auto;
+  min-height: 240px;
+  overflow: visible;
+}
+
 .gafa-checkout-paymount[data-method="paypal"][data-state="loading"] .gafa-checkout-paymount__island,
 .gafa-checkout-paymount[data-method="paypal"][data-state="idle"] .gafa-checkout-paymount__island {
   height: 45px;

@@ -1,54 +1,117 @@
-# Ronda final de pagos: elegibilidad, cupones y espera de Stripe
+# Rework de recurrencia y sesión Stripe
 
-Base de trabajo: `241b63e` (#321 + #322). Cambios limitados a `packages/react-sdk`, sin commit, push ni publicación.
+Base: `a6d2f0d` (PR #321, consolida #322). Cambios únicamente en `packages/react-sdk`. Sin commit, push, rebase ni publicación.
 
-## 1. Catálogo OK sin `can_subscribe` booleano: pago único
+## Máquina por checkout
 
-El catálogo de esta sesión decide la elegibilidad. Mientras está pendiente, no se monta Stripe ni se permite Pagar, aunque el carrito persistido o la configuración tengan un valor anterior.
+`stripeSessionGuard.ts` reemplaza `checkout.tail`, contadores de pendientes y debounce del widget por una máquina explícita. `StripeCheckoutState` pertenece al modal y conserva la elección efectiva, `saveCard` y la revisión entre remontajes. Cada generación tiene un único propietario, operación, `AbortController`, plazo y resultado.
 
-Si el catálogo responde OK y la membresía no trae `can_subscribe` estrictamente booleano (campo ausente, `null`, números, cadenas, objetos o arrays), se considera **NO suscribible**. El checkout normaliza `raw.can_subscribe=false`, envía `subscribe=false`, conserva `recurringPayment=false`, oculta los controles de renovación y monta Stripe en modo **pago único**, con `hasRecurringPayment=false` y `paymentFrequency=null`. Se permite Pagar ese cobro único: nunca renueva. `subscribable=true` o `can_subscribe=true` persistidos no habilitan una suscripción en este caso. Una respuesta OK sin la membresía tampoco acredita elegibilidad.
+```text
+idle
+  └─ process ────────────────────────────────> preparing(rev, signal)
+ready / preparing / error
+  └─ mutación aceptada ── abortar anterior ──> preparing(rev+1, signal)
+preparing(rev)
+  ├─ process/update + registrar compra + reconciliar updates ──> ready(rev, token, secret)
+  └─ fallo vigente / 30 s sin progreso ─────────────────────────> error(rev)
+ready + formulario vigente montado y ready + sin validación pendiente
+  └─ complete vigente ─────────────────────────────────────────> confirming
+confirming
+  ├─ complete falla ───────────────────────────────────────────> ready
+  └─ Stripe.confirm del provider vigente
+       ├─ éxito ───────────────────────────────────────────────> done
+       └─ fallo ───────────────────────────────────────────────> ready
+cualquier generación ── dispose/invalidate ─────────────────────> disposed
+```
 
-Solo un **error del catálogo** permite la lógica de respaldo: booleano actual de la configuración, si existe; de lo contrario, `subscribable` del carrito o de la configuración según su precedencia anterior. Sin ninguno de esos datos, pago único. Un `can_subscribe` persistido nunca acredita la elegibilidad. El comentario en `CheckoutModal.tsx` deja explícito este criterio. También se evita enviar `subscribe=true` en la comprobación de un producto ausente del catálogo.
+`ready` de la máquina acredita que terminó la preparación y el registro; `stripeSessionStatus().ready` exige además el montaje real y el evento `ready` del Payment Element correspondiente. El CTA observa este segundo estado continuamente, también después de la carga inicial.
 
-Las fixtures que prueban renovación válida declaran ahora `can_subscribe=true` actual, incluida la prueba de membresía más matrícula. El antiguo caso que esperaba renovación con campo ausente exige ahora pago único y comprueba los payloads de preview e initial-purchase y la confirmación al pulsar Pagar.
+Invariantes:
 
-## 2. Cupón BUQMX y sustituciones de token
+- Solo el propietario, operación y revisión actuales, con señal no abortada, pueden aceptar respuestas y pasar a `ready` o `error`. No se deduce vigencia por igualdad de token.
+- Cantidad/carrito, casilla, remount y método invalidan la generación anterior. La suscripción al carrito invalida inmediatamente, antes de que React remonte la vista. Los cambios aceptados crean una nueva revisión; un eco idéntico de montaje no es una mutación.
+- Validar un cupón bloquea el checkout desde el inicio. La validación que aún no ha cambiado la sesión mantiene una barrera independiente; la sustitución efectiva del cupón crea otra revisión. Si no devuelve secret, se invalida y se hace un process nuevo con el precio descontado.
+- No existe una cola persistente de promesas entre generaciones. Una operación atascada no bloquea una revisión ni un montaje nuevos, aunque el transporte ignore `AbortSignal`.
+- Un reintento tras error comienza con `processinitialpayment`, conserva opciones actuales y registra/reconcilia la nueva sesión antes de habilitarla. Cada remount también empieza con process.
+- El presupuesto es de 30 s sin progreso y se renueva al aceptar respuestas y terminar registros. Su vencimiento aborta de verdad la revisión; una respuesta posterior no la resucita.
+- `dispose()` aborta, destruye el Payment Element, desconecta observadores y cierra la generación. Las marcas de tokens cerrados rechazan completes antiguos sin retener árboles DOM desmontados.
+- `completeinitialpayment` comprueba sesión lista, token y formulario vigentes; entra en `confirming` antes de ir a red. No se reintenta automáticamente. Su respuesta pierde autorización si cambia la revisión mientras esperaba.
+- El adaptador exige también la identidad del provider. Un provider desmontado no puede confirmar aunque el siguiente conserve token **y secret**. Una vez comienza el `Stripe.confirm` real, se congelan mutaciones y segundos completes hasta que termine: esa operación no es abortable. Un fallo libera la barrera; el éxito termina en `done`.
 
-`stripeSessionGuard` captura `buq__discount_added` antes de los listeners del IIFE. Asocia el token nuevo al widget y le asigna inmediatamente una revisión en la misma cola que process y update. El aviso emitido por el modal incluye el token de origen para identificar el checkout.
+`AbortController` no es un rollback del servidor. Por eso no se restaura una sesión potencialmente modificada al reintentar: se crea y registra otra, y las generaciones anteriores pierden autorización de montaje y confirmación. No se añaden reintentos de cobros ni se supone idempotencia nueva del backend.
 
-La cadena registra initial-purchase y espera sus actualizaciones antes de volver a entregar el evento al IIFE con el último `client_secret`. Así el provider no monta el secret intermedio del cupón. Se reutilizan los datos y las cabeceras de la petición del IIFE, incluida Authorization, y las elecciones de `saveCard` y recurrencia del checkout. El cupón invalida el debounce incluso si conserva token y body: sustituir la sesión es una mutación externa. Una revisión superada no entrega su secret, aunque conserve el token. Los updates con un token nuevo también pueden localizar el widget por cliente y carrito.
+## Bootstrap, consumidor y montaje
 
-Regresiones con custom element y consumidor React que remonta de verdad por key=secret:
+La preparación y la respuesta al primer `processinitialpayment` son independientes. El bootstrap espera el resultado de la **revisión vigente**, aunque un cupón sustituya su process, primer update o registro de compra. Las peticiones superadas del formulario no entregan secrets ni errores antiguos.
 
-- Descuento por helper del SDK y evento externo, después de activar guardar tarjeta y con un update anterior pendiente: solo se inicializa el secret final, aparece iframe y update/complete conservan `saveCard=true` y la recurrencia elegida.
-- Dos cupones con el mismo token dentro del debounce: se ejecuta la actualización vigente y no se monta el secret tardío ni los secrets intermedios.
-- La preparación no dispara complete ni confirm. Una acción de pago produce exactamente un complete y una confirmación.
+El evento del descuento se intercepta antes del IIFE. Primero se registra/reconcilia la sesión final. El replay solo se emite cuando existe el consumidor: el IIFE instala su listener antes del efecto de update del formulario. Si el descuento termina antes de ese primer formulario, el bootstrap entrega el final; si la respuesta inicial ya se había consumido, el primer efecto de montaje recibe el replay pendiente, incluso con token idéntico. Los eventos inicial/updated del IIFE son ecos y no repiten registros de compra.
 
-## 3. Renovación lenta y recuperación
+`stripeSurface.ts` sigue `initCheckoutElementsSdk`, `createPaymentElement.mount`, `ready`, destrucción y `loadActions().confirm`. Asocia secret, nodo conectado y provider. Rechaza montajes superados/desconectados, sustituye una superficie anterior y evita acreditar un iframe de otra generación. El resto de métodos Stripe y los checkouts ajenos pasan por el adaptador sin cambiar su contrato.
 
-`waitForStripeRecurrence` usa un presupuesto renovable de **30 s sin progreso**, coherente con la carga del formulario. Observa el estado de la revisión del guard y sus eventos de progreso, no solo un evento temprano del IIFE. Incluye toda la cola y initial-purchase; un éxito de una revisión superada no termina la espera. Una revisión que ya estaba lista antes del click tampoco confirma el cambio nuevo.
+Hay dos detalles del runtime que los anteriores dobles de tests no representaban:
 
-La regresión integrada tarda 10 s en update y **25 s en initial-purchase**: sigue pendiente al pasar 15 s y 30 s totales y permite continuar al completar la revisión vigente. También se verifica que un timeout por inactividad bloquea temporalmente y que el éxito posterior de la revisión vigente limpia el fallo para el siguiente intento. Los listeners y timers se limpian al resolver o cancelar.
+1. **Fábrica conservada por el IIFE.** `@stripe/stripe-js` inicia su carga al evaluar el bundle, conserva la función Stripe y después usa `cached.apply(...)`. Instalar un wrapper solo al montar no cubría esa referencia. Ahora el guard se instala antes de cargar el IIFE y el adaptador cubre también esa invocación de la referencia conservada, incluyendo un IIFE precargado. La restauración conserva Stripe.js y sus propiedades estáticas.
+2. **Ciclo del tema antiguo.** `installStripeCardTheme` restaura el descriptor de `window.Stripe` en su cleanup. Instalarlo por PayPanel eliminaba el seguimiento al remontar el carrito: se reproducía un iframe conectado con preparación terminada, pero superficie sin acreditar y panel en `loading`. Ese hook de Card Element ya no se instala en Checkout Elements. El seguimiento vive durante el runtime del SDK, independientemente del PayPanel.
 
-## Conservación y verificación
+Además, el CSS anterior colapsaba la isla a altura cero mientras cargaba. Stripe mantiene ahora altura de layout y un mínimo de 240 px mientras el skeleton la cubre. La casilla conserva el JSX y DOM de `label.gafa-check-row`, con su input oculto y label visible.
 
-Se mantienen las regresiones de opt-out a pago único, clics rápidos, cantidad 1→2→1, iframe de la sesión vigente, membresía no suscribible, secret tardío con token idéntico y elección de guardar tarjeta. No se modifica el JSX ni la estructura DOM de `label.gafa-check-row`.
+## Cierre de los hallazgos 1–6
 
-Comandos desde la raíz:
+| Hallazgo | Cambio y evidencia de regresión |
+| --- | --- |
+| **1. Confirmación sobre sesión anterior** | El modal real bloquea CTA, submit directo y complete desde la validación del cupón, durante initial-purchase y hasta montar el secret final. Otro test sustituye la sesión mientras complete espera y verifica cero confirmaciones antiguas. Se comprueban identidad del provider, complete único y bloqueo durante Stripe.confirm. |
+| **2. Cupón antes del primer iframe** | Casos separados durante process, primer update e initial-purchase; el IIFE recibe el final y monta exactamente un iframe. Otro caso demora el primer formulario después de consumir la respuesta inicial y aplica un cupón con token idéntico: el replay espera a su consumidor y converge al final. |
+| **3. Frecuencia null convertida en 30** | La recurrencia exige elección marcada, `can_subscribe` actual estricto y frecuencia positiva válida. Cantidad 2, dos membresías, línea adicional con costo o ausencia de días producen pago único: atributo false, frecuencia ausente, estado/payload false y frecuencia null. El modal real verifica process/update e initial-purchase. No hay fallback a 30 en los payloads coordinados. |
+| **4. Petición atascada bloquea remount/reintento** | AbortController en process/update/complete, registro initial-purchase y validación de cupón. La señal llega al cliente HTTP; abortos no se convierten en fallos de red. Los tests remontan sin resolver el process antiguo, cancelan por timeout, descartan su respuesta tardía y reconcilian mediante process. El modal cancela un cupón atascado al cambiar carrito y revalida sin esperar al viejo. |
+| **5. Error antiguo termina espera de recurrencia** | Los errores solo se publican para la revisión vigente y llevan `revision`. La espera ignora errores antiguos/sin acreditación. Una regresión rechaza el update viejo y emite su error mientras el cupón actual sigue pendiente: la espera continúa y termina con el éxito vigente. El fallo vigente sí bloquea y permite reintentar. |
+| **6. CART−/BUQMX deja superficie vacía u oculta con Pagar habilitado** | Modal real + consumidor React con remount por key=secret, registro real del flujo (servicio simulado), prueba de varios ciclos +/− y cupón BUQMX retenido en registro. Se comprueba un único iframe conectado, secret vigente, panel ready y CTA coherente. Se corrigen el conflicto del descriptor, el bootstrap sin consumidor, los montajes superados y el layout colapsado. Se conserva un harness adicional para medir altura/visibilidad en Chrome con el IIFE original. Su ejecución está pendiente de un entorno que permita arrancar Chrome; ver límites de verificación. |
 
-- Suite completa: `npm --prefix packages/react-sdk test -- --configLoader runner --pool threads --maxWorkers 2 --no-cache`.
-- Typecheck: `npm --prefix packages/react-sdk run typecheck`.
-- Build: `npm --prefix packages/react-sdk run build -- --configLoader runner`.
-- Formato del diff: `git diff --check`.
+## Elegibilidad y opciones conservadas
 
-El pool predeterminado terminó sin ejecutar casos en este entorno; se usaron hilos. La primera ejecución completa con hilos detectó una fixture de matrícula que esperaba renovación sin booleano actual; se corrigió incorporando el dato actual a esa fixture.
+Catálogo OK sin `can_subscribe` estrictamente booleano significa pago único y casilla oculta, aunque el carrito persistido tenga `subscribable=true`. Solo un error del catálogo permite ese respaldo histórico. Una membresía no suscribible nunca activa recurrencia. La frecuencia ya no convierte fracciones inferiores a un día en cero días.
 
-Comprobación adicional, fuera del repositorio: `/tmp/gft-final-original-iife-check.mjs` ejecuta el IIFE original `/tmp/stripe-payment.iife.js` con JSDOM y Stripe/fetch simulados. Tras guardar tarjeta y aplicar un cupón con token nuevo, el provider recibe solo el secret final, conserva iframe y `saveCard=true`, y no monta el secret intermedio. El recorrido posterior por cantidad conserva la opción y termina con un complete y una confirmación. Es evidencia local simulada, sin cobros reales ni despliegue.
+Desmarcar envía `recurringPayment=false` y `paymentFrequency=null`. Los clics rápidos convergen a la última elección. El estado local false del IIFE no reactiva ni desactiva la elección del modal. `saveCard=true` sobrevive a remounts del provider, carrito y cupón. Los secretos tardíos con token idéntico se descartan. Se mantienen las pruebas existentes del catálogo y del fallback.
 
-Resultados finales:
+## Archivos y pruebas
 
-- **128 archivos, 1162 tests correctos** en la suite completa tras corregir la fixture. No se observaron tests intermitentes.
-- **Typecheck correcto**.
-- **Build correcto**, con salidas ES/UMD y declaraciones en `dist` ignorado.
-- **`git diff --check` correcto**.
-- **IIFE original con servicios simulados: correcto**, incluidas las aserciones de Authorization, iframe, secret final, recurrencia, guardar tarjeta y confirmación única.
+- `payments/stripeSessionGuard.ts`: máquina, revisiones, abortos, plazo, barreras, preparación y coordinación del consumidor.
+- `payments/stripeSurface.ts`: adaptador de montaje/ready/confirm y fábrica conservada por el IIFE.
+- `payments/gafaPay.ts`: instalación previa a cargar el script, atributos/payload coherentes y confirmación vinculada al estado.
+- `widgets/CheckoutModal.tsx`: elegibilidad efectiva, invalidación inmediata, señales del registro/cupón, seguimiento continuo del CTA y remount cuando el cupón no entrega sesión.
+- `cart/membershipPayOptions.ts`: espera por revisión y frecuencia válida.
+- `client/types.ts`, `client/httpGafaClient.ts`: señales hasta initial-purchase y check-discount, propagación del aborto.
+- `widgets/widgets.css`: conservar layout de Stripe durante loading.
+- `payments/stripeSession.integration.test.tsx`: 31 pruebas con React real; incluye el modal completo y sus callbacks reales. Solo se sustituye carga del script y servicios externos.
+- `payments/stripeSurface.test.ts`: fábrica precargada/tardía, API ajena, restauración y rechazo de montajes.
+- `client/httpGafaClient.purchase.test.ts`: propagación de señal y aborto del registro.
+- `payments/gafaPay.test.ts`: contrato de atributos y ecos del IIFE. El antiguo caso R3 de `CheckoutModal.pay.test.tsx` que insertaba un iframe manual y sustituía el callback se reemplaza por los casos del modal real.
+- `tests/stripe-original.browser.mjs`: harness reproducible en Chrome, IIFE original suministrado por ruta, red y Stripe simulados. Cinco ciclos 1→2→1, BUQMX durante registro y bootstrap, secret final, altura >50, guardar tarjeta y una confirmación.
+
+## Verificación y límites
+
+Desde la raíz:
+
+```sh
+npm --prefix packages/react-sdk test -- --configLoader runner --pool threads --maxWorkers 2 --no-cache
+npm --prefix packages/react-sdk run typecheck
+npm --prefix packages/react-sdk run build -- --configLoader runner
+git diff --check
+node packages/react-sdk/tests/stripe-original.browser.mjs /tmp/stripe-payment.iife.js
+```
+
+Se usan hilos con dos workers, como en la revisión base. La primera suite completa de este rework pasó con 128 archivos y 1176 tests antes de añadir las regresiones de fábrica conservada/provider y las últimas carreras.
+
+La comprobación adicional con el **IIFE original sin modificar** (SHA-256 `f7cca745c72244d27372d68461d0d3047b1fdf2e31ec51b139276063bb252103`), JSDOM y Stripe/red simulados pasa tras cubrir su fábrica conservada: solo se montan los secrets finales, se conserva saveCard en cupón y remounts, y hay un solo complete y una confirmación final. Se ejecutó desde `/tmp/gft-rework-original-iife.mjs`, con el adaptador compilado en `/tmp/gft-rework-stripe-sdk.mjs`. Es evidencia simulada; JSDOM no acredita layout visual.
+
+El harness se intentó con Google Chrome (dos veces) y con Chromium headless shell, también en modo de proceso único. Los navegadores no arrancaron bajo este sandbox: `crashpad ... setsockopt: Operation not permitted` o `sandbox_host_linux ... shutdown: Operation not permitted`, terminando antes de cargar la página. **No se cuenta como E2E aprobado**, ni se afirma haber medido visibilidad real en este entorno. El harness queda en el paquete para ejecutarlo con `CHROME_BIN` si es necesario. No hubo despliegue, acceso a cobros reales ni publicación.
+
+Resultados finales, sobre el código final:
+
+- **129 archivos y 1184 tests correctos** en la suite completa, sin errores no manejados.
+- **10 repeticiones de las 34 pruebas de carreras/adaptador: 340 ejecuciones correctas**, sin intermitencias observadas. No fue necesario reintentar ningún fallo intermitente de la suite final.
+- **Typecheck correcto** y **build ES/UMD + declaraciones correcto**.
+- **`git diff --check` correcto**. HEAD continúa en `a6d2f0d`; todos los cambios están dentro del paquete autorizado.
+- **IIFE original + JSDOM con servicios simulados: correcto**, repetido tras los últimos cambios de identidad del provider y confirmación.
+- **E2E visual en navegador: no ejecutado por la restricción del sandbox**, con harness conservado para repetirlo fuera de este entorno. Por ese límite no se emite un OK de staging ni se da por acreditada una medición visual de Stripe real.
+
+Logs locales de esta sesión: `/tmp/gft-rework-full-final.log`, `/tmp/gft-rework-repeat-1.log` … `/tmp/gft-rework-repeat-10.log`, `/tmp/gft-rework-build-final.log`, `/tmp/gft-rework-original-iife-final.log`.

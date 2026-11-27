@@ -1482,67 +1482,6 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
   });
 
-  it("R3: tras opt-out y +/- el adaptador monta el iframe con el secret vigente del primer update", async () => {
-    const actual = await vi.importActual<typeof import("../payments/gafaPay")>("../payments/gafaPay");
-    const nativeFetch = window.fetch;
-    const elements: HTMLElement[] = [];
-    const updates: Array<{ tokenInput: string; recurringPayment: boolean }> = [];
-    resetStripeSessionFetchGuardForTests();
-    window.fetch = vi.fn(async (_url, init) => {
-      const body = JSON.parse(String(init?.body));
-      updates.push(body);
-      return new Response(JSON.stringify({ message: body.tokenInput, client_secret: `cs_current_${body.tokenInput}` }));
-    });
-    const readyWaits: Promise<void>[] = [];
-    mocks.waitForWidgetContent.mockImplementation(() => readyWaits.at(-1));
-    mocks.mountGafaPayWidget.mockImplementation((runtime, container, slug, props: GafaPayWidgetProps) => {
-      lastProps = props;
-      const island = actual.mountGafaPayWidget(runtime, container, slug, props);
-      const element = container.querySelector("stripe-payment-element") as HTMLElement;
-      elements.push(element);
-      const token = `chk_${elements.length}`;
-      // Contrato del IIFE: process crea la sesión; el primer update puede
-      // devolver otro secret para la misma orden antes de montar Payment Element.
-      readyWaits.push((async () => {
-        element.dispatchEvent(new CustomEvent("initial-payment-created", { detail: { message: token, client_secret: `cs_process_${token}` } }));
-        const response = await fetch("https://apipay.buq.partners/api/stripe.updateinitialpayment", {
-          method: "POST", body: JSON.stringify({ tokenInput: token, recurringPayment: props.hasRecurringPayment }),
-        });
-        const data = await response.json();
-        if (!element.isConnected || data.client_secret !== `cs_current_${token}`) return;
-        element.dispatchEvent(new CustomEvent("initial-payment-updated", { detail: data }));
-        element.appendChild(Object.assign(document.createElement("iframe"), { title: data.client_secret }));
-      })());
-      return island;
-    });
-    try {
-      const client = membershipClient({
-        initialPurchase: vi.fn(async (payload) => ({ purchaseId: 88, checkoutToken: payload.checkoutToken })),
-      });
-      renderPay(client);
-      await ready();
-      fireEvent.click(screen.getByRole("checkbox", { name: "Pago recurrente" }));
-      await ready();
-      fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
-      for (const name of ["Agregar uno", "Quitar uno"]) {
-        const previous = elements.at(-1)!;
-        fireEvent.click(screen.getByRole("button", { name }));
-        await waitFor(() => expect(elements.at(-1)).not.toBe(previous));
-        await ready();
-        const current = elements.at(-1)!;
-        expect(previous.isConnected).toBe(false);
-        expect(current.getAttribute("has-recurring-payment")).toBe("false");
-        expect(current.querySelector("iframe")?.title).toBe(`cs_current_chk_${elements.length}`);
-        expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ checkoutToken: `chk_${elements.length}`, subscribe: false }));
-      }
-      expect(elements).toHaveLength(4);
-      expect(updates.map((body) => body.recurringPayment)).toEqual([true, false, false, false]);
-    } finally {
-      resetStripeSessionFetchGuardForTests();
-      window.fetch = nativeFetch;
-    }
-  });
-
   it.each([false, 0, "0", "false", undefined])("membresía no suscribible (%s) cobra una vez sin casilla", async (subscribable) => {
     useCartStore.setState({ lines: [{ ...membershipLine, raw: { subscribable, expiration_days: 30 } }] });
     const client = membershipClient({ listMemberships: async () => [{

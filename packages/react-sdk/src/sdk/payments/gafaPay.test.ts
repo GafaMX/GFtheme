@@ -321,7 +321,7 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
 
   it("monta el web component con el contrato de gafa.fit", () => {
     const box = document.createElement("div");
-    const island = mountGafaPayWidget(runtime, box, "stripe", baseProps({ discountAmount: 10, paymentFrequency: "30" }));
+    const island = mountGafaPayWidget(runtime, box, "stripe", baseProps({ discountAmount: 10, hasRecurringPayment: true, paymentFrequency: "30" }));
     const el = box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG);
     expect(el).toBeTruthy();
     expect(el?.getAttribute("api-url")).toBe("https://apipay.buq.partners");
@@ -345,7 +345,7 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
     island.unmount();
   });
 
-  it("mapea los eventos del widget a los callbacks del checkout", () => {
+  it("mapea inicio y éxito; el eco de sesión no vuelve a registrar la compra", () => {
     const box = document.createElement("div");
     const onStart = vi.fn();
     const onSuccess = vi.fn();
@@ -365,7 +365,7 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
     el.dispatchEvent(new CustomEvent("initial-payment-created", { detail: { message: "chk_1" } }));
     el.dispatchEvent(new CustomEvent("payment-success", { detail: { message: "ok" } }));
     expect(onStart).toHaveBeenCalledTimes(1);
-    expect(onCreated).toHaveBeenCalledWith({ message: "chk_1" });
+    expect(onCreated).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith({ message: "ok" });
     island.unmount();
     expect(box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG)).toBeNull();
