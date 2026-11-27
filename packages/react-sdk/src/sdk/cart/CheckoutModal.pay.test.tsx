@@ -1201,6 +1201,31 @@ describe("CheckoutModal recurrencia legacy (puente real de frontpay)", () => {
     await waitFor(() => expect(checkouturl).toHaveBeenCalledWith({ recurringPayment: true, paymentFrequency: "30" }));
   });
 
+  it.each(["raw", "tipados"])("hidrata un carrito antiguo con metadatos %s del catálogo de 90 días", async (source) => {
+    useCartStore.setState({ lines: [{ ...membershipLine, raw: undefined }], reservation: null });
+    const client = mockClient({
+      listMemberships: async () => [{
+        id: membershipLine.id, name: membershipLine.name,
+        ...(source === "raw" ? { raw: { subscribable: true, expiration_days: 90 } } : { subscribable: true, expirationDays: 90 }),
+      }],
+      getCheckoutConfig: async () => ({
+        ...checkoutConfig(), paymentMethods: [{ id: 9, name: "Recurrente", slug: "recurrente" }],
+      }),
+    });
+    renderPay(client);
+    const pay = await waitFor(() => {
+      const button = screen.getAllByRole("button", { name: /^pagar/i })[0] as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+      expect((screen.getByRole("checkbox", { name: label }) as HTMLInputElement).checked).toBe(true);
+      return button;
+    });
+    fireEvent.click(pay);
+    await waitFor(() => expect(checkouturl).toHaveBeenCalledWith({ recurringPayment: true, paymentFrequency: "90" }));
+    expect(client.previewPurchase).toHaveBeenLastCalledWith(expect.objectContaining({
+      lines: [expect.objectContaining({ raw: expect.objectContaining({ subscribable: true, expiration_days: 90 }) })],
+    }));
+  });
+
   it("desmarcar llega como false a checkouturl y el CTA/resumen no dice mensual", async () => {
     const pay = await ready();
     fireEvent.click(screen.getByRole("checkbox", { name: label }));
@@ -1295,6 +1320,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     cleanup();
     useCartStore.setState({ lines: [], reservation: null });
     delete window._handleStripePayment;
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -1305,6 +1331,115 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
       return { update: () => undefined, unmount: () => undefined };
     });
   }
+
+  it.each(["elegibilidad", "proveedor"])("sincroniza una isla Stripe nueva tras cambiar %s sin permitir renovar desmarcado", async (change) => {
+    useStripeCheckbox();
+    renderPay(mockClient({
+      getCheckoutConfig: async () => ({
+        ...checkoutConfig(),
+        paymentMethods: [
+          { id: 3, name: "Stripe", slug: "stripe" },
+          { id: 9, name: "Recurrente", slug: "recurrente" },
+        ],
+      }),
+    }));
+    const pay = () => screen.getAllByRole("button", { name: /^pagar \$/i }).at(-1) as HTMLButtonElement;
+    const checkbox = () => screen.getByLabelText(/pago recurrente \(se renueva/i) as HTMLInputElement;
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    fireEvent.click(checkbox());
+    const old = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    await waitFor(() => expect(old.checked).toBe(false));
+    act(() => old.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated")));
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    if (change === "elegibilidad") {
+      act(() => useCartStore.setState({ lines: [{ ...membershipLine, raw: { subscribable: false } }] }));
+    } else fireEvent.click(screen.getAllByRole("tab")[1]);
+    await waitFor(() => expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(2));
+    if (change === "elegibilidad") act(() => useCartStore.setState({ lines: [membershipLine] }));
+    else fireEvent.click(screen.getAllByRole("tab")[0]);
+    await waitFor(() => expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(3));
+    const fresh = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    expect(checkbox().checked).toBe(false);
+    // El IIFE lee la frecuencia al montar; debe conservarla si después se
+    // vuelve a marcar sin tirar la isla ni los datos de la tarjeta.
+    expect(lastProps?.paymentFrequency).toBe("30");
+    await waitFor(() => expect(fresh.checked).toBe(false));
+    expect(pay().disabled).toBe(true);
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(pay());
+    expect(charge).not.toHaveBeenCalled();
+    act(() => fresh.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated")));
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    fireEvent.click(pay());
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+    expect(checkbox().checked).toBe(false);
+    expect(fresh.checked).toBe(false);
+  });
+
+  it("desmarcar, remarcar y pagar con la primera sesión pendiente conserva la última elección del SDK", async () => {
+    useStripeCheckbox();
+    const client = mockClient();
+    renderPay(client);
+    const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
+    const sdk = () => screen.getByLabelText(/pago recurrente \(se renueva/i) as HTMLInputElement;
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    const element = input.closest("stripe-payment-element")!;
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(sdk());
+    await waitFor(() => expect(input.checked).toBe(false));
+    fireEvent.click(sdk());
+    act(() => lastProps?.changePaymentSystemProperties?.({ recurringPayment: false }));
+    fireEvent.click(pay());
+    await act(async () => { await Promise.resolve(); });
+    expect(sdk().checked).toBe(true);
+    expect(charge).not.toHaveBeenCalled();
+    expect(pay().disabled).toBe(true);
+    act(() => {
+      lastProps?.onInitialPaymentUpdated?.({ message: "chk_unchecked" });
+      element.dispatchEvent(new Event("initial-payment-updated"));
+    });
+    await waitFor(() => expect(input.checked).toBe(true));
+    expect(pay().disabled).toBe(true);
+    expect(sdk().checked).toBe(true);
+    act(() => {
+      lastProps?.onInitialPaymentUpdated?.({ message: "chk_checked" });
+      element.dispatchEvent(new Event("initial-payment-updated"));
+    });
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    fireEvent.click(pay());
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+    expect(sdk().checked).toBe(true);
+    expect(input.checked).toBe(true);
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: true }));
+  });
+
+  it.each(["error", "timeout"])("mantiene el pago deshabilitado si Stripe no confirma la elección: %s", async (failure) => {
+    useStripeCheckbox();
+    renderPay(mockClient());
+    const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    const sdk = screen.getByLabelText(/pago recurrente \(se renueva/i) as HTMLInputElement;
+    if (failure === "timeout") vi.useFakeTimers();
+    fireEvent.click(sdk);
+    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    await act(async () => { await Promise.resolve(); });
+    expect(input.checked).toBe(false);
+    if (failure === "error") {
+      await act(async () => { input.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-update-error")); });
+    } else {
+      await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+      vi.useRealTimers();
+    }
+    expect(pay().disabled).toBe(true);
+    expect(sdk.checked).toBe(false);
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(pay());
+    expect(charge).not.toHaveBeenCalled();
+  });
 
   it("membresía Stripe nace marcada y pagar no hace click", async () => {
     useStripeCheckbox();
@@ -1323,19 +1458,20 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(click).not.toHaveBeenCalled();
   });
 
-  it("una baja directa en Stripe actualiza el modal y pagar la conserva", async () => {
+  it("una baja interna de Stripe no sobrescribe el SDK y el preflight bloquea la discrepancia", async () => {
     useStripeCheckbox();
     renderPay(mockClient(), { showMembershipOptions: false });
     await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
     const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
     fireEvent.click(input);
-    expect((screen.getByLabelText(/pago recurrente \(se renueva/i) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText(/pago recurrente \(se renueva/i) as HTMLInputElement).checked).toBe(true);
     input.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated"));
     const click = vi.spyOn(input, "click");
     const charge = vi.fn();
     window._handleStripePayment = charge;
     fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
-    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+    await screen.findByText("No pudimos activar las opciones de la membresía. Intenta de nuevo.");
+    expect(charge).not.toHaveBeenCalled();
     expect(input.checked).toBe(false);
     expect(click).not.toHaveBeenCalled();
   });
@@ -1353,6 +1489,8 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
     expect(charge).not.toHaveBeenCalled();
     input.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated"));
+    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
     await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
   });
 
