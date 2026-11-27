@@ -149,3 +149,111 @@ describe("installStripeSessionFetchGuard", () => {
     expect(network).toHaveBeenCalledTimes(2);
   });
 });
+
+import { stripeHarness, deferred, json } from "../../../test/stripeHarness";
+import { chooseStripeRecurrence, stripeRecurrenceConfirmed, waitForStripeSession } from "./stripeSessionGuard";
+import { setStripeMembershipAutoRenew } from "../cart/membershipPayOptions";
+
+describe("sesiones Stripe del SDK", () => {
+  afterEach(() => { resetStripeSessionFetchGuardForTests(); vi.unstubAllGlobals(); document.body.innerHTML = ""; });
+  async function setup() {
+    const harness = stripeHarness();
+    const root = document.createElement("div"); document.body.append(root);
+    const mount = harness.mount(root);
+    await mount.ready;
+    return { ...harness, createMount: harness.mount, root, mount };
+  }
+  const update = (tokenInput: string, recurringPayment: boolean, extra = {}) => fetch("https://stripe.test/api/stripe.updateinitialpayment", {
+    method: "POST", body: JSON.stringify({ tokenInput, recurringPayment, ...extra }),
+  });
+
+  it("serializa peticiones reales solapadas y la respuesta anterior no confirma ni aporta secret", async () => {
+    const { mount, respondWith, network } = await setup();
+    const first = deferred<Response>(); const last = deferred<Response>();
+    respondWith(async (_url, body) => body.recurringPayment ? first.promise : last.promise);
+    chooseStripeRecurrence(mount.element, true);
+    const a = update(mount.token, true);
+    await vi.waitFor(() => expect(network).toHaveBeenCalledTimes(3));
+    chooseStripeRecurrence(mount.element, false);
+    const b = update(mount.token, false);
+    expect(network).toHaveBeenCalledTimes(3); // only one update is on the wire
+    first.resolve(json({ message: mount.token, client_secret: "cs_stale" }));
+    expect(await (await a).json()).toEqual({});
+    expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(false);
+    await vi.waitFor(() => expect(network).toHaveBeenCalledTimes(4));
+    last.resolve(json({ message: mount.token, client_secret: "cs_current" }));
+    expect(await (await b).json()).toEqual({ message: mount.token, client_secret: "cs_current" });
+    expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(true);
+  });
+
+  it("descarta un update retirado aunque el siguiente montaje esté esperando el mismo valor", async () => {
+    const { root, mount: old, respondWith, network, createMount } = await setup();
+    const late = deferred<Response>(); const latest = deferred<Response>();
+    respondWith(async (url, body) => url.includes("processinitialpayment")
+      ? json({ message: "tok_new", client_secret: "cs_new" })
+      : body.tokenInput === old.token ? late.promise : latest.promise);
+    const previous = update(old.token, false, { saveCard: false });
+    await Promise.resolve();
+    old.unmount();
+    const fresh = createMount(root, false);
+    await vi.waitFor(() => expect(network.mock.calls.some(([, init]) => String(init?.body).includes("tok_new"))).toBe(true));
+    const ready = vi.fn(); void waitForStripeSession(fresh.element).then(ready);
+    late.resolve(json({ message: old.token, client_secret: "cs_old" }));
+    expect(await (await previous).json()).toEqual({});
+    expect(ready).not.toHaveBeenCalled();
+    expect(stripeRecurrenceConfirmed(fresh.element, false)).toBe(false);
+    latest.resolve(json({ message: "tok_new" }));
+    await fresh.ready;
+    expect(stripeRecurrenceConfirmed(fresh.element, false)).toBe(true);
+  });
+
+  it("vuelve a comprobar la versión al consumir json(), no sólo al terminar fetch", async () => {
+    const { mount } = await setup();
+    chooseStripeRecurrence(mount.element, true);
+    const response = await update(mount.token, true);
+    chooseStripeRecurrence(mount.element, false);
+    expect(await response.json()).toEqual({});
+    expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(false);
+  });
+
+  it("bloquea completeinitialpayment cuando cambió la casilla o el montaje", async () => {
+    const { root, mount, network } = await setup();
+    expect(await setStripeMembershipAutoRenew(root, true)).toBe(true);
+    const complete = () => fetch("https://stripe.test/api/stripe.completeinitialpayment", {
+      method: "POST", body: JSON.stringify({ tokenInput: mount.token, recurringPayment: true }),
+    });
+    chooseStripeRecurrence(mount.element, false);
+    await expect(complete()).rejects.toThrow("elección recurrente");
+    mount.unmount();
+    await expect(complete()).rejects.toThrow("vigente");
+    expect(network.mock.calls.some(([url]) => String(url).includes("completeinitialpayment"))).toBe(false);
+  });
+
+  it("no confirma cambios recurrentes si la respuesta no trae el secret correspondiente", async () => {
+    const { root, mount, respondWith } = await setup();
+    await setStripeMembershipAutoRenew(root, true);
+    respondWith(async () => json({ message: mount.token }));
+    expect(await setStripeMembershipAutoRenew(root, false)).toBe(false);
+    expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(false);
+  });
+});
+
+it("completeinitialpayment atrasado no permite confirmar si cambió la elección mientras viajaba", async () => {
+  const harness = stripeHarness();
+  const root = document.createElement("div"); document.body.append(root);
+  const mount = harness.mount(root);
+  try {
+    await mount.ready;
+    expect(await setStripeMembershipAutoRenew(root, true)).toBe(true);
+    const held = deferred<Response>(); harness.respondWith(async () => held.promise);
+    const pending = fetch("https://stripe.test/api/stripe.completeinitialpayment", {
+      method: "POST", body: JSON.stringify({ tokenInput: mount.token, recurringPayment: true }),
+    });
+    chooseStripeRecurrence(mount.element, false);
+    held.resolve(json({ message: "complete" }));
+    const response = await pending;
+    await expect(response.json()).rejects.toThrow("durante la confirmación");
+  } finally {
+    mount.unmount(); resetStripeSessionFetchGuardForTests(); vi.unstubAllGlobals(); root.remove();
+  }
+});

@@ -1,5 +1,5 @@
 import { BUQ_ENVIRONMENTS, nonProductionUrlError, type BuqEnvironmentId } from "../config/buqEnvironments";
-import { installStripeSessionFetchGuard } from "./stripeSessionGuard";
+import { hasStripeSession, installStripeSessionFetchGuard, registerStripeSession } from "./stripeSessionGuard";
 
 /**
  * Bridge de pagos.
@@ -855,7 +855,9 @@ function bindStripePaymentEvents(el: HTMLElement, props: GafaPayWidgetProps): ()
     props.onGafaPayErrAction({ message: typeof detail === "string" ? detail : "Ocurrió un error durante el pago." });
   };
   const onCreated = (event: Event) => props.onCheckoutOpenAction?.(detailFromEvent(event));
-  const onUpdated = (event: Event) => props.onInitialPaymentUpdated?.(detailFromEvent(event));
+  const onUpdated = (event: Event) => {
+    if (event.type === "gafa-stripe-payment-updated" || !hasStripeSession(el)) props.onInitialPaymentUpdated?.(detailFromEvent(event));
+  };
   const onUpdating = () => props.onInitialPaymentUpdating?.();
   const onUpdateError = (event: Event) => {
     const detail = detailFromEvent(event);
@@ -873,6 +875,7 @@ function bindStripePaymentEvents(el: HTMLElement, props: GafaPayWidgetProps): ()
   el.addEventListener("payment-error", onError);
   el.addEventListener("initial-payment-created", onCreated);
   el.addEventListener("initial-payment-updated", onUpdated);
+  el.addEventListener("gafa-stripe-payment-updated", onUpdated);
   el.addEventListener("initial-payment-updating", onUpdating);
   el.addEventListener("initial-payment-update-error", onUpdateError);
 
@@ -882,6 +885,7 @@ function bindStripePaymentEvents(el: HTMLElement, props: GafaPayWidgetProps): ()
     el.removeEventListener("payment-error", onError);
     el.removeEventListener("initial-payment-created", onCreated);
     el.removeEventListener("initial-payment-updated", onUpdated);
+    el.removeEventListener("gafa-stripe-payment-updated", onUpdated);
     el.removeEventListener("initial-payment-updating", onUpdating);
     el.removeEventListener("initial-payment-update-error", onUpdateError);
   };
@@ -893,6 +897,7 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
   const el = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
   applyStripePaymentAttributes(el, props);
   let unbind = bindStripePaymentEvents(el, props);
+  const unregister = registerStripeSession(el);
   container.appendChild(el);
 
   return {
@@ -909,6 +914,7 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
       // render(); el descuento entra por `buq__discount_added`.
     },
     unmount: () => {
+      unregister();
       unbind();
       el.remove();
       container.replaceChildren();

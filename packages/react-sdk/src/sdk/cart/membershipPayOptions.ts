@@ -1,3 +1,4 @@
+import { chooseStripeRecurrence, refreshStripeSession, hasStripeSession, stripeRecurrenceConfirmed, stripeSessionSequence, waitForStripeSession } from "../payments/stripeSessionGuard";
 import type { CartLine } from "./cartStore";
 
 export type MembershipPayToggles = {
@@ -102,169 +103,100 @@ export function findStripeRecurringCheckbox(root: ParentNode): HTMLInputElement 
 }
 
 type StripeRecurrenceState = {
-  pending?: Promise<boolean>;
-  cancel?: () => void;
-  requested?: boolean;
-  confirmed?: boolean;
-  updates: number;
-  failed: boolean;
+  desired: boolean;
+  running?: Promise<boolean>;
   driving: boolean;
-  queue: Promise<boolean>;
 };
 const stripeRecurrence = new WeakMap<Element, StripeRecurrenceState>();
-function recurrenceState(element: Element): StripeRecurrenceState {
-  let state = stripeRecurrence.get(element);
-  if (!state) {
-    state = { updates: 0, failed: false, driving: false, queue: Promise.resolve(true) };
-    stripeRecurrence.set(element, state);
-  }
-  return state;
-}
 
-/**
- * Register the choice before its request, including the mount-time update.
- * The IIFE's completion events have no request ID: SDK clicks must wait for
- * earlier requests. Concurrent identical initial updates are drained together;
- * overlapping requests for different choices are ambiguous and fail closed.
- */
-function waitForStripeRecurrence(element: Element, checked: boolean | undefined, started = false): Promise<boolean> {
-  const state = recurrenceState(element);
-  if (state.failed) return Promise.resolve(false);
-  if (state.pending) {
-    if (started) {
-      if (state.requested !== checked) {
-        state.cancel?.();
-        return Promise.resolve(false);
-      }
-      state.updates++;
-    }
-    return state.pending;
-  }
-  state.requested = checked;
-  state.confirmed = undefined;
-  state.updates = started ? 1 : 0;
-  state.pending = new Promise((resolve) => {
-    const finish = (success: boolean) => {
-      clearTimeout(timer);
-      element.removeEventListener("initial-payment-updated", onUpdated);
-      element.removeEventListener("initial-payment-update-error", onError);
-      state.pending = undefined;
-      state.cancel = undefined;
-      success = success && checked !== undefined;
-      state.failed = !success;
-      state.confirmed = success ? checked : undefined;
-      resolve(success);
-    };
-    const onUpdated = () => {
-      if (state.updates > 1) {
-        state.updates--;
-        return;
-      }
-      finish(true);
-    };
-    const onError = () => finish(false);
-    const timer = setTimeout(() => finish(false), 15_000);
-    state.cancel = onError;
-    element.addEventListener("initial-payment-updated", onUpdated);
-    element.addEventListener("initial-payment-update-error", onError);
-  });
-  return state.pending;
-}
-
-/** Install before mounting; capture also sees non-bubbling IIFE events. */
+/** DOM events signal surface availability, never acknowledge a recurrence edit. */
 export function bindStripeMembershipRecurrence(
   root: HTMLElement,
   onAutoRenew: (checked: boolean) => void,
   onSessionReady: () => void = () => undefined,
 ): () => void {
-  const elements = new Set<Element>();
-  let clicked: HTMLInputElement | null = null;
-  const watch = (input: HTMLInputElement) => {
-    const element = input.closest("stripe-payment-element")!;
-    elements.add(element);
-    void waitForStripeRecurrence(element, input.checked);
-  };
-  const onUpdating = (event: Event) => {
-    const element = event.target;
-    if (!(element instanceof Element) || !element.matches("stripe-payment-element")) return;
-    elements.add(element);
-    // The initial request can start before the IIFE renders its input.
-    const checked = findStripeRecurringCheckbox(element)?.checked
-      ?? coerceFlag(element.getAttribute("has-recurring-payment"));
-    void waitForStripeRecurrence(element, checked, true);
-  };
   const onSession = (event: Event) => {
-    const element = event.target;
-    if (!(element instanceof Element) || !element.matches("stripe-payment-element")) return;
-    elements.add(element);
-    const state = recurrenceState(element);
-    // Mount-time requests belong to the IIFE. A created/updated session does
-    // not need a preceding SDK click (or an updating event) to be usable.
-    // Never let an initial response acknowledge a pending SDK edit.
-    if (!state.pending && !state.failed && state.confirmed === undefined) {
-      state.confirmed = coerceFlag(element.getAttribute("has-recurring-payment"))
-        ?? findStripeRecurringCheckbox(element)?.checked;
-    }
-    onSessionReady();
-  };
-  const onClick = (event: Event) => {
-    const input = findStripeRecurringCheckbox(root);
-    if (input && event.target === input && !input.disabled) {
-      clicked = input;
-      watch(input);
-    }
+    if (event.target instanceof Element && hasStripeSession(event.target)) onSessionReady();
   };
   const onChange = (event: Event) => {
     const input = findStripeRecurringCheckbox(root);
     if (!input || event.target !== input) return;
-    if (clicked !== input) watch(input);
-    clicked = null;
-    const state = recurrenceState(input.closest("stripe-payment-element")!);
-    if (!state.driving) onAutoRenew(input.checked);
+    const element = input.closest("stripe-payment-element")!;
+    if (!stripeRecurrence.get(element)?.driving) onAutoRenew(input.checked);
   };
-  root.addEventListener("click", onClick, true);
   root.addEventListener("change", onChange);
-  root.addEventListener("initial-payment-updating", onUpdating, true);
-  root.addEventListener("initial-payment-created", onSession, true);
-  root.addEventListener("initial-payment-updated", onSession, true);
+  root.addEventListener("gafa-stripe-session", onSession);
   return () => {
-    root.removeEventListener("click", onClick, true);
     root.removeEventListener("change", onChange);
-    root.removeEventListener("initial-payment-updating", onUpdating, true);
-    root.removeEventListener("initial-payment-created", onSession, true);
-    root.removeEventListener("initial-payment-updated", onSession, true);
-    for (const element of elements) recurrenceState(element).cancel?.();
+    root.removeEventListener("gafa-stripe-session", onSession);
   };
 }
 
-/** SDK edits and new islands drive Stripe. Serialize clicks and await the session. */
-export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean): Promise<boolean> {
-  const input = findStripeRecurringCheckbox(root);
-  const element = input?.closest("stripe-payment-element");
-  if (!input || !element) return Promise.resolve(false);
-  const state = recurrenceState(element);
-  state.queue = state.queue.then(async () => {
-    if (state.pending && !await state.pending) return false;
-    const current = findStripeRecurringCheckbox(root);
-    if (!current || current.closest("stripe-payment-element") !== element) return false;
-    if (state.failed) return false;
-    if (current.checked === checked) return state.confirmed === checked;
-    if (current.disabled) return false;
-    const pending = waitForStripeRecurrence(element, checked);
-    state.driving = true;
-    try {
-      current.click();
-    } catch {
-      state.cancel?.();
-    } finally {
-      state.driving = false;
-    }
-    if (!await pending) return false;
-    const confirmed = findStripeRecurringCheckbox(root);
-    return confirmed?.closest("stripe-payment-element") === element
-      && confirmed.checked === checked && state.confirmed === checked;
+function waitForStripeCheckbox(element: Element): Promise<HTMLInputElement | null> {
+  const existing = findStripeRecurringCheckbox(element);
+  if (existing || element.getAttribute("has-recurring-payment") !== "true") return Promise.resolve(existing);
+  return new Promise((resolve) => {
+    const finish = (input: HTMLInputElement | null) => {
+      clearTimeout(timer);
+      observer.disconnect();
+      element.removeEventListener("gafa-stripe-session", check);
+      resolve(input);
+    };
+    const check = () => {
+      const input = findStripeRecurringCheckbox(element);
+      if (!hasStripeSession(element) || input) finish(input);
+    };
+    const observer = new MutationObserver(check);
+    const timer = setTimeout(() => finish(null), 15_000);
+    observer.observe(element, { childList: true, subtree: true });
+    element.addEventListener("gafa-stripe-session", check);
+    check();
   });
-  return state.queue;
+}
+
+/** Coalesce SDK edits, serialize provider clicks, and drain real HTTP requests. */
+export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean): Promise<boolean> {
+  const element = root.querySelector("stripe-payment-element");
+  if (!element || !hasStripeSession(element)) return Promise.resolve(false);
+  let state = stripeRecurrence.get(element);
+  if (!state) {
+    state = { desired: checked, driving: false };
+    stripeRecurrence.set(element, state);
+  }
+  const currentState = state;
+  currentState.desired = checked;
+  chooseStripeRecurrence(element, checked);
+  if (!currentState.running) {
+    currentState.running = (async () => {
+      await Promise.resolve();
+      while (true) {
+        if (!await waitForStripeSession(element)) return false;
+        const desired = currentState.desired;
+        const input = await waitForStripeCheckbox(element);
+        if (!input && element.getAttribute("has-recurring-payment") === "true") return false;
+        if (input && input.closest("stripe-payment-element") !== element) return false;
+        if (input && input.checked !== desired) {
+          if (input.disabled) return false;
+          const sequence = stripeSessionSequence(element);
+          currentState.driving = true;
+          try { input.click(); } finally { currentState.driving = false; }
+          // Wait for this version, including a React effect that starts later.
+          if (!await waitForStripeSession(element, sequence)) return false;
+          if (!stripeRecurrenceConfirmed(element, desired)) continue;
+        } else if (!stripeRecurrenceConfirmed(element, desired)) {
+          if (!await refreshStripeSession(element) && desired === currentState.desired) return false;
+          // Session replacement can cause the IIFE to issue its mount update.
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          continue;
+        }
+        if (desired !== currentState.desired) continue;
+        return stripeRecurrenceConfirmed(element, desired)
+          && (input ? input.checked === desired
+            : !desired && coerceFlag(element.getAttribute("has-recurring-payment")) === false);
+      }
+    })().catch(() => false).finally(() => { currentState.running = undefined; });
+  }
+  return currentState.running.then((ok) => ok && currentState.desired === checked);
 }
 
 /**
@@ -280,24 +212,15 @@ export async function syncGafaPayMembershipToggles(
 ): Promise<boolean> {
   const stripe = root.querySelector("stripe-payment-element");
   if (stripe) {
-    const state = recurrenceState(stripe);
-    let queued: Promise<boolean>;
+    let pending: Promise<boolean> | undefined;
     do {
-      queued = state.queue;
-      if (!await queued) return false;
-    } while (queued !== state.queue);
-    while (state.pending) {
-      if (!await state.pending) return false;
-    }
-    if (state.failed || state.confirmed !== toggles.autoRenew) return false;
-    const confirmed = findStripeRecurringCheckbox(root);
-    if (confirmed) {
-      if (confirmed.closest("stripe-payment-element") !== stripe || confirmed.checked !== toggles.autoRenew) return false;
-    } else if (toggles.autoRenew || coerceFlag(stripe.getAttribute("has-recurring-payment")) !== false) {
-      // Only an explicitly non-recurring mount with a confirmed false session
-      // may omit the provider checkbox. Missing controls on eligible mounts fail.
-      return false;
-    }
+      pending = stripeRecurrence.get(stripe)?.running;
+      if (pending) await pending;
+    } while (pending !== stripeRecurrence.get(stripe)?.running && stripeRecurrence.get(stripe)?.running);
+    if (!await waitForStripeSession(stripe) || !stripeRecurrenceConfirmed(stripe, toggles.autoRenew)) return false;
+    const input = findStripeRecurringCheckbox(root);
+    if (input ? input.checked !== toggles.autoRenew
+      : toggles.autoRenew || coerceFlag(stripe.getAttribute("has-recurring-payment")) !== false) return false;
   }
   // Un clic posterior o el preflight de pago invalida reintentos anteriores.
   // Así una sincronización pendiente no revierte la última elección del SDK.
