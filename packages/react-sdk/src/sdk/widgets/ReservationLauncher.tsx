@@ -8,6 +8,8 @@ import type { GafaClient, Meeting } from "../client/types";
 export type ReservationLauncherProps = {
   client: GafaClient;
   captcha?: CaptchaProvider;
+  /** Mismo `language` del SDK / calendario: ES, EN o FR. */
+  language?: string;
   /** Id de la clase en gafa.fit (el mismo que usa el calendario). */
   meetingId: string | number;
   /** Opcionales: acotan la busqueda de la clase y evitan pedir marcas/sedes. */
@@ -30,6 +32,7 @@ export type ReservationLauncherProps = {
 export function ReservationLauncher({
   client,
   captcha,
+  language,
   meetingId,
   brandSlug,
   locationSlug,
@@ -61,6 +64,7 @@ export function ReservationLauncher({
       <ReservationFlow
         client={client}
         captcha={captcha}
+        language={language}
         meeting={meeting}
         brandSlug={brandSlug}
         locationSlug={locationSlug}
