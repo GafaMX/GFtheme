@@ -1,5 +1,11 @@
 import { BUQ_ENVIRONMENTS, nonProductionUrlError, type BuqEnvironmentId } from "../config/buqEnvironments";
-import { installStripeSessionFetchGuard } from "./stripeSessionGuard";
+import {
+  installStripeSessionFetchGuard,
+  registerStripeSession,
+  stripeSessionStatus,
+  STRIPE_SESSION_PROGRESS_EVENT,
+  type StripeCheckoutState,
+} from "./stripeSessionGuard";
 
 /**
  * Bridge de pagos.
@@ -101,6 +107,7 @@ export type GafaPayWidgetProps = {
   termsAndConditions?: string | boolean | null;
   hasRecurringPayment?: boolean;
   paymentFrequency?: string | null;
+  stripeCheckoutState?: StripeCheckoutState;
   changePaymentSystemProperties?: (props: { recurringPayment?: boolean; saveCard?: boolean }) => void;
   /** API de GAFApay (`api-url` del web component). */
   apiUrl?: string;
@@ -752,6 +759,7 @@ const IIFE_LOADING_TEXT = /\bLoading\.\.\.|\bCargando\.\.\./i;
 
 export function stripePaymentSurfaceReady(container: Element, options?: WaitForWidgetContentOptions): boolean {
   if (options?.requireIframe) {
+    if (stripeSessionStatus(container)?.ready === false) return false;
     if (!container.querySelector("iframe")) return false;
   } else if (!container.querySelector("iframe, form, input, button")) {
     return false;
@@ -772,19 +780,33 @@ export function waitForWidgetContent(
   if (isReady()) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      observer.disconnect();
-      reject(new Error(PAY_FORM_LOAD_ERROR));
-    }, timeoutMs);
-
-    const observer = new MutationObserver(() => {
-      if (!isReady()) return;
+    // Stripe incluye OAuth + process + initial-purchase + updates, no solo init.
+    // Cada respuesta válida renueva 30 s; los demás proveedores no cambian.
+    let timeout: ReturnType<typeof setTimeout>;
+    const cleanup = () => {
       clearTimeout(timeout);
       observer.disconnect();
+      container.removeEventListener(STRIPE_SESSION_PROGRESS_EVENT, onProgress);
+    };
+    const check = () => {
+      if (!isReady()) return;
+      cleanup();
       resolve();
-    });
-
+    };
+    const armTimeout = () => {
+      clearTimeout(timeout);
+      const session = options?.requireIframe ? stripeSessionStatus(container) : undefined;
+      const budget = session ? Math.max(30_000, timeoutMs) : timeoutMs;
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error(PAY_FORM_LOAD_ERROR));
+      }, budget);
+    };
+    const onProgress = () => { armTimeout(); check(); };
+    const observer = new MutationObserver(check);
     observer.observe(container, { childList: true, subtree: true, characterData: true });
+    container.addEventListener(STRIPE_SESSION_PROGRESS_EVENT, onProgress);
+    armTimeout();
   });
 }
 
@@ -838,7 +860,11 @@ function detailFromEvent(event: Event): unknown {
   return "detail" in event ? (event as CustomEvent).detail : undefined;
 }
 
-function bindStripePaymentEvents(el: HTMLElement, props: GafaPayWidgetProps): () => void {
+function bindStripePaymentEvents(
+  el: HTMLElement,
+  props: GafaPayWidgetProps,
+  onInitialPayment?: (data: unknown, created: boolean) => void,
+): () => void {
   const onStart = () => props.onStartPayAction();
   const onSuccess = (event: Event) => {
     const detail = detailFromEvent(event);
@@ -854,8 +880,10 @@ function bindStripePaymentEvents(el: HTMLElement, props: GafaPayWidgetProps): ()
     }
     props.onGafaPayErrAction({ message: typeof detail === "string" ? detail : "Ocurrió un error durante el pago." });
   };
-  const onCreated = (event: Event) => props.onCheckoutOpenAction?.(detailFromEvent(event));
-  const onUpdated = (event: Event) => props.onInitialPaymentUpdated?.(detailFromEvent(event));
+  const onCreated = (event: Event) => onInitialPayment
+    ? onInitialPayment(detailFromEvent(event), true) : props.onCheckoutOpenAction?.(detailFromEvent(event));
+  const onUpdated = (event: Event) => onInitialPayment
+    ? onInitialPayment(detailFromEvent(event), false) : props.onInitialPaymentUpdated?.(detailFromEvent(event));
   const onUpdating = () => props.onInitialPaymentUpdating?.();
   const onUpdateError = (event: Event) => {
     const detail = detailFromEvent(event);
@@ -892,7 +920,29 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
   container.replaceChildren();
   const el = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
   applyStripePaymentAttributes(el, props);
-  let unbind = bindStripePaymentEvents(el, props);
+  let currentProps = props;
+  const session = registerStripeSession({
+    element: el,
+    apiUrl: resolveGafaPayApiUrl(props.apiUrl),
+    checkout: props.stripeCheckoutState ?? {},
+    // Mismo contrato de vw.updateInitialPayment (IIFE, referencia de solo lectura).
+    updateBody: {
+      customer_name: el.getAttribute("customer-name"),
+      customer_email: props.order.customerEmail || "",
+      customer_phone: props.order.customerPhone || "",
+      customer_first_name: props.customerFirstName,
+      customer_last_name: props.customerLastName,
+      lineItems: props.order.lineItems,
+      address: "0",
+      ...props.generalData,
+      recurringPayment: false,
+      paymentFrequency: Number.parseInt(props.paymentFrequency || "30", 10),
+      currency: (props.order.currency || "mxn").toLowerCase(),
+    },
+    onInitialPayment: (data, created) => created
+      ? currentProps.onCheckoutOpenAction?.(data) : currentProps.onInitialPaymentUpdated?.(data),
+  });
+  let unbind = bindStripePaymentEvents(el, props, session.onEvent);
   container.appendChild(el);
 
   return {
@@ -900,7 +950,8 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
       next = widgetPropsForRuntime(runtime, next);
       unbind();
       applyStripePaymentAttributes(el, next);
-      unbind = bindStripePaymentEvents(el, next);
+      currentProps = next;
+      unbind = bindStripePaymentEvents(el, next, session.onEvent);
       // El IIFE tiene attributeChangedCallback vacío. Si llamamos render()
       // React remonta hw con un `order`/`onPaymentError` nuevos y re-dispara
       // oauth + processinitialpayment + updateinitialpayment (a menudo con
@@ -909,6 +960,7 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
       // render(); el descuento entra por `buq__discount_added`.
     },
     unmount: () => {
+      session.dispose();
       unbind();
       el.remove();
       container.replaceChildren();
