@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SDK V2 · Staging</title>
+  <style>
+    body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #172033; background: #f4f6fa; }
+    header { padding: 24px; background: #ffd65a; border-bottom: 4px solid #8a4100; }
+    h1 { margin: 0 0 12px; font-size: clamp(24px, 4vw, 40px); }
+    main { max-width: 900px; margin: 24px auto; padding: 0 20px; }
+    label { display: block; margin: 12px 0; }
+    input:not([type=checkbox]) { display: block; width: min(100%, 480px); box-sizing: border-box; padding: 10px; }
+    button { padding: 12px 18px; cursor: pointer; margin: 8px 8px 8px 0; }
+    code { overflow-wrap: anywhere; }
+    #status { white-space: pre-wrap; }
+    #integration { background: white; padding: 20px; margin-top: 24px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>STAGING – pagos en modo prueba</h1>
+    <div>GAFAPAY_FRONT_URL: <code id="front-url"></code></div>
+    <div>GAFAPAY_API_URL: <code id="api-url"></code></div>
+    <div>STRIPE_PAYMENT_SCRIPT_URL: <code id="stripe-url"></code></div>
+  </header>
+  <main>
+    <p>Embed real de V2: login y compra con el mismo IIFE y atributos que un sitio socio.
+      Usa credenciales y productos de staging. Selecciona productos con
+      <code>?membership=ID&amp;package=ID&amp;brand=slug</code>.</p>
+    <form id="settings">
+      <label>COMPANY_ID <input name="company" type="number" min="1" step="1" required></label>
+      <label>API_CLIENT <input name="client" required autocomplete="off"></label>
+      <label>API_SECRET <input name="secret" type="password" required autocomplete="off"></label>
+      <label>Marca (slug) <input name="brand" required></label>
+      <label><input name="rememberSecret" type="checkbox"> Recordar API_SECRET en localStorage de este navegador</label>
+      <button type="submit">Montar SDK de staging</button>
+      <button type="button" id="forget">Borrar configuración local</button>
+    </form>
+    <p id="status" role="status">El SDK se carga al enviar el formulario.</p>
+    <section id="integration" hidden aria-label="Integración del socio">
+      <div data-gf-theme="login-register"></div>
+      <button data-gf-account>Mi cuenta / login</button>
+      <button id="membership-buy" data-gf-buy hidden>Comprar membresía</button>
+      <button id="package-buy" data-gf-buy hidden>Comprar paquete</button>
+      <button data-gf-cart>Ver carrito (<span data-gf-cart-count>0</span>)</button>
+    </section>
+    <!-- El JSON se completa desde el formulario; nunca contiene secretos del repo. -->
+    <script data-gf-options type="application/json">{}</script>
+  </main>
+  <script>
+    (function () {
+      "use strict";
+      var storageKey = "gafa-sdk-v2-staging-settings";
+      var form = document.getElementById("settings");
+      var status = document.getElementById("status");
+      var params = new URLSearchParams(location.search);
+      var paymentUrls = {
+        GAFAPAY_FRONT_URL: "https://gafapay-front-dev.azurewebsites.net/prodbuild/main.js",
+        GAFAPAY_API_URL: "https://gafapay-api-gafapay-api-test.azurewebsites.net",
+        STRIPE_PAYMENT_SCRIPT_URL: "https://buq.com.mx/js/payments/stripe-payment.iife.js"
+      };
+      function showUrls(urls) {
+        document.getElementById("front-url").textContent = urls.GAFAPAY_FRONT_URL;
+        document.getElementById("api-url").textContent = urls.GAFAPAY_API_URL;
+        document.getElementById("stripe-url").textContent = urls.STRIPE_PAYMENT_SCRIPT_URL;
+      }
+      showUrls(paymentUrls);
+      try {
+        var saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        ["company", "client", "secret", "brand"].forEach(function (key) {
+          form.elements.namedItem(key).value = typeof saved[key] === "string" ? saved[key] : "";
+        });
+        form.elements.namedItem("rememberSecret").checked = Boolean(saved.secret);
+      } catch (_) { /* Storage deshabilitado: el formulario sigue funcionando. */ }
+      if (params.has("brand")) form.elements.namedItem("brand").value = params.get("brand");
+      document.getElementById("forget").addEventListener("click", function () {
+        try { localStorage.removeItem(storageKey); } catch (_) {}
+        location.reload();
+      });
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var env = params.get("buq-env") || params.get("gafa-env") || params.get("buq_env");
+        if (env && ["staging", "stage", "com.mx", "buq.com.mx"].indexOf(env.trim().toLowerCase()) === -1) {
+          status.textContent = "Carga bloqueada: esta página requiere staging. Quita el override de entorno de la URL.";
+          return;
+        }
+        var values = {};
+        ["company", "client", "secret", "brand"].forEach(function (key) {
+          values[key] = form.elements.namedItem(key).value.trim();
+        });
+        var options = Object.assign({
+          BUQ_ENV: "staging",
+          GAFA_FIT_URL: "https://buq.com.mx/",
+          COMPANY_ID: Number(values.company),
+          API_CLIENT: values.client,
+          API_SECRET: values.secret
+        }, paymentUrls);
+        document.querySelector("[data-gf-options]").textContent = JSON.stringify(options);
+        try {
+          var persisted = Object.assign({}, values);
+          if (!form.elements.namedItem("rememberSecret").checked) delete persisted.secret;
+          localStorage.setItem(storageKey, JSON.stringify(persisted));
+        } catch (_) {}
+        [ ["membership", "membership-buy", "data-gf-membership-id"],
+          ["package", "package-buy", "data-gf-combo-id"] ].forEach(function (entry) {
+          var id = params.get(entry[0]);
+          var button = document.getElementById(entry[1]);
+          if (!id || !/^[1-9]\d*$/.test(id)) return;
+          button.setAttribute(entry[2], id);
+          button.setAttribute("data-gf-brand", values.brand);
+          button.hidden = false;
+        });
+        document.getElementById("integration").hidden = false;
+        form.querySelector("button[type=submit]").disabled = true;
+        status.textContent = "Cargando loader de staging-live… Para cambiar la configuración, recarga la página.";
+        // Mismo contrato que docs/v2-sdk/snippet.html: script clásico, sin SDK de demo.
+        var loader = document.createElement("script");
+        loader.src = "https://cdn.jsdelivr.net/gh/GafaMX/GFtheme@staging-live/docs/v2-sdk-staging/gafa-sdk.js";
+        loader.onerror = function () { status.textContent = "No se pudo cargar el loader de staging. Verifica que los artefactos estén publicados en staging-live."; };
+        window.addEventListener("buq:sdk:ready", function () {
+          var sdk = window.GafaThemeSDK;
+          if (!sdk) return;
+          showUrls({ GAFAPAY_FRONT_URL: sdk.config.gafaPayFrontUrl,
+            GAFAPAY_API_URL: sdk.config.gafaPayApiUrl,
+            STRIPE_PAYMENT_SCRIPT_URL: sdk.config.stripePaymentScriptUrl });
+          status.textContent = "SDK montado en " + sdk.config.environment + ". Login y compra listos.";
+        }, { once: true });
+        document.body.appendChild(loader);
+      });
+    })();
+  </script>
+</body>
+</html>

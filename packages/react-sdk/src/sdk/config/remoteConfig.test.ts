@@ -4,6 +4,15 @@ import { queryOptionOverrides, readEmbedOptionsFromDom } from "./embedOptions";
 import { DEFAULT_CAPTCHA_PUBLIC_KEY, DEFAULT_CAPTCHA_SECRET_KEY } from "../config";
 
 describe("sanitizeHubRemoteConfig", () => {
+  it("el Hub no puede suministrar las nuevas URLs de pago", () => {
+    expect(sanitizeHubRemoteConfig({
+      GAFAPAY_API_URL: "https://apipay.buq.partners",
+      STRIPE_PAYMENT_SCRIPT_URL: "https://buq.partners/stripe.js",
+      gafaPayApiUrl: "https://apipay.buq.partners",
+      stripePaymentScriptUrl: "https://buq.partners/stripe.js",
+    })).toEqual({});
+  });
+
   it("tira secretos y claves que no son del catálogo", () => {
     expect(
       sanitizeHubRemoteConfig({
@@ -102,6 +111,41 @@ describe("fetchHubRemoteConfig", () => {
 });
 
 describe("readEmbedOptionsFromDom", () => {
+  it.each(["production", "prod", "partners", "gafa.fit", "buq.partners"])(
+    "rechaza BUQ_ENV=%s del Hub si la página dedujo staging sin declarar entorno", async (BUQ_ENV) => {
+      document.body.innerHTML = `<script data-gf-options type="application/json">${JSON.stringify({
+        COMPANY_ID: 1, GAFA_FIT_URL: "https://buq.com.mx/",
+      })}</script>`;
+      const fetchImpl = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true, config: { BUQ_ENV } }) })) as unknown as typeof fetch;
+      await expect(readEmbedOptionsFromDom(document, { fetchImpl, search: "" })).rejects.toThrow(/Hub.*BUQ_ENV.*producción/);
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(fetchImpl).mock.calls[0][0]).toBe("https://hub.buq.com.mx/v1/config?company_id=1");
+      document.body.innerHTML = "";
+    },
+  );
+
+  it("conserva el entorno deducido de la página aunque el Hub proponga otro no productivo", async () => {
+    document.body.innerHTML = `<script data-gf-options type="application/json">${JSON.stringify({
+      COMPANY_ID: 1, GAFA_FIT_URL: "https://buq.com.mx/",
+    })}</script>`;
+    const fetchImpl = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true, config: { BUQ_ENV: "development" } }) })) as unknown as typeof fetch;
+    const config = await readEmbedOptionsFromDom(document, { fetchImpl, search: "" });
+    expect(config.environment).toBe("staging");
+    expect(config.gafaPayApiUrl).toBe("https://gafapay-api-gafapay-api-test.azurewebsites.net");
+    document.body.innerHTML = "";
+  });
+
+  it.each(["staging", "development"])("rechaza Laravel heredado de producción del Hub en %s", async (environment) => {
+    document.body.innerHTML = `<script data-gf-options type="application/json">${JSON.stringify({ COMPANY_ID: 1, BUQ_ENV: environment })}</script>`;
+    const fetchImpl = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true, config: {
+      GAFA_FIT_URL: "https://buq.partners/custom/",
+    } }) })) as unknown as typeof fetch;
+    await expect(readEmbedOptionsFromDom(document, { fetchImpl, search: "" })).rejects.toThrow(/GAFA_FIT_URL/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetchImpl).mock.calls[0][0]).toBe(`https://hub.${environment === "staging" ? "buq.com.mx" : "buq.technology"}/v1/config?company_id=1`);
+    document.body.innerHTML = "";
+  });
+
   it("mezcla el partial del Hub encima de defaults y debajo del HTML", async () => {
     document.body.innerHTML = `
       <script data-gf-options type="application/json">${JSON.stringify({

@@ -1,5 +1,5 @@
 import { legacyOptionsToConfig, type GafaSdkConfig } from "../config";
-import { withBuqEnvironment } from "./buqEnvironments";
+import { parseBuqEnvironmentId, withBuqEnvironment } from "./buqEnvironments";
 import { fetchHubRemoteConfig, mergeSdkOptionLayers } from "./remoteConfig";
 
 export function readRawOptionsRecord(documentRef: Document = document): Record<string, unknown> {
@@ -60,5 +60,14 @@ export async function readEmbedOptionsFromDom(
     });
   }
 
-  return legacyOptionsToConfig(mergeSdkOptionLayers({ hub, page, query }));
+  const merged = mergeSdkOptionLayers({ hub, page, query });
+  if (resolved.environment !== "production") {
+    if (parseBuqEnvironmentId(merged.BUQ_ENV) === "production") {
+      throw new Error(`[gafa-sdk] Configuración bloqueada (${resolved.environment}): el Hub no puede cambiar BUQ_ENV a producción`);
+    }
+    // El entorno deducido de la página/query no puede perderse al rellenar
+    // opciones con el Hub, aunque la página no haya declarado BUQ_ENV.
+    merged.BUQ_ENV = resolved.environment;
+  }
+  return legacyOptionsToConfig(merged);
 }

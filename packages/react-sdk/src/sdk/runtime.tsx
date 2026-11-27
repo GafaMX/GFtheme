@@ -22,7 +22,7 @@ import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderContro
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 import { useCartStore } from "./cart/cartStore";
 import { prefetchCheckoutCatalog } from "./cart/checkoutCatalog";
-import { setGafaPayFrontUrl } from "./payments/gafaPay";
+import { setGafaPayFrontUrl, configureGafaPayForSdk } from "./payments/gafaPay";
 import { ImagesProvider } from "./images/ImagesProvider";
 import { ensureFancySibling } from "./concierge/adapter";
 import {
@@ -229,6 +229,7 @@ function silenceLegacyFancy() {
 
 export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions = {}): GafaSdk {
   const config = parseSdkConfig(input);
+  configureGafaPayForSdk(config);
   const events = createEventBus();
   configureTokenStorage(config.apiBaseUrl);
   setGafaPayFrontUrl(config.gafaPayFrontUrl);

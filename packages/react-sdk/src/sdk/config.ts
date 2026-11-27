@@ -117,6 +117,8 @@ export const sdkConfigSchema = z
     environment: z.string().optional(),
     /** Script de GafaPayFront (Stripe/PayPal). Default: el del entorno. */
     gafaPayFrontUrl: z.string().optional(),
+    gafaPayApiUrl: z.string().optional(),
+    stripePaymentScriptUrl: z.string().optional(),
     /**
      * SDK Hub (ingest + admin). Default del entorno: hub.buq.partners.
      * Nunca es GAFA_FIT_URL. Local: http://127.0.0.1:8787
@@ -179,6 +181,8 @@ export type GafaSdkConfig = z.infer<typeof sdkConfigSchema> & {
   environment: BuqEnvironmentId;
   apiBaseUrl: string;
   gafaPayFrontUrl: string;
+  gafaPayApiUrl?: string;
+  stripePaymentScriptUrl?: string;
   hubUrl: string;
   analyticsEnabled: boolean;
   captchaPublicKey: string;
@@ -205,6 +209,8 @@ const legacyOptionsSchema = z
     CAPTCHA_SECRET_KEY: z.string().optional(),
     BUQ_ENV: z.string().optional(),
     GAFAPAY_FRONT_URL: z.string().optional(),
+    GAFAPAY_API_URL: z.string().optional(),
+    STRIPE_PAYMENT_SCRIPT_URL: z.string().optional(),
     HUB_URL: z.string().optional(),
     ANALYTICS: z.union([z.boolean(), z.string()]).optional(),
     SHOW_MEMBERSHIP_OPTIONS: z.union([z.boolean(), z.string(), z.number()]).optional(),
@@ -234,6 +240,8 @@ export function parseGafaSdkConfig(input: unknown): GafaSdkConfig {
     environment: resolved.environment,
     apiBaseUrl: resolved.apiBaseUrl,
     gafaPayFrontUrl: resolved.gafaPayFrontUrl,
+    gafaPayApiUrl: resolved.gafaPayApiUrl,
+    stripePaymentScriptUrl: resolved.stripePaymentScriptUrl,
     hubUrl: resolved.hubUrl,
     analyticsEnabled: parsed.analyticsEnabled !== false,
   };
@@ -256,7 +264,9 @@ export function legacyOptionsToConfig(input: unknown): GafaSdkConfig {
     captchaPublicKey: legacyOptions.CAPTCHA_PUBLIC_KEY ?? raw.captchaPublicKey,
     captchaSecretKey: legacyOptions.CAPTCHA_SECRET_KEY ?? raw.captchaSecretKey,
     environment: legacyOptions.BUQ_ENV,
-    gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL,
+    gafaPayFrontUrl: legacyOptions.GAFAPAY_FRONT_URL ?? raw.gafaPayFrontUrl,
+    gafaPayApiUrl: legacyOptions.GAFAPAY_API_URL ?? raw.gafaPayApiUrl,
+    stripePaymentScriptUrl: legacyOptions.STRIPE_PAYMENT_SCRIPT_URL ?? raw.stripePaymentScriptUrl,
     hubUrl: legacyOptions.HUB_URL,
     analyticsEnabled: parseAnalyticsFlag(legacyOptions.ANALYTICS),
     showMembershipOptions: coerceFlag(legacyOptions.SHOW_MEMBERSHIP_OPTIONS),

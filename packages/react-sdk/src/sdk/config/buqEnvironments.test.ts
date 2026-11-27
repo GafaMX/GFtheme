@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   BUQ_ENVIRONMENTS,
   parseBuqEnvironmentId,
@@ -16,6 +17,84 @@ import {
 describe("buq environments", () => {
   afterEach(() => {
     window.history.pushState("", document.title, "/");
+  });
+
+  it.each([undefined, "production"])("producción conserva GAFA_FIT_URL con path (BUQ_ENV=%s)", (environment) => {
+    window.history.replaceState(null, "", "/?buq-env=production");
+    expect(legacyOptionsToConfig({ COMPANY_ID: 1, BUQ_ENV: environment,
+      GAFA_FIT_URL: "https://buq.partners/custom/" }).apiBaseUrl).toBe("https://buq.partners/custom/");
+  });
+
+  for (const environment of ["staging", "development"]) {
+    it.each(["https://buq.partners/", "https://BUQ.PARTNERS./custom/", "https://api.gafa.fit/", "/relative", "javascript:alert(1)"])(
+      `${environment} rechaza Laravel inseguro: %s`, (apiBaseUrl) => {
+        expect(() => legacyOptionsToConfig({ COMPANY_ID: 1, BUQ_ENV: environment, GAFA_FIT_URL: apiBaseUrl })).toThrow(/GAFA_FIT_URL/);
+        expect(() => parseGafaSdkConfig({ companyId: 1, environment, apiBaseUrl })).toThrow(/GAFA_FIT_URL/);
+      },
+    );
+    it("rechaza Hub de producción antes de usarlo en " + environment, () => {
+      expect(() => parseGafaSdkConfig({ companyId: 1, environment, hubUrl: "https://hub.buq.partners" })).toThrow(/HUB_URL/);
+    });
+  }
+
+  it("fija byte por byte la resolución histórica de producción", () => {
+    expect(resolveBuqEnvironment({})).toEqual({
+      id: "production", label: "Production",
+      apiBaseUrl: "https://buq.partners/",
+      gafaFitSdkUrl: "https://buq.partners/sdk/dist/main.js",
+      gafaPayFrontUrl: "https://frontpay.buq.partners/main.js",
+      gafaPayApiUrl: "https://apipay.buq.partners",
+      stripePaymentScriptUrl: "https://buq.partners/js/payments/stripe-payment.iife.js",
+      hubUrl: "https://hub.buq.partners",
+    });
+  });
+
+  it.each([
+    { BUQ_ENV: "staging" },
+    { GAFA_FIT_URL: "https://buq.com.mx/" },
+  ])("resuelve staging completo: %j", (options) => {
+    const config = legacyOptionsToConfig({ COMPANY_ID: 1, ...options });
+    expect(config.gafaPayFrontUrl).toBe("https://gafapay-front-dev.azurewebsites.net/prodbuild/main.js");
+    expect(config.gafaPayApiUrl).toBe("https://gafapay-api-gafapay-api-test.azurewebsites.net");
+    expect(config.stripePaymentScriptUrl).toBe("https://buq.com.mx/js/payments/stripe-payment.iife.js");
+  });
+
+  it("la página de staging usa el mismo prodbuild y development conserva /main.js", () => {
+    const html = readFileSync("../../docs/v2-sdk-staging/index.html", "utf8");
+    expect(html).toContain(`GAFAPAY_FRONT_URL: "${BUQ_ENVIRONMENTS.staging.gafaPayFrontUrl}"`);
+    expect(BUQ_ENVIRONMENTS.development.gafaPayFrontUrl).toBe("https://frontpay.buq.partners/main.js");
+    expect(html).toContain("@staging-live/docs/v2-sdk-staging/gafa-sdk.js");
+    const loader = readFileSync("../../scripts/gafa-sdk-loader-staging.js", "utf8");
+    for (const source of [html, loader]) {
+      expect(source).not.toMatch(/(?:@|\/)cdn-live\//);
+      expect(source).not.toContain("/docs/v2-sdk/");
+    }
+  });
+
+  it("query staging cambia las tres URLs y Laravel aunque el JSON seleccione prod", () => {
+    window.history.pushState(null, "", "/?buq-env=staging");
+    const config = legacyOptionsToConfig({ COMPANY_ID: 1, BUQ_ENV: "production", GAFA_FIT_URL: "https://buq.partners/" });
+    expect(config.environment).toBe("staging");
+    expect(config.apiBaseUrl).toBe("https://buq.com.mx/");
+    expect(config.gafaPayFrontUrl).toBe(BUQ_ENVIRONMENTS.staging.gafaPayFrontUrl);
+    expect(config.gafaPayApiUrl).toBe(BUQ_ENVIRONMENTS.staging.gafaPayApiUrl);
+    expect(config.stripePaymentScriptUrl).toBe(BUQ_ENVIRONMENTS.staging.stripePaymentScriptUrl);
+  });
+
+  it.each([
+    { GAFAPAY_FRONT_URL: "https://example.test/front.js", GAFAPAY_API_URL: "https://api.example.test", STRIPE_PAYMENT_SCRIPT_URL: "https://example.test/stripe.js" },
+    { gafaPayFrontUrl: "https://example.test/front.js", gafaPayApiUrl: "https://api.example.test", stripePaymentScriptUrl: "https://example.test/stripe.js" },
+  ])("acepta overrides de página: %j", (options) => {
+    const config = legacyOptionsToConfig({ COMPANY_ID: 1, BUQ_ENV: "staging", ...options });
+    expect(config.gafaPayFrontUrl).toBe("https://example.test/front.js");
+    expect(config.gafaPayApiUrl).toBe("https://api.example.test");
+    expect(config.stripePaymentScriptUrl).toBe("https://example.test/stripe.js");
+  });
+
+  it("acepta los overrides de config camelCase y prioriza uppercase en el embed", () => {
+    const overrides = { gafaPayFrontUrl: "https://example.test/front.js", gafaPayApiUrl: "https://api.example.test", stripePaymentScriptUrl: "https://example.test/stripe.js" };
+    expect(parseGafaSdkConfig({ companyId: 1, environment: "staging", ...overrides })).toMatchObject(overrides);
+    expect(legacyOptionsToConfig({ COMPANY_ID: 1, ...overrides, GAFAPAY_API_URL: "https://upper.test" }).gafaPayApiUrl).toBe("https://upper.test");
   });
 
   it("reconoce aliases de staging/dev/prod", () => {
