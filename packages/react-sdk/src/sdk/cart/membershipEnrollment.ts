@@ -4,8 +4,14 @@ import { formatMoney } from "./money";
 import type { CartLine } from "./cartStore";
 
 export const ENROLLMENT_LINE_ROLE = "enrollment" as const;
+/** Default label per SDK language. ES stays «Inscripción». */
+export const ENROLLMENT_LABELS = {
+  es: "Inscripción",
+  en: "Enrollment",
+  fr: "Inscription",
+} as const;
 /** Default for every brand except The Base Pozuelo. */
-export const DEFAULT_ENROLLMENT_LABEL = "Inscripción";
+export const DEFAULT_ENROLLMENT_LABEL = ENROLLMENT_LABELS.es;
 /**
  * Hub company 204 (The Base, Pozuelo) must set `MEMBERSHIP_ENROLLMENT.label`
  * to this. Do not hardcode it in checkout strings.

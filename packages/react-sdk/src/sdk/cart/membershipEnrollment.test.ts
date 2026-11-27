@@ -3,6 +3,7 @@ import type { CartLine } from "./cartStore";
 import type { CatalogItem } from "../client/types";
 import {
   DEFAULT_ENROLLMENT_LABEL,
+  ENROLLMENT_LABELS,
   THE_BASE_ENROLLMENT_LABEL,
   buildEnrollmentChargeFailedNotice,
   buildEnrollmentLine,
@@ -92,6 +93,7 @@ describe("parseMembershipEnrollment", () => {
 
   it("el copy del socio sale del label del Hub, no de un string fijo", () => {
     expect(DEFAULT_ENROLLMENT_LABEL).toBe("Inscripción");
+    expect(ENROLLMENT_LABELS).toEqual({ es: "Inscripción", en: "Enrollment", fr: "Inscription" });
     expect(THE_BASE_ENROLLMENT_LABEL).toBe("Matrícula");
     expect(enrollmentCopy().charging).toBe("Cobrando inscripción…");
     expect(enrollmentCopy({ label: THE_BASE_ENROLLMENT_LABEL }).charging).toBe("Cobrando matrícula…");

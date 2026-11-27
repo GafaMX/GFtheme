@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { legacyOptionsToConfig } from "../config";
 import { SdkBodyOverlay } from "../widgets/SdkBodyOverlay";
 import { buildPalette } from "./palette";
-import { collectThemeContrastWarnings, contrastRatio } from "./themeContrast";
+import { collectThemeContrastWarnings, contrastRatio, mixSrgb, wcagContrastRatio } from "./themeContrast";
 import {
   THEME_COLOR_CSS_VARS,
   ThemeProvider,
@@ -267,6 +267,22 @@ describe("THEME.colors: fallbacks y contrato", () => {
     expect(palette.inputBackground).toBe(palette.surface);
     expect(palette.inputText).toBe(palette.text);
     expect(palette.inputBorder).toBe(palette.border);
+  });
+
+  it("estrellas, chips y coach del tema default superan el piso WCAG en claro y oscuro", () => {
+    expect(wcagContrastRatio("#f97316", "#ffffff")).toBeCloseTo(2.8, 1);
+    for (const scheme of ["light", "dark"] as const) {
+      const palette = buildPalette({ brand: "#111827", accent: "#f97316" }, scheme);
+      const star = mixSrgb(palette.accent, palette.text, 0.82);
+      const coach = mixSrgb(palette.mutedText, palette.text, 0.7);
+      const chipFg = mixSrgb(palette.brand, palette.text, 0.28);
+      const chipBg = mixSrgb(palette.brand, palette.surface, 0.16);
+      expect(star && coach && chipFg && chipBg).toBeTruthy();
+      expect(wcagContrastRatio(star!, palette.surface), `${scheme} star`).toBeGreaterThanOrEqual(3);
+      expect(wcagContrastRatio(coach!, palette.surface), `${scheme} coach`).toBeGreaterThanOrEqual(4.5);
+      expect(wcagContrastRatio(chipFg!, palette.surface), `${scheme} chip stroke`).toBeGreaterThanOrEqual(3);
+      expect(wcagContrastRatio(chipFg!, chipBg!), `${scheme} chip text`).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("un contraste bajo no rechaza el THEME (dorado sobre navy)", () => {

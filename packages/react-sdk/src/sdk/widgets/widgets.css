@@ -2129,11 +2129,16 @@
 }
 
 .gafa-meeting-chip {
+  /* Primary can be yellow (Fitspin): mix with the foreground so the chip
+     outline hits 3:1 vs the card and the text hits 4.5:1 vs the fill.
+     No hardcoded brand hex — other themes keep their own hue. */
+  --gafa-chip-fg: color-mix(in srgb, var(--gafa-color-primary) 28%, var(--gafa-color-text) 72%);
   --gafa-type-size: 0.74rem;
-  background: color-mix(in srgb, var(--gafa-color-primary) 10%, transparent);
+  --gafa-fg: var(--gafa-chip-fg);
+  background: color-mix(in srgb, var(--gafa-color-primary) 16%, var(--gafa-color-surface));
   border-radius: var(--gafa-radius-pill);
-  --gafa-fg: var(--gafa-color-primary);
-  color: var(--gafa-color-primary);
+  box-shadow: inset 0 0 0 1px var(--gafa-chip-fg);
+  color: var(--gafa-chip-fg);
   font-size: 0.74rem;
   font-weight: 700;
   padding: 0.22rem 0.55rem;
@@ -4990,9 +4995,39 @@
   font-size: 0.84rem;
   font-weight: 700;
   margin: 0.1rem 0 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+/* Escritorio: día y hora en una línea, como ahora. */
+@media (min-width: 560px) {
+  .gafa-acct-class__when {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Móvil: la hora baja a su línea. Así “★ Calificar” no recorta el día/hora
+   con ellipsis, y calificada / por calificar miden lo mismo. */
+@media (max-width: 559px) {
+  .gafa-acct-class__when {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .gafa-acct-class__sep {
+    display: none;
+  }
+
+  .gafa-acct-class__weekday,
+  .gafa-acct-class__time {
+    display: block;
+    overflow: visible;
+    white-space: nowrap;
+  }
 }
 
 .gafa-acct-class__meta {
@@ -5039,6 +5074,7 @@
   justify-content: center;
   justify-self: end;
   max-width: 8.25rem;
+  min-height: 2.75rem;
 }
 
 .gafa-acct-class__actions .gafa-sdk-button {
@@ -5120,7 +5156,8 @@
 }
 
 .gafa-rating-done__lines > span + span {
-  --gafa-type-size: 0.85em;
+  --gafa-type-size: 1em;
+  --gafa-fg: color-mix(in srgb, var(--gafa-color-muted-text) 70%, var(--gafa-color-text) 30%);
   font-size: var(--gafa-type-size);
 }
 
@@ -5376,9 +5413,17 @@
 }
 
 .gafa-rating-star[data-filled="true"] {
-  --gafa-control-fg: var(--gafa-color-accent, var(--gafa-color-primary));
+  /* Accent alone (#f97316) is 2.80:1 on white. Mix with the foreground so
+     default light/dark clear the 3:1 non-text floor without pinning a brand hex. */
+  --gafa-control-fg: color-mix(in srgb, var(--gafa-color-accent, var(--gafa-color-primary)) 82%, var(--gafa-color-text) 18%);
   --gafa-fg: var(--gafa-control-fg);
   color: var(--gafa-control-fg);
+}
+
+.gafa-rating-star[data-filled="true"] svg path {
+  paint-order: stroke fill;
+  stroke: color-mix(in srgb, var(--gafa-color-text) 35%, var(--gafa-color-accent, var(--gafa-color-primary)) 65%);
+  stroke-width: 1.35;
 }
 
 .gafa-rating-star:focus-visible {
