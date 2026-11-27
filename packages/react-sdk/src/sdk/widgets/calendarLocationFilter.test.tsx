@@ -115,6 +115,7 @@ describe("filtro de sede por URL / default", () => {
     const root = mountCalendar();
 
     await waitFor(() => {
+      expect(locationSelect(root).getAttribute("aria-label")).toBe("Ubicación");
       expect(locationSelect(root).value).toBe("8");
       expect(locationLabel(root)).toBe("San José");
       expect(root.querySelector(".gafa-filterbar-location__value")?.getAttribute("title")).toBe(

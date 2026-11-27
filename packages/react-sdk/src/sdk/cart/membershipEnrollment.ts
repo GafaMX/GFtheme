@@ -4,28 +4,46 @@ import { formatMoney } from "./money";
 import type { CartLine } from "./cartStore";
 
 export const ENROLLMENT_LINE_ROLE = "enrollment" as const;
-/** Default for every brand except The Base Pozuelo. */
-export const DEFAULT_ENROLLMENT_LABEL = "Inscripción";
+/** Default label per SDK language. ES stays «Inscripción». */
+export const ENROLLMENT_LABELS = {
+  es: "Inscripción",
+  en: "Enrollment",
+  fr: "Inscription",
+} as const;
+/** Fallback ES when language is missing. Prefer `defaultEnrollmentLabel(language)`. */
+export const DEFAULT_ENROLLMENT_LABEL = ENROLLMENT_LABELS.es;
 /**
  * Hub company 204 (The Base, Pozuelo) must set `MEMBERSHIP_ENROLLMENT.label`
  * to this. Do not hardcode it in checkout strings.
  */
 export const THE_BASE_ENROLLMENT_LABEL = "Matrícula";
 
-export function enrollmentLabel(config?: { label?: string } | null): string {
-  const label = config?.label?.trim();
-  return label || DEFAULT_ENROLLMENT_LABEL;
+export function defaultEnrollmentLabel(language?: string): string {
+  const value = language?.trim().toLowerCase();
+  if (value?.startsWith("en")) return ENROLLMENT_LABELS.en;
+  if (value?.startsWith("fr")) return ENROLLMENT_LABELS.fr;
+  return ENROLLMENT_LABELS.es;
 }
 
-export function enrollmentLabelLower(config?: { label?: string } | null): string {
-  const label = enrollmentLabel(config);
-  return label.charAt(0).toLocaleLowerCase("es-ES") + label.slice(1);
+export function enrollmentLabel(config?: { label?: string } | null, language?: string): string {
+  const label = config?.label?.trim();
+  return label || defaultEnrollmentLabel(language);
+}
+
+export function enrollmentLabelLower(config?: { label?: string } | null, language?: string): string {
+  const label = enrollmentLabel(config, language);
+  const locale = language?.trim().toLowerCase().startsWith("fr")
+    ? "fr-FR"
+    : language?.trim().toLowerCase().startsWith("en")
+      ? "en-US"
+      : "es-ES";
+  return label.charAt(0).toLocaleLowerCase(locale) + label.slice(1);
 }
 
 /** Customer-facing enrollment copy. Always interpolate Hub `label`. */
-export function enrollmentCopy(config?: { label?: string } | null) {
-  const label = enrollmentLabel(config);
-  const lower = enrollmentLabelLower(config);
+export function enrollmentCopy(config?: { label?: string } | null, language?: string) {
+  const label = enrollmentLabel(config, language);
+  const lower = enrollmentLabelLower(config, language);
   const y = /^[ií]/i.test(lower) ? "e" : "y";
   return {
     label,
@@ -125,7 +143,7 @@ export function parseMembershipEnrollment(input: unknown): MembershipEnrollmentC
   const comboId = parsed.data.comboId;
   if (!Number.isFinite(comboId) || comboId <= 0) return null;
   if (!parsed.data.membershipIds.length) return null;
-  const label = parsed.data.label?.trim() || DEFAULT_ENROLLMENT_LABEL;
+  const label = parsed.data.label?.trim() || "";
   const failureNotifyUrl = readEnrollmentFailureNotifyUrl(
     (parsed.data as { failureNotifyUrl?: unknown }).failureNotifyUrl,
   );
@@ -202,10 +220,11 @@ export function hideEnrollmentFromCatalog<T extends { id: number; type?: string 
   return items.filter((item) => item.id !== config.comboId);
 }
 
-export function enrollmentCaption(config: MembershipEnrollmentConfig): string {
+export function enrollmentCaption(config: MembershipEnrollmentConfig, language?: string): string {
+  const label = enrollmentLabel(config, language);
   return config.mode === "every_charge"
-    ? `${config.label} · en cada cobro`
-    : `${config.label} · solo primer pago`;
+    ? `${label} · en cada cobro`
+    : `${label} · solo primer pago`;
 }
 
 export function catalogItemPrice(item: Pick<CatalogItem, "price" | "priceFinal"> | null | undefined): number {
@@ -232,6 +251,7 @@ export function buildEnrollmentLine(input: {
   brandSlug: string;
   locationSlug?: string;
   currency?: { prefix: string; suffix?: string; code?: string };
+  language?: string;
 }): CartLine {
   const price = catalogItemPrice(input.combo);
   const prefix = input.currency?.prefix ?? "€";
@@ -240,7 +260,7 @@ export function buildEnrollmentLine(input: {
     key: `${input.brandSlug}:combo:${input.config.comboId}`,
     id: input.config.comboId,
     type: "combo",
-    name: enrollmentCaption(input.config),
+    name: enrollmentCaption(input.config, input.language),
     price,
     priceLabel: formatMoney(price, prefix, "", code),
     amount: 1,
@@ -269,6 +289,7 @@ export function syncEnrollmentCartLines(input: {
   brandSlug?: string;
   locationSlug?: string;
   currency?: { prefix: string; suffix?: string; code?: string };
+  language?: string;
 }): CartLine[] {
   const { config, lines, combo, needsFee } = input;
   if (!config) return lines;
@@ -296,6 +317,7 @@ export function syncEnrollmentCartLines(input: {
       input.locationSlug ??
       withoutEnrollment.find((line) => line.locationSlug)?.locationSlug,
     currency: input.currency,
+    language: input.language,
   });
   const existing = lines.find((line) => isEnrollmentLine(line, config));
   if (

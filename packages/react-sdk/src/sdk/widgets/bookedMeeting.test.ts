@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Meeting, UserReservation } from "../client/types";
 import {
-  bookedCardAction, bookedPillText, cancelAllLabel, cancelLockedHint, confirmCancelBody,
+  bookedCardAction, bookedCopy, bookedPillText, cancelAllLabel, cancelLockedHint, confirmCancelBody,
   confirmCancelSubject, confirmCancelTitle, mergeReservationsById, overlayBookedMeetings,
   parseSdkLang, reservationBrandSlugs, reservationCanCancel, reservationsForMeeting, spotRowLabel,
 } from "./bookedMeeting";
@@ -103,6 +103,37 @@ describe("reservas del calendario", () => {
     const spots = reservationsForMeeting([base, { ...base, id: 92, seatLabel: "7" }], meeting, now);
     expect(confirmCancelTitle(spots, "fr")).toBe("Annuler vos 2 places\u202f?");
     expect(confirmCancelTitle([{ ...spots[0], seatLabel: undefined }], "fr")).toBe("Annuler votre cours\u202f?");
+  });
+
+  it("dice «el lugar 4» en las acciones y errores, no «Lugar 4» suelto", () => {
+    expect(bookedCopy.es.cancelSpot("Lugar 4")).toBe("Cancelar el lugar 4");
+    expect(bookedCopy.es.cancelSpotTitle("4")).toBe("¿Cancelar el lugar 4?");
+    expect(bookedCopy.es.errorSpot("4")).toBe("el lugar 4");
+    expect(bookedCopy.es.errorSpots("el lugar 4")).toBe("No pudimos cancelar el lugar 4.");
+    expect(bookedCopy.en.cancelSpot("Spot 4")).toBe("Cancel Spot 4");
+    expect(bookedCopy.fr.cancelSpot("Place 4")).toBe("Annuler la place 4");
+  });
+
+  it("usa el apóstrofo tipográfico en francés y no el ASCII", () => {
+    const copy = bookedCopy.fr;
+    const values = [
+      copy.locked, copy.expiredSpots("4"), copy.cancelSpotTitle("4"), copy.cancelSpotsTitle(2),
+      copy.cancelClassTitle, copy.errorGeneric, copy.errorSpots("la place 4"), copy.bodySingle,
+      copy.bodyMultiple, copy.bodyLateSingle, copy.bodyLateMultiple,
+    ];
+    expect(values.some((value) => value.includes("\u2019"))).toBe(true);
+    expect(values.join("\n")).not.toMatch(/'/);
+    expect(bookedCopy.fr.locked).toContain("d\u2019annulation");
+    expect(bookedCopy.fr.errorGeneric).toContain("n\u2019avons");
+  });
+
+  it("expone Ubicación e Inscripción en ES, EN y FR", () => {
+    expect(bookedCopy.es.location).toBe("Ubicación");
+    expect(bookedCopy.en.location).toBe("Location");
+    expect(bookedCopy.fr.location).toBe("Lieu");
+    expect(bookedCopy.es.enrollment).toBe("Inscripción");
+    expect(bookedCopy.en.enrollment).toBe("Enrollment");
+    expect(bookedCopy.fr.enrollment).toBe("Inscription");
   });
 
   it("maneja clases sin mapa, reservas incompletas y español como idioma de respaldo", () => {

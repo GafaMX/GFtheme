@@ -16,7 +16,8 @@ export const bookedCopy = {
     spot: (value: string) => `Lugar ${value}`,
     spots: (count: number) => `${count} lugares`,
     cancel: "Cancelar",
-    cancelSpot: (label: string) => `Cancelar ${label}`,
+    cancelSpot: (label: string) =>
+      label.startsWith("Lugar ") ? `Cancelar el lugar ${label.slice("Lugar ".length)}` : `Cancelar ${label}`,
     manage: "Ver / cancelar",
     manageLabel: "Ver / cancelar tus lugares",
     locked: "Ya pasó el tiempo para cancelar",
@@ -46,6 +47,8 @@ export const bookedCopy = {
     yourBooking: "Tu reserva",
     booking: (index: number) => `Reserva ${index}`,
     and: "y",
+    location: "Ubicación",
+    enrollment: "Inscripción",
   },
   en: {
     locale: "en-US",
@@ -83,6 +86,8 @@ export const bookedCopy = {
     yourBooking: "Your booking",
     booking: (index: number) => `Booking ${index}`,
     and: "and",
+    location: "Location",
+    enrollment: "Enrollment",
   },
   fr: {
     locale: "fr-FR",
@@ -90,7 +95,8 @@ export const bookedCopy = {
     spot: (value: string) => `Place ${value}`,
     spots: (count: number) => `${count} places`,
     cancel: "Annuler",
-    cancelSpot: (label: string) => `Annuler ${label}`,
+    cancelSpot: (label: string) =>
+      label.startsWith("Place ") ? `Annuler la place ${label.slice("Place ".length)}` : `Annuler ${label}`,
     manage: "Voir / annuler",
     manageLabel: "Voir / annuler vos places",
     locked: "Le délai d’annulation est dépassé",
@@ -120,6 +126,8 @@ export const bookedCopy = {
     yourBooking: "Votre réservation",
     booking: (index: number) => `Réservation ${index}`,
     and: "et",
+    location: "Lieu",
+    enrollment: "Inscription",
   },
 };
 

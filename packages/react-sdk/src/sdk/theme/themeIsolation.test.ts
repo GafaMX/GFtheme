@@ -257,3 +257,65 @@ describe("theme CSS isolation vs host (Elementor / Hello)", () => {
     expect(widgetsCss).toMatch(/\.gafa-sdk-button[\s\S]{0,280}--gafa-control-fg:\s*var\(--gafa-color-primary-text\)/);
   });
 });
+
+describe("historial Mis clases: layout y contraste", () => {
+  it("en móvil el día y la hora se apilan; en escritorio siguen en una línea", () => {
+    expect(widgetsCss).toMatch(
+      /@media \(min-width: 560px\) \{[\s\S]{0,240}\.gafa-acct-class__when \{[\s\S]{0,160}white-space:\s*nowrap/,
+    );
+    expect(widgetsCss).toMatch(
+      /@media \(max-width: 559px\) \{[\s\S]{0,400}\.gafa-acct-class__when \{[\s\S]{0,220}flex-direction:\s*column/,
+    );
+    expect(widgetsCss).toMatch(
+      /@media \(max-width: 559px\) \{[\s\S]{0,700}\.gafa-acct-class__sep \{[\s\S]{0,80}display:\s*none/,
+    );
+  });
+
+  it("a 320px o con texto ampliado el horario no invade Calificar", () => {
+    expect(widgetsCss).toMatch(
+      /\.gafa-acct-class\[data-rateable="true"\] \{[\s\S]{0,200}container-type:\s*inline-size/,
+    );
+    expect(widgetsCss).toMatch(
+      /@media \(max-width: 559px\) \{[\s\S]{0,1100}\.gafa-acct-class__time \{[\s\S]{0,240}white-space:\s*normal/,
+    );
+    expect(widgetsCss).toMatch(
+      /@media \(max-width: 559px\) \{[\s\S]{0,1100}\.gafa-acct-class__time \{[\s\S]{0,240}min-width:\s*0/,
+    );
+    expect(widgetsCss).not.toMatch(
+      /@media \(max-width: 559px\) \{[\s\S]{0,1100}\.gafa-acct-class__time \{[\s\S]{0,200}white-space:\s*nowrap/,
+    );
+    expect(widgetsCss).toMatch(
+      /@container gafa-acct-class \(max-width: 18rem\) \{[\s\S]{0,320}grid-column:\s*1 \/ -1/,
+    );
+  });
+
+  it("calificada y por calificar comparten altura de acciones", () => {
+    expect(widgetsCss).toMatch(
+      /\.gafa-acct-class\[data-rateable="true"\] \{[\s\S]{0,160}grid-template-columns:\s*auto minmax\(0, 1fr\) auto/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-acct-class\[data-rateable="true"\] \.gafa-acct-class__actions \{[\s\S]{0,280}min-height:\s*2\.75rem/,
+    );
+  });
+
+  it("el coach, las estrellas llenas y los chips usan color-mix con el texto del tema", () => {
+    expect(widgetsCss).toMatch(
+      /\.gafa-rating-done__lines > span \+ span \{[\s\S]{0,200}--gafa-type-size:\s*1em/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-rating-done__lines > span \+ span \{[\s\S]{0,280}color-mix\(in srgb, var\(--gafa-color-muted-text\) 70%, var\(--gafa-color-text\) 30%\)/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-rating-star\[data-filled="true"\] \{[\s\S]{0,360}color-mix\(in srgb, var\(--gafa-color-accent, var\(--gafa-color-primary\)\) 82%, var\(--gafa-color-text\) 18%\)/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-rating-star\[data-filled="true"\] svg path \{[\s\S]{0,240}paint-order:\s*stroke fill/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-meeting-chip \{[\s\S]{0,400}color-mix\(in srgb, var\(--gafa-color-primary\) 28%, var\(--gafa-color-text\) 72%\)/,
+    );
+    expect(widgetsCss).toMatch(
+      /\.gafa-meeting-chip \{[\s\S]{0,520}color-mix\(in srgb, var\(--gafa-color-primary\) 16%, var\(--gafa-color-surface\)/,
+    );
+  });
+});

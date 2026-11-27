@@ -3,12 +3,15 @@ import type { CartLine } from "./cartStore";
 import type { CatalogItem } from "../client/types";
 import {
   DEFAULT_ENROLLMENT_LABEL,
+  ENROLLMENT_LABELS,
   THE_BASE_ENROLLMENT_LABEL,
   buildEnrollmentChargeFailedNotice,
   buildEnrollmentLine,
   customerNeedsEnrollmentFee,
+  defaultEnrollmentLabel,
   discountableLines,
   enrollmentCopy,
+  enrollmentLabel,
   hideEnrollmentFromCatalog,
   inspectEnrollmentNeed,
   isEnrollmentLine,
@@ -86,18 +89,49 @@ describe("parseMembershipEnrollment", () => {
     expect(parsed?.membershipIds).toEqual([1272, 1271, 1204]);
     expect(parsed?.firstTimeScope).toBe("any_membership");
     expect(parsed?.mode).toBe("first_purchase");
-    expect(parsed?.label).toBe(DEFAULT_ENROLLMENT_LABEL);
-    expect(parsed?.label).toBe("Inscripción");
+    expect(parsed?.label).toBe("");
+    expect(enrollmentLabel(parsed, "es")).toBe(DEFAULT_ENROLLMENT_LABEL);
   });
 
   it("el copy del socio sale del label del Hub, no de un string fijo", () => {
     expect(DEFAULT_ENROLLMENT_LABEL).toBe("Inscripción");
+    expect(ENROLLMENT_LABELS).toEqual({ es: "Inscripción", en: "Enrollment", fr: "Inscription" });
     expect(THE_BASE_ENROLLMENT_LABEL).toBe("Matrícula");
     expect(enrollmentCopy().charging).toBe("Cobrando inscripción…");
     expect(enrollmentCopy({ label: THE_BASE_ENROLLMENT_LABEL }).charging).toBe("Cobrando matrícula…");
     expect(enrollmentCopy({ label: THE_BASE_ENROLLMENT_LABEL }).cannotBuyAlone).toMatch(/matrícula/);
     expect(enrollmentCopy({ label: THE_BASE_ENROLLMENT_LABEL }).cannotBuyAlone).not.toMatch(/inscripción/i);
     expect(enrollmentCopy().cannotBuyAlone).not.toMatch(/matrícula/i);
+  });
+
+  it.each([
+    [undefined, "Inscripción"],
+    ["es", "Inscripción"],
+    ["en", "Enrollment"],
+    ["en-US", "Enrollment"],
+    ["fr", "Inscription"],
+    ["fr-CA", "Inscription"],
+  ] as const)("sin etiqueta de marca el default de %s es %s", (language, expected) => {
+    expect(defaultEnrollmentLabel(language)).toBe(expected);
+    expect(enrollmentLabel(undefined, language)).toBe(expected);
+    expect(enrollmentLabel({ label: "   " }, language)).toBe(expected);
+    const parsed = parseMembershipEnrollment({ comboId: 3491, membershipIds: [1271] });
+    expect(enrollmentLabel(parsed, language)).toBe(expected);
+    expect(enrollmentCopy(parsed, language).label).toBe(expected);
+    expect(enrollmentCopy(undefined, language).charging).toContain(expected.toLocaleLowerCase());
+  });
+
+  it.each(["es", "en", "fr"] as const)("la etiqueta de la marca gana en %s", (language) => {
+    expect(enrollmentLabel({ label: THE_BASE_ENROLLMENT_LABEL }, language)).toBe(THE_BASE_ENROLLMENT_LABEL);
+    const parsed = parseMembershipEnrollment({
+      comboId: 3491,
+      membershipIds: [1271],
+      label: THE_BASE_ENROLLMENT_LABEL,
+    });
+    expect(parsed?.label).toBe(THE_BASE_ENROLLMENT_LABEL);
+    expect(enrollmentLabel(parsed, language)).toBe(THE_BASE_ENROLLMENT_LABEL);
+    expect(enrollmentCopy(parsed, language).label).toBe(THE_BASE_ENROLLMENT_LABEL);
+    expect(enrollmentCopy(parsed, language).charging).toBe("Cobrando matrícula…");
   });
 
   it("guarda failureNotifyUrl solo si es https (o http local)", () => {
@@ -249,6 +283,44 @@ describe("locked cart line / hidden combo", () => {
       currency: { prefix: "€", code: "EUR" },
     });
     expect(theBase.find((line) => isEnrollmentLine(line, config))!.name).toBe(
+      `${THE_BASE_ENROLLMENT_LABEL} · solo primer pago`,
+    );
+  });
+
+  it.each([
+    ["es", "Inscripción"],
+    ["en", "Enrollment"],
+    ["fr", "Inscription"],
+  ] as const)("sin etiqueta de marca la línea del carrito en %s es %s", (language, expected) => {
+    const parsed = parseMembershipEnrollment({ comboId: 3491, membershipIds: [1271] })!;
+    const next = syncEnrollmentCartLines({
+      config: parsed,
+      lines: [silver],
+      combo,
+      needsFee: true,
+      brandSlug: "the-base",
+      currency: { prefix: "€", code: "EUR" },
+      language,
+    });
+    expect(next.find((line) => isEnrollmentLine(line, parsed))!.name).toBe(`${expected} · solo primer pago`);
+  });
+
+  it.each(["es", "en", "fr"] as const)("con etiqueta de marca la línea del carrito en %s sigue siendo Matrícula", (language) => {
+    const parsed = parseMembershipEnrollment({
+      comboId: 3491,
+      membershipIds: [1271],
+      label: THE_BASE_ENROLLMENT_LABEL,
+    })!;
+    const next = syncEnrollmentCartLines({
+      config: parsed,
+      lines: [silver],
+      combo,
+      needsFee: true,
+      brandSlug: "the-base",
+      currency: { prefix: "€", code: "EUR" },
+      language,
+    });
+    expect(next.find((line) => isEnrollmentLine(line, parsed))!.name).toBe(
       `${THE_BASE_ENROLLMENT_LABEL} · solo primer pago`,
     );
   });

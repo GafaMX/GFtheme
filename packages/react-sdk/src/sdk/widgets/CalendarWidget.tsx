@@ -1039,6 +1039,7 @@ export function CalendarWidget({
         canGoNext={canGoNext}
         filterBar={
           <CalendarFilterBar
+            lang={lang}
             activeBrandSlug={activeBrand?.slug}
             brands={bookableBrands}
             filters={filters}
@@ -1096,6 +1097,7 @@ export function CalendarWidget({
         <ReservationFlow
           client={client}
           captcha={captcha}
+          language={language}
           meeting={selectedMeeting}
           brandSlug={getMeetingBrandSlug(selectedMeeting, activeBrand)}
           locationSlug={getMeetingLocationSlug(selectedMeeting, activeLocation)}
@@ -1640,6 +1642,7 @@ function CalendarSkeleton({ view }: { view: CalendarView }) {
 }
 
 function CalendarFilterBar({
+  lang = "es",
   activeBrandSlug,
   brands,
   filters,
@@ -1654,6 +1657,7 @@ function CalendarFilterBar({
   timeOfDayOptions,
   onTimeOfDayChange,
 }: {
+  lang?: SdkLang;
   activeBrandSlug?: string;
   brands: Brand[];
   filters: NonNullable<CalendarWidgetProps["filters"]>;
@@ -1726,8 +1730,8 @@ function CalendarFilterBar({
           <span className="gafa-filterbar-location__value" title={locationSelectLabel}>
             {compactLocationLabel(locationSelectLabel)}
           </span>
-          <select
-            aria-label="Ubicación"
+            <select
+            aria-label={bookedCopy[lang].location}
             value={locationSelectValue}
             onChange={(event) =>
               onChange((current) => ({
@@ -1896,6 +1900,7 @@ type ReservationStep = "detail" | "processing" | "done";
 export type ReservationFlowProps = {
   client?: GafaClient;
   captcha?: CaptchaProvider;
+  language?: string;
   meeting: Meeting;
   brandSlug?: string;
   locationSlug?: string;
@@ -1917,6 +1922,7 @@ export type ReservationFlowProps = {
 export function ReservationFlow({
   client,
   captcha,
+  language,
   meeting,
   brandSlug,
   locationSlug,
@@ -1990,6 +1996,7 @@ export function ReservationFlow({
         key={meeting.id}
         client={client}
         captcha={captcha}
+        language={language}
         brandSlug={brandSlug}
         locationSlug={locationSlug}
         locationName={locationName ?? meeting.location?.name}
@@ -2015,6 +2022,7 @@ export function ReservationFlow({
     <ReservationPreviewModal
       client={client}
       meeting={meeting}
+      lang={parseSdkLang(language)}
       isSignedIn={isSignedIn}
       brandSlug={brandSlug}
       locationSlug={locationSlug}
@@ -2041,6 +2049,7 @@ export function ReservationFlow({
 function ReservationPreviewModal({
   client,
   meeting,
+  lang = "es",
   isSignedIn,
   brandSlug: brandSlugProp,
   locationSlug: locationSlugProp,
@@ -2050,6 +2059,7 @@ function ReservationPreviewModal({
 }: {
   client?: GafaClient;
   meeting: Meeting;
+  lang?: SdkLang;
   isSignedIn: boolean;
   /** Se pasan cuando el meeting no los trae (reserva abierta por id). */
   brandSlug?: string;
@@ -2284,7 +2294,7 @@ function ReservationPreviewModal({
                     </strong>
                   </div>
                   <div>
-                    <span>Ubicación</span>
+                    <span>{bookedCopy[lang].location}</span>
                     <strong>{meeting.location?.name ?? "Por confirmar"}</strong>
                   </div>
                   <div>
@@ -2472,7 +2482,7 @@ function ReservationPreviewModal({
               </div>
             ) : null}
 
-            <AddToCalendarRow meeting={meeting} seatLabel={selectedLabels || undefined} />
+            <AddToCalendarRow lang={lang} meeting={meeting} seatLabel={selectedLabels || undefined} />
 
             <button className="gafa-sdk-button gafa-reservation-success__done" type="button" onClick={onClose}>
               Listo
@@ -2486,10 +2496,11 @@ function ReservationPreviewModal({
 
 /* ------------------------------------------------------- agregar a calendario */
 
-function calendarEventFor(meeting: Meeting, seatLabel?: string) {
+function calendarEventFor(meeting: Meeting, seatLabel?: string, lang: SdkLang = "es") {
   const start = new Date(getMeetingStart(meeting).replace(" ", "T"));
   const durationMinutes = getDurationMinutes(meeting) ?? 60;
   const end = meeting.endsAt ? new Date(meeting.endsAt.replace(" ", "T")) : new Date(start.getTime() + durationMinutes * 60_000);
+  const copy = bookedCopy[lang];
 
   const title = `${meeting.service?.name ?? meeting.serviceName ?? meeting.name}${
     meeting.location?.name ? ` · ${meeting.location.name}` : ""
@@ -2497,7 +2508,7 @@ function calendarEventFor(meeting: Meeting, seatLabel?: string) {
   const detailParts = [
     `Coach: ${getStaffName(meeting)}`,
     seatLabel ? `Tu lugar: ${seatLabel}` : null,
-    meeting.location?.name ? `Ubicación: ${meeting.location.name}` : null,
+    meeting.location?.name ? `${copy.location}: ${meeting.location.name}` : null,
   ].filter(Boolean);
 
   return {
@@ -2518,8 +2529,8 @@ function escapeIcsText(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
-function AddToCalendarRow({ meeting, seatLabel }: { meeting: Meeting; seatLabel?: string }) {
-  const event = calendarEventFor(meeting, seatLabel);
+function AddToCalendarRow({ meeting, seatLabel, lang = "es" }: { meeting: Meeting; seatLabel?: string; lang?: SdkLang }) {
+  const event = calendarEventFor(meeting, seatLabel, lang);
 
   const googleUrl =
     "https://calendar.google.com/calendar/render?action=TEMPLATE" +
