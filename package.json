@@ -8,7 +8,12 @@
     "dev": "webpack --mode development",
     "watch": "webpack --mode development --progress --watch",
     "build": "webpack --mode production",
-    "start": "webpack-dev-server --mode development --open --hot --progress --watch"
+    "start": "webpack-dev-server --mode development --open --hot --progress --watch",
+    "react-sdk:build": "npm --prefix packages/react-sdk run build",
+    "react-sdk:dev": "npm --prefix packages/react-sdk run dev",
+    "react-sdk:typecheck": "npm --prefix packages/react-sdk run typecheck",
+    "sdk-hub:dev": "npm --prefix packages/sdk-hub run dev",
+    "sdk-hub:test": "npm --prefix packages/sdk-hub run test"
   },
   "keywords": [],
   "author": "",
