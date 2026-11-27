@@ -285,7 +285,7 @@ describe("historial Mis clases: layout y contraste", () => {
       /@media \(max-width: 559px\) \{[\s\S]{0,1100}\.gafa-acct-class__time \{[\s\S]{0,200}white-space:\s*nowrap/,
     );
     expect(widgetsCss).toMatch(
-      /@container gafa-acct-class \(max-width: 21\.5rem\) \{[\s\S]{0,320}grid-column:\s*1 \/ -1/,
+      /@container gafa-acct-class \(max-width: 18rem\) \{[\s\S]{0,320}grid-column:\s*1 \/ -1/,
     );
   });
 
