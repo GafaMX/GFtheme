@@ -151,7 +151,7 @@ describe("installStripeSessionFetchGuard", () => {
 });
 
 import { stripeHarness, deferred, json } from "../../../test/stripeHarness";
-import { chooseStripeRecurrence, stripeRecurrenceConfirmed, waitForStripeSession } from "./stripeSessionGuard";
+import { chooseStripeRecurrence, replaceStripeSession, stripeRecurrenceConfirmed, waitForStripeSession } from "./stripeSessionGuard";
 import { setStripeMembershipAutoRenew } from "../cart/membershipPayOptions";
 
 describe("sesiones Stripe del SDK", () => {
@@ -186,6 +186,82 @@ describe("sesiones Stripe del SDK", () => {
     expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(true);
   });
 
+  it.each([true, false])("envía el token rotado de una respuesta obsoleta en la elección encolada (%s)", async (choice) => {
+    const { mount, respondWith, network } = await setup();
+    const held = deferred<Response>();
+    let calls = 0;
+    respondWith(async (_url, body) => {
+      if (++calls === 1) return held.promise;
+      if (body.tokenInput !== "tok_continuation") return new Response("Checkout Session not created", { status: 404 });
+      return json({ message: "tok_final", client_secret: "cs_final" });
+    });
+    chooseStripeRecurrence(mount.element, choice);
+    const first = update(mount.token, choice, { saveCard: true });
+    await vi.waitFor(() => expect(calls).toBe(1));
+    chooseStripeRecurrence(mount.element, !choice);
+    const latest = update(mount.token, !choice);
+    held.resolve(json({ message: "tok_continuation", client_secret: "cs_obsolete" }));
+    expect(await (await first).json()).toEqual({});
+    expect(await (await latest).json()).toEqual({ message: "tok_final", client_secret: "cs_final" });
+    expect(JSON.parse(String(network.mock.calls.at(-1)![1]?.body)).tokenInput).toBe("tok_continuation");
+    expect(stripeRecurrenceConfirmed(mount.element, !choice)).toBe(true);
+  });
+
+  it("conserva el token si la elección cambia entre fetch y json", async () => {
+    const { mount, respondWith } = await setup();
+    respondWith(async () => json({ message: "tok_unconsumed", client_secret: "cs_unconsumed" }));
+    chooseStripeRecurrence(mount.element, true);
+    const response = await update(mount.token, true);
+    chooseStripeRecurrence(mount.element, false);
+    expect(await response.json()).toEqual({});
+    respondWith(async (_url, body) => body.tokenInput === "tok_unconsumed"
+      ? json({ message: "tok_final", client_secret: "cs_final" })
+      : new Response("Checkout Session not created", { status: 404 }));
+    expect(await (await update(mount.token, false)).json()).toEqual({ message: "tok_final", client_secret: "cs_final" });
+    expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(true);
+  });
+
+  it("un descuento invalida antes de publicar y no acepta la continuación de su sesión anterior", async () => {
+    const { mount, respondWith } = await setup();
+    const held = deferred<Response>();
+    let calls = 0;
+    respondWith(async (_url, body) => {
+      if (++calls === 1) return held.promise;
+      expect(body.tokenInput).toBe("tok_discount");
+      return json({ message: "tok_discount", client_secret: "cs_discount" });
+    });
+    const oldUpdate = update(mount.token, false, { saveCard: true });
+    await vi.waitFor(() => expect(calls).toBe(1));
+    const published = vi.fn(() => {
+      expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(false);
+    });
+    const replacement = replaceStripeSession(mount.token, { checkout_token: "tok_discount", client_secret: "cs_discount" }, published);
+    expect(published).toHaveBeenCalledOnce();
+    held.resolve(json({ message: "tok_old_continuation", client_secret: "cs_old" }));
+    expect(await (await oldUpdate).json()).toEqual({});
+    expect(await replacement).toBe(true);
+    expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(true);
+    const count = calls;
+    expect(await (await update(mount.token, false)).json()).toEqual({});
+    expect(calls).toBe(count);
+  });
+
+  it("rechaza descuentos atrasados de un montaje retirado o de un token sustituido", async () => {
+    const { root, mount, createMount } = await setup();
+    const previousToken = mount.token;
+    mount.unmount();
+    const fresh = createMount(root);
+    await fresh.ready;
+    const publish = vi.fn();
+    expect(await replaceStripeSession(previousToken, { checkout_token: "tok_late", client_secret: "cs_late" }, publish)).toBe(false);
+    expect(publish).not.toHaveBeenCalled();
+    expect(stripeRecurrenceConfirmed(fresh.element, false)).toBe(true);
+    const first = replaceStripeSession(fresh.token, { checkout_token: "tok_discount", client_secret: "cs_discount" }, publish);
+    expect(await replaceStripeSession(fresh.token, { checkout_token: "tok_late", client_secret: "cs_late" }, publish)).toBe(false);
+    expect(publish).toHaveBeenCalledOnce();
+    expect(await first).toBe(true);
+  });
+
   it("descarta un update retirado aunque el siguiente montaje esté esperando el mismo valor", async () => {
     const { root, mount: old, respondWith, network, createMount } = await setup();
     const late = deferred<Response>(); const latest = deferred<Response>();
@@ -198,8 +274,11 @@ describe("sesiones Stripe del SDK", () => {
     const fresh = createMount(root, false);
     await vi.waitFor(() => expect(network.mock.calls.some(([, init]) => String(init?.body).includes("tok_new"))).toBe(true));
     const ready = vi.fn(); void waitForStripeSession(fresh.element).then(ready);
-    late.resolve(json({ message: old.token, client_secret: "cs_old" }));
+    late.resolve(json({ message: "tok_retired_continuation", client_secret: "cs_old" }));
     expect(await (await previous).json()).toEqual({});
+    const count = network.mock.calls.length;
+    expect(await (await update("tok_retired_continuation", false)).json()).toEqual({});
+    expect(network).toHaveBeenCalledTimes(count);
     expect(ready).not.toHaveBeenCalled();
     expect(stripeRecurrenceConfirmed(fresh.element, false)).toBe(false);
     latest.resolve(json({ message: "tok_new" }));

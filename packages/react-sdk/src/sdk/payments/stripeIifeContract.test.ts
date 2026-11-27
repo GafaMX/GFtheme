@@ -3,7 +3,7 @@
 // are substituted: the vendor React, form, effects and events execute intact.
 import bundle from "./__fixtures__/stripe-payment.iife.js?raw";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { mountGafaPayWidget, setGafaPayEnvironment, type GafaPayIsland } from "./gafaPay";
+import { mountGafaPayWidget, notifyStripeDiscountAdded, setGafaPayEnvironment, type GafaPayIsland } from "./gafaPay";
 import { resetStripeSessionFetchGuardForTests } from "./stripeSessionGuard";
 import { setStripeMembershipAutoRenew, syncGafaPayMembershipToggles } from "../cart/membershipPayOptions";
 import { deferred, json } from "../../../test/stripeHarness";
@@ -12,6 +12,7 @@ let island: GafaPayIsland | undefined;
 let root: HTMLDivElement;
 let serverRecurring = false;
 let processSerial = 0;
+let serverToken: string;
 let loadDelay: Promise<void> | undefined;
 let updateResponse: ((body: Record<string, any>) => Promise<Response>) | undefined;
 let network: ReturnType<typeof vi.fn>;
@@ -21,7 +22,7 @@ const correlatedUpdate = vi.fn();
 
 beforeEach(() => {
   setGafaPayEnvironment("production");
-  processSerial = 0; serverRecurring = false; updateResponse = undefined; loadDelay = undefined;
+  processSerial = 0; serverToken = "tok_1"; serverRecurring = false; updateResponse = undefined; loadDelay = undefined;
   confirm.mockReset().mockResolvedValue({ type: "success", session: { id: "paid", recurring: null } });
   providerMounts.mockReset();
   correlatedUpdate.mockReset();
@@ -54,12 +55,15 @@ beforeEach(() => {
     if (String(url).endsWith("/api/stripe.credentials")) return json({ current_environment: "dev", development: { api_key: "pk_test_only" } });
     if (String(url).endsWith("/api/stripe.processinitialpayment")) return json({ message: `tok_${++processSerial}`, client_secret: `cs_${processSerial}` });
     if (String(url).endsWith("/api/stripe.updateinitialpayment")) {
+      // Like getOrderByToken in staging: a rotated token is immediately invalid.
+      if (body.tokenInput !== serverToken) return new Response("Checkout Session not created", { status: 404 });
       if (updateResponse) return updateResponse(body);
       serverRecurring = body.recurringPayment;
       return json({ message: body.tokenInput, client_secret: `cs_${processSerial}` });
     }
     if (String(url).endsWith("/api/stripe.completeinitialpayment")) {
       expect(body.recurringPayment).toBe(serverRecurring);
+      expect(body.tokenInput).toBe(serverToken);
       return json({ message: "complete" });
     }
     throw new Error(`Unexpected request: ${url}`);
@@ -88,8 +92,8 @@ async function surface() {
   await vi.waitFor(() => expect(root.querySelector("iframe")).toBeTruthy());
 }
 async function submit() {
+  await vi.waitFor(() => expect(root.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false));
   const button = root.querySelector<HTMLButtonElement>('button[type="submit"]')!;
-  await vi.waitFor(() => expect(button.disabled).toBe(false));
   button.click();
   await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
 }
@@ -161,14 +165,16 @@ it.each([true, false])("una versión antigua no se aplica aunque la ráfaga vuel
     calls++;
     if (calls === 1) return held.promise;
     serverRecurring = body.recurringPayment;
-    return json({ message: body.tokenInput, client_secret: "cs_latest" });
+    serverToken = "tok_latest";
+    return json({ message: serverToken, client_secret: "cs_latest" });
   };
   const updated = vi.fn(); element.addEventListener("initial-payment-updated", updated);
   const first = setStripeMembershipAutoRenew(root, choice);
   await vi.waitFor(() => expect(calls).toBe(1));
   const middle = setStripeMembershipAutoRenew(root, !choice);
   const latest = setStripeMembershipAutoRenew(root, choice);
-  held.resolve(json({ message: "tok_1", client_secret: "cs_outdated" }));
+  serverToken = "tok_outdated";
+  held.resolve(json({ message: serverToken, client_secret: "cs_outdated" }));
   expect(await latest).toBe(true);
   expect(await middle).toBe(false);
   await first;
@@ -200,4 +206,42 @@ it("conserva el último cambio mientras la casilla interna desaparece al sustitu
   await submit();
   expect(confirm.mock.calls[0][0]).toBe("cs_rotated");
   expect(serverRecurring).toBe(true);
+});
+
+it("cada update del IIFE usa el último token al rotar token y secreto en ambos sentidos", async () => {
+  let updates = 0;
+  updateResponse = async (body) => {
+    if (updates >= 12) return new Response("Unexpected remount loop", { status: 500 });
+    serverRecurring = body.recurringPayment;
+    serverToken = `tok_rotated_${++updates}`;
+    return json({ message: serverToken, client_secret: `cs_rotated_${updates}` });
+  };
+  mount(true); await surface();
+  for (const checked of [true, false, true, false]) {
+    expect(await setStripeMembershipAutoRenew(root, checked)).toBe(true);
+    await vi.waitFor(() => expect(root.querySelector("iframe")).toBeTruthy());
+  }
+  expect(await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: false })).toBe(true);
+  await submit();
+  // Opt-in also changes the vendor's local saveCard, reset on form remount.
+  expect(updates).toBeLessThanOrEqual(9);
+  expect(confirm.mock.calls[0][0]).toBe(`cs_rotated_${updates}`);
+});
+
+it.each([
+  { choice: true, secret: "cs_discount" }, { choice: false, secret: "cs_discount" },
+  { choice: true, secret: "cs_1" }, { choice: false, secret: "cs_1" },
+])("un descuento con otro token revalida la recurrencia y paga ($choice, $secret)", async ({ choice, secret }) => {
+  mount(true); await surface();
+  expect(await setStripeMembershipAutoRenew(root, choice)).toBe(true);
+  serverToken = "tok_discount";
+  updateResponse = async (body) => {
+    serverRecurring = body.recurringPayment;
+    return json({ message: serverToken, client_secret: secret });
+  };
+  expect(await notifyStripeDiscountAdded({ client_secret: secret, checkout_token: serverToken }, "tok_1")).toBe(true);
+  expect(await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: choice })).toBe(true);
+  await submit();
+  expect(confirm.mock.calls[0][0]).toBe(secret);
+  expect(serverRecurring).toBe(choice);
 });

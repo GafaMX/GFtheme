@@ -1,5 +1,5 @@
 import { BUQ_ENVIRONMENTS, nonProductionUrlError, type BuqEnvironmentId } from "../config/buqEnvironments";
-import { hasStripeSession, installStripeSessionFetchGuard, registerStripeSession } from "./stripeSessionGuard";
+import { hasStripeSession, installStripeSessionFetchGuard, registerStripeSession, replaceStripeSession } from "./stripeSessionGuard";
 
 /**
  * Bridge de pagos.
@@ -963,15 +963,17 @@ export function mountGafaPayWidget(
 }
 
 /**
- * El IIFE escucha este evento para sustituir client_secret + checkout_token
- * sin remount (mismo contrato que gafa.fit tras stripe.addDiscount).
+ * Registra el reemplazo antes del evento que consume el IIFE y espera la
+ * revalidación recurrente. previousToken identifica el intento del descuento.
  */
 export function notifyStripeDiscountAdded(detail: {
   client_secret: string;
   checkout_token: string;
-}): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent("buq__discount_added", { detail }));
+}, previousToken?: string): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  return replaceStripeSession(previousToken, detail, () => {
+    window.dispatchEvent(new CustomEvent("buq__discount_added", { detail }));
+  }).catch(() => false);
 }
 
 export function hasGafaPayRuntime(): boolean {

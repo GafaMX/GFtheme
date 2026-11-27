@@ -874,11 +874,12 @@ export function CheckoutModal({
         return;
       }
       if (result.clientSecret && result.checkoutToken) {
-        notifyStripeDiscountAdded({
+        const updated = await notifyStripeDiscountAdded({
           client_secret: result.clientSecret,
           checkout_token: result.checkoutToken,
-        });
-        if (pending) {
+        }, pending?.checkoutToken);
+        if (!updated) throw new Error("La sesión del descuento ya no está vigente.");
+        if (pending && hostedPendingRef.current === pending) {
           hostedPendingRef.current = { ...pending, checkoutToken: result.checkoutToken };
         }
       }
