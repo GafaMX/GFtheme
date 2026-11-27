@@ -2,6 +2,7 @@ import type { GafaPaySuccess } from "../payments/gafaPay";
 import type { CartLine } from "./cartStore";
 import {
   buildEnrollmentChargeFailedNotice,
+  enrollmentLabel,
   isEnrollmentLine,
   membershipChargeLines,
   type EnrollmentChargeFailedNotice,
@@ -41,6 +42,7 @@ export async function runSplitEnrollmentCheckout(input: {
   discountCode?: string | null;
   saveCard?: boolean;
   autoRenew?: boolean;
+  language?: string;
   wait?: (ms: number) => Promise<void>;
   logContext?: {
     companyId?: number;
@@ -113,7 +115,7 @@ export async function runSplitEnrollmentCheckout(input: {
     enrollmentAmount: enrollmentLine.price * enrollmentLine.amount,
     enrollmentAmountLabel: enrollmentLine.priceLabel,
     error: lastError,
-    label: input.config.label,
+    label: enrollmentLabel(input.config, input.language),
   });
   return {
     membershipOk: true,

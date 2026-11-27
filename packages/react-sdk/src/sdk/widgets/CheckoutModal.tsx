@@ -96,6 +96,7 @@ import {
   readMembershipEnrollmentFromOptions,
   syncEnrollmentCartLines,
   enrollmentCopy,
+  enrollmentLabel,
   type EnrollmentChargeFailedNotice,
   type MembershipEnrollmentConfig,
 } from "../cart/membershipEnrollment";
@@ -184,6 +185,8 @@ export type CheckoutModalProps = {
   crossSell?: unknown;
   /** Matrícula opt-in. Si no viene, se lee de `MEMBERSHIP_ENROLLMENT` en el embed. */
   membershipEnrollment?: unknown;
+  /** SDK language (es / en / fr). Default enrollment copy follows this when the brand omits `label`. */
+  language?: string;
   /**
    * Checkout de prueba: no carga GafaPay ni cobra tarjetas reales.
    * También se enciende con `MOCK_PAY` o `?mock-pay=1`.
@@ -276,6 +279,7 @@ export function CheckoutModal({
   showMembershipOptions: showMembershipOptionsProp,
   crossSell: crossSellProp,
   membershipEnrollment: membershipEnrollmentProp,
+  language,
   mockPay: mockPayProp,
   chargeEnrollmentFee,
   onClose,
@@ -289,6 +293,8 @@ export function CheckoutModal({
       readMembershipEnrollmentFromDom(),
     [membershipEnrollmentProp],
   );
+  const feeLabel = enrollmentLabel(enrollmentConfig, language);
+  const feeCopy = enrollmentCopy(enrollmentConfig, language);
   const mockPay = readMockPay(mockPayProp);
   const lines = useCartStore((s) => s.lines);
   const reservation = useCartStore((s) => s.reservation);
@@ -710,6 +716,7 @@ export function CheckoutModal({
       brandSlug,
       locationSlug,
       currency,
+      language,
     });
     const same =
       next.length === lines.length &&
@@ -737,6 +744,7 @@ export function CheckoutModal({
     currency.prefix,
     currency.code,
     currency.suffix,
+    language,
   ]);
 
   // Query deshabilitada (todavia no hay marca) reporta isLoading=false y el
@@ -939,7 +947,7 @@ export function CheckoutModal({
     const slug = brandForItem ?? brandSlug;
     if (!slug) return;
     if (isEnrollmentComboId(enrollmentConfig, item.id) && item.type !== "membership") {
-      showToast(enrollmentCopy(enrollmentConfig).cannotBuyAlone, "error");
+      showToast(feeCopy.cannotBuyAlone, "error");
       return;
     }
     const type = lineTypeOf(item);
@@ -984,7 +992,7 @@ export function CheckoutModal({
         if (match && isEnrollmentComboId(enrollmentConfig, match.item.id)) {
           setPurchaseNotice({
             title: "Lo sentimos",
-            message: enrollmentCopy(enrollmentConfig).cannotBuySolo,
+            message: feeCopy.cannotBuySolo,
           });
         }
         return;
@@ -1205,6 +1213,7 @@ export function CheckoutModal({
         const membershipId = linesSnapshot.find((line) => line.type === "membership")?.id;
         const split = await runSplitEnrollmentCheckout({
           config: enrollmentConfig,
+          language,
           lines: linesSnapshot,
           membershipPayment: {
             message: paymentData,
@@ -1239,7 +1248,7 @@ export function CheckoutModal({
             const clientId = config?.gafapayClientId;
             const clientSecret = config?.gafapayClientSecret;
             if (!clientId || !clientSecret) {
-              throw new Error(enrollmentCopy(enrollmentConfig).missingGafaPay);
+              throw new Error(feeCopy.missingGafaPay);
             }
             return chargeEnrollmentWithSavedCard({
               order: {
@@ -1263,7 +1272,7 @@ export function CheckoutModal({
               credentials: { clientId, clientSecret, scriptUrl: gafaPayFrontUrl },
               gafaPayFrontUrl,
               slug: selectedMethod?.slug,
-              label: enrollmentConfig?.label,
+              label: feeLabel,
             });
           },
         });
@@ -2099,7 +2108,7 @@ export function CheckoutModal({
                   lines={chargeLines}
                   discountAmount={discountAmount}
                   mockPay={mockPay}
-                  enrollmentLabel={enrollmentLine ? enrollmentConfig?.label : undefined}
+                  enrollmentLabel={enrollmentLine ? feeLabel : undefined}
                   customer={{
                     email: profileQuery.data?.email,
                     firstName: profileQuery.data?.firstName,
@@ -2408,7 +2417,7 @@ export function CheckoutModal({
               {enrollmentLine && step === "pay" ? (
                 <p className="gafa-checkout__env-warn" data-enrollment-note="true">
                   {mockPay ? "Modo de prueba: no se cobra con tarjeta real. " : ""}
-                  {enrollmentCopy(enrollmentConfig).twoCharges}
+                  {feeCopy.twoCharges}
                 </p>
               ) : null}
 
@@ -2452,7 +2461,7 @@ export function CheckoutModal({
                         : selectedMethod?.slug === "paypal"
                           ? "Esperando PayPal…"
                           : enrollmentPhase === "charging"
-                            ? enrollmentCopy(enrollmentConfig).charging
+                            ? feeCopy.charging
                           : chargeHold
                             ? "Registrando compra…"
                             : "Procesando…"
