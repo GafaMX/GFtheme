@@ -1015,7 +1015,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
     return null;
   }
 
-  async function apiGetUrl<T>(absoluteOrPath: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
+  async function apiGetUrl<T>(absoluteOrPath: string, params?: Record<string, string | number | boolean | undefined>, signal?: AbortSignal): Promise<T> {
     const url = absoluteOrPath.startsWith("http")
       ? new URL(absoluteOrPath)
       : new URL(`${baseUrl}/api${absoluteOrPath}`);
@@ -1023,7 +1023,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       if (value !== undefined) url.searchParams.set(key, String(value));
     });
     const href = url.toString();
-    const response = await request(href, { headers: authHeaders() });
+    const response = await request(href, { headers: authHeaders(), ...(signal ? { signal } : {}) });
     if (!response.ok) throw await parseErrorBody(response, "GET", href);
     return readJsonSafe(response);
   }
@@ -2033,7 +2033,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       return parsePurchaseResult(data);
     },
 
-    async pollInitialPurchaseStatus(payload) {
+    async pollInitialPurchaseStatus(payload, options) {
       const url = `${baseUrl}/api/brand/${payload.brandSlug}/location/${payload.locationSlug}/reservation/initial-purchase-status`;
       // El endpoint contesta 200 siempre; el detalle del fallo viaja en `error`
       // ("Hubo un error en la creación del pago"), no en `message`.
@@ -2046,7 +2046,7 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
         checkout_token: payload.checkoutToken,
         pending_purchase_id: payload.pendingPurchaseId,
         _: Date.now(),
-      });
+      }, options?.signal);
       return {
         code: typeof data.code === "number" ? data.code : 0,
         message: data.message ?? data.error,

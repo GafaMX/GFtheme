@@ -34,7 +34,7 @@ window.fetch = async (input, init) => {
   const path = url.split('stripe.')[1];
   const body = JSON.parse(init.body);
   fixture.calls.push({ path, body });
-  if (path === 'completeinitialpayment') return json({ message: 'done' });
+  if (path === 'completeinitialpayment') return json({ message: 'Pago completado', webToken: '' });
   const secret = fixture.secret = 'secret_' + (++fixture.version);
   const hold = fixture.holdNextUpdate && path === 'updateinitialpayment';
   if (hold) { fixture.holdNextUpdate = false; await new Promise(resolve => { fixture.releaseUpdate = resolve; }); }

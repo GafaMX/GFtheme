@@ -5,7 +5,7 @@ export type StripeSurfaceLifecycle = {
   ready: (secret: string, node: Element, provider: object) => void;
   unmount: (secret: string, node: Element, provider: object) => void;
   canConfirm: (secret: string, provider: object) => boolean;
-  confirmed: (secret: string, success: boolean | undefined, provider: object) => void;
+  confirmed: (secret: string, success: boolean | undefined, provider: object, error?: unknown) => void;
 };
 
 function canonicalStripeOption(value: unknown): unknown {
@@ -68,9 +68,10 @@ export function installStripeSurfaceTracking(lifecycle: StripeSurfaceLifecycle):
                           if (!lifecycle.canConfirm(secret, provider)) throw new Error("La sesión de Stripe cambió. Espera al formulario vigente.");
                           try {
                             const response = await call.apply(actions, confirmArgs);
-                            lifecycle.confirmed(secret, response?.type === "success", provider);
+                            const success = response?.type === "success" ? true : response?.type === "error" ? false : undefined;
+                            lifecycle.confirmed(secret, success, provider, response?.error);
                             return response;
-                          } catch (error) { lifecycle.confirmed(secret, undefined, provider); throw error; }
+                          } catch (error) { lifecycle.confirmed(secret, undefined, provider, error); throw error; }
                         };
                       },
                     }) };

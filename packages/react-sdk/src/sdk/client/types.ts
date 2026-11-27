@@ -761,7 +761,7 @@ export type GafaClient = {
     locationSlug: string;
     checkoutToken: string;
     pendingPurchaseId: number;
-  }): Promise<InitialPurchaseStatus>;
+  }, options?: { signal?: AbortSignal }): Promise<InitialPurchaseStatus>;
   login(credentials: AuthCredentials): Promise<{ access_token: string }>;
   logout(): void;
   register(payload: RegisterPayload): Promise<{ url?: string }>;

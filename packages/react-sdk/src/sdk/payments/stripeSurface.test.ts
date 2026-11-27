@@ -44,7 +44,7 @@ describe("Stripe Checkout Elements surface adapter", () => {
     f.lifecycle.canConfirm.mockReturnValue(true);
     await result.actions.confirm();
     expect(f.confirm).toHaveBeenCalledOnce();
-    expect(f.lifecycle.confirmed).toHaveBeenCalledExactlyOnceWith("current", true, expect.any(Object));
+    expect(f.lifecycle.confirmed).toHaveBeenCalledExactlyOnceWith("current", true, expect.any(Object), undefined);
     payment.destroy();
     expect(f.lifecycle.unmount).toHaveBeenCalledExactlyOnceWith("current", node, expect.any(Object));
     restore(); restore = undefined;

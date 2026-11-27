@@ -1169,7 +1169,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
   });
 
   it.each(["catalog", "config", "catalog raw", "config raw"])(
-    "can_subscribe actual de %s manda sobre el raw persistido y subscribable",
+    "solo can_subscribe del catálogo habilita recurrencia (origen %s)",
     async (source) => {
       for (const canSubscribe of [false, true]) {
         useCartStore.setState({ lines: [{
@@ -1194,15 +1194,16 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
         });
         const view = renderPay(client);
         await ready();
-        expect(Boolean(screen.queryByRole("checkbox", { name: "Pago recurrente" }))).toBe(canSubscribe);
-        expect(lastProps?.hasRecurringPayment).toBe(canSubscribe);
-        expect(lastProps?.paymentFrequency).toBe(canSubscribe ? "30" : null);
+        const eligible = source.startsWith("catalog") && canSubscribe;
+        expect(Boolean(screen.queryByRole("checkbox", { name: "Pago recurrente" }))).toBe(eligible);
+        expect(lastProps?.hasRecurringPayment).toBe(eligible);
+        expect(lastProps?.paymentFrequency).toBe(eligible ? "30" : null);
         expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({
-          subscribe: canSubscribe,
-          lines: [expect.objectContaining({ raw: expect.objectContaining({ can_subscribe: canSubscribe }) })],
+          subscribe: eligible,
+          lines: [expect.objectContaining({ raw: expect.objectContaining({ can_subscribe: eligible }) })],
         }));
         for (const [payload] of vi.mocked(client.previewPurchase!).mock.calls) {
-          expect(payload.subscribe).toBe(canSubscribe);
+          expect(payload.subscribe).toBe(eligible);
         }
         view.unmount();
       }
@@ -1431,7 +1432,8 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
       fireEvent.click(pay());
       await screen.findByText(/gracias por tu compra/i);
       expect(confirm).toHaveBeenCalledTimes(1);
-      expect(client.pollInitialPurchaseStatus).toHaveBeenCalledWith(expect.objectContaining({ checkoutToken: "chk_single_discount" }));
+      expect(client.pollInitialPurchaseStatus).toHaveBeenCalledWith(expect.objectContaining({ checkoutToken: "chk_single_discount" }),
+        expect.objectContaining({ signal: expect.any(AbortSignal) }));
     } finally {
       window.removeEventListener("buq__discount_added", listener);
     }

@@ -11,7 +11,11 @@ export const STRIPE_COMPLETE_TIMEOUT_MS = 30_000;
 
 type PaymentData = { message?: string; client_secret?: string; [key: string]: unknown };
 export type StripePreparationContext = { revision: number; signal: AbortSignal; isCurrent?: () => boolean };
-export type StripeCheckoutState = { saveCard?: boolean; recurringPayment?: boolean; revision?: number };
+export type StripeHostPurchase = { checkoutToken: string; purchaseId: number; paidTotal: number };
+export type StripeCheckoutState = {
+  saveCard?: boolean; recurringPayment?: boolean; revision?: number;
+  confirmationKey?: string; hostPurchase?: StripeHostPurchase;
+};
 type Phase = "idle" | "preparing" | "ready" | "confirming" | "done" | "error" | "disposed";
 type Operation = StripePreparationContext & {
   controller: AbortController;
@@ -24,8 +28,12 @@ type WidgetSession = {
   onInitialPayment: (data: PaymentData, created: boolean, context: StripePreparationContext) => unknown;
   phase: Phase; revision: number; progressAt: number; operation?: Operation;
   data?: PaymentData; last?: string;
-  transport?: AbortController;
+  transport?: { controller: AbortController; tokens: unknown[] };
   completeAuthorized?: boolean;
+  reportPaymentError?: (error: { err?: unknown; message?: string; revision: number }) => void;
+  requestScope: string;
+  lifetime: AbortController;
+  confirmationKey: string | StripeCheckoutState;
   requestInit?: RequestInit; consumer: boolean;
   surface?: { secret: string; node: Element; ready: boolean; destroy: () => void; provider: object };
   observer: MutationObserver;
@@ -35,19 +43,25 @@ const state = {
   orig: undefined as typeof fetch | undefined, installed: false,
   widgets: new Set<WidgetSession>(), tokens: new Map<string, WidgetSession | null>(),
   fallback: new Map<string, { key: string; at: number }>(),
-  secrets: new Set<string>(),
+  secrets: new Map<string, string>(),
   restoreSurface: undefined as (() => void) | undefined,
 };
 const owners = new WeakMap<StripeCheckoutState, WidgetSession>();
 const byElement = new WeakMap<Element, WidgetSession>();
 const providerOwners = new WeakMap<object, WidgetSession>();
-const confirmations = new WeakMap<StripeCheckoutState, object>();
-type MutationLane = { tail: Promise<unknown>; uncertain: boolean; quarantined: Set<string> };
+type Confirmation = { provider: object; hostPurchase?: StripeHostPurchase; settled: Promise<void>; release: () => void };
+const confirmations = new Map<WidgetSession["confirmationKey"], Confirmation>();
+const confirmationListeners = new Set<() => void>();
+const quarantinedTokens = new Set<string>();
+const requestOwners = new Map<string, WidgetSession>();
+const REQUEST_SCOPE = /\/\.gafa-checkout-widget-(\d+)(?=\/)/;
+let requestSequence = 0;
+type MutationLane = { tail: Promise<unknown>; uncertain: boolean };
 // Survives DOM generations. Only disposal or a transport deadline can end the wait for an in-flight write.
 const lanes = new WeakMap<StripeCheckoutState, MutationLane>();
 function laneFor(checkout: StripeCheckoutState): MutationLane {
   let lane = lanes.get(checkout);
-  if (!lane) { lane = { tail: Promise.resolve(), uncertain: false, quarantined: new Set() }; lanes.set(checkout, lane); }
+  if (!lane) { lane = { tail: Promise.resolve(), uncertain: false }; lanes.set(checkout, lane); }
   return lane;
 }
 async function mutation<T>(s: WidgetSession, op: Operation, run: (signal: AbortSignal) => Promise<T>,
@@ -57,8 +71,9 @@ async function mutation<T>(s: WidgetSession, op: Operation, run: (signal: AbortS
     if (!current(s, op)) throw abortError();
     progress(s, op);
     if (!current(s, op)) throw abortError();
-    const token = s.data?.message;
-    const transport = s.transport = new AbortController();
+    const tokens = [s.data?.message, requestToken];
+    const transport = new AbortController();
+    s.transport = { controller: transport, tokens };
     const timer = setTimeout(() => transport.abort(new Error("La escritura de pago no respondió a tiempo. Reintenta con una sesión nueva.")), timeoutMs);
     try {
       return await withStripeAbort(Promise.resolve().then(() => {
@@ -66,9 +81,7 @@ async function mutation<T>(s: WidgetSession, op: Operation, run: (signal: AbortS
         return run(transport.signal);
       }), transport.signal);
     } catch (error) {
-      lane.uncertain = true;
-      if (token) lane.quarantined.add(token);
-      if (typeof requestToken === "string" && requestToken) lane.quarantined.add(requestToken);
+      quarantineStripeCheckout(s.checkout, ...tokens);
       throw error;
     }
     finally { clearTimeout(timer); s.transport = undefined; }
@@ -89,6 +102,46 @@ const active = (s: WidgetSession) => s.phase !== "disposed" && owners.get(s.chec
 const current = (s: WidgetSession, op: Operation) => active(s) && s.operation === op && s.revision === op.revision &&
   s.checkout.revision === op.revision && !op.signal.aborted;
 const abortError = () => new DOMException("Preparación de Stripe cancelada", "AbortError");
+const nonempty = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
+const noServerError = (data: PaymentData) => (data.success === undefined || data.success === true) &&
+  !data.error && !data.errors;
+const validSession = (data: PaymentData | null | undefined): data is PaymentData & { message: string; client_secret: string } =>
+  Boolean(data && nonempty(data.message) && nonempty(data.client_secret) && noServerError(data));
+const chargeKey = (body: Record<string, unknown>) => JSON.stringify([body.currency, body.lineItems]);
+
+function bindSessionPrice(secret: string, body: Record<string, unknown>): boolean {
+  const key = chargeKey(body);
+  const previous = state.secrets.get(secret);
+  if (previous !== undefined) return previous === key;
+  state.secrets.set(secret, key);
+  return true;
+}
+
+export function quarantineStripeCheckout(checkout: StripeCheckoutState, ...tokens: unknown[]): void {
+  laneFor(checkout).uncertain = true;
+  for (const token of tokens) if (nonempty(token)) quarantinedTokens.add(token);
+}
+
+export function stripeConfirmationPurchase(key: string | undefined): StripeHostPurchase | undefined {
+  return key ? confirmations.get(key)?.hostPurchase : undefined;
+}
+
+export function subscribeStripeConfirmations(listener: () => void): () => void {
+  confirmationListeners.add(listener);
+  return () => { confirmationListeners.delete(listener); };
+}
+
+function releaseConfirmation(key: WidgetSession["confirmationKey"], confirmation: Confirmation) {
+  if (confirmations.get(key) !== confirmation) return;
+  confirmations.delete(key);
+  confirmation.release();
+  confirmationListeners.forEach((listener) => listener());
+}
+
+export function reconcileStripeConfirmation(key: string | undefined, purchase: StripeHostPurchase): void {
+  const confirmation = key ? confirmations.get(key) : undefined;
+  if (key && confirmation?.hostPurchase === purchase) releaseConfirmation(key, confirmation);
+}
 
 /** Also releases callers when a transport/mock does not honour AbortSignal. */
 export function withStripeAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
@@ -100,7 +153,9 @@ export function withStripeAbort<T>(promise: Promise<T>, signal: AbortSignal): Pr
   });
 }
 function surfaceReady(s: WidgetSession): boolean {
-  return !held(s) && Boolean(s.surface?.ready && s.surface.secret === s.data?.client_secret &&
+  return !held(s) && !confirmations.has(s.confirmationKey) && !quarantinedTokens.has(s.data?.message ?? "") &&
+    state.secrets.get(s.data?.client_secret ?? "") === chargeKey(s.updateBody) &&
+    Boolean(s.surface?.ready && s.surface.secret === s.data?.client_secret &&
     s.element.isConnected && s.surface.node.isConnected && s.element.contains(s.surface.node) &&
     s.surface.node.querySelector("iframe")) && s.last === keyOf(sessionUpdateBody(s));
 }
@@ -133,7 +188,12 @@ function dispose(s: WidgetSession): void {
   s.revision = s.checkout.revision = (s.checkout.revision ?? 0) + 1;
   clearTimeout(s.operation?.timer);
   s.operation?.controller.abort(abortError());
-  s.transport?.abort(abortError());
+  if (s.transport) {
+    quarantineStripeCheckout(s.checkout, ...s.transport.tokens);
+    s.transport.controller.abort(abortError());
+  }
+  s.lifetime.abort(abortError());
+  requestOwners.delete(s.requestScope);
   s.observer.disconnect();
   s.surface?.destroy();
   s.surface = undefined;
@@ -170,14 +230,25 @@ export function stripeSessionStatus(container: Element) {
     phase: s.phase, progressAt: s.progressAt, revision: s.revision };
 }
 
+function widgetConfirmationKey(apiUrl: string, checkout: StripeCheckoutState, body: Record<string, unknown>) {
+  if (checkout.confirmationKey) return checkout.confirmationKey;
+  const customer = body.usersProfilesId ?? (typeof body.customer_email === "string" ? body.customer_email.trim().toLowerCase() : "");
+  if (!customer || !Array.isArray(body.lineItems) || !body.lineItems.length) return checkout;
+  const items = body.lineItems.map((line) => JSON.stringify([line.type, line.product_id ?? line.name, line.quantity])).sort();
+  return JSON.stringify([apiUrl, body.companiesId, customer, items]);
+}
+
 export function registerStripeSession(options: {
   element: HTMLElement; apiUrl: string; checkout: StripeCheckoutState;
   updateBody: Record<string, unknown>; onInitialPayment: WidgetSession["onInitialPayment"];
-}): { dispose: () => void; update: (body: Record<string, unknown>) => void; onEvent: (data: unknown, created: boolean) => void } {
+  reportPaymentError?: WidgetSession["reportPaymentError"];
+}): { apiUrl: string; dispose: () => void; update: (body: Record<string, unknown>) => void; onEvent: (data: unknown, created: boolean) => void } {
   const previous = owners.get(options.checkout);
   if (previous) { dispose(previous); state.widgets.delete(previous); }
   const s: WidgetSession = {
     ...options, phase: "idle", revision: options.checkout.revision ?? 0, progressAt: Date.now(),
+    requestScope: String(++requestSequence), lifetime: new AbortController(),
+    confirmationKey: widgetConfirmationKey(options.apiUrl, options.checkout, options.updateBody),
     consumer: false,
     observer: new MutationObserver(() => changed(s)),
     blockSubmit: (event) => {
@@ -191,7 +262,9 @@ export function registerStripeSession(options: {
   s.observer.observe(s.element, { childList: true, subtree: true });
   s.element.addEventListener("submit", s.blockSubmit, true);
   state.widgets.add(s);
+  requestOwners.set(s.requestScope, s);
   return {
+    apiUrl: `${s.apiUrl}/.gafa-checkout-widget-${s.requestScope}`,
     dispose: () => dispose(s),
     update: (body) => {
       if (!active(s)) return;
@@ -226,25 +299,28 @@ export const stripeSurfaceLifecycle = {
   },
   canConfirm(secret: string, provider: object) {
     const s = providerOwners.get(provider);
-    if (!s || !active(s) || confirmations.has(s.checkout) || s.phase !== "confirming" || !s.completeAuthorized ||
+    if (!s || !active(s) || confirmations.has(s.confirmationKey) || s.phase !== "confirming" || !s.completeAuthorized ||
         s.data?.client_secret !== secret || s.surface?.provider !== provider || !surfaceReady(s)) return false;
     // Stripe.confirm itself cannot be aborted. Freeze further mutations until it settles.
     s.completeAuthorized = false;
-    confirmations.set(s.checkout, provider);
+    let release!: () => void;
+    const settled = new Promise<void>((resolve) => { release = resolve; });
+    confirmations.set(s.confirmationKey, { provider, hostPurchase: s.checkout.hostPurchase, settled, release });
+    confirmationListeners.forEach((listener) => listener());
     return true;
   },
-  confirmed(secret: string, success: boolean | undefined, provider: object) {
+  confirmed(secret: string, success: boolean | undefined, provider: object, error?: unknown) {
     const s = providerOwners.get(provider);
-    if (!s || confirmations.get(s.checkout) !== provider) return;
-    if (success === undefined) {
-      // Transport failure after Stripe.confirm is ambiguous: keep the charge
-      // barrier until the host reconciles the purchase, including across remounts.
-      if (active(s)) { s.phase = "error"; changed(s); }
-      return;
-    }
-    confirmations.delete(s.checkout);
+    const confirmation = s && confirmations.get(s.confirmationKey);
+    if (!s || confirmation?.provider !== provider) return;
+    // A successful hosted charge stays reserved until its purchase is reconciled.
+    if (success === false || (success === true && !confirmation.hostPurchase)) releaseConfirmation(s.confirmationKey, confirmation);
     if (active(s) && s.phase === "confirming" && s.data?.client_secret === secret && s.surface?.provider === provider) {
-      s.phase = success ? "done" : "ready"; changed(s);
+      s.phase = success === undefined ? "error" : success ? "done" : "ready";
+      changed(s);
+      if (!success) s.reportPaymentError?.({ err: error, revision: s.revision,
+        message: error && typeof error === "object" && "message" in error && typeof error.message === "string"
+          ? error.message : "No pudimos confirmar el pago." });
     }
   },
 };
@@ -301,11 +377,18 @@ async function prepare(s: WidgetSession, input: RequestInfo | URL, init: Request
         const update = UPDATE_PATH.test(urlOf(url));
         const currentBody = effectiveBody(s, update
           ? { ...s.updateBody, tokenInput: payload.tokenInput }
-          : { ...payload, lineItems: s.updateBody.lineItems });
-        if (update) sent.add(keyOf(currentBody));
+          : { ...payload, lineItems: s.updateBody.lineItems, currency: s.updateBody.currency });
         const response = await state.orig!(url, { ...init, signal, body: JSON.stringify(currentBody) });
         if (!response.ok) throw new Error("No pudimos preparar la sesión de Stripe.");
-        return response.clone().json() as Promise<PaymentData>;
+        const data: PaymentData = await response.clone().json();
+        const owner = data?.message ? state.tokens.get(data.message) : undefined;
+        if (owner && owner !== s && active(owner)) throw new Error("La orden de pago está vinculada a otro formulario.");
+        if (!validSession(data) || quarantinedTokens.has(data.message) || !bindSessionPrice(data.client_secret, currentBody)) {
+          quarantineStripeCheckout(s.checkout, data?.message);
+          throw new Error("Stripe no devolvió una sesión de pago válida. Se necesita una orden de pago nueva.");
+        }
+        if (update) sent.add(keyOf({ ...currentBody, tokenInput: data.message }));
+        return data;
       }, STRIPE_PREPARATION_TIMEOUT_MS, payload.tokenInput);
       if (!current(s, op)) throw abortError();
       progress(s, op); return data;
@@ -314,13 +397,16 @@ async function prepare(s: WidgetSession, input: RequestInfo | URL, init: Request
     let data = seed ?? await send(input, body);
     let created = process && !seed;
     while (current(s, op)) {
-      if (!data.client_secret || !data.message) throw new Error("Stripe no devolvió una sesión de pago válida.");
-      if (lane.quarantined.has(data.message)) {
+      if (!validSession(data)) throw new Error("Stripe no devolvió una sesión de pago válida.");
+      if (quarantinedTokens.has(data.message)) {
         throw new Error("La sesión anterior no está reconciliada. Se necesita una orden de pago nueva.");
       }
       if (created) lane.uncertain = false;
       s.data = data;
-      state.secrets.add(data.client_secret);
+      if (seed === data && !bindSessionPrice(data.client_secret, sessionUpdateBody(s, data.message))) {
+        quarantineStripeCheckout(s.checkout, data.message);
+        throw new Error("La sesión anterior tiene un importe distinto. Se necesita una orden de pago nueva.");
+      }
       if (data.message) state.tokens.set(data.message, s);
       await mutation(s, op, async (signal) => s.onInitialPayment({
         ...data, subscriptionId: sessionUpdateBody(s).recurringPayment ? data.subscriptionId : null,
@@ -331,9 +417,8 @@ async function prepare(s: WidgetSession, input: RequestInfo | URL, init: Request
       const key = keyOf(nextBody);
       s.last = key;
       if (sent.has(key)) break;
-      const next = await send(updateUrl, nextBody);
-      if (!next.client_secret) break;
-      data = next; created = false;
+      data = await send(updateUrl, nextBody);
+      created = false;
     }
     if (!current(s, op)) throw abortError();
     clearTimeout(op.timer);
@@ -353,7 +438,10 @@ async function latestData(s: WidgetSession): Promise<PaymentData> {
     if (!op) throw abortError();
     try {
       const data = await op.promise;
-      if (s.operation === op && s.phase === "ready") return data;
+      if (s.operation === op) {
+        if (s.phase === "ready") return data;
+        throw abortError();
+      }
     } catch (error) {
       if (s.operation === op) throw error;
     }
@@ -375,10 +463,15 @@ function onDiscount(event: Event) {
   const widgets = [...state.widgets].filter(active);
   const origin = d.previous_checkout_token ?? d.checkout_token;
   if (state.tokens.has(origin) && state.tokens.get(origin) === null) { event.stopImmediatePropagation(); return; }
-  const s = state.tokens.get(origin) ?? (widgets.length === 1 ? widgets[0] : undefined);
-  if (!s || !active(s)) return;
+  const s = state.tokens.get(origin) ?? (!d.previous_checkout_token && widgets.length === 1 ? widgets[0] : undefined);
+  if (!s || !active(s)) {
+    if (widgets.length) event.stopImmediatePropagation();
+    return;
+  }
   event.stopImmediatePropagation();
-  if (confirmations.has(s.checkout) || s.phase === "done") return;
+  if (confirmations.has(s.confirmationKey) || s.phase === "done") return;
+  const nextOwner = state.tokens.get(d.checkout_token);
+  if (nextOwner && nextOwner !== s && active(nextOwner)) return;
   state.tokens.set(d.checkout_token, s);
   const body = sessionUpdateBody(s, d.checkout_token);
   void prepare(s, `${s.apiUrl}/api/stripe.updateinitialpayment`, {
@@ -389,7 +482,7 @@ function onDiscount(event: Event) {
 /** Re-register explicit modal preferences through the same revision and write barrier. */
 export function refreshStripeCheckout(checkout: StripeCheckoutState): void {
   const s = owners.get(checkout);
-  if (!s || !active(s) || !s.data || confirmations.has(checkout) || ["confirming", "done"].includes(s.phase)) return;
+  if (!s || !active(s) || !s.data || confirmations.has(s.confirmationKey) || ["confirming", "done"].includes(s.phase)) return;
   const body = sessionUpdateBody(s);
   void prepare(s, `${s.apiUrl}/api/stripe.updateinitialpayment`, { ...s.requestInit, method: "POST" }, body, false, s.data)
     .then(() => replay(s)).catch(() => undefined);
@@ -400,16 +493,32 @@ export function installStripeSessionFetchGuard(): void {
   state.restoreSurface = installStripeSurfaceTracking(stripeSurfaceLifecycle);
   window.addEventListener("buq__discount_added", onDiscount, true);
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = urlOf(input);
+    let url = urlOf(input);
+    const scope = REQUEST_SCOPE.exec(url);
+    const scopedOwner = scope ? requestOwners.get(scope[1]) : undefined;
+    if (scope) {
+      if (!scopedOwner || !active(scopedOwner) || !scopedOwner.element.isConnected) return json({ message: "La sesión de pago cambió." }, 409);
+      url = url.replace(REQUEST_SCOPE, "");
+      if (!url.startsWith(`${scopedOwner.apiUrl}/`)) return json({ message: "La sesión de pago cambió." }, 409);
+      input = input instanceof Request ? new Request(url, input) : url;
+    }
     const process = PROCESS_PATH.test(url), update = UPDATE_PATH.test(url), complete = COMPLETE_PATH.test(url);
-    if (init?.method?.toUpperCase() !== "POST" || (!process && !update && !complete) || typeof init.body !== "string") return state.orig!(input, init);
+    if (!process && !update && !complete) {
+      if (!scopedOwner) return state.orig!(input, init);
+      const callerSignal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+      const lifetime = scopedOwner.lifetime.signal;
+      return state.orig!(input, { ...init, signal: callerSignal ? AbortSignal.any([callerSignal, lifetime]) : lifetime });
+    }
+    if (init?.method?.toUpperCase() !== "POST" || typeof init.body !== "string") {
+      return scopedOwner ? json({ message: "Solicitud de pago no válida." }, 409) : state.orig!(input, init);
+    }
     let body: Record<string, unknown>;
-    try { body = JSON.parse(init.body); } catch { return state.orig!(input, init); }
-    if (!body || typeof body !== "object") return state.orig!(input, init);
+    try { body = JSON.parse(init.body); } catch { return json({ message: "Solicitud de pago no válida." }, 409); }
+    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ message: "Solicitud de pago no válida." }, 409);
     if (!process && typeof body.tokenInput === "string" && state.tokens.has(body.tokenInput) && state.tokens.get(body.tokenInput) === null) {
       return complete ? json({ message: "La sesión de pago cambió." }, 409) : noChange(body.tokenInput);
     }
-    const s = findWidget(url, body, process);
+    const s = scopedOwner ?? findWidget(url, body, process);
     if (s === null) return json({ message: "No pudimos identificar la sesión de pago." }, 409);
     if (!s) {
       // Preserve the legacy update contract outside SDK checkout widgets.
@@ -420,7 +529,15 @@ export function installStripeSessionFetchGuard(): void {
       if (response.ok) state.fallback.set(key, { key: keyOf(body), at: Date.now() });
       return response;
     }
-    if (confirmations.has(s.checkout) || s.phase === "done") return json({ message: "El pago ya está en curso o terminó." }, 409);
+    if (process) {
+      try {
+        let confirmation;
+        while ((confirmation = confirmations.get(s.confirmationKey))) {
+          await withStripeAbort(confirmation.settled, s.lifetime.signal);
+        }
+      } catch { return json({ message: "La sesión de pago cambió." }, 409); }
+    }
+    if (confirmations.has(s.confirmationKey) || s.phase === "done") return json({ message: "El pago ya está en curso o terminó." }, 409);
     if (!active(s)) return complete ? json({ message: "La sesión de pago cambió." }, 409) : noChange(body.tokenInput);
     if (!complete && s.phase === "confirming") return json({ message: "El pago ya está en curso." }, 409);
     // Explicit modal opt-in AND opt-out take precedence over the IIFE's local default.
@@ -428,36 +545,39 @@ export function installStripeSessionFetchGuard(): void {
     if (complete) {
       if (s.phase !== "ready" || !surfaceReady(s) || body.tokenInput !== s.data?.message) return json({ message: "El formulario de pago todavía no está listo." }, 409);
       const op = s.operation!;
-      const revision = s.revision;
       s.completeAuthorized = false;
       s.phase = "confirming"; changed(s);
       try {
         // Own deadline; readiness cancelled the preparation timer. Include body
         // consumption so a hung response stream cannot strand confirmation either.
         const response = await mutation(s, op, async (signal) => {
-          const payload = effectiveBody(s, "lineItems" in body ? { ...body, lineItems: s.updateBody.lineItems } : body);
+          if (!surfaceReady(s)) throw new Error("El formulario de pago cambió. Reintenta con una sesión nueva.");
+          const payload = effectiveBody(s, { ...body, lineItems: s.updateBody.lineItems, currency: s.updateBody.currency });
           const response = await state.orig!(input, { ...init, signal, body: JSON.stringify(payload) });
           const data = await response.text();
           if (response.ok) {
             let result;
             try { result = JSON.parse(data); } catch { /* The response body can contain arbitrary data. */ }
-            if (typeof result?.message !== "string" || !result.message.trim()) {
+            // GAFApay's deployed contract uses this explicit success message.
+            const legacySuccess = result?.success === undefined && result?.message === "Pago completado" && typeof result.webToken === "string";
+            if (!result || !nonempty(result.message) || !noServerError(result) ||
+                (result.success !== true && !legacySuccess)) {
               throw new Error("Stripe no devolvió una confirmación de preparación válida.");
             }
-          }
+          } else throw new Error("No pudimos completar la preparación del pago. Reintenta con una sesión nueva.");
           return new Response(data, { status: response.status, headers: response.headers });
         }, STRIPE_COMPLETE_TIMEOUT_MS);
         clearTimeout(op.timer);
-        if (!active(s) || s.revision !== revision || s.phase !== "confirming") return json({ message: "La sesión de pago cambió." }, 409);
+        if (!current(s, op) || s.phase !== "confirming") return json({ message: "La sesión de pago cambió." }, 409);
         if (!surfaceReady(s)) {
           const message = "El formulario de pago cambió. Reintenta con una sesión nueva.";
+          quarantineStripeCheckout(s.checkout, body.tokenInput);
           fail(s, op, new Error(message));
           return json({ message }, 409);
         }
-        if (response.ok) s.completeAuthorized = true;
-        else fail(s, op, new Error("No pudimos completar la preparación del pago. Reintenta con una sesión nueva."));
+        s.completeAuthorized = true;
         return response;
-      } catch (error) { if (s.revision === revision && active(s)) fail(s, op, error); throw error; }
+      } catch (error) { if (current(s, op)) fail(s, op, error); throw error; }
     }
     if (update) {
       const token = body.tokenInput;
@@ -504,6 +624,8 @@ export function resetStripeSessionFetchGuardForTests(): void {
   window.removeEventListener("buq__discount_added", onDiscount, true);
   state.restoreSurface?.(); state.restoreSurface = undefined;
   state.installed = false; state.widgets.clear(); state.tokens.clear(); state.fallback.clear(); state.secrets.clear();
+  for (const [key, confirmation] of confirmations) releaseConfirmation(key, confirmation);
+  quarantinedTokens.clear();
 }
 export function afterStrictModePass(run: () => void): () => void {
   const id = window.setTimeout(run, 0); return () => window.clearTimeout(id);

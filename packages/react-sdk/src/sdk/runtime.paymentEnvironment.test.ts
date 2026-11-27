@@ -56,7 +56,7 @@ describe("runtime payment configuration", () => {
       order: { customerName: "Test", lineItems: [] }, generalData: {},
       onStartPayAction: vi.fn(), onGafaPaySuccessAction: vi.fn(), onGafaPayErrAction: vi.fn(),
     });
-    expect(box.firstElementChild?.getAttribute("api-url")).toBe("https://custom.example.test/payments");
+    expect(box.firstElementChild?.getAttribute("api-url")?.replace(/\/\.gafa-checkout-widget-\d+$/, "")).toBe("https://custom.example.test/payments");
     island.unmount();
     sdk.unmountAll();
   });

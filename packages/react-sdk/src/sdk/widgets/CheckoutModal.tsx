@@ -1,5 +1,5 @@
 import { findIneligibleLines, isEligibilityRejection } from "../cart/eligibility";
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type {
   CartLineType,
@@ -56,11 +56,16 @@ import {
   blockStripeCheckout,
   refreshStripeCheckout,
   invalidateStripeCheckout,
+  quarantineStripeCheckout,
+  reconcileStripeConfirmation,
+  stripeConfirmationPurchase,
+  subscribeStripeConfirmations,
   withStripeAbort,
   stripeSessionStatus,
   STRIPE_SESSION_PROGRESS_EVENT,
   type StripePreparationContext,
   type StripeCheckoutState,
+  type StripeHostPurchase,
 } from "../payments/stripeSessionGuard";
 import { humanizeCheckoutError } from "../payments/checkoutErrorMessage";
 import { showToast } from "../toast/toastStore";
@@ -356,7 +361,10 @@ export function CheckoutModal({
   // El formulario del proveedor vive fuera de React. Sin el listo, "Pagar"
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
+  const paymentMountRef = useRef<HTMLDivElement | null>(null);
+  const modalMounted = useRef(false);
   const [paying, setPaying] = useState(false);
+  const stripeAttemptRevision = useRef<number | undefined>(undefined);
   const renewalLockedRef = useRef(false);
   /** Frontpay conserva las opciones de membresía de v1. Stripe usa el carrito. */
   const [saveCard, setSaveCard] = useState(true);
@@ -378,20 +386,21 @@ export function CheckoutModal({
     client.reportCheckoutWarning?.(message, notice);
   }
 
-  async function recoverRecentPurchase(): Promise<boolean> {
+  async function recoverRecentPurchase(stripePurchase?: StripeHostPurchase, isCurrent = () => modalMounted.current): Promise<boolean> {
     if (!brandSlug || chargeStartedRef.current == null || !priorPurchasesRef.current) return false;
     try {
       const purchases = await client.listUserPurchases(brandSlug);
+      if (!isCurrent()) return false;
       const purchase = purchases.find((item) => {
         const created = item.createdAt ? new Date(item.createdAt.replace(" ", "T")).getTime() : NaN;
         return !priorPurchasesRef.current!.has(item.id) &&
           created >= chargeStartedRef.current! - 1000 && created <= Date.now() + 1000 &&
-          Math.abs(Number(item.total) - membershipExpectedTotal) < 0.01 &&
+          Math.abs(Number(item.total) - (stripePurchase?.paidTotal ?? membershipExpectedTotal)) < 0.01 &&
           relevantLines.some((line) => line.name === item.name) &&
           /^(paid|pagada|pagado|completada|completed|complete|success)$/i.test(item.status ?? "");
       });
       if (!purchase) return false;
-      await finishHostedPurchase({ purchaseId: purchase.id });
+      await finishHostedPurchase({ purchaseId: purchase.id }, stripePurchase);
       return true;
     } catch {
       return false;
@@ -406,10 +415,12 @@ export function CheckoutModal({
     checkoutToken: string;
     purchaseId: number;
     payload: InitialPurchasePayload;
+    stripePurchase?: StripeHostPurchase;
   } | null>(null);
   const hostedAbortRef = useRef<AbortController | null>(null);
   const discountCheckSeq = useRef(0);
   const discountAbortRef = useRef<AbortController | null>(null);
+  const discountWriteTokenRef = useRef<string | undefined>(undefined);
   const discountPublicationRef = useRef<{
     detail?: Parameters<typeof notifyStripeDiscountAdded>[0];
     purchaseId?: number;
@@ -579,6 +590,7 @@ export function CheckoutModal({
     queryFn: () => fetchCheckoutCatalog(client, brandSlug!),
     enabled: Boolean(brandSlug),
     staleTime: CHECKOUT_CATALOG_STALE_MS,
+    refetchOnMount: "always",
   });
 
   // Los lugares que se acaban de pasar mandan sobre el `reservation`
@@ -621,30 +633,19 @@ export function CheckoutModal({
   const products = classAttached
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
-  const currentCanSubscribe = (line: CartLine): boolean | undefined => {
-    // Solo un can_subscribe booleano del catálogo vigente o de su respaldo
-    // en config acredita la renovación.
-    const pools = catalogQuery.isSuccess
-      ? [catalogQuery.data.memberships]
-      : catalogQuery.isError ? [config?.memberships] : [];
-    for (const pool of pools) {
-      const item = pool?.find((item) => sameCatalogId(item.id, line.id));
-      if (typeof item?.can_subscribe === "boolean") return item.can_subscribe;
-      if (typeof item?.raw?.can_subscribe === "boolean") return item.raw.can_subscribe;
-    }
-    if (catalogQuery.isSuccess || (catalogQuery.isError && !configQuery.isLoading)) return false;
-    return undefined;
-  };
-  const membershipEligibilityPending = !mockPay && cartLines.some(
-    (line) => line.type === "membership" && currentCanSubscribe(line) === undefined,
-  );
+  const currentMemberships = catalogQuery.isSuccess && catalogQuery.isFetchedAfterMount
+    ? catalogQuery.data.memberships
+    : [];
+  const membershipEligibilityPending = !mockPay && !catalogQuery.isFetchedAfterMount && cartLines.some((line) => line.type === "membership");
   const relevantLines = cartLines.map((line) => {
     if (line.type !== "membership") return line;
     const item = memberships.find((item) => sameCatalogId(item.id, line.id)) ??
       config?.memberships?.find((item) => sameCatalogId(item.id, line.id));
+    const current = currentMemberships.find((item) => sameCatalogId(item.id, line.id));
     return { ...line, raw: {
       ...(item ? catalogCartRaw(item) : {}), ...line.raw,
-      can_subscribe: currentCanSubscribe(line) ?? false,
+      can_subscribe: (current?.can_subscribe ?? current?.raw?.can_subscribe) === true,
+      expiration_days: current?.expirationDays ?? current?.raw?.expiration_days,
     } };
   });
   const purchaseKey = cartPurchaseKey(relevantLines);
@@ -811,8 +812,10 @@ export function CheckoutModal({
   }, [paymentMethods, selectedMethodId]);
 
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
-  const recurringMembership = !membershipEligibilityPending && membershipPaymentFrequency(relevantLines)
-    ? relevantLines.find((line) => line.type === "membership" && currentCanSubscribe(line) === true)
+  const enrollmentLine = relevantLines.find((line) => isEnrollmentLine(line, enrollmentConfig));
+  const recurringEnrollmentUnsupported = selectedMethod?.slug === "stripe" && enrollmentLine && enrollmentConfig?.mode === "every_charge";
+  const recurringMembership = !membershipEligibilityPending && !recurringEnrollmentUnsupported && membershipPaymentFrequency(relevantLines)
+    ? relevantLines.find((line) => line.type === "membership" && line.raw?.can_subscribe === true)
     : undefined;
   const autoRenew = Boolean(recurringMembership) && ((selectedMethod?.slug ?? paymentMethods[0]?.slug) === "stripe"
     ? recurringMembership?.autoRenew !== false
@@ -857,12 +860,22 @@ export function CheckoutModal({
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
   const chargeLines = membershipChargeLines(relevantLines, enrollmentConfig);
-  const enrollmentLine = relevantLines.find((line) => isEnrollmentLine(line, enrollmentConfig));
-  const subtotal = cartSubtotal(relevantLines);
-  const discountableSubtotal = cartSubtotal(discountableLines(relevantLines, enrollmentConfig));
+  const stripeKey = brandSlug && profileQuery.data && chargeLines.length
+    ? JSON.stringify([brandSlug, profileQuery.data.id, cartPurchaseKey([...chargeLines].sort((a, b) => a.key.localeCompare(b.key)))])
+    : undefined;
+  stripeCheckoutState.current.confirmationKey = stripeKey;
+  const confirmingPurchase = useSyncExternalStore(subscribeStripeConfirmations, () => stripeConfirmationPurchase(stripeKey), () => undefined);
+  const resumedStripePurchase = confirmingPurchase !== stripeCheckoutState.current.hostPurchase ? confirmingPurchase : undefined;
+  const stripeSelected = selectedMethod?.slug === "stripe";
+  const stripeSelectedRef = useRef(stripeSelected);
+  stripeSelectedRef.current = stripeSelected;
+  const pricedLines = stripeSelected ? relevantLines.map((line) => ({ ...line, price: Math.round(line.price * 100) / 100 })) : relevantLines;
+  const subtotal = cartSubtotal(pricedLines);
+  const discountableSubtotal = cartSubtotal(discountableLines(pricedLines, enrollmentConfig));
   const discountAmount = resolveDiscountAmount(appliedDiscount, discountableSubtotal);
   const discountLabel = appliedDiscount?.label;
-  const total = Math.max(0, subtotal - discountAmount);
+  const netTotal = Math.max(0, subtotal - discountAmount);
+  const total = stripeSelected ? Math.round(netTotal * 100) / 100 : netTotal;
   const membershipExpectedTotal = Math.max(0, cartSubtotal(chargeLines) - discountAmount);
   const isFreeTotal = relevantLines.length > 0 && total <= 0;
   const envWarning = step === "pay" && !isFreeTotal ? stagingPayWarning() : null;
@@ -877,7 +890,7 @@ export function CheckoutModal({
     !waitingOnTerms &&
     !waitingOnGift &&
     !paying &&
-    discountStatus !== "checking" &&
+    discountStatus !== "checking" && !confirmingPurchase &&
     (isFreeTotal || mockPay || (Boolean(selectedMethod) && paymentReady));
   const purchaseAlreadyClear = purchaseClearKey.current === purchaseKey && purchaseKey.length > 0;
   const holdPayForm =
@@ -901,24 +914,23 @@ export function CheckoutModal({
   }
 
   async function applyDiscount() {
-    if (renewalLockedRef.current) return;
+    if (renewalLockedRef.current || stripeConfirmationPurchase(stripeKey) || discountAbortRef.current) return;
     if (!client.checkDiscountCode || !discountCode.trim() || !brandSlug || !locationSlug) return;
     const code = discountCode.trim();
     const seq = ++discountCheckSeq.current;
     const releaseStripe = blockStripeCheckout(stripeCheckoutState.current);
-    discountAbortRef.current?.abort();
-    discountPublicationRef.current?.release();
-    discountPublicationRef.current = null;
     discountNeedsRecheckRef.current = false;
     const discountAbort = new AbortController();
     discountAbortRef.current = discountAbort;
     const timeout = setTimeout(() => discountAbort.abort(new Error("El descuento no respondió a tiempo.")), 30_000);
-    const pending = hostedPendingRef.current;
+    const pending = stripeSelectedRef.current ? hostedPendingRef.current : null;
+    discountWriteTokenRef.current = pending?.checkoutToken;
     let publishAfterCommit = false;
     setDiscountStatus("checking");
     setDiscountError(undefined);
     const rejectDiscount = (message: string) => {
-      if (appliedDiscount && selectedMethod?.slug === "stripe") restartStripeForPrice();
+      quarantineDiscountWrite();
+      if (stripeSelectedRef.current && (pending || appliedDiscount)) restartStripeForPrice();
       setAppliedDiscount(null);
       appliedDiscountCodeRef.current = null;
       setDiscountStatus("error");
@@ -940,14 +952,16 @@ export function CheckoutModal({
         pendingPurchaseId: pending?.purchaseId,
       }), discountAbort.signal);
       if (seq !== discountCheckSeq.current) return;
-      if (!result.valid) {
+      const amount = resolveDiscountAmount(result, discountableSubtotal);
+      if (!(amount > 0) || Math.round((discountableSubtotal - amount) * 100) >= Math.round(discountableSubtotal * 100)) {
+        if (pending) quarantineStripeCheckout(stripeCheckoutState.current, result.checkoutToken);
         rejectDiscount(result.message ?? "Código no válido");
         return;
       }
       appliedDiscountCodeRef.current = code;
-      if (selectedMethod?.slug === "stripe") {
+      if (stripeSelectedRef.current) {
         const detail = pending && result.clientSecret && result.checkoutToken &&
-          resolveDiscountAmount(result, discountableSubtotal) < subtotal
+          amount < subtotal
           ? { client_secret: result.clientSecret, checkout_token: result.checkoutToken, previous_checkout_token: pending.checkoutToken }
           : undefined;
         discountPublicationRef.current = { detail, purchaseId: pending?.purchaseId, release: releaseStripe };
@@ -967,9 +981,16 @@ export function CheckoutModal({
     }
   }
 
+  function quarantineDiscountWrite() {
+    const token = discountWriteTokenRef.current;
+    discountWriteTokenRef.current = undefined;
+    if (token) quarantineStripeCheckout(stripeCheckoutState.current, token);
+  }
+
   function restartStripeForPrice() {
     invalidateStripeCheckout(stripeCheckoutState.current);
     hostedPendingRef.current = null;
+    stripeCheckoutState.current.hostPurchase = undefined;
     setPaymentReady(false);
     setDiscountSessionRevision((revision) => revision + 1);
   }
@@ -984,8 +1005,10 @@ export function CheckoutModal({
       // PayPanel ya sincronizó los importes de la isla en este commit.
       if (publication.detail && current?.checkoutToken === publication.detail.previous_checkout_token &&
           current?.purchaseId === publication.purchaseId) {
+        discountWriteTokenRef.current = undefined;
         notifyStripeDiscountAdded(publication.detail);
       } else {
+        quarantineDiscountWrite();
         // Sin secret de la sesión vigente, process parte del precio con descuento.
         if (appliedDiscount.clientSecret) setAppliedDiscount({ ...appliedDiscount, clientSecret: undefined });
         restartStripeForPrice();
@@ -1003,7 +1026,9 @@ export function CheckoutModal({
   }), []);
 
   function invalidateStripeSession() {
+    quarantineDiscountWrite();
     invalidateStripeCheckout(stripeCheckoutState.current);
+    releaseObsoleteStripeAttempt(stripeCheckoutState.current.revision);
     ++discountCheckSeq.current;
     const check = discountAbortRef.current;
     discountAbortRef.current = null;
@@ -1014,7 +1039,18 @@ export function CheckoutModal({
     discountNeedsRecheckRef.current ||= Boolean(check) || (discountStatus === "ok" && Boolean(appliedDiscount?.clientSecret));
     hostedAbortRef.current?.abort();
     hostedPendingRef.current = null;
+    stripeCheckoutState.current.hostPurchase = undefined;
     setPaymentReady(false);
+  }
+
+  function releaseObsoleteStripeAttempt(revision: number | undefined) {
+    const attempt = stripeAttemptRevision.current;
+    if (attempt === undefined || attempt === revision) return;
+    stripeAttemptRevision.current = undefined;
+    if (!stripeConfirmationPurchase(stripeKey)) {
+      renewalLockedRef.current = false;
+      setPaying(false);
+    }
   }
 
   giftValidateRef.current = async (code, seq, options) => {
@@ -1259,11 +1295,17 @@ export function CheckoutModal({
   useEffect(() => {
     return () => {
       hostedAbortRef.current?.abort();
+      ++discountCheckSeq.current;
+      quarantineDiscountWrite();
       discountAbortRef.current?.abort();
       discountPublicationRef.current?.release();
       stopPopupWatchRef.current?.();
       if (paypalHoldTimerRef.current) window.clearTimeout(paypalHoldTimerRef.current);
     };
+  }, []);
+  useLayoutEffect(() => {
+    modalMounted.current = true;
+    return () => { modalMounted.current = false; };
   }, []);
 
   // Compra directa: login si falta, si no el paso de pago. Si el socio vuelve
@@ -1564,20 +1606,22 @@ export function CheckoutModal({
     purchaseId?: number | null;
     reservationId?: number;
     isWaitlist?: boolean;
-  }) {
+  }, stripePurchase?: StripeHostPurchase) {
     hostedPendingRef.current = null;
     setRegisterOnly(false);
+    setPaying(false);
     setThanks({
       purchaseId: result.purchaseId,
       reservationId: result.reservationId,
       confirmed: true,
       isWaitlist: Boolean(result.isWaitlist) || waitlistPurchase,
-      paidTotal: total,
+      paidTotal: stripePurchase?.paidTotal ?? total,
       reservationSnapshot: reservation,
       linesSnapshot: relevantLines,
     });
     resetAfterPurchase();
     setStep("thanks");
+    if (stripePurchase) reconcileStripeConfirmation(stripeKey, stripePurchase);
     onCompleted?.({ purchaseId: result.purchaseId, reservationId: result.reservationId });
   }
 
@@ -1607,7 +1651,7 @@ export function CheckoutModal({
         meetingId: reservation?.meetingId,
         reservationId: linkedReservationId,
       }),
-      lines: purchaseLinesPayload(chargeLines.length ? chargeLines : relevantLines),
+      lines: purchaseLinesPayload(selectedMethod.slug === "stripe" || !chargeLines.length ? relevantLines : chargeLines),
       paymentTypeId: selectedMethod.id,
       paymentData: data,
       csrfToken: config?.csrfToken ?? null,
@@ -1640,7 +1684,9 @@ export function CheckoutModal({
       if (purchaseId == null) {
         throw new Error("No se pudo crear la compra pendiente.");
       }
-      hostedPendingRef.current = { checkoutToken: token, purchaseId, payload };
+      const stripePurchase = isStripe ? { checkoutToken: token, purchaseId, paidTotal: total } : undefined;
+      hostedPendingRef.current = { checkoutToken: token, purchaseId, payload, stripePurchase };
+      stripeCheckoutState.current.hostPurchase = stripePurchase;
       // Stripe: gafa.fit manda sendInitialPurchaseForm al crear la sesión y
       // polla al confirmar. Aquí el poll arranca en payment-start/success
       // para no dejar el CTA en “Procesando…” mientras el socio llena la tarjeta.
@@ -1681,60 +1727,55 @@ export function CheckoutModal({
     }
   }
 
-  async function pollHostedStripe() {
-    if (selectedMethod?.slug !== "stripe" || stripePollLockRef.current) return;
+  async function pollHostedStripe(purchase = hostedPendingRef.current?.stripePurchase) {
+    if (!purchase || stripePollLockRef.current || !brandSlug || !locationSlug || !client.pollInitialPurchaseStatus) return;
     stripePollLockRef.current = true;
-    const deadline = Date.now() + 20_000;
-    while (!hostedPendingRef.current && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-    const pending = hostedPendingRef.current;
-    if (!pending || !brandSlug || !locationSlug || !client.pollInitialPurchaseStatus) {
-      stripePollLockRef.current = false;
-      if (!pending) {
-        setPaying(false);
-        reportPayError("No pudimos iniciar el pago. Intenta de nuevo.");
-      }
-      return;
-    }
     hostedAbortRef.current?.abort();
     const abort = new AbortController();
     hostedAbortRef.current = abort;
     hostedSettledRef.current = false;
+    setPaying(true);
+    const stopWatching = stripeConfirmationPurchase(stripeKey) === purchase
+      ? subscribeStripeConfirmations(() => {
+          if (stripeConfirmationPurchase(stripeKey) !== purchase && !hostedSettledRef.current) {
+            abort.abort();
+            setRegisterOnly(false);
+          }
+        })
+      : undefined;
     try {
       const done = await pollRecurrenteUntilDone({
         client,
         brandSlug,
         locationSlug,
-        checkoutToken: pending.checkoutToken,
-        pendingPurchaseId: pending.purchaseId,
+        checkoutToken: purchase.checkoutToken,
+        pendingPurchaseId: purchase.purchaseId,
         signal: abort.signal,
       });
       hostedSettledRef.current = true;
       stopPopupWatchRef.current?.();
       stopPopupWatchRef.current = null;
       await finishHostedPurchase({
-        purchaseId: pending.purchaseId,
+        purchaseId: purchase.purchaseId,
         reservationId: done.reservationId,
-      });
+      }, purchase);
     } catch (err) {
-      if (err instanceof HostedCheckoutClosedError) {
-        setPaying(false);
-        stripePollLockRef.current = false;
-        return;
-      }
-      if (await recoverRecentPurchase()) return;
+      if (abort.signal.aborted || err instanceof HostedCheckoutClosedError) return;
+      if (chargedRef.current && await recoverRecentPurchase(purchase, () => !abort.signal.aborted)) return;
+      if (abort.signal.aborted) return;
       const detail = err instanceof Error ? err.message : "No pudimos confirmar el pago.";
-      if (hostedPendingRef.current?.purchaseId || chargedRef.current) {
-        setRegisterOnly(true);
-      }
+      setRegisterOnly(true);
       reportPayError(
         chargedRef.current && detail !== CHARGED_BUT_NOT_RECORDED
           ? `${CHARGED_BUT_NOT_RECORDED} (${detail})`
           : detail,
       );
     } finally {
-      setPaying(false);
+      stopWatching?.();
+      if (hostedAbortRef.current === abort) {
+        stripePollLockRef.current = false;
+        setPaying(false);
+      }
     }
   }
 
@@ -1951,8 +1992,17 @@ export function CheckoutModal({
   ]);
 
   async function proceedToPay() {
+    if (discountAbortRef.current || discountStatus === "checking") return;
     if (renewalLockedRef.current && !registerOnly) return;
     renewalLockedRef.current = true;
+    const revision = stripeCheckoutState.current.revision;
+    const stillCurrent = () => modalMounted.current && !discountAbortRef.current &&
+      (!stripeSelected || stripeCheckoutState.current.revision === revision);
+    const stripePurchase = stripeConfirmationPurchase(stripeKey);
+    if (stripePurchase || (registerOnly && hostedPendingRef.current?.stripePurchase)) {
+      await pollHostedStripe(stripePurchase);
+      return;
+    }
     if (registerOnly && hostedPendingRef.current?.purchaseId) {
       setPaying(true);
       const pending = hostedPendingRef.current;
@@ -1974,6 +2024,7 @@ export function CheckoutModal({
           reservationId: status.reservationId,
         });
       } catch (err) {
+        if (!stillCurrent()) return;
         if (err instanceof HostedCheckoutClosedError) {
           setPaying(false);
           return;
@@ -1995,10 +2046,12 @@ export function CheckoutModal({
       try {
         await assertCanPurchase();
       } catch (err) {
+        if (!stillCurrent()) return;
         setPaying(false);
         reportPayError(err instanceof Error ? err.message : "No pudimos completar la compra.");
         return;
       }
+      if (!stillCurrent()) return;
       await completePurchase(undefined);
       return;
     }
@@ -2009,11 +2062,14 @@ export function CheckoutModal({
     if (paypalFlowRef.current && selectedMethod?.slug === "paypal" && !registerOnly) {
       return;
     }
+    if (stripeSelected) stripeAttemptRevision.current = revision;
     setPaying(true);
     try {
       await assertCanPurchase();
     } catch (err) {
+      if (!stillCurrent()) return;
       const purged = await purgeRejectedLines(err).catch(() => null);
+      if (!stillCurrent()) return;
       setPaying(false);
       if (purged && !purged.kept) {
         setPurchaseNotice({ title: "Lo sentimos", message: purged.message });
@@ -2024,10 +2080,12 @@ export function CheckoutModal({
       purged?.drop();
       return;
     }
+    if (!stillCurrent()) return;
     if (mockPay) {
       priorPurchasesRef.current = await client.listUserPurchases(brandSlug!)
         .then((items) => new Set(items.map((item) => item.id)))
         .catch(() => null);
+      if (!stillCurrent()) return;
       chargeStartedRef.current = Date.now();
       handleGafaPaySuccess({
         message: { mock: true, kind: "membership" },
@@ -2048,7 +2106,7 @@ export function CheckoutModal({
     // Stripe/Conekta: la confirmación vive en el widget de GafaPay.
     try {
       if (membershipPurchase && selectedMethod?.slug !== "stripe") {
-        const root = document.querySelector(".gafa-checkout-paymount__island");
+        const root = paymentMountRef.current;
         if (!root || !await syncGafaPayMembershipToggles(root, { saveCard, autoRenew })) {
           warnCheckout("No se verificaron las opciones de membresía; se bloqueó el cobro.");
           setPaying(false);
@@ -2059,10 +2117,11 @@ export function CheckoutModal({
       priorPurchasesRef.current = await client.listUserPurchases(brandSlug!)
         .then((items) => new Set(items.map((item) => item.id)))
         .catch(() => null);
+      if (!stillCurrent() || !paymentMountRef.current) return;
       chargeStartedRef.current = Date.now();
       const triggered = await triggerGafaPayConfirm(
         selectedMethod?.slug ?? "",
-        document.querySelector(".gafa-checkout-paymount__island"),
+        paymentMountRef.current,
       );
       if (!triggered) {
         paypalFlowRef.current = false;
@@ -2078,7 +2137,9 @@ export function CheckoutModal({
         );
       }
     } catch (err) {
-      if (await recoverRecentPurchase()) return;
+      if (!stillCurrent()) return;
+      if (await recoverRecentPurchase(undefined, stillCurrent)) return;
+      if (!stillCurrent()) return;
       paypalFlowRef.current = false;
       setPaying(false);
       const raw = err instanceof Error ? err.message : "";
@@ -2091,12 +2152,12 @@ export function CheckoutModal({
   }
 
   function handlePayClick() {
-    if (reviewingPurchase || purchaseNotice) return;
+    if (reviewingPurchase || purchaseNotice || discountAbortRef.current || discountStatus === "checking") return;
     if (!relevantLines.length) {
       reportPayError("Agrega un paquete o membresía para continuar.");
       return;
     }
-    if (registerOnly) {
+    if (registerOnly || resumedStripePurchase) {
       void proceedToPay();
       return;
     }
@@ -2118,6 +2179,7 @@ export function CheckoutModal({
   }
 
   function acceptTermsAndPay() {
+    if (discountAbortRef.current || discountStatus === "checking") return;
     setTermsAccepted(true);
     setTermsAttention(false);
     setTermsPromptOpen(false);
@@ -2350,6 +2412,8 @@ export function CheckoutModal({
                 </>
               ) : reviewingPurchase ? (
                 <PaySkeleton withMethods={!isFreeTotal} label="Revisando tu compra…" />
+              ) : resumedStripePurchase ? (
+                <p role="status">Hay un pago con tarjeta pendiente de confirmación.</p>
               ) : isFreeTotal ? (
                 <div className="gafa-checkout-free" role="status">
                   <span className="gafa-checkout-free__mark" aria-hidden="true">
@@ -2379,9 +2443,12 @@ export function CheckoutModal({
                   }}
                   configLoading={configQuery.isLoading}
                   config={config}
+                  mountRef={paymentMountRef}
                   gafaPayFrontUrl={gafaPayFrontUrl}
-                  lines={chargeLines}
+                  lines={stripeSelected && !mockPay ? pricedLines : chargeLines}
                   discountAmount={discountAmount}
+                  enrollmentLineKey={enrollmentLine?.key}
+                  enrollmentLineId={enrollmentLine?.id}
                   discountSessionRevision={discountSessionRevision}
                   mockPay={mockPay}
                   enrollmentLabel={enrollmentLine ? enrollmentConfig?.label : undefined}
@@ -2396,25 +2463,33 @@ export function CheckoutModal({
                   onHostedCheckout={handleHostedCheckout}
                   onHostedClose={releaseHostedWait}
                   onStripeSessionChange={invalidateStripeSession}
+                  onStripeRevisionChange={releaseObsoleteStripeAttempt}
                   onStart={() => {
                     renewalLockedRef.current = true;
+                    if (stripeSelected) stripeAttemptRevision.current = stripeCheckoutState.current.revision;
                     setPaying(true);
                     if (selectedMethod?.slug === "paypal") paypalFlowRef.current = true;
                     if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
                       startHostedPopupWatch();
                     }
-                    if (selectedMethod?.slug === "stripe") {
-                      void pollHostedStripe();
-                    }
                   }}
                   onReadyChange={setPaymentReady}
                   paypalBusy={selectedMethod?.slug === "paypal" && paying}
-                  paypalLocked={selectedMethod?.slug === "paypal" && waitingOnTerms}
+                  couponPending={discountStatus === "checking"}
+                  paypalLocked={selectedMethod?.slug === "paypal" && (waitingOnTerms || discountStatus === "checking")}
                   onPaypalLockedClick={() => {
+                    if (discountAbortRef.current || discountStatus === "checking") return;
                     setTermsPromptOpen(true);
                     setTermsAttention(true);
                   }}
-                  onError={async (message) => {
+                  onError={async (message, revision) => {
+                    if (revision !== undefined) {
+                      if (revision !== stripeCheckoutState.current.revision) return;
+                      if (stripeConfirmationPurchase(stripeKey)) setRegisterOnly(true);
+                      setPaying(false);
+                      reportPayError(message);
+                      return;
+                    }
                     if (isPaypalCheckoutCancelMessage(message)) {
                       releaseHostedWait();
                       return;
@@ -2459,6 +2534,7 @@ export function CheckoutModal({
                           busy: paying,
                           disabled:
                             paying ||
+                            discountStatus === "checking" ||
                             relevantLines.length === 0 ||
                             (!registerOnly && !waitingOnTerms && !canPay),
                           onClick: handlePayClick,
@@ -2695,14 +2771,14 @@ export function CheckoutModal({
                 <div className="gafa-checkout__total-row gafa-checkout__total-row--grand">
                   <span>Total</span>
                   <strong>
-                    {formatMoney(total, currency.prefix, "")}
+                    {formatMoney(resumedStripePurchase?.paidTotal ?? total, currency.prefix, "")}
                     <em>{currency.suffix}</em>
                   </strong>
                 </div>
               </div>
 
               {envWarning ? <p className="gafa-checkout__env-warn">{envWarning}</p> : null}
-              {enrollmentLine && step === "pay" ? (
+              {enrollmentLine && step === "pay" && (!stripeSelected || mockPay) ? (
                 <p className="gafa-checkout__env-warn" data-enrollment-note="true">
                   {mockPay ? "Modo de prueba: no se cobra con tarjeta real. " : ""}
                   {enrollmentCopy(enrollmentConfig).twoCharges}
@@ -2728,7 +2804,7 @@ export function CheckoutModal({
                   className="gafa-checkout__cta-wrap"
                   data-paypal={selectedMethod?.slug === "paypal" ? "true" : undefined}
                   data-paypal-locked={
-                    selectedMethod?.slug === "paypal" && waitingOnTerms ? "true" : undefined
+                    selectedMethod?.slug === "paypal" && (waitingOnTerms || discountStatus === "checking") ? "true" : undefined
                   }
                   data-busy={paying ? "true" : undefined}
                 >
@@ -2737,9 +2813,10 @@ export function CheckoutModal({
                     type="button"
                     disabled={
                       paying ||
+                      discountStatus === "checking" ||
                       reviewingPurchase ||
                       relevantLines.length === 0 ||
-                      (!registerOnly && !waitingOnTerms && !canPay)
+                      (!resumedStripePurchase && !registerOnly && !waitingOnTerms && !canPay)
                     }
                     onClick={handlePayClick}
                   >
@@ -2753,8 +2830,8 @@ export function CheckoutModal({
                           : chargeHold
                             ? "Registrando compra…"
                             : "Procesando…"
-                      : registerOnly
-                        ? hostedPendingRef.current?.purchaseId
+                      : resumedStripePurchase || registerOnly
+                        ? resumedStripePurchase || hostedPendingRef.current?.purchaseId
                           ? "Revisar pago"
                           : "Registrar compra"
                         : isFreeTotal
@@ -2762,7 +2839,7 @@ export function CheckoutModal({
                           : `Pagar ${formatMoney(total, currency.prefix, "")}`}
                   </button>
                   {selectedMethod?.slug === "paypal" ? (
-                    <div id={PAYPAL_CTA_HIT_ID} className="gafa-checkout__paypal-hit" aria-hidden="true" />
+                    <div id={PAYPAL_CTA_HIT_ID} className="gafa-checkout__paypal-hit" aria-hidden="true" inert={discountStatus === "checking"} />
                   ) : null}
                 </div>
               )}
@@ -2971,26 +3048,38 @@ function ProductCard({
   );
 }
 
+function paymentLineItem(line: CartLine, unitPrice: number, quantity: number): GafaPayLineItem {
+  return {
+    name: line.name, unitPrice, quantity, product_type: gafaFitProductType(line.type), product_id: line.id,
+    height: 1, length: 1, weight: 1, width: 1, site_id: `${line.type}--${line.id}`, type: line.type, totalPrice: unitPrice,
+  };
+}
+
 function PayPanel({
   methods,
   selectedMethodId,
   onSelectMethod,
   configLoading,
   config,
+  mountRef,
   gafaPayFrontUrl,
   lines,
   discountAmount,
+  enrollmentLineKey,
+  enrollmentLineId,
   discountSessionRevision,
   customer,
   onSuccess,
   onHostedCheckout,
   onHostedClose,
   onStripeSessionChange,
+  onStripeRevisionChange,
   onStart,
   onReadyChange,
   onError,
   payCta,
   paypalBusy,
+  couponPending,
   paypalLocked,
   onPaypalLockedClick,
   membershipOptions,
@@ -3003,9 +3092,12 @@ function PayPanel({
   onSelectMethod: (id: number) => void;
   configLoading: boolean;
   config?: CheckoutConfig;
+  mountRef: React.RefObject<HTMLDivElement | null>;
   gafaPayFrontUrl?: string;
   lines: CartLine[];
   discountAmount: number;
+  enrollmentLineKey?: string;
+  enrollmentLineId?: number;
   discountSessionRevision: number;
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
@@ -3013,9 +3105,10 @@ function PayPanel({
   stripeCheckoutState: StripeCheckoutState;
   onHostedClose: () => void;
   onStripeSessionChange: () => void;
+  onStripeRevisionChange: (revision: number) => void;
   onStart: () => void;
   onReadyChange: (ready: boolean) => void;
-  onError: (message: string) => void;
+  onError: (message: string, revision?: number) => void;
   payCta?: {
     label: string;
     busyLabel: string;
@@ -3024,6 +3117,7 @@ function PayPanel({
     onClick: () => void;
   };
   paypalBusy?: boolean;
+  couponPending: boolean;
   paypalLocked?: boolean;
   onPaypalLockedClick?: () => void;
   membershipOptions?: {
@@ -3043,7 +3137,6 @@ function PayPanel({
   const [mountNonce, setMountNonce] = useState(0);
   const [sessionReady, setSessionReady] = useState(true);
   const selected = methods.find((method) => method.id === selectedMethodId) ?? null;
-  const mountRef = useRef<HTMLDivElement | null>(null);
   const islandRef = useRef<{ slug: string; widget: GafaPayIsland } | null>(null);
   // Los callbacks cambian en cada render; el widget vive fuera de React y no
   // debe re-montarse por eso.
@@ -3054,6 +3147,7 @@ function PayPanel({
     onHostedCheckout,
     onHostedClose,
     onStripeSessionChange,
+    onStripeRevisionChange,
     onSaveCard: membershipOptions?.onSaveCard,
     onAutoRenew: membershipOptions?.onAutoRenew,
   });
@@ -3064,6 +3158,7 @@ function PayPanel({
     onHostedCheckout,
     onHostedClose,
     onStripeSessionChange,
+    onStripeRevisionChange,
     onSaveCard: membershipOptions?.onSaveCard,
     onAutoRenew: membershipOptions?.onAutoRenew,
   };
@@ -3077,6 +3172,7 @@ function PayPanel({
     if (!container || selected?.slug !== "stripe") return;
     const sync = () => {
       const status = stripeSessionStatus(container);
+      if (status) handlersRef.current.onStripeRevisionChange(status.revision);
       setSessionReady(status?.ready ?? true);
       if (status?.phase === "error") setLoadState("error");
       else if (status?.ready) setLoadState("ready");
@@ -3087,6 +3183,23 @@ function PayPanel({
 
   // lineItems con el descuento repartido, igual que el fancy v1.
   const lineItems = useMemo<GafaPayLineItem[]>(() => {
+    if (selected?.slug === "stripe") {
+      const billable = lines.filter((line) => line.key !== enrollmentLineKey);
+      const eligibleCents = billable.reduce((sum, line) => sum + Math.round(line.price * 100) * line.amount, 0);
+      let remainingCents = eligibleCents - Math.round(Math.max(0, eligibleCents / 100 - discountAmount) * 100);
+      return [...lines].sort((a, b) => a.price - b.price).flatMap((line) => {
+        const unitCents = Math.round(line.price * 100);
+        const discount = line.key === enrollmentLineKey ? 0 : Math.min(unitCents * line.amount, remainingCents);
+        remainingCents -= discount;
+        const netCents = unitCents * line.amount - discount;
+        const basePrice = Math.floor(netCents / line.amount);
+        const extraUnits = netCents % line.amount;
+        return [
+          paymentLineItem(line, basePrice / 100, line.amount - extraUnits),
+          ...(extraUnits ? [paymentLineItem(line, (basePrice + 1) / 100, extraUnits)] : []),
+        ];
+      });
+    }
     let remaining = discountAmount;
     const sorted = [...lines].sort((a, b) => a.price - b.price);
     return sorted.map((line) => {
@@ -3096,22 +3209,9 @@ function PayPanel({
         perUnitDiscount = Math.min(unit, remaining / line.amount);
         remaining = Math.max(0, remaining - perUnitDiscount * line.amount);
       }
-      return {
-        name: line.name,
-        unitPrice: Math.max(0, unit - perUnitDiscount),
-        quantity: line.amount,
-        product_type: gafaFitProductType(line.type),
-        product_id: line.id,
-        height: 1,
-        length: 1,
-        weight: 1,
-        width: 1,
-        site_id: `${line.type}--${line.id}`,
-        type: line.type,
-        totalPrice: Math.max(0, unit - perUnitDiscount),
-      };
+      return paymentLineItem(line, Math.max(0, unit - perUnitDiscount), line.amount);
     });
-  }, [lines, discountAmount]);
+  }, [lines, discountAmount, enrollmentLineKey, selected?.slug]);
 
   const clientId = config?.gafapayClientId;
   const clientSecret = config?.gafapayClientSecret;
@@ -3148,12 +3248,13 @@ function PayPanel({
         ? Boolean(membershipOptions?.autoRenew)
         : Boolean(membershipOptions),
       stripeCanSubscribe: Boolean(membershipOptions),
+      stripeEnrollmentLineId: enrollmentLineId,
       // Sin esto GAFAPay cobra pero no crea la suscripción.
       paymentFrequency: membershipOptions?.autoRenew ? membershipPaymentFrequency(lines) : null,
       onStartPayAction: () => handlersRef.current.onStart(),
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
-      onGafaPayErrAction: ({ message }) =>
-        handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
+      onGafaPayErrAction: ({ message, revision }) =>
+        handlersRef.current.onError(message ?? "Ocurrió un error durante el pago.", revision),
       stripeCheckoutState,
       onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
       onCheckoutCloseAction: () => handlersRef.current.onHostedClose(),
@@ -3163,14 +3264,14 @@ function PayPanel({
       // solo al montar el Payment Element (updateinitialpayment). Si abortamos
       // se cancela initial-purchase y el token queda huérfano.
       onInitialPaymentUpdating: () => undefined,
-      onInitialPaymentUpdateError: ({ message }) =>
-        handlersRef.current.onError(message ?? "No pudimos actualizar el pago."),
+      onInitialPaymentUpdateError: ({ message, revision }) =>
+        handlersRef.current.onError(message ?? "No pudimos actualizar el pago.", revision),
       changePaymentSystemProperties: ({ recurringPayment, saveCard: nextSave }) => {
         if (typeof nextSave === "boolean") handlersRef.current.onSaveCard?.(nextSave);
         if (selected?.slug !== "stripe" && typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
       },
     }),
-    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount, stripeCheckoutState],
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount, stripeCheckoutState, enrollmentLineId],
   );
 
   // Mantener props recientes sin remontar por callbacks o datos del cliente.
@@ -3182,6 +3283,7 @@ function PayPanel({
   // processinitialpayment nuevo, sin reutilizar el client_secret anterior.
   const stripeFrequency = slug === "stripe" ? widgetProps.paymentFrequency : null;
   const stripeCartKey = slug === "stripe" ? JSON.stringify(lines.map((line) => [line.key, line.amount, line.price])) : "";
+  const stripeConfirmationKey = slug === "stripe" ? stripeCheckoutState.confirmationKey : undefined;
   const clientIdKey = clientId == null ? "" : String(clientId);
   const clientSecretKey = clientSecret ?? "";
   // Checkout Elements is tracked for the lifetime of the SDK adapter. The legacy
@@ -3286,7 +3388,7 @@ function PayPanel({
         islandRef.current = null;
       }
     };
-  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay, stripeFrequency, stripeCartKey, discountSessionRevision]);
+  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay, stripeFrequency, stripeCartKey, stripeConfirmationKey, discountSessionRevision]);
 
   const changeAutoRenew = (checked: boolean) => {
     if (membershipOptions?.disabled) return;
@@ -3421,7 +3523,7 @@ function PayPanel({
             ) : null}
           </div>
         ) : null}
-        <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
+        <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} inert={couponPending && slug !== "stripe"} />
 
         {slug === "stripe" && membershipOptions ? (
           <CheckField checked={membershipOptions.autoRenew} disabled={membershipOptions.disabled} onChange={changeAutoRenew}>

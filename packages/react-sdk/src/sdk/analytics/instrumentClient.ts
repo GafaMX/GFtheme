@@ -114,11 +114,11 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
 
   if (client.initialPurchase) {
     const initialPurchase = client.initialPurchase.bind(client);
-    next.initialPurchase = async (payload) => {
+    next.initialPurchase = async (...args) => {
       try {
-        return await initialPurchase(payload);
+        return await initialPurchase(...args);
       } catch (error) {
-        tracker.track({ event: "checkout.failed", widget: "checkout" });
+        if (!args[1]?.signal?.aborted) tracker.track({ event: "checkout.failed", widget: "checkout" });
         throw error;
       }
     };
@@ -126,10 +126,13 @@ export function instrumentClient(client: GafaClient, tracker: SdkTracker): GafaC
 
   if (client.pollInitialPurchaseStatus) {
     const poll = client.pollInitialPurchaseStatus.bind(client);
-    next.pollInitialPurchaseStatus = async (payload) => {
-      const result = await poll(payload);
+    next.pollInitialPurchaseStatus = async (...args) => {
+      const [payload, options] = args;
+      const result = await poll(...args);
+      if (options?.signal?.aborted) return result;
       if (result.code === 1) {
         await syncProfile(client, tracker);
+        if (options?.signal?.aborted) return result;
         tracker.track({
           event: "checkout.paid",
           widget: "checkout",

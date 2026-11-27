@@ -90,7 +90,7 @@ export type GafaPayWidgetProps = {
    */
   onStartPayAction: () => void;
   onGafaPaySuccessAction: (result: GafaPaySuccess) => void;
-  onGafaPayErrAction: (error: { err?: unknown; message?: string }) => void;
+  onGafaPayErrAction: (error: { err?: unknown; message?: string; revision?: number }) => void;
   /**
    * Recurrente: el cobro pasa en otra ventana. GafaPayFront llama esto con
    * `{ redirect, checkout_token|id }` en cuanto tiene la URL.
@@ -106,12 +106,13 @@ export type GafaPayWidgetProps = {
   /** Stripe: `initial-payment-updating` — pausar el poll. */
   onInitialPaymentUpdating?: () => void;
   /** Stripe: `initial-payment-update-error`. */
-  onInitialPaymentUpdateError?: (error: { err?: unknown; message?: string }) => void;
+  onInitialPaymentUpdateError?: (error: { err?: unknown; message?: string; revision?: number }) => void;
   termsAndConditions?: string | boolean | null;
   hasRecurringPayment?: boolean;
   stripeCanSubscribe?: boolean;
   paymentFrequency?: string | null;
   stripeCheckoutState?: StripeCheckoutState;
+  stripeEnrollmentLineId?: number;
   changePaymentSystemProperties?: (props: { recurringPayment?: boolean; saveCard?: boolean }) => void;
   /** API de GAFApay (`api-url` del web component). */
   apiUrl?: string;
@@ -845,17 +846,18 @@ function stripeProps(props: GafaPayWidgetProps): GafaPayWidgetProps {
   const memberships = lineItems.filter((line) => line.type === "membership");
   const recurring = props.stripeCanSubscribe === true && props.hasRecurringPayment === true &&
     memberships.length === 1 && memberships[0].quantity === 1 &&
-    lineItems.every((line) => line === memberships[0] || line.unitPrice * line.quantity <= 0) &&
+    lineItems.every((line) => line === memberships[0] || line.unitPrice * line.quantity <= 0 ||
+      (line.type === "combo" && line.product_id === props.stripeEnrollmentLineId)) &&
     Number.isInteger(frequency) && frequency > 0;
   if (props.stripeCheckoutState) props.stripeCheckoutState.recurringPayment = recurring;
   return { ...props, hasRecurringPayment: recurring, paymentFrequency: recurring ? String(frequency) : null };
 }
 
-function applyStripePaymentAttributes(el: HTMLElement, props: GafaPayWidgetProps): void {
+function applyStripePaymentAttributes(el: HTMLElement, props: GafaPayWidgetProps, apiUrl: string): void {
   const customerName =
     props.order.customerName ||
     [props.customerFirstName, props.customerLastName].filter(Boolean).join(" ").trim();
-  el.setAttribute("api-url", resolveGafaPayApiUrl(props.apiUrl));
+  el.setAttribute("api-url", apiUrl);
   el.setAttribute("client-id", String(props.clientId ?? ""));
   el.setAttribute("client-secret", String(props.clientSecret ?? ""));
   el.setAttribute("customer-name", customerName);
@@ -902,6 +904,9 @@ function bindStripePaymentEvents(
     );
   };
   const onError = (event: Event) => {
+    // The IIFE's generic error has no revision. The guard reports transport
+    // errors and Stripe results directly with the revision that produced them.
+    if (onInitialPayment) return;
     const detail = detailFromEvent(event);
     if (detail && typeof detail === "object") {
       props.onGafaPayErrAction(detail as { err?: unknown; message?: string });
@@ -920,7 +925,7 @@ function bindStripePaymentEvents(
     if (status && (!(detail && typeof detail === "object" && "revision" in detail) ||
         (detail as { revision: number }).revision !== status.revision)) return;
     if (detail && typeof detail === "object") {
-      props.onInitialPaymentUpdateError?.(detail as { err?: unknown; message?: string });
+      props.onInitialPaymentUpdateError?.(detail as { err?: unknown; message?: string; revision?: number });
       return;
     }
     props.onInitialPaymentUpdateError?.({
@@ -952,11 +957,10 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
   installStripeSessionFetchGuard();
   container.replaceChildren();
   const el = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
-  applyStripePaymentAttributes(el, props);
   let currentProps = props;
   // Mismo contrato de vw.updateInitialPayment (IIFE, referencia de solo lectura).
   const updateBody = (props: GafaPayWidgetProps) => ({
-    customer_name: el.getAttribute("customer-name"),
+    customer_name: props.order.customerName || [props.customerFirstName, props.customerLastName].filter(Boolean).join(" ").trim(),
     customer_email: props.order.customerEmail || "",
     customer_phone: props.order.customerPhone || "",
     customer_first_name: props.customerFirstName,
@@ -973,10 +977,12 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
     apiUrl: resolveGafaPayApiUrl(props.apiUrl),
     checkout: props.stripeCheckoutState ?? {},
     updateBody: updateBody(props),
+    reportPaymentError: (error) => currentProps.onGafaPayErrAction(error),
     onInitialPayment: (data, created, context) => currentProps.onStripeSessionPrepare
       ? currentProps.onStripeSessionPrepare(data, context)
       : created ? currentProps.onCheckoutOpenAction?.(data) : currentProps.onInitialPaymentUpdated?.(data),
   });
+  applyStripePaymentAttributes(el, props, session.apiUrl);
   let unbind = bindStripePaymentEvents(el, props, session.onEvent);
   container.appendChild(el);
 
@@ -984,7 +990,7 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
     update: (next) => {
       next = stripeProps(widgetPropsForRuntime(runtime, next));
       unbind();
-      applyStripePaymentAttributes(el, next);
+      applyStripePaymentAttributes(el, next, session.apiUrl);
       currentProps = next;
       unbind = bindStripePaymentEvents(el, next, session.onEvent);
       session.update(updateBody(next));

@@ -73,7 +73,7 @@ describe("aislamiento de pagos por entorno", () => {
     const frontIsland = pay.mountGafaPayWidget(front, document.createElement("div"), "recurrente", props);
     stripeIsland.update(props);
     frontIsland.update(props);
-    expect(stripeBox.firstElementChild?.getAttribute("api-url")).toBe(BUQ_ENVIRONMENTS.staging.gafaPayApiUrl);
+    expect(stripeBox.firstElementChild?.getAttribute("api-url")?.replace(/\/\.gafa-checkout-widget-\d+$/, "")).toBe(BUQ_ENVIRONMENTS.staging.gafaPayApiUrl);
     expect(render).toHaveBeenCalledTimes(2);
     expect(scripts).toEqual(frontpayFirst ? [frontScript, stripeScript] : [stripeScript, frontScript]);
     expect(await pay.loadGafaPay(stripeCredentials)).toBe(stripe);
@@ -123,7 +123,7 @@ describe("aislamiento de pagos por entorno", () => {
     expect(scripts).toHaveLength(2);
     expect(window.GAFAPAY_API_URL).toBe(apiUrl);
     island.update(props);
-    expect(stripeBox.firstElementChild?.getAttribute("api-url")).toBe(apiUrl);
+    expect(stripeBox.firstElementChild?.getAttribute("api-url")?.replace(/\/\.gafa-checkout-widget-\d+$/, "")).toBe(apiUrl);
     island.unmount();
   });
 
@@ -221,13 +221,13 @@ describe("aislamiento de pagos por entorno", () => {
     const box = document.createElement("div");
     const island = pay.mountGafaPayWidget(runtime, box, method, props);
     island.update({ ...props, order: { ...props.order, customerName: "Updated" } });
-    if (method === "stripe") expect(box.firstElementChild?.getAttribute("api-url")).toBe(apiUrl);
+    if (method === "stripe") expect(box.firstElementChild?.getAttribute("api-url")?.replace(/\/\.gafa-checkout-widget-\d+$/, "")).toBe(apiUrl);
     else expect(render).toHaveBeenCalledTimes(2);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => island.update({ ...props, apiUrl: "https://gafa.fit/" })).toThrow(pay.PAY_FORM_LOAD_ERROR);
     pay.setGafaPayApiUrl("https://changed-api.example.test");
     expect(() => island.update(props)).toThrow(pay.PAY_FORM_LOAD_ERROR);
-    if (method === "stripe") expect(box.firstElementChild?.getAttribute("api-url")).toBe(apiUrl);
+    if (method === "stripe") expect(box.firstElementChild?.getAttribute("api-url")?.replace(/\/\.gafa-checkout-widget-\d+$/, "")).toBe(apiUrl);
     else expect(render).toHaveBeenCalledTimes(2);
     island.unmount();
   });
@@ -277,10 +277,10 @@ describe("aislamiento de pagos por entorno", () => {
     const runtime = await pay.loadGafaPay({ ...credentials, method: "stripe" });
     const box = document.createElement("div");
     const island = pay.mountGafaPayWidget(runtime, box, "stripe", props);
-    expect(box.firstElementChild?.getAttribute("api-url")).toBe(BUQ_ENVIRONMENTS.staging.gafaPayApiUrl);
+    expect(box.firstElementChild?.getAttribute("api-url")?.replace(/\/\.gafa-checkout-widget-\d+$/, "")).toBe(BUQ_ENVIRONMENTS.staging.gafaPayApiUrl);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => island.update({ ...props, apiUrl: "https://apipay.buq.partners" })).toThrow(pay.PAY_FORM_LOAD_ERROR);
-    expect(box.firstElementChild?.getAttribute("api-url")).toBe(BUQ_ENVIRONMENTS.staging.gafaPayApiUrl);
+    expect(box.firstElementChild?.getAttribute("api-url")?.replace(/\/\.gafa-checkout-widget-\d+$/, "")).toBe(BUQ_ENVIRONMENTS.staging.gafaPayApiUrl);
     // Una promesa cacheada nunca evita la guarda.
     pay.setStripePaymentScriptUrl("https://buq.partners/stripe.js");
     await expect(pay.loadGafaPay({ ...credentials, method: "stripe" })).rejects.toThrow(pay.PAY_FORM_LOAD_ERROR);

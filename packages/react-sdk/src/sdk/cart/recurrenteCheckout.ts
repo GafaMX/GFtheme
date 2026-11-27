@@ -39,17 +39,6 @@ function throwIfAborted(signal?: AbortSignal) {
   if (signal?.aborted) throw new HostedCheckoutClosedError();
 }
 
-function whenAborted(signal?: AbortSignal): Promise<never> {
-  return new Promise((_, reject) => {
-    if (!signal) return;
-    if (signal.aborted) {
-      reject(new HostedCheckoutClosedError());
-      return;
-    }
-    signal.addEventListener("abort", () => reject(new HostedCheckoutClosedError()), { once: true });
-  });
-}
-
 export async function pollRecurrenteUntilDone(options: {
   client: GafaClient;
   brandSlug: string;
@@ -62,30 +51,40 @@ export async function pollRecurrenteUntilDone(options: {
 }): Promise<{ reservationId?: number; raw?: unknown }> {
   const wait = options.poll ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const attempts = options.attempts ?? POLL_ATTEMPTS;
-  const cancel = whenAborted(options.signal);
+  const { signal } = options;
+  let onAbort!: () => void;
+  const cancel = new Promise<never>((_, reject) => {
+    onAbort = () => reject(new HostedCheckoutClosedError());
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 
-  for (let i = 0; i < attempts; i += 1) {
-    throwIfAborted(options.signal);
-    const status = await Promise.race([
-      options.client.pollInitialPurchaseStatus!({
+  try {
+    for (let i = 0; i < attempts; i += 1) {
+      throwIfAborted(signal);
+      const payload = {
         brandSlug: options.brandSlug,
         locationSlug: options.locationSlug,
         checkoutToken: options.checkoutToken,
         pendingPurchaseId: options.pendingPurchaseId,
-      }),
-      cancel,
-    ]);
-    if (status.code === 1) {
-      return { reservationId: status.reservationId, raw: status.raw };
+      };
+      const poll = signal ? options.client.pollInitialPurchaseStatus!(payload, { signal }) : options.client.pollInitialPurchaseStatus!(payload);
+      const status = await Promise.race([poll, cancel]);
+      throwIfAborted(signal);
+      if (status.code === 1) {
+        return { reservationId: status.reservationId, raw: status.raw };
+      }
+      if (status.code === -1) {
+        throw new Error(status.message || "No se pudo completar el pago.");
+      }
+      await Promise.race([wait(POLL_MS), cancel]);
     }
-    if (status.code === -1) {
-      throw new Error(status.message || "No se pudo completar el pago.");
-    }
-    throwIfAborted(options.signal);
-    await Promise.race([wait(POLL_MS), cancel]);
+    throw new Error("El pago sigue pendiente. Si ya pagaste, pulsa «Revisar pago».");
+  } catch (error) {
+    throwIfAborted(signal);
+    throw error;
+  } finally {
+    signal?.removeEventListener("abort", onAbort);
   }
-
-  throw new Error("El pago sigue pendiente. Si ya pagaste, pulsa «Revisar pago».");
 }
 
 /**

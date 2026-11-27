@@ -68,8 +68,8 @@ export function discountAmountFromCode(
   discount: Pick<DiscountCodeResult, "discountType" | "discountNumber">,
   subtotal: number,
 ): number {
-  const value = Number(discount.discountNumber);
-  if (!Number.isFinite(value) || subtotal <= 0) return 0;
+  const value = discount.discountNumber;
+  if (typeof value !== "number" || !Number.isFinite(value) || !Number.isFinite(subtotal) || subtotal <= 0) return 0;
   switch (discount.discountType) {
     case "price":
       return value;
@@ -81,11 +81,11 @@ export function discountAmountFromCode(
 }
 
 export function resolveDiscountAmount(result: DiscountCodeResult | null | undefined, subtotal: number): number {
-  if (!result?.valid) return 0;
-  if (result.discountType && result.discountNumber != null) {
-    return Math.max(0, discountAmountFromCode(result, subtotal));
-  }
-  return Math.max(0, result.discountAmount ?? 0);
+  if (!result?.valid || !Number.isFinite(subtotal) || subtotal <= 0) return 0;
+  const amount = result.discountType == null
+    ? result.discountAmount
+    : discountAmountFromCode(result, subtotal);
+  return typeof amount === "number" && Number.isFinite(amount) && amount > 0 ? Math.min(amount, subtotal) : 0;
 }
 
 export function discountCheckErrorMessage(data: unknown): string | undefined {
@@ -119,18 +119,18 @@ export function parseDiscountCheckResponse(code: string, ok: boolean, data: unkn
       ? (raw.discountCode as Record<string, unknown>)
       : raw;
   const discountType = typeof nested.discount_type === "string" ? nested.discount_type : undefined;
-  const parsedNumber =
-    typeof nested.discount_number === "number" ? nested.discount_number : Number(nested.discount_number);
-  const discountNumber = Number.isFinite(parsedNumber) ? parsedNumber : undefined;
+  const value = nested.discount_number;
+  const discountNumber = typeof value === "number" || typeof value === "string" ? Number(value) : NaN;
   const looksLikeCode = nested.id != null && (typeof nested.code === "string" || Boolean(discountType));
-  if (!looksLikeCode) {
+  if (!looksLikeCode || (discountType !== "price" && discountType !== "percent") ||
+      !Number.isFinite(discountNumber) || discountNumber <= 0 || raw.success === false || raw.error || raw.errors) {
     return { valid: false, code, message: discountCheckErrorMessage(data) ?? "Código no válido" };
   }
 
   const label =
     typeof nested.short_description === "string" && nested.short_description
       ? nested.short_description
-      : discountType === "percent" && discountNumber != null
+      : discountType === "percent"
         ? `${code} · ${discountNumber}%`
         : code;
 

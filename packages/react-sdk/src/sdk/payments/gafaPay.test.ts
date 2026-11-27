@@ -329,7 +329,7 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
     const island = mountGafaPayWidget(runtime, box, "stripe", props);
     const el = box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG);
     expect(el).toBeTruthy();
-    expect(el?.getAttribute("api-url")).toBe("https://apipay.buq.partners");
+    expect(el?.getAttribute("api-url")).toMatch(/^https:\/\/apipay\.buq\.partners\/\.gafa-checkout-widget-\d+$/);
     expect(el?.getAttribute("client-id")).toBe("282");
     expect(el?.getAttribute("customer-first-name")).toBe("Ana");
     expect(el?.getAttribute("currency")).toBe("mxn");
