@@ -65,6 +65,13 @@ export function cartHasMembership(lines: Array<Pick<CartLine, "type">>): boolean
   return lines.some((line) => line.type === "membership");
 }
 
+/** Solo una membresía expresamente suscribible ofrece renovación. */
+export function cartHasSubscribableMembership(
+  lines: Array<Pick<CartLine, "type" | "raw">>,
+): boolean {
+  return lines.some((line) => line.type === "membership" && coerceFlag(line.raw?.subscribable) === true);
+}
+
 function isPaypalMethod(slug: string | undefined): boolean {
   return (slug ?? "").trim().toLowerCase() === "paypal";
 }
@@ -82,6 +89,7 @@ const SAVE_SELECTORS = '#saveCard, [name="saveCard"], [name="save_card"]';
 /** Frontpay sigue autoRenew; Stripe conserva su casilla al confirmar. */
 const RENEW_SELECTORS =
   '#recurringPayment, [name="recurringPayment"], [name="subscribe"]';
+const legacyToggleVersions = new WeakMap<ParentNode, number>();
 
 export function findStripeRecurringCheckbox(root: ParentNode): HTMLInputElement | null {
   for (const input of root.querySelectorAll<HTMLInputElement>('stripe-payment-element input[type="checkbox"]')) {
@@ -219,6 +227,11 @@ export async function syncGafaPayMembershipToggles(
     }
     if (state.failed) return false;
   }
+  // Un clic posterior o el preflight de pago invalida reintentos anteriores.
+  // Así una sincronización pendiente no revierte la última elección del SDK.
+  const version = (legacyToggleVersions.get(root) ?? 0) + 1;
+  if (!stripe) legacyToggleVersions.set(root, version);
+  const superseded = () => !stripe && legacyToggleVersions.get(root) !== version;
   const desired = [
     [() => root.querySelector<HTMLInputElement>(SAVE_SELECTORS), toggles.saveCard, false],
     [() => stripe ? null : root.querySelector<HTMLInputElement>(RENEW_SELECTORS), toggles.autoRenew, !stripe && toggles.autoRenew],
@@ -229,6 +242,7 @@ export async function syncGafaPayMembershipToggles(
   });
   if (ok()) return true;
   for (let attempt = 0; attempt < 3; attempt++) {
+    if (superseded()) return false;
     for (const [findInput, checked] of desired) {
       const input = findInput();
       if (input && input.checked !== checked) {
@@ -236,6 +250,7 @@ export async function syncGafaPayMembershipToggles(
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 40));
+    if (superseded()) return false;
     if (ok()) return true;
   }
   console.warn("[gafa-sdk] No se pudieron verificar las opciones recurrentes de GafaPay.");
