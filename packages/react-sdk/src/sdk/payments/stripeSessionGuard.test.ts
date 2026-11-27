@@ -167,6 +167,24 @@ describe("sesiones Stripe del SDK", () => {
     method: "POST", body: JSON.stringify({ tokenInput, recurringPayment, ...extra }),
   });
 
+  it("descarta un opt-in encolado antes de enviarlo si el usuario ya desmarcó", async () => {
+    const { mount, respondWith, network } = await setup();
+    const held = deferred<Response>();
+    respondWith(async (_url, body) => body.hold ? held.promise : json({ message: body.tokenInput, client_secret: mount.secret }));
+    const first = update(mount.token, false, { hold: true });
+    await vi.waitFor(() => expect(network).toHaveBeenCalledTimes(3));
+    chooseStripeRecurrence(mount.element, true);
+    const queued = update(mount.token, true);
+    chooseStripeRecurrence(mount.element, false);
+    const latest = update(mount.token, false);
+    held.resolve(json({ message: mount.token, client_secret: mount.secret }));
+    await first;
+    expect(await (await queued).json()).toEqual({});
+    await latest;
+    expect(network.mock.calls.some(([, init]) => JSON.parse(String(init?.body ?? "{}")).recurringPayment === true)).toBe(false);
+    expect(stripeRecurrenceConfirmed(mount.element, false)).toBe(true);
+  });
+
   it("serializa peticiones reales solapadas y la respuesta anterior no confirma ni aporta secret", async () => {
     const { mount, respondWith, network } = await setup();
     const first = deferred<Response>(); const last = deferred<Response>();

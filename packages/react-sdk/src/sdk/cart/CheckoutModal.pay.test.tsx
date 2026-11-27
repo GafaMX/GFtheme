@@ -611,12 +611,12 @@ describe("CheckoutModal Stripe / GafaPay confirm", () => {
   it("si falta initialPurchase no se queda en Procesando: muestra el error", async () => {
     const { initialPurchase: _ignored, ...rest } = mockClient();
     renderPay(rest as GafaClient);
-    await waitUntilPayReady();
 
     await waitFor(() => {
       expect(screen.getByText(/ya fue cobrada|no tiene configurado el pago|no pudimos iniciar el pago/i)).toBeTruthy();
     });
     expect(screen.queryByRole("button", { name: /procesando/i })).toBeNull();
+    expect(payButton().disabled).toBe(true);
   });
 
   it("si el poll trae la reserva, la muestra en el thank you", async () => {
@@ -1123,7 +1123,7 @@ describe("CheckoutModal recurrencia legacy (puente real de frontpay)", () => {
   beforeEach(() => {
     roots = new Map();
     checkouturl = vi.fn();
-    useCartStore.setState({ lines: [membershipLine], reservation: null });
+    useCartStore.setState({ lines: [membershipLine], reservation: null, membershipRecurrence: null });
     // Reproduce el contrato del bundle: estado de React, onChange y
     // openCheckout leyendo el estado, no el atributo checked del DOM.
     function RecurrentePayment(props: GafaPayWidgetProps) {
@@ -1289,7 +1289,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
 
   beforeEach(() => {
     lastProps = undefined;
-    useCartStore.setState({ lines: [membershipLine], reservation: null });
+    useCartStore.setState({ lines: [membershipLine], reservation: null, membershipRecurrence: null });
     mocks.loadGafaPay.mockResolvedValue({
       React: { createElement: () => null },
       ReactDOM: { render: () => undefined, unmountComponentAtNode: () => true },

@@ -118,6 +118,16 @@ export function hasStripeSession(element: Element): boolean {
   return sessions.has(element);
 }
 
+/** Identity of the session whose purchase registration must finish before pay. */
+export function stripeSessionSnapshot(element: Element | null) {
+  const session = element ? sessions.get(element) : undefined;
+  if (!session?.active || !session.token || !session.secret) return null;
+  return {
+    element: session.element, token: session.token, secret: session.secret,
+    version: session.version, generation: session.generation,
+  };
+}
+
 /** Replace only the attempt and token used to request the discount. Retired
  * token ownership is retained so a late discount cannot enter another mount.
  */
@@ -285,6 +295,9 @@ export function installStripeSessionFetchGuard(): void {
       const run = async () => {
         try {
           if (!session.active || session.failed || generation !== session.generation) return jsonResponse({});
+          // A queued opt-in must never reach the server after an opt-out.
+          // In-flight requests still contribute their continuation token below.
+          if (update && requested === true && session.desired === false && version !== session.version) return jsonResponse({});
           // Earlier responses may have rotated the continuation token while
           // this request was queued, or without reaching the IIFE at all.
           const requestToken = session.token;
