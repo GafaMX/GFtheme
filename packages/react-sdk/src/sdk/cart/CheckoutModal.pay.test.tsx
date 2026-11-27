@@ -1328,6 +1328,9 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
       lastProps = props;
       container.innerHTML = `<stripe-payment-element><label><input type="checkbox" checked>Pago Recurrente (cada 30 días)</label></stripe-payment-element>`;
+      const element = container.querySelector("stripe-payment-element")!;
+      element.dispatchEvent(new Event("initial-payment-updating"));
+      element.dispatchEvent(new Event("initial-payment-updated"));
       return { update: () => undefined, unmount: () => undefined };
     });
   }
@@ -1414,6 +1417,71 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(sdk().checked).toBe(true);
     expect(input.checked).toBe(true);
     expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: true }));
+  });
+
+  it("resolver primero la actualización inicial de una isla nueva conserva Pagar deshabilitado hasta confirmar la baja", async () => {
+    let resolveInitial!: () => void;
+    let resolveDisable!: () => void;
+    const initial = new Promise<void>((resolve) => { resolveInitial = resolve; });
+    const disable = new Promise<void>((resolve) => { resolveDisable = resolve; });
+    let mounts = 0;
+    let providerRecurring = true;
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      const fresh = ++mounts === 3;
+      container.innerHTML = `<stripe-payment-element><label><input type="checkbox" checked>Pago Recurrente (cada 30 días)</label></stripe-payment-element>`;
+      const element = container.querySelector("stripe-payment-element")!;
+      const input = container.querySelector<HTMLInputElement>("input")!;
+      const request = (checked: boolean, response: Promise<void>) => {
+        element.dispatchEvent(new Event("initial-payment-updating"));
+        void response.then(() => {
+          providerRecurring = checked;
+          props.onInitialPaymentUpdated?.({ message: checked ? "chk_initial" : "chk_disabled" });
+          element.dispatchEvent(new Event("initial-payment-updated"));
+        });
+      };
+      // The initial request starts synchronously during mount, before readiness.
+      request(true, fresh ? initial : Promise.resolve());
+      input.addEventListener("click", () => request(input.checked, fresh ? disable : Promise.resolve()));
+      return { update: () => undefined, unmount: () => container.replaceChildren() };
+    });
+    const client = mockClient();
+    renderPay(client);
+    const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
+    const sdk = () => screen.getByLabelText(/pago recurrente \(se renueva/i) as HTMLInputElement;
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    fireEvent.click(sdk());
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    act(() => useCartStore.setState({ lines: [{ ...membershipLine, raw: { subscribable: false } }] }));
+    await waitFor(() => expect(mounts).toBe(2));
+    act(() => useCartStore.setState({ lines: [membershipLine] }));
+    await waitFor(() => expect(mounts).toBe(3));
+    expect(sdk().checked).toBe(false);
+    expect(pay().disabled).toBe(true);
+    const charge = vi.fn(() => { expect(providerRecurring).toBe(false); });
+    window._handleStripePayment = charge;
+
+    await act(async () => {
+      resolveInitial();
+      await initial;
+    });
+    const internal = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
+    await waitFor(() => expect(internal.checked).toBe(false));
+    expect(providerRecurring).toBe(true);
+    expect(sdk().checked).toBe(false);
+    expect(pay().disabled).toBe(true);
+    fireEvent.click(pay());
+    expect(charge).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveDisable();
+      await disable;
+    });
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    fireEvent.click(pay());
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+    expect(providerRecurring).toBe(false);
+    expect(sdk().checked).toBe(false);
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: false }));
   });
 
   it.each(["error", "timeout"])("mantiene el pago deshabilitado si Stripe no confirma la elección: %s", async (failure) => {
