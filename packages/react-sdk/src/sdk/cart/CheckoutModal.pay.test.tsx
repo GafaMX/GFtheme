@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CheckoutConfig, DiscountCodeResult, GafaClient, Meeting } from "../client/types";
+import type { CatalogItem, CheckoutConfig, DiscountCodeResult, GafaClient, Meeting } from "../client/types";
 import type { GafaPayIsland, GafaPayWidgetProps } from "../payments/gafaPay";
 import { CheckoutModal, PAYPAL_CLOSE_HOLD_MS } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
@@ -1096,8 +1096,9 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
 
   function deferred<T>() {
     let resolve!: (value: T) => void;
-    const promise = new Promise<T>((done) => { resolve = done; });
-    return { promise, resolve };
+    let reject!: (error: Error) => void;
+    const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+    return { promise, resolve, reject };
   }
 
   const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
@@ -1148,6 +1149,120 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(input.disabled).toBe(false);
     await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
     expect(lastProps?.paymentFrequency).toBe("30");
+    expect(input.closest("label")?.className).toBe("gafa-check-row");
+    fireEvent.click(screen.getByText("Pago recurrente"));
+    expect(useCartStore.getState().lines[0].autoRenew).toBe(false);
+    await ready();
+    const unchecked = screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement;
+    expect(unchecked.disabled).toBe(false);
+    fireEvent.click(screen.getByText("Pago recurrente"));
+    expect(useCartStore.getState().lines[0].autoRenew).toBe(true);
+  });
+
+  it.each(["catalog", "config", "catalog raw", "config raw"])(
+    "can_subscribe actual de %s manda sobre el raw persistido y subscribable",
+    async (source) => {
+      for (const canSubscribe of [false, true]) {
+        useCartStore.setState({ lines: [{
+          ...membershipLine,
+          raw: { subscribable: !canSubscribe, can_subscribe: !canSubscribe, expiration_days: 30 },
+        }] });
+        const item: CatalogItem = {
+          id: membershipLine.id, name: membershipLine.name, type: "membership",
+          subscribable: !canSubscribe, expirationDays: 30,
+          ...(source.endsWith("raw")
+            ? { raw: { can_subscribe: canSubscribe } }
+            : { can_subscribe: canSubscribe }),
+        };
+        const client = mockClient({
+          listMemberships: async () => source.startsWith("catalog") ? [item] : [],
+          getCheckoutConfig: async () => ({
+            ...checkoutConfig(), memberships: source.startsWith("config") ? [item] : [],
+          }),
+        });
+        const view = renderPay(client);
+        await ready();
+        expect(Boolean(screen.queryByRole("checkbox", { name: "Pago recurrente" }))).toBe(canSubscribe);
+        expect(lastProps?.hasRecurringPayment).toBe(canSubscribe);
+        expect(lastProps?.paymentFrequency).toBe(canSubscribe ? "30" : null);
+        expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({
+          subscribe: canSubscribe,
+          lines: [expect.objectContaining({ raw: expect.objectContaining({ can_subscribe: canSubscribe }) })],
+        }));
+        for (const [payload] of vi.mocked(client.previewPurchase!).mock.calls) {
+          expect(payload.subscribe).toBe(canSubscribe);
+        }
+        view.unmount();
+      }
+    },
+  );
+
+  it.each([true, false, undefined, "error"] as const)(
+    "catálogo lento: skeleton y sin Stripe ni Pagar hasta resolver can_subscribe=%s",
+    async (result) => {
+      const catalog = deferred<CatalogItem[]>();
+      const config = vi.fn(async () => checkoutConfig()); // create-form-template no trae membresías.
+      useCartStore.setState({ lines: [{
+        ...membershipLine, raw: { subscribable: true, can_subscribe: true, expiration_days: 30 },
+      }] });
+      const client = mockClient({ getCheckoutConfig: config, listMemberships: () => catalog.promise });
+      renderPay(client);
+      await waitFor(() => expect(config).toHaveBeenCalled());
+      expect(screen.getByText("Revisando tu compra…")).toBeTruthy();
+      expect(pay().disabled).toBe(true);
+      expect(screen.queryByRole("checkbox", { name: "Pago recurrente" })).toBeNull();
+      expect(mocks.mountGafaPayWidget).not.toHaveBeenCalled();
+      expect(client.previewPurchase).not.toHaveBeenCalled();
+      expect(client.initialPurchase).not.toHaveBeenCalled();
+      fireEvent.click(pay());
+      expect(client.initialPurchase).not.toHaveBeenCalled();
+
+      await act(async () => {
+        if (result === "error") catalog.reject(new Error("Catálogo no disponible"));
+        else catalog.resolve([{
+          id: membershipLine.id, name: membershipLine.name, type: "membership",
+          subscribable: true, can_subscribe: result, expirationDays: 30,
+        }]);
+      });
+      await ready();
+      expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(1);
+      expect(lastProps?.hasRecurringPayment).toBe(result !== false);
+      expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: result !== false }));
+    },
+  );
+
+  it.each([false, true])("config con can_subscribe=%s permite continuar con el catálogo pendiente", async (canSubscribe) => {
+    const catalog = deferred<CatalogItem[]>();
+    const client = mockClient({
+      listMemberships: () => catalog.promise,
+      getCheckoutConfig: async () => ({ ...checkoutConfig(), memberships: [{
+        id: membershipLine.id, name: membershipLine.name, can_subscribe: canSubscribe,
+      }] }),
+    });
+    renderPay(client);
+    await ready();
+    expect(lastProps?.hasRecurringPayment).toBe(canSubscribe);
+  });
+
+  it.each([undefined, null, 0, 1, "false", "true"])("can_subscribe actual no booleano (%s) usa subscribable", async (canSubscribe) => {
+    const client = mockClient({ listMemberships: async () => [{
+      id: membershipLine.id, name: membershipLine.name,
+      raw: { can_subscribe: canSubscribe },
+    }] });
+    renderPay(client);
+    await ready();
+    expect(lastProps?.hasRecurringPayment).toBe(true);
+  });
+
+  it.each([false, true])("sin campo actual ignora can_subscribe persistido contrario a subscribable=%s", async (subscribable) => {
+    useCartStore.setState({ lines: [{
+      ...membershipLine, raw: { can_subscribe: !subscribable, subscribable },
+    }] });
+    const client = mockClient();
+    renderPay(client);
+    await ready();
+    expect(lastProps?.hasRecurringPayment).toBe(subscribable);
+    expect(Boolean(screen.queryByRole("checkbox", { name: "Pago recurrente" }))).toBe(subscribable);
   });
 
   it.each([

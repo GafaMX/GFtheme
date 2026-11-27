@@ -605,11 +605,27 @@ export function CheckoutModal({
   const products = classAttached
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
+  const currentCanSubscribe = (line: CartLine): boolean | undefined => {
+    // Solo datos cargados en esta sesión: el raw del carrito puede estar obsoleto.
+    for (const pool of [catalogQuery.data?.memberships, config?.memberships]) {
+      const item = pool?.find((item) => sameCatalogId(item.id, line.id));
+      if (typeof item?.can_subscribe === "boolean") return item.can_subscribe;
+      if (typeof item?.raw?.can_subscribe === "boolean") return item.raw.can_subscribe;
+    }
+    return undefined;
+  };
+  const membershipEligibilityPending = !mockPay && cartLines.some(
+    (line) => line.type === "membership" && currentCanSubscribe(line) === undefined,
+  ) && ((!catalogQuery.isFetched && !catalogQuery.isError) || configQuery.isLoading);
   const relevantLines = cartLines.map((line) => {
     if (line.type !== "membership") return line;
     const item = memberships.find((item) => sameCatalogId(item.id, line.id)) ??
       config?.memberships?.find((item) => sameCatalogId(item.id, line.id));
-    return item ? { ...line, raw: { ...catalogCartRaw(item), ...line.raw } } : line;
+    const canSubscribe = currentCanSubscribe(line);
+    return item ? { ...line, raw: {
+      ...catalogCartRaw(item), ...line.raw,
+      ...(canSubscribe === undefined ? {} : { can_subscribe: canSubscribe }),
+    } } : line;
   });
   const purchaseKey = cartPurchaseKey(relevantLines);
   const membershipPurchase = cartHasMembership(relevantLines);
@@ -775,9 +791,10 @@ export function CheckoutModal({
 
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
   const recurringMembership = relevantLines.find(
-    (line) => line.type === "membership" && coerceFlag(line.raw?.subscribable) === true,
+    (line) => line.type === "membership" &&
+      (currentCanSubscribe(line) ?? coerceFlag(line.raw?.subscribable)) === true,
   );
-  const autoRenew = selectedMethod?.slug === "stripe"
+  const autoRenew = (selectedMethod?.slug ?? paymentMethods[0]?.slug) === "stripe"
     ? Boolean(recurringMembership && recurringMembership.autoRenew !== false)
     : legacyAutoRenew;
   const setAutoRenew = (checked: boolean) => {
@@ -833,6 +850,7 @@ export function CheckoutModal({
   const waitingOnGift = convertGift && giftStatus !== "ok";
   const canPay =
     relevantLines.length > 0 &&
+    !membershipEligibilityPending &&
     Boolean(profileQuery.data) &&
     !waitingOnTerms &&
     !waitingOnGift &&
@@ -853,7 +871,7 @@ export function CheckoutModal({
         (configQuery.isLoading || purchaseChecking || !purchaseAlreadyClear)));
   const reviewingDirect =
     Boolean(preselect) && !purchaseNotice && preselectStatus !== "idle" && preselectStatus !== "ready";
-  const reviewingPurchase = reviewingDirect || holdPayForm;
+  const reviewingPurchase = membershipEligibilityPending || reviewingDirect || holdPayForm;
 
   function resolvedGiftCode(): string | null {
     if (!convertGift || giftStatus !== "ok") return null;
@@ -1800,6 +1818,10 @@ export function CheckoutModal({
   // las reglas corren antes de pintar la tarjeta. registerOnly ya cobró.
   useEffect(() => {
     if (purchaseNotice || step !== "pay" || registerOnly) return;
+    if (membershipEligibilityPending) {
+      setPurchaseChecking(true);
+      return;
+    }
     if (mockPay) {
       purchaseClearKey.current = purchaseKey;
       setPurchaseChecking(false);
@@ -1852,6 +1874,7 @@ export function CheckoutModal({
     configQuery.isError,
     client,
     purchaseKey,
+    membershipEligibilityPending,
   ]);
 
   async function proceedToPay() {
@@ -2719,10 +2742,11 @@ export function CheckoutModal({
 /** Conserva en el carrito los metadatos tipados aunque el catálogo no traiga raw. */
 function catalogCartRaw(item: CatalogItem): Record<string, unknown> | undefined {
   const cap = purchaseAmountCap(item);
-  if (!item.raw && cap == null && item.subscribable == null && item.expirationDays == null) return undefined;
+  if (!item.raw && cap == null && item.subscribable == null && item.can_subscribe == null && item.expirationDays == null) return undefined;
   const raw = { ...(item.raw ?? {}) };
   if (cap != null && raw.reservations_max == null) raw.reservations_max = cap;
   if (item.subscribable != null && raw.subscribable == null) raw.subscribable = item.subscribable;
+  if (typeof item.can_subscribe === "boolean") raw.can_subscribe = item.can_subscribe;
   if (item.expirationDays != null && raw.expiration_days == null) raw.expiration_days = item.expirationDays;
   return raw;
 }
