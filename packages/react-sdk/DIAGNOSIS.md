@@ -122,3 +122,19 @@ Las regresiones usan el guard y el modal de producción con el contrato DOM del 
 **Requisitos de GAFApay.** El servidor debe aplicar idempotencia y validar atómicamente el token, la revisión, el importe y las preferencias, incluida la de guardar tarjeta, antes de autorizar el pago. Tras una escritura indeterminada debe emitir una orden aislada de la anterior y exponer un estado definitivo para reconciliarla. La cuarentena puede identificar los tokens conocidos por el cliente y la barrera comparte el estado entre montajes de la misma página. La coordinación entre pestañas, recargas y otros clientes requiere el backend.
 
 **Verificación local.** La segunda corrida de la suite completa con `--pool threads` pasó 1234 pruebas en 129 archivos. Concierge falló de forma intermitente en la corrida anterior y pasó sus 13 pruebas en aislamiento. Pasaron `typecheck`, `build`, `build:embed` y `git diff --check`. HEAD sigue en `22861f6`.
+
+## PR 321 — revisión independiente sobre e4b738c
+
+Las siete regresiones reproducen los fallos sobre `e4b738c` con el modal y el guard reales, un consumidor del contrato DOM del IIFE y transporte simulado.
+
+- **Segundo cobro tras cambiar la cantidad.** La reserva en memoria usa la marca y el cliente del carrito, independientemente de sus líneas e importes. La reapertura bloquea el aumento de cantidad y una modificación externa del carrito conserva «Revisar pago». La prueba comprueba que solo el rechazo explícito de Stripe permite preparar los $200.
+- **Cupón aplicado sin descuento efectivo.** Un cambio de carrito retira el cupón y bloquea el pago hasta revalidarlo, aunque la respuesta anterior careciera de secret. La prueba reduce de dos unidades de $300 a una con un cupón del 0,001 %, comprueba que la validación bloquea `complete` y que el cupón pasa a error antes de ofrecer el total completo.
+- **Token nuevo con secret en cuarentena.** Una escritura incierta invalida los tokens y los secrets de Stripe asociados. La prueba agota el plazo del primer cupón, rechaza un token distinto con el mismo secret tras el `process` de recuperación y tras reabrir, y solo habilita el pago con una orden y un secret nuevos.
+- **Redondeo de la matrícula.** El total y los tres payloads comparten el mismo descuento en céntimos sobre las líneas elegibles. La matrícula queda íntegra. Con 10,05 € de membresía, 30 € de matrícula y un cupón del 10 %, la prueba comprueba 39,05 € en el CTA, los payloads y el resultado.
+- **Catálogo invalidado durante la reconsulta.** El guard comprueba el estado actual de la consulta antes de aceptar un `complete` recurrente, incluso antes del siguiente render. La prueba retiene la respuesta nueva, verifica cero solicitudes de `complete` durante la espera y confirma en pago único tras recibir `can_subscribe: false`.
+- **Error antes de `complete`.** El adaptador asocia `payment-start` con la revisión preparada y acepta su error local antes de `complete`. La prueba reproduce la salida de «Procesando…» y permite reintentar. Otra prueba retiene el eco de un `complete` obsoleto hasta que comienza el intento vigente y comprueba que su UI sigue procesando.
+- **Cupón válido con el mismo secret.** Si el secret devuelto corresponde al precio anterior, el guard inicia un `process` nuevo con el importe descontado. La prueba parte de $100, registra el cupón y solo confirma con la sesión nueva de $90.
+
+**Requisito de GAFApay.** Tras una escritura incierta, GAFApay debe crear una orden y una sesión de Stripe aisladas y evitar que la escritura anterior las modifique. La cuarentena cubre las identidades conocidas por el cliente. La validación atómica de revisión e importe y la idempotencia entre pestañas, recargas y clientes requieren el backend.
+
+**Verificación local.** Pasaron 1241 pruebas en 129 archivos con `--pool threads`, `typecheck`, `build`, `build:embed` y `git diff --check`. HEAD sigue en `e4b738c`.

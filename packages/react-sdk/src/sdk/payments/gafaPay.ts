@@ -894,30 +894,17 @@ function detailFromEvent(event: Event): unknown {
 function bindStripePaymentEvents(
   el: HTMLElement,
   props: GafaPayWidgetProps,
-  onInitialPayment?: (data: unknown, created: boolean) => void,
+  session: ReturnType<typeof registerStripeSession>,
 ): () => void {
-  const onStart = () => props.onStartPayAction();
+  const onStart = () => { if (session.onPaymentStart()) props.onStartPayAction(); };
   const onSuccess = (event: Event) => {
     const detail = detailFromEvent(event);
     props.onGafaPaySuccessAction(
       detail && typeof detail === "object" ? (detail as GafaPaySuccess) : { message: detail },
     );
   };
-  const onError = (event: Event) => {
-    // The IIFE's generic error has no revision. The guard reports transport
-    // errors and Stripe results directly with the revision that produced them.
-    if (onInitialPayment) return;
-    const detail = detailFromEvent(event);
-    if (detail && typeof detail === "object") {
-      props.onGafaPayErrAction(detail as { err?: unknown; message?: string });
-      return;
-    }
-    props.onGafaPayErrAction({ message: typeof detail === "string" ? detail : "Ocurrió un error durante el pago." });
-  };
-  const onCreated = (event: Event) => onInitialPayment
-    ? onInitialPayment(detailFromEvent(event), true) : props.onCheckoutOpenAction?.(detailFromEvent(event));
-  const onUpdated = (event: Event) => onInitialPayment
-    ? onInitialPayment(detailFromEvent(event), false) : props.onInitialPaymentUpdated?.(detailFromEvent(event));
+  const onError = (event: Event) => session.onPaymentError(detailFromEvent(event));
+  // Session preparation registers accepted responses before the IIFE emits its echoes.
   const onUpdating = () => props.onInitialPaymentUpdating?.();
   const onUpdateError = (event: Event) => {
     const detail = detailFromEvent(event);
@@ -936,8 +923,6 @@ function bindStripePaymentEvents(
   el.addEventListener("payment-start", onStart);
   el.addEventListener("payment-success", onSuccess);
   el.addEventListener("payment-error", onError);
-  el.addEventListener("initial-payment-created", onCreated);
-  el.addEventListener("initial-payment-updated", onUpdated);
   el.addEventListener("initial-payment-updating", onUpdating);
   el.addEventListener("initial-payment-update-error", onUpdateError);
 
@@ -945,8 +930,6 @@ function bindStripePaymentEvents(
     el.removeEventListener("payment-start", onStart);
     el.removeEventListener("payment-success", onSuccess);
     el.removeEventListener("payment-error", onError);
-    el.removeEventListener("initial-payment-created", onCreated);
-    el.removeEventListener("initial-payment-updated", onUpdated);
     el.removeEventListener("initial-payment-updating", onUpdating);
     el.removeEventListener("initial-payment-update-error", onUpdateError);
   };
@@ -983,7 +966,7 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
       : created ? currentProps.onCheckoutOpenAction?.(data) : currentProps.onInitialPaymentUpdated?.(data),
   });
   applyStripePaymentAttributes(el, props, session.apiUrl);
-  let unbind = bindStripePaymentEvents(el, props, session.onEvent);
+  let unbind = bindStripePaymentEvents(el, props, session);
   container.appendChild(el);
 
   return {
@@ -992,7 +975,7 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
       unbind();
       applyStripePaymentAttributes(el, next, session.apiUrl);
       currentProps = next;
-      unbind = bindStripePaymentEvents(el, next, session.onEvent);
+      unbind = bindStripePaymentEvents(el, next, session);
       session.update(updateBody(next));
       // El IIFE tiene attributeChangedCallback vacío. Si llamamos render()
       // React remonta hw con un `order`/`onPaymentError` nuevos y re-dispara

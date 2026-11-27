@@ -1,4 +1,6 @@
 /** Narrow adapter for Stripe Checkout Elements. All other Stripe methods pass through. */
+export class StripeConfirmationError extends Error {}
+
 export type StripeSurfaceLifecycle = {
   owns: (secret: string) => boolean;
   mount: (secret: string, node: Element, destroy: () => void, provider: object) => boolean;
@@ -65,13 +67,16 @@ export function installStripeSurfaceTracking(lifecycle: StripeSurfaceLifecycle):
                         const call = Reflect.get(actions, action);
                         if (action !== "confirm") return typeof call === "function" ? call.bind(actions) : call;
                         return async (...confirmArgs: any[]) => {
-                          if (!lifecycle.canConfirm(secret, provider)) throw new Error("La sesión de Stripe cambió. Espera al formulario vigente.");
+                          if (!lifecycle.canConfirm(secret, provider)) throw new StripeConfirmationError("La sesión de Stripe cambió. Espera al formulario vigente.");
                           try {
                             const response = await call.apply(actions, confirmArgs);
                             const success = response?.type === "success" ? true : response?.type === "error" ? false : undefined;
                             lifecycle.confirmed(secret, success, provider, response?.error);
                             return response;
-                          } catch (error) { lifecycle.confirmed(secret, undefined, provider, error); throw error; }
+                          } catch (error) {
+                            lifecycle.confirmed(secret, undefined, provider, error);
+                            throw new StripeConfirmationError(error instanceof Error ? error.message : "No pudimos confirmar el pago.");
+                          }
                         };
                       },
                     }) };

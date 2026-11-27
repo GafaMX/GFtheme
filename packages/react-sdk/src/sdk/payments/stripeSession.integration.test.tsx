@@ -53,6 +53,8 @@ let bootstrapRequestDelayMs = 0;
 let bootstrapDeliveryDelayMs = 0;
 let surfaceDelayMs = 0;
 let emitPaymentEvents = false;
+let beforeComplete: (() => void | Promise<void>) | undefined;
+let beforePaymentError: (() => Promise<void>) | undefined;
 const stripeFactory = vi.fn();
 let capturedActions: any[] = [];
 
@@ -101,10 +103,14 @@ function IifeForm({ host, props, payment, setPayment, recurring, setRecurring }:
     setBusy(true);
     if (emitPaymentEvents) host.dispatchEvent(new CustomEvent("payment-start"));
     try {
+      if (beforeComplete) await beforeComplete();
       await post("completeinitialpayment", { tokenInput: payment.message, saveCard }, `${props.apiUrl}/api/stripe.`);
       const result = await actions.current.confirm();
       if (emitPaymentEvents && result?.type === "success") host.dispatchEvent(new CustomEvent("payment-success"));
-    } catch (error) { host.dispatchEvent(new CustomEvent("payment-error", { detail: error })); }
+    } catch (error) {
+      if (beforePaymentError) await beforePaymentError();
+      host.dispatchEvent(new CustomEvent("payment-error", { detail: error }));
+    }
     finally { setBusy(false); }
   }}>
     <div ref={mount} />
@@ -195,7 +201,8 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
     vi.useFakeTimers();
     initStripe.mockReset(); confirm.mockReset(); formMounts = 0; calls.length = 0;
     checkout = {}; bootstrapRequestDelayMs = 0; bootstrapDeliveryDelayMs = 0; surfaceDelayMs = 0;
-    emitPaymentEvents = false; hostTransport = undefined; stripeFactory.mockClear(); capturedActions = [];
+    emitPaymentEvents = false; beforeComplete = undefined; beforePaymentError = undefined;
+    hostTransport = undefined; stripeFactory.mockClear(); capturedActions = [];
     box = document.createElement("div"); document.body.appendChild(box);
     purchase = vi.fn(async () => undefined);
     network = vi.fn();
@@ -1147,6 +1154,34 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
+  it("reconcilia automáticamente un cupón válido que devuelve el mismo token y secret para otro importe", async () => {
+    const old = { message: "original", client_secret: "original_secret" };
+    const fresh = { message: "discounted", client_secret: "discounted_secret" };
+    network.mockResolvedValue(json(old));
+    const client = modalClient({ checkDiscountCode: vi.fn(async () => ({
+      valid: true, code: "BUQMX", discountType: "percent", discountNumber: 10,
+      checkoutToken: old.message, clientSecret: old.client_secret,
+    })) });
+    await renderModal(client);
+    const oldActions = capturedActions.at(-1);
+    network.mockImplementation(async (path) => json(path === "completeinitialpayment" ? completeSuccess : fresh));
+    startCoupon();
+    await advance(100);
+    expect(discountStatus()).toBe("ok");
+    expect(calls.filter(({ path }) => path === "processinitialpayment").at(-1)?.body).toMatchObject({
+      lineItems: [expect.objectContaining({ unitPrice: 90 })],
+    });
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({
+      checkoutToken: fresh.message, discountCode: "BUQMX",
+    }), expect.anything());
+    expect(modalPay().disabled).toBe(false);
+    expect(modalPay().textContent).toContain("$90");
+    await expect(oldActions.confirm()).rejects.toThrow(/sesión/);
+    fireEvent.click(modalPay());
+    await advance(0);
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(fresh.client_secret);
+  });
+
   it("modal real: CART+ y CART− con bajas rápidas remontan un solo formulario conectado con el secret vigente", async () => {
     let revision = 0;
     network.mockImplementation(async (path: string) => json({ message: "same_token", client_secret: path === "processinitialpayment" ? `secret_${++revision}` : `secret_${revision}` }));
@@ -1238,6 +1273,40 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
     expect(calls.at(-1)?.body.lineItems[0].unitPrice).toBe(90);
   });
 
+  it("revalida el cupón sin secret cuando una baja vuelve incobrable su descuento en céntimos", async () => {
+    const coupon = { valid: true, code: "BUQMX", discountType: "percent", discountNumber: 0.001 };
+    const recheck = deferred<typeof coupon>();
+    const check = vi.fn().mockResolvedValueOnce(coupon).mockReturnValueOnce(recheck.promise);
+    const client = modalClient({ checkDiscountCode: check });
+    const sku = { ...line, price: 300, amount: 2 };
+    let serial = 0;
+    network.mockImplementation(async (path) => {
+      if (path === "completeinitialpayment") return json(completeSuccess);
+      if (path === "processinitialpayment") serial += 1;
+      return json({ message: `order_${serial}`, client_secret: `secret_${serial}` });
+    });
+    await renderModal(client, [sku]);
+    startCoupon();
+    await advance(100);
+    expect(modalPay().textContent).toMatch(/599[.,]99/);
+    expect(discountStatus()).toBe("ok");
+
+    fireEvent.click(screen.getByRole("button", { name: "Quitar uno" }));
+    for (let i = 0; i < 4; i++) await advance(25);
+    expect(check).toHaveBeenCalledTimes(2);
+    expect(discountStatus()).toBe("checking");
+    expect(modalPay().disabled).toBe(true);
+    expect(await triggerGafaPayConfirm("stripe", modalHost())).toBe(false);
+    expect(calls.some(({ path }) => path === "completeinitialpayment")).toBe(false);
+    await act(async () => recheck.resolve(coupon));
+    await advance(100);
+    expect(discountStatus()).toBe("error");
+    expect(modalPay().textContent).toContain("$300");
+    expect(modalPay().disabled).toBe(false);
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ discountCode: null }), expect.anything());
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it.each(["precio sin secret", "precio con secret anterior", "saveCard sin secret", "process sin secret"])(
     "una preparación HTTP 200 rechazada (%s) no deja confirmar la sesión anterior", async (scenario) => {
       network.mockResolvedValue(json({ message: "original", client_secret: "original_secret" }));
@@ -1312,6 +1381,38 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
     expect(calls.filter(({ path }) => path === "completeinitialpayment")).toHaveLength(1);
   });
 
+  it("cerrar y reabrir durante Stripe.confirm bloquea el aumento de cantidad y conserva la reserva ante cambios del store", async () => {
+    emitPaymentEvents = true;
+    const charge = deferred<{ type: "error"; error: { message: string } }>();
+    confirm.mockImplementationOnce(() => charge.promise);
+    network.mockImplementation(async (path, body) => json(path === "completeinitialpayment" ? completeSuccess : {
+      message: `order_${body.lineItems[0].quantity}`, client_secret: `secret_${body.lineItems[0].quantity}`,
+    }));
+    const client = modalClient();
+    const first = await renderModal(client);
+    fireEvent.click(modalPay());
+    await advance(0);
+    expect(confirm).toHaveBeenCalledExactlyOnceWith("secret_1");
+    first.unmount();
+
+    await renderModal(client);
+    const before = calls.length;
+    const increase = screen.getByRole("button", { name: "Agregar uno" }) as HTMLButtonElement;
+    expect(increase.disabled).toBe(true);
+    fireEvent.click(increase);
+    expect(useCartStore.getState().lines[0].amount).toBe(1);
+    await act(async () => useCartStore.getState().setAmount(line.key, 2));
+    await advance(100);
+    expect(screen.getByRole("button", { name: "Revisar pago" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Pagar/ })).toBeNull();
+    expect(calls).toHaveLength(before);
+    expect(confirm).toHaveBeenCalledOnce();
+    await act(async () => charge.resolve({ type: "error", error: { message: "Tarjeta rechazada" } }));
+    await advance(100);
+    expect(modalPay().disabled).toBe(false);
+    expect(modalPay().textContent).toContain("$200");
+  });
+
   it("un process disparado después de dispose nunca llega a la red, aunque se reabra el mismo carrito", async () => {
     bootstrapRequestDelayMs = 1000;
     network.mockResolvedValue(json({ message: "current", client_secret: "current_secret" }));
@@ -1356,6 +1457,34 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
     await advance(100);
     expect(modalPay().disabled).toBe(false);
     expect(modalHost().querySelector("iframe")?.dataset.secret).toBe("fresh_coupon_secret");
+  });
+
+  it("el primer cupón vencido pone el secret en cuarentena aunque el process devuelva otro token", async () => {
+    network.mockResolvedValue(json({ message: "unsafe_order", client_secret: "unsafe_secret" }));
+    const check = vi.fn(() => new Promise<never>(() => undefined));
+    const client = modalClient({ checkDiscountCode: check });
+    const first = await renderModal(client);
+    const oldActions = capturedActions.at(-1);
+    startCoupon();
+    expect(check).toHaveBeenCalledWith(expect.objectContaining({ checkoutToken: "unsafe_order", pendingPurchaseId: 88 }));
+    network.mockResolvedValue(json({ message: "alias_order", client_secret: "unsafe_secret" }));
+    await advance(30_001);
+    for (let i = 0; i < 4; i++) await advance(25);
+    expect(discountStatus()).toBe("error");
+    expect(stripeSessionStatus(modalHost())).toMatchObject({ phase: "error", ready: false });
+    expect(modalPay().disabled).toBe(true);
+    expect(client.initialPurchase).not.toHaveBeenCalledWith(expect.objectContaining({ checkoutToken: "alias_order" }), expect.anything());
+    await expect(oldActions.confirm()).rejects.toThrow(/sesión/);
+    first.unmount();
+    await renderModal(client);
+    expect(modalPay().disabled).toBe(true);
+    expect(calls.filter(({ path }) => path === "processinitialpayment")).toHaveLength(3);
+    expect(confirm).not.toHaveBeenCalled();
+    network.mockResolvedValue(json({ message: "fresh_order", client_secret: "fresh_secret" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    await advance(100);
+    expect(modalPay().disabled).toBe(false);
+    expect(modalHost().querySelector("iframe")?.dataset.secret).toBe("fresh_secret");
   });
 
   it("la cancelación real atraviesa el decorador de analítica y llega al POST y GET del cliente HTTP", async () => {
@@ -1493,7 +1622,46 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
     expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: false }), expect.anything());
   });
 
-  it("Stripe cobra y registra 106,50 € por la membresía descontada y la matrícula íntegra", async () => {
+  it("un catálogo invalidado bloquea el complete recurrente hasta recibir la nueva elegibilidad", async () => {
+    const query = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const catalog = deferred<Awaited<ReturnType<GafaClient["listMemberships"]>>>();
+    const client = modalClient();
+    client.listMemberships = vi.fn(client.listMemberships).mockReturnValueOnce(client.listMemberships())
+      .mockReturnValue(catalog.promise);
+    let serial = 0;
+    network.mockImplementation(async (path) => {
+      if (path === "completeinitialpayment") return json(completeSuccess);
+      if (path === "processinitialpayment") serial += 1;
+      return json({ message: `order_${serial}`, client_secret: `secret_${serial}` });
+    });
+    await renderModal(client, [line], {}, query);
+    expect(modalPay().disabled).toBe(false);
+    expect(updates().at(-1)?.body.recurringPayment).toBe(true);
+    const api = modalHost().querySelector("stripe-payment-element")!.getAttribute("api-url")!;
+    await act(async () => {
+      void query.invalidateQueries({ queryKey: checkoutCatalogQueryKey("fitspin") });
+      await expect(post("completeinitialpayment", { tokenInput: "order_1" }, `${api}/api/stripe.`)).rejects.toBeTruthy();
+    });
+    await advance(25);
+    expect(modalPay().disabled).toBe(true);
+    expect(calls.some(({ path }) => path === "completeinitialpayment")).toBe(false);
+    expect(confirm).not.toHaveBeenCalled();
+    await act(async () => catalog.resolve([{ id: 12, type: "membership", name: line.name, can_subscribe: false, expirationDays: 60 }]));
+    for (let i = 0; i < 4; i++) await advance(25);
+    expect(modalPay().disabled).toBe(false);
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: false }), expect.anything());
+    fireEvent.click(modalPay());
+    await advance(0);
+    expect(calls.filter(({ path }) => path === "completeinitialpayment")).toEqual([
+      expect.objectContaining({ body: expect.objectContaining({ recurringPayment: false, paymentFrequency: null }) }),
+    ]);
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { price: 85, discounted: 76.5, total: "106[.,]50" },
+    { price: 10.05, discounted: 9.05, total: "39[.,]05" },
+  ])("Stripe cobra y registra el importe mostrado con matrícula y membresía de $price €", async ({ price, discounted, total }) => {
     emitPaymentEvents = true;
     const config = await modalClient().getCheckoutConfig({ brandSlug: "fitspin", locationSlug: "polanco" });
     const fee = { id: 13, type: "combo" as const, name: "Matrícula", price: 30 };
@@ -1509,35 +1677,61 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
       if (path === "processinitialpayment") serial += 1;
       return json({ message: `enrollment_${serial}`, client_secret: `enrollment_secret_${serial}` });
     });
-    await renderModal(client, [{ ...line, price: 85, priceLabel: "85€" }], {
+    await renderModal(client, [{ ...line, price, priceLabel: `${price}€` }], {
       membershipEnrollment: { comboId: fee.id, membershipIds: [line.id] }, chargeEnrollmentFee: splitCharge,
     });
     const before = calls.length;
     startCoupon();
     for (let i = 0; i < 8; i++) await advance(25);
-    const pay = screen.getByRole("button", { name: /Pagar 106[.,]50€/ }) as HTMLButtonElement;
+    const pay = screen.getByRole("button", { name: new RegExp(`Pagar ${total}€`) }) as HTMLButtonElement;
     expect(pay.disabled).toBe(false);
     fireEvent.click(pay);
     await advance(0);
     expect(calls.slice(before).map(({ path }) => path)).toEqual(["processinitialpayment", "updateinitialpayment", "completeinitialpayment"]);
     for (const { body } of calls.slice(before)) {
       expect(body.currency).toBe("eur");
-      expect(body.lineItems).toEqual([
+      expect(body.lineItems).toHaveLength(2);
+      expect(body.lineItems).toEqual(expect.arrayContaining([
         expect.objectContaining({ type: "combo", unitPrice: 30, quantity: 1 }),
-        expect.objectContaining({ type: "membership", unitPrice: 76.5, quantity: 1 }),
-      ]);
+        expect.objectContaining({ type: "membership", unitPrice: discounted, quantity: 1 }),
+      ]));
+      expect(body.lineItems.reduce((sum: number, item: { unitPrice: number; quantity: number }) =>
+        sum + Math.round(item.unitPrice * 100) * item.quantity, 0)).toBe(3000 + Math.round(discounted * 100));
     }
     expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: true, lines: [
-      expect.objectContaining({ id: line.id, price: 85 }), expect.objectContaining({ id: fee.id, price: 30 }),
+      expect.objectContaining({ id: line.id, price }), expect.objectContaining({ id: fee.id, price: 30 }),
     ] }), expect.anything());
     expect(confirm).toHaveBeenCalledOnce();
     expect(splitCharge).not.toHaveBeenCalled();
-    expect(screen.getByText(/106[.,]50€/)).toBeTruthy();
+    expect(screen.getByText(new RegExp(`${total}€`))).toBeTruthy();
+  });
+
+  it("un payment-error del intento vigente antes de complete libera Procesando y permite reintentar", async () => {
+    emitPaymentEvents = true;
+    beforeComplete = () => { throw new Error("Fallo local antes de preparar el pago."); };
+    network.mockImplementation(async (path) => json(path === "completeinitialpayment"
+      ? completeSuccess : { message: "current", client_secret: "current_secret" }));
+    await renderModal(modalClient());
+    fireEvent.click(modalPay());
+    await advance(0);
+    expect(screen.queryByRole("button", { name: "Procesando…" })).toBeNull();
+    expect(screen.getByText("Fallo local antes de preparar el pago.")).toBeTruthy();
+    expect(modalPay().disabled).toBe(false);
+    await advance(31_000);
+    expect(calls.some(({ path }) => path === "completeinitialpayment")).toBe(false);
+    expect(confirm).not.toHaveBeenCalled();
+
+    beforeComplete = undefined;
+    fireEvent.click(modalPay());
+    await advance(0);
+    expect(confirm).toHaveBeenCalledExactlyOnceWith("current_secret");
   });
 
   it("un error obsoleto de complete no apaga Procesando de la revisión vigente", async () => {
     emitPaymentEvents = true;
     const complete = deferred<Response>(), nextComplete = deferred<Response>();
+    const releaseOldError = deferred<void>(), releaseNewAttempt = deferred<void>();
+    beforePaymentError = () => releaseOldError.promise;
     const history = vi.fn(async () => []);
     const client = modalClient({ listUserPurchases: history });
     network.mockResolvedValue(json({ message: "original", client_secret: "original_secret" }));
@@ -1555,9 +1749,15 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
     await advance(0);
     expect(stripeSessionStatus(modalHost())?.ready).toBe(true);
     expect(stripeSessionStatus(modalHost())?.revision).not.toBe(previousRevision);
+    beforeComplete = () => releaseNewAttempt.promise;
     await act(async () => { expect(await triggerGafaPayConfirm("stripe", modalHost())).toBe(true); });
     await advance(0);
     expect(screen.getByRole("button", { name: "Procesando…" })).toBeTruthy();
+    expect(calls.filter(({ path }) => path === "completeinitialpayment")).toHaveLength(1);
+    await act(async () => releaseOldError.resolve());
+    expect(screen.getByRole("button", { name: "Procesando…" })).toBeTruthy();
+    await act(async () => releaseNewAttempt.resolve());
+    expect(calls.filter(({ path }) => path === "completeinitialpayment")).toHaveLength(2);
     expect(history).toHaveBeenCalledOnce();
     expect(screen.queryByText(/error obsoleto/i)).toBeNull();
     expect(confirm).not.toHaveBeenCalled();

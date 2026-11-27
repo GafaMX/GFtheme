@@ -350,7 +350,7 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
     island.unmount();
   });
 
-  it("mapea inicio y éxito; el eco de sesión no vuelve a registrar la compra", () => {
+  it("mapea éxito e ignora el inicio sin sesión preparada y el eco de registro", () => {
     const box = document.createElement("div");
     const onStart = vi.fn();
     const onSuccess = vi.fn();
@@ -369,7 +369,7 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
     el.dispatchEvent(new CustomEvent("payment-start", { detail: {} }));
     el.dispatchEvent(new CustomEvent("initial-payment-created", { detail: { message: "chk_1" } }));
     el.dispatchEvent(new CustomEvent("payment-success", { detail: { message: "ok" } }));
-    expect(onStart).toHaveBeenCalledTimes(1);
+    expect(onStart).not.toHaveBeenCalled();
     expect(onCreated).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith({ message: "ok" });
     island.unmount();

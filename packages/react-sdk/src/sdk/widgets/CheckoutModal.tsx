@@ -1,6 +1,6 @@
 import { findIneligibleLines, isEligibilityRejection } from "../cart/eligibility";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CartLineType,
   CatalogItem,
@@ -241,6 +241,10 @@ function cartPurchaseKey(lines: CartLine[]): string {
   return lines.map((line) => `${line.type}:${line.id}:${line.amount}`).join("|");
 }
 
+function stripeDiscountCents(subtotal: number, discount: number): number {
+  return Math.round(subtotal * 100) - Math.round(Math.max(0, subtotal - discount) * 100);
+}
+
 /** Frase de Buq (límite de paquete o membresía ya activa) para la pantalla de bloqueo. */
 function reservationPurchaseSeats(reservation: CartReservationContext | null) {
   const ids = resolveSeatObjectIds({
@@ -420,7 +424,7 @@ export function CheckoutModal({
   const hostedAbortRef = useRef<AbortController | null>(null);
   const discountCheckSeq = useRef(0);
   const discountAbortRef = useRef<AbortController | null>(null);
-  const discountWriteTokenRef = useRef<string | undefined>(undefined);
+  const discountWriteRef = useRef<{ tokens: (string | null | undefined)[]; secret?: string } | null>(null);
   const discountPublicationRef = useRef<{
     detail?: Parameters<typeof notifyStripeDiscountAdded>[0];
     purchaseId?: number;
@@ -585,8 +589,10 @@ export function CheckoutModal({
   // Compra suelta: el catalogo de la MARCA (listCombos), no el recorte de la
   // sede en create-form-template. Si no, un paquete de Lomas no aparece cuando
   // el checkout resolvio Cancun como primera sede.
+  const queryClient = useQueryClient();
+  const catalogKey = checkoutCatalogQueryKey(brandSlug);
   const catalogQuery = useQuery({
-    queryKey: checkoutCatalogQueryKey(brandSlug),
+    queryKey: catalogKey,
     queryFn: () => fetchCheckoutCatalog(client, brandSlug!),
     enabled: Boolean(brandSlug),
     staleTime: CHECKOUT_CATALOG_STALE_MS,
@@ -633,10 +639,19 @@ export function CheckoutModal({
   const products = classAttached
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
-  const currentMemberships = catalogQuery.isSuccess && catalogQuery.isFetchedAfterMount
+  const catalogPending = catalogQuery.fetchStatus !== "idle" || !catalogQuery.isFetchedAfterMount;
+  const catalogCurrent = catalogQuery.isSuccess && !catalogPending &&
+    !(catalogQuery.isStale && queryClient.getQueryState(catalogKey)?.isInvalidated);
+  const currentMemberships = catalogCurrent
     ? catalogQuery.data.memberships
     : [];
-  const membershipEligibilityPending = !mockPay && !catalogQuery.isFetchedAfterMount && cartLines.some((line) => line.type === "membership");
+  const membershipEligibilityPending = !mockPay && catalogPending && cartLines.some((line) => line.type === "membership");
+  stripeCheckoutState.current.canUseRecurrence = () => {
+    // Invalidation is synchronous. A widget request can precede the next React commit.
+    const state = queryClient.getQueryState(catalogKey);
+    return catalogCurrent && state?.status === "success" && state.data === catalogQuery.data &&
+      state.fetchStatus === "idle" && !state.isInvalidated;
+  };
   const relevantLines = cartLines.map((line) => {
     if (line.type !== "membership") return line;
     const item = memberships.find((item) => sameCatalogId(item.id, line.id)) ??
@@ -860,8 +875,9 @@ export function CheckoutModal({
   const searchTotal = searchGroups?.reduce((sum, group) => sum + group.items.length, 0) ?? 0;
 
   const chargeLines = membershipChargeLines(relevantLines, enrollmentConfig);
-  const stripeKey = brandSlug && profileQuery.data && chargeLines.length
-    ? JSON.stringify([brandSlug, profileQuery.data.id, cartPurchaseKey([...chargeLines].sort((a, b) => a.key.localeCompare(b.key)))])
+  // The store has one mutable cart per brand context. Editing its lines does not create another cart.
+  const stripeKey = brandSlug && profileQuery.data
+    ? JSON.stringify([brandSlug, profileQuery.data.id])
     : undefined;
   stripeCheckoutState.current.confirmationKey = stripeKey;
   const confirmingPurchase = useSyncExternalStore(subscribeStripeConfirmations, () => stripeConfirmationPurchase(stripeKey), () => undefined);
@@ -870,12 +886,17 @@ export function CheckoutModal({
   const stripeSelectedRef = useRef(stripeSelected);
   stripeSelectedRef.current = stripeSelected;
   const pricedLines = stripeSelected ? relevantLines.map((line) => ({ ...line, price: Math.round(line.price * 100) / 100 })) : relevantLines;
-  const subtotal = cartSubtotal(pricedLines);
-  const discountableSubtotal = cartSubtotal(discountableLines(pricedLines, enrollmentConfig));
-  const discountAmount = resolveDiscountAmount(appliedDiscount, discountableSubtotal);
+  const cartPrice = (items: CartLine[]) => {
+    const subtotal = cartSubtotal(items);
+    return stripeSelected ? Math.round(subtotal * 100) / 100 : subtotal;
+  };
+  const subtotal = cartPrice(pricedLines);
+  const discountableSubtotal = cartPrice(discountableLines(pricedLines, enrollmentConfig));
+  const rawDiscountAmount = resolveDiscountAmount(appliedDiscount, discountableSubtotal);
+  const discountCents = stripeSelected ? stripeDiscountCents(discountableSubtotal, rawDiscountAmount) : 0;
+  const discountAmount = stripeSelected ? discountCents / 100 : rawDiscountAmount;
   const discountLabel = appliedDiscount?.label;
-  const netTotal = Math.max(0, subtotal - discountAmount);
-  const total = stripeSelected ? Math.round(netTotal * 100) / 100 : netTotal;
+  const total = stripeSelected ? (Math.round(subtotal * 100) - discountCents) / 100 : Math.max(0, subtotal - discountAmount);
   const membershipExpectedTotal = Math.max(0, cartSubtotal(chargeLines) - discountAmount);
   const isFreeTotal = relevantLines.length > 0 && total <= 0;
   const envWarning = step === "pay" && !isFreeTotal ? stagingPayWarning() : null;
@@ -883,6 +904,7 @@ export function CheckoutModal({
 
   const waitingOnTerms = hasTerms && !termsAccepted;
   const waitingOnGift = convertGift && giftStatus !== "ok";
+  const isCouponPending = () => discountStatus === "checking" || Boolean(discountAbortRef.current) || discountNeedsRecheckRef.current;
   const canPay =
     relevantLines.length > 0 &&
     !membershipEligibilityPending &&
@@ -924,7 +946,10 @@ export function CheckoutModal({
     discountAbortRef.current = discountAbort;
     const timeout = setTimeout(() => discountAbort.abort(new Error("El descuento no respondió a tiempo.")), 30_000);
     const pending = stripeSelectedRef.current ? hostedPendingRef.current : null;
-    discountWriteTokenRef.current = pending?.checkoutToken;
+    const write: typeof discountWriteRef.current = pending
+      ? { tokens: [pending.checkoutToken, pending.payload.checkoutToken] }
+      : null;
+    discountWriteRef.current = write;
     let publishAfterCommit = false;
     setDiscountStatus("checking");
     setDiscountError(undefined);
@@ -952,17 +977,21 @@ export function CheckoutModal({
         pendingPurchaseId: pending?.purchaseId,
       }), discountAbort.signal);
       if (seq !== discountCheckSeq.current) return;
+      if (write) {
+        write.tokens.push(result.checkoutToken);
+        write.secret = result.clientSecret;
+      }
       const amount = resolveDiscountAmount(result, discountableSubtotal);
-      if (!(amount > 0) || Math.round((discountableSubtotal - amount) * 100) >= Math.round(discountableSubtotal * 100)) {
-        if (pending) quarantineStripeCheckout(stripeCheckoutState.current, result.checkoutToken);
+      const cents = stripeDiscountCents(discountableSubtotal, amount);
+      if (cents <= 0) {
         rejectDiscount(result.message ?? "Código no válido");
         return;
       }
       appliedDiscountCodeRef.current = code;
       if (stripeSelectedRef.current) {
-        const detail = pending && result.clientSecret && result.checkoutToken &&
-          amount < subtotal
-          ? { client_secret: result.clientSecret, checkout_token: result.checkoutToken, previous_checkout_token: pending.checkoutToken }
+        const detail = pending && result.clientSecret && result.checkoutToken && cents < Math.round(subtotal * 100)
+          ? { client_secret: result.clientSecret, checkout_token: result.checkoutToken,
+              previous_checkout_token: pending.payload.checkoutToken ?? pending.checkoutToken }
           : undefined;
         discountPublicationRef.current = { detail, purchaseId: pending?.purchaseId, release: releaseStripe };
         publishAfterCommit = true;
@@ -982,9 +1011,9 @@ export function CheckoutModal({
   }
 
   function quarantineDiscountWrite() {
-    const token = discountWriteTokenRef.current;
-    discountWriteTokenRef.current = undefined;
-    if (token) quarantineStripeCheckout(stripeCheckoutState.current, token);
+    const write = discountWriteRef.current;
+    discountWriteRef.current = null;
+    if (write) quarantineStripeCheckout(stripeCheckoutState.current, write.tokens, write.secret);
   }
 
   function restartStripeForPrice() {
@@ -1003,9 +1032,9 @@ export function CheckoutModal({
     const current = hostedPendingRef.current;
     try {
       // PayPanel ya sincronizó los importes de la isla en este commit.
-      if (publication.detail && current?.checkoutToken === publication.detail.previous_checkout_token &&
+      if (publication.detail && (current?.payload.checkoutToken ?? current?.checkoutToken) === publication.detail.previous_checkout_token &&
           current?.purchaseId === publication.purchaseId) {
-        discountWriteTokenRef.current = undefined;
+        discountWriteRef.current = null;
         notifyStripeDiscountAdded(publication.detail);
       } else {
         quarantineDiscountWrite();
@@ -1022,10 +1051,10 @@ export function CheckoutModal({
   invalidateStripeRef.current = invalidateStripeSession;
   useEffect(() => useCartStore.subscribe((next, previous) => {
     const signature = (lines: CartLine[]) => JSON.stringify(lines.map((line) => [line.key, line.amount, line.price]));
-    if (signature(next.lines) !== signature(previous.lines)) invalidateStripeRef.current();
+    if (signature(next.lines) !== signature(previous.lines)) invalidateStripeRef.current(true);
   }), []);
 
-  function invalidateStripeSession() {
+  function invalidateStripeSession(cartChanged = false) {
     quarantineDiscountWrite();
     invalidateStripeCheckout(stripeCheckoutState.current);
     releaseObsoleteStripeAttempt(stripeCheckoutState.current.revision);
@@ -1035,13 +1064,29 @@ export function CheckoutModal({
     check?.abort();
     discountPublicationRef.current?.release();
     discountPublicationRef.current = null;
-    if (check) setDiscountStatus("idle");
-    discountNeedsRecheckRef.current ||= Boolean(check) || (discountStatus === "ok" && Boolean(appliedDiscount?.clientSecret));
+    if (check || (cartChanged && appliedDiscountCodeRef.current)) {
+      discountNeedsRecheckRef.current = true;
+      appliedDiscountCodeRef.current = null;
+      setAppliedDiscount(null);
+      setDiscountStatus("checking");
+    }
     hostedAbortRef.current?.abort();
     hostedPendingRef.current = null;
     stripeCheckoutState.current.hostPurchase = undefined;
     setPaymentReady(false);
   }
+
+  function recheckDiscount() {
+    if (!discountNeedsRecheckRef.current) return;
+    if (!relevantLines.length || confirmingPurchase) {
+      discountNeedsRecheckRef.current = false;
+      setDiscountStatus("idle");
+      return;
+    }
+    if (stripeSelected && !mockPay && !isFreeTotal && !hostedPendingRef.current) return;
+    void applyDiscount();
+  }
+  useEffect(recheckDiscount);
 
   function releaseObsoleteStripeAttempt(revision: number | undefined) {
     const attempt = stripeAttemptRevision.current;
@@ -1133,6 +1178,7 @@ export function CheckoutModal({
   }
 
   function handleAdd(item: CatalogItem, brandForItem?: string) {
+    if (stripeConfirmationPurchase(stripeKey)) return;
     const slug = brandForItem ?? brandSlug;
     if (!slug) return;
     if (isEnrollmentComboId(enrollmentConfig, item.id) && item.type !== "membership") {
@@ -1651,7 +1697,7 @@ export function CheckoutModal({
         meetingId: reservation?.meetingId,
         reservationId: linkedReservationId,
       }),
-      lines: purchaseLinesPayload(selectedMethod.slug === "stripe" || !chargeLines.length ? relevantLines : chargeLines),
+      lines: purchaseLinesPayload(selectedMethod.slug === "stripe" ? pricedLines : chargeLines.length ? chargeLines : relevantLines),
       paymentTypeId: selectedMethod.id,
       paymentData: data,
       csrfToken: config?.csrfToken ?? null,
@@ -1659,7 +1705,8 @@ export function CheckoutModal({
       giftCode: resolvedGiftCode(),
       checkoutToken,
       ...reservationPurchaseSeats(reservation),
-      subscribe: membershipPurchase ? autoRenew : false,
+      subscribe: membershipPurchase && autoRenew &&
+        (selectedMethod.slug !== "stripe" || stripeCheckoutState.current.canUseRecurrence?.() === true),
       setPayment: membershipPurchase ? (selectedMethod.slug === "stripe" ? stripeCheckoutState.current.saveCard ?? saveCard : saveCard) : false,
     };
 
@@ -1691,10 +1738,7 @@ export function CheckoutModal({
       // polla al confirmar. Aquí el poll arranca en payment-start/success
       // para no dejar el CTA en “Procesando…” mientras el socio llena la tarjeta.
       if (isStripe) {
-        if (discountNeedsRecheckRef.current) {
-          discountNeedsRecheckRef.current = false;
-          void applyDiscount();
-        }
+        recheckDiscount();
         return;
       }
       const done = await pollRecurrenteUntilDone({
@@ -1992,11 +2036,11 @@ export function CheckoutModal({
   ]);
 
   async function proceedToPay() {
-    if (discountAbortRef.current || discountStatus === "checking") return;
+    if (isCouponPending()) return;
     if (renewalLockedRef.current && !registerOnly) return;
     renewalLockedRef.current = true;
     const revision = stripeCheckoutState.current.revision;
-    const stillCurrent = () => modalMounted.current && !discountAbortRef.current &&
+    const stillCurrent = () => modalMounted.current && !isCouponPending() &&
       (!stripeSelected || stripeCheckoutState.current.revision === revision);
     const stripePurchase = stripeConfirmationPurchase(stripeKey);
     if (stripePurchase || (registerOnly && hostedPendingRef.current?.stripePurchase)) {
@@ -2152,12 +2196,17 @@ export function CheckoutModal({
   }
 
   function handlePayClick() {
-    if (reviewingPurchase || purchaseNotice || discountAbortRef.current || discountStatus === "checking") return;
+    if (isCouponPending()) return;
+    if (resumedStripePurchase) {
+      void proceedToPay();
+      return;
+    }
+    if (reviewingPurchase || purchaseNotice) return;
     if (!relevantLines.length) {
       reportPayError("Agrega un paquete o membresía para continuar.");
       return;
     }
-    if (registerOnly || resumedStripePurchase) {
+    if (registerOnly) {
       void proceedToPay();
       return;
     }
@@ -2179,7 +2228,7 @@ export function CheckoutModal({
   }
 
   function acceptTermsAndPay() {
-    if (discountAbortRef.current || discountStatus === "checking") return;
+    if (reviewingPurchase || isCouponPending()) return;
     setTermsAccepted(true);
     setTermsAttention(false);
     setTermsPromptOpen(false);
@@ -2410,10 +2459,10 @@ export function CheckoutModal({
                     </p>
                   ) : null}
                 </>
-              ) : reviewingPurchase ? (
-                <PaySkeleton withMethods={!isFreeTotal} label="Revisando tu compra…" />
               ) : resumedStripePurchase ? (
                 <p role="status">Hay un pago con tarjeta pendiente de confirmación.</p>
+              ) : reviewingPurchase ? (
+                <PaySkeleton withMethods={!isFreeTotal} label="Revisando tu compra…" />
               ) : isFreeTotal ? (
                 <div className="gafa-checkout-free" role="status">
                   <span className="gafa-checkout-free__mark" aria-hidden="true">
@@ -2618,7 +2667,7 @@ export function CheckoutModal({
                 </div>
               ) : (
                 <ul className="gafa-checkout__lines">
-                  {relevantLines.map((line) => {
+                  {pricedLines.map((line) => {
                     const lockedLine = Boolean(line.locked || isEnrollmentLine(line, enrollmentConfig));
                     return (
                     <li key={line.key} data-enrollment={lockedLine ? "true" : undefined}>
@@ -2632,7 +2681,13 @@ export function CheckoutModal({
                             <span>1</span>
                           </span>
                         ) : (
-                          <LineQty line={line} onSetAmount={(key, amount) => { if (!renewalLockedRef.current) setAmount(key, amount); }} />
+                          <LineQty
+                            line={line}
+                            disabled={Boolean(confirmingPurchase)}
+                            onSetAmount={(key, amount) => {
+                              if (!renewalLockedRef.current && !stripeConfirmationPurchase(stripeKey)) setAmount(key, amount);
+                            }}
+                          />
                         )}
                         <strong className="gafa-checkout__line-price">
                           {formatMoney(line.price * line.amount, currency.prefix, "")}
@@ -2646,7 +2701,10 @@ export function CheckoutModal({
                           className="gafa-checkout__line-remove"
                           type="button"
                           aria-label={`Eliminar ${line.name}`}
-                          onClick={() => { if (!renewalLockedRef.current) removeItem(line.key); }}
+                          disabled={Boolean(confirmingPurchase)}
+                          onClick={() => {
+                            if (!renewalLockedRef.current && !stripeConfirmationPurchase(stripeKey)) removeItem(line.key);
+                          }}
                         >
                           <CloseIcon size={11} strokeWidth={1.5} />
                         </button>
@@ -2814,9 +2872,8 @@ export function CheckoutModal({
                     disabled={
                       paying ||
                       discountStatus === "checking" ||
-                      reviewingPurchase ||
-                      relevantLines.length === 0 ||
-                      (!resumedStripePurchase && !registerOnly && !waitingOnTerms && !canPay)
+                      (!resumedStripePurchase &&
+                        (reviewingPurchase || relevantLines.length === 0 || (!registerOnly && !waitingOnTerms && !canPay)))
                     }
                     onClick={handlePayClick}
                   >
@@ -2961,9 +3018,11 @@ function PaySkeleton({ withMethods = false, label }: { withMethods?: boolean; la
 
 function LineQty({
   line,
+  disabled,
   onSetAmount,
 }: {
   line: CartLine;
+  disabled: boolean;
   onSetAmount: (key: string, amount: number) => void;
 }) {
   const cap = purchaseAmountCap(line);
@@ -2972,7 +3031,7 @@ function LineQty({
   return (
     <div className="gafa-checkout__stepper" aria-label={`Cantidad de ${line.name}`}>
       {locked ? null : (
-        <button type="button" aria-label="Quitar uno" onClick={() => onSetAmount(line.key, line.amount - 1)}>
+        <button type="button" aria-label="Quitar uno" disabled={disabled} onClick={() => onSetAmount(line.key, line.amount - 1)}>
           −
         </button>
       )}
@@ -2981,7 +3040,7 @@ function LineQty({
         <button
           type="button"
           aria-label="Agregar uno"
-          disabled={atCap}
+          disabled={disabled || atCap}
           onClick={() => onSetAmount(line.key, line.amount + 1)}
         >
           +
@@ -3184,9 +3243,7 @@ function PayPanel({
   // lineItems con el descuento repartido, igual que el fancy v1.
   const lineItems = useMemo<GafaPayLineItem[]>(() => {
     if (selected?.slug === "stripe") {
-      const billable = lines.filter((line) => line.key !== enrollmentLineKey);
-      const eligibleCents = billable.reduce((sum, line) => sum + Math.round(line.price * 100) * line.amount, 0);
-      let remainingCents = eligibleCents - Math.round(Math.max(0, eligibleCents / 100 - discountAmount) * 100);
+      let remainingCents = Math.round(discountAmount * 100);
       return [...lines].sort((a, b) => a.price - b.price).flatMap((line) => {
         const unitCents = Math.round(line.price * 100);
         const discount = line.key === enrollmentLineKey ? 0 : Math.min(unitCents * line.amount, remainingCents);
