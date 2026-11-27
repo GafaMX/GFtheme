@@ -2,10 +2,10 @@
 export type StripeSurfaceLifecycle = {
   owns: (secret: string) => boolean;
   mount: (secret: string, node: Element, destroy: () => void, provider: object) => boolean;
-  ready: (secret: string, node: Element) => void;
-  unmount: (secret: string, node: Element) => void;
+  ready: (secret: string, node: Element, provider: object) => void;
+  unmount: (secret: string, node: Element, provider: object) => void;
   canConfirm: (secret: string, provider: object) => boolean;
-  confirmed: (secret: string, success: boolean, provider: object) => void;
+  confirmed: (secret: string, success: boolean | undefined, provider: object) => void;
 };
 
 // Stripe.js is loaded by the external IIFE, possibly after this adapter is installed.
@@ -14,14 +14,17 @@ export function installStripeSurfaceTracking(lifecycle: StripeSurfaceLifecycle):
   const descriptor = Object.getOwnPropertyDescriptor(window, "Stripe");
   let factory = globals.Stripe;
   const proxies = new WeakMap<object, any>();
+  const instances = new Map<unknown, object>();
   const restoreCachedFactories: Array<() => void> = [];
   const wrapFactory = (value: any): any => {
     if (typeof value !== "function") return value;
     if (proxies.has(value)) return proxies.get(value);
     const proxy = new Proxy(value, {
       apply(target, self, args) {
+        const key = args[0];
+        if (instances.has(key)) return instances.get(key);
         const stripe = Reflect.apply(target, self, args) as object;
-        return new Proxy(stripe, {
+        const tracked = new Proxy(stripe, {
           get(instance, property) {
             const original = Reflect.get(instance, property);
             if (property !== "initCheckoutElementsSdk" || typeof original !== "function") return typeof original === "function" ? original.bind(instance) : original;
@@ -46,7 +49,7 @@ export function installStripeSurfaceTracking(lifecycle: StripeSurfaceLifecycle):
                             const response = await call.apply(actions, confirmArgs);
                             lifecycle.confirmed(secret, response?.type === "success", provider);
                             return response;
-                          } catch (error) { lifecycle.confirmed(secret, false, provider); throw error; }
+                          } catch (error) { lifecycle.confirmed(secret, undefined, provider); throw error; }
                         };
                       },
                     }) };
@@ -54,18 +57,28 @@ export function installStripeSurfaceTracking(lifecycle: StripeSurfaceLifecycle):
                   if (method === "createPaymentElement") return (...elementArgs: any[]) => {
                     const element = fn.apply(sdk, elementArgs);
                     let node: Element | undefined;
-                    element.on("ready", () => { if (node) lifecycle.ready(secret, node); });
+                    let destroyed = false;
+                    const destroy = () => {
+                      if (destroyed) return;
+                      destroyed = true;
+                      if (node) lifecycle.unmount(secret, node, provider);
+                      node = undefined;
+                      element.destroy();
+                    };
+                    element.on("ready", () => { if (node && !destroyed) lifecycle.ready(secret, node, provider); });
                     return new Proxy(element, {
                       get(payment, action) {
                         const call = Reflect.get(payment, action);
                         if (action === "mount") return (target: string | Element) => {
                           const container = typeof target === "string" ? document.querySelector(target) : target;
-                          if (!container || !lifecycle.mount(secret, container, () => payment.destroy(), provider)) return;
+                          if (destroyed) return;
+                          if (!container || !lifecycle.mount(secret, container, destroy, provider)) { destroy(); return; }
                           node = container;
                           return call.call(payment, container);
                         };
-                        if (action === "destroy" || action === "unmount") return (...destroyArgs: any[]) => {
-                          if (node) lifecycle.unmount(secret, node);
+                        if (action === "destroy") return destroy;
+                        if (action === "unmount") return (...destroyArgs: any[]) => {
+                          if (node) lifecycle.unmount(secret, node, provider);
                           node = undefined;
                           return call.apply(payment, destroyArgs);
                         };
@@ -79,6 +92,8 @@ export function installStripeSurfaceTracking(lifecycle: StripeSurfaceLifecycle):
             };
           },
         });
+        instances.set(key, tracked);
+        return tracked;
       },
     });
     // @stripe/stripe-js eagerly caches the factory at IIFE evaluation and later

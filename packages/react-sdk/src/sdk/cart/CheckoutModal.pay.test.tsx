@@ -1388,7 +1388,16 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
       checkDiscountCode: check,
     });
     const events: unknown[] = [];
-    const listener = (event: Event) => events.push((event as CustomEvent).detail);
+    // This fixture replaces the session adapter. Model its final registration
+    // callback explicitly; the modal no longer writes outside a guarded revision.
+    const registration = new AbortController();
+    const listener = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      events.push(detail);
+      void lastProps?.onStripeSessionPrepare?.({ message: detail.checkout_token, client_secret: detail.client_secret }, {
+        revision: 1, signal: registration.signal,
+      });
+    };
     window.addEventListener("buq__discount_added", listener);
     try {
       renderPay(client);
@@ -1416,7 +1425,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
       expect((screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement).checked).toBe(false);
       expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({
         checkoutToken: "chk_single_discount", subscribe: false, discountCode: "PROMO",
-      }));
+      }), expect.objectContaining({ signal: registration.signal }));
       const confirm = vi.fn(() => lastProps?.onGafaPaySuccessAction({ message: "single" }));
       window._handleStripePayment = confirm;
       fireEvent.click(pay());

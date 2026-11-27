@@ -787,6 +787,8 @@ export function waitForWidgetContent(
     // Stripe incluye OAuth + process + initial-purchase + updates, no solo init.
     // Cada respuesta válida renueva 30 s; los demás proveedores no cambian.
     let timeout: ReturnType<typeof setTimeout>;
+    let observedRevision: number | undefined;
+    let observedProgressAt: number | undefined;
     const cleanup = () => {
       clearTimeout(timeout);
       observer.disconnect();
@@ -801,6 +803,8 @@ export function waitForWidgetContent(
       clearTimeout(timeout);
       const session = options?.requireIframe ? stripeSessionStatus(container) : undefined;
       const budget = session ? Math.max(30_000, timeoutMs) : timeoutMs;
+      observedRevision = session?.revision;
+      observedProgressAt = session?.progressAt;
       timeout = setTimeout(() => {
         cleanup();
         reject(new Error(PAY_FORM_LOAD_ERROR));
@@ -810,7 +814,10 @@ export function waitForWidgetContent(
       if (options?.requireIframe && ["error", "disposed"].includes(stripeSessionStatus(container)?.phase ?? "")) {
         cleanup(); reject(new Error(PAY_FORM_LOAD_ERROR)); return;
       }
-      armTimeout(); check();
+      const session = stripeSessionStatus(container);
+      // DOM churn, holds and stale callbacks are not network progress.
+      if (!options?.requireIframe || session?.revision !== observedRevision || session?.progressAt !== observedProgressAt) armTimeout();
+      check();
     };
     const observer = new MutationObserver(check);
     observer.observe(container, { childList: true, subtree: true, characterData: true });

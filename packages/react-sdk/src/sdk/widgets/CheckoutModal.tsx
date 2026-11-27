@@ -54,6 +54,7 @@ import {
 import {
   afterStrictModePass,
   blockStripeCheckout,
+  refreshStripeCheckout,
   invalidateStripeCheckout,
   withStripeAbort,
   stripeSessionStatus,
@@ -361,7 +362,7 @@ export function CheckoutModal({
   /** Frontpay conserva las opciones de membresía de v1. Stripe usa el carrito. */
   const [saveCard, setSaveCard] = useState(true);
   const [legacyAutoRenew, setLegacyAutoRenew] = useState(true);
-  const stripeCheckoutState = useRef<StripeCheckoutState>({});
+  const stripeCheckoutState = useRef<StripeCheckoutState>({ saveCard: true });
   const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
@@ -649,6 +650,7 @@ export function CheckoutModal({
   });
   const purchaseKey = cartPurchaseKey(relevantLines);
   const membershipPurchase = cartHasMembership(relevantLines);
+  stripeCheckoutState.current.saveCard = membershipPurchase ? saveCard : false;
   const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
   useEffect(() => {
     const available: CatalogTab[] = [];
@@ -1582,7 +1584,7 @@ export function CheckoutModal({
       checkoutToken,
       ...reservationPurchaseSeats(reservation),
       subscribe: membershipPurchase ? autoRenew : false,
-      setPayment: membershipPurchase ? saveCard : false,
+      setPayment: membershipPurchase ? (selectedMethod.slug === "stripe" ? stripeCheckoutState.current.saveCard ?? saveCard : saveCard) : false,
     };
 
     const isStripe = selectedMethod.slug === "stripe";
@@ -1604,7 +1606,7 @@ export function CheckoutModal({
         throw new Error("Esta marca no tiene configurado el pago con tarjeta.");
       }
       const pending = await (context ? client.initialPurchase(payload, { signal: context.signal }) : client.initialPurchase(payload));
-      if (abort.signal.aborted) return;
+      if (abort.signal.aborted || context?.isCurrent?.() === false) return;
       const purchaseId = pending.purchaseId;
       const token = pending.checkoutToken?.trim() || checkoutToken;
       if (purchaseId == null) {
@@ -1708,29 +1710,20 @@ export function CheckoutModal({
     }
   }
 
-  const stripeHostedSyncKey = [
-    resolvedGiftCode() ?? "",
-    discountStatus === "ok" ? discountCode.trim() : "",
-    membershipPurchase ? String(saveCard) : "",
-  ].join("|");
+  const stripeHostedSyncKey = resolvedGiftCode() ?? "";
   const stripeHostedSyncKeyRef = useRef(stripeHostedSyncKey);
 
-  // GiftCard / descuento / guardar tarjeta pueden cambiar después de que el widget
-  // ya disparó `initial-payment-created`. Hay que reenviar initial-purchase.
+  // Gifts also re-register through the revision barrier. Coupons are owned by
+  // applyDiscount; saveCard enters the barrier synchronously in its handler.
   useEffect(() => {
     if (selectedMethod?.slug !== "stripe") {
-      stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
-      return;
-    }
-    const pending = hostedPendingRef.current;
-    if (!pending) {
       stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
       return;
     }
     if (stripeHostedSyncKeyRef.current === stripeHostedSyncKey) return;
     if (renewalLockedRef.current) return;
     stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
-    void handleHostedCheckout(pending.payload.paymentData ?? { message: pending.checkoutToken });
+    refreshStripeCheckout(stripeCheckoutState.current);
     // handleHostedCheckout vive en el body del componente.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stripeHostedSyncKey, selectedMethod?.slug]);
@@ -1863,7 +1856,7 @@ export function CheckoutModal({
       setPayment: membershipPurchase ? saveCard : false,
       ...reservationPurchaseSeats(reservation),
     });
-    if (!hasExtras) purchaseClearKey.current = key;
+    purchaseClearKey.current = key;
   }
 
   // Al entrar a pagar (membresía que sigue en el catálogo, o carrito ya armado)
@@ -2352,7 +2345,7 @@ export function CheckoutModal({
                   methods={paymentMethods}
                   selectedMethodId={selectedMethodId}
                   onSelectMethod={(id) => {
-                    if (renewalLockedRef.current) return;
+                    if (renewalLockedRef.current || id === selectedMethodId) return;
                     invalidateStripeSession();
                     setSelectedMethodId(id);
                   }}
@@ -2416,7 +2409,12 @@ export function CheckoutModal({
                           open: membershipOptsOpen,
                           visible: showMembershipOptions,
                           onToggle: () => setMembershipOptsOpen((current) => !current),
-                          onSaveCard: setSaveCard,
+                          onSaveCard: (checked) => {
+                            if (renewalLockedRef.current || stripeCheckoutState.current.saveCard === checked) return;
+                            stripeCheckoutState.current.saveCard = checked;
+                            setSaveCard(checked);
+                            if (selectedMethod?.slug === "stripe") refreshStripeCheckout(stripeCheckoutState.current);
+                          },
                           onAutoRenew: setAutoRenew,
                         }
                       : undefined
@@ -3053,6 +3051,7 @@ function PayPanel({
       const status = stripeSessionStatus(container);
       setSessionReady(status?.ready ?? true);
       if (status?.phase === "error") setLoadState("error");
+      else if (status?.ready) setLoadState("ready");
     };
     container.addEventListener(STRIPE_SESSION_PROGRESS_EVENT, sync);
     return () => container.removeEventListener(STRIPE_SESSION_PROGRESS_EVENT, sync);

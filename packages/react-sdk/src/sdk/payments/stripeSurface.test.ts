@@ -36,7 +36,7 @@ describe("Stripe Checkout Elements surface adapter", () => {
     const node = document.createElement("div"); document.body.appendChild(node);
     payment.mount(node); f.ready();
     expect(f.lifecycle.mount).toHaveBeenCalledWith("current", node, expect.any(Function), expect.any(Object));
-    expect(f.lifecycle.ready).toHaveBeenCalledWith("current", node);
+    expect(f.lifecycle.ready).toHaveBeenCalledWith("current", node, expect.any(Object));
     expect(f.payment.mount).toHaveBeenCalledExactlyOnceWith(node);
     const result = await checkout.loadActions();
     await expect(result.actions.confirm()).rejects.toThrow(/sesión/);
@@ -46,7 +46,7 @@ describe("Stripe Checkout Elements surface adapter", () => {
     expect(f.confirm).toHaveBeenCalledOnce();
     expect(f.lifecycle.confirmed).toHaveBeenCalledExactlyOnceWith("current", true, expect.any(Object));
     payment.destroy();
-    expect(f.lifecycle.unmount).toHaveBeenCalledExactlyOnceWith("current", node);
+    expect(f.lifecycle.unmount).toHaveBeenCalledExactlyOnceWith("current", node, expect.any(Object));
     restore(); restore = undefined;
     expect(Object.hasOwn(cachedByIife, "apply")).toBe(false);
   });
@@ -67,6 +67,31 @@ describe("Stripe Checkout Elements surface adapter", () => {
     expect(Object.hasOwn(f.factory, "apply")).toBe(false);
   });
 
+  it("reuses one Stripe instance per publishable key across cached and live factories", () => {
+    const f = fixture(); globals.Stripe = f.factory;
+    const cached = globals.Stripe;
+    restore = installStripeSurfaceTracking(f.lifecycle);
+    const first = cached.apply(undefined, ["pk_one"]);
+    expect(globals.Stripe("pk_one")).toBe(first);
+    expect(cached.apply(undefined, ["pk_one"])).toBe(first);
+    const second = globals.Stripe("pk_two");
+    expect(second).not.toBe(first);
+    expect(f.factory).toHaveBeenCalledTimes(2);
+  });
+
+  it("destroys a tracked element only once when the guard and IIFE both dispose it", () => {
+    const f = fixture(); globals.Stripe = f.factory;
+    restore = installStripeSurfaceTracking(f.lifecycle);
+    const payment = globals.Stripe("pk").initCheckoutElementsSdk({ clientSecret: "current" }).createPaymentElement();
+    const node = document.createElement("div"); document.body.appendChild(node);
+    payment.mount(node);
+    const guardDestroy = f.lifecycle.mount.mock.calls[0]![2] as () => void;
+    guardDestroy(); payment.destroy(); f.ready();
+    expect(f.payment.destroy).toHaveBeenCalledOnce();
+    expect(f.lifecycle.unmount).toHaveBeenCalledOnce();
+    expect(f.lifecycle.ready).not.toHaveBeenCalled();
+  });
+
   it("never mounts a stale or detached surface rejected by the checkout machine", () => {
     const f = fixture(); globals.Stripe = f.factory;
     f.lifecycle.mount.mockReturnValue(false);
@@ -74,6 +99,7 @@ describe("Stripe Checkout Elements surface adapter", () => {
     const payment = globals.Stripe().initCheckoutElementsSdk({ clientSecret: "current" }).createPaymentElement();
     payment.mount(document.createElement("div"));
     expect(f.payment.mount).not.toHaveBeenCalled();
+    expect(f.payment.destroy).toHaveBeenCalledOnce();
     f.ready();
     expect(f.lifecycle.ready).not.toHaveBeenCalled();
   });

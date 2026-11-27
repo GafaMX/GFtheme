@@ -8305,6 +8305,16 @@ svg.gafa-acct-qr__image {
   overflow: hidden;
 }
 
+/* Keep Stripe's current mount measurable even after a visual timeout. A late
+   ready event recovers the same panel; display:none can prevent Stripe init. */
+.gafa-checkout-paymount[data-method="stripe"][data-state="error"] .gafa-checkout-paymount__island {
+  display: block;
+  height: auto;
+  min-height: 240px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Stripe measures its mount node before ready; preserve real layout while the skeleton covers it. */
 .gafa-checkout-paymount[data-method="stripe"][data-state="loading"] .gafa-checkout-paymount__island,
 .gafa-checkout-paymount[data-method="stripe"][data-state="idle"] .gafa-checkout-paymount__island {
