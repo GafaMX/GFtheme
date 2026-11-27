@@ -371,10 +371,10 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
     expect(box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG)).toBeNull();
   });
 
-  it("notifyStripeDiscountAdded dispara buq__discount_added", () => {
+  it("notifyStripeDiscountAdded dispara buq__discount_added", async () => {
     const seen = vi.fn();
     window.addEventListener("buq__discount_added", seen as EventListener);
-    notifyStripeDiscountAdded({ client_secret: "cs_x", checkout_token: "chk_x" });
+    expect(await notifyStripeDiscountAdded({ client_secret: "cs_x", checkout_token: "chk_x" })).toBe(true);
     expect(seen).toHaveBeenCalledTimes(1);
     const event = seen.mock.calls[0][0] as CustomEvent;
     expect(event.detail).toEqual({ client_secret: "cs_x", checkout_token: "chk_x" });

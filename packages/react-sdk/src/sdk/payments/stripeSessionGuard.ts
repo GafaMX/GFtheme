@@ -1,14 +1,8 @@
 /**
- * El IIFE de `<stripe-payment-element>` hace `jsx(CheckoutProvider, …, clientSecret)`:
- * la key es el secret. Cada `updateinitialpayment` que devuelve `client_secret`
- * remonta el form (`vw`), y `useEffect(() => update(), [recurringPayment])`
- * vuelve a pegarle al backend (~1 POST/s, 10–12 por orden).
- *
- * El mock de apipay no devolvía secret en el update; Stripe real sí.
- * Interceptamos fetch: debounce de POSTs idénticos y quitamos `client_secret`
- * de la respuesta de update salvo que cambie el token de sesión.
+ * Correlate the IIFE's HTTP requests with the mounted checkout. Its DOM events
+ * carry no request identity and it only emits `updated` when a secret is present.
+ * A successful response is acknowledged here even when the secret is omitted.
  */
-
 const UPDATE_PATH = /\/api\/stripe\.updateinitialpayment(?:\?|$)/i;
 const PROCESS_PATH = /\/api\/stripe\.processinitialpayment(?:\?|$)/i;
 const DEBOUNCE_MS = 2000;
@@ -54,7 +48,192 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
+function correlatedResponse(data: unknown, status: number, current: () => boolean): Response {
+  const response = jsonResponse(data, status);
+  const parse = response.json.bind(response);
+  response.json = async () => {
+    const value = await parse();
+    // The IIFE consumes json() after fetch resolves; a choice or unmount can
+    // intervene between those two awaits as well as during the network call.
+    return current() ? value : {};
+  };
+  return response;
+}
+
 export const STRIPE_UPDATE_DEBOUNCE_MS = DEBOUNCE_MS;
+
+type Session = {
+  element: Element;
+  active: boolean;
+  version: number;
+  generation: number;
+  desired?: boolean;
+  token?: string;
+  secret?: string;
+  confirmed?: boolean;
+  confirmedVersion?: number;
+  initialized: boolean;
+  failed: boolean;
+  pending: number;
+  sequence: number;
+  latest: number;
+  lastUpdate?: { body: string; version: number };
+  lastRequest?: { input: RequestInfo | URL; init?: RequestInit; body: string };
+  tail: Promise<unknown>;
+  listeners: Set<() => void>;
+};
+const sessions = new Map<Element, Session>();
+const tokens = new Map<string, { session: Session; generation: number }>();
+
+function rememberToken(session: Session, token: string) {
+  session.token = token;
+  tokens.set(token, { session, generation: session.generation });
+}
+
+function withToken(body: string, token: string | undefined): string {
+  return JSON.stringify({ ...JSON.parse(body), tokenInput: token });
+}
+
+function notify(session: Session) {
+  for (const listener of session.listeners) listener();
+  if (session.secret) session.element.dispatchEvent(new Event("gafa-stripe-session", { bubbles: true }));
+}
+
+/** Register before connectedCallback can start OAuth/processinitialpayment. */
+export function registerStripeSession(element: Element): () => void {
+  const session: Session = {
+    element, active: true, version: 0, generation: 0, desired: false, initialized: false, failed: false,
+    pending: 0, sequence: 0, latest: 0, tail: Promise.resolve(), listeners: new Set(),
+  };
+  sessions.set(element, session);
+  return () => {
+    session.active = false;
+    sessions.delete(element);
+    notify(session);
+    // Keep retired token ownership so late requests cannot enter a new attempt.
+  };
+}
+
+export function hasStripeSession(element: Element): boolean {
+  return sessions.has(element);
+}
+
+/** Identity of the session whose purchase registration must finish before pay. */
+export function stripeSessionSnapshot(element: Element | null) {
+  const session = element ? sessions.get(element) : undefined;
+  if (!session?.active || !session.token || !session.secret) return null;
+  return {
+    element: session.element, token: session.token, secret: session.secret,
+    version: session.version, generation: session.generation,
+  };
+}
+
+/** Replace only the attempt and token used to request the discount. Retired
+ * token ownership is retained so a late discount cannot enter another mount.
+ */
+export async function replaceStripeSession(previousToken: string | undefined, detail: {
+  checkout_token: string; client_secret: string;
+}, publish: () => void): Promise<boolean> {
+  const owner = previousToken ? tokens.get(previousToken) : undefined;
+  if (!owner) {
+    if (sessions.size) return false;
+    publish(); // Legacy consumers have no registration.
+    return true;
+  }
+  const { session, generation } = owner;
+  if (!session.active || session.failed || processOwner() !== session
+    || generation !== session.generation || previousToken !== session.token
+    || !detail.checkout_token || !detail.client_secret) return false;
+  session.generation++;
+  session.version++;
+  rememberToken(session, detail.checkout_token);
+  session.secret = detail.client_secret;
+  session.confirmed = undefined;
+  session.confirmedVersion = undefined;
+  session.lastUpdate = undefined;
+  notify(session);
+  publish();
+  const replacement = session.generation;
+  // Let the IIFE install the replacement and start its possible mount update.
+  // A token-only change with the same secret does not remount at all, so it
+  // needs an explicit revalidation rather than waiting for a vendor effect.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  while (session.active && session.generation === replacement) {
+    if (!await waitForStripeSession(session.element)) return false;
+    if (!session.active || session.generation !== replacement) return false;
+    if (stripeRecurrenceConfirmed(session.element, session.desired!)) return true;
+    const version = session.version;
+    if (!await refreshStripeSession(session.element) && version === session.version) return false;
+  }
+  return false;
+}
+
+export function chooseStripeRecurrence(element: Element, checked: boolean): void {
+  const session = sessions.get(element);
+  if (!session || session.desired === checked) return;
+  session.desired = checked;
+  session.version++;
+  notify(session);
+}
+
+export function stripeRecurrenceConfirmed(element: Element, checked: boolean): boolean {
+  const session = sessions.get(element);
+  return Boolean(session?.active && !session.failed && session.initialized && !session.pending
+    && session.secret && session.confirmedVersion === session.version && session.confirmed === checked
+    && (session.desired === undefined || session.desired === checked));
+}
+
+export function stripeSessionSequence(element: Element): number {
+  return sessions.get(element)?.sequence ?? 0;
+}
+
+/** Drain ALL earlier requests, including initial updates without `updating`. */
+export function waitForStripeSession(element: Element, afterSequence = -1): Promise<boolean> {
+  const session = sessions.get(element);
+  if (!session) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const finish = (ok: boolean) => {
+      clearTimeout(timer);
+      session.listeners.delete(check);
+      resolve(ok);
+    };
+    const check = () => {
+      if (!session.active || session.failed) finish(false);
+      else if (session.initialized && session.pending === 0
+        && (session.sequence > afterSequence || (session.confirmedVersion === session.version
+          && session.confirmed === session.desired))) finish(true);
+    };
+    const timer = setTimeout(() => { session.failed = true; notify(session); }, 15_000);
+    session.listeners.add(check);
+    check();
+  });
+}
+
+/** Revalidate a choice that returned to the same provider checkbox value while
+ * an older version was pending. React would otherwise skip its unchanged effect.
+ */
+export async function refreshStripeSession(element: Element): Promise<boolean> {
+  const session = sessions.get(element);
+  if (!session?.active || !session.lastRequest || processOwner() !== session) return false;
+  const version = session.version;
+  const { input, init, body } = session.lastRequest;
+  const response = await fetch(input, { ...init, body: JSON.stringify({ ...JSON.parse(body), tokenInput: session.token, recurringPayment: session.desired }) });
+  const data = await response.json();
+  if (!session.active || version !== session.version || !stripeRecurrenceConfirmed(element, session.desired!)) return false;
+  // The IIFE exposes this session replacement hook on window. Only use it for
+  // the sole active mounted attempt, after checking its version again.
+  if (data.client_secret) window.dispatchEvent(new CustomEvent("buq__discount_added", { detail: {
+    client_secret: data.client_secret, checkout_token: session.token,
+  } }));
+  return true;
+}
+
+function processOwner(): Session | undefined {
+  // The provider has a singleton API client. Multiple mounted checkouts are
+  // ambiguous: never attribute their responses to an arbitrary checkout.
+  const active = [...sessions.values()].filter((session) => session.active);
+  return active.length === 1 ? active[0] : undefined;
+}
 
 export function installStripeSessionFetchGuard(): void {
   if (state.installed || typeof window === "undefined" || typeof fetch !== "function") return;
@@ -65,38 +244,148 @@ export function installStripeSessionFetchGuard(): void {
     const url = requestUrl(input);
     const method = (init?.method ?? (typeof Request !== "undefined" && input instanceof Request ? input.method : "GET")).toUpperCase();
     if (method !== "POST") return state.orig(input, init);
+    const process = PROCESS_PATH.test(url);
+    const update = UPDATE_PATH.test(url);
+    const complete = /\/api\/stripe\.completeinitialpayment(?:\?|$)/i.test(url);
+    if (!process && !update && !complete) return state.orig(input, init);
+    const body = readBody(init);
+    const token = tokenFromBody(body);
+    const owner = tokens.get(token);
+    const session = process ? processOwner() : owner?.session;
 
-    if (UPDATE_PATH.test(url)) {
-      const body = readBody(init);
-      const token = tokenFromBody(body);
-      const key = `${token}::${body}`;
-      const now = Date.now();
-      const prev = state.last.get(key);
-      if (prev && now - prev.at < DEBOUNCE_MS) {
-        return jsonResponse({
-          message: token || prev.token || "No hubo cambios",
-        });
+    if (session) {
+      const requested = process ? false : (JSON.parse(body) as { recurringPayment?: boolean }).recurringPayment;
+      if (!session.active || (!process && owner?.generation !== session.generation)
+        || (complete && token !== session.token)) {
+        if (complete) throw new Error("La sesión de pago ya no está vigente.");
+        return jsonResponse({});
       }
-      const response = await state.orig(input, init);
-      state.last.set(key, { at: Date.now(), body, token });
-      if (!response.ok) return response;
-      const data: unknown = await response
-        .clone()
-        .json()
-        .catch(() => null);
-      if (!data || typeof data !== "object") return response;
-      const next = { ...(data as Record<string, unknown>) };
-      // Una sesión nueva necesita actualizar token y secret; la misma remonta vw → otro update.
-      const sessionChanged = typeof next.message === "string" && token !== "" && next.message !== token;
-      if (!sessionChanged) delete next.client_secret;
-      return jsonResponse(next, response.status);
+      if (update) session.lastRequest = { input, init, body };
+      if (complete) {
+        // Recheck after the SDK preflight's asynchronous work, immediately
+        // before completeinitialpayment and the IIFE's checkout.confirm().
+        if (typeof requested !== "boolean" || !stripeRecurrenceConfirmed(session.element, requested)) {
+          throw new Error("La elección recurrente cambió antes de confirmar el pago.");
+        }
+        const version = session.version;
+        const response = await state.orig(input, init);
+        const parse = response.json.bind(response);
+        response.json = async () => {
+          const data = await parse();
+          if (!session.active || version !== session.version || token !== session.token
+            || !stripeRecurrenceConfirmed(session.element, requested)) {
+            throw new Error("La sesión de pago cambió durante la confirmación.");
+          }
+          return data;
+        };
+        return response;
+      }
+      // CheckoutProvider remounts when a response genuinely rotates its secret.
+      // Its new form repeats the exact update. Reuse only this attempt/version's
+      // completed confirmation so rotation cannot create an update/remount loop.
+      if (update && !session.pending && !session.failed && session.lastUpdate?.body === withToken(body, session.token)
+        && session.lastUpdate.version === session.version && session.confirmed === requested
+        && session.confirmedVersion === session.version) return jsonResponse({ message: session.token });
+      const version = session.version;
+      const generation = session.generation;
+      const id = ++session.sequence;
+      session.latest = id;
+      session.pending++;
+      notify(session);
+      const run = async () => {
+        try {
+          if (!session.active || session.failed || generation !== session.generation) return jsonResponse({});
+          // A queued opt-in must never reach the server after an opt-out.
+          // In-flight requests still contribute their continuation token below.
+          if (update && requested === true && session.desired === false && version !== session.version) return jsonResponse({});
+          // Earlier responses may have rotated the continuation token while
+          // this request was queued, or without reaching the IIFE at all.
+          const requestToken = session.token;
+          const response = await state.orig(input, update ? { ...init, body: withToken(body, requestToken) } : init);
+          if (!session.active || generation !== session.generation) return jsonResponse({});
+          if (!response.ok) { session.failed = true; return response; }
+          const data = await response.clone().json() as Record<string, unknown>;
+          // A response may mutate the IIFE only for its original mounted
+          // attempt and choice. Stale process responses must not create a form.
+          if (!session.active || session.failed || generation !== session.generation) return jsonResponse({});
+          if (process) {
+            if (id !== session.latest) return jsonResponse({});
+            if (typeof data.message !== "string" || typeof data.client_secret !== "string") {
+              session.failed = true;
+              return jsonResponse({});
+            }
+            rememberToken(session, data.message);
+            session.secret = data.client_secret;
+            // Initialization always starts non-recurring in the real IIFE.
+            // Wait for its first update before claiming the session is ready.
+            return correlatedResponse(data, response.status, () => session.active && generation === session.generation && id === session.latest);
+          }
+          session.initialized = true;
+          // Choice validity and continuation ownership are independent. Even
+          // an outdated choice can invalidate the server's previous token.
+          const changedToken = typeof data.message === "string" && data.message !== "" && data.message !== requestToken;
+          if (changedToken) rememberToken(session, data.message as string);
+          if (version !== session.version || id !== session.latest
+            || (session.desired !== undefined && requested !== session.desired)) {
+            session.confirmed = undefined;
+            return jsonResponse({});
+          }
+          const secret = typeof data.client_secret === "string" && data.client_secret ? data.client_secret : undefined;
+          // An unchanged single-payment session can keep its existing secret.
+          // A recurrence change requires the actual matching response secret.
+          if (!secret && (changedToken || requested !== false || session.element.getAttribute("has-recurring-payment") !== "false")) {
+            session.failed = true;
+            return jsonResponse({});
+          }
+          if (secret) session.secret = secret;
+          session.confirmed = requested;
+          session.confirmedVersion = version;
+          session.lastUpdate = { body: withToken(body, session.token), version };
+          session.element.dispatchEvent(new CustomEvent("gafa-stripe-payment-updated", { bubbles: true, detail: {
+            ...data, message: session.token, client_secret: session.secret,
+            subscriptionId: requested ? data.subscriptionId : null,
+          } }));
+          // Identical secrets do not change React's CheckoutProvider key. A
+          // genuinely new secret must reach the IIFE so confirm uses that one.
+          return correlatedResponse(data, response.status, () => session.active && generation === session.generation && id === session.latest
+            && version === session.version && (session.desired === undefined || session.desired === requested));
+        } catch (error) {
+          if (!session.active || generation !== session.generation) return jsonResponse({});
+          session.failed = true;
+          throw error;
+        } finally {
+          session.pending--;
+          notify(session);
+        }
+      };
+      // Updates must reach the server in order too; ignoring an old response
+      // alone cannot prevent an old request from restoring recurrence there.
+      const result = session.tail.then(run, run);
+      session.tail = result.catch(() => undefined);
+      return result;
     }
-
-    if (PROCESS_PATH.test(url)) {
-      return state.orig(input, init);
+    // Registered checkouts never accept unowned session responses, including
+    // updates from an unmounted IIFE and ambiguous simultaneous mounts.
+    if (sessions.size) {
+      if (complete) throw new Error("No se pudo identificar la sesión de pago.");
+      return jsonResponse({});
     }
+    if (process || complete) return state.orig(input, init);
 
-    return state.orig(input, init);
+    // Preserve the standalone guard contract for non-SDK consumers.
+    const key = `${url}::${token}`;
+    const prev = state.last.get(key);
+    if (token && prev?.body === body && Date.now() - prev.at < DEBOUNCE_MS) return jsonResponse({ message: token });
+    state.last.delete(key);
+    const response = await state.orig(input, init);
+    if (!response.ok) return response;
+    const data = await response.clone().json().catch(() => null);
+    if (!data || typeof data !== "object") return response;
+    const next = { ...data };
+    const changed = typeof next.message === "string" && token !== "" && next.message !== token;
+    if (!changed) delete next.client_secret;
+    if (token && !changed && !/"recurringPayment"\s*:/.test(body)) state.last.set(key, { at: Date.now(), body, token });
+    return jsonResponse(next, response.status);
   }) as typeof fetch;
 }
 
@@ -107,6 +396,9 @@ export function resetStripeSessionFetchGuardForTests(): void {
   }
   state.installed = false;
   state.last.clear();
+  for (const session of sessions.values()) { session.active = false; notify(session); }
+  sessions.clear();
+  tokens.clear();
 }
 
 /**

@@ -12,6 +12,7 @@ import type {
 } from "../client/types";
 import {
   cartSubtotal,
+  membershipRecurrenceProducts,
   formatMoney,
   useCartStore,
   type CartLine,
@@ -52,7 +53,7 @@ import {
   resolveCrossSellItems,
 } from "../cart/crossSell";
 import { installStripeCardTheme } from "../payments/stripeCardStyle";
-import { afterStrictModePass } from "../payments/stripeSessionGuard";
+import { afterStrictModePass, stripeSessionSnapshot } from "../payments/stripeSessionGuard";
 import { humanizeCheckoutError } from "../payments/checkoutErrorMessage";
 import { showToast } from "../toast/toastStore";
 import { ToastHost } from "../toast/ToastHost";
@@ -83,8 +84,8 @@ import {
 import { retryReservate } from "../cart/reservateRetry";
 import {
   cartHasMembership,
+  cartHasSubscribableMembership,
   bindStripeMembershipRecurrence,
-  findStripeRecurringCheckbox,
   setStripeMembershipAutoRenew,
   paymentMethodsForCart,
   readShowMembershipOptions,
@@ -351,10 +352,11 @@ export function CheckoutModal({
   // El formulario del proveedor vive fuera de React. Sin el listo, "Pagar"
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
+  const [stripeRegistrationReady, setStripeRegistrationReady] = useState(false);
   const [paying, setPaying] = useState(false);
-  /** Membresía: como v1, guardar tarjeta + renovar van ON y ocultos. */
+  /** La renovación se ofrece marcada solo para membresías suscribibles. */
   const [saveCard, setSaveCard] = useState(true);
-  const [autoRenew, setAutoRenew] = useState(true);
+  const membershipRecurrence = useCartStore((state) => state.membershipRecurrence);
   const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
@@ -399,6 +401,10 @@ export function CheckoutModal({
     payload: InitialPurchasePayload;
   } | null>(null);
   const hostedAbortRef = useRef<AbortController | null>(null);
+  const hostedRegistrationVersion = useRef(0);
+  const hostedPaymentDataRef = useRef<unknown>(null);
+  const registeredStripeSessionRef = useRef<ReturnType<typeof stripeSessionSnapshot>>(null);
+  const registeredStripeContextRef = useRef<string | null>(null);
   const hostedSettledRef = useRef(false);
   const stripePollLockRef = useRef(false);
   const stopPopupWatchRef = useRef<(() => void) | null>(null);
@@ -548,11 +554,11 @@ export function CheckoutModal({
   const config = configQuery.data;
   const hasTerms = Boolean(config?.termsConditionsLink);
 
-  const relevantLines = classAttached
+  const cartLines = classAttached
     ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
     : lines;
-  const purchaseKey = cartPurchaseKey(relevantLines);
-  const membershipPurchase = cartHasMembership(relevantLines);
+  const purchaseKey = cartPurchaseKey(cartLines);
+  const membershipPurchase = cartHasMembership(cartLines);
   const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
 
   // Compra suelta: el catalogo de la MARCA (listCombos), no el recorte de la
@@ -605,6 +611,26 @@ export function CheckoutModal({
   const products = classAttached
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
+  // Hidratar una sola vez: elegibilidad, frecuencia y payloads usan los mismos
+  // metadatos. Un carrito persistido puede no traer raw ni expiration_days.
+  const relevantLines = cartLines.map((line) => {
+    const pool = line.type === "membership"
+      ? [...membershipsRaw, ...(config?.memberships ?? [])]
+      : line.type === "product"
+        ? [...products, ...(config?.products ?? [])]
+        : [...combos, ...(config?.combos ?? [])];
+    const item = pool.find((item) => sameCatalogId(item.id, line.id));
+    if (!item) return line;
+    const catalogRaw = catalogCartRaw(item);
+    return catalogRaw ? { ...line, raw: { ...catalogRaw, ...line.raw } } : line;
+  });
+  const canAutoRenew = cartHasSubscribableMembership(relevantLines);
+  // Quantity, catalog hydration and provider remounts keep the same product
+  // identity. The explicit choice also survives a remount of the modal itself.
+  const recurringProducts = membershipRecurrenceProducts(cartLines);
+  const autoRenewSelected = recurringProducts.every((key) => membershipRecurrence?.[key] !== false);
+  const setAutoRenew = (selected: boolean) => useCartStore.getState().setMembershipRecurrence(recurringProducts, selected);
+  const autoRenew = canAutoRenew && autoRenewSelected;
   useEffect(() => {
     const available: CatalogTab[] = [];
     if (combos.length) available.push("packages");
@@ -805,13 +831,22 @@ export function CheckoutModal({
 
   const waitingOnTerms = hasTerms && !termsAccepted;
   const waitingOnGift = convertGift && giftStatus !== "ok";
+  const stripeRegistrationContext = JSON.stringify([
+    purchaseKey, selectedMethodId, discountStatus === "ok" ? discountCode.trim() : "",
+    resolvedGiftCode(), autoRenew, saveCard,
+  ]);
+  const stripeRegistrationContextRef = useRef(stripeRegistrationContext);
+  stripeRegistrationContextRef.current = stripeRegistrationContext;
   const canPay =
     relevantLines.length > 0 &&
     Boolean(profileQuery.data) &&
     !waitingOnTerms &&
     !waitingOnGift &&
+    discountStatus !== "checking" &&
     !paying &&
-    (isFreeTotal || mockPay || (Boolean(selectedMethod) && paymentReady));
+    (isFreeTotal || mockPay || (Boolean(selectedMethod) && paymentReady &&
+      (selectedMethod?.slug !== "stripe" || (stripeRegistrationReady &&
+        registeredStripeContextRef.current === stripeRegistrationContext))));
   const purchaseAlreadyClear = purchaseClearKey.current === purchaseKey && purchaseKey.length > 0;
   const holdPayForm =
     !mockPay &&
@@ -840,6 +875,7 @@ export function CheckoutModal({
     setAppliedDiscount(null);
     try {
       const pending = hostedPendingRef.current;
+      const discountCheckoutToken = currentStripeSession()?.token ?? pending?.checkoutToken;
       const result = await client.checkDiscountCode({
         brandSlug,
         locationSlug,
@@ -850,7 +886,7 @@ export function CheckoutModal({
           id: line.id,
           type: line.type,
         })),
-        checkoutToken: pending?.checkoutToken,
+        checkoutToken: discountCheckoutToken,
         pendingPurchaseId: pending?.purchaseId,
       });
       if (!result.valid) {
@@ -859,14 +895,26 @@ export function CheckoutModal({
         return;
       }
       if (result.clientSecret && result.checkoutToken) {
-        notifyStripeDiscountAdded({
+        const updated = await notifyStripeDiscountAdded({
           client_secret: result.clientSecret,
           checkout_token: result.checkoutToken,
+        }, discountCheckoutToken);
+        if (!updated) throw new Error("La sesión del descuento ya no está vigente.");
+        // Revalidation can rotate the discount token again. Never restore the
+        // response token or the paymentData captured before revalidation.
+        const session = currentStripeSession();
+        const data = stripePaymentData(session, {
+          message: result.checkoutToken, client_secret: result.clientSecret,
         });
-        if (pending) {
-          hostedPendingRef.current = { ...pending, checkoutToken: result.checkoutToken };
+        hostedPaymentDataRef.current = data;
+        const current = hostedPendingRef.current;
+        if (current) {
+          const checkoutToken = checkoutTokenFromHostedData(data)!;
+          hostedPendingRef.current = { ...current, checkoutToken,
+            payload: { ...current.payload, checkoutToken, paymentData: data } };
         }
       }
+      if (selectedMethod?.slug === "stripe") setStripeRegistrationReady(false);
       setAppliedDiscount(result);
       setDiscountStatus("ok");
     } catch {
@@ -1151,23 +1199,6 @@ export function CheckoutModal({
     const reservationSnapshot = reservation;
     const linesSnapshot = relevantLines;
 
-    // Carritos guardados antes de que las líneas cargaran `raw` (localStorage)
-    // no traen el JSON del API: se resuelve del catálogo de la sede al pagar.
-    const rawFor = (line: CartLine): Record<string, unknown> | undefined => {
-      if (line.raw) return line.raw;
-      const pools =
-        line.type === "membership"
-          ? [memberships, config?.memberships ?? []]
-          : line.type === "product"
-            ? [products, config?.products ?? []]
-            : [combos, config?.combos ?? []];
-      for (const pool of pools) {
-        const hit = pool.find((item) => sameCatalogId(item.id, line.id));
-        if (hit?.raw) return hit.raw;
-      }
-      return undefined;
-    };
-
     try {
       const paymentTypeId = selectedMethod?.id ?? paymentMethods[0]?.id ?? 0;
       if (!profile || !client.reservatePurchase || !brandSlug || !locationSlug) {
@@ -1200,15 +1231,7 @@ export function CheckoutModal({
           locationSlug,
           userId: config?.userProfileId ?? profile.id,
           ...association,
-          lines: subset.map((line) => ({
-            id: line.id,
-            type: line.type,
-            amount: line.amount,
-            name: line.name,
-            price: line.price,
-            companiesId: config?.companiesId,
-            raw: rawFor(line),
-          })),
+          lines: purchaseLinesPayload(subset),
           paymentTypeId,
           paymentData: extras.paymentData,
           subscriptionId: extras.subscriptionId,
@@ -1355,20 +1378,6 @@ export function CheckoutModal({
   }
 
   function purchaseLinesPayload(subset: CartLine[] = relevantLines) {
-    const rawFor = (line: CartLine): Record<string, unknown> | undefined => {
-      if (line.raw) return line.raw;
-      const pools =
-        line.type === "membership"
-          ? [memberships, config?.memberships ?? []]
-          : line.type === "product"
-            ? [products, config?.products ?? []]
-            : [combos, config?.combos ?? []];
-      for (const pool of pools) {
-        const hit = pool.find((item) => sameCatalogId(item.id, line.id));
-        if (hit?.raw) return hit.raw;
-      }
-      return undefined;
-    };
     return subset.map((line) => ({
       id: line.id,
       type: line.type,
@@ -1376,7 +1385,7 @@ export function CheckoutModal({
       name: line.name,
       price: line.price,
       companiesId: config?.companiesId,
-      raw: rawFor(line),
+      raw: line.raw,
     }));
   }
 
@@ -1436,6 +1445,36 @@ export function CheckoutModal({
     onCompleted?.({ purchaseId: result.purchaseId, reservationId: result.reservationId });
   }
 
+  function currentStripeSession() {
+    return stripeSessionSnapshot(document.querySelector(".gafa-checkout-paymount__island stripe-payment-element"));
+  }
+
+  function stripePaymentData(session: ReturnType<typeof stripeSessionSnapshot>, data: unknown) {
+    if (!session) return data;
+    return { ...(data && typeof data === "object" ? data : {}),
+      message: session.token, checkout_token: session.token, checkoutToken: session.token,
+      client_secret: session.secret };
+  }
+
+  function stripeRegistrationCurrent() {
+    const registered = registeredStripeSessionRef.current;
+    const current = currentStripeSession();
+    return Boolean(hostedPendingRef.current && registeredStripeContextRef.current === stripeRegistrationContextRef.current && (current
+      ? registered?.element === current.element && registered.token === current.token &&
+        registered.version === current.version && registered.generation === current.generation
+      : !registered));
+  }
+
+  function resetHostedRegistration() {
+    hostedRegistrationVersion.current++;
+    hostedAbortRef.current?.abort();
+    hostedPendingRef.current = null;
+    hostedPaymentDataRef.current = null;
+    registeredStripeSessionRef.current = null;
+    registeredStripeContextRef.current = null;
+    setStripeRegistrationReady(false);
+  }
+
   async function handleHostedCheckout(data: unknown) {
     const profile = profileQuery.data;
     if (!profile || !selectedMethod || !brandSlug || !locationSlug) {
@@ -1443,6 +1482,10 @@ export function CheckoutModal({
       reportPayError("No pudimos abrir el pago. Recarga e inténtalo de nuevo.");
       return;
     }
+    const isStripe = selectedMethod.slug === "stripe";
+    const session = isStripe ? currentStripeSession() : null;
+    if (isStripe) data = stripePaymentData(session, data);
+    hostedPaymentDataRef.current = data;
     const checkoutToken = checkoutTokenFromHostedData(data);
     if (!checkoutToken) {
       setPaying(false);
@@ -1470,7 +1513,12 @@ export function CheckoutModal({
       setPayment: membershipPurchase ? saveCard : false,
     };
 
-    const isStripe = selectedMethod.slug === "stripe";
+    const version = ++hostedRegistrationVersion.current;
+    if (isStripe) {
+      hostedPendingRef.current = null;
+      registeredStripeSessionRef.current = null;
+      setStripeRegistrationReady(false);
+    }
     if (!isStripe) setPaying(true);
     hostedAbortRef.current?.abort();
     const abort = new AbortController();
@@ -1482,16 +1530,27 @@ export function CheckoutModal({
         throw new Error("Esta marca no tiene configurado el pago con tarjeta.");
       }
       const pending = await client.initialPurchase(payload);
+      if (abort.signal.aborted || version !== hostedRegistrationVersion.current) return;
+      if (isStripe && stripeRegistrationContext !== stripeRegistrationContextRef.current) return;
+      const current = isStripe ? currentStripeSession() : null;
+      if (session && (!current || current.element !== session.element || current.token !== session.token ||
+        current.version !== session.version || current.generation !== session.generation)) return;
       const purchaseId = pending.purchaseId;
-      const token = pending.checkoutToken?.trim() || checkoutToken;
+      const token = session?.token ?? (pending.checkoutToken?.trim() || checkoutToken);
       if (purchaseId == null) {
         throw new Error("No se pudo crear la compra pendiente.");
       }
-      hostedPendingRef.current = { checkoutToken: token, purchaseId, payload };
+      hostedPendingRef.current = { checkoutToken: token, purchaseId,
+        payload: { ...payload, checkoutToken: token, paymentData: stripePaymentData(session, data) } };
       // Stripe: gafa.fit manda sendInitialPurchaseForm al crear la sesión y
       // polla al confirmar. Aquí el poll arranca en payment-start/success
       // para no dejar el CTA en “Procesando…” mientras el socio llena la tarjeta.
-      if (isStripe) return;
+      if (isStripe) {
+        registeredStripeSessionRef.current = session;
+        registeredStripeContextRef.current = stripeRegistrationContext;
+        setStripeRegistrationReady(true);
+        return;
+      }
       const done = await pollRecurrenteUntilDone({
         client,
         brandSlug,
@@ -1505,6 +1564,7 @@ export function CheckoutModal({
       stopPopupWatchRef.current = null;
       await finishHostedPurchase({ purchaseId, reservationId: done.reservationId });
     } catch (err) {
+      if (abort.signal.aborted || version !== hostedRegistrationVersion.current) return;
       if (err instanceof HostedCheckoutClosedError) {
         setPaying(false);
         return;
@@ -1590,14 +1650,14 @@ export function CheckoutModal({
       stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
       return;
     }
-    const pending = hostedPendingRef.current;
-    if (!pending) {
+    const data = hostedPaymentDataRef.current;
+    if (!data) {
       stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
       return;
     }
     if (stripeHostedSyncKeyRef.current === stripeHostedSyncKey) return;
     stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
-    void handleHostedCheckout(pending.payload.paymentData ?? { message: pending.checkoutToken });
+    void handleHostedCheckout(stripePaymentData(currentStripeSession(), data));
     // handleHostedCheckout vive en el body del componente.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stripeHostedSyncKey, selectedMethod?.slug]);
@@ -1845,6 +1905,10 @@ export function CheckoutModal({
       reportPayError("El formulario de pago todavía no está listo.");
       return;
     }
+    if (selectedMethod?.slug === "stripe" && !mockPay && !stripeRegistrationCurrent()) {
+      reportPayError("El registro del pago todavía no está listo.");
+      return;
+    }
     if (paypalFlowRef.current && selectedMethod?.slug === "paypal" && !registerOnly) {
       return;
     }
@@ -1888,14 +1952,19 @@ export function CheckoutModal({
     try {
       if (membershipPurchase) {
         const root = document.querySelector(".gafa-checkout-paymount__island");
-        // Stripe conserva la elección actual del IIFE y espera su sesión.
-        // Frontpay sigue autoRenew: #recurringPayment / #saveCard.
-        const stripeRenew = root && findStripeRecurringCheckbox(root);
-        if (stripeRenew) setAutoRenew(stripeRenew.checked);
+        // La elección visible del SDK manda. El preflight espera la cola de
+        // Stripe y verifica esa elección sin copiar estados intermedios del IIFE.
         if (!root || !await syncGafaPayMembershipToggles(root, { saveCard, autoRenew })) {
           warnCheckout("No se verificaron las opciones de membresía; se bloqueó el cobro.");
           setPaying(false);
           reportPayError("No pudimos activar las opciones de la membresía. Intenta de nuevo.");
+          return;
+        }
+      } else {
+        const root = document.querySelector(".gafa-checkout-paymount__island");
+        if (!root || !await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: false })) {
+          setPaying(false);
+          reportPayError("No pudimos verificar las opciones del pago. Intenta de nuevo.");
           return;
         }
       }
@@ -1903,6 +1972,11 @@ export function CheckoutModal({
         .then((items) => new Set(items.map((item) => item.id)))
         .catch(() => null);
       chargeStartedRef.current = Date.now();
+      if (selectedMethod?.slug === "stripe" && !stripeRegistrationCurrent()) {
+        setPaying(false);
+        reportPayError("La sesión de pago cambió. Espera a que termine su registro.");
+        return;
+      }
       const triggered = await triggerGafaPayConfirm(
         selectedMethod?.slug ?? "",
         document.querySelector(".gafa-checkout-paymount__island"),
@@ -2233,6 +2307,7 @@ export function CheckoutModal({
                   }}
                   onSuccess={handleGafaPaySuccess}
                   onHostedCheckout={handleHostedCheckout}
+                  onHostedReset={resetHostedRegistration}
                   onHostedClose={releaseHostedWait}
                   onStart={() => {
                     setPaying(true);
@@ -2270,6 +2345,8 @@ export function CheckoutModal({
                       ? {
                           saveCard,
                           autoRenew,
+                          canAutoRenew,
+                          disabled: paying,
                           open: membershipOptsOpen,
                           visible: showMembershipOptions,
                           onToggle: () => setMembershipOptsOpen((current) => !current),
@@ -2652,12 +2729,14 @@ export function CheckoutModal({
   );
 }
 
-/** El carrito solo lee `raw.reservations_max`; copia el tope tipado si hace falta. */
+/** Conserva el tope y los datos de suscripción cuando el catálogo solo los trae tipados. */
 function catalogCartRaw(item: CatalogItem): Record<string, unknown> | undefined {
   const cap = purchaseAmountCap(item);
-  if (!item.raw && cap == null) return undefined;
+  if (!item.raw && cap == null && item.subscribable == null && item.expirationDays == null) return undefined;
   const raw = { ...(item.raw ?? {}) };
   if (cap != null && raw.reservations_max == null) raw.reservations_max = cap;
+  if (raw.subscribable == null && item.subscribable != null) raw.subscribable = item.subscribable;
+  if (raw.expiration_days == null && item.expirationDays != null) raw.expiration_days = item.expirationDays;
   return raw;
 }
 
@@ -2811,6 +2890,7 @@ function PayPanel({
   customer,
   onSuccess,
   onHostedCheckout,
+  onHostedReset,
   onHostedClose,
   onStart,
   onReadyChange,
@@ -2834,6 +2914,7 @@ function PayPanel({
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
   onHostedCheckout: (data: unknown) => void;
+  onHostedReset: () => void;
   onHostedClose: () => void;
   onStart: () => void;
   onReadyChange: (ready: boolean) => void;
@@ -2851,6 +2932,8 @@ function PayPanel({
   membershipOptions?: {
     saveCard: boolean;
     autoRenew: boolean;
+    canAutoRenew: boolean;
+    disabled: boolean;
     open: boolean;
     visible: boolean;
     onToggle: () => void;
@@ -2861,6 +2944,10 @@ function PayPanel({
   enrollmentLabel?: string;
 }) {
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [recurrenceReady, setRecurrenceReady] = useState(true);
+  const recurrenceRequest = useRef(0);
+  const membershipOptionsRef = useRef(membershipOptions);
+  membershipOptionsRef.current = membershipOptions;
   const [mountNonce, setMountNonce] = useState(0);
   const selected = methods.find((method) => method.id === selectedMethodId) ?? null;
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -2872,6 +2959,7 @@ function PayPanel({
     onError,
     onStart,
     onHostedCheckout,
+    onHostedReset,
     onHostedClose,
     onSaveCard: membershipOptions?.onSaveCard,
     onAutoRenew: membershipOptions?.onAutoRenew,
@@ -2881,14 +2969,15 @@ function PayPanel({
     onError,
     onStart,
     onHostedCheckout,
+    onHostedReset,
     onHostedClose,
     onSaveCard: membershipOptions?.onSaveCard,
     onAutoRenew: membershipOptions?.onAutoRenew,
   };
 
   useEffect(() => {
-    onReadyChange(mockPay || loadState === "ready");
-  }, [loadState, onReadyChange, mockPay]);
+    onReadyChange(mockPay || (loadState === "ready" && recurrenceReady));
+  }, [loadState, recurrenceReady, onReadyChange, mockPay]);
 
   // lineItems con el descuento repartido, igual que el fancy v1.
   const lineItems = useMemo<GafaPayLineItem[]>(() => {
@@ -2949,9 +3038,13 @@ function PayPanel({
         selected?.slug === "recurrente" || selected?.slug === "paypal"
           ? true
           : (config?.termsConditionsLink ?? true),
-      hasRecurringPayment: Boolean(membershipOptions),
-      // Sin esto GAFAPay cobra pero no crea la suscripción.
-      paymentFrequency: membershipOptions?.autoRenew ? membershipPaymentFrequency(lines) : null,
+      hasRecurringPayment: Boolean(membershipOptions?.canAutoRenew),
+      // Stripe lee la cadencia al montar (ignora cambios de atributos). Debe
+      // conservarla para volver a marcar sin remontar; la casilla y su sesión
+      // deciden si renueva. Frontpay recibe null al desmarcar.
+      paymentFrequency: (selected?.slug === "stripe" ? membershipOptions?.canAutoRenew : membershipOptions?.autoRenew)
+        ? membershipPaymentFrequency(lines)
+        : null,
       onStartPayAction: () => handlersRef.current.onStart(),
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
       onGafaPayErrAction: ({ message }) =>
@@ -2965,9 +3058,10 @@ function PayPanel({
       onInitialPaymentUpdating: () => undefined,
       onInitialPaymentUpdateError: ({ message }) =>
         handlersRef.current.onError(message ?? "No pudimos actualizar el pago."),
-      changePaymentSystemProperties: ({ recurringPayment, saveCard: nextSave }) => {
+      changePaymentSystemProperties: ({ saveCard: nextSave }) => {
+        // Las casillas legacy están ocultas: durante la sincronización pueden
+        // emitir estados intermedios. La elección del SDK es la fuente de verdad.
         if (typeof nextSave === "boolean") handlersRef.current.onSaveCard?.(nextSave);
-        if (typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
       },
     }),
     [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount],
@@ -2979,6 +3073,7 @@ function PayPanel({
   propsRef.current = widgetProps;
 
   const slug = selected?.slug;
+  const recurrenceAvailable = Boolean(membershipOptions?.canAutoRenew);
   const clientIdKey = clientId == null ? "" : String(clientId);
   const clientSecretKey = clientSecret ?? "";
   const colorScheme = useGafaThemeOptional()?.scheme ?? "light";
@@ -2990,8 +3085,9 @@ function PayPanel({
     return installStripeCardTheme(colorScheme);
   }, [slug, colorScheme]);
 
-  // Monta la isla: se re-monta si cambia el proveedor, las credenciales o
-  // Reintentar. Un fallo de red/timeout espera en el MISMO widget (no crea
+  // Monta la isla: se re-monta si cambia el proveedor, las credenciales,
+  // la elegibilidad recurrente del carrito o Reintentar. Desmarcar no remonta.
+  // Un fallo de red/timeout espera en el MISMO widget (no crea
   // otra orden GAFApay). StrictMode del embed (runtime.tsx) hace
   // mount→cleanup→mount en el mismo tick: afterStrictModePass descarta el
   // primero para no disparar 2–4 processinitialpayment por apertura.
@@ -3001,6 +3097,14 @@ function PayPanel({
     let cancelled = false;
     let didMount = false;
     let stopPaypalCapture: () => void = () => undefined;
+    handlersRef.current.onHostedReset();
+    // Subscribe before mountGafaPayWidget: the first session update can start
+    // synchronously, before the surface (and its recurring checkbox) is ready.
+    const stopStripeRecurrence = slug === "stripe" && mountRef.current
+      ? bindStripeMembershipRecurrence(mountRef.current, () => undefined)
+      : () => undefined;
+    onReadyChange(false);
+    setRecurrenceReady(false);
     setLoadState("loading");
 
     const reportLoadError = (error: unknown) => {
@@ -3023,6 +3127,30 @@ function PayPanel({
     };
 
     const alreadyMounted = () => Boolean(islandRef.current);
+
+    const readyAfterRecurrence = async () => {
+      // The surface/session enables editing independently of session agreement.
+      // Only Pagar must wait for the last SDK choice to be acknowledged.
+      setLoadState("ready");
+      if (slug === "stripe") {
+        let desired: boolean;
+        do {
+          desired = membershipOptionsRef.current?.autoRenew ?? false;
+          const container = mountRef.current;
+          if (cancelled || !container) return;
+          // Preserve edits made before the provider surface finishes loading.
+          // A legacy Stripe island uses frontpay's checkbox bridge.
+          const ok = container.querySelector("stripe-payment-element")
+            ? await setStripeMembershipAutoRenew(container, desired)
+            : await syncGafaPayMembershipToggles(container, { saveCard: membershipOptionsRef.current?.saveCard ?? false, autoRenew: desired });
+          if (cancelled) return;
+          if (!ok && desired === (membershipOptionsRef.current?.autoRenew ?? false)) throw new Error("No pudimos actualizar las opciones de la membresía.");
+        } while (!cancelled && desired !== (membershipOptionsRef.current?.autoRenew ?? false));
+      }
+      if (cancelled) return;
+      setRecurrenceReady(true);
+      setLoadState("ready");
+    };
 
     const mountOnce = async (reuse: boolean) => {
       const container = mountRef.current;
@@ -3060,7 +3188,7 @@ function PayPanel({
         try {
           await mountOnce(false);
           if (cancelled) return;
-          setLoadState("ready");
+          await readyAfterRecurrence();
         } catch {
           if (cancelled) return;
           try {
@@ -3068,7 +3196,7 @@ function PayPanel({
             if (cancelled) return;
             await mountOnce(alreadyMounted());
             if (cancelled) return;
-            setLoadState("ready");
+            await readyAfterRecurrence();
           } catch (second) {
             if (cancelled) return;
             setLoadState("error");
@@ -3080,27 +3208,31 @@ function PayPanel({
 
     return () => {
       cancelled = true;
+      recurrenceRequest.current++;
       cancelDeferred();
       stopPaypalCapture();
+      stopStripeRecurrence();
       if (didMount) {
         islandRef.current?.unmount();
         islandRef.current = null;
       }
+      handlersRef.current.onHostedReset();
     };
-  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay]);
-
-  const hasMembershipOptions = Boolean(membershipOptions);
-  useEffect(() => {
-    if (slug !== "stripe" || !hasMembershipOptions || !mountRef.current) return;
-    return bindStripeMembershipRecurrence(mountRef.current, (checked) => {
-      handlersRef.current.onAutoRenew?.(checked);
-    });
-  }, [slug, hasMembershipOptions]);
+  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay, recurrenceAvailable]);
 
   const changeAutoRenew = (checked: boolean) => {
     handlersRef.current.onAutoRenew?.(checked);
     if (slug === "stripe" && loadState === "ready" && mountRef.current) {
-      void setStripeMembershipAutoRenew(mountRef.current, checked).then((ok) => {
+      const request = ++recurrenceRequest.current;
+      onReadyChange(false);
+      setRecurrenceReady(false);
+      const container = mountRef.current;
+      const update = container.querySelector("stripe-payment-element")
+        ? setStripeMembershipAutoRenew(container, checked)
+        : syncGafaPayMembershipToggles(container, { saveCard: membershipOptions?.saveCard ?? false, autoRenew: checked });
+      void update.then((ok) => {
+        if (request !== recurrenceRequest.current) return;
+        setRecurrenceReady(ok);
         if (!ok) handlersRef.current.onError("No pudimos actualizar las opciones de la membresía. Intenta de nuevo.");
       });
     }
@@ -3116,13 +3248,13 @@ function PayPanel({
   }, [widgetProps, loadState, slug]);
 
   useEffect(() => {
-    if (loadState !== "ready" || !mountRef.current || !membershipOptions) return;
+    if (loadState !== "ready" || !mountRef.current) return;
     if (slug === "stripe") return;
-    syncGafaPayMembershipToggles(mountRef.current, {
-      saveCard: membershipOptions.saveCard,
-      autoRenew: membershipOptions.autoRenew,
+    void syncGafaPayMembershipToggles(mountRef.current, {
+      saveCard: membershipOptions?.saveCard ?? false,
+      autoRenew: membershipOptions?.autoRenew ?? false,
     });
-  }, [loadState, membershipOptions, slug]);
+  }, [loadState, membershipOptions?.saveCard, membershipOptions?.autoRenew, slug]);
 
   useEffect(() => {
     if (mockPay || configLoading || !selected || (clientId && clientSecret)) return;
@@ -3234,6 +3366,17 @@ function PayPanel({
         ) : null}
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
 
+        {membershipOptions?.canAutoRenew ? (
+          <CheckField
+            className="gafa-checkout-recurrence"
+            checked={membershipOptions.autoRenew}
+            disabled={(slug !== "stripe" && loadState !== "ready") || membershipOptions.disabled}
+            onChange={changeAutoRenew}
+          >
+            Pago recurrente (se renueva cada periodo; puedes desmarcarlo)
+          </CheckField>
+        ) : null}
+
         {membershipOptions ? (
           <div
             className="gafa-checkout-membership"
@@ -3256,12 +3399,6 @@ function PayPanel({
                   onChange={membershipOptions.onSaveCard}
                 >
                   Guardar mi tarjeta para la próxima compra
-                </CheckField>
-                <CheckField
-                  checked={membershipOptions.autoRenew}
-                  onChange={changeAutoRenew}
-                >
-                  Renovar automáticamente al vencer
                 </CheckField>
               </div>
             ) : null}
@@ -3653,12 +3790,14 @@ function CheckField({
   children,
   className,
   attention,
+  disabled,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   children: React.ReactNode;
   className?: string;
   attention?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <label
@@ -3669,6 +3808,7 @@ function CheckField({
         className="gafa-check-input"
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
       <span className="gafa-check-box" aria-hidden="true" />

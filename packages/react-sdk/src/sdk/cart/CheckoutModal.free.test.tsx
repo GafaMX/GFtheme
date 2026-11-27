@@ -142,10 +142,13 @@ describe("CheckoutModal total $0 (sin tarjeta)", () => {
       elements: { StripePayment: function StripePayment() {} },
     });
     mocks.mountGafaPayWidget.mockImplementation(
-      (_runtime, _container, _slug, _props: GafaPayWidgetProps): GafaPayIsland => ({
-        update: () => undefined,
-        unmount: () => undefined,
-      }),
+      (_runtime, _container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+        queueMicrotask(() => props.onCheckoutOpenAction?.({ message: "chk_1" }));
+        return {
+          update: () => undefined,
+          unmount: () => undefined,
+        };
+      },
     );
     mocks.waitForWidgetContent.mockResolvedValue(undefined);
     mocks.ensureLegacyPaypalCheckout.mockResolvedValue(undefined);

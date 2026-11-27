@@ -89,6 +89,8 @@ function mockClient(overrides: Partial<GafaClient> = {}): GafaClient {
     }),
     getCheckoutConfig: async () => checkoutConfig(),
     previewPurchase: vi.fn(async () => undefined),
+    initialPurchase: vi.fn(async () => ({ purchaseId: 88, checkoutToken: "chk_1" })),
+    pollInitialPurchaseStatus: vi.fn(async () => ({ code: 1 })),
     reservatePurchase: vi.fn(async () => ({ purchaseId: 88 })),
     login: async () => ({ access_token: "t" }),
     logout: () => undefined,
@@ -139,10 +141,13 @@ describe("CheckoutModal bloqueo al clic", () => {
       elements: { StripePayment: function StripePayment() {} },
     });
     mocks.mountGafaPayWidget.mockImplementation(
-      (_runtime, _container, _slug, _props: GafaPayWidgetProps): GafaPayIsland => ({
-        update: () => undefined,
-        unmount: () => undefined,
-      }),
+      (_runtime, _container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+        queueMicrotask(() => props.onCheckoutOpenAction?.({ message: "chk_1" }));
+        return {
+          update: () => undefined,
+          unmount: () => undefined,
+        };
+      },
     );
     mocks.waitForWidgetContent.mockResolvedValue(undefined);
     mocks.ensureLegacyPaypalCheckout.mockResolvedValue(undefined);

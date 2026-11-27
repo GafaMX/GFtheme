@@ -47,6 +47,9 @@ export type CartReservationContext = {
 type CartState = {
   lines: CartLine[];
   reservation: CartReservationContext | null;
+  /** Elección explícita del checkout, independiente del montaje del proveedor. */
+  membershipRecurrence: Record<string, boolean> | null;
+  setMembershipRecurrence: (products: string[], selected: boolean) => void;
   addItem: (item: Omit<CartLine, "key" | "amount"> & { amount?: number }) => void;
   removeItem: (key: string) => void;
   setAmount: (key: string, amount: number) => void;
@@ -93,6 +96,18 @@ function persist(lines: CartLine[], reservation: CartReservationContext | null) 
   }
 }
 
+/** Quantity and unrelated cart lines do not reset an explicit renewal choice. */
+export function membershipRecurrenceProducts(lines: CartLine[]): string[] {
+  return lines.filter((line) => line.type === "membership").map((line) => line.key);
+}
+
+function recurrenceForLines(lines: CartLine[], choice: CartState["membershipRecurrence"]) {
+  if (!choice) return null;
+  const products = new Set(membershipRecurrenceProducts(lines));
+  const remaining = Object.entries(choice).filter(([key]) => products.has(key));
+  return remaining.length ? Object.fromEntries(remaining) : null;
+}
+
 const initial = loadPersisted();
 
 /**
@@ -103,6 +118,10 @@ const initial = loadPersisted();
 export const useCartStore = create<CartState>((set, get) => ({
   lines: initial.lines,
   reservation: initial.reservation,
+  membershipRecurrence: null,
+  setMembershipRecurrence: (products, selected) => set({ membershipRecurrence: {
+    ...get().membershipRecurrence, ...Object.fromEntries(products.map((key) => [key, selected])),
+  } }),
 
   addItem(item) {
     const key = lineKey(item.type, item.id, item.brandSlug);
@@ -119,7 +138,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       : [...get().lines, { ...item, key, amount: Math.max(1, clampPurchaseAmount(requested, cap)), raw }];
     const reservation = get().reservation;
     persist(lines, reservation);
-    set({ lines });
+    set({ lines, membershipRecurrence: recurrenceForLines(lines, get().membershipRecurrence) });
   },
 
   removeItem(key) {
@@ -128,7 +147,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     const lines = get().lines.filter((line) => line.key !== key);
     const reservation = get().reservation;
     persist(lines, reservation);
-    set({ lines });
+    set({ lines, membershipRecurrence: recurrenceForLines(lines, get().membershipRecurrence) });
   },
 
   setAmount(key, amount) {
@@ -142,13 +161,13 @@ export const useCartStore = create<CartState>((set, get) => ({
         : get().lines.map((line) => (line.key === key ? { ...line, amount: next } : line));
     const reservation = get().reservation;
     persist(lines, reservation);
-    set({ lines });
+    set({ lines, membershipRecurrence: recurrenceForLines(lines, get().membershipRecurrence) });
   },
 
   clearItems() {
     const reservation = get().reservation;
     persist([], reservation);
-    set({ lines: [] });
+    set({ lines: [], membershipRecurrence: null });
   },
 
   setReservation(reservation) {
@@ -166,12 +185,12 @@ export const useCartStore = create<CartState>((set, get) => ({
   replaceLines(next) {
     const reservation = get().reservation;
     persist(next, reservation);
-    set({ lines: next });
+    set({ lines: next, membershipRecurrence: recurrenceForLines(next, get().membershipRecurrence) });
   },
 
   resetAfterPurchase() {
     persist([], null);
-    set({ lines: [], reservation: null });
+    set({ lines: [], reservation: null, membershipRecurrence: null });
   },
 }));
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { loadPersisted, useCartStore, type CartLine } from "./cartStore";
+import { loadPersisted, membershipRecurrenceProducts, useCartStore, type CartLine } from "./cartStore";
 
 const line: CartLine = {
   key: "fitspin:combo:3",
@@ -14,8 +14,31 @@ const line: CartLine = {
 };
 
 afterEach(() => {
-  useCartStore.setState({ lines: [], reservation: null });
+  useCartStore.setState({ lines: [], reservation: null, membershipRecurrence: null });
   localStorage.removeItem("gafa-sdk:cart-v1");
+});
+
+it("conserva la baja por producto al cambiar cantidad, hidratar y agregar otra membresía", () => {
+  const cart = useCartStore.getState();
+  cart.addItem({ ...line, type: "membership" });
+  const key = useCartStore.getState().lines[0].key;
+  cart.setMembershipRecurrence(membershipRecurrenceProducts(useCartStore.getState().lines), false);
+  cart.setAmount(key, 2);
+  cart.replaceLines(useCartStore.getState().lines.map((item) => ({ ...item, raw: { subscribable: true } })));
+  cart.addItem({ ...line, id: 4, type: "membership" });
+  expect(useCartStore.getState().membershipRecurrence).toEqual({ [key]: false });
+  cart.resetAfterPurchase();
+  expect(useCartStore.getState().membershipRecurrence).toBeNull();
+});
+
+it("no hereda una baja de una membresía que se quitó del carrito", () => {
+  const cart = useCartStore.getState();
+  cart.addItem({ ...line, type: "membership" });
+  const key = useCartStore.getState().lines[0].key;
+  cart.setMembershipRecurrence([key], false);
+  cart.removeItem(key);
+  cart.addItem({ ...line, type: "membership" });
+  expect(useCartStore.getState().membershipRecurrence).toBeNull();
 });
 
 describe("cartStore purchase cap", () => {
