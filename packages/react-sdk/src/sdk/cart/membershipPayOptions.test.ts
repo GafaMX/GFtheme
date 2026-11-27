@@ -373,6 +373,49 @@ describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
     stop();
   });
 
+  it.each(["initial-payment-created", "initial-payment-updated"])("reconoce la sesión del IIFE mediante %s sin petición previa del SDK", async (event) => {
+    const root = document.createElement("div");
+    root.innerHTML = '<stripe-payment-element has-recurring-payment="true"><label><input type="checkbox" checked>Pago Recurrente</label></stripe-payment-element>';
+    const ready = vi.fn();
+    const stop = bindStripeMembershipRecurrence(root, vi.fn(), ready);
+    const element = root.firstElementChild!;
+    element.dispatchEvent(new Event(event));
+    expect(ready).toHaveBeenCalledTimes(1);
+    expect(await setStripeMembershipAutoRenew(root, true)).toBe(true);
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: true })).toBe(true);
+    stop();
+  });
+
+  it("espera ambas actualizaciones iniciales idénticas antes de enviar la baja del SDK", async () => {
+    const { root, element, input } = stripeForm(true);
+    const stop = bindStripeMembershipRecurrence(root, vi.fn());
+    element.dispatchEvent(new Event("initial-payment-updating"));
+    element.dispatchEvent(new Event("initial-payment-updating"));
+    const update = setStripeMembershipAutoRenew(root, false);
+    element.dispatchEvent(new Event("initial-payment-updated"));
+    await Promise.resolve();
+    expect(input.checked).toBe(true);
+    element.dispatchEvent(new Event("initial-payment-updated"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(input.checked).toBe(false);
+    element.dispatchEvent(new Event("initial-payment-updated"));
+    expect(await update).toBe(true);
+    stop();
+  });
+
+  it.each([undefined, "true", "false"])("sin casilla exige montaje explícitamente no recurrente y sesión confirmada: %s", async (attribute) => {
+    const root = document.createElement("div");
+    root.innerHTML = `<stripe-payment-element ${attribute === undefined ? "" : `has-recurring-payment="${attribute}"`}></stripe-payment-element>`;
+    const stop = bindStripeMembershipRecurrence(root, vi.fn());
+    const element = root.firstElementChild!;
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: false })).toBe(false);
+    element.dispatchEvent(new Event("initial-payment-updating"));
+    element.dispatchEvent(new Event("initial-payment-updated"));
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: false })).toBe(attribute === "false");
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: false, autoRenew: true })).toBe(false);
+    stop();
+  });
+
   it.each(["inicial", "baja"])("bloquea respuestas solapadas sin identidad aunque responda primero %s", async (first) => {
     const { root, element, input } = stripeForm(true);
     const stop = bindStripeMembershipRecurrence(root, vi.fn());

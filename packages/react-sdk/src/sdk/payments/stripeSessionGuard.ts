@@ -69,16 +69,18 @@ export function installStripeSessionFetchGuard(): void {
     if (UPDATE_PATH.test(url)) {
       const body = readBody(init);
       const token = tokenFromBody(body);
-      const key = `${token}::${body}`;
+      // Keep only the latest body for this session. A→B→A must reach the
+      // server three times, even inside the debounce window.
+      const key = `${url}::${token}`;
       const now = Date.now();
       const prev = state.last.get(key);
-      if (prev && now - prev.at < DEBOUNCE_MS) {
+      if (token && prev?.body === body && now - prev.at < DEBOUNCE_MS) {
         return jsonResponse({
           message: token || prev.token || "No hubo cambios",
         });
       }
+      state.last.delete(key);
       const response = await state.orig(input, init);
-      state.last.set(key, { at: Date.now(), body, token });
       if (!response.ok) return response;
       const data: unknown = await response
         .clone()
@@ -89,6 +91,11 @@ export function installStripeSessionFetchGuard(): void {
       // Una sesión nueva necesita actualizar token y secret; la misma remonta vw → otro update.
       const sessionChanged = typeof next.message === "string" && token !== "" && next.message !== token;
       if (!sessionChanged) delete next.client_secret;
+      // Only completed successes of the same session can be reused. Requests
+      // with recurrence changes are never cached (including concurrent ones).
+      if (token && !sessionChanged && !/"recurringPayment"\s*:/.test(body)) {
+        state.last.set(key, { at: Date.now(), body, token });
+      }
       return jsonResponse(next, response.status);
     }
 

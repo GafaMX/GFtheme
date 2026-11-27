@@ -14,6 +14,7 @@ import { useCartStore, type CartLine } from "./cartStore";
 import { reservateRetryWait } from "./reservateRetry";
 import { clearToasts } from "../toast/toastStore";
 import { resetToastHostForTests } from "../toast/ToastHost";
+import { installStripeSessionFetchGuard, resetStripeSessionFetchGuardForTests } from "../payments/stripeSessionGuard";
 
 const { mocks } = vi.hoisted(() => ({
   mocks: {
@@ -1320,6 +1321,9 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     cleanup();
     useCartStore.setState({ lines: [], reservation: null });
     delete window._handleStripePayment;
+    resetStripeSessionFetchGuardForTests();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
     vi.useRealTimers();
     vi.clearAllMocks();
   });
@@ -1334,6 +1338,125 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
       return { update: () => undefined, unmount: () => undefined };
     });
   }
+
+  it("habilita la casilla con la sesión inicial del IIFE sin exigir una petición del SDK", async () => {
+    let element!: Element;
+    let resolveSurface!: () => void;
+    mocks.waitForWidgetContent.mockImplementation(() => new Promise<void>((resolve) => { resolveSurface = resolve; }));
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      container.innerHTML = '<stripe-payment-element has-recurring-payment="true"><label><input type="checkbox" checked>Pago Recurrente</label></stripe-payment-element>';
+      element = container.firstElementChild!;
+      // El IIFE crea la sesión y actualiza por su cuenta; no hay click del SDK
+      // ni garantía de un evento updating por cada updateinitialpayment.
+      element.dispatchEvent(new CustomEvent("initial-payment-created", { detail: { message: "chk_initial" } }));
+      props.onCheckoutOpenAction?.({ message: "chk_initial" });
+      return { update: () => undefined, unmount: () => container.replaceChildren() };
+    });
+    renderPay(mockClient());
+    const sdk = () => screen.getByLabelText(/pago recurrente \(se renueva/i) as HTMLInputElement;
+    const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
+    await waitFor(() => expect(sdk().disabled).toBe(false));
+    act(() => {
+      element.dispatchEvent(new Event("initial-payment-updated"));
+      element.dispatchEvent(new Event("initial-payment-updated"));
+    });
+    // El control del SDK sigue habilitado a 0.2, 1, 3 y 8 segundos, incluso
+    // cuando el IIFE oculta su propio control y la superficie sigue cargando.
+    vi.useFakeTimers();
+    setTimeout(() => { element.querySelector("label")!.hidden = true; }, 3000);
+    for (const elapsed of [200, 800, 2000, 5000]) {
+      await act(async () => { await vi.advanceTimersByTimeAsync(elapsed); });
+      expect(sdk().disabled).toBe(false);
+    }
+    vi.useRealTimers();
+    expect(pay().disabled).toBe(true);
+    fireEvent.click(sdk());
+    expect(sdk().checked).toBe(false);
+    // La elección anterior a la superficie se aplica al terminar de cargar,
+    // sin remontar la isla ni perder la tarjeta.
+    act(() => resolveSurface());
+    await waitFor(() => expect(element.querySelector<HTMLInputElement>("input")!.checked).toBe(false));
+    expect(sdk().checked).toBe(false);
+    expect(sdk().disabled).toBe(true);
+    expect(pay().disabled).toBe(true);
+    act(() => element.dispatchEvent(new Event("initial-payment-updated")));
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    expect(sdk().disabled).toBe(false);
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(pay());
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+  });
+
+  it("con la guarda real envía las tres elecciones a 1500, 2101 y 2200 ms antes de confirmar", async () => {
+    let now = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    let serverRecurring = true;
+    const network = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      serverRecurring = body.recurringPayment;
+      return new Response(JSON.stringify({ message: "chk_guard", client_secret: "cs_test" }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", network);
+    installStripeSessionFetchGuard();
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container): GafaPayIsland => {
+      container.innerHTML = '<stripe-payment-element has-recurring-payment="true"><label><input type="checkbox" checked>Pago Recurrente</label></stripe-payment-element>';
+      const element = container.firstElementChild!;
+      const input = element.querySelector<HTMLInputElement>("input")!;
+      const update = async () => {
+        element.dispatchEvent(new Event("initial-payment-updating"));
+        const response = await fetch("https://apipay.example/api/stripe.updateinitialpayment", {
+          method: "POST", body: JSON.stringify({ tokenInput: "chk_guard", recurringPayment: input.checked }),
+        });
+        await response.json();
+        element.dispatchEvent(new Event("initial-payment-updated"));
+      };
+      void update();
+      input.addEventListener("click", () => { void update(); });
+      return { update: () => undefined, unmount: () => container.replaceChildren() };
+    });
+    renderPay(mockClient());
+    const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
+    const sdk = () => screen.getByLabelText(/pago recurrente \(se renueva/i) as HTMLInputElement;
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    for (const [at, expected] of [[1500, false], [2101, true], [2200, false]] as const) {
+      now = at;
+      fireEvent.click(sdk());
+      await waitFor(() => expect(pay().disabled).toBe(false));
+      expect(sdk().checked).toBe(expected);
+    }
+    const charge = vi.fn(() => expect(serverRecurring).toBe(false));
+    window._handleStripePayment = charge;
+    fireEvent.click(pay());
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+    expect(serverRecurring).toBe(false);
+    expect(network.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).recurringPayment)).toEqual([true, false, true, false]);
+  });
+
+  it.each(["membresía no suscribible", "paquete"])("Stripe permite pagar %s sin casilla tras confirmar la sesión no recurrente", async (kind) => {
+    useCartStore.setState({ lines: [kind === "paquete" ? cartLine : { ...membershipLine, raw: { subscribable: false } }], reservation: null });
+    let element!: Element;
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      expect(props.hasRecurringPayment).toBe(false);
+      container.innerHTML = '<stripe-payment-element has-recurring-payment="false"><iframe></iframe></stripe-payment-element>';
+      element = container.firstElementChild!;
+      element.dispatchEvent(new Event("initial-payment-updating"));
+      return { update: () => undefined, unmount: () => container.replaceChildren() };
+    });
+    renderPay(mockClient());
+    const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
+    await waitFor(() => expect(element).toBeDefined());
+    expect(screen.queryByLabelText(/pago recurrente \(se renueva/i)).toBeNull();
+    expect(pay().disabled).toBe(true);
+    const charge = vi.fn();
+    window._handleStripePayment = charge;
+    fireEvent.click(pay());
+    expect(charge).not.toHaveBeenCalled();
+    act(() => element.dispatchEvent(new Event("initial-payment-updated")));
+    await waitFor(() => expect(pay().disabled).toBe(false));
+    fireEvent.click(pay());
+    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+  });
 
   it.each(["elegibilidad", "proveedor"])("sincroniza una isla Stripe nueva tras cambiar %s sin permitir renovar desmarcado", async (change) => {
     useStripeCheckbox();
@@ -1562,10 +1685,13 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
   });
 
-  it("un paquete sin membershipOptions no toca la casilla de Stripe", async () => {
+  it("un paquete desactiva una casilla Stripe residual antes de permitir pagar", async () => {
     useCartStore.setState({ lines: [cartLine], reservation: null });
     useStripeCheckbox();
     renderPay(mockClient());
+    await waitFor(() => expect(document.querySelector<HTMLInputElement>("stripe-payment-element input")?.checked).toBe(false));
+    expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(true);
+    act(() => document.querySelector("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated")));
     await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
     expect(lastProps?.hasRecurringPayment).toBe(false);
     const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
@@ -1574,7 +1700,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     window._handleStripePayment = charge;
     fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
     await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
-    expect(input.checked).toBe(true);
+    expect(input.checked).toBe(false);
     expect(click).not.toHaveBeenCalled();
   });
 
