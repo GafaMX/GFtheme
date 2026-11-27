@@ -52,7 +52,7 @@ import {
   resolveCrossSellItems,
 } from "../cart/crossSell";
 import { installStripeCardTheme } from "../payments/stripeCardStyle";
-import { afterStrictModePass } from "../payments/stripeSessionGuard";
+import { afterStrictModePass, type StripeCheckoutState } from "../payments/stripeSessionGuard";
 import { humanizeCheckoutError } from "../payments/checkoutErrorMessage";
 import { showToast } from "../toast/toastStore";
 import { ToastHost } from "../toast/ToastHost";
@@ -354,6 +354,7 @@ export function CheckoutModal({
   /** Frontpay conserva las opciones de membresía de v1. Stripe usa el carrito. */
   const [saveCard, setSaveCard] = useState(true);
   const [legacyAutoRenew, setLegacyAutoRenew] = useState(true);
+  const stripeCheckoutState = useRef<StripeCheckoutState>({});
   const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
   const [registerOnly, setRegisterOnly] = useState(false);
@@ -797,10 +798,12 @@ export function CheckoutModal({
   const autoRenew = (selectedMethod?.slug ?? paymentMethods[0]?.slug) === "stripe"
     ? Boolean(recurringMembership && recurringMembership.autoRenew !== false)
     : legacyAutoRenew;
+  if (selectedMethod?.slug === "stripe") stripeCheckoutState.current.recurringPayment = autoRenew;
   const setAutoRenew = (checked: boolean) => {
     if (renewalLockedRef.current) return;
     if (selectedMethod?.slug === "stripe") {
       if (recurringMembership && autoRenew !== checked) {
+        stripeCheckoutState.current.recurringPayment = checked;
         invalidateStripeSession();
         useCartStore.getState().setAutoRenew(recurringMembership.key, checked);
       }
@@ -933,6 +936,7 @@ export function CheckoutModal({
   }
 
   function invalidateStripeSession() {
+    stripeCheckoutState.current.revision = (stripeCheckoutState.current.revision ?? 0) + 1;
     ++discountCheckSeq.current;
     discountNeedsRecheckRef.current ||= discountStatus === "checking" || discountStatus === "ok";
     hostedAbortRef.current?.abort();
@@ -2316,6 +2320,7 @@ export function CheckoutModal({
                     phone: profileQuery.data?.phone ?? undefined,
                   }}
                   onSuccess={handleGafaPaySuccess}
+                  stripeCheckoutState={stripeCheckoutState.current}
                   onHostedCheckout={handleHostedCheckout}
                   onHostedClose={releaseHostedWait}
                   onStripeSessionChange={invalidateStripeSession}
@@ -2913,6 +2918,7 @@ function PayPanel({
   membershipOptions,
   mockPay,
   enrollmentLabel,
+  stripeCheckoutState,
 }: {
   methods: CheckoutConfig["paymentMethods"];
   selectedMethodId: number | null;
@@ -2924,7 +2930,8 @@ function PayPanel({
   discountAmount: number;
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
-  onHostedCheckout: (data: unknown) => void;
+  onHostedCheckout: (data: unknown) => void | Promise<void>;
+  stripeCheckoutState: StripeCheckoutState;
   onHostedClose: () => void;
   onStripeSessionChange: () => void;
   onStart: () => void;
@@ -3053,6 +3060,7 @@ function PayPanel({
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
       onGafaPayErrAction: ({ message }) =>
         handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
+      stripeCheckoutState,
       onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
       onCheckoutCloseAction: () => handlersRef.current.onHostedClose(),
       onInitialPaymentUpdated: (data) => handlersRef.current.onHostedCheckout(data),
@@ -3067,7 +3075,7 @@ function PayPanel({
         if (selected?.slug !== "stripe" && typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
       },
     }),
-    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount],
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount, stripeCheckoutState],
   );
 
   // Mantener props recientes sin remontar por callbacks o datos del cliente.

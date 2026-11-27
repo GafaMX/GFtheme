@@ -1148,6 +1148,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(input.checked).toBe(true);
     expect(input.disabled).toBe(false);
     await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
+    expect(lastProps?.stripeCheckoutState?.recurringPayment).toBe(true);
     expect(lastProps?.paymentFrequency).toBe("30");
     expect(input.closest("label")?.className).toBe("gafa-check-row");
     fireEvent.click(screen.getByText("Pago recurrente"));
@@ -1155,6 +1156,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     await ready();
     const unchecked = screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement;
     expect(unchecked.disabled).toBe(false);
+    expect(lastProps?.stripeCheckoutState?.recurringPayment).toBe(false);
     fireEvent.click(screen.getByText("Pago recurrente"));
     expect(useCartStore.getState().lines[0].autoRenew).toBe(true);
   });
