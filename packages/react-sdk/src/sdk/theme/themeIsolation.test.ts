@@ -271,6 +271,24 @@ describe("historial Mis clases: layout y contraste", () => {
     );
   });
 
+  it("a 320px o con texto ampliado el horario no invade Calificar", () => {
+    expect(widgetsCss).toMatch(
+      /\.gafa-acct-class\[data-rateable="true"\] \{[\s\S]{0,200}container-type:\s*inline-size/,
+    );
+    expect(widgetsCss).toMatch(
+      /@media \(max-width: 559px\) \{[\s\S]{0,1100}\.gafa-acct-class__time \{[\s\S]{0,240}white-space:\s*normal/,
+    );
+    expect(widgetsCss).toMatch(
+      /@media \(max-width: 559px\) \{[\s\S]{0,1100}\.gafa-acct-class__time \{[\s\S]{0,240}min-width:\s*0/,
+    );
+    expect(widgetsCss).not.toMatch(
+      /@media \(max-width: 559px\) \{[\s\S]{0,1100}\.gafa-acct-class__time \{[\s\S]{0,200}white-space:\s*nowrap/,
+    );
+    expect(widgetsCss).toMatch(
+      /@container gafa-acct-class \(max-width: 21\.5rem\) \{[\s\S]{0,320}grid-column:\s*1 \/ -1/,
+    );
+  });
+
   it("calificada y por calificar comparten altura de acciones", () => {
     expect(widgetsCss).toMatch(
       /\.gafa-acct-class\[data-rateable="true"\] \{[\s\S]{0,160}grid-template-columns:\s*auto minmax\(0, 1fr\) auto/,
