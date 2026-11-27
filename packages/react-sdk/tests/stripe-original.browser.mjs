@@ -95,9 +95,9 @@ function mount(quantity) {
   if (island) island.unmount();
   panel.dataset.state = 'loading';
   island = sdk.mountGafaPayWidget(runtime, box, 'stripe', {
-    order: { customerName: 'Ana', customerEmail: 'ana@example.test', currency: 'mxn', lineItems: [{ name: 'Membership', quantity, unitPrice: 90 }] },
+    order: { customerName: 'Ana', customerEmail: 'ana@example.test', currency: 'mxn', lineItems: [{ name: 'Membership', type: 'membership', quantity, unitPrice: 90 }] },
     apiUrl: 'https://fixture.invalid', clientId: 'fixture', clientSecret: 'fixture', generalData: {},
-    hasRecurringPayment: checkout.recurringPayment, paymentFrequency: checkout.recurringPayment ? '30' : null,
+    hasRecurringPayment: checkout.recurringPayment, stripeCanSubscribe: true, paymentFrequency: checkout.recurringPayment ? '30' : null,
     termsAndConditions: true, stripeCheckoutState: checkout,
     onCheckoutOpenAction: purchase, onInitialPaymentUpdated: purchase,
     onStartPayAction() {}, onGafaPaySuccessAction() {}, onGafaPayErrAction(error) { fixture.error = error.message; },

@@ -79,6 +79,23 @@ describe("Stripe Checkout Elements surface adapter", () => {
     expect(f.factory).toHaveBeenCalledTimes(2);
   });
 
+  it("isolates connected accounts and Stripe options across cached and live factories", () => {
+    const f = fixture(); globals.Stripe = f.factory;
+    const cached = globals.Stripe;
+    restore = installStripeSurfaceTracking(f.lifecycle);
+    const account = cached.apply(undefined, ["pk_test_fixture", { stripeAccount: "acct_a", locale: "es" }]);
+    expect(globals.Stripe("pk_test_fixture", { locale: "es", stripeAccount: "acct_a" })).toBe(account);
+    const otherOptions = [
+      { stripeAccount: "acct_b", locale: "es" },
+      { locale: "es" },
+      { stripeAccount: "acct_a", locale: "en" },
+      { stripeAccount: "acct_a", locale: "es", betas: ["fixture_beta"] },
+    ];
+    const distinct = otherOptions.map((options) => globals.Stripe("pk_test_fixture", options));
+    expect(new Set([account, ...distinct]).size).toBe(5);
+    expect(f.factory).toHaveBeenCalledTimes(5);
+  });
+
   it("destroys a tracked element only once when the guard and IIFE both dispose it", () => {
     const f = fixture(); globals.Stripe = f.factory;
     restore = installStripeSurfaceTracking(f.lifecycle);

@@ -1,5 +1,5 @@
 import { findIneligibleLines, isEligibilityRejection } from "../cart/eligibility";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type {
   CartLineType,
@@ -91,7 +91,6 @@ import {
 import { retryReservate } from "../cart/reservateRetry";
 import {
   cartHasMembership,
-  coerceFlag,
   paymentMethodsForCart,
   readShowMembershipOptions,
   syncGafaPayMembershipToggles,
@@ -411,6 +410,11 @@ export function CheckoutModal({
   const hostedAbortRef = useRef<AbortController | null>(null);
   const discountCheckSeq = useRef(0);
   const discountAbortRef = useRef<AbortController | null>(null);
+  const discountPublicationRef = useRef<{
+    detail?: Parameters<typeof notifyStripeDiscountAdded>[0];
+    purchaseId?: number;
+    release: () => void;
+  } | null>(null);
   const discountNeedsRecheckRef = useRef(false);
   const appliedDiscountCodeRef = useRef<string | null>(null);
   const [discountSessionRevision, setDiscountSessionRevision] = useState(0);
@@ -618,9 +622,8 @@ export function CheckoutModal({
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
   const currentCanSubscribe = (line: CartLine): boolean | undefined => {
-    // Catálogo OK sin booleano actual = NO suscribible: pago único, sin casilla
-    // ni renovación. Un cobro único nunca renueva. Solo un ERROR del catálogo
-    // permite el fallback histórico a subscribable; nunca al can_subscribe persistido.
+    // Solo un can_subscribe booleano del catálogo vigente o de su respaldo
+    // en config acredita la renovación.
     const pools = catalogQuery.isSuccess
       ? [catalogQuery.data.memberships]
       : catalogQuery.isError ? [config?.memberships] : [];
@@ -629,11 +632,7 @@ export function CheckoutModal({
       if (typeof item?.can_subscribe === "boolean") return item.can_subscribe;
       if (typeof item?.raw?.can_subscribe === "boolean") return item.raw.can_subscribe;
     }
-    if (catalogQuery.isSuccess) return false;
-    if (catalogQuery.isError && !configQuery.isLoading) {
-      const item = config?.memberships?.find((item) => sameCatalogId(item.id, line.id));
-      return coerceFlag(line.raw?.subscribable ?? (item && catalogCartRaw(item)?.subscribable)) ?? false;
-    }
+    if (catalogQuery.isSuccess || (catalogQuery.isError && !configQuery.isLoading)) return false;
     return undefined;
   };
   const membershipEligibilityPending = !mockPay && cartLines.some(
@@ -812,7 +811,7 @@ export function CheckoutModal({
   }, [paymentMethods, selectedMethodId]);
 
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
-  const recurringMembership = membershipPaymentFrequency(relevantLines)
+  const recurringMembership = !membershipEligibilityPending && membershipPaymentFrequency(relevantLines)
     ? relevantLines.find((line) => line.type === "membership" && currentCanSubscribe(line) === true)
     : undefined;
   const autoRenew = Boolean(recurringMembership) && ((selectedMethod?.slug ?? paymentMethods[0]?.slug) === "stripe"
@@ -904,23 +903,33 @@ export function CheckoutModal({
   async function applyDiscount() {
     if (renewalLockedRef.current) return;
     if (!client.checkDiscountCode || !discountCode.trim() || !brandSlug || !locationSlug) return;
+    const code = discountCode.trim();
     const seq = ++discountCheckSeq.current;
+    const releaseStripe = blockStripeCheckout(stripeCheckoutState.current);
     discountAbortRef.current?.abort();
+    discountPublicationRef.current?.release();
+    discountPublicationRef.current = null;
+    discountNeedsRecheckRef.current = false;
     const discountAbort = new AbortController();
     discountAbortRef.current = discountAbort;
     const timeout = setTimeout(() => discountAbort.abort(new Error("El descuento no respondió a tiempo.")), 30_000);
-    const releaseStripe = blockStripeCheckout(stripeCheckoutState.current, discountAbort.signal);
+    const pending = hostedPendingRef.current;
+    let publishAfterCommit = false;
     setDiscountStatus("checking");
     setDiscountError(undefined);
-    setAppliedDiscount(null);
-    appliedDiscountCodeRef.current = null;
+    const rejectDiscount = (message: string) => {
+      if (appliedDiscount && selectedMethod?.slug === "stripe") restartStripeForPrice();
+      setAppliedDiscount(null);
+      appliedDiscountCodeRef.current = null;
+      setDiscountStatus("error");
+      setDiscountError(message);
+    };
     try {
-      const pending = hostedPendingRef.current;
       const result = await withStripeAbort(client.checkDiscountCode({
         signal: discountAbort.signal,
         brandSlug,
         locationSlug,
-        code: discountCode.trim(),
+        code,
         userProfileId: config?.userProfileId ?? profileQuery.data?.id,
         urlTemplate: config?.urls.checkDiscountCode,
         lines: discountableLines(relevantLines, enrollmentConfig).map((line) => ({
@@ -930,44 +939,61 @@ export function CheckoutModal({
         checkoutToken: pending?.checkoutToken,
         pendingPurchaseId: pending?.purchaseId,
       }), discountAbort.signal);
-      // El cupón sólo puede sustituir el secret de su sesión de origen.
-      const current = hostedPendingRef.current;
-      if (seq !== discountCheckSeq.current || pending?.checkoutToken !== current?.checkoutToken ||
-          pending?.purchaseId !== current?.purchaseId) return;
+      if (seq !== discountCheckSeq.current) return;
       if (!result.valid) {
-        setDiscountStatus("error");
-        setDiscountError(result.message ?? "Código no válido");
+        rejectDiscount(result.message ?? "Código no válido");
         return;
       }
-      appliedDiscountCodeRef.current = discountCode.trim();
-      if (result.clientSecret && result.checkoutToken && current) {
-        // Publish the new token before synchronous preparation registers it.
-        hostedPendingRef.current = {
-          ...current, checkoutToken: result.checkoutToken,
-          payload: { ...current.payload, paymentData: { message: result.checkoutToken, client_secret: result.clientSecret } },
-        };
-        notifyStripeDiscountAdded({
-          client_secret: result.clientSecret, checkout_token: result.checkoutToken,
-          previous_checkout_token: current.checkoutToken,
-        });
-      } else if (selectedMethod?.slug === "stripe") {
-        // A validated price change without a replacement session needs a fresh process.
-        invalidateStripeCheckout(stripeCheckoutState.current);
-        hostedPendingRef.current = null;
-        setPaymentReady(false);
-        setDiscountSessionRevision((revision) => revision + 1);
+      appliedDiscountCodeRef.current = code;
+      if (selectedMethod?.slug === "stripe") {
+        const detail = pending && result.clientSecret && result.checkoutToken &&
+          resolveDiscountAmount(result, discountableSubtotal) < subtotal
+          ? { client_secret: result.clientSecret, checkout_token: result.checkoutToken, previous_checkout_token: pending.checkoutToken }
+          : undefined;
+        discountPublicationRef.current = { detail, purchaseId: pending?.purchaseId, release: releaseStripe };
+        publishAfterCommit = true;
       }
       setAppliedDiscount(result);
       setDiscountStatus("ok");
     } catch {
       if (seq !== discountCheckSeq.current) return;
-      setDiscountStatus("error");
-      setDiscountError("Código no válido");
+      rejectDiscount("Código no válido");
     } finally {
       clearTimeout(timeout);
-      releaseStripe();
+      if (!publishAfterCommit) {
+        if (discountAbortRef.current === discountAbort) discountAbortRef.current = null;
+        releaseStripe();
+      }
     }
   }
+
+  function restartStripeForPrice() {
+    invalidateStripeCheckout(stripeCheckoutState.current);
+    hostedPendingRef.current = null;
+    setPaymentReady(false);
+    setDiscountSessionRevision((revision) => revision + 1);
+  }
+
+  useLayoutEffect(() => {
+    const publication = discountPublicationRef.current;
+    if (!publication || discountStatus !== "ok" || !appliedDiscount) return;
+    discountPublicationRef.current = null;
+    discountAbortRef.current = null;
+    const current = hostedPendingRef.current;
+    try {
+      // PayPanel ya sincronizó los importes de la isla en este commit.
+      if (publication.detail && current?.checkoutToken === publication.detail.previous_checkout_token &&
+          current?.purchaseId === publication.purchaseId) {
+        notifyStripeDiscountAdded(publication.detail);
+      } else {
+        // Sin secret de la sesión vigente, process parte del precio con descuento.
+        if (appliedDiscount.clientSecret) setAppliedDiscount({ ...appliedDiscount, clientSecret: undefined });
+        restartStripeForPrice();
+      }
+    } finally {
+      publication.release();
+    }
+  }, [appliedDiscount, discountStatus]);
 
   const invalidateStripeRef = useRef(invalidateStripeSession);
   invalidateStripeRef.current = invalidateStripeSession;
@@ -979,8 +1005,13 @@ export function CheckoutModal({
   function invalidateStripeSession() {
     invalidateStripeCheckout(stripeCheckoutState.current);
     ++discountCheckSeq.current;
-    discountAbortRef.current?.abort();
-    discountNeedsRecheckRef.current ||= discountStatus === "checking" || (discountStatus === "ok" && Boolean(appliedDiscount?.clientSecret));
+    const check = discountAbortRef.current;
+    discountAbortRef.current = null;
+    check?.abort();
+    discountPublicationRef.current?.release();
+    discountPublicationRef.current = null;
+    if (check) setDiscountStatus("idle");
+    discountNeedsRecheckRef.current ||= Boolean(check) || (discountStatus === "ok" && Boolean(appliedDiscount?.clientSecret));
     hostedAbortRef.current?.abort();
     hostedPendingRef.current = null;
     setPaymentReady(false);
@@ -1229,6 +1260,7 @@ export function CheckoutModal({
     return () => {
       hostedAbortRef.current?.abort();
       discountAbortRef.current?.abort();
+      discountPublicationRef.current?.release();
       stopPopupWatchRef.current?.();
       if (paypalHoldTimerRef.current) window.clearTimeout(paypalHoldTimerRef.current);
     };
@@ -1588,11 +1620,7 @@ export function CheckoutModal({
     };
 
     const isStripe = selectedMethod.slug === "stripe";
-    if (isStripe && hostedPendingRef.current?.checkoutToken !== checkoutToken) {
-      ++discountCheckSeq.current;
-      discountNeedsRecheckRef.current ||= discountStatus === "checking";
-      hostedPendingRef.current = null;
-    }
+    if (isStripe && hostedPendingRef.current?.checkoutToken !== checkoutToken) hostedPendingRef.current = null;
     if (!isStripe) setPaying(true);
     hostedAbortRef.current?.abort();
     const abort = new AbortController();
@@ -3016,7 +3044,7 @@ function PayPanel({
   const [sessionReady, setSessionReady] = useState(true);
   const selected = methods.find((method) => method.id === selectedMethodId) ?? null;
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const islandRef = useRef<GafaPayIsland | null>(null);
+  const islandRef = useRef<{ slug: string; widget: GafaPayIsland } | null>(null);
   // Los callbacks cambian en cada render; el widget vive fuera de React y no
   // debe re-montarse por eso.
   const handlersRef = useRef({
@@ -3119,6 +3147,7 @@ function PayPanel({
       hasRecurringPayment: selected?.slug === "stripe"
         ? Boolean(membershipOptions?.autoRenew)
         : Boolean(membershipOptions),
+      stripeCanSubscribe: Boolean(membershipOptions),
       // Sin esto GAFAPay cobra pero no crea la suscripción.
       paymentFrequency: membershipOptions?.autoRenew ? membershipPaymentFrequency(lines) : null,
       onStartPayAction: () => handlersRef.current.onStart(),
@@ -3151,7 +3180,7 @@ function PayPanel({
   const slug = selected?.slug;
   // El IIFE solo lee estos atributos al montar. Una nueva elección necesita
   // processinitialpayment nuevo, sin reutilizar el client_secret anterior.
-  const stripeRecurring = slug === "stripe" && Boolean(membershipOptions?.autoRenew) && Boolean(widgetProps.paymentFrequency);
+  const stripeFrequency = slug === "stripe" ? widgetProps.paymentFrequency : null;
   const stripeCartKey = slug === "stripe" ? JSON.stringify(lines.map((line) => [line.key, line.amount, line.price])) : "";
   const clientIdKey = clientId == null ? "" : String(clientId);
   const clientSecretKey = clientSecret ?? "";
@@ -3217,8 +3246,8 @@ function PayPanel({
       if (cancelled || !mountRef.current) return;
       stopPaypalCapture();
       if (slug === "paypal") stopPaypalCapture = installPayPalButtonCapture();
-      islandRef.current?.unmount();
-      islandRef.current = mountGafaPayWidget(runtime, mountRef.current, slug, propsRef.current);
+      islandRef.current?.widget.unmount();
+      islandRef.current = { slug, widget: mountGafaPayWidget(runtime, mountRef.current, slug, propsRef.current) };
       didMount = true;
       await waitForSurface(mountRef.current);
     };
@@ -3253,24 +3282,26 @@ function PayPanel({
       stopPaypalCapture();
       if (slug === "stripe") handlersRef.current.onStripeSessionChange();
       if (didMount) {
-        islandRef.current?.unmount();
+        islandRef.current?.widget.unmount();
         islandRef.current = null;
       }
     };
-  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay, stripeRecurring, stripeCartKey, discountSessionRevision]);
+  }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay, stripeFrequency, stripeCartKey, discountSessionRevision]);
 
   const changeAutoRenew = (checked: boolean) => {
     if (membershipOptions?.disabled) return;
     handlersRef.current.onAutoRenew?.(checked);
   };
 
+  useLayoutEffect(() => {
+    const island = islandRef.current;
+    if (slug === "stripe" && island?.slug === slug) island.widget.update(widgetProps);
+  }, [widgetProps, slug]);
+
   useEffect(() => {
     // checkout.js no tolera un segundo render: el botón se duplica / parpadea.
-    // Stripe: attributeChangedCallback del IIFE está vacío; update() no sirve
-    // y rebind de eventos no debe tocar la sesión. El descuento va por
-    // buq__discount_added. Evita 4 islas / 10 updates por apertura.
     if (loadState !== "ready" || slug === "paypal" || slug === "stripe") return;
-    islandRef.current?.update(widgetProps);
+    islandRef.current?.widget.update(widgetProps);
   }, [widgetProps, loadState, slug]);
 
   useEffect(() => {

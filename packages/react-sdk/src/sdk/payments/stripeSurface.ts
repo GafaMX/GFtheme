@@ -8,21 +8,42 @@ export type StripeSurfaceLifecycle = {
   confirmed: (secret: string, success: boolean | undefined, provider: object) => void;
 };
 
+function canonicalStripeOption(value: unknown): unknown {
+  if (value == null || typeof value === "string" || typeof value === "boolean" ||
+      (typeof value === "number" && Number.isFinite(value))) return value;
+  if (Array.isArray(value)) return value.map(canonicalStripeOption);
+  if (typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(Object.keys(record).sort().map((key) => [key, canonicalStripeOption(record[key])]));
+  }
+  throw new TypeError("Unsupported Stripe option value");
+}
+
+function stripeOptionsKey([publishableKey, options = {}, ...rest]: unknown[]): string | undefined {
+  try {
+    return JSON.stringify([publishableKey, options, ...rest].map(canonicalStripeOption));
+  } catch {
+    // Let Stripe handle option values the cache cannot compare.
+    return undefined;
+  }
+}
+
 // Stripe.js is loaded by the external IIFE, possibly after this adapter is installed.
 export function installStripeSurfaceTracking(lifecycle: StripeSurfaceLifecycle): () => void {
   const globals = window as unknown as Record<string, any>;
   const descriptor = Object.getOwnPropertyDescriptor(window, "Stripe");
   let factory = globals.Stripe;
   const proxies = new WeakMap<object, any>();
-  const instances = new Map<unknown, object>();
   const restoreCachedFactories: Array<() => void> = [];
   const wrapFactory = (value: any): any => {
     if (typeof value !== "function") return value;
     if (proxies.has(value)) return proxies.get(value);
+    const instances = new Map<string, object>();
     const proxy = new Proxy(value, {
       apply(target, self, args) {
-        const key = args[0];
-        if (instances.has(key)) return instances.get(key);
+        const key = stripeOptionsKey(args);
+        const cached = key === undefined ? undefined : instances.get(key);
+        if (cached) return cached;
         const stripe = Reflect.apply(target, self, args) as object;
         const tracked = new Proxy(stripe, {
           get(instance, property) {
@@ -92,7 +113,7 @@ export function installStripeSurfaceTracking(lifecycle: StripeSurfaceLifecycle):
             };
           },
         });
-        instances.set(key, tracked);
+        if (key !== undefined) instances.set(key, tracked);
         return tracked;
       },
     });

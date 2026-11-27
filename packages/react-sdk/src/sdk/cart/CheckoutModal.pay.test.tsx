@@ -1238,8 +1238,8 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
       });
       await ready();
       expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(1);
-      expect(lastProps?.hasRecurringPayment).toBe(result === true || result === "error");
-      expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: result === true || result === "error" }));
+      expect(lastProps?.hasRecurringPayment).toBe(result === true);
+      expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: result === true }));
     },
   );
 
@@ -1284,19 +1284,19 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     }
   });
 
-  it.each([false, true, undefined])("solo el ERROR del catálogo permite fallback a subscribable=%s", async (subscribable) => {
+  it.each([false, true, undefined])("un ERROR del catálogo con subscribable=%s persistido fuerza pago único", async (subscribable) => {
     useCartStore.setState({ lines: [{
       ...membershipLine, raw: { can_subscribe: true, subscribable, expiration_days: 30 },
     }] });
     const client = membershipClient({ listMemberships: async () => { throw new Error("Catálogo no disponible"); } });
     renderPay(client);
     await ready();
-    expect(lastProps?.hasRecurringPayment).toBe(subscribable === true);
-    expect(Boolean(screen.queryByRole("checkbox", { name: "Pago recurrente" }))).toBe(subscribable === true);
-    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: subscribable === true }));
+    expect(lastProps?.hasRecurringPayment).toBe(false);
+    expect(screen.queryByRole("checkbox", { name: "Pago recurrente" })).toBeNull();
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: false }));
   });
 
-  it("un ERROR del catálogo conserva el fallback subscribable de config sin raw en el carrito", async () => {
+  it("un ERROR del catálogo con solo subscribable de config fuerza pago único", async () => {
     useCartStore.setState({ lines: [{ ...membershipLine, raw: undefined }] });
     const client = membershipClient({
       listMemberships: async () => { throw new Error("Catálogo no disponible"); },
@@ -1306,8 +1306,8 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     });
     renderPay(client);
     await ready();
-    expect(lastProps?.hasRecurringPayment).toBe(true);
-    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: true }));
+    expect(lastProps?.hasRecurringPayment).toBe(false);
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: false }));
   });
 
   it.each([

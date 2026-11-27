@@ -109,6 +109,7 @@ export type GafaPayWidgetProps = {
   onInitialPaymentUpdateError?: (error: { err?: unknown; message?: string }) => void;
   termsAndConditions?: string | boolean | null;
   hasRecurringPayment?: boolean;
+  stripeCanSubscribe?: boolean;
   paymentFrequency?: string | null;
   stripeCheckoutState?: StripeCheckoutState;
   changePaymentSystemProperties?: (props: { recurringPayment?: boolean; saveCard?: boolean }) => void;
@@ -840,7 +841,12 @@ function flagAttr(value: boolean | undefined): string {
 
 function stripeProps(props: GafaPayWidgetProps): GafaPayWidgetProps {
   const frequency = Number(props.paymentFrequency);
-  const recurring = props.hasRecurringPayment === true && Number.isInteger(frequency) && frequency > 0;
+  const { lineItems } = props.order;
+  const memberships = lineItems.filter((line) => line.type === "membership");
+  const recurring = props.stripeCanSubscribe === true && props.hasRecurringPayment === true &&
+    memberships.length === 1 && memberships[0].quantity === 1 &&
+    lineItems.every((line) => line === memberships[0] || line.unitPrice * line.quantity <= 0) &&
+    Number.isInteger(frequency) && frequency > 0;
   if (props.stripeCheckoutState) props.stripeCheckoutState.recurringPayment = recurring;
   return { ...props, hasRecurringPayment: recurring, paymentFrequency: recurring ? String(frequency) : null };
 }
@@ -948,24 +954,25 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
   const el = document.createElement(STRIPE_PAYMENT_ELEMENT_TAG);
   applyStripePaymentAttributes(el, props);
   let currentProps = props;
+  // Mismo contrato de vw.updateInitialPayment (IIFE, referencia de solo lectura).
+  const updateBody = (props: GafaPayWidgetProps) => ({
+    customer_name: el.getAttribute("customer-name"),
+    customer_email: props.order.customerEmail || "",
+    customer_phone: props.order.customerPhone || "",
+    customer_first_name: props.customerFirstName,
+    customer_last_name: props.customerLastName,
+    lineItems: props.order.lineItems,
+    address: "0",
+    ...props.generalData,
+    recurringPayment: props.hasRecurringPayment === true,
+    paymentFrequency: props.hasRecurringPayment ? Number(props.paymentFrequency) : null,
+    currency: (props.order.currency || "mxn").toLowerCase(),
+  });
   const session = registerStripeSession({
     element: el,
     apiUrl: resolveGafaPayApiUrl(props.apiUrl),
     checkout: props.stripeCheckoutState ?? {},
-    // Mismo contrato de vw.updateInitialPayment (IIFE, referencia de solo lectura).
-    updateBody: {
-      customer_name: el.getAttribute("customer-name"),
-      customer_email: props.order.customerEmail || "",
-      customer_phone: props.order.customerPhone || "",
-      customer_first_name: props.customerFirstName,
-      customer_last_name: props.customerLastName,
-      lineItems: props.order.lineItems,
-      address: "0",
-      ...props.generalData,
-      recurringPayment: props.stripeCheckoutState?.recurringPayment ?? false,
-      paymentFrequency: props.hasRecurringPayment ? Number(props.paymentFrequency) : null,
-      currency: (props.order.currency || "mxn").toLowerCase(),
-    },
+    updateBody: updateBody(props),
     onInitialPayment: (data, created, context) => currentProps.onStripeSessionPrepare
       ? currentProps.onStripeSessionPrepare(data, context)
       : created ? currentProps.onCheckoutOpenAction?.(data) : currentProps.onInitialPaymentUpdated?.(data),
@@ -980,6 +987,7 @@ function mountStripePaymentElement(runtime: Runtime, container: Element, props: 
       applyStripePaymentAttributes(el, next);
       currentProps = next;
       unbind = bindStripePaymentEvents(el, next, session.onEvent);
+      session.update(updateBody(next));
       // El IIFE tiene attributeChangedCallback vacío. Si llamamos render()
       // React remonta hw con un `order`/`onPaymentError` nuevos y re-dispara
       // oauth + processinitialpayment + updateinitialpayment (a menudo con

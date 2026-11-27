@@ -310,6 +310,8 @@ export function membershipPaymentFrequency(
   const [membership] = memberships;
   if (membership.amount !== 1) return null;
   if (billable.some((line) => line !== membership && line.price * line.amount > 0)) return null;
-  const days = Number(membership.raw?.expiration_days);
-  return Number.isFinite(days) && Math.trunc(days) > 0 ? String(Math.trunc(days)) : null;
+  const rawDays = membership.raw?.expiration_days;
+  if (typeof rawDays !== "number" && typeof rawDays !== "string") return null;
+  const days = Number(rawDays);
+  return Number.isInteger(days) && days > 0 ? String(days) : null;
 }

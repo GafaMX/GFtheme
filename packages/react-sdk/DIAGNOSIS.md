@@ -93,3 +93,11 @@ Resultados sobre el árbol final:
 No se efectuaron cobros, llamadas de pago a producción ni despliegues.
 
 Se mantienen: sin can_subscribe booleano → pago único; opt-out → recurringPayment=false; convergencia de clics rápidos; cantidad 2, varias membresías o falta de elegibilidad/frecuencia → pago único; label.gafa-check-row; coherencia saveCard; Pagar solo con sesión preparada y formulario vigente montado y ready.
+
+## Iteración 3
+
+- **Importes y cupón.** La isla sincroniza los `lineItems` de PayPanel con el guard antes de publicar el cupón. El token y la identidad del cliente vinculan el tráfico del widget con su sesión. La confirmación queda bloqueada durante la validación y hasta que la revisión del precio esté preparada. Un cupón validado sin un secret de la sesión vigente inicia un `process` con el precio descontado. Las pruebas cubren las tres ventanas del bootstrap, el total de $90 y el importe de la última escritura, un update del IIFE con importes distintos, el refresh de preferencias, el timeout y la revalidación tras cambios en el carrito.
+- **Complete.** Un HTTP 200 debe contener JSON con un `message` válido antes de habilitar `Stripe.confirm`. Las pruebas de JSON truncado y de campo ausente, vacío o de tipo incorrecto verifican el estado de error, cero confirmaciones y recuperación mediante `process`.
+- **Cancelación y B1.** El desmontaje aborta la señal del transporte y permite que la nueva generación inicie `process` enseguida. La cola sigue serializando las revisiones de una misma generación. Las pruebas mantienen el fetch anterior pendiente, comprueban su señal abortada y rechazan tokens en cuarentena tanto en `process` como en el siguiente `update`.
+- **Recurrencia.** Se requiere `can_subscribe === true` vigente, una sola membresía facturable con cantidad uno y una frecuencia entera positiva. Las pruebas cubren catálogo pendiente, config de respaldo, flags persistidos y pérdida de elegibilidad con el widget montado.
+- **Stripe Connect.** La caché usa la clave publicable y las opciones de Stripe, incluida `stripeAccount`. La prueba verifica reutilización para las mismas opciones y aislamiento por cuenta, idioma y opciones beta, tanto desde la fábrica global como desde la referencia almacenada por el IIFE.

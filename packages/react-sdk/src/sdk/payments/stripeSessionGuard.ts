@@ -24,6 +24,8 @@ type WidgetSession = {
   onInitialPayment: (data: PaymentData, created: boolean, context: StripePreparationContext) => unknown;
   phase: Phase; revision: number; progressAt: number; operation?: Operation;
   data?: PaymentData; last?: string;
+  transport?: AbortController;
+  completeAuthorized?: boolean;
   requestInit?: RequestInit; consumer: boolean;
   surface?: { secret: string; node: Element; ready: boolean; destroy: () => void; provider: object };
   observer: MutationObserver;
@@ -41,29 +43,35 @@ const byElement = new WeakMap<Element, WidgetSession>();
 const providerOwners = new WeakMap<object, WidgetSession>();
 const confirmations = new WeakMap<StripeCheckoutState, object>();
 type MutationLane = { tail: Promise<unknown>; uncertain: boolean; quarantined: Set<string> };
-// Survives DOM generations. Aborting a visual revision never releases a server write.
+// Survives DOM generations. Only disposal or a transport deadline can end the wait for an in-flight write.
 const lanes = new WeakMap<StripeCheckoutState, MutationLane>();
 function laneFor(checkout: StripeCheckoutState): MutationLane {
   let lane = lanes.get(checkout);
   if (!lane) { lane = { tail: Promise.resolve(), uncertain: false, quarantined: new Set() }; lanes.set(checkout, lane); }
   return lane;
 }
-async function mutation<T>(s: WidgetSession, op: Operation, run: (signal: AbortSignal) => Promise<T>, timeoutMs = STRIPE_PREPARATION_TIMEOUT_MS): Promise<T> {
+async function mutation<T>(s: WidgetSession, op: Operation, run: (signal: AbortSignal) => Promise<T>,
+  timeoutMs = STRIPE_PREPARATION_TIMEOUT_MS, requestToken?: unknown): Promise<T> {
   const lane = laneFor(s.checkout);
   const pending = lane.tail.then(async () => {
     if (!current(s, op)) throw abortError();
     progress(s, op);
+    if (!current(s, op)) throw abortError();
     const token = s.data?.message;
-    const transport = new AbortController();
+    const transport = s.transport = new AbortController();
     const timer = setTimeout(() => transport.abort(new Error("La escritura de pago no respondió a tiempo. Reintenta con una sesión nueva.")), timeoutMs);
     try {
-      return await withStripeAbort(Promise.resolve().then(() => run(transport.signal)), transport.signal);
+      return await withStripeAbort(Promise.resolve().then(() => {
+        if (transport.signal.aborted) throw transport.signal.reason;
+        return run(transport.signal);
+      }), transport.signal);
     } catch (error) {
       lane.uncertain = true;
       if (token) lane.quarantined.add(token);
+      if (typeof requestToken === "string" && requestToken) lane.quarantined.add(requestToken);
       throw error;
     }
-    finally { clearTimeout(timer); }
+    finally { clearTimeout(timer); s.transport = undefined; }
   });
   lane.tail = pending.catch(() => undefined);
   return withStripeAbort(pending, op.signal);
@@ -94,7 +102,7 @@ export function withStripeAbort<T>(promise: Promise<T>, signal: AbortSignal): Pr
 function surfaceReady(s: WidgetSession): boolean {
   return !held(s) && Boolean(s.surface?.ready && s.surface.secret === s.data?.client_secret &&
     s.element.isConnected && s.surface.node.isConnected && s.element.contains(s.surface.node) &&
-    s.surface.node.querySelector("iframe"));
+    s.surface.node.querySelector("iframe")) && s.last === keyOf(sessionUpdateBody(s));
 }
 function changed(s: WidgetSession): void {
   s.element.dispatchEvent(new CustomEvent(STRIPE_SESSION_PROGRESS_EVENT, {
@@ -125,6 +133,7 @@ function dispose(s: WidgetSession): void {
   s.revision = s.checkout.revision = (s.checkout.revision ?? 0) + 1;
   clearTimeout(s.operation?.timer);
   s.operation?.controller.abort(abortError());
+  s.transport?.abort(abortError());
   s.observer.disconnect();
   s.surface?.destroy();
   s.surface = undefined;
@@ -164,7 +173,7 @@ export function stripeSessionStatus(container: Element) {
 export function registerStripeSession(options: {
   element: HTMLElement; apiUrl: string; checkout: StripeCheckoutState;
   updateBody: Record<string, unknown>; onInitialPayment: WidgetSession["onInitialPayment"];
-}): { dispose: () => void; onEvent: (data: unknown, created: boolean) => void } {
+}): { dispose: () => void; update: (body: Record<string, unknown>) => void; onEvent: (data: unknown, created: boolean) => void } {
   const previous = owners.get(options.checkout);
   if (previous) { dispose(previous); state.widgets.delete(previous); }
   const s: WidgetSession = {
@@ -184,6 +193,12 @@ export function registerStripeSession(options: {
   state.widgets.add(s);
   return {
     dispose: () => dispose(s),
+    update: (body) => {
+      if (!active(s)) return;
+      const changedBody = keyOf(s.updateBody) !== keyOf(body);
+      s.updateBody = body;
+      if (changedBody) changed(s);
+    },
     // Preparation has already registered every accepted response. Ignore IIFE echoes.
     onEvent: () => undefined,
   };
@@ -211,9 +226,10 @@ export const stripeSurfaceLifecycle = {
   },
   canConfirm(secret: string, provider: object) {
     const s = providerOwners.get(provider);
-    if (!s || !active(s) || confirmations.has(s.checkout) || s.phase !== "confirming" ||
+    if (!s || !active(s) || confirmations.has(s.checkout) || s.phase !== "confirming" || !s.completeAuthorized ||
         s.data?.client_secret !== secret || s.surface?.provider !== provider || !surfaceReady(s)) return false;
     // Stripe.confirm itself cannot be aborted. Freeze further mutations until it settles.
+    s.completeAuthorized = false;
     confirmations.set(s.checkout, provider);
     return true;
   },
@@ -233,17 +249,30 @@ export const stripeSurfaceLifecycle = {
   },
 };
 
-function findWidget(url: string, body: Record<string, unknown>, process: boolean) {
-  if (!process && typeof body.tokenInput === "string" && state.tokens.has(body.tokenInput)) return state.tokens.get(body.tokenInput);
-  return [...state.widgets].find((s) => active(s) && url.startsWith(`${s.apiUrl}/api/stripe.`) &&
-    body.customer_email === s.updateBody.customer_email && keyOf({ items: body.lineItems }) === keyOf({ items: s.updateBody.lineItems }));
+function findWidget(url: string, body: Record<string, unknown>, process: boolean): WidgetSession | null | undefined {
+  const inScope = (s: WidgetSession) => url.startsWith(`${s.apiUrl}/api/stripe.`);
+  if (!process && typeof body.tokenInput === "string" && state.tokens.has(body.tokenInput)) {
+    const owner = state.tokens.get(body.tokenInput);
+    return owner && inScope(owner) ? owner : null;
+  }
+  const matches = [...state.widgets].filter((s) => active(s) && inScope(s) &&
+    (body.customer_email ?? "") === (s.updateBody.customer_email ?? ""));
+  if (matches.length <= 1) return matches[0];
+  const scoped = matches.filter((s) => ["companiesId", "locationsId", "usersProfilesId", "usersId"].every(
+    (key) => body[key] == null || body[key] === s.updateBody[key],
+  ));
+  // The IIFE supplies no element identity on bootstrap. Ambiguous ownership must fail closed.
+  return scoped.length === 1 ? scoped[0] : null;
 }
 function effectiveBody(s: WidgetSession, body: Record<string, unknown>) {
   const frequency = Number(s.updateBody.paymentFrequency);
-  const recurring = (s.checkout.recurringPayment ?? body.recurringPayment) === true && Number.isInteger(frequency) && frequency > 0;
-  s.checkout.recurringPayment = recurring;
+  const recurring = s.updateBody.recurringPayment === true && s.checkout.recurringPayment !== false &&
+    Number.isInteger(frequency) && frequency > 0;
   return { ...body, saveCard: s.checkout.saveCard ?? false, recurringPayment: recurring,
     paymentFrequency: recurring ? frequency : null };
+}
+function sessionUpdateBody(s: WidgetSession, token = s.data?.message) {
+  return effectiveBody(s, { ...s.updateBody, tokenInput: token });
 }
 async function prepare(s: WidgetSession, input: RequestInfo | URL, init: RequestInit,
   body: Record<string, unknown>, process: boolean, seed?: PaymentData): Promise<PaymentData> {
@@ -252,54 +281,56 @@ async function prepare(s: WidgetSession, input: RequestInfo | URL, init: Request
   const controller = new AbortController();
   const op: Operation = { revision: s.checkout.revision = (s.checkout.revision ?? 0) + 1,
     signal: controller.signal, controller, promise: Promise.resolve({}) };
-  s.operation = op; s.revision = op.revision; s.phase = "preparing"; s.last = undefined;
+  s.operation = op; s.revision = op.revision; s.phase = "preparing"; s.last = undefined; s.completeAuthorized = false;
   if (seed) s.data = seed;
   progress(s, op);
+  const lane = laneFor(s.checkout);
   const run = async () => {
     // A superseded transport may still write. Wait for it, then recover with a
     // fresh process/token if its outcome was indeterminate (including timeout).
-    await withStripeAbort(laneFor(s.checkout).tail, op.signal);
+    await withStripeAbort(lane.tail, op.signal);
     if (!current(s, op)) throw abortError();
-    if (laneFor(s.checkout).uncertain) {
+    if (lane.uncertain) {
       process = true; seed = undefined;
       input = `${s.apiUrl}/api/stripe.processinitialpayment`;
       body = effectiveBody(s, { ...s.updateBody, tokenInput: undefined });
     }
+    const sent = new Set<string>();
     const send = async (url: RequestInfo | URL, payload: Record<string, unknown>) => {
       const data = await mutation(s, op, async (signal) => {
-        const response = await state.orig!(url, { ...init, signal, body: JSON.stringify(payload) });
+        const update = UPDATE_PATH.test(urlOf(url));
+        const currentBody = effectiveBody(s, update
+          ? { ...s.updateBody, tokenInput: payload.tokenInput }
+          : { ...payload, lineItems: s.updateBody.lineItems });
+        if (update) sent.add(keyOf(currentBody));
+        const response = await state.orig!(url, { ...init, signal, body: JSON.stringify(currentBody) });
         if (!response.ok) throw new Error("No pudimos preparar la sesión de Stripe.");
         return response.clone().json() as Promise<PaymentData>;
-      });
+      }, STRIPE_PREPARATION_TIMEOUT_MS, payload.tokenInput);
       if (!current(s, op)) throw abortError();
       progress(s, op); return data;
     };
     const updateUrl = `${s.apiUrl}/api/stripe.updateinitialpayment`;
     let data = seed ?? await send(input, body);
     let created = process && !seed;
-    if (created) {
-      if (data.message && laneFor(s.checkout).quarantined.has(data.message)) {
-        throw new Error("La sesión anterior no está reconciliada. Se necesita una orden de pago nueva.");
-      }
-      laneFor(s.checkout).uncertain = false;
-    }
-    const sent = new Set<string>();
-    if (!process && !seed) sent.add(keyOf(body));
     while (current(s, op)) {
       if (!data.client_secret || !data.message) throw new Error("Stripe no devolvió una sesión de pago válida.");
+      if (lane.quarantined.has(data.message)) {
+        throw new Error("La sesión anterior no está reconciliada. Se necesita una orden de pago nueva.");
+      }
+      if (created) lane.uncertain = false;
       s.data = data;
       state.secrets.add(data.client_secret);
       if (data.message) state.tokens.set(data.message, s);
-      await mutation(s, op, async (signal) => s.onInitialPayment(created ? data : {
-        ...data, subscriptionId: body.recurringPayment ? data.subscriptionId : null,
+      await mutation(s, op, async (signal) => s.onInitialPayment({
+        ...data, subscriptionId: sessionUpdateBody(s).recurringPayment ? data.subscriptionId : null,
       }, created, { revision: op.revision, signal, isCurrent: () => current(s, op) }));
       if (!current(s, op)) throw abortError();
       progress(s, op);
-      const nextBody = effectiveBody(s, { ...s.updateBody, tokenInput: data.message });
+      const nextBody = sessionUpdateBody(s, data.message);
       const key = keyOf(nextBody);
       s.last = key;
       if (sent.has(key)) break;
-      sent.add(key);
       const next = await send(updateUrl, nextBody);
       if (!next.client_secret) break;
       data = next; created = false;
@@ -349,7 +380,7 @@ function onDiscount(event: Event) {
   event.stopImmediatePropagation();
   if (confirmations.has(s.checkout) || s.phase === "done") return;
   state.tokens.set(d.checkout_token, s);
-  const body = effectiveBody(s, { ...s.updateBody, tokenInput: d.checkout_token });
+  const body = sessionUpdateBody(s, d.checkout_token);
   void prepare(s, `${s.apiUrl}/api/stripe.updateinitialpayment`, {
     ...s.requestInit, method: "POST",
   }, body, false, { message: d.checkout_token, client_secret: d.client_secret })
@@ -359,7 +390,7 @@ function onDiscount(event: Event) {
 export function refreshStripeCheckout(checkout: StripeCheckoutState): void {
   const s = owners.get(checkout);
   if (!s || !active(s) || !s.data || confirmations.has(checkout) || ["confirming", "done"].includes(s.phase)) return;
-  const body = effectiveBody(s, { ...s.updateBody, tokenInput: s.data.message });
+  const body = sessionUpdateBody(s);
   void prepare(s, `${s.apiUrl}/api/stripe.updateinitialpayment`, { ...s.requestInit, method: "POST" }, body, false, s.data)
     .then(() => replay(s)).catch(() => undefined);
 }
@@ -379,6 +410,7 @@ export function installStripeSessionFetchGuard(): void {
       return complete ? json({ message: "La sesión de pago cambió." }, 409) : noChange(body.tokenInput);
     }
     const s = findWidget(url, body, process);
+    if (s === null) return json({ message: "No pudimos identificar la sesión de pago." }, 409);
     if (!s) {
       // Preserve the legacy update contract outside SDK checkout widgets.
       if (!update) return state.orig!(input, init);
@@ -390,46 +422,62 @@ export function installStripeSessionFetchGuard(): void {
     }
     if (confirmations.has(s.checkout) || s.phase === "done") return json({ message: "El pago ya está en curso o terminó." }, 409);
     if (!active(s)) return complete ? json({ message: "La sesión de pago cambió." }, 409) : noChange(body.tokenInput);
+    if (!complete && s.phase === "confirming") return json({ message: "El pago ya está en curso." }, 409);
     // Explicit modal opt-in AND opt-out take precedence over the IIFE's local default.
     if (body.saveCard === true && s.checkout.saveCard !== false) s.checkout.saveCard = true;
-    const rawBody = body;
-    body = effectiveBody(s, body);
     if (complete) {
       if (s.phase !== "ready" || !surfaceReady(s) || body.tokenInput !== s.data?.message) return json({ message: "El formulario de pago todavía no está listo." }, 409);
       const op = s.operation!;
       const revision = s.revision;
+      s.completeAuthorized = false;
       s.phase = "confirming"; changed(s);
       try {
         // Own deadline; readiness cancelled the preparation timer. Include body
         // consumption so a hung response stream cannot strand confirmation either.
         const response = await mutation(s, op, async (signal) => {
-          const response = await state.orig!(input, { ...init, signal, body: JSON.stringify(body) });
+          const payload = effectiveBody(s, "lineItems" in body ? { ...body, lineItems: s.updateBody.lineItems } : body);
+          const response = await state.orig!(input, { ...init, signal, body: JSON.stringify(payload) });
           const data = await response.text();
+          if (response.ok) {
+            let result;
+            try { result = JSON.parse(data); } catch { /* The response body can contain arbitrary data. */ }
+            if (typeof result?.message !== "string" || !result.message.trim()) {
+              throw new Error("Stripe no devolvió una confirmación de preparación válida.");
+            }
+          }
           return new Response(data, { status: response.status, headers: response.headers });
         }, STRIPE_COMPLETE_TIMEOUT_MS);
         clearTimeout(op.timer);
         if (!active(s) || s.revision !== revision || s.phase !== "confirming") return json({ message: "La sesión de pago cambió." }, 409);
-        if (!response.ok) fail(s, op, new Error("No pudimos completar la preparación del pago. Reintenta con una sesión nueva."));
+        if (!surfaceReady(s)) {
+          const message = "El formulario de pago cambió. Reintenta con una sesión nueva.";
+          fail(s, op, new Error(message));
+          return json({ message }, 409);
+        }
+        if (response.ok) s.completeAuthorized = true;
+        else fail(s, op, new Error("No pudimos completar la preparación del pago. Reintenta con una sesión nueva."));
         return response;
       } catch (error) { if (s.revision === revision && active(s)) fail(s, op, error); throw error; }
     }
-    s.requestInit = init;
     if (update) {
+      const token = body.tokenInput;
+      const currentToken = s.data?.message;
+      const currentBody = { ...sessionUpdateBody(s), tokenInput: currentToken ?? token };
       // vw installs its discount listener before its mount update effect.
       const firstConsumer = !s.consumer;
       s.consumer = true;
-      if (s.phase === "preparing" && (firstConsumer || rawBody.tokenInput !== s.data?.message)) {
+      if (s.phase === "preparing" && (firstConsumer || token !== currentToken)) {
         void latestData(s).then(() => replay(s)).catch(() => undefined);
-        return noChange(body.tokenInput);
+        return noChange(token);
       }
-      if (s.phase === "ready" && (s.last === keyOf(body) || rawBody.tokenInput !== s.data?.message)) {
-        if (firstConsumer || rawBody.tokenInput !== s.data?.message || s.surface?.secret !== s.data?.client_secret) replay(s);
-        return noChange(body.tokenInput);
+      if (s.phase === "ready" && (s.last === keyOf(currentBody) || token !== currentToken)) {
+        if (firstConsumer || token !== currentToken || s.surface?.secret !== s.data?.client_secret) replay(s);
+        return noChange(token);
       }
       // The mounting form may still contain the previous token. Mutations use the current server token.
-      body = { ...body, tokenInput: s.data?.message ?? body.tokenInput };
-      s.updateBody = { ...body };
+      body = currentBody;
     }
+    s.requestInit = init;
     const reconcile = s.phase === "error";
     const pending = prepare(s, reconcile ? `${s.apiUrl}/api/stripe.processinitialpayment` : input,
       init, reconcile ? effectiveBody(s, { ...s.updateBody, tokenInput: undefined }) : body, process || reconcile);

@@ -321,7 +321,12 @@ describe("mountGafaPayWidget stripe-payment-element", () => {
 
   it("monta el web component con el contrato de gafa.fit", () => {
     const box = document.createElement("div");
-    const island = mountGafaPayWidget(runtime, box, "stripe", baseProps({ discountAmount: 10, hasRecurringPayment: true, paymentFrequency: "30" }));
+    const props = baseProps({ discountAmount: 10, hasRecurringPayment: true, stripeCanSubscribe: true, paymentFrequency: "30" });
+    props.order.lineItems = [{
+      name: "Membresía", type: "membership", quantity: 1, unitPrice: 100,
+      product_type: "membership", product_id: 1, height: 1, length: 1, weight: 1, width: 1,
+    }];
+    const island = mountGafaPayWidget(runtime, box, "stripe", props);
     const el = box.querySelector(STRIPE_PAYMENT_ELEMENT_TAG);
     expect(el).toBeTruthy();
     expect(el?.getAttribute("api-url")).toBe("https://apipay.buq.partners");
