@@ -52,7 +52,7 @@ import {
   resolveCrossSellItems,
 } from "../cart/crossSell";
 import { installStripeCardTheme } from "../payments/stripeCardStyle";
-import { afterStrictModePass } from "../payments/stripeSessionGuard";
+import { afterStrictModePass, type StripeCheckoutState } from "../payments/stripeSessionGuard";
 import { humanizeCheckoutError } from "../payments/checkoutErrorMessage";
 import { showToast } from "../toast/toastStore";
 import { ToastHost } from "../toast/ToastHost";
@@ -354,6 +354,7 @@ export function CheckoutModal({
   const [paying, setPaying] = useState(false);
   /** Membresía: como v1, guardar tarjeta + renovar van ON y ocultos. */
   const [saveCard, setSaveCard] = useState(true);
+  const stripeCheckoutState = useRef<StripeCheckoutState>({});
   const [autoRenew, setAutoRenew] = useState(true);
   const [membershipOptsOpen, setMembershipOptsOpen] = useState(false);
   /** Stripe ya cobró; el botón deja de hablar con GafaPay y solo registra en Buq. */
@@ -1482,6 +1483,7 @@ export function CheckoutModal({
         throw new Error("Esta marca no tiene configurado el pago con tarjeta.");
       }
       const pending = await client.initialPurchase(payload);
+      if (abort.signal.aborted) return;
       const purchaseId = pending.purchaseId;
       const token = pending.checkoutToken?.trim() || checkoutToken;
       if (purchaseId == null) {
@@ -2232,6 +2234,7 @@ export function CheckoutModal({
                     phone: profileQuery.data?.phone ?? undefined,
                   }}
                   onSuccess={handleGafaPaySuccess}
+                  stripeCheckoutState={stripeCheckoutState.current}
                   onHostedCheckout={handleHostedCheckout}
                   onHostedClose={releaseHostedWait}
                   onStart={() => {
@@ -2822,6 +2825,7 @@ function PayPanel({
   membershipOptions,
   mockPay,
   enrollmentLabel,
+  stripeCheckoutState,
 }: {
   methods: CheckoutConfig["paymentMethods"];
   selectedMethodId: number | null;
@@ -2833,7 +2837,8 @@ function PayPanel({
   discountAmount: number;
   customer: { email?: string; firstName?: string; lastName?: string; phone?: string };
   onSuccess: (result: GafaPaySuccess) => void;
-  onHostedCheckout: (data: unknown) => void;
+  onHostedCheckout: (data: unknown) => void | Promise<void>;
+  stripeCheckoutState: StripeCheckoutState;
   onHostedClose: () => void;
   onStart: () => void;
   onReadyChange: (ready: boolean) => void;
@@ -2956,6 +2961,7 @@ function PayPanel({
       onGafaPaySuccessAction: (result) => handlersRef.current.onSuccess(result),
       onGafaPayErrAction: ({ message }) =>
         handlersRef.current.onError(message ?? "Ocurrió un error durante el pago."),
+      stripeCheckoutState,
       onCheckoutOpenAction: (data) => handlersRef.current.onHostedCheckout(data),
       onCheckoutCloseAction: () => handlersRef.current.onHostedClose(),
       onInitialPaymentUpdated: (data) => handlersRef.current.onHostedCheckout(data),
@@ -2970,7 +2976,7 @@ function PayPanel({
         if (typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
       },
     }),
-    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount],
+    [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount, stripeCheckoutState],
   );
 
   // Cambios de carrito/cliente actualizan props sin re-montar: tirar el iframe
