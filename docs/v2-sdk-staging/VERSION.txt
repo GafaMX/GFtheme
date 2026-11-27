@@ -1,0 +1,5 @@
+commit=06924f9ecbc6cd101eecdad7c08e6f9d6acb0a5a
+short=06924f9
+built_at=2026-11-27T02:16:14Z
+bytes=1149873
+bundle=gafa-sdk.bundle.20261127T021614Z.js
