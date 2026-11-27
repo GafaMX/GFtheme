@@ -5011,7 +5011,7 @@
 /* Móvil: la hora baja a su línea. Así “★ Calificar” no recorta el día/hora
    con ellipsis, y calificada / por calificar miden lo mismo.
    En 320px o con texto ampliado, nowrap + overflow:visible invadía Calificar:
-   el tiempo hace wrap y, si el contenedor es muy angosto, las acciones bajan. */
+   el tiempo hace wrap y, si el content-box es ≤18rem, las acciones bajan. */
 @media (max-width: 559px) {
   .gafa-acct-class__when {
     display: flex;
@@ -5074,7 +5074,8 @@
   }
 }
 
-/* En el historial, Calificar/Calificada no bajan a una fila nueva (ni en móvil). */
+/* En el historial, Calificar/Calificada van a la derecha; solo bajan si el
+   content-box de la tarjeta es ≤18rem (320px o texto ampliado). */
 .gafa-acct-class[data-rateable="true"] .gafa-acct-class__actions {
   align-items: flex-end;
   flex-direction: column;
@@ -5086,7 +5087,12 @@
 }
 
 @media (max-width: 559px) {
-  @container gafa-acct-class (max-width: 21.5rem) {
+  /* Content-box medido a fuente 100% (1rem = 16px):
+     320px → 254px / 15.875rem; 375px → 309px / 19.313rem;
+     390px → 324px / 20.25rem; 414px → 348px / 21.75rem.
+     18rem deja 375/390/414 con Calificar a la derecha (~21px de margen
+     en 375) y apila solo en 320px o con texto ampliado. */
+  @container gafa-acct-class (max-width: 18rem) {
     .gafa-acct-class[data-rateable="true"] .gafa-acct-class__actions {
       grid-column: 1 / -1;
       max-width: none;
