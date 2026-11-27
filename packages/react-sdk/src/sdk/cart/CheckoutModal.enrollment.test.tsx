@@ -24,6 +24,7 @@ const silver: CatalogItem = {
   price: 85,
   priceFinal: 85,
   expirationDays: 30,
+  can_subscribe: true,
   subscribable: true,
   raw: { id: 1271, expiration_days: 30 },
 };

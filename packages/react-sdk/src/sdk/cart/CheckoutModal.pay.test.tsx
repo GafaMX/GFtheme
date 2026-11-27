@@ -1,13 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CheckoutConfig, GafaClient, Meeting } from "../client/types";
+import type { CatalogItem, CheckoutConfig, DiscountCodeResult, GafaClient, Meeting } from "../client/types";
 import type { GafaPayIsland, GafaPayWidgetProps } from "../payments/gafaPay";
 import { CheckoutModal, PAYPAL_CLOSE_HOLD_MS } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
 import { reservateRetryWait } from "./reservateRetry";
 import { clearToasts } from "../toast/toastStore";
 import { resetToastHostForTests } from "../toast/ToastHost";
+import { resetStripeSessionFetchGuardForTests } from "../payments/stripeSessionGuard";
 
 const { mocks } = vi.hoisted(() => ({
   mocks: {
@@ -1087,10 +1088,28 @@ const membershipLine: CartLine = {
   name: "MEMBRESÍA CDMX",
   price: 3100,
   priceLabel: "$3,100",
+  raw: { subscribable: true, expiration_days: 30 },
 };
 
 describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
   let lastProps: GafaPayWidgetProps | undefined;
+  const membershipClient = (overrides: Partial<GafaClient> = {}) => mockClient({
+    listMemberships: async () => [{
+      id: membershipLine.id, name: membershipLine.name, type: "membership",
+      can_subscribe: true, subscribable: true, expirationDays: 30,
+    }],
+    ...overrides,
+  });
+
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+    return { promise, resolve, reject };
+  }
+
+  const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
+  const ready = () => waitFor(() => expect(pay().disabled).toBe(false));
 
   beforeEach(() => {
     lastProps = undefined;
@@ -1130,96 +1149,428 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     vi.clearAllMocks();
   });
 
-  function useStripeCheckbox() {
+  it("muestra Pago recurrente marcado por defecto sin SHOW_MEMBERSHIP_OPTIONS", async () => {
+    renderPay(membershipClient());
+    const input = await screen.findByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement;
+    expect(input.checked).toBe(true);
+    expect(input.disabled).toBe(false);
+    await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
+    expect(lastProps?.stripeCheckoutState?.recurringPayment).toBe(true);
+    expect(lastProps?.paymentFrequency).toBe("30");
+    expect(input.closest("label")?.className).toBe("gafa-check-row");
+    fireEvent.click(screen.getByText("Pago recurrente"));
+    expect(useCartStore.getState().lines[0].autoRenew).toBe(false);
+    await ready();
+    const unchecked = screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement;
+    expect(unchecked.disabled).toBe(false);
+    expect(lastProps?.stripeCheckoutState?.recurringPayment).toBe(false);
+    fireEvent.click(screen.getByText("Pago recurrente"));
+    expect(useCartStore.getState().lines[0].autoRenew).toBe(true);
+  });
+
+  it.each(["catalog", "config", "catalog raw", "config raw"])(
+    "can_subscribe actual de %s manda sobre el raw persistido y subscribable",
+    async (source) => {
+      for (const canSubscribe of [false, true]) {
+        useCartStore.setState({ lines: [{
+          ...membershipLine,
+          raw: { subscribable: !canSubscribe, can_subscribe: !canSubscribe, expiration_days: 30 },
+        }] });
+        const item: CatalogItem = {
+          id: membershipLine.id, name: membershipLine.name, type: "membership",
+          subscribable: !canSubscribe, expirationDays: 30,
+          ...(source.endsWith("raw")
+            ? { raw: { can_subscribe: canSubscribe } }
+            : { can_subscribe: canSubscribe }),
+        };
+        const client = membershipClient({
+          listMemberships: async () => {
+            if (source.startsWith("catalog")) return [item];
+            throw new Error("Catálogo no disponible");
+          },
+          getCheckoutConfig: async () => ({
+            ...checkoutConfig(), memberships: source.startsWith("config") ? [item] : [],
+          }),
+        });
+        const view = renderPay(client);
+        await ready();
+        expect(Boolean(screen.queryByRole("checkbox", { name: "Pago recurrente" }))).toBe(canSubscribe);
+        expect(lastProps?.hasRecurringPayment).toBe(canSubscribe);
+        expect(lastProps?.paymentFrequency).toBe(canSubscribe ? "30" : null);
+        expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({
+          subscribe: canSubscribe,
+          lines: [expect.objectContaining({ raw: expect.objectContaining({ can_subscribe: canSubscribe }) })],
+        }));
+        for (const [payload] of vi.mocked(client.previewPurchase!).mock.calls) {
+          expect(payload.subscribe).toBe(canSubscribe);
+        }
+        view.unmount();
+      }
+    },
+  );
+
+  it.each([true, false, undefined, "error"] as const)(
+    "catálogo lento: skeleton y sin Stripe ni Pagar hasta resolver can_subscribe=%s",
+    async (result) => {
+      const catalog = deferred<CatalogItem[]>();
+      const config = vi.fn(async () => checkoutConfig()); // create-form-template no trae membresías.
+      useCartStore.setState({ lines: [{
+        ...membershipLine, raw: { subscribable: true, can_subscribe: true, expiration_days: 30 },
+      }] });
+      const client = membershipClient({ getCheckoutConfig: config, listMemberships: () => catalog.promise });
+      renderPay(client);
+      await waitFor(() => expect(config).toHaveBeenCalled());
+      expect(screen.getByText("Revisando tu compra…")).toBeTruthy();
+      expect(pay().disabled).toBe(true);
+      expect(screen.queryByRole("checkbox", { name: "Pago recurrente" })).toBeNull();
+      expect(mocks.mountGafaPayWidget).not.toHaveBeenCalled();
+      expect(client.previewPurchase).not.toHaveBeenCalled();
+      expect(client.initialPurchase).not.toHaveBeenCalled();
+      fireEvent.click(pay());
+      expect(client.initialPurchase).not.toHaveBeenCalled();
+
+      await act(async () => {
+        if (result === "error") catalog.reject(new Error("Catálogo no disponible"));
+        else catalog.resolve([{
+          id: membershipLine.id, name: membershipLine.name, type: "membership",
+          subscribable: true, can_subscribe: result, expirationDays: 30,
+        }]);
+      });
+      await ready();
+      expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(1);
+      expect(lastProps?.hasRecurringPayment).toBe(result === true || result === "error");
+      expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: result === true || result === "error" }));
+    },
+  );
+
+  it.each([false, true])("espera el catálogo aunque config tenga can_subscribe=%s; OK sin dato fuerza pago único", async (canSubscribe) => {
+    const catalog = deferred<CatalogItem[]>();
+    const getCheckoutConfig = vi.fn(async () => ({ ...checkoutConfig(), memberships: [{
+      id: membershipLine.id, name: membershipLine.name, can_subscribe: canSubscribe,
+    }] }));
+    const client = membershipClient({ listMemberships: () => catalog.promise, getCheckoutConfig });
+    renderPay(client);
+    await waitFor(() => expect(getCheckoutConfig).toHaveBeenCalled());
+    expect(pay().disabled).toBe(true);
+    expect(mocks.mountGafaPayWidget).not.toHaveBeenCalled();
+    await act(async () => catalog.resolve([]));
+    await ready();
+    expect(lastProps?.hasRecurringPayment).toBe(false);
+    expect(lastProps?.paymentFrequency).toBeNull();
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: false }));
+  });
+
+  it.each([undefined, null, 0, 1, "false", "true", {}, []])("catálogo OK con can_subscribe no booleano (%s) fuerza pago único pese a datos antiguos", async (canSubscribe) => {
+    useCartStore.setState({ lines: [{
+      ...membershipLine, raw: { can_subscribe: true, subscribable: true, expiration_days: 30 },
+    }] });
+    const client = membershipClient({ listMemberships: async () => [{
+      id: membershipLine.id, name: membershipLine.name,
+      raw: { can_subscribe: canSubscribe, subscribable: true },
+    }] });
+    renderPay(client);
+    await ready();
+    expect(screen.queryByRole("checkbox", { name: "Pago recurrente" })).toBeNull();
+    expect(lastProps?.hasRecurringPayment).toBe(false);
+    expect(lastProps?.stripeCheckoutState?.recurringPayment).toBe(false);
+    expect(lastProps?.paymentFrequency).toBeNull();
+    const confirm = vi.fn();
+    window._handleStripePayment = confirm;
+    fireEvent.click(pay());
+    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    for (const [payload] of [...vi.mocked(client.initialPurchase!).mock.calls, ...vi.mocked(client.previewPurchase!).mock.calls]) {
+      expect(payload.subscribe).toBe(false);
+      expect(payload.lines[0].raw?.can_subscribe).toBe(false);
+    }
+  });
+
+  it.each([false, true, undefined])("solo el ERROR del catálogo permite fallback a subscribable=%s", async (subscribable) => {
+    useCartStore.setState({ lines: [{
+      ...membershipLine, raw: { can_subscribe: true, subscribable, expiration_days: 30 },
+    }] });
+    const client = membershipClient({ listMemberships: async () => { throw new Error("Catálogo no disponible"); } });
+    renderPay(client);
+    await ready();
+    expect(lastProps?.hasRecurringPayment).toBe(subscribable === true);
+    expect(Boolean(screen.queryByRole("checkbox", { name: "Pago recurrente" }))).toBe(subscribable === true);
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: subscribable === true }));
+  });
+
+  it("un ERROR del catálogo conserva el fallback subscribable de config sin raw en el carrito", async () => {
+    useCartStore.setState({ lines: [{ ...membershipLine, raw: undefined }] });
+    const client = membershipClient({
+      listMemberships: async () => { throw new Error("Catálogo no disponible"); },
+      getCheckoutConfig: async () => ({ ...checkoutConfig(), memberships: [{
+        id: membershipLine.id, name: membershipLine.name, subscribable: true, expirationDays: 30,
+      }] }),
+    });
+    renderPay(client);
+    await ready();
+    expect(lastProps?.hasRecurringPayment).toBe(true);
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: true }));
+  });
+
+  it.each([
+    { autoRenew: undefined, raw: undefined },
+    { autoRenew: false, raw: undefined },
+    { autoRenew: undefined, raw: { subscribable: true, expiration_days: 30 } },
+    { autoRenew: false, raw: { subscribable: true, expiration_days: 30 } },
+  ])("recupera del catálogo la membresía sin raw y respeta autoRenew=$autoRenew (raw=$raw)", async ({ autoRenew, raw }) => {
+    useCartStore.setState({ lines: [{ ...membershipLine, raw: undefined, autoRenew }] });
+    const client = membershipClient({
+      listMemberships: async () => [{
+        id: membershipLine.id, type: "membership", name: membershipLine.name,
+        can_subscribe: true, subscribable: true, expirationDays: 30,
+        raw,
+      }],
+    });
+    renderPay(client);
+    const input = await screen.findByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement;
+    await ready();
+    expect(input.checked).toBe(autoRenew !== false);
+    expect(lastProps?.hasRecurringPayment).toBe(autoRenew !== false);
+    expect(lastProps?.paymentFrequency).toBe(autoRenew !== false ? "30" : null);
+    await waitFor(() => expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({
+      subscribe: autoRenew !== false,
+      lines: [expect.objectContaining({ raw: expect.objectContaining({ subscribable: true, expiration_days: 30 }) })],
+    })));
+  });
+
+  it("bloquea ambos controles y el handler desde la confirmación hasta resolver el cargo", async () => {
+    const status = deferred<{ code: number; reservationId: number }>();
+    const client = membershipClient({ pollInitialPurchaseStatus: vi.fn(() => status.promise) });
+    renderPay(client, { showMembershipOptions: true });
+    await ready();
+    await waitFor(() => expect(client.initialPurchase).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
+    const visible = screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement;
+    const legacy = screen.getByLabelText(/renovar automáticamente/i) as HTMLInputElement;
+    const props = lastProps!;
+    const confirm = vi.fn(() => props.onStartPayAction());
+    window._handleStripePayment = confirm;
+    const cta = pay();
+    fireEvent.click(cta);
+    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    expect(visible.disabled).toBe(true);
+    expect(legacy.disabled).toBe(true);
+    for (const control of [visible, legacy]) fireEvent.click(control);
+    act(() => props.changePaymentSystemProperties?.({ recurringPayment: false }));
+    act(() => props.onGafaPaySuccessAction({ message: "paid" }));
+    await act(async () => { await props.onInitialPaymentUpdated?.({ message: "chk_late" }); });
+    for (const control of [visible, legacy]) fireEvent.click(control);
+    expect(visible.checked).toBe(true);
+    expect(legacy.checked).toBe(true);
+    expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(1);
+    expect(client.initialPurchase).toHaveBeenCalledTimes(1);
+    expect(cta.disabled).toBe(true);
+    fireEvent.click(cta);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    await act(async () => status.resolve({ code: 1, reservationId: 77 }));
+    await screen.findByText(/gracias por tu compra/i);
+    expect(client.pollInitialPurchaseStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([false, true])("descarta el cupón recurrente tardío y lo revalida tras opt-out (respuesta antigua primero=%s)", async (oldFirst) => {
+    const old = deferred<DiscountCodeResult>();
+    const current = deferred<DiscountCodeResult>();
+    const check = vi.fn().mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
+    let session = 0;
     mocks.mountGafaPayWidget.mockImplementation((_runtime, container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
       lastProps = props;
-      container.innerHTML = `<stripe-payment-element><label><input type="checkbox" checked>Pago Recurrente (cada 30 días)</label></stripe-payment-element>`;
-      return { update: () => undefined, unmount: () => undefined };
+      const token = `chk_${++session}`;
+      container.innerHTML = '<iframe title="Stripe" />';
+      queueMicrotask(() => props.onCheckoutOpenAction?.({ message: token }));
+      return { update: () => undefined, unmount: () => container.replaceChildren() };
     });
-  }
-
-  it("membresía Stripe nace marcada y pagar no hace click", async () => {
-    useStripeCheckbox();
-    renderPay(mockClient());
-    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
-    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
-    const click = vi.spyOn(input, "click");
-    const charge = vi.fn();
-    window._handleStripePayment = charge;
-    expect(input.checked).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
-    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
-    expect(click).not.toHaveBeenCalled();
+    const client = membershipClient({
+      getCheckoutConfig: async () => ({ ...checkoutConfig(), discountCodesEnabled: true }),
+      initialPurchase: vi.fn(async (payload) => ({ purchaseId: 88, checkoutToken: payload.checkoutToken })),
+      checkDiscountCode: check,
+    });
+    const events: unknown[] = [];
+    const listener = (event: Event) => events.push((event as CustomEvent).detail);
+    window.addEventListener("buq__discount_added", listener);
+    try {
+      renderPay(client);
+      await ready();
+      await waitFor(() => expect(client.initialPurchase).toHaveBeenCalledTimes(1));
+      fireEvent.click(screen.getByRole("button", { name: /¿tienes un código de descuento/i }));
+      fireEvent.change(screen.getByPlaceholderText(/código/i), { target: { value: "PROMO" } });
+      fireEvent.click(screen.getByRole("button", { name: /aplicar/i }));
+      expect(check).toHaveBeenLastCalledWith(expect.objectContaining({ checkoutToken: "chk_1" }));
+      fireEvent.click(screen.getByRole("checkbox", { name: "Pago recurrente" }));
+      await waitFor(() => expect(check).toHaveBeenCalledTimes(2));
+      expect(check).toHaveBeenLastCalledWith(expect.objectContaining({ checkoutToken: "chk_2" }));
+      // El update del mismo checkout puede volver a registrar la compra
+      // mientras se valida el cupón; sigue siendo su sesión de origen.
+      await act(async () => { await lastProps?.onInitialPaymentUpdated?.({ message: "chk_2" }); });
+      const stale = { valid: true, code: "PROMO", checkoutToken: "chk_recurring", clientSecret: "cs_recurring" };
+      const single = { valid: true, code: "PROMO", discountType: "percent", discountNumber: 10, checkoutToken: "chk_single_discount", clientSecret: "cs_single" };
+      if (oldFirst) await act(async () => old.resolve(stale));
+      await act(async () => current.resolve(single));
+      if (!oldFirst) await act(async () => old.resolve(stale));
+      await ready();
+      expect(events).toEqual([{ checkout_token: "chk_single_discount", client_secret: "cs_single", previous_checkout_token: "chk_2" }]);
+      expect(pay().textContent).toContain("$2,790");
+      expect(lastProps?.hasRecurringPayment).toBe(false);
+      expect((screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement).checked).toBe(false);
+      expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({
+        checkoutToken: "chk_single_discount", subscribe: false, discountCode: "PROMO",
+      }));
+      const confirm = vi.fn(() => lastProps?.onGafaPaySuccessAction({ message: "single" }));
+      window._handleStripePayment = confirm;
+      fireEvent.click(pay());
+      await screen.findByText(/gracias por tu compra/i);
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(client.pollInitialPurchaseStatus).toHaveBeenCalledWith(expect.objectContaining({ checkoutToken: "chk_single_discount" }));
+    } finally {
+      window.removeEventListener("buq__discount_added", listener);
+    }
   });
 
-  it("una baja directa en Stripe actualiza el modal y pagar la conserva", async () => {
-    useStripeCheckbox();
-    renderPay(mockClient(), { showMembershipOptions: true });
-    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
-    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
-    fireEvent.click(input);
-    expect((screen.getByLabelText(/renovar automáticamente/i) as HTMLInputElement).checked).toBe(false);
-    input.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated"));
-    const click = vi.spyOn(input, "click");
-    const charge = vi.fn();
-    window._handleStripePayment = charge;
-    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
-    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
-    expect(input.checked).toBe(false);
-    expect(click).not.toHaveBeenCalled();
+  it("remonta Stripe al alternar y conserva la casilla disponible incluso sin updated", async () => {
+    const actual = await vi.importActual<typeof import("../payments/gafaPay")>("../payments/gafaPay");
+    const elements: HTMLElement[] = [];
+    mocks.mountGafaPayWidget.mockImplementation((runtime, container, slug, props: GafaPayWidgetProps) => {
+      lastProps = props;
+      const island = actual.mountGafaPayWidget(runtime, container, slug, props);
+      elements.push(container.querySelector("stripe-payment-element")!);
+      return island;
+    });
+    renderPay(membershipClient());
+    await waitFor(() => expect(elements).toHaveLength(1));
+    // Representa la sesión alojada dentro del elemento anterior.
+    elements[0]!.appendChild(Object.assign(document.createElement("iframe"), { title: "cs_anterior" }));
+    for (const checked of [false, true, false, true]) {
+      const previous = elements.at(-1)!;
+      const input = screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement;
+      expect(input.disabled).toBe(false);
+      fireEvent.click(input);
+      await waitFor(() => expect(elements.at(-1)).not.toBe(previous));
+      const current = elements.at(-1)!;
+      expect(previous.isConnected).toBe(false);
+      expect(current.querySelector("iframe")).toBeNull();
+      expect(current.getAttribute("has-recurring-payment")).toBe(String(checked));
+      expect(current.getAttribute("payment-frequency")).toBe(checked ? "30" : null);
+      expect(input.checked).toBe(checked);
+      expect(useCartStore.getState().lines[0]?.autoRenew).toBe(checked);
+    }
   });
 
-  it("la baja en el modal espera initial-payment-updated antes de cobrar", async () => {
-    useStripeCheckbox();
-    renderPay(mockClient(), { showMembershipOptions: true });
-    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
-    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
-    fireEvent.click(screen.getByLabelText(/renovar automáticamente/i));
-    await waitFor(() => expect(input.checked).toBe(false));
-    const charge = vi.fn();
-    window._handleStripePayment = charge;
-    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
-    expect(charge).not.toHaveBeenCalled();
-    input.closest("stripe-payment-element")!.dispatchEvent(new Event("initial-payment-updated"));
-    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
+  it("conserva la baja tras +/- y remontar el checkout; ningún montaje vuelve a activar recurrencia", async () => {
+    const client = membershipClient();
+    const view = renderPay(client);
+    await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Pago recurrente" }));
+    await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(false));
+    mocks.mountGafaPayWidget.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Agregar uno" }));
+    expect(useCartStore.getState().lines[0]?.amount).toBe(2);
+    fireEvent.click(screen.getByRole("button", { name: "Quitar uno" }));
+    expect(useCartStore.getState().lines[0]?.amount).toBe(1);
+    view.unmount();
+    renderPay(client);
+    await waitFor(() => expect(mocks.mountGafaPayWidget).toHaveBeenCalled());
+    expect((screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement).checked).toBe(false);
+    for (const call of mocks.mountGafaPayWidget.mock.calls) {
+      expect(call[3].hasRecurringPayment).toBe(false);
+      expect(call[3].paymentFrequency).toBeNull();
+    }
+    fireEvent.click(screen.getByRole("checkbox", { name: "Pago recurrente" }));
+    await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
   });
 
-  it("un paquete sin membershipOptions no toca la casilla de Stripe", async () => {
-    useCartStore.setState({ lines: [cartLine], reservation: null });
-    useStripeCheckbox();
-    renderPay(mockClient());
-    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
+  it("R3: tras opt-out y +/- el adaptador monta el iframe con el secret vigente del primer update", async () => {
+    const actual = await vi.importActual<typeof import("../payments/gafaPay")>("../payments/gafaPay");
+    const nativeFetch = window.fetch;
+    const elements: HTMLElement[] = [];
+    const updates: Array<{ tokenInput: string; recurringPayment: boolean }> = [];
+    resetStripeSessionFetchGuardForTests();
+    window.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String(init?.body));
+      updates.push(body);
+      return new Response(JSON.stringify({ message: body.tokenInput, client_secret: `cs_current_${body.tokenInput}` }));
+    });
+    const readyWaits: Promise<void>[] = [];
+    mocks.waitForWidgetContent.mockImplementation(() => readyWaits.at(-1));
+    mocks.mountGafaPayWidget.mockImplementation((runtime, container, slug, props: GafaPayWidgetProps) => {
+      lastProps = props;
+      const island = actual.mountGafaPayWidget(runtime, container, slug, props);
+      const element = container.querySelector("stripe-payment-element") as HTMLElement;
+      elements.push(element);
+      const token = `chk_${elements.length}`;
+      // Contrato del IIFE: process crea la sesión; el primer update puede
+      // devolver otro secret para la misma orden antes de montar Payment Element.
+      readyWaits.push((async () => {
+        element.dispatchEvent(new CustomEvent("initial-payment-created", { detail: { message: token, client_secret: `cs_process_${token}` } }));
+        const response = await fetch("https://apipay.buq.partners/api/stripe.updateinitialpayment", {
+          method: "POST", body: JSON.stringify({ tokenInput: token, recurringPayment: props.hasRecurringPayment }),
+        });
+        const data = await response.json();
+        if (!element.isConnected || data.client_secret !== `cs_current_${token}`) return;
+        element.dispatchEvent(new CustomEvent("initial-payment-updated", { detail: data }));
+        element.appendChild(Object.assign(document.createElement("iframe"), { title: data.client_secret }));
+      })());
+      return island;
+    });
+    try {
+      const client = membershipClient({
+        initialPurchase: vi.fn(async (payload) => ({ purchaseId: 88, checkoutToken: payload.checkoutToken })),
+      });
+      renderPay(client);
+      await ready();
+      fireEvent.click(screen.getByRole("checkbox", { name: "Pago recurrente" }));
+      await ready();
+      fireEvent.click(screen.getByRole("button", { name: /ver productos del carrito/i }));
+      for (const name of ["Agregar uno", "Quitar uno"]) {
+        const previous = elements.at(-1)!;
+        fireEvent.click(screen.getByRole("button", { name }));
+        await waitFor(() => expect(elements.at(-1)).not.toBe(previous));
+        await ready();
+        const current = elements.at(-1)!;
+        expect(previous.isConnected).toBe(false);
+        expect(current.getAttribute("has-recurring-payment")).toBe("false");
+        expect(current.querySelector("iframe")?.title).toBe(`cs_current_chk_${elements.length}`);
+        expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ checkoutToken: `chk_${elements.length}`, subscribe: false }));
+      }
+      expect(elements).toHaveLength(4);
+      expect(updates.map((body) => body.recurringPayment)).toEqual([true, false, false, false]);
+    } finally {
+      resetStripeSessionFetchGuardForTests();
+      window.fetch = nativeFetch;
+    }
+  });
+
+  it.each([false, 0, "0", "false", undefined])("membresía no suscribible (%s) cobra una vez sin casilla", async (subscribable) => {
+    useCartStore.setState({ lines: [{ ...membershipLine, raw: { subscribable, expiration_days: 30 } }] });
+    const client = membershipClient({ listMemberships: async () => [{
+      id: membershipLine.id, name: membershipLine.name, can_subscribe: false,
+    }] });
+    renderPay(client);
+    await waitFor(() => expect(lastProps).toBeDefined());
+    expect(screen.queryByRole("checkbox", { name: "Pago recurrente" })).toBeNull();
     expect(lastProps?.hasRecurringPayment).toBe(false);
-    const input = document.querySelector<HTMLInputElement>("stripe-payment-element input")!;
-    const click = vi.spyOn(input, "click");
-    const charge = vi.fn();
-    window._handleStripePayment = charge;
-    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
-    await waitFor(() => expect(charge).toHaveBeenCalledTimes(1));
-    expect(input.checked).toBe(true);
-    expect(click).not.toHaveBeenCalled();
+    expect(lastProps?.paymentFrequency).toBeNull();
+    await waitFor(() => expect(client.initialPurchase).toHaveBeenCalled());
+    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].subscribe).toBe(false);
   });
 
-  it("bloquea el cobro si los checks no aceptan la renovación", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const reportCheckoutWarning = vi.fn();
-    renderPay(mockClient({ reportCheckoutWarning }));
-    await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
-    const renew = document.querySelector<HTMLInputElement>("#recurringPayment")!;
-    renew.checked = false;
-    renew.disabled = true;
-    const charge = vi.fn();
-    window._handleStripePayment = charge;
-    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
-    await waitFor(() => expect(reportCheckoutWarning).toHaveBeenCalled());
-    expect(charge).not.toHaveBeenCalled();
-    warn.mockRestore();
+  it("paquete incluso con subscribable cobra una vez sin casilla", async () => {
+    useCartStore.setState({ lines: [{ ...cartLine, raw: { subscribable: true, expiration_days: 30 } }] });
+    const client = membershipClient();
+    renderPay(client);
+    await waitFor(() => expect(lastProps).toBeDefined());
+    expect(screen.queryByRole("checkbox", { name: "Pago recurrente" })).toBeNull();
+    expect(lastProps?.hasRecurringPayment).toBe(false);
+    expect(lastProps?.paymentFrequency).toBeNull();
+    await waitFor(() => expect(client.initialPurchase).toHaveBeenCalled());
+    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].subscribe).toBe(false);
   });
 
   it("las opciones van ON y ocultas; GafaPay recibe hasRecurringPayment", async () => {
-    renderPay(mockClient());
+    renderPay(membershipClient());
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /pagar/i })).toBeTruthy();
     });
@@ -1227,11 +1578,11 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(screen.queryByRole("button", { name: /opciones de la membresía/i })).toBeNull();
     expect(screen.queryByLabelText(/guardar mi tarjeta/i)).toBeNull();
     expect(screen.queryByLabelText(/renovar automáticamente/i)).toBeNull();
-    expect(document.body.textContent ?? "").not.toMatch(/Recurrente/);
+    expect(screen.getByRole("checkbox", { name: "Pago recurrente" })).toBeTruthy();
   });
 
   it("SHOW_MEMBERSHIP_OPTIONS muestra el link y los checks van ON", async () => {
-    renderPay(mockClient(), { showMembershipOptions: true });
+    renderPay(membershipClient(), { showMembershipOptions: true });
     await waitFor(() => expect(lastProps?.hasRecurringPayment).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: /opciones de la membresía/i }));
     const save = screen.getByLabelText(/guardar mi tarjeta/i) as HTMLInputElement;
@@ -1242,7 +1593,7 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
   });
 
   it("al pagar una membresía manda subscribe y set_payment en initial-purchase", async () => {
-    const client = mockClient();
+    const client = membershipClient();
     renderPay(client);
     await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
     await waitFor(() => expect(client.initialPurchase).toHaveBeenCalled());
@@ -1251,8 +1602,8 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     );
   });
 
-  it("si desmarcan renovar, initial-purchase manda subscribe false", async () => {
-    const client = mockClient();
+  it("R1: desmarcar y pagar confirma una vez con subscribe false", async () => {
+    const client = membershipClient();
     renderPay(client, { showMembershipOptions: true });
     await waitFor(() => expect((screen.getByRole("button", { name: /pagar/i }) as HTMLButtonElement).disabled).toBe(false));
 
@@ -1264,5 +1615,30 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
         vi.mocked(client.initialPurchase!).mock.calls.some((call) => call[0].subscribe === false),
       ).toBe(true),
     );
+    await ready();
+    const confirm = vi.fn(() => lastProps?.onGafaPaySuccessAction({ message: "single" }));
+    window._handleStripePayment = confirm;
+    fireEvent.click(pay());
+    await screen.findByText(/gracias por tu compra/i);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(client.initialPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ subscribe: false }));
+  });
+
+  it("al cambiar recurrencia registra solo el token del nuevo montaje, sin reenviar el anterior", async () => {
+    let session = 0;
+    mocks.mountGafaPayWidget.mockImplementation((_runtime, _container, _slug, props: GafaPayWidgetProps): GafaPayIsland => {
+      const token = `chk_${++session}`;
+      queueMicrotask(() => props.onCheckoutOpenAction?.({ message: token, client_secret: `cs_${session}` }));
+      return { update: () => undefined, unmount: () => undefined };
+    });
+    const client = membershipClient();
+    renderPay(client);
+    await waitFor(() => expect(client.initialPurchase).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Pago recurrente" }));
+    await waitFor(() => expect(client.initialPurchase).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(client.initialPurchase!).mock.calls.map(([payload]) => [payload.checkoutToken, payload.subscribe])).toEqual([
+      ["chk_1", true],
+      ["chk_2", false],
+    ]);
   });
 });

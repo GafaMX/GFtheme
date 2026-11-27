@@ -497,6 +497,19 @@ describe("catálogo con reglas de compra", () => {
     clearStoredToken();
   });
 
+  it.each([false, true])("normaliza can_subscribe estricto en combos y membresías (sesión=%s)", async (signedIn) => {
+    if (signedIn) writeStoredToken("tok-test");
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponseStatus({ data:
+      [true, false, 1, 0, "true", "false", null].map((can_subscribe, id) => ({
+        id, name: `Item ${id}`, can_subscribe,
+      })),
+    })));
+    for (const items of [await client().listCombos("fitspin"), await client().listMemberships("fitspin")]) {
+      expect(items.map((item) => item.can_subscribe)).toEqual([true, false, undefined, undefined, undefined, undefined, undefined]);
+      expect(items.slice(0, 2).map((item) => item.raw?.can_subscribe)).toEqual([true, false]);
+    }
+  });
+
   it("expone reservations_max del combo (solo una vez = 1)", async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponseStatus({

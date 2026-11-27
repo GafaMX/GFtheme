@@ -190,14 +190,27 @@ describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it("resuelve false tras 15 segundos sin evento y limpia listeners", async () => {
+  it("resuelve false tras 30 segundos sin evento y limpia listeners", async () => {
     vi.useFakeTimers();
     const { root, element } = stripeForm();
     const remove = vi.spyOn(element, "removeEventListener");
     const pending = setStripeMembershipAutoRenew(root, true);
-    await vi.advanceTimersByTimeAsync(15_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(await pending).toBe(false);
-    expect(remove).toHaveBeenCalledTimes(2);
+    expect(remove).toHaveBeenCalledTimes(3);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("un éxito tardío limpia el timeout previo y vuelve a permitir Pagar", async () => {
+    vi.useFakeTimers();
+    const { root, element, input } = stripeForm();
+    const stop = bindStripeMembershipRecurrence(root, vi.fn());
+    input.click();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(false);
+    element.dispatchEvent(new Event("initial-payment-updated"));
+    expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: true })).toBe(true);
+    stop();
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -275,7 +288,7 @@ describe("syncGafaPayMembershipToggles (Stripe tarjeta nueva)", () => {
     const stop = bindStripeMembershipRecurrence(root, vi.fn());
     input.click();
     if (kind === "error") element.dispatchEvent(new Event("initial-payment-update-error"));
-    else await vi.advanceTimersByTimeAsync(15_000);
+    else await vi.advanceTimersByTimeAsync(30_000);
     expect(await syncGafaPayMembershipToggles(root, { saveCard: true, autoRenew: false })).toBe(false);
     stop();
   });
