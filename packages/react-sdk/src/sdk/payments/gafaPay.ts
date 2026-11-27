@@ -1,4 +1,4 @@
-import { nonProductionUrlError, type BuqEnvironmentId } from "../config/buqEnvironments";
+import { BUQ_ENVIRONMENTS, nonProductionUrlError, type BuqEnvironmentId } from "../config/buqEnvironments";
 import { installStripeSessionFetchGuard } from "./stripeSessionGuard";
 
 /**
@@ -169,6 +169,10 @@ let configuredFrontUrl: string | undefined;
 let configuredApiUrl: string | undefined;
 let configureLegacyApiFromConfig = false;
 let configuredStripeScriptUrl: string | undefined;
+// La configuración del SDK es reemplazable; los setters manuales son históricos
+// y deben volver a ser efectivos cuando producción no especifica overrides.
+let sdkApiUrl: string | undefined;
+let sdkStripeScriptUrl: string | undefined;
 let configuredEnvironment: BuqEnvironmentId = "production";
 // Los proveedores tienen estado global y customElements no permite redefinir el IIFE.
 // Cambiar de endpoints después de cargar un proveedor exige recargar la página.
@@ -176,7 +180,23 @@ type PaymentProvider = "stripe" | "frontpay";
 const loadedPaymentConfigurations: Partial<Record<PaymentProvider, PaymentContext>> = {};
 
 export function setGafaPayEnvironment(environment: BuqEnvironmentId): void {
+  const unknownProvider = configuredEnvironment !== environment && typeof window !== "undefined" &&
+    (window.GafaPayElements || stripeElementDefined());
+  if (unknownProvider || Object.values(loadedPaymentConfigurations).some((loaded) => loaded.environment !== environment)) {
+    paymentLoadBlocked("los proveedores ya se cargaron con otro entorno; recarga la página");
+  }
   configuredEnvironment = environment;
+}
+
+/** Aplicar antes de configurar clientes o almacenamiento: el cambio puede bloquearse. */
+export function configureGafaPayForSdk(config: {
+  environment: BuqEnvironmentId;
+  gafaPayApiUrl?: string;
+  stripePaymentScriptUrl?: string;
+}): void {
+  setGafaPayEnvironment(config.environment);
+  sdkApiUrl = config.gafaPayApiUrl;
+  sdkStripeScriptUrl = config.stripePaymentScriptUrl;
 }
 
 function paymentLoadBlocked(reason: string): never {
@@ -205,6 +225,15 @@ export function assertSafePaymentUrls(overrides?: Partial<PaymentUrls>): void {
   for (const [key, value] of Object.entries(urls)) {
     const reason = nonProductionUrlError(value);
     if (reason) paymentLoadBlocked(`${key} ${reason}`);
+  }
+  // Este bundle tiene la API compilada; global/JSON/props no la cambian.
+  // Validar también antes de Stripe: matrícula puede necesitar frontpay tras cobrar.
+  const front = new URL(urls.GAFAPAY_FRONT_URL);
+  const staging = BUQ_ENVIRONMENTS.staging;
+  const stagingFront = new URL(staging.gafaPayFrontUrl);
+  if (front.origin === stagingFront.origin && front.pathname === stagingFront.pathname &&
+      urls.GAFAPAY_API_URL !== staging.gafaPayApiUrl) {
+    paymentLoadBlocked("GAFAPAY_API_URL incompatible con la API compilada del bundle frontpay de staging");
   }
   for (const loaded of Object.values(loadedPaymentConfigurations)) {
     if (loaded.environment !== configuredEnvironment || loaded.urls.apiUrl !== urls.GAFAPAY_API_URL) {
@@ -273,6 +302,7 @@ export function setGafaPayFrontUrl(url?: string): void {
 }
 
 export function setGafaPayApiUrl(url?: string, options?: { configureLegacy?: boolean }): void {
+  sdkApiUrl = undefined;
   configuredApiUrl = url;
   // El setter histórico solo afecta al resolver (y a Stripe). Únicamente las
   // nuevas opciones de config autorizan cambiar global/JSON de frontpay en prod.
@@ -280,6 +310,7 @@ export function setGafaPayApiUrl(url?: string, options?: { configureLegacy?: boo
 }
 
 export function setStripePaymentScriptUrl(url?: string): void {
+  sdkStripeScriptUrl = undefined;
   configuredStripeScriptUrl = url;
 }
 
@@ -290,6 +321,7 @@ export function resolveGafaPayFrontUrl(override?: string): string {
 export function resolveGafaPayApiUrl(override?: string): string {
   const raw =
     override ||
+    sdkApiUrl ||
     configuredApiUrl ||
     (typeof window !== "undefined" ? window.GAFAPAY_API_URL : undefined) ||
     DEFAULT_GAFAPAY_API_URL;
@@ -297,7 +329,7 @@ export function resolveGafaPayApiUrl(override?: string): string {
 }
 
 export function resolveStripePaymentScriptUrl(override?: string): string {
-  return override || configuredStripeScriptUrl || DEFAULT_STRIPE_PAYMENT_SCRIPT_URL;
+  return override || sdkStripeScriptUrl || configuredStripeScriptUrl || DEFAULT_STRIPE_PAYMENT_SCRIPT_URL;
 }
 
 export type GafaPayCredentials = {
@@ -353,7 +385,7 @@ function loadScript(src: string): Promise<void> {
 
 function shouldConfigureLegacyApi(): boolean {
   // Producción conserva el contrato histórico salvo override explícito de API.
-  return configuredEnvironment !== "production" || configureLegacyApiFromConfig;
+  return configuredEnvironment !== "production" || Boolean(sdkApiUrl) || configureLegacyApiFromConfig;
 }
 
 function ensureConfigElement(credentials: GafaPayCredentials): void {
@@ -629,7 +661,7 @@ export function loadGafaPay(credentials: GafaPayCredentials): Promise<Runtime> {
     // La pagina del socio puede traer GafaPay ya cargado (theme legacy):
     // cargarlo otra vez duplicaria el script y su estado.
     const alreadyLoaded = Boolean(window.GafaPayElements);
-    // Frontpay lee el endpoint al evaluarse. Publicarlo ANTES de cargar su JS.
+    // Publicar el contrato antes de cargar JS; el bundle de staging usa su API compilada.
     if (shouldConfigureLegacyApi()) {
       if (configuredEnvironment === "production") {
         window.GAFAPAY_API_URL = resolveGafaPayApiUrl(credentials.apiUrl);

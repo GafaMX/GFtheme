@@ -22,7 +22,7 @@ import { HeaderControls, type HeaderControlsProps } from "./widgets/HeaderContro
 import { bootstrapPurchaseButtons } from "./cart/purchaseButtons";
 import { useCartStore } from "./cart/cartStore";
 import { prefetchCheckoutCatalog } from "./cart/checkoutCatalog";
-import { setGafaPayFrontUrl, setGafaPayApiUrl, setStripePaymentScriptUrl, setGafaPayEnvironment } from "./payments/gafaPay";
+import { setGafaPayFrontUrl, configureGafaPayForSdk } from "./payments/gafaPay";
 import { ImagesProvider } from "./images/ImagesProvider";
 import { ensureFancySibling } from "./concierge/adapter";
 import {
@@ -229,13 +229,10 @@ function silenceLegacyFancy() {
 
 export function createGafaSdk(input: GafaSdkConfigInput, options: RuntimeOptions = {}): GafaSdk {
   const config = parseSdkConfig(input);
+  configureGafaPayForSdk(config);
   const events = createEventBus();
   configureTokenStorage(config.apiBaseUrl);
   setGafaPayFrontUrl(config.gafaPayFrontUrl);
-  // Producción sin override conserva setters previos, globales y defaults del bridge.
-  if (config.gafaPayApiUrl !== undefined) setGafaPayApiUrl(config.gafaPayApiUrl, { configureLegacy: true });
-  if (config.stripePaymentScriptUrl !== undefined) setStripePaymentScriptUrl(config.stripePaymentScriptUrl);
-  setGafaPayEnvironment(config.environment);
   const tracker = createSdkTracker({
     hubUrl: config.hubUrl,
     companyId: config.companyId,

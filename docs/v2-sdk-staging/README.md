@@ -36,6 +36,11 @@ En producción, sin los nuevos overrides de página, no se llaman los setters de
 ni de IIFE Stripe: se conserva la precedencia del bridge, incluidos setters manuales,
 `window.GAFAPAY_API_URL` y defaults. Los nuevos campos de config quedan opcionales
 en producción para no convertir un default en override al volver a parsear el embed.
+La configuración interna del SDK se reemplaza en cada creación: crear staging,
+destruirlo con `unmountAll()` y recrear producción sin cargar proveedores restaura
+los defaults o setters manuales anteriores, sin retener la API/IIFE de staging.
+Si un proveedor ya empezó a cargar, cambiar de entorno exige recargar la página,
+también al volver a producción. Desmontar widgets no descarga proveedores globales.
 `GAFA_FIT_URL` conserva su path, también con `?buq-env=production`.
 El setter histórico `setGafaPayApiUrl(...)` y el `apiUrl` histórico por llamada
 conservan sus efectos anteriores: no publican una API en el global ni en el JSON
@@ -48,8 +53,14 @@ del Hub causa bloqueo en staging/dev; hay que corregirlo o fijarlo en la página
 Un Laravel de producción heredado del Hub también bloquea el arranque de staging/dev.
 El entorno no productivo deducido de la página/query se conserva antes del merge:
 el Hub no puede convertirlo a producción aunque la página solo declare `GAFA_FIT_URL`.
-En staging, el API se entrega a Stripe mediante `api-url` y a frontpay mediante
-`window.GAFAPAY_API_URL` y el JSON `data-gafapay-config`, antes de evaluar su JS.
+En staging, la API se entrega a Stripe mediante `api-url`. El bundle frontpay
+`https://gafapay-front-dev.azurewebsites.net/prodbuild/main.js` tiene la API de
+Azure test compilada: **no consume** el global ni el JSON de API publicados por el
+bridge. Con ese script, una API diferente se rechaza antes de cargar cualquier
+proveedor, incluido Stripe, para evitar un primer cobro incompatible con matrícula.
+Un frontpay alternativo debe implementar el contrato de API correspondiente;
+su código interno no puede deducirse de una URL. Las pruebas del bundle real usan
+un fixture íntegro con `fetch` interceptado; no certifican la copia desplegada.
 Los proveedores son globales: cambiar endpoints después de cargarlos o reutilizar
 un proveedor precargado de origen desconocido en staging/dev requiere una página limpia.
 Los overrides seguros por llamada quedan asociados al runtime cargado y se conservan
