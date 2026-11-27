@@ -87,8 +87,6 @@ describe("getCheckoutConfig store tab", () => {
         return new Response(
           `<div class="CreateReservationFancy--urlReservation">/reservate</div>
            <div class="CreateReservationFancy--productsSelection">[{"id":9,"name":"Agua","price":40,"price_final":40}]</div>
-           <div class="CreateReservationFancy--membershipSelection">[{"id":12,"name":"Mensual","can_subscribe":true,"subscribable":false}]</div>
-           <div class="CreateReservationFancy--combosSelection">[{"id":15,"name":"Paquete","can_subscribe":false,"subscribable":true}]</div>
            <div class="CreateReservationFancy--payment_types">[]</div>`,
           { status: 200, headers: { "Content-Type": "text/html" } },
         );
@@ -108,8 +106,6 @@ describe("getCheckoutConfig store tab", () => {
     expect(formUrl).toContain("default_store_tab=products");
     expect(formUrl).not.toContain("meetings_id=");
     expect(config?.products).toEqual([expect.objectContaining({ id: 9, name: "Agua", type: "product" })]);
-    expect(config?.memberships[0]).toMatchObject({ can_subscribe: true, raw: { can_subscribe: true } });
-    expect(config?.combos[0]).toMatchObject({ can_subscribe: false, raw: { can_subscribe: false } });
   });
 
   it("con clase no manda default_store_tab", async () => {

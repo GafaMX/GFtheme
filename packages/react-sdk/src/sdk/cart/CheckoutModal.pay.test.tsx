@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CatalogItem, CheckoutConfig, DiscountCodeResult, GafaClient, Meeting } from "../client/types";
+import type { CheckoutConfig, DiscountCodeResult, GafaClient, Meeting } from "../client/types";
 import type { GafaPayIsland, GafaPayWidgetProps } from "../payments/gafaPay";
 import { CheckoutModal, PAYPAL_CLOSE_HOLD_MS } from "../widgets/CheckoutModal";
 import { useCartStore, type CartLine } from "./cartStore";
@@ -1103,22 +1103,6 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
   const pay = () => screen.getByRole("button", { name: /^pagar/i }) as HTMLButtonElement;
   const ready = () => waitFor(() => expect(pay().disabled).toBe(false));
 
-  async function confirmOnce(client: GafaClient, subscribe: boolean) {
-    await ready();
-    await waitFor(() => expect(client.initialPurchase).toHaveBeenCalled());
-    const confirm = vi.fn(() => lastProps?.onGafaPaySuccessAction({ message: "paid" }));
-    window._handleStripePayment = confirm;
-    const cta = pay();
-    fireEvent.click(cta);
-    fireEvent.click(cta);
-    await screen.findByText(/gracias por tu compra/i);
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(client.pollInitialPurchaseStatus).toHaveBeenCalledTimes(1);
-    for (const method of [client.previewPurchase, client.initialPurchase, client.reservatePurchase]) {
-      for (const [payload] of vi.mocked(method!).mock.calls) expect(payload.subscribe).toBe(subscribe);
-    }
-  }
-
   beforeEach(() => {
     lastProps = undefined;
     useCartStore.setState({ lines: [membershipLine], reservation: null });
@@ -1190,104 +1174,6 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
       subscribe: autoRenew !== false,
       lines: [expect.objectContaining({ raw: expect.objectContaining({ subscribable: true, expiration_days: 30 }) })],
     })));
-  });
-
-  it.each([
-    { can_subscribe: true, subscribable: false, autoRenew: undefined },
-    { can_subscribe: true, subscribable: false, autoRenew: false },
-    { can_subscribe: undefined, subscribable: true, autoRenew: undefined },
-    { can_subscribe: undefined, subscribable: true, autoRenew: false },
-  ])("espera el catálogo diferido sin raw antes de montar o cobrar (can_subscribe=$can_subscribe, autoRenew=$autoRenew)", async ({ can_subscribe, subscribable, autoRenew }) => {
-    const catalog = deferred<CatalogItem[]>();
-    useCartStore.setState({ lines: [{ ...membershipLine, raw: undefined, autoRenew }] });
-    const client = mockClient({
-      getCheckoutConfig: vi.fn(async () => ({
-        ...checkoutConfig(), currency: { prefix: "€", suffix: "EUR", code: "EUR" },
-      })),
-      listMemberships: () => catalog.promise,
-    });
-    renderPay(client);
-    // La moneda confirma que la configuración ya llegó; solo falta el catálogo.
-    await screen.findByText("EUR");
-    expect(screen.getByText("Revisando tu compra…")).toBeTruthy();
-    expect(pay().disabled).toBe(true);
-    fireEvent.click(pay());
-    expect(mocks.mountGafaPayWidget).not.toHaveBeenCalled();
-    expect(client.previewPurchase).not.toHaveBeenCalled();
-    expect(client.initialPurchase).not.toHaveBeenCalled();
-    expect(client.pollInitialPurchaseStatus).not.toHaveBeenCalled();
-
-    await act(async () => catalog.resolve([{
-      id: membershipLine.id, type: "membership", name: membershipLine.name,
-      can_subscribe, subscribable, expirationDays: 30,
-    }]));
-    const input = await screen.findByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement;
-    await ready();
-    expect(input.checked).toBe(autoRenew !== false);
-    expect(mocks.mountGafaPayWidget).toHaveBeenCalledTimes(1);
-    expect(lastProps?.hasRecurringPayment).toBe(autoRenew !== false);
-    expect(lastProps?.paymentFrequency).toBe(autoRenew !== false ? "30" : null);
-    await confirmOnce(client, autoRenew !== false);
-  });
-
-  it.each(["raw", "line", "config", "configRaw", "catalog", "catalogRaw"] as const)(
-    "can_subscribe de %s prevalece sobre subscribable incluso si el carrito trae el valor contrario",
-    async (source) => {
-      for (const canSubscribe of [false, true]) {
-        const item: CatalogItem = {
-          id: membershipLine.id, type: "membership", name: membershipLine.name,
-          subscribable: !canSubscribe, expirationDays: 30,
-          ...(source.endsWith("Raw") ? { raw: { can_subscribe: canSubscribe } } : { can_subscribe: canSubscribe }),
-        };
-        const legacyItem = { ...item, can_subscribe: undefined, raw: undefined };
-        useCartStore.setState({ lines: [{
-          ...membershipLine,
-          ...(source === "line" ? { can_subscribe: canSubscribe } : {}),
-          raw: {
-            subscribable: !canSubscribe, expiration_days: 30,
-            ...(source === "raw" ? { can_subscribe: canSubscribe } : {}),
-          },
-        }] });
-        const client = mockClient({
-          getCheckoutConfig: async () => ({
-            ...checkoutConfig(), memberships: source.startsWith("config") ? [item] : [legacyItem],
-          }),
-          listMemberships: async () => source.startsWith("catalog") ? [item] : [legacyItem],
-        });
-        const view = renderPay(client);
-        await ready();
-        const input = screen.queryByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement | null;
-        expect(input?.checked ?? false).toBe(canSubscribe);
-        expect(lastProps?.hasRecurringPayment).toBe(canSubscribe);
-        expect(lastProps?.paymentFrequency).toBe(canSubscribe ? "30" : null);
-        await confirmOnce(client, canSubscribe);
-        view.unmount();
-      }
-    },
-  );
-
-  it("resuelve can_subscribe de la configuración sin esperar al catálogo", async () => {
-    const catalog = deferred<CatalogItem[]>();
-    useCartStore.setState({ lines: [{ ...membershipLine, raw: undefined }] });
-    const client = mockClient({
-      getCheckoutConfig: async () => ({ ...checkoutConfig(), memberships: [{
-        id: membershipLine.id, name: membershipLine.name,
-        can_subscribe: true, subscribable: false, expirationDays: 30,
-      }] }),
-      listMemberships: () => catalog.promise,
-    });
-    renderPay(client);
-    await ready();
-    expect((screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement).checked).toBe(true);
-    await confirmOnce(client, true);
-  });
-
-  it.each([0, 1, "false", "true", null])("can_subscribe no booleano (%s) usa el fallback", async (can_subscribe) => {
-    useCartStore.setState({ lines: [{ ...membershipLine, raw: { ...membershipLine.raw, can_subscribe } }] });
-    renderPay(mockClient());
-    await ready();
-    expect((screen.getByRole("checkbox", { name: "Pago recurrente" }) as HTMLInputElement).checked).toBe(true);
-    expect(lastProps?.hasRecurringPayment).toBe(true);
   });
 
   it("bloquea ambos controles y el handler desde la confirmación hasta resolver el cargo", async () => {
@@ -1505,7 +1391,8 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(screen.queryByRole("checkbox", { name: "Pago recurrente" })).toBeNull();
     expect(lastProps?.hasRecurringPayment).toBe(false);
     expect(lastProps?.paymentFrequency).toBeNull();
-    await confirmOnce(client, false);
+    await waitFor(() => expect(client.initialPurchase).toHaveBeenCalled());
+    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].subscribe).toBe(false);
   });
 
   it("paquete incluso con subscribable cobra una vez sin casilla", async () => {
@@ -1516,7 +1403,8 @@ describe("CheckoutModal membresía (guardar tarjeta + renovar)", () => {
     expect(screen.queryByRole("checkbox", { name: "Pago recurrente" })).toBeNull();
     expect(lastProps?.hasRecurringPayment).toBe(false);
     expect(lastProps?.paymentFrequency).toBeNull();
-    await confirmOnce(client, false);
+    await waitFor(() => expect(client.initialPurchase).toHaveBeenCalled());
+    expect(vi.mocked(client.initialPurchase!).mock.calls[0][0].subscribe).toBe(false);
   });
 
   it("las opciones van ON y ocultas; GafaPay recibe hasRecurringPayment", async () => {

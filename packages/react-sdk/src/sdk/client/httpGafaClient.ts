@@ -107,7 +107,6 @@ type RawCatalogItem = {
   expiration_days?: number | null;
   credits?: number | null;
   subscribable?: boolean | number | null;
-  can_subscribe?: boolean;
   hide_in_front?: boolean | number | null;
   reservations_min?: number | string | null;
   reservations_max?: number | string | null;
@@ -967,7 +966,6 @@ export function createHttpGafaClient(config: GafaSdkConfig, legacy?: GafaClient)
       hasDiscount: Boolean(raw.has_discount),
       credits: raw.credits ?? undefined,
       subscribable: Boolean(raw.subscribable),
-      can_subscribe: typeof raw.can_subscribe === "boolean" ? raw.can_subscribe : undefined,
       reservationsMax: purchaseAmountCap({ raw: raw as unknown as Record<string, unknown> }),
       ctaLabel: "Agregar",
       // El JSON íntegro: v1 manda el combo entero en el cart de

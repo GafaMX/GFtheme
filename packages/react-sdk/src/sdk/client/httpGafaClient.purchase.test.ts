@@ -521,16 +521,12 @@ describe("catálogo con reglas de compra", () => {
 
   it("sin sesión pide el catálogo público", async () => {
     const fetchMock = vi.fn(async () =>
-      jsonResponseStatus({ data: [{ id: 1, name: "Primera vez", price: 100, price_final: 100, can_subscribe: false, subscribable: true }] }),
+      jsonResponseStatus({ data: [{ id: 1, name: "Primera vez", price: 100, price_final: 100 }] }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const combos = await client().listCombos("fitspin");
-    const memberships = await client().listMemberships("fitspin");
-    for (const items of [combos, memberships]) {
-      expect(items[0]?.can_subscribe).toBe(false);
-      expect(items[0]?.raw?.can_subscribe).toBe(false);
-    }
+    await client().listCombos("fitspin");
+    await client().listMemberships("fitspin");
 
     const urls = fetchMock.mock.calls.map(([url]) => String(url));
     expect(urls.some((url) => url.includes("/combos/userPosibilities"))).toBe(false);
@@ -544,7 +540,7 @@ describe("catálogo con reglas de compra", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("userPosibilities")) {
-        return jsonResponseStatus({ data: [{ id: 2, name: "Visible", price: 10, price_final: 10, can_subscribe: true, subscribable: false }] });
+        return jsonResponseStatus({ data: [{ id: 2, name: "Visible", price: 10, price_final: 10 }] });
       }
       return jsonResponseStatus({ data: [{ id: 9, name: "No deberia", price: 10, price_final: 10 }] });
     });
@@ -555,10 +551,6 @@ describe("catálogo con reglas de compra", () => {
 
     expect(combos[0]?.name).toBe("Visible");
     expect(memberships[0]?.name).toBe("Visible");
-    for (const items of [combos, memberships]) {
-      expect(items[0]?.can_subscribe).toBe(true);
-      expect(items[0]?.raw?.can_subscribe).toBe(true);
-    }
     const urls = fetchMock.mock.calls.map(([url]) => String(url));
     expect(urls.some((url) => url.includes("/combos/userPosibilities"))).toBe(true);
     expect(urls.some((url) => url.includes("/membership/userPosibilities"))).toBe(true);
