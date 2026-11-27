@@ -5,8 +5,8 @@
  * vuelve a pegarle al backend (~1 POST/s, 10–12 por orden).
  *
  * El mock de apipay no devolvía secret en el update; Stripe real sí.
- * Interceptamos fetch: debounce de POSTs idénticos y quitamos `client_secret`
- * de la respuesta de update salvo que cambie el token de sesión.
+ * Interceptamos fetch: el primer update de cada body conserva el secret
+ * vigente; los repetidos lo omiten para evitar el ciclo de remounts.
  */
 
 const UPDATE_PATH = /\/api\/stripe\.updateinitialpayment(?:\?|$)/i;
@@ -86,9 +86,10 @@ export function installStripeSessionFetchGuard(): void {
         .catch(() => null);
       if (!data || typeof data !== "object") return response;
       const next = { ...(data as Record<string, unknown>) };
-      // Una sesión nueva necesita actualizar token y secret; la misma remonta vw → otro update.
+      // El primer update tras cambiar el carrito puede sustituir la sesión
+      // de processinitialpayment aunque conserve el token de la orden.
       const sessionChanged = typeof next.message === "string" && token !== "" && next.message !== token;
-      if (!sessionChanged) delete next.client_secret;
+      if (!sessionChanged && (prev || !token)) delete next.client_secret;
       return jsonResponse(next, response.status);
     }
 

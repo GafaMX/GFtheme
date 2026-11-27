@@ -42,7 +42,7 @@ describe("installStripeSessionFetchGuard", () => {
 
   it.each([
     { name: "distinto al tokenInput conserva client_secret", tokenInput: "tok_1", message: "tok_2", keepsSecret: true },
-    { name: "igual al tokenInput borra client_secret", tokenInput: "tok_1", message: "tok_1", keepsSecret: false },
+    { name: "igual al tokenInput conserva el primer client_secret", tokenInput: "tok_1", message: "tok_1", keepsSecret: true },
     { name: "sin tokenInput borra client_secret", tokenInput: undefined, message: "tok_2", keepsSecret: false },
   ])("update con message $name", async ({ tokenInput, message, keepsSecret }) => {
     const network = vi.fn(async () => jsonResponse({ client_secret: "cs_2", message }));
@@ -58,7 +58,7 @@ describe("installStripeSessionFetchGuard", () => {
     expect(network).toHaveBeenCalledTimes(1);
   });
 
-  it("un harness con 12 updates del IIFE solo pega una vez a la red y sin client_secret", async () => {
+  it("el primer update monta la sesión vigente y corta el ciclo del IIFE en el segundo", async () => {
     const network = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("processinitialpayment")) {
@@ -88,7 +88,7 @@ describe("installStripeSessionFetchGuard", () => {
       if (!data.client_secret) break;
     }
 
-    expect(updates).toBe(1);
+    expect(updates).toBe(2);
     const updateCalls = network.mock.calls.filter(([url]) => String(url).includes("updateinitialpayment"));
     expect(updateCalls).toHaveLength(1);
     expect(network.mock.calls.filter(([url]) => String(url).includes("processinitialpayment"))).toHaveLength(1);
@@ -107,7 +107,8 @@ describe("installStripeSessionFetchGuard", () => {
     expect(network).toHaveBeenCalledTimes(1);
 
     now += STRIPE_UPDATE_DEBOUNCE_MS + 1;
-    await fetch("https://apipay.buq.partners/api/stripe.updateinitialpayment", { method: "POST", body });
+    const repeated = await fetch("https://apipay.buq.partners/api/stripe.updateinitialpayment", { method: "POST", body });
+    expect(await repeated.json()).toEqual({ message: "tok_1" });
     expect(network).toHaveBeenCalledTimes(2);
   });
 });

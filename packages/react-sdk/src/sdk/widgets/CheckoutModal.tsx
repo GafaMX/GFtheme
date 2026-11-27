@@ -350,6 +350,7 @@ export function CheckoutModal({
   // no cobra; si solo faltan los términos, el botón sí responde.
   const [paymentReady, setPaymentReady] = useState(false);
   const [paying, setPaying] = useState(false);
+  const renewalLockedRef = useRef(false);
   /** Frontpay conserva las opciones de membresía de v1. Stripe usa el carrito. */
   const [saveCard, setSaveCard] = useState(true);
   const [legacyAutoRenew, setLegacyAutoRenew] = useState(true);
@@ -359,6 +360,8 @@ export function CheckoutModal({
   /** Bloquea el cierre mientras se registra el cargo; un error libera el modal. */
   const [chargeHold, setChargeHold] = useState(false);
   const chargedRef = useRef(false);
+  const renewalLocked = paying || chargeHold || registerOnly || chargedRef.current;
+  renewalLockedRef.current = renewalLocked;
   const chargeStartedRef = useRef<number | null>(null);
   const priorPurchasesRef = useRef<Set<number> | null>(null);
 
@@ -397,6 +400,8 @@ export function CheckoutModal({
     payload: InitialPurchasePayload;
   } | null>(null);
   const hostedAbortRef = useRef<AbortController | null>(null);
+  const discountCheckSeq = useRef(0);
+  const discountNeedsRecheckRef = useRef(false);
   const hostedSettledRef = useRef(false);
   const stripePollLockRef = useRef(false);
   const stopPopupWatchRef = useRef<(() => void) | null>(null);
@@ -546,12 +551,9 @@ export function CheckoutModal({
   const config = configQuery.data;
   const hasTerms = Boolean(config?.termsConditionsLink);
 
-  const relevantLines = classAttached
+  const cartLines = classAttached
     ? lines.filter((line) => !brandSlug || line.brandSlug === brandSlug)
     : lines;
-  const purchaseKey = cartPurchaseKey(relevantLines);
-  const membershipPurchase = cartHasMembership(relevantLines);
-  const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
 
   // Compra suelta: el catalogo de la MARCA (listCombos), no el recorte de la
   // sede en create-form-template. Si no, un paquete de Lomas no aparece cuando
@@ -603,6 +605,15 @@ export function CheckoutModal({
   const products = classAttached
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
+  const relevantLines = cartLines.map((line) => {
+    if (line.type !== "membership") return line;
+    const item = memberships.find((item) => sameCatalogId(item.id, line.id)) ??
+      config?.memberships?.find((item) => sameCatalogId(item.id, line.id));
+    return item ? { ...line, raw: { ...catalogCartRaw(item), ...line.raw } } : line;
+  });
+  const purchaseKey = cartPurchaseKey(relevantLines);
+  const membershipPurchase = cartHasMembership(relevantLines);
+  const paymentMethods = paymentMethodsForCart(config?.paymentMethods ?? [], membershipPurchase);
   useEffect(() => {
     const available: CatalogTab[] = [];
     if (combos.length) available.push("packages");
@@ -770,8 +781,12 @@ export function CheckoutModal({
     ? Boolean(recurringMembership && recurringMembership.autoRenew !== false)
     : legacyAutoRenew;
   const setAutoRenew = (checked: boolean) => {
+    if (renewalLockedRef.current) return;
     if (selectedMethod?.slug === "stripe") {
-      if (recurringMembership) useCartStore.getState().setAutoRenew(recurringMembership.key, checked);
+      if (recurringMembership && autoRenew !== checked) {
+        invalidateStripeSession();
+        useCartStore.getState().setAutoRenew(recurringMembership.key, checked);
+      }
     } else {
       setLegacyAutoRenew(checked);
     }
@@ -822,6 +837,7 @@ export function CheckoutModal({
     !waitingOnTerms &&
     !waitingOnGift &&
     !paying &&
+    discountStatus !== "checking" &&
     (isFreeTotal || mockPay || (Boolean(selectedMethod) && paymentReady));
   const purchaseAlreadyClear = purchaseClearKey.current === purchaseKey && purchaseKey.length > 0;
   const holdPayForm =
@@ -845,7 +861,9 @@ export function CheckoutModal({
   }
 
   async function applyDiscount() {
+    if (renewalLockedRef.current) return;
     if (!client.checkDiscountCode || !discountCode.trim() || !brandSlug || !locationSlug) return;
+    const seq = ++discountCheckSeq.current;
     setDiscountStatus("checking");
     setDiscountError(undefined);
     setAppliedDiscount(null);
@@ -864,26 +882,44 @@ export function CheckoutModal({
         checkoutToken: pending?.checkoutToken,
         pendingPurchaseId: pending?.purchaseId,
       });
+      // El cupón sólo puede sustituir el secret de su sesión de origen.
+      const current = hostedPendingRef.current;
+      if (seq !== discountCheckSeq.current || pending?.checkoutToken !== current?.checkoutToken ||
+          pending?.purchaseId !== current?.purchaseId) return;
       if (!result.valid) {
         setDiscountStatus("error");
         setDiscountError(result.message ?? "Código no válido");
         return;
       }
-      if (result.clientSecret && result.checkoutToken) {
+      if (result.clientSecret && result.checkoutToken && current) {
         notifyStripeDiscountAdded({
           client_secret: result.clientSecret,
           checkout_token: result.checkoutToken,
         });
-        if (pending) {
-          hostedPendingRef.current = { ...pending, checkoutToken: result.checkoutToken };
-        }
+        hostedPendingRef.current = {
+          ...current,
+          checkoutToken: result.checkoutToken,
+          payload: {
+            ...current.payload,
+            paymentData: { message: result.checkoutToken, client_secret: result.clientSecret },
+          },
+        };
       }
       setAppliedDiscount(result);
       setDiscountStatus("ok");
     } catch {
+      if (seq !== discountCheckSeq.current) return;
       setDiscountStatus("error");
       setDiscountError("Código no válido");
     }
+  }
+
+  function invalidateStripeSession() {
+    ++discountCheckSeq.current;
+    discountNeedsRecheckRef.current ||= discountStatus === "checking" || discountStatus === "ok";
+    hostedAbortRef.current?.abort();
+    hostedPendingRef.current = null;
+    setPaymentReady(false);
   }
 
   giftValidateRef.current = async (code, seq, options) => {
@@ -1392,6 +1428,7 @@ export function CheckoutModal({
   }
 
   function handleGafaPaySuccess(result: GafaPaySuccess) {
+    renewalLockedRef.current = true;
     // Stripe Checkout Session: gafa.fit NO pasa a BuySystemStep aquí.
     // La compra la cierra el poll de initial-purchase-status.
     if (selectedMethod?.slug === "stripe") {
@@ -1448,6 +1485,7 @@ export function CheckoutModal({
   }
 
   async function handleHostedCheckout(data: unknown) {
+    if (selectedMethod?.slug === "stripe" && renewalLockedRef.current && hostedPendingRef.current) return;
     const profile = profileQuery.data;
     if (!profile || !selectedMethod || !brandSlug || !locationSlug) {
       setPaying(false);
@@ -1482,6 +1520,11 @@ export function CheckoutModal({
     };
 
     const isStripe = selectedMethod.slug === "stripe";
+    if (isStripe && hostedPendingRef.current?.checkoutToken !== checkoutToken) {
+      ++discountCheckSeq.current;
+      discountNeedsRecheckRef.current ||= discountStatus === "checking" || discountStatus === "ok";
+      hostedPendingRef.current = null;
+    }
     if (!isStripe) setPaying(true);
     hostedAbortRef.current?.abort();
     const abort = new AbortController();
@@ -1493,6 +1536,7 @@ export function CheckoutModal({
         throw new Error("Esta marca no tiene configurado el pago con tarjeta.");
       }
       const pending = await client.initialPurchase(payload);
+      if (abort.signal.aborted) return;
       const purchaseId = pending.purchaseId;
       const token = pending.checkoutToken?.trim() || checkoutToken;
       if (purchaseId == null) {
@@ -1502,7 +1546,13 @@ export function CheckoutModal({
       // Stripe: gafa.fit manda sendInitialPurchaseForm al crear la sesión y
       // polla al confirmar. Aquí el poll arranca en payment-start/success
       // para no dejar el CTA en “Procesando…” mientras el socio llena la tarjeta.
-      if (isStripe) return;
+      if (isStripe) {
+        if (discountNeedsRecheckRef.current) {
+          discountNeedsRecheckRef.current = false;
+          void applyDiscount();
+        }
+        return;
+      }
       const done = await pollRecurrenteUntilDone({
         client,
         brandSlug,
@@ -1516,6 +1566,7 @@ export function CheckoutModal({
       stopPopupWatchRef.current = null;
       await finishHostedPurchase({ purchaseId, reservationId: done.reservationId });
     } catch (err) {
+      if (abort.signal.aborted) return;
       if (err instanceof HostedCheckoutClosedError) {
         setPaying(false);
         return;
@@ -1607,6 +1658,7 @@ export function CheckoutModal({
       return;
     }
     if (stripeHostedSyncKeyRef.current === stripeHostedSyncKey) return;
+    if (renewalLockedRef.current) return;
     stripeHostedSyncKeyRef.current = stripeHostedSyncKey;
     void handleHostedCheckout(pending.payload.paymentData ?? { message: pending.checkoutToken });
     // handleHostedCheckout vive en el body del componente.
@@ -1803,6 +1855,8 @@ export function CheckoutModal({
   ]);
 
   async function proceedToPay() {
+    if (renewalLockedRef.current && !registerOnly) return;
+    renewalLockedRef.current = true;
     if (registerOnly && hostedPendingRef.current?.purchaseId) {
       setPaying(true);
       const pending = hostedPendingRef.current;
@@ -2241,7 +2295,9 @@ export function CheckoutModal({
                   onSuccess={handleGafaPaySuccess}
                   onHostedCheckout={handleHostedCheckout}
                   onHostedClose={releaseHostedWait}
+                  onStripeSessionChange={invalidateStripeSession}
                   onStart={() => {
+                    renewalLockedRef.current = true;
                     setPaying(true);
                     if (selectedMethod?.slug === "paypal") paypalFlowRef.current = true;
                     if (selectedMethod?.slug === "recurrente" || selectedMethod?.slug === "paypal") {
@@ -2277,6 +2333,7 @@ export function CheckoutModal({
                       ? {
                           saveCard,
                           autoRenew,
+                          disabled: renewalLocked,
                           open: membershipOptsOpen,
                           visible: showMembershipOptions,
                           onToggle: () => setMembershipOptsOpen((current) => !current),
@@ -2821,6 +2878,7 @@ function PayPanel({
   onSuccess,
   onHostedCheckout,
   onHostedClose,
+  onStripeSessionChange,
   onStart,
   onReadyChange,
   onError,
@@ -2844,6 +2902,7 @@ function PayPanel({
   onSuccess: (result: GafaPaySuccess) => void;
   onHostedCheckout: (data: unknown) => void;
   onHostedClose: () => void;
+  onStripeSessionChange: () => void;
   onStart: () => void;
   onReadyChange: (ready: boolean) => void;
   onError: (message: string) => void;
@@ -2860,6 +2919,7 @@ function PayPanel({
   membershipOptions?: {
     saveCard: boolean;
     autoRenew: boolean;
+    disabled: boolean;
     open: boolean;
     visible: boolean;
     onToggle: () => void;
@@ -2882,6 +2942,7 @@ function PayPanel({
     onStart,
     onHostedCheckout,
     onHostedClose,
+    onStripeSessionChange,
     onSaveCard: membershipOptions?.onSaveCard,
     onAutoRenew: membershipOptions?.onAutoRenew,
   });
@@ -2891,6 +2952,7 @@ function PayPanel({
     onStart,
     onHostedCheckout,
     onHostedClose,
+    onStripeSessionChange,
     onSaveCard: membershipOptions?.onSaveCard,
     onAutoRenew: membershipOptions?.onAutoRenew,
   };
@@ -2978,7 +3040,7 @@ function PayPanel({
         handlersRef.current.onError(message ?? "No pudimos actualizar el pago."),
       changePaymentSystemProperties: ({ recurringPayment, saveCard: nextSave }) => {
         if (typeof nextSave === "boolean") handlersRef.current.onSaveCard?.(nextSave);
-        if (typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
+        if (selected?.slug !== "stripe" && typeof recurringPayment === "boolean") handlersRef.current.onAutoRenew?.(recurringPayment);
       },
     }),
     [lineItems, config?.companiesId, config?.locationId, config?.userProfileId, config?.usersId, config?.currency.code, config?.termsConditionsLink, selected?.slug, customer.email, customer.firstName, customer.lastName, customer.phone, membershipOptions, lines, clientId, clientSecret, discountAmount],
@@ -3095,6 +3157,7 @@ function PayPanel({
       cancelled = true;
       cancelDeferred();
       stopPaypalCapture();
+      if (slug === "stripe") handlersRef.current.onStripeSessionChange();
       if (didMount) {
         islandRef.current?.unmount();
         islandRef.current = null;
@@ -3103,6 +3166,7 @@ function PayPanel({
   }, [slug, clientIdKey, clientSecretKey, gafaPayFrontUrl, mountNonce, mockPay, stripeRecurring]);
 
   const changeAutoRenew = (checked: boolean) => {
+    if (membershipOptions?.disabled) return;
     handlersRef.current.onAutoRenew?.(checked);
   };
 
@@ -3235,7 +3299,7 @@ function PayPanel({
         <div className="gafa-checkout-paymount__island gafa-pay-native" ref={mountRef} />
 
         {slug === "stripe" && membershipOptions ? (
-          <CheckField checked={membershipOptions.autoRenew} onChange={changeAutoRenew}>
+          <CheckField checked={membershipOptions.autoRenew} disabled={membershipOptions.disabled} onChange={changeAutoRenew}>
             Pago recurrente
           </CheckField>
         ) : null}
@@ -3265,6 +3329,7 @@ function PayPanel({
                 </CheckField>
                 <CheckField
                   checked={membershipOptions.autoRenew}
+                  disabled={membershipOptions.disabled}
                   onChange={changeAutoRenew}
                 >
                   Renovar automáticamente al vencer
@@ -3659,12 +3724,14 @@ function CheckField({
   children,
   className,
   attention,
+  disabled,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   children: React.ReactNode;
   className?: string;
   attention?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <label
@@ -3675,6 +3742,7 @@ function CheckField({
         className="gafa-check-input"
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
       <span className="gafa-check-box" aria-hidden="true" />
