@@ -3,10 +3,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  mountGafaPayWidget, waitForWidgetContent, triggerGafaPayConfirm,
+  mountGafaPayWidget, waitForWidgetContent, triggerGafaPayConfirm, notifyStripeDiscountAdded,
   type GafaPayWidgetProps, type GafaPayIsland,
 } from "./gafaPay";
 import { resetStripeSessionFetchGuardForTests, type StripeCheckoutState } from "./stripeSessionGuard";
+import { bindStripeMembershipRecurrence, syncGafaPayMembershipToggles } from "../cart/membershipPayOptions";
 
 const API = "https://payments.example.test/api/stripe.";
 const json = (data: unknown) => new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json" } });
@@ -16,7 +17,7 @@ const deferred = <T,>() => {
   return { promise, resolve };
 };
 const post = async (path: string, body: object) => (await fetch(API + path, {
-  method: "POST", body: JSON.stringify(body),
+  method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer fixture" }, body: JSON.stringify(body),
 })).json();
 
 type Payment = { message: string; client_secret: string };
@@ -35,6 +36,15 @@ function IifeForm({ host, props, payment, setPayment, recurring, setRecurring }:
 }) {
   const [saveCard, setSaveCard] = useState(false);
   const [busy, setBusy] = useState(true);
+  useEffect(() => {
+    // vw recibe el evento en window y cambia token + key del provider.
+    const onDiscount = (event: Event) => {
+      const data = (event as CustomEvent).detail;
+      setPayment({ message: data.checkout_token, client_secret: data.client_secret });
+    };
+    window.addEventListener("buq__discount_added", onDiscount);
+    return () => window.removeEventListener("buq__discount_added", onDiscount);
+  }, []);
   useEffect(() => {
     formMounts += 1;
     initStripe(payment.client_secret);
@@ -56,10 +66,10 @@ function IifeForm({ host, props, payment, setPayment, recurring, setRecurring }:
     await confirm(payment.client_secret);
   }}>
     <iframe title="Payment Element" data-secret={payment.client_secret} />
-    <input aria-label="Guardar tarjeta" type="checkbox" checked={recurring} onChange={(event) => {
+    <label>Pago Recurrente<input type="checkbox" checked={recurring} onChange={(event) => {
       if (event.target.checked) setSaveCard(true);
       setRecurring(event.target.checked);
-    }} />
+    }} /></label>
     <button type="submit" disabled={busy}>Pagar</button>
   </form>;
 }
@@ -115,7 +125,7 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
   let checkout: StripeCheckoutState;
   let network: ReturnType<typeof vi.fn>;
   let purchase: ReturnType<typeof vi.fn>;
-  const calls: { path: string; body: Record<string, any> }[] = [];
+  const calls: { path: string; body: Record<string, any>; authorization?: string | null }[] = [];
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -126,7 +136,7 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
     network = vi.fn();
     window.fetch = (async (input, init) => {
       const path = String(input).split("stripe.")[1];
-      const body = JSON.parse(String(init?.body)); calls.push({ path, body });
+      const body = JSON.parse(String(init?.body)); calls.push({ path, body, ...(path === "completeinitialpayment" ? {} : { authorization: new Headers(init?.headers).get("Authorization") }) });
       return network(path, body);
     }) as typeof fetch;
   });
@@ -238,6 +248,122 @@ describe("coordinación Stripe con consumidor React y eventos", () => {
       { path: "completeinitialpayment", body: { tokenInput: "same_token", saveCard: true } },
     ]);
     expect(confirm).toHaveBeenCalledExactlyOnceWith(box.querySelector("iframe")?.getAttribute("data-secret"));
+  });
+
+  it.each(["notify", "evento externo"])("BUQMX: %s coordina el token del cupón, conserva opciones y solo remonta el secret final", async (source) => {
+    checkout.recurringPayment = true;
+    let version = 0;
+    network.mockImplementation(async (path: string) => json(path === "completeinitialpayment" ? {} : {
+      message: "original", client_secret: `original_${++version}`,
+    }));
+    await mount(1); await advance(0);
+    await act(async () => (box.querySelector("input") as HTMLInputElement).click());
+    await advance(0);
+    expect(checkout.saveCard).toBe(true);
+    const initialSecrets = [...initStripe.mock.calls.flat()];
+    const old = deferred<Response>();
+    await advance(2001);
+    network.mockImplementationOnce(() => old.promise);
+    await act(async () => (box.querySelector("input") as HTMLInputElement).click());
+    const latestUpdate = deferred<Response>();
+    network.mockImplementation(async (_path: string, body: any) => {
+      expect(body.tokenInput).toBe("discount_token");
+      return latestUpdate.promise;
+    });
+    const detail = { client_secret: "coupon_intermediate", checkout_token: "discount_token" };
+    await act(async () => {
+      if (source === "notify") notifyStripeDiscountAdded(detail);
+      else window.dispatchEvent(new CustomEvent("buq__discount_added", { detail }));
+    });
+    const ready = vi.fn();
+    const waiting = waitForWidgetContent(box, 9000, { requireIframe: true }).then(ready);
+    await advance(0);
+    expect(initStripe.mock.calls.flat()).toEqual(initialSecrets);
+    await act(async () => old.resolve(json({ message: "original", client_secret: "obsolete" })));
+    await advance(0);
+    expect(ready).not.toHaveBeenCalled();
+    expect(initStripe.mock.calls.flat()).toEqual(initialSecrets);
+    expect(purchase.mock.calls.map(([data]) => data.client_secret)).not.toContain("obsolete");
+    await act(async () => latestUpdate.resolve(json({ message: "discount_token", client_secret: "coupon_final" })));
+    await advance(100);
+    await waiting;
+    expect(box.querySelector("iframe")?.getAttribute("data-secret")).toBe("coupon_final");
+    expect(initStripe.mock.calls.flat()).toEqual([...initialSecrets, "coupon_final"]);
+    expect(updates().slice(-1)[0]).toMatchObject({
+      body: { tokenInput: "discount_token", recurringPayment: true, saveCard: true },
+      authorization: "Bearer fixture",
+    });
+    expect(confirm).not.toHaveBeenCalled();
+    network.mockResolvedValue(json({}));
+    await act(async () => { await triggerGafaPayConfirm("stripe", box); });
+    await advance(0);
+    expect(calls.filter(({ path }) => path === "completeinitialpayment")).toEqual([
+      { path: "completeinitialpayment", body: { tokenInput: "discount_token", saveCard: true, recurringPayment: true } },
+    ]);
+    expect(confirm).toHaveBeenCalledExactlyOnceWith("coupon_final");
+  });
+
+  it("el cupón con el mismo token invalida el debounce y descarta otro cupón superado", async () => {
+    checkout.recurringPayment = false;
+    network.mockResolvedValue(json({ message: "same_token", client_secret: "initial" }));
+    await mount(1); await advance(0);
+    const old = deferred<Response>();
+    network.mockImplementationOnce(() => old.promise)
+      .mockResolvedValue(json({ message: "same_token", client_secret: "discount_final" }));
+    await act(async () => notifyStripeDiscountAdded({ checkout_token: "same_token", client_secret: "discount_old" }));
+    await advance(0);
+    expect(updates()).toHaveLength(2); // no se suprime aunque body/token sean idénticos.
+    await act(async () => notifyStripeDiscountAdded({ checkout_token: "same_token", client_secret: "discount_new" }));
+    await act(async () => old.resolve(json({ message: "same_token", client_secret: "obsolete" })));
+    await advance(0);
+    expect(box.querySelector("iframe")?.getAttribute("data-secret")).toBe("discount_final");
+    expect(initStripe.mock.calls.flat()).toEqual(["initial", "discount_final"]);
+    expect(updates()).toHaveLength(3);
+    expect(updates().every(({ body }) => body.recurringPayment === false)).toBe(true);
+    expect(purchase.mock.calls.map(([data]) => data.client_secret)).not.toContain("obsolete");
+  });
+
+  it("renovación: espera initial-purchase de 25 s y >30 s totales con progreso antes de permitir Pagar", async () => {
+    let version = 0;
+    network.mockImplementation(async () => json({ message: "same_token", client_secret: `secret_${++version}` }));
+    await mount(1); await advance(0);
+    const stop = bindStripeMembershipRecurrence(box, vi.fn());
+    network.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10_000));
+      return json({ message: "same_token", client_secret: "renewal_final" });
+    });
+    purchase.mockImplementation(async () => { await new Promise((resolve) => setTimeout(resolve, 25_000)); });
+    await act(async () => (box.querySelector("input") as HTMLInputElement).click());
+    const settled = vi.fn();
+    const paying = syncGafaPayMembershipToggles(box, { saveCard: true, autoRenew: true }).then(settled);
+    await advance(16_000);
+    expect(settled).not.toHaveBeenCalled();
+    await advance(18_999);
+    expect(settled).not.toHaveBeenCalled();
+    expect(box.querySelector("iframe")?.getAttribute("data-secret")).not.toBe("renewal_final");
+    await advance(101); await paying;
+    expect(settled).toHaveBeenCalledExactlyOnceWith(true);
+    expect(await syncGafaPayMembershipToggles(box, { saveCard: true, autoRenew: true })).toBe(true);
+    expect(box.querySelector("iframe")?.getAttribute("data-secret")).toBe("renewal_final");
+    expect(confirm).not.toHaveBeenCalled();
+    stop();
+  });
+
+  it("acepta el éxito tardío de la revisión vigente después de un timeout de inactividad", async () => {
+    network.mockResolvedValue(json({ message: "same_token", client_secret: "initial" }));
+    await mount(1); await advance(0);
+    const stop = bindStripeMembershipRecurrence(box, vi.fn());
+    const response = deferred<Response>();
+    network.mockImplementationOnce(() => response.promise);
+    await act(async () => (box.querySelector("input") as HTMLInputElement).click());
+    const paying = syncGafaPayMembershipToggles(box, { saveCard: true, autoRenew: true });
+    await advance(30_001);
+    expect(await paying).toBe(false);
+    await act(async () => response.resolve(json({ message: "same_token", client_secret: "late_current" })));
+    await advance(0);
+    expect(await syncGafaPayMembershipToggles(box, { saveCard: true, autoRenew: true })).toBe(true);
+    expect(box.querySelector("iframe")?.getAttribute("data-secret")).toBe("late_current");
+    stop();
   });
 
   it("registra un update nuevo aunque conserve tanto token como secret, sin duplicar el evento final", async () => {

@@ -1,4 +1,5 @@
 import type { CartLine } from "./cartStore";
+import { stripeSessionStatus, STRIPE_SESSION_PROGRESS_EVENT } from "../payments/stripeSessionGuard";
 
 export type MembershipPayToggles = {
   saveCard: boolean;
@@ -97,6 +98,7 @@ type StripeRecurrenceState = {
   pending?: Promise<boolean>;
   cancel?: () => void;
   failed: boolean;
+  failedRevision?: number;
   driving: boolean;
   queue: Promise<boolean>;
 };
@@ -110,26 +112,51 @@ function recurrenceState(element: Element): StripeRecurrenceState {
   return state;
 }
 
-/** Subscribe before clicking: the IIFE can emit its result synchronously. */
+/** Subscribe before clicking; wait for the complete current session, including initial-purchase. */
 function waitForStripeRecurrence(element: Element): Promise<boolean> {
   const state = recurrenceState(element);
   if (state.pending) return state.pending;
+  const startingSession = stripeSessionStatus(element);
+  const startingRevision = startingSession?.ready ? startingSession.revision : undefined;
   state.pending = new Promise((resolve) => {
+    const ready = () => {
+      const session = stripeSessionStatus(element);
+      return session ? session.ready && session.revision !== startingRevision : undefined;
+    };
+    let lastProgress = Date.now();
     const finish = (success: boolean) => {
       clearTimeout(timer);
       element.removeEventListener("initial-payment-updated", onUpdated);
       element.removeEventListener("initial-payment-update-error", onError);
+      element.removeEventListener(STRIPE_SESSION_PROGRESS_EVENT, onProgress);
       state.pending = undefined;
       state.cancel = undefined;
       state.failed = !success;
+      const session = stripeSessionStatus(element);
+      state.failedRevision = !success && session ? session.revision + (session.ready ? 1 : 0) : undefined;
       resolve(success);
     };
-    const onUpdated = () => finish(true);
+    const onUpdated = () => {
+      // El IIFE puede emitir antes de terminar la cola o desde una revisión superada.
+      if (ready() !== false) finish(true);
+    };
     const onError = () => finish(false);
-    const timer = setTimeout(() => finish(false), 15_000);
+    const onProgress = () => {
+      if (ready()) finish(true);
+    };
+    const check = () => {
+      const session = stripeSessionStatus(element);
+      if (ready()) { finish(true); return; }
+      lastProgress = Math.max(lastProgress, session?.progressAt ?? 0);
+      // Mismo presupuesto renovable que waitForWidgetContent: 30 s sin progreso.
+      if (Date.now() - lastProgress >= 30_000) { finish(false); return; }
+      timer = setTimeout(check, 50);
+    };
+    let timer = setTimeout(check, 50);
     state.cancel = onError;
     element.addEventListener("initial-payment-updated", onUpdated);
     element.addEventListener("initial-payment-update-error", onError);
+    element.addEventListener(STRIPE_SESSION_PROGRESS_EVENT, onProgress);
   });
   return state.pending;
 }
@@ -161,9 +188,18 @@ export function bindStripeMembershipRecurrence(
     const state = recurrenceState(input.closest("stripe-payment-element")!);
     if (!state.driving) onAutoRenew(input.checked);
   };
+  const onSuccess = (event: Event) => {
+    const element = event.target;
+    if (!(element instanceof Element) || !elements.has(element)) return;
+    if (stripeSessionStatus(element)?.ready !== false) recurrenceState(element).failed = false;
+  };
+  root.addEventListener("initial-payment-updated", onSuccess, true);
+  root.addEventListener(STRIPE_SESSION_PROGRESS_EVENT, onSuccess, true);
   root.addEventListener("click", onClick, true);
   root.addEventListener("change", onChange);
   return () => {
+    root.removeEventListener("initial-payment-updated", onSuccess, true);
+    root.removeEventListener(STRIPE_SESSION_PROGRESS_EVENT, onSuccess, true);
     root.removeEventListener("click", onClick, true);
     root.removeEventListener("change", onChange);
     for (const element of elements) recurrenceState(element).cancel?.();
@@ -180,6 +216,8 @@ export function setStripeMembershipAutoRenew(root: ParentNode, checked: boolean)
     if (state.pending && !await state.pending) return false;
     const current = findStripeRecurringCheckbox(root);
     if (!current || current.closest("stripe-payment-element") !== element) return false;
+    const session = stripeSessionStatus(element);
+    if (session?.ready && state.failedRevision !== undefined && session.revision >= state.failedRevision) state.failed = false;
     if (current.checked === checked) return !state.failed;
     const pending = waitForStripeRecurrence(element);
     state.driving = true;
@@ -217,6 +255,8 @@ export async function syncGafaPayMembershipToggles(
     while (state.pending) {
       if (!await state.pending) return false;
     }
+    const session = stripeSessionStatus(stripe);
+    if (session?.ready && state.failedRevision !== undefined && session.revision >= state.failedRevision) state.failed = false;
     if (state.failed) return false;
   }
   const desired = [

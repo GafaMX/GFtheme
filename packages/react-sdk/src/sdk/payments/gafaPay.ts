@@ -1015,6 +1015,7 @@ export function mountGafaPayWidget(
 export function notifyStripeDiscountAdded(detail: {
   client_secret: string;
   checkout_token: string;
+  previous_checkout_token?: string;
 }): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent("buq__discount_added", { detail }));

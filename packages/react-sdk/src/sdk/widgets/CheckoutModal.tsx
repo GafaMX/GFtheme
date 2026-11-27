@@ -607,26 +607,35 @@ export function CheckoutModal({
     ? ((config?.products?.length ? config.products : catalogQuery.data?.products) ?? [])
     : (catalogQuery.data?.products?.length ? catalogQuery.data.products : (config?.products ?? []));
   const currentCanSubscribe = (line: CartLine): boolean | undefined => {
-    // Solo datos cargados en esta sesión: el raw del carrito puede estar obsoleto.
-    for (const pool of [catalogQuery.data?.memberships, config?.memberships]) {
+    // Catálogo OK sin booleano actual = NO suscribible: pago único, sin casilla
+    // ni renovación. Un cobro único nunca renueva. Solo un ERROR del catálogo
+    // permite el fallback histórico a subscribable; nunca al can_subscribe persistido.
+    const pools = catalogQuery.isSuccess
+      ? [catalogQuery.data.memberships]
+      : catalogQuery.isError ? [config?.memberships] : [];
+    for (const pool of pools) {
       const item = pool?.find((item) => sameCatalogId(item.id, line.id));
       if (typeof item?.can_subscribe === "boolean") return item.can_subscribe;
       if (typeof item?.raw?.can_subscribe === "boolean") return item.raw.can_subscribe;
+    }
+    if (catalogQuery.isSuccess) return false;
+    if (catalogQuery.isError && !configQuery.isLoading) {
+      const item = config?.memberships?.find((item) => sameCatalogId(item.id, line.id));
+      return coerceFlag(line.raw?.subscribable ?? (item && catalogCartRaw(item)?.subscribable)) ?? false;
     }
     return undefined;
   };
   const membershipEligibilityPending = !mockPay && cartLines.some(
     (line) => line.type === "membership" && currentCanSubscribe(line) === undefined,
-  ) && ((!catalogQuery.isFetched && !catalogQuery.isError) || configQuery.isLoading);
+  );
   const relevantLines = cartLines.map((line) => {
     if (line.type !== "membership") return line;
     const item = memberships.find((item) => sameCatalogId(item.id, line.id)) ??
       config?.memberships?.find((item) => sameCatalogId(item.id, line.id));
-    const canSubscribe = currentCanSubscribe(line);
-    return item ? { ...line, raw: {
-      ...catalogCartRaw(item), ...line.raw,
-      ...(canSubscribe === undefined ? {} : { can_subscribe: canSubscribe }),
-    } } : line;
+    return { ...line, raw: {
+      ...(item ? catalogCartRaw(item) : {}), ...line.raw,
+      can_subscribe: currentCanSubscribe(line) ?? false,
+    } };
   });
   const purchaseKey = cartPurchaseKey(relevantLines);
   const membershipPurchase = cartHasMembership(relevantLines);
@@ -793,11 +802,11 @@ export function CheckoutModal({
   const selectedMethod = paymentMethods.find((method) => method.id === selectedMethodId) ?? null;
   const recurringMembership = relevantLines.find(
     (line) => line.type === "membership" &&
-      (currentCanSubscribe(line) ?? coerceFlag(line.raw?.subscribable)) === true,
+      currentCanSubscribe(line) === true,
   );
-  const autoRenew = (selectedMethod?.slug ?? paymentMethods[0]?.slug) === "stripe"
-    ? Boolean(recurringMembership && recurringMembership.autoRenew !== false)
-    : legacyAutoRenew;
+  const autoRenew = Boolean(recurringMembership) && ((selectedMethod?.slug ?? paymentMethods[0]?.slug) === "stripe"
+    ? recurringMembership?.autoRenew !== false
+    : legacyAutoRenew);
   if (selectedMethod?.slug === "stripe") stripeCheckoutState.current.recurringPayment = autoRenew;
   const setAutoRenew = (checked: boolean) => {
     if (renewalLockedRef.current) return;
@@ -916,6 +925,7 @@ export function CheckoutModal({
         notifyStripeDiscountAdded({
           client_secret: result.clientSecret,
           checkout_token: result.checkoutToken,
+          previous_checkout_token: current.checkoutToken,
         });
         hostedPendingRef.current = {
           ...current,
@@ -1146,7 +1156,7 @@ export function CheckoutModal({
         ],
         paymentTypeId,
         csrfToken: config?.csrfToken ?? null,
-        subscribe: preselect.type === "membership",
+        subscribe: false, // Producto ausente del catálogo: sin elegibilidad actual.
         setPayment: preselect.type === "membership",
         ...reservationPurchaseSeats(reservation),
       })
@@ -2357,7 +2367,7 @@ export function CheckoutModal({
                     reportPayError(message);
                   }}
                   membershipOptions={
-                    (selectedMethod?.slug === "stripe" ? Boolean(recurringMembership) : membershipPurchase)
+                    recurringMembership
                       ? {
                           saveCard,
                           autoRenew,
